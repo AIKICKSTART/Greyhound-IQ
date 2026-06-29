@@ -1,0 +1,7 @@
+# GreyhoundIQ
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Submit your sitemap
+Sitemap: https://greyhoundiq.com.au/sitemap.xml

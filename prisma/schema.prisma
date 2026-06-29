@@ -1,0 +1,304 @@
+// GreyhoundIQ Prisma schema — SQLite for dev, swap to PostgreSQL for production
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ponytail: Supabase Postgres for dev + prod. Same Prisma client everywhere.
+
+model Dog {
+  id          String         @id @default(cuid())
+  name        String
+  earBrand    String?        @unique
+  colour      String?
+  sex         String?
+  whelpDate   DateTime?
+  sireId      String?
+  damId       String?
+  sire        Dog?           @relation("SireRelation", fields: [sireId], references: [id])
+  dam         Dog?           @relation("DamRelation", fields: [damId], references: [id])
+  progenySire Dog[]          @relation("SireRelation")
+  progenyDam  Dog[]          @relation("DamRelation")
+  trainerId   String?
+  trainer     Trainer?       @relation(fields: [trainerId], references: [id])
+  retiredAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  runners     Runner[]
+  formEntries FormEntry[]
+  ownership   DogOwnership[]
+  listings    Listing[]
+
+  @@index([name])
+  @@index([sireId])
+  @@index([damId])
+}
+
+model Trainer {
+  id            String   @id @default(cuid())
+  name          String
+  state         String?
+  licenseNumber String?
+  dogs          Dog[]
+  runners       Runner[]
+  createdAt     DateTime @default(now())
+
+  @@index([name])
+}
+
+model Track {
+  id             String      @id @default(cuid())
+  name           String
+  state          String
+  surface        String?
+  circumference  Int?
+  straightLength Int?
+  boxCount       Int         @default(8)
+  hasIsolynx     Boolean     @default(false)
+  meetings       Meeting[]
+  formEntries    FormEntry[]
+  createdAt      DateTime    @default(now())
+
+  @@index([name])
+  @@index([state])
+}
+
+model Meeting {
+  id          String   @id @default(cuid())
+  trackId     String
+  track       Track    @relation(fields: [trackId], references: [id])
+  meetingDate DateTime
+  meetingType String?
+  races       Race[]
+  createdAt   DateTime @default(now())
+
+  @@index([trackId])
+  @@index([meetingDate])
+}
+
+model Race {
+  id         String   @id @default(cuid())
+  meetingId  String
+  meeting    Meeting  @relation(fields: [meetingId], references: [id])
+  raceNumber Int
+  raceTime   DateTime
+  distance   Int
+  grade      String?
+  prizeMoney Float?
+  runners    Runner[]
+  createdAt  DateTime @default(now())
+
+  @@index([meetingId])
+  @@index([raceTime])
+}
+
+model Runner {
+  id            String   @id @default(cuid())
+  raceId        String
+  race          Race     @relation(fields: [raceId], references: [id])
+  dogId         String
+  dog           Dog      @relation(fields: [dogId], references: [id])
+  boxNumber     Int
+  weight        Float?
+  trainerId     String?
+  trainer       Trainer? @relation(fields: [trainerId], references: [id])
+  startingPrice Float?
+  scratched     Boolean  @default(false)
+  result        Result?
+  createdAt     DateTime @default(now())
+
+  @@index([raceId])
+  @@index([dogId])
+}
+
+model Result {
+  id                String   @id @default(cuid())
+  runnerId          String   @unique
+  runner            Runner   @relation(fields: [runnerId], references: [id])
+  raceId            String
+  finishingPosition Int?
+  runningTime       Float?
+  margin            Float?
+  splitTime         Float?
+  sectionals        String?
+  gpsData           String?
+  createdAt         DateTime @default(now())
+
+  @@index([raceId])
+}
+
+model FormEntry {
+  id        String   @id @default(cuid())
+  dogId     String
+  dog       Dog      @relation(fields: [dogId], references: [id])
+  raceId    String?
+  trackId   String?
+  track     Track?   @relation(fields: [trackId], references: [id])
+  date      DateTime
+  boxNumber Int?
+  finish    Int?
+  time      Float?
+  distance  Int?
+  grade     String?
+  weight    Float?
+  createdAt DateTime @default(now())
+
+  @@index([dogId])
+  @@index([date])
+}
+
+model User {
+  id                   String   @id @default(cuid())
+  email                String   @unique
+  name                 String?
+  subscriptionTier     String   @default("free")
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?  @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Supabase auth links this table via supabase_auth_uid
+  supabaseUid String? @unique
+
+  // ponytail: community relations are on Profile (1:1), not User.
+  // Access via user.profile.posts etc — no redundant FKs here.
+  profile Profile?
+}
+
+// === COMMUNITY ===
+
+model Profile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  displayName  String
+  bio          String?
+  avatarUrl    String?
+  state        String?
+  kennelName   String?
+  kennelPrefix String?
+  role         String   @default("member") // member | breeder | trainer | admin
+  verified     Boolean  @default(false)
+  website      String?
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  posts            Post[]
+  threads          Thread[]
+  listings         Listing[]
+  messagesSent     Message[]      @relation("SenderMessages")
+  messagesReceived Message[]      @relation("RecipientMessages")
+  dogsOwned        DogOwnership[]
+}
+
+model DogOwnership {
+  id        String   @id @default(cuid())
+  dogId     String
+  dog       Dog      @relation(fields: [dogId], references: [id])
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id])
+  role      String // owner | breeder | trainer | co-owner
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([dogId, profileId])
+}
+
+model ForumCategory {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  sortOrder   Int      @default(0)
+  threads     Thread[]
+}
+
+model Thread {
+  id         String        @id @default(cuid())
+  categoryId String
+  category   ForumCategory @relation(fields: [categoryId], references: [id])
+  title      String
+  authorId   String
+  author     Profile       @relation(fields: [authorId], references: [id])
+  pinned     Boolean       @default(false)
+  locked     Boolean       @default(false)
+  views      Int           @default(0)
+  posts      Post[]
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([categoryId])
+}
+
+model Post {
+  id        String    @id @default(cuid())
+  threadId  String
+  thread    Thread    @relation(fields: [threadId], references: [id])
+  authorId  String
+  author    Profile   @relation(fields: [authorId], references: [id])
+  body      String
+  editedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([threadId])
+}
+
+model Listing {
+  id          String   @id @default(cuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id])
+  type        String // pup_for_sale | dog_for_sale | stud_service | wanted
+  title       String
+  description String
+  price       Float?
+  state       String?
+  dogId       String?
+  dog         Dog?     @relation(fields: [dogId], references: [id])
+  imageUrl    String?
+  status      String   @default("active") // active | sold | withdrawn
+  createdAt   DateTime @default(now())
+
+  @@index([profileId])
+  @@index([type])
+  @@index([status])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  senderId    String
+  sender      Profile  @relation("SenderMessages", fields: [senderId], references: [id])
+  recipientId String
+  recipient   Profile  @relation("RecipientMessages", fields: [recipientId], references: [id])
+  body        String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([senderId])
+  @@index([recipientId])
+}
+
+// === AGENTS ===
+
+model AgentRun {
+  id               String    @id @default(cuid())
+  agentType        String // race_analyst | breeding_advisor | form_reader | moderator
+  userId           String? // null for cron-triggered
+  inputJson        String // JSON: input params
+  outputJson       String? // JSON: structured result
+  status           String    @default("pending") // pending | running | completed | failed
+  error            String?
+  promptTokens     Int?
+  completionTokens Int?
+  durationMs       Int?
+  createdAt        DateTime  @default(now())
+  completedAt      DateTime?
+
+  @@index([agentType])
+  @@index([userId])
+  @@index([status])
+}

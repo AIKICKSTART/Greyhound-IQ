@@ -1,0 +1,31 @@
+import { DogSearch } from "@/components/dog-search";
+import { PageHero } from "@/components/page-hero";
+import { Search } from "lucide-react";
+
+export const metadata = {
+  title: "Dog Search — GreyhoundIQ",
+};
+
+export default function DogsPage() {
+  return (
+    <div className="fade-in">
+      <PageHero
+        image="/images/feature-pricing-product.png"
+        badge="DOG SEARCH"
+        badgeIcon={<Search className="h-3 w-3 text-[hsl(142_60%_48%)]" />}
+        badgeColor="green"
+        title={
+          <>
+            Find any greyhound.
+            <br />
+            <span className="gradient-text">Full history.</span>
+          </>
+        }
+        subtitle="Search the national database by name, ear brand, or trainer. Get full career form, pedigree, and stats."
+      />
+      <section className="mx-auto max-w-3xl px-6 py-16">
+        <DogSearch />
+      </section>
+    </div>
+  );
+}

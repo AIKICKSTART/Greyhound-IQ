@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GreyhoundIQ — Backend Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  :root{--green:#0B5C1E;--green-light:#2BAE5A;--green-dark:#145A2D;--orange:#F97316;--orange-light:#F89838;--navy:#040A04;--gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;--gray-300:#D1D5DB;--gray-400:#9CA3AF;--gray-500:#6B7280;--gray-600:#4B5563;--gray-700:#374151;--gray-800:#1F2937;--gray-900:#111827;--red:#EF4444;--blue:#3B82F6;--purple:#8B5CF6;}
+  *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--gray-100);color:var(--gray-900);line-height:1.7;-webkit-font-smoothing:antialiased}
+  .page{max-width:1000px;margin:0 auto;background:var(--gray-50);padding:60px 70px;box-shadow:0 0 40px rgba(0,0,0,0.05)}@media(max-width:768px){.page{padding:40px 24px}}
+  .cover{background:linear-gradient(135deg,var(--navy) 0%,#1a2e1f 100%);color:#fff;padding:50px 40px;border-radius:16px;margin:-60px -70px 40px -70px;position:relative;overflow:hidden}@media(max-width:768px){.cover{margin:-40px -24px 32px -24px;padding:40px 24px}}
+  .cover::before{content:'';position:absolute;top:-30%;right:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(27,122,61,.3) 0,transparent 60%);border-radius:50%}
+  .cover-meta{font-size:12px;color:rgba(255,255,255,.5);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;position:relative}
+  .cover h1{font-size:42px;font-weight:900;letter-spacing:-1px;line-height:1.1;margin-bottom:16px;position:relative}.cover h1 span{background:linear-gradient(90deg,var(--green-light),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .cover p{font-size:16px;color:rgba(255,255,255,.7);max-width:600px;position:relative}
+  .cover .meta-row{display:flex;gap:32px;margin-top:24px;font-size:13px;color:rgba(255,255,255,.5);position:relative;flex-wrap:wrap}.cover .meta-row strong{display:block;color:#fff;font-size:14px;margin-top:2px}
+  h2{font-size:28px;font-weight:800;letter-spacing:-.5px;margin:48px 0 16px;padding-top:20px;border-top:1px solid var(--gray-200)}h2:first-of-type{border-top:none;padding-top:0;margin-top:24px}
+  h2 .num{display:inline-block;width:36px;height:36px;line-height:36px;text-align:center;background:var(--green);color:#fff;border-radius:8px;font-size:16px;font-weight:800;margin-right:12px;vertical-align:middle}
+  h3{font-size:18px;font-weight:700;margin:28px 0 10px;color:var(--gray-800)}h4{font-size:15px;font-weight:700;margin:20px 0 8px;color:var(--gray-700)}
+  p{margin-bottom:14px;color:var(--gray-700)}ul,ol{margin:12px 0 16px 24px;color:var(--gray-700)}li{margin-bottom:6px}
+  strong{color:var(--gray-900);font-weight:600}code{font-family:'JetBrains Mono',monospace;font-size:.88em;background:var(--gray-100);padding:2px 6px;border-radius:4px;color:var(--green-dark)}
+  pre{background:var(--navy);color:#E5E7EB;padding:20px 24px;border-radius:12px;overflow-x:auto;margin:16px 0;font-size:13px;line-height:1.5;font-family:'JetBrains Mono',monospace;white-space:pre}pre code{background:transparent;color:inherit;padding:0;font-size:inherit}
+  .callout{background:linear-gradient(135deg,rgba(27,122,61,.06),rgba(249,115,22,.04));border-left:4px solid var(--green);border-radius:8px;padding:18px 22px;margin:20px 0}.callout.warn{background:linear-gradient(135deg,rgba(239,68,68,.05),rgba(249,115,22,.04));border-left-color:var(--red)}.callout .title{font-weight:700;color:var(--green-dark);margin-bottom:4px}.callout.warn .title{color:var(--red)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}th{text-align:left;padding:12px 14px;background:var(--gray-100);font-weight:700;color:var(--gray-700);border-bottom:2px solid var(--gray-300)}td{padding:12px 14px;border-bottom:1px solid var(--gray-200);vertical-align:top}tr:last-child td{border-bottom:none}td code{font-size:12px}
+  .diagram{background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:24px;margin:20px 0;overflow-x:auto}
+  .phase-card{background:#fff;border:2px solid var(--gray-200);border-radius:12px;padding:20px;margin:16px 0}.phase-card h3{margin-top:0}.phase-card .exit{background:var(--green);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-top:12px;display:inline-block}
+  .question-list{counter-reset:q;list-style:none;margin-left:0}.question-list li{counter-increment:q;padding:16px 20px 16px 56px;margin-bottom:12px;background:#fff;border:1px solid var(--gray-200);border-radius:10px;position:relative}.question-list li::before{content:counter(q);position:absolute;left:16px;top:16px;width:28px;height:28px;line-height:28px;text-align:center;background:var(--orange);color:#fff;border-radius:50%;font-weight:700;font-size:13px}
+  .toc{background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:24px 28px;margin-bottom:40px}.toc h3{margin-top:0;color:var(--green)}.toc ol{margin:8px 0 0 20px}.toc a{color:var(--gray-700);text-decoration:none}.toc a:hover{color:var(--green)}
+  .footer{margin-top:60px;padding-top:32px;border-top:1px solid var(--gray-200);text-align:center;font-size:13px;color:var(--gray-500)}
+</style>
+</head>
+<body>
+<div class="page">
+<div class="cover">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;position:relative">
+    <img src="/images/logo-mark-new.png" alt="GreyhoundIQ" style="width:40px;height:40px;border-radius:10px">
+    <span style="font-size:24px;font-weight:800;letter-spacing:-.5px">Greyhound<span style="color:var(--green-light)">IQ</span></span>
+  </div>
+  <div class="cover-meta">Architecture Review · Draft v1</div>
+  <h1>GreyhoundIQ —<br><span>Backend Architecture</span></h1>
+  <p>Supabase backend, per-user agent memory, Hermes CLI harness, rich-media messaging, and production-grade security. Review before any code is written.</p>
+  <div class="meta-row">
+    <div>Prepared for<strong>Daniel Fleuren, AI Kick Start</strong></div>
+    <div>Date<strong>28 June 2026</strong></div>
+    <div>Reading time<strong>~30 min</strong></div>
+  </div>
+</div>
+
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#scope">Scope</a></li>
+    <li><a href="#goals">Goals and non-goals</a></li>
+    <li><a href="#arch">System architecture overview</a></li>
+    <li><a href="#schema">Data model (Prisma schema)</a></li>
+    <li><a href="#supabase">Supabase setup &amp; RLS</a></li>
+    <li><a href="#auth">Authentication</a></li>
+    <li><a href="#memory">Agent memory design</a></li>
+    <li><a href="#harness">Hermes Pi CLI harness</a></li>
+    <li><a href="#media">Rich-media messaging</a></li>
+    <li><a href="#realtime">Realtime delivery</a></li>
+    <li><a href="#threat">Threat model</a></li>
+    <li><a href="#privacy">Privacy and compliance</a></li>
+    <li><a href="#ops">Operational concerns</a></li>
+    <li><a href="#phases">Build phasing</a></li>
+    <li><a href="#questions">10 questions for you</a></li>
+    <li><a href="#notin">What's deliberately NOT in scope</a></li>
+  </ol>
+</div>
+
+<h2 id="scope"><span class="num">0</span>Scope of this document</h2>
+<p>This doc covers the four interlocking systems you asked for:</p>
+<ol>
+  <li><strong>Supabase backend</strong> as the canonical data store, auth provider, realtime channel, and object store</li>
+  <li><strong>Per-user agent memory</strong> so every agent remembers each customer and resumes conversations</li>
+  <li><strong>Hermes Pi CLI harness</strong> so agents run via your existing Hermes Agent CLI on the MiniMax M3 token plan</li>
+  <li><strong>Rich-media customer-to-customer messaging</strong> (text, image, video, voice)</li>
+  <li><strong>Production-grade security</strong> across every layer (the part that actually matters)</li>
+</ol>
+<p>It deliberately <strong>does not</strong> cover the race-data side of GreyhoundIQ (dogs, races, results) — that's already built and approved. This doc is everything new.</p>
+
+<h2 id="goals"><span class="num">1</span>Goals and non-goals</h2>
+<h3>Goals</h3>
+<ul>
+  <li>Each user has a persistent identity across web, future mobile, and AI agent channels.</li>
+  <li>Each user has a personal AI assistant that <strong>remembers</strong> prior conversations, preferences, owned dogs, watched races, and unfinished work.</li>
+  <li>Customers can message each other with text + image + video + voice, with realtime delivery and message persistence.</li>
+  <li>All data lives in Supabase (Postgres + Storage + Realtime + Auth).</li>
+  <li>Agents run via Hermes Agent CLI as subprocesses on your token plan — no separate LLM API costs.</li>
+  <li>Production security: real auth, real RLS, real threat model. Not toy.</li>
+</ul>
+<h3>Non-goals (ponytail)</h3>
+<ul>
+  <li>Mobile apps (web-only for now).</li>
+  <li>End-to-end encryption of messages (Supabase TLS in transit, at-rest encrypted, but server can read — fine for greyhound community messaging).</li>
+  <li>Multi-region / global edge. Single-region Supabase project.</li>
+  <li>Voice/video calling (WebRTC). Voice <strong>messages</strong> (recorded audio attachments) are in scope.</li>
+  <li>Real-time AI agent-to-agent hand-offs. Single agents per task.</li>
+</ul>
+
+<h2 id="arch"><span class="num">2</span>System architecture overview</h2>
+<div class="diagram">
+<pre>┌─────────────────────────────────────────────────────────────────────┐
+│                        Next.js 14 (App Router)                       │
+│   ┌─────────────────┐   ┌──────────────────┐   ┌─────────────────┐ │
+│   │  Server Comps   │   │  Route Handlers  │   │  Client Comps   │ │
+│   └────────┬────────┘   └─────────┬────────┘   └────────┬────────┘ │
+│            ▼                       ▼                     ▼          │
+│   ┌─────────────────────────────────────────────────┐              │
+│   │      Service Layer (profile · messages · memory) │              │
+│   └────┬──────────────┬──────────────────┬───────────┘              │
+│        │              │                  │                          │
+│        ▼              ▼                  ▼                          │
+│   ┌─────────┐   ┌────────────┐   ┌────────────────┐                │
+│   │ Prisma  │   │  Supabase  │   │  Hermes Agent  │                │
+│   │ Client  │   │   Client   │   │   CLI subprocess │              │
+│   │ (SQL)   │   │ (Realtime, │   │                │                │
+│   │         │   │  Storage,  │   │                │                │
+│   │         │   │  Auth)     │   │                │                │
+│   └────┬────┘   └─────┬──────┘   └────────┬───────┘                │
+└────────┼──────────────┼──────────────────┼────────────────────────┘
+         ▼              ▼                  ▼
+   ┌───────────┐  ┌──────────────────┐  ┌─────────────────────┐
+   │ Supabase  │  │  Supabase        │  │  Hermes Agent CLI   │
+   │ Postgres  │  │  Storage / RT    │  │  MiniMax M3 tokens  │
+   │ (managed) │  │  / Auth          │  │  (your plan)        │
+   └───────────┘  └──────────────────┘  └─────────────────────┘</pre>
+</div>
+<p><strong>Key design choice:</strong> Prisma + Supabase Client both talk to the same Postgres database. Prisma owns complex queries (joins, aggregations, typed writes). Supabase client owns realtime subscriptions and storage uploads. Two clients, one DB, no sync issues.</p>
+
+<h2 id="schema"><span class="num">3</span>Data model</h2>
+<p>Below is the <strong>new</strong> schema (additions to the existing greyhoundiq schema). Existing models (Dog, Race, Trainer, etc.) stay as-is. New models for community, messaging, memory, and agent harness.</p>
+
+<h3>3.1 Identity and profiles</h3>
+<pre>model User {
+  id                   String    @id @default(cuid())
+  // Supabase auth uses auth.users.id (uuid). We mirror it here for FK joins.
+  supabaseUserId       String    @unique
+  email                String    @unique
+  displayName          String?
+  avatarUrl            String?
+  subscriptionTier     String    @default("free") // free | pro | pro_plus
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  isAdmin              Boolean   @default(false)
+  isBanned             Boolean   @default(false)
+  bannedReason         String?
+  lastSeenAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  profile              Profile?
+  ownedDogs            DogOwnership[]
+  threadsAuthored      Thread[]
+  postsAuthored        Post[]
+  listingsCreated      Listing[]
+  messagesSent         Message[]    @relation("MessagesSent")
+  messagesReceived     Message[]    @relation("MessagesReceived")
+  conversationsAsA    Conversation[] @relation("ConversationParticipantA")
+  conversationsAsB    Conversation[] @relation("ConversationParticipantB")
+  agentRuns            AgentRun[]
+  memoryEntries        MemoryEntry[]
+  uploadedMedia        MediaAsset[]
+  reportsFiled         Report[]      @relation("Reporter")
+  reportsAgainst       Report[]      @relation("Reported")
+  refreshTokens        RefreshToken[]
+  sessions             UserSession[]
+  apiKeys              ApiKey[]
+
+  @@index([supabaseUserId])
+  @@index([subscriptionTier])
+}
+
+model Profile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio           String?
+  state         String?  // NSW | VIC | QLD | SA | WA | TAS | ACT | NT
+  kennelName    String?
+  kennelPrefix  String?
+  role          String   @default("member") // member | breeder | trainer | admin
+  verified      Boolean  @default(false)
+  website       String?
+  showEmail     Boolean  @default(false)
+  showOwnedDogs Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model UserSession {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String   @unique
+  userAgent        String?
+  ip               String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime @default(now())
+}</pre>
+
+<p><strong>Why two session tables?</strong> <code>UserSession</code> is the active browser session. <code>RefreshToken</code> is for short-lived API tokens used by the Hermes CLI and mobile clients (future). Same shape, different lifetimes.</p>
+
+<h3>3.2 Community</h3>
+<pre>model ForumCategory {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  sortOrder   Int      @default(0)
+  threads     Thread[]
+  createdAt   DateTime @default(now())
+}
+
+model Thread {
+  id          String   @id @default(cuid())
+  categoryId  String
+  category    ForumCategory @relation(fields: [categoryId], references: [id])
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  title       String
+  pinned      Boolean  @default(false)
+  locked      Boolean  @default(false)
+  views       Int      @default(0)
+  posts       Post[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  threadId    String
+  thread      Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  body        String
+  editedAt    DateTime?
+  hiddenAt    DateTime?
+  hiddenReason String?
+  createdAt   DateTime @default(now())
+
+  @@index([threadId])
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model Listing {
+  id          String   @id @default(cuid())
+  creatorId   String
+  creator     User     @relation(fields: [creatorId], references: [id])
+  type        String   // pup_for_sale | dog_for_sale | stud_service | wanted | share
+  title       String
+  description String
+  price       Float?
+  currency    String?  @default("AUD")
+  state       String?
+  dogId       String?
+  dog         Dog?     @relation(fields: [dogId], references: [id])
+  status      String   @default("active") // active | sold | withdrawn | expired
+  expiresAt   DateTime?
+  media       ListingMedia[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([creatorId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}</pre>
+
+<p><strong>Why listing expiry?</strong> Marketplace listings that never get removed become junk. 90-day default expiry, creator can renew.</p>
+
+<h3>3.3 Messaging with rich media</h3>
+<pre>model Conversation {
+  id            String  @id @default(cuid())
+  participantAId String
+  participantBId String
+  participantA   User   @relation("ConversationParticipantA", fields: [participantAId], references: [id])
+  participantB   User   @relation("ConversationParticipantB", fields: [participantBId], references: [id])
+  lastMessageAt  DateTime?
+  blockedById    String?
+  blockedAt      DateTime?
+  createdAt      DateTime @default(now())
+  messages       Message[]
+
+  @@unique([participantAId, participantBId])
+}
+
+model Message {
+  id              String  @id @default(cuid())
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId        String
+  sender          User     @relation("MessagesSent", fields: [senderId], references: [id])
+  body            String?
+  media           MessageMedia[]
+  readAt          DateTime?
+  deletedBySenderAt    DateTime?
+  deletedByRecipientAt DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model MediaAsset {
+  id              String  @id @default(cuid())
+  uploaderId      String
+  uploader        User    @relation(fields: [uploaderId], references: [id])
+  storageBucket   String
+  storagePath     String
+  mimeType        String  // image/jpeg | video/mp4 | audio/mp4 | audio/webm
+  sizeBytes       Int
+  widthPx         Int?
+  heightPx        Int?
+  durationSec     Float?
+  scanStatus      String  @default("pending") // pending | clean | infected | error
+  scanCompletedAt DateTime?
+  sha256          String  // dedup, content addressing
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+
+  messageAttachments MessageMedia[]
+  listingAttachments ListingMedia[]
+
+  @@unique([sha256, uploaderId])
+}
+
+model MessageMedia {
+  messageId String
+  message   Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     MediaAsset @relation(fields: [mediaId], references: [id])
+  position  Int
+
+  @@id([messageId, mediaId])
+}
+
+model ListingMedia {
+  listingId String
+  listing   Listing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     MediaAsset @relation(fields: [mediaId], references: [id])
+  position  Int
+
+  @@id([listingId, mediaId])
+}</pre>
+
+<p><strong>Storage buckets:</strong> <code>messages</code> (private, per-conversation RLS), <code>listings</code> (public-read), <code>avatars</code> (public-read), <code>agent-outputs</code> (private). Private content served only via signed URLs or our own proxy route — never raw storage URLs.</p>
+
+<h3>3.4 Agent memory (Cognee-style)</h3>
+<p>The shape is deliberately simple — no graph DB, no embeddings to start. Add embeddings later when scale justifies it.</p>
+<pre>model MemoryEntry {
+  id            String  @id @default(cuid())
+  userId        String
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind          String  // episodic | semantic | preference | unfinished
+  content       String
+  source        String  // conversation | explicit_user_input | agent_inference | tool_observation
+  sourceRef     String?
+  importance    Float   @default(0.5)
+  lastAccessedAt DateTime @default(now())
+  accessCount   Int     @default(0)
+  embedding     Unsupported("vector(1536)")?  // pgvector, Phase 2
+  supersededById String?
+  supersededAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, kind])
+  @@index([userId, importance])
+}
+
+model ConversationContext {
+  id              String  @id @default(cuid())
+  userId          String
+  agentType       String  // race_analyst | breeding_advisor | form_reader | general
+  lastMessageAt   DateTime @default(now())
+  pendingAction   String? // JSON: { type: "wait_for_user_input", prompt: "..." }
+  windowSize      Int     @default(50)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, agentType])
+}
+
+model AgentRun {
+  id               String  @id @default(cuid())
+  userId           String?
+  user             User?   @relation(fields: [userId], references: [id])
+  agentType        String
+  inputJson        String
+  outputJson       String?
+  toolInvocations  String?
+  createdMemoryIds String?
+  status           String  @default("pending")
+  error            String?
+  promptTokens     Int?
+  completionTokens Int?
+  durationMs       Int?
+  harnessPid       Int?
+  harnessSessionId String?
+  createdAt        DateTime @default(now())
+  completedAt      DateTime?
+
+  @@index([agentType])
+  @@index([userId])
+  @@index([status])
+}</pre>
+
+<p><strong>Memory retrieval (Phase 1, no embeddings):</strong></p>
+<ol>
+  <li>Always include user's <code>identity</code> (display name, owned dogs, tier) — top 20 high-importance memories.</li>
+  <li>Always include last <code>ConversationContext.pendingAction</code>.</li>
+  <li>Always include last 5 episodic memories (conversation summaries).</li>
+  <li>Skip semantic search until Phase 2 (pgvector).</li>
+</ol>
+
+<h3>3.5 Moderation and API keys</h3>
+<pre>model Report {
+  id            String  @id @default(cuid())
+  reporterId    String
+  reporter      User    @relation("Reporter", fields: [reporterId], references: [id])
+  reportedId    String?
+  reported      User?   @relation("Reported", fields: [reportedId], references: [id])
+  targetType    String  // post | thread | listing | message | profile | user
+  targetId      String
+  reason        String  // spam | harassment | misinformation | illegal | other
+  description   String?
+  status        String  @default("open")
+  resolvedBy    String?
+  resolvedAt    DateTime?
+  resolutionNotes String?
+  createdAt     DateTime @default(now())
+
+  @@index([status])
+  @@index([targetType, targetId])
+}
+
+model ApiKey {
+  id         String  @id @default(cuid())
+  userId     String
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  keyHash    String  @unique  // SHA-256, not the key itself
+  prefix     String  // first 8 chars for display
+  scopes     String  // comma-sep: "agent:race-analyst" | "data:read" | "data:write"
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}</pre>
+
+<h2 id="supabase"><span class="num">4</span>Supabase setup &amp; RLS</h2>
+<h3>4.1 Project configuration</h3>
+<ul>
+  <li><strong>Region:</strong> <code>ap-southeast-2</code> (Sydney).</li>
+  <li><strong>Plan:</strong> Supabase Pro ($25/mo).</li>
+  <li><strong>Auth providers:</strong> Email + password, Google OAuth, Apple OAuth (later).</li>
+  <li><strong>Email:</strong> Custom SMTP via Resend.</li>
+  <li><strong>Custom domain:</strong> <code>auth.greyhoundiq.com.au</code>, <code>api.greyhoundiq.com.au</code>.</li>
+</ul>
+
+<h3>4.2 Postgres extensions to enable</h3>
+<ul>
+  <li><code>pgvector</code> (memory embeddings, Phase 2)</li>
+  <li><code>pgcrypto</code> (default — <code>gen_random_uuid()</code>)</li>
+  <li><code>citext</code> (case-insensitive email)</li>
+  <li><code>pg_trgm</code> (username search)</li>
+</ul>
+
+<h3>4.3 Row Level Security — the security backbone</h3>
+<p>Every table gets RLS enabled. Sample policies:</p>
+<pre>-- USERS: self + others' public fields
+alter table "User" enable row level security;
+
+create policy "user_read_public" on "User" for select using (
+  auth.uid() = "User"."supabaseUserId"
+  or exists (
+    select 1 from "Profile" p
+    where p."userId" = "User".id and p."showOwnedDogs" = true
+  )
+);
+
+create policy "user_update_self" on "User" for update using (
+  auth.uid() = "User"."supabaseUserId"
+);
+
+-- MESSAGES: only sender + recipient can read
+create policy "message_read_participants" on "Message" for select using (
+  exists (
+    select 1 from "Conversation" c
+    where c.id = "Message"."conversationId"
+    and (c."participantAId" = auth.uid()::text
+      or c."participantBId" = auth.uid()::text)
+  )
+);
+
+-- MEMORY: only owning user (and service role for agents)
+create policy "memory_read_self" on "MemoryEntry" for select using (
+  "userId" = (select id from "User" where "supabaseUserId" = auth.uid())
+);</pre>
+
+<div class="callout warn">
+  <div class="title">Service role key bypass</div>
+  RLS is bypassed by the service role key. Used <strong>only</strong> in agent harness subprocesses, cron jobs, and admin tooling. Never exposed to the browser. Stored in env var only.
+</div>
+
+<h3>4.4 Storage buckets and policies</h3>
+<table>
+  <thead><tr><th>Bucket</th><th>Read</th><th>Write</th></tr></thead>
+  <tbody>
+    <tr><td><code>messages</code></td><td>Conversation participants only</td><td>Uploader (self)</td></tr>
+    <tr><td><code>listings</code></td><td>Public</td><td>Owner</td></tr>
+    <tr><td><code>avatars</code></td><td>Public</td><td>Owner</td></tr>
+    <tr><td><code>agent-outputs</code></td><td>Owner</td><td>Owner</td></tr>
+  </tbody>
+</table>
+
+<h3>4.5 Realtime channels</h3>
+<p>Supabase Realtime is enabled per-table:</p>
+<pre>alter publication supabase_realtime add table "Message";
+alter publication supabase_realtime add table "Conversation";
+
+create or replace function update_conversation_last_message()
+returns trigger as $$
+begin
+  update "Conversation"
+  set "lastMessageAt" = new."createdAt"
+  where id = new."conversationId";
+  return new;
+end;
+$$ language plpgsql;</pre>
+
+<h2 id="auth"><span class="num">5</span>Authentication</h2>
+<h3>5.1 Strategy</h3>
+<p><strong>Supabase Auth</strong> handles the heavy lifting. Used directly — no NextAuth wrapper, fewer abstractions, less attack surface.</p>
+<ul>
+  <li><strong>Email + password:</strong> argon2id (Supabase default). Min 12 chars.</li>
+  <li><strong>Magic link:</strong> opt-in, Resend SMTP.</li>
+  <li><strong>OAuth:</strong> Google (P1), Apple (P2).</li>
+  <li><strong>Session storage:</strong> <code>localStorage</code> for web. HTTP-only cookie via <code>@supabase/ssr</code> for SSR.</li>
+  <li><strong>Refresh tokens:</strong> rotation on every API call.</li>
+</ul>
+
+<h3>5.2 Protected routes (SSR)</h3>
+<pre>// src/lib/auth/server.ts
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+export async function getServerUser() {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(/* ... */);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  return prisma.user.findUnique({
+    where: { supabaseUserId: user.id },
+    include: { profile: true },
+  });
+}</pre>
+
+<h3>5.3 Threats handled at auth layer</h3>
+<table>
+  <thead><tr><th>Threat</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>Credential stuffing</td><td>Supabase rate limit + CAPTCHA after N failures</td></tr>
+    <tr><td>Session theft via XSS</td><td>HTTP-only cookies, short access tokens (1h), refresh rotation</td></tr>
+    <tr><td>CSRF</td><td>SameSite=Lax + Supabase double-submit cookie</td></tr>
+    <tr><td>Password spraying</td><td>Account lockout after 10 failed attempts / 15 min</td></tr>
+    <tr><td>Account enumeration</td><td>Generic error messages on auth</td></tr>
+    <tr><td>Open redirect</td><td>OAuth callback URLs whitelisted to our domains</td></tr>
+    <tr><td>Email bombing (sign-up spam)</td><td>CAPTCHA on sign-up, rate limit per IP</td></tr>
+  </tbody>
+</table>
+
+<h2 id="memory"><span class="num">6</span>Agent memory design</h2>
+<h3>6.1 The "pick up where they left off" loop</h3>
+<div class="diagram">
+<pre>User opens chat with agent
+        │
+        ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 1. RECALL                                                    │
+│    - Load user.identity (display name, owned dogs, tier)     │
+│    - Load user.preferences (top 20 high-importance memories) │
+│    - Load conversation.resume_context (last message + state) │
+│    - Load agent.episodic_memory (last 5 conversations)      │
+└───────────────────────────────┬─────────────────────────────┘
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 2. SYSTEM PROMPT ASSEMBLY                                    │
+│    Compose system prompt from recalled memories             │
+│    "You are helping {name}, who owns {dogs}. They           │
+│     previously {last_episode}. They asked about X but       │
+│     never finished. Resume by acknowledging where they left."│
+└───────────────────────────────┬─────────────────────────────┘
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 3. REASON                                                    │
+│    - Hermes Agent CLI runs (separate process)                │
+│    - Has tools: get_race, get_dog_form, get_user_owned_dogs,│
+│      save_memory, update_conversation_context               │
+└───────────────────────────────┬─────────────────────────────┘
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 4. REMEMBER                                                  │
+│    After each run, write new MemoryEntry rows:              │
+│    - This conversation summary (episodic, importance 0.6)   │
+│    - Any preferences the user stated (preference, 0.8)     │
+│    - Any unfinished work (unfinished, 0.9)                  │
+│    - Decay old memories not accessed in 90 days            │
+└─────────────────────────────────────────────────────────────┘</pre>
+</div>
+
+<h3>6.2 Memory lifecycle</h3>
+<pre>NEW → ACCESSED → REINFORCED → DECAYED → SUPERSEDED
+ importance     +0.1 if     -0.05/30d   new entry
+ set            accessed    of no       points to
+                in 14d      access      old entry
+                floor 0.1
+                (never deleted)</pre>
+
+<h3>6.3 Conversation resume</h3>
+<p>When an agent finishes with an unfinished action, it stores:</p>
+<pre>{
+  "pendingAction": {
+    "type": "wait_for_user_input",
+    "prompt": "Which sire do you want to test with Aston Queen?",
+    "context": { "damId": "abc", "intent": "testmating" }
+  }
+}</pre>
+<p>Next conversation picks up: <em>"Last time you were picking a sire for Aston Queen. Which one?"</em></p>
+
+<h2 id="harness"><span class="num">7</span>Hermes Pi CLI harness</h2>
+<h3>7.1 Why Hermes Agent CLI?</h3>
+<ul>
+  <li>No separate LLM API costs (already on MiniMax M3 plan).</li>
+  <li>Same agent logic across web UI, future CLI, cron jobs.</li>
+  <li>Consistent tool calling format.</li>
+</ul>
+
+<h3>7.2 Architecture</h3>
+<pre>┌──────────────────────────────────────────────────────────┐
+│ Next.js API route: POST /api/agents/:type/run            │
+│                                                          │
+│ 1. Validates user + creates AgentRun row (status=pending)│
+│ 2. Loads memory + builds system prompt                    │
+│ 3. spawns: hermes agent --prompt <prompt> \              │
+│               --tools ./src/lib/agents/tools/*.ts \      │
+│               --output-format json                       │
+│ 4. Streams output to a per-run temp file                 │
+│ 5. Polls subprocess every 500ms (or uses stdio pipe)     │
+│ 6. Updates AgentRun row with output + status             │
+│ 7. Writes memory entries via memory.save tool            │
+└──────────────────────────────────────────────────────────┘</pre>
+
+<h3>7.3 Security at the harness boundary</h3>
+<table>
+  <thead><tr><th>Threat</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>Prompt injection via user input</td><td>Agents use structured tool calls, not raw SQL.</td></tr>
+    <tr><td>Tool calling unauthorised APIs</td><td>Tools are whitelisted in agent config. Adding a tool requires code review.</td></tr>
+    <tr><td>Subprocess escape</td><td>Run as a dedicated low-privilege user. No shell. <code>spawn('hermes', args, { shell: false })</code>.</td></tr>
+    <tr><td>Token exfiltration via response</td><td>Post-process responses to strip credentials, secrets, foreign user IDs.</td></tr>
+    <tr><td>Runaway cost</td><td>Hard limit: 50k tokens per run, 5 min duration, 10 runs/hour for Pro, 100/hour for Pro+.</td></tr>
+    <tr><td>Cross-user data leakage</td><td>Every tool that reads user data filters by <code>currentUser.id</code>. Enforced by a linter rule.</td></tr>
+  </tbody>
+</table>
+
+<h3>7.4 Cancellation</h3>
+<pre>// src/lib/agents/cancel.ts
+export async function cancelAgentRun(runId: string) {
+  const run = await prisma.agentRun.findUnique({ where: { id: runId } });
+  if (!run?.harnessPid) return;
+  process.kill(run.harnessPid, "SIGTERM");
+  setTimeout(() => {
+    try { process.kill(run.harnessPid, "SIGKILL"); } catch {}
+  }, 5000);
+  await prisma.agentRun.update({
+    where: { id: runId },
+    data: { status: "cancelled", completedAt: new Date() },
+  });
+}</pre>
+
+<h2 id="media"><span class="num">8</span>Rich-media messaging</h2>
+<h3>8.1 Upload flow</h3>
+<pre>Browser selects file
+        │
+        ▼
+Client: validate type + size (image ≤ 10MB, video ≤ 200MB)
+        │
+        ▼
+Client: request signed upload URL from /api/media/sign-upload
+        │
+        ▼
+Server: validates user, creates MediaAsset row (pending),
+        returns signed Supabase Storage URL
+        │
+        ▼
+Browser: PUT file directly to Supabase Storage
+        │
+        ▼
+Client: POST /api/media/:id/finalize — triggers virus scan + thumbnail
+        │
+        ▼
+Edge Function: ClamAV scan, ffmpeg metadata extract, update MediaAsset
+        │
+        ▼
+Client: attaches MediaAsset.id to message via MessageMedia</pre>
+
+<h3>8.2 Threats handled</h3>
+<table>
+  <thead><tr><th>Threat</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>Malware upload</td><td>ClamAV scan before delivery; <code>scanStatus=clean</code> required to attach to message</td></tr>
+    <tr><td>Executable disguised as media</td><td>Strict MIME sniffing (not just trusting client header)</td></tr>
+    <tr><td>CSAM (illegal content)</td><td>PhotoDNA integration (Phase 2 — required by AU law, hard legal gate before launch)</td></tr>
+    <tr><td>Path traversal in storage keys</td><td>Server constructs paths from IDs only; never accept user-supplied filenames</td></tr>
+    <tr><td>Storage abuse (free-tier dumping)</td><td>Quota per user (1GB free, 10GB Pro, 100GB Pro+) enforced at upload</td></tr>
+    <tr><td>EXIF privacy leak</td><td>Strip EXIF on image processing (sharp <code>withMetadata: false</code>)</td></tr>
+    <tr><td>Unauth storage reads</td><td>All private buckets require RLS-checked signed URLs (1h expiry)</td></tr>
+    <tr><td>Replay attacks</td><td>Signed URLs include nonce; idempotency key on upload finalize</td></tr>
+  </tbody>
+</table>
+
+<h3>8.3 Voice and video</h3>
+<ul>
+  <li><strong>Voice:</strong> MediaRecorder API → opus/webm → same upload flow. Max 5 min.</li>
+  <li><strong>Video:</strong> <code>video/mp4</code> or <code>video/webm</code>. Max 60s, 200MB. Thumbnail at 1s mark via ffmpeg.wasm in Edge Function.</li>
+  <li><strong>Inline preview:</strong> <code>&lt;video&gt;</code> with poster from thumbnail.</li>
+</ul>
+
+<div class="callout warn">
+  <div class="title">No E2E encryption in v1</div>
+  For a greyhound community, E2E adds complexity without proportional value. Server can read messages (for moderation, search, agent memory). If users demand it later, add Signal Protocol library — but only after market validation.
+</div>
+
+<h2 id="realtime"><span class="num">9</span>Realtime delivery</h2>
+<h3>9.1 Delivery guarantees</h3>
+<ul>
+  <li><strong>At-least-once:</strong> server retries on client disconnect. Idempotency key prevents double-insert.</li>
+  <li><strong>Order preservation:</strong> messages in a conversation always arrive in <code>createdAt</code> order.</li>
+  <li><strong>Read receipts:</strong> receiver emits <code>read</code> event on message visible. Server updates <code>readAt</code>.</li>
+</ul>
+
+<h3>9.2 Presence and offline</h3>
+<p>Phase 2: presence channel per user. Phase 1: no presence. Offline messages persist in DB, delivered on reconnect via Realtime backlog or REST pagination with <code>?after=cursor</code>.</p>
+
+<h2 id="threat"><span class="num">10</span>Threat model</h2>
+<h3>10.1 Categories</h3>
+<table>
+  <thead><tr><th>Category</th><th>Example attack</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>Credential attacks</td><td>Brute force, stuffing</td><td>Rate limit, CAPTCHA, 2FA (later)</td></tr>
+    <tr><td>Session hijacking</td><td>XSS, token theft</td><td>HTTP-only cookies, short tokens, refresh rotation</td></tr>
+    <tr><td>Authorization bypass</td><td>IDOR — read others' messages</td><td>RLS on every table, service layer guard</td></tr>
+    <tr><td>Injection</td><td>SQL injection, prompt injection</td><td>Prisma parameterizes; agents use tools not raw SQL</td></tr>
+    <tr><td>CSRF</td><td>Forged state-changing requests</td><td>SameSite cookies, double-submit token, Origin check</td></tr>
+    <tr><td>Abuse</td><td>Spam, harassment, fraud</td><td>Reporting system, moderator agent, rate limits, ban</td></tr>
+    <tr><td>Data exfiltration</td><td>Dump entire DB via API</td><td>Pagination caps (100/page), rate limits</td></tr>
+    <tr><td>Storage abuse</td><td>Use us as free CDN</td><td>Per-user quotas, signed URL expiry</td></tr>
+    <tr><td>Malware</td><td>Upload infected file</td><td>ClamAV, reject if positive</td></tr>
+    <tr><td>Illegal content</td><td>CSAM, threats</td><td>PhotoDNA, report to ACSC, immediate ban</td></tr>
+    <tr><td>Account takeover</td><td>Phishing, SIM swap</td><td>Email change confirmation, session revoke</td></tr>
+    <tr><td>Supply chain</td><td>Malicious npm package</td><td>Dependabot, lockfile review, pinned versions</td></tr>
+    <tr><td>Insider threat</td><td>Rogue admin</td><td>AuditLog, separate admin pool</td></tr>
+  </tbody>
+</table>
+
+<h3>10.2 Audit logging</h3>
+<pre>model AuditLog {
+  id        BigInt   @id @default(autoincrement())
+  actorId   String?
+  actorType String   // user | agent | system | admin
+  action    String   // e.g. "user.ban", "post.hide", "memory.read"
+  targetType String?
+  targetId  String?
+  ip        String?
+  userAgent String?
+  metadata  String?
+  createdAt DateTime @default(now())
+}</pre>
+<p>Always audit: user ban, post hide, message delete, agent memory read, admin role grant, API key issuance.</p>
+
+<h3>10.3 NOT secured in v1</h3>
+<ul>
+  <li>2FA / TOTP — Phase 2</li>
+  <li>SSO / SAML — no enterprise use case</li>
+  <li>Penetration testing — budget before launch ($5k–$15k)</li>
+  <li>Bug bounty — after launch</li>
+  <li>SIEM / SOC — overkill at this scale</li>
+  <li>DLP — not needed</li>
+</ul>
+
+<h2 id="privacy"><span class="num">11</span>Privacy and compliance</h2>
+<h3>11.1 Australian Privacy Principles (APPs)</h3>
+<ul>
+  <li><strong>APP 1</strong> (accountability): privacy policy on site</li>
+  <li><strong>APP 6</strong> (use/disclosure): data only used for stated purposes</li>
+  <li><strong>APP 8</strong> (cross-border): Supabase region Sydney, no transfer</li>
+  <li><strong>APP 11</strong> (security): RLS, encryption, audit logs</li>
+  <li><strong>APP 12</strong> (access): users can export their data via <code>/api/me/export</code></li>
+  <li><strong>APP 13</strong> (correction): profile edit form</li>
+</ul>
+
+<h3>11.2 Account deletion</h3>
+<p>Right to be forgotten. <code>/api/me/delete</code>:</p>
+<ol>
+  <li>Soft-delete (mark <code>User.isBanned=true</code>, anonymize email).</li>
+  <li>Wait 30 days (recovery window).</li>
+  <li>Hard delete via scheduled job: anonymize PII in messages, posts, listings. Keep structural rows for analytics but no PII.</li>
+</ol>
+
+<h2 id="ops"><span class="num">12</span>Operational concerns</h2>
+<h3>12.1 Background jobs</h3>
+<ul>
+  <li>Memory decay (daily, 2am AEST)</li>
+  <li>Listing expiry (daily, 1am AEST)</li>
+  <li>Community moderator agent (every 30 min)</li>
+  <li>Agent run cleanup (hourly, kill runs &gt; 24h)</li>
+  <li>Soft-delete hard-delete (daily)</li>
+</ul>
+<p><strong>ponytail:</strong> No Redis/BullMQ. Use Vercel Cron or system cron on the VPS hitting HTTP endpoints with a shared-secret header.</p>
+
+<h3>12.2 Error tracking</h3>
+<p>Sentry. One project, three environments. User context attached via <code>Sentry.user.id</code>. PII stripped before sending.</p>
+
+<h3>12.3 Cost</h3>
+<table>
+  <thead><tr><th>Item</th><th>Monthly</th></tr></thead>
+  <tbody>
+    <tr><td>Supabase Pro</td><td>$25</td></tr>
+    <tr><td>Resend (transactional email)</td><td>$0–$20</td></tr>
+    <tr><td>Hermes MiniMax M3 plan</td><td>existing</td></tr>
+    <tr><td>Hetzner VPS</td><td>$8–$30 (existing)</td></tr>
+    <tr><td>Sentry free tier</td><td>$0</td></tr>
+    <tr><td><strong>Total new</strong></td><td><strong>$33–$75/mo</strong></td></tr>
+  </tbody>
+</table>
+
+<h2 id="phases"><span class="num">13</span>Build phasing</h2>
+<p>Each phase has a clear exit criterion. We stop and review between phases.</p>
+
+<div class="phase-card">
+  <h3>Phase 1: Foundation (Week 1–2)</h3>
+  <ul>
+    <li>Create Supabase project (Sydney region, Pro plan)</li>
+    <li>Configure RLS, storage buckets, realtime</li>
+    <li>Migrate Prisma schema to Postgres (section 3)</li>
+    <li>Wire Supabase Auth (email + Google)</li>
+    <li>Build the media upload pipeline (signed URLs, virus scan)</li>
+    <li>Build messaging backend (Prisma + Supabase Realtime)</li>
+    <li>Build minimal messaging UI</li>
+  </ul>
+  <div class="exit">Exit: Two users can sign up, message each other with text + image.</div>
+</div>
+
+<div class="phase-card">
+  <h3>Phase 2: Memory (Week 2–3)</h3>
+  <ul>
+    <li>Implement memory CRUD + decay</li>
+    <li>Implement conversation context</li>
+    <li>Build the agent harness (spawn Hermes Agent CLI)</li>
+    <li>Implement four core agents (race analyst, breeding advisor, form reader, moderator)</li>
+    <li>Build agent chat UI with memory display</li>
+  </ul>
+  <div class="exit">Exit: User can have a multi-session conversation with the race analyst that picks up where they left off.</div>
+</div>
+
+<div class="phase-card">
+  <h3>Phase 3: Community (Week 3–4)</h3>
+  <ul>
+    <li>Forum: categories, threads, posts</li>
+    <li>Marketplace: listings, listing media</li>
+    <li>Dog ownership claims</li>
+    <li>Reporting + moderation agent</li>
+  </ul>
+  <div class="exit">Exit: A breeder can claim a dog, post in the forum, list a pup for sale, get notified of agent-moderated actions.</div>
+</div>
+
+<div class="phase-card">
+  <h3>Phase 4: Polish (Week 4–5)</h3>
+  <ul>
+    <li>Voice + video messages</li>
+    <li>Audit logging</li>
+    <li>Data export + account deletion</li>
+    <li>Email digests</li>
+    <li>Documentation</li>
+    <li>External penetration test</li>
+  </ul>
+  <div class="exit">Exit: Production launch.</div>
+</div>
+
+<h2 id="questions"><span class="num">14</span>10 questions for you</h2>
+<p>Before I write a single line of code:</p>
+<ol class="question-list">
+  <li><strong>Hosting.</strong> Vercel (great DX, expensive at scale) vs Hetzner VPS (cheap, you control it) vs Supabase edge runtime. You have a Hetzner VPS — confirm that's where the app lives?</li>
+  <li><strong>Multi-region later?</strong> Supabase Sydney works for AU/NZ. If UK later, regional project + replication. Affects data residency decisions now?</li>
+  <li><strong>Agent model constraints.</strong> MiniMax M3 token plan — any constraints I should know? Max context window? Specific tool-calling format? Rate limits?</li>
+  <li><strong>Breeder verification.</strong> Manual admin approval (builds trust) vs auto-claim (friendlier at launch)? I default to manual-with-fast-track for claimed dogs.</li>
+  <li><strong>Media pricing.</strong> Free 1GB / Pro 10GB / Pro+ 100GB? Or unlimited for paid?</li>
+  <li><strong>Marketplace fees.</strong> No cut (free classifieds) vs Stripe Connect 5% cut? I default to no cut for v1.</li>
+  <li><strong>Video hosting.</strong> Self-host (storage cost) vs Cloudflare Stream ($5/1000min stored, $1/1000min delivered)?</li>
+  <li><strong>Voice transcription.</strong> Whisper at $0.006/min. Useful for search/accessibility?</li>
+  <li><strong>Penetration test budget.</strong> $5k–$15k before launch. Want to budget now?</li>
+  <li><strong>Launch sequencing.</strong> Private beta (you + 20 testers) before public launch? Strongly recommended.</li>
+</ol>
+
+<h2 id="notin"><span class="num">15</span>What's deliberately NOT in scope</h2>
+<ul>
+  <li><strong>Voice/video calling.</strong> Not WebRTC. Voice/video <em>messages</em> are in.</li>
+  <li><strong>Group chats.</strong> 1:1 only.</li>
+  <li><strong>Stories / ephemeral content.</strong> Not building this.</li>
+  <li><strong>Encryption at rest beyond Supabase defaults.</strong> No BYOK for v1.</li>
+  <li><strong>Multi-tenancy.</strong> One community.</li>
+  <li><strong>Mobile SDK.</strong> Web-first, mobile-responsive, no native apps yet.</li>
+  <li><strong>GraphQL.</strong> REST + Supabase Realtime is enough.</li>
+  <li><strong>Kubernetes / microservices.</strong> Single Next.js app, single Postgres, single CLI subprocess.</li>
+</ul>
+
+<div class="callout">
+  <div class="title">Next step</div>
+  Read this. Reply with answers to the 10 questions, plus any architecture pieces you want changed, dropped, or added. Once we agree, I start Phase 1.
+</div>
+
+<div class="footer">
+  GreyhoundIQ Backend Architecture · Prepared by AI Kick Start · 28 June 2026<br>
+  Confidential. Contains forward-looking technical design subject to revision.
+</div>
+
+</div>
+</body>
+</html>

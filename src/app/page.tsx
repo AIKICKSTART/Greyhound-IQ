@@ -91,11 +91,7 @@ export default async function HomePage() {
         {meetings.length === 0 ? (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-16 text-center">
             <p className="text-[hsl(215_14%_65%)] text-[15px] tracking-[-0.013em]">
-              No meetings in database. Run{" "}
-              <code className="rounded-md bg-white/[0.06] px-2 py-0.5 text-[13px] text-[hsl(142_60%_48%)]">
-                npm run seed
-              </code>{" "}
-              to load sample data.
+              No meetings in the database yet. The data pipeline connects in Phase 2.
             </p>
           </div>
         ) : (

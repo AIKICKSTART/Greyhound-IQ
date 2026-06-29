@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 
 export const metadata = {
   title: "Dog Search — GreyhoundIQ",
+  description: "Search the national database for any greyhound by name. Get full career form, pedigree, and trainer info.",
 };
 
 export default function DogsPage() {

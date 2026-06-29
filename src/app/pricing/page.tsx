@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Check, X, Zap, Crown, Sparkles } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
 import { CreditCard } from "lucide-react";
@@ -134,13 +135,16 @@ export default function PricingPage() {
                 </div>
                 <p className="text-[13px] text-[hsl(215_14%_65%)] mb-5 mt-2 tracking-[-0.013em]">{plan.description}</p>
 
-                <button className={`w-full rounded-lg py-2.5 text-[13px] font-semibold tracking-[-0.013em] transition-all mb-5 ${
-                  plan.highlighted
-                    ? "bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] text-white hover:brightness-110 shadow-lg shadow-[hsl(142_76%_36%/0.2)]"
-                    : "border border-white/[0.08] bg-white/[0.03] text-[hsl(210_13%_97%)] hover:bg-white/[0.06]"
-                }`}>
+                <Link
+                  href={`/contact?plan=${plan.name.toLowerCase().replace("+", "plus")}`}
+                  className={`block text-center w-full rounded-lg py-2.5 text-[13px] font-semibold tracking-[-0.013em] transition-all mb-5 ${
+                    plan.highlighted
+                      ? "bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] text-white hover:brightness-110 shadow-lg shadow-[hsl(142_76%_36%/0.2)]"
+                      : "border border-white/[0.08] bg-white/[0.03] text-[hsl(210_13%_97%)] hover:bg-white/[0.06]"
+                  }`}
+                >
                   {plan.cta}
-                </button>
+                </Link>
 
                 <ul className="space-y-2">
                   {plan.features.map((f) => (
@@ -205,9 +209,12 @@ export default function PricingPage() {
           <p className="text-[15px] text-[hsl(215_14%_65%)] mb-6 tracking-[-0.013em]">
             Free forever. Upgrade when you&apos;re ready. Cancel anytime.
           </p>
-          <button className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-6 py-3 text-[14px] font-semibold text-white shadow-xl shadow-[hsl(142_76%_36%/0.25)] hover:brightness-110 transition-all tracking-[-0.013em]">
+          <Link
+            href="/contact?plan=free"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-6 py-3 text-[14px] font-semibold text-white shadow-xl shadow-[hsl(142_76%_36%/0.25)] hover:brightness-110 transition-all tracking-[-0.013em]"
+          >
             Create free account
-          </button>
+          </Link>
         </div>
       </section>
     </div>

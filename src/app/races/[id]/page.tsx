@@ -12,9 +12,13 @@ export async function generateMetadata({
 }) {
   const { id } = await params;
   const race = await getRaceById(id);
-  if (!race) return { title: "Race not found" };
+  if (!race) return {
+    title: "Race not found — GreyhoundIQ",
+    description: "Race not found in the GreyhoundIQ database.",
+  };
   return {
     title: `R${race.raceNumber} ${race.meeting.track.name} — ${race.distance}m | GreyhoundIQ`,
+    description: `Race ${race.raceNumber} at ${race.meeting.track.name}, ${race.distance}m${race.grade ? ` (${race.grade})` : ""}. Full runner list, form, and trainer info.`,
   };
 }
 

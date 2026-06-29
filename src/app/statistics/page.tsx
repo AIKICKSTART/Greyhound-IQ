@@ -1,7 +1,10 @@
 import { BarChart3, TrendingUp, Award, MapPin, Users, Target } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
 
-export const metadata = { title: "Statistics — GreyhoundIQ" };
+export const metadata = {
+  title: "Statistics — GreyhoundIQ",
+  description: "Box bias, trainer leaderboards, track records, and speed maps — the data serious Australian punters use.",
+};
 
 const BOX_BIAS = [
   { box: 1, winRate: 13.2, color: "#EF4444" },

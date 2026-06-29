@@ -4,7 +4,10 @@ import { PageHero } from "@/components/page-hero";
 import { Trophy } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Results — GreyhoundIQ" };
+export const metadata = {
+  title: "Recent Results — GreyhoundIQ",
+  description: "Race results from the past 48 hours across every Australian track. Tap a winner for full form and sectionals.",
+};
 
 export default async function ResultsPage() {
   const results = await getRecentResults(2);
@@ -41,7 +44,7 @@ export default async function ResultsPage() {
             <p
               className="text-[14px] text-[hsl(215_14%_65%)] tracking-[-0.013em]"
             >
-              No results available yet. Run <code className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[hsl(142_60%_48%)]">npm run seed</code> to load data.
+              No results available yet. The data pipeline connects in Phase 2.
             </p>
           </div>
         ) : (

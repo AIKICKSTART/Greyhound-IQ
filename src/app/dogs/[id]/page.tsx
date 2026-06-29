@@ -10,8 +10,13 @@ export async function generateMetadata({
 }) {
   const { id } = await params;
   const dog = await getDogById(id);
+  if (!dog) return {
+    title: "Dog not found — GreyhoundIQ",
+    description: "Greyhound profile not found in the national database.",
+  };
   return {
-    title: dog ? `${dog.name} — GreyhoundIQ` : "Dog not found",
+    title: `${dog.name} — GreyhoundIQ`,
+    description: `Full career form, recent starts, pedigree, and trainer info for ${dog.name}.`,
   };
 }
 

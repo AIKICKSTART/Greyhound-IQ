@@ -4,7 +4,10 @@ import { PageHero } from "@/components/page-hero";
 import { Flag } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Races — GreyhoundIQ" };
+export const metadata = {
+  title: "Upcoming Races — GreyhoundIQ",
+  description: "The next 7 days of greyhound racing across every Australian track. Full form and runners for every start.",
+};
 
 export default async function RacesPage() {
   const meetings = await getUpcomingRaces(7);

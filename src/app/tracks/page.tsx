@@ -1,9 +1,13 @@
 import { getAllTracks } from "@/lib/queries";
 import { PageHero } from "@/components/page-hero";
 import { MapPin } from "lucide-react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Tracks — GreyhoundIQ" };
+export const metadata = {
+  title: "Australian Tracks — GreyhoundIQ",
+  description: "Every active greyhound racing track in Australia. Distance, surface, and GPS-tracking data.",
+};
 
 export default async function TracksPage() {
   const tracks = await getAllTracks();
@@ -27,15 +31,24 @@ export default async function TracksPage() {
       <section className="mx-auto max-w-5xl px-6 py-10">
         {tracks.length === 0 ? (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-12 text-center">
-            <p className="text-[14px] text-[hsl(215_14%_65%)]">No tracks loaded. Run <code className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[hsl(142_60%_48%)]">npm run seed</code></p>
+            <p className="text-[14px] text-[hsl(215_14%_65%)]">
+              No tracks loaded yet. The data pipeline connects in Phase 2.
+            </p>
+            <Link
+              href="/races"
+              className="inline-block mt-4 text-[13px] font-semibold text-[hsl(142_60%_48%)] hover:underline tracking-[-0.013em]"
+            >
+              Browse upcoming races →
+            </Link>
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {tracks.map((track) => (
-              <div
+              <Link
                 key={track.id}
+                href={`/races?track=${track.id}`}
                 id={track.name.toLowerCase().replace(/\s+/g, "-")}
-                className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all scroll-mt-20"
+                className="block rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all scroll-mt-20"
               >
                 <div className="flex items-start justify-between">
                   <div>
@@ -52,7 +65,7 @@ export default async function TracksPage() {
                   <span>{track.boxCount} boxes</span>
                 </div>
                 <p className="mt-2 text-[11px] text-[hsl(220_7%_42%)]">{track._count.meetings} meetings</p>
-              </div>
+              </Link>
             ))}
           </div>
         )}

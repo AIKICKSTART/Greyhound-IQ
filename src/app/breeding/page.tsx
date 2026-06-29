@@ -2,7 +2,10 @@ import { Dna, Sparkles, GitBranch, Layers, TrendingUp, Calendar } from "lucide-r
 import Link from "next/link";
 import { PageHero } from "@/components/page-hero";
 
-export const metadata = { title: "Breeding — GreyhoundIQ" };
+export const metadata = {
+  title: "Breeding Analytics — GreyhoundIQ",
+  description: "5-generation pedigrees, testmating, sire statistics, and litter performance for Australian greyhound breeders.",
+};
 
 const FEATURES = [
   { icon: Dna, title: "5-Generation Pedigrees", desc: "Visual pedigree trees with performance data at every node. Winners, stakes earners, and track records throughout the bloodline.", phase: "Phase 2" },

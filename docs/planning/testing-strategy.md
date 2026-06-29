@@ -261,6 +261,9 @@ export async function createTestUser(overrides?: Partial<User>): Promise<User> {
 - **Hermes CLI:** Mock the `spawn` call, return canned output
 - **Resend:** Capture mode in dev; mock in tests
 - **Supabase Storage:** Use test bucket; auto-cleanup
+- **Mem0 / Cognee / LocalAI (added in v2):** Mock the embedding + graph calls; integration tests against a dockerised localai/cognee service
+- **n8n (added in v2):** Trigger workflows via n8n API; mock with canned responses for unit, real against n8n test container for integration
+- **Whisper (added in v2):** Mock the transcribe call; integration test against local whisper service with a sample audio file
 
 ---
 

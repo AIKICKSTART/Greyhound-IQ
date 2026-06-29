@@ -186,12 +186,20 @@ When implementation is complete and tests pass:
 
 ## Status
 
-- [x] user-stories.md
-- [x] api-architecture.md
-- [x] data-model.md
-- [x] security-threat-model.md
-- [x] operations-deployment.md
-- [x] testing-strategy.md
+- [x] user-stories.md — **59 user stories** across 20 epics in 4 phases
+- [x] api-architecture.md — ~70 REST routes, auth, rate limits, error codes
+- [x] data-model.md — Prisma schema for 22+ new models + ERD + RLS policies
+- [x] security-threat-model.md — 15 threat categories, RLS, agent sandbox, APPs
+- [x] operations-deployment.md — Hetzner + Supabase + 9 internal services
+- [x] testing-strategy.md — Test pyramid, mock all v2 services
 - [x] planning README (this file)
+
+**Architecture v2 deltas (from agent corpus re-read):**
+- 10 new user stories (E15-E20): Mem0+pgvector, prompt-eval pipeline, agent sandboxing, n8n+Firecrawl, Cognee graph, LocalAI+Whisper
+- 2 new Prisma tables: `PromptEvalSet` / `PromptEvalResult`, `AgentApproval`
+- 5 new service components: n8n, localai, whisper, firecrawl, cognee, mem0
+- 3 new security mitigations: agent Docker sandbox, tier 3 approval gate, internal mTLS
+- VPS upgrade path: cx22 → cx32 (+$30/mo) to host new compute
+- Cost-to-revenue ratio: 1.6% → 2.3% (still healthy)
 
 **Planning phase complete.** Ready for implementation once the 10 architecture questions are answered.

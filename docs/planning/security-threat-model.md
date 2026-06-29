@@ -276,12 +276,15 @@ The Hermes CLI harness is the highest-risk new surface. Threat model:
 | **Prompt injection** | Agents use structured tool calls, not raw SQL or shell. User input is wrapped in markers. Tool output is escaped. |
 | **Tool calling unauthorised APIs** | Tools are whitelisted in agent config. Adding a tool requires code review. |
 | **Subprocess escape** | Run as dedicated low-privilege user `agent`. No shell. `spawn('hermes', args, { shell: false })`. |
+| **Subprocess escape (Deeper)** | **Added in v2 — every `hermes agent` subprocess runs in Docker with `--read-only --security-opt=no-new-privileges --network=none`. Default-deny egress (only `db.supabase.co`, `api.supabase.co`, `api.resend.com`). Container destroyed after run.** |
 | **Token exfiltration via response** | Post-process responses to strip credentials, secrets, foreign user IDs. |
 | **Runaway cost** | Hard limits: 50k tokens/run, 5 min duration, per-tier rate limits. Hard stop. |
 | **Cross-user data leakage** | Every tool that reads user data filters by `currentUser.id`. Enforced by a linter rule. |
 | **Tool calling circular reference** | Max tool-call depth: 5. Max tool calls per run: 20. |
 | **Long-running runaway** | 5 min hard timeout; SIGTERM; 5s grace; SIGKILL. |
 | **Cancellation race** | Race-safe: harnessPid stored, SIGKILL wrapped in try/catch. |
+| **Autonomous destructive action (e.g. one-click RCE)** | **Added in v2 — Tier 3 actions (`send_email_at_scale`, `user.ban`, `user.delete`, `payment.charge`, `agent.run_self_modify`) require human approval via `AgentApproval` queue before execution. Tier 2 actions require approval for batch ops. See US-2.16.** |
+| **Compromised Mem0 / Cognee / LocalAI services** | **Added in v2 — All three run in the same Docker network as the agent harness, no external network access. Mem0 only stores/reads from Supabase via service-role key (rotated quarterly). Cognee writes only to `pgvector` extension on Supabase. LocalAI bound to localhost via Caddy reverse proxy with mTLS.** |
 
 ### Agent tool whitelist (v1)
 

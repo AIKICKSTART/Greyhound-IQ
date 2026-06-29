@@ -648,6 +648,210 @@
 
 ---
 
+## E15 · Per-user agent memory (Mem0 on Supabase pgvector)
+
+*Added in architecture v2 — section 15.5. The corpus identified this as the single highest value-to-effort move.*
+
+#### US-2.11 — Per-user memory is stored as Mem0 + pgvector
+**As a** user chatting with the race analyst
+**I want** the agent to remember my preferences, owned dogs, and prior conversations
+**So that** future conversations pick up where they left off
+
+**Acceptance criteria:**
+- Mem0 runs as a service on the Hetzner VPS (or as a Supabase Edge Function)
+- Memory rows are stored in Supabase Postgres using the `vector(1536)` extension
+- Embeddings generated via local sentence-transformers (data-sovereignty — no PII leaves the VPS)
+- Schema uses `pgvector` for similarity search; the existing `MemoryEntry` table extends with an `embedding` column
+- Mem0's auto-extraction runs after every conversation turn
+- Memory decay: as before (importance 0.05/30 days idle, floor 0.1)
+- Agent context assembly: top 20 high-importance + top 5 most-similar to current query
+
+**Given** I told the race analyst "I always back box 1 in 5-furlong races at The Meadows"
+**When** the conversation ends
+**Then** a `MemoryEntry` is stored with `kind = preference`, `content = "User prefers box 1 in 5-furlong races at The Meadows"`, and a vector embedding
+
+#### US-2.12 — Memory is queried by semantic similarity
+**As a** user asking "what's a good pick for tonight?"
+**I want** the agent to recall relevant memories
+**So that** recommendations align with my preferences
+
+**Acceptance criteria:**
+- At conversation start, the current user message is embedded via sentence-transformers
+- pgvector similarity search returns top 5 most-relevant memories above similarity threshold 0.7
+- Combined with the top 20 by importance into a deduplicated set
+- Included in the agent's system prompt as "What you remember about this user"
+- Latency budget: 200ms total for embedding + similarity search
+
+---
+
+## E16 · Prompt-eval pipeline (CI gate on agent regressions)
+
+*Added in architecture v2 — section 15.5. Race results are free, automatic ground truth.*
+
+#### US-2.13 — Win-probability prompt changes are evaluated against past races
+**As a** developer
+**I want** every change to the win-probability prompt to be evaluated against a held-out set of past races
+**So that** I can't accidentally regress prediction quality
+
+**Acceptance criteria:**
+- Held-out eval set: 500 most-recent completed races, frozen in version control
+- For each race in eval set, run the new prompt and score:
+  - **Calibration:** Brier score (mean squared error of predicted prob vs actual outcome)
+  - **Log-loss:** lower is better
+  - **Top-1 hit rate:** did the highest-probability runner win?
+  - **Top-3 hit rate:** was the winner in the top 3?
+- Run on every PR that touches `src/lib/agents/prompts/*` or `src/lib/agents/race-analyst/*`
+- Block merge if any metric regresses >5% vs the main branch baseline
+- Results reported as a PR comment + stored in `PromptEvalResult` table
+- Run takes <5 minutes on a CI runner
+
+**Given** I open a PR changing the race-analyst prompt
+**When** CI runs the eval pipeline
+**Then** within 5 minutes the PR is annotated with calibration / log-loss / top-K scores, and the merge is blocked if any metric regresses >5%
+
+#### US-2.14 — Eval set is refreshed monthly
+**As a** system
+**I want** the held-out eval set to be replaced monthly with the most recent 500 races
+**So that** the eval reflects current racing conditions
+
+**Acceptance criteria:**
+- Monthly cron (1st of month) refreshes the eval set: drop oldest 500, add newest 500
+- Old eval set archived to `eval/race-archive/YYYY-MM.json`
+- Refresh triggered manually via `/api/admin/eval/refresh` (admin only)
+- New eval set versioned (`v2026-07-01`, etc.) for reproducibility
+
+---
+
+## E17 · Agent sandboxing + approval gates
+
+*Added in architecture v2 — section 15.5. Corpus cited OpenClaw one-click RCE (CVE-2026-25253) as the cost of agent autonomy.*
+
+#### US-2.15 — Agent tool calls are sandboxed in Docker
+**As a** system
+**I want** every Hermes agent subprocess to run in a default-deny Docker container
+**So that** a compromised agent can't escape to the host
+
+**Acceptance criteria:**
+- Every `hermes agent` subprocess runs in `--read-only --security-opt=no-new-privileges --network=none` (with explicit egress for Supabase + Resend only)
+- Container has no access to: env vars, host filesystem, host network, other containers
+- Container is destroyed immediately after the run completes
+- Read-only data mount at `/data` (e.g. CSV exports, no DB credentials)
+- Network policy: only `db.supabase.co:5432`, `api.supabase.co`, `api.resend.com`
+- Default-deny: any new network destination requires code review
+- Logs streamed to host stdout for audit
+
+#### US-2.16 — Tiered human approval on sensitive actions
+**As a** system
+**I want** sensitive agent actions to require human approval before executing
+**So that** an agent can't autonomously ban users, charge payments, or send emails at scale
+
+**Acceptance criteria:**
+- Sensitive actions categorized: `tier1` (no approval needed, e.g. read dog data) / `tier2` (approval for batch ops) / `tier3` (always require approval)
+- Tier 3 actions: `send_email_at_scale`, `user.ban`, `user.delete`, `payment.charge`, `agent.run_self_modify`
+- Tier 2 actions: `agent.run_more_than_50k_tokens`, `media.upload_to_public_bucket`, `forum.post_on_behalf_of`
+- Approval queue at `/admin/approvals` with approve / reject buttons
+- Rejected action: agent run is marked `cancelled` with reason; memory entry logs the rejection
+- Approved action: runs with full audit log
+- Approval timeout: 24h, then auto-reject
+- Telegram notification to admins on tier 3 requests
+
+---
+
+## E18 · n8n + Firecrawl ingestion
+
+*Added in architecture v2 — section 15.5. Self-hosted n8n orchestrates Topaz/Betfair pulls; Firecrawl-via-MCP fills the gaps Topaz/Betfair don't reach.*
+
+#### US-1.10 — n8n orchestrates data ingestion workflows
+**As a** system
+**I want** Topaz and Betfair pulls orchestrated by self-hosted n8n
+**So that** the ingestion pipeline is visual, schedulable, and easy to extend
+
+**Acceptance criteria:**
+- n8n runs on Hetzner VPS (Docker container, port 5678, behind Caddy auth)
+- Topaz live-fields workflow: trigger every 2 min on race days → fetch → validate → upsert → log
+- Topaz results workflow: trigger every 5 min post-race → fetch → upsert → log
+- Betfair Hub history workflow: trigger nightly → fetch → upsert → log
+- Each workflow has a visual editor, retry policy, error handler
+- Failed workflows page an admin (Telegram + UI alert)
+- Workflow definitions version-controlled in `infra/n8n/workflows/`
+
+#### US-1.11 — Firecrawl fills data gaps via MCP
+**As a** system
+**I want** to scrape stewards' reports, scratchings, and track notes from state body sites
+**So that** our data covers what Topaz and Betfair don't
+
+**Acceptance criteria:**
+- Firecrawl MCP server runs locally (self-hosted on Hetzner)
+- Source list: GRNSW stewards, GRV stewards, Tasracing scratchings
+- Per-source scheduled crawl (nightly or on-demand)
+- Extracted data normalised to canonical schema and upserted
+- "Last scraped at" timestamp on each source for freshness tracking
+- Quota: max 1000 pages/day per source (Firecrawl self-hosted limit)
+
+---
+
+## E19 · Cognee knowledge graph (breeding)
+
+*Added in architecture v2 — section 15.5. Multi-hop DNA queries vector search can't answer.*
+
+#### US-2.17 — Multi-hop pedigree queries
+**As a** breeder
+**I want** to ask "which available studs share no recessive-risk carriers with this bitch's line?"
+**So that** I can make better breeding decisions
+
+**Acceptance criteria:**
+- Cognee knowledge graph stores: dogs, sires, dams, offspring, kennels, recessive-carrier flags
+- Runs on the same Supabase Postgres (uses `vector` + `graph` extensions)
+- Query: graph traversal over N degrees of separation, returning dogs matching the constraint
+- Response includes: confidence, path explanation, alternative matches
+- Cached for 24h per query (compute amortised)
+- Tier-gated: Pro+ only (compute cost)
+
+#### US-2.18 — Cognee graph stays in sync with Postgres
+**As a** system
+**I want** the Cognee graph to reflect new dog/sire/dam data within 5 minutes
+**So that** the AI agent's answers are always current
+
+**Acceptance criteria:**
+- Event-driven sync: Prisma middleware on `Dog` / `GeneticProfile` / `DnaMatch` writes triggers a Cognee upsert
+- Debounced 5 minutes to batch updates
+- Manual full-resync via `/api/admin/breeding/resync-graph` (admin only)
+- Drift detection: nightly diff between Postgres and Cognee; alert on >1% drift
+
+---
+
+## E20 · LocalAI + Whisper/Piper on Hetzner
+
+*Added in architecture v2 — section 15.5. Data-sovereignty + voice features.*
+
+#### US-2.19 — Embeddings are generated locally (no PII leaves VPS)
+**As a** system
+**I want** all user-data embeddings generated on the Hetzner VPS via LocalAI
+**So that** no PII ever leaves Australian infrastructure
+
+**Acceptance criteria:**
+- LocalAI runs in Docker on the Hetzner VPS, port 8080
+- Model: `text-embedding-3-small` (OpenAI-compatible) or `all-MiniLM-L6-v2` (sentence-transformers)
+- Used for: memory embeddings, semantic search, breeding recommendations
+- Latency: <100ms per embedding
+- Rate limit: 100 req/sec (sufficient for our load)
+- Fallback: if LocalAI is down, agent falls back to direct Supabase pgvector query without semantic ranking (graceful degradation)
+
+#### US-2.20 — Voice messages are transcribed locally
+**As a** user
+**I want** my voice messages to be transcribed to text
+**So that** they're searchable and accessible
+
+**Acceptance criteria:**
+- Whisper (large-v3 or distil-large-v3) runs on Hetzner VPS
+- Triggered automatically on voice message upload (background job)
+- Transcript stored as `Message.body` (text fallback) + `Message.transcript` (audio-specific)
+- Searchable via full-text search
+- Auto-generated captions for any audio uploaded
+- Narrated form guides: user can request "narrate Aston Queen's last 5 starts" and get an audio response (TTS via Piper)
+
+---
+
 ## Out of scope
 
 The following are explicitly **excluded from v1** (per architecture doc section 18):

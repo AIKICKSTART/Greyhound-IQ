@@ -426,9 +426,24 @@ These endpoints back the public web UI and the AI agent tools. Most are public r
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/api/health` | public | Liveness (always 200 if process up) |
-| GET | `/api/health/ready` | public | Readiness (checks DB + storage) |
+| GET | `/api/health/ready` | public | Readiness (checks DB + storage + localai) |
 | GET | `/api/internal/metrics` | internal | Prometheus-format metrics |
 | GET | `/api/internal/errors` | internal | Recent error reports (for Sentry mirroring) |
+
+---
+
+## Admin (added in architecture v2)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/admin/approvals` | admin | List pending agent approvals |
+| POST | `/api/admin/approvals/:id/approve` | admin | Approve a tier 3 action |
+| POST | `/api/admin/approvals/:id/reject` | admin | Reject a tier 3 action |
+| GET | `/api/admin/eval/results` | admin | List recent prompt-eval runs |
+| POST | `/api/admin/eval/refresh` | admin | Refresh held-out eval set |
+| GET | `/api/admin/eval/compare` | admin | Compare current vs main branch metrics |
+| POST | `/api/admin/breeding/resync-graph` | admin | Full Cognee graph resync |
+| GET | `/api/admin/agents/sandbox-status` | admin | List active agent containers |
 
 ---
 

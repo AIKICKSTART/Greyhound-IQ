@@ -17,17 +17,23 @@
 │  │                                                      │    │
 │  │  nextjs: Next.js 16 (standalone)                     │    │
 │  │  cron: node-cron, hits /api/internal/* endpoints     │    │
-│  │  agents: spawned on-demand by hermes CLI             │    │
+│  │  agents: spawned on-demand in Docker (sandboxed)     │    │
+│  │  n8n: workflow orchestration (added in v2)            │    │
+│  │  localai: embeddings + LLM fallback (added in v2)    │    │
+│  │  whisper: voice transcription (added in v2)           │    │
+│  │  firecrawl: web scraping for data gaps (added in v2) │    │
+│  │  cognee: knowledge graph for breeding (added in v2)  │    │
+│  │  mem0: per-user memory layer (added in v2)            │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                              │
-│  Caddy reverse proxy (TLS, HSTS)                             │
+│  Caddy reverse proxy (TLS, HSTS, mTLS for internal services)│
 │  Daily snapshots to Hetzner Storage Box                      │
 └──────────────────────────────┬───────────────────────────────┘
                                │ TLS
                                │
 ┌──────────────────────────────▼───────────────────────────────┐
 │  Supabase (managed, ap-southeast-2 Sydney)                   │
-│  - Postgres 15 (pgvector, citext, pg_trgm)                  │
+│  - Postgres 15 (pgvector, citext, pg_trgm, graph ext)       │
 │  - Auth (email + Google OAuth)                                │
 │  - Storage (messages, listings, avatars, agent-outputs)      │
 │  - Realtime (messages, conversation updates)                  │
@@ -41,6 +47,20 @@
 │  - Hermes MiniMax M3 (LLM, existing plan)                    │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### v2 service descriptions
+
+| Service | Port | Purpose | Data flow |
+|---------|------|---------|-----------|
+| **nextjs** | 3000 | Web app + API | Reads/writes Supabase via service-role key (in container env) |
+| **cron** | — | Daily/hourly jobs | Calls `/api/internal/*` on nextjs with shared-secret header |
+| **agents** | (spawn) | Hermes agent subprocesses | Docker with `--read-only --network=none`, destroyed after run |
+| **n8n** | 5678 | Workflow orchestration (Topaz, Betfair, Firecrawl) | Triggers via schedule; writes to Supabase via service-role |
+| **localai** | 8080 | Embeddings (all-MiniLM-L6-v2 or text-embedding-3-small) + LLM fallback | Caddy mTLS reverse proxy; only `nextjs` and `agents` can reach it |
+| **whisper** | 9000 | Voice message transcription (distil-large-v3) | Triggered on voice upload; writes transcript to Supabase |
+| **firecrawl** | 3002 | Self-hosted web scraping (GRNSW, GRV, Tasracing) | n8n-driven; quota 1000 pages/day per source |
+| **cognee** | 8000 | Knowledge graph for breeding (Postgres `graph` extension) | Event-driven sync from Prisma writes via middleware |
+| **mem0** | 8000 (shared with cognee) | Per-user memory extraction + storage | Embedding via localai, storage in Supabase |
 
 ---
 
@@ -317,19 +337,41 @@ curl -s https://staging.greyhoundiq.com.au/api/health
 | Storage | 100GB | 10TB |
 | Monthly egress | 1TB | 50TB |
 
-### Cost projection (Y1)
+## Cost projection (Y1)
+
+### v1 baseline (architecture v1)
 
 | Service | Cost |
 |---------|------|
 | Supabase Pro | $25/mo |
-| Hetzner VPS | $20/mo |
-| Resend (transactional) | $20/mo |
+| Resend (transactional email) | $20/mo |
 | Hermes MiniMax M3 (existing) | $0 |
-| Sentry free | $0 |
-| Stripe fees (~3% of revenue) | variable |
-| **Total fixed** | **$65/mo** |
+| Hetzner VPS (cx22) | $20/mo |
+| Sentry free tier | $0 |
+| **Total fixed (v1)** | **$65/mo** |
 
-At 6,000 paying users × $99/yr avg = $49,500 ARR. Cost-to-revenue ratio: 65 × 12 / 49,500 = 1.6%. Healthy.
+### v2 additions (architecture v2)
+
+| Service | Cost | Notes |
+|---------|------|-------|
+| n8n (self-hosted) | $0 | Docker container on Hetzner VPS |
+| LocalAI + Whisper + Piper | $0 (compute) | +$0/mo but requires +$30/mo VPS upgrade (cx32 — 8 vCPU, 16GB RAM) |
+| Firecrawl (self-hosted) | $0 | Docker container |
+| Cognee (in-process) | $0 | Same Postgres + pgvector + graph extensions |
+| Mem0 (Apache-2.0) | $0 | Same Postgres |
+| **VPS upgrade** (cx22 → cx32) | **+$30/mo** | Required for v2 compute |
+| **Total fixed (v2)** | **$95/mo** |
+
+At 6,000 paying users × $99/yr avg = $49,500 ARR. Cost-to-revenue ratio: 95 × 12 / 49,500 = 2.3%. Still healthy.
+
+### v2 cost caps (per user)
+
+- LocalAI embeddings: 100 req/sec, ~$0.0001/embed → 1M embeds = $100
+- Whisper transcription: ~0.5 min/voice msg, $0.0006/min (if we were using OpenAI) — local = $0
+- Cognee graph traversal: compute-bound on Postgres, negligible
+- n8n runs: negligible
+
+**At 6,000 users avg 50 memory entries each = 300k memories. 50k voice msgs/month × 30s avg = 25k min/month. All within Hetzner cx32 capacity.**
 
 ---
 

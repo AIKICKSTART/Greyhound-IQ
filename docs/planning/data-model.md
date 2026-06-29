@@ -551,7 +551,7 @@ model AlertRule {
 
 ---
 
-### 3.8 Moderation & reports
+### 3.5 Moderation and API keys
 
 #### `Report`
 ```prisma
@@ -573,6 +573,79 @@ model Report {
 
   @@index([status, createdAt])
   @@index([targetType, targetId])
+}
+```
+
+#### `ApiKey`
+```prisma
+model ApiKey {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  keyHash     String   @unique  // SHA-256 of the actual key
+  prefix      String             // first 8 chars for display
+  scopes      String             // comma-sep
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+```
+
+### 3.5.1 Prompt-eval pipeline (added in architecture v2 — section 15.5)
+
+```prisma
+model PromptEvalSet {
+  id          String   @id @default(cuid())
+  version     String   @unique  // "v2026-07-01"
+  raceCount   Int
+  createdAt   DateTime @default(now())
+  results     PromptEvalResult[]
+  notes       String?             // what changed, why refreshed
+}
+
+model PromptEvalResult {
+  id              String   @id @default(cuid())
+  evalSetId       String
+  evalSet         PromptEvalSet @relation(fields: [evalSetId], references: [id], onDelete: Cascade)
+  promptHash      String         // git SHA of the prompt file
+  branchName      String         // "main", "feat/race-prompt-v2", etc.
+  brierScore      Float
+  logLoss         Float
+  top1HitRate     Float          // 0.0 - 1.0
+  top3HitRate     Float
+  passFail        String         // "pass" | "fail" | "warning"
+  regressedMetrics String?      // JSON: { "brierScore": -0.07, ... } (negative = regressed)
+  runDurationMs   Int
+  createdAt       DateTime @default(now())
+
+  @@index([evalSetId, createdAt(sort: Desc)])
+  @@index([promptHash])
+}
+```
+
+### 3.5.2 Agent approval queue (added in architecture v2 — section 15.5)
+
+```prisma
+model AgentApproval {
+  id            String   @id @default(cuid())
+  runId         String   // AgentRun this is for
+  agentType     String
+  actionType    String   // send_email_at_scale | user.ban | user.delete | payment.charge | ...
+  actionPayload String?  // JSON: details of what's being requested
+  tier          Int      // 1 | 2 | 3
+  status        String   @default("pending")  // pending | approved | rejected | expired
+  requestedAt   DateTime @default(now())
+  reviewedAt    DateTime?
+  reviewedBy    String?  // admin user id
+  expiresAt     DateTime @default(dbgenerated("(now() + interval '24 hours')"))
+  notes         String?
+
+  @@index([status, expiresAt])
+  @@index([runId])
 }
 ```
 
@@ -598,26 +671,6 @@ model AuditLog {
 
 **Retention:** 2 years minimum. Append-only at the service layer (no UPDATE/DELETE in Prisma service code).
 
-#### `ApiKey`
-```prisma
-model ApiKey {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  keyHash     String   @unique  // SHA-256 of the actual key
-  prefix      String             // first 8 chars for display
-  scopes      String             // comma-sep
-  lastUsedAt  DateTime?
-  expiresAt   DateTime?
-  revokedAt   DateTime?
-  createdAt   DateTime @default(now())
-
-  @@index([userId])
-}
-```
-
----
 
 ### 3.9 Ingestion tracking
 

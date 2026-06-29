@@ -649,6 +649,54 @@ model AgentApproval {
 }
 ```
 
+### 3.5.3 Model registry (added from Tech Opportunities — E21)
+
+```prisma
+model ModelRegistry {
+  id           String   @id @default(cuid())
+  name         String   // "race-win-probability" | "timesfm-form-trend"
+  version      String   // "v1.0" | "v1.1-rc.2"
+  status       String   @default("challenger")  // champion | challenger | archived
+  framework    String   // "xgboost" | "timesfm" | "huggingface-autotrain"
+  trainedAt    DateTime
+  trainingData String   // description of data window + count
+  metricsJson  String?  // JSON: { brier: 0.18, logLoss: 0.55, top1Hit: 0.31, ... }
+  evalSetId    String?  // which PromptEvalSet this was scored against
+  storagePath  String   // where the model weights live (S3-compatible or Hetzner Storage Box)
+  sizeBytes    Int
+  promotedAt   DateTime?
+  promotedBy   String?
+  notes        String?
+
+  @@unique([name, version])
+  @@index([name, status])
+  @@index([evalSetId])
+}
+```
+
+### 3.5.4 GEO audit results (added from Tech Opportunities — E24)
+
+```prisma
+model GeoAuditResult {
+  id              String   @id @default(cuid())
+  pageUrl         String
+  pageTitle       String
+  auditDate       DateTime @default(now())
+  overallScore    Float    // 0.0 - 1.0 (citation probability)
+  headingsScore   Float
+  snippetScore    Float
+  schemaScore     Float
+  faqScore        Float
+  issues          String?  // JSON array of { type: "missing_faq_schema", severity: "high", fix: "..." }
+  suggestedFixes  String?  // JSON array
+  evaluatorModel  String   // "claude-opus-4" | "gpt-5"
+  evaluatorPrompt String?  // hash of the audit prompt
+
+  @@index([pageUrl, auditDate(sort: Desc)])
+  @@index([auditDate])
+}
+```
+
 #### `AuditLog`
 ```prisma
 model AuditLog {

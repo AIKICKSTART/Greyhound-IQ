@@ -850,6 +850,220 @@
 - Auto-generated captions for any audio uploaded
 - Narrated form guides: user can request "narrate Aston Queen's last 5 starts" and get an audio response (TTS via Piper)
 
+#### US-2.21 — TTS for narrated form guides via Piper/Voicebox
+**As a** user
+**I want** to hear a narrated summary of a dog's recent form
+**So that** I can listen while driving or working out
+
+**Acceptance criteria:**
+- Piper (or Voicebox) TTS runs on Hetzner VPS alongside Whisper
+- Voice prompts (e.g. "narrate Aston Queen's last 5 starts") spawn a background agent that:
+  - Loads the dog's recent `FormEntry` rows
+  - Generates a natural-language narration script via the LLM
+  - Pipes the script through Piper → produces `audio/mp3` MediaAsset
+  - Returns the audio URL in the agent response
+- Generated audio is rate-limited (10/day/user for free, 50/day for Pro, unlimited for Pro+)
+- Audio cached for 7 days; same narration query returns cached audio
+
+---
+
+## E21 · Win-probability ML model (Hugging Face + AutoTrain)
+
+*Added from Technology Opportunities report (2026-06-29) — corpus identifies HF+AutoTrain as the realistic path to an actual prediction model on Topaz history without an ML hire. TimesFM provides the cheap baseline benchmark.*
+
+#### US-2.22 — TimesFM form-trend baseline
+**As a** system
+**I want** TimesFM (Google's pretrained time-series foundation model) to forecast each dog's form trajectory
+**So that** we have a zero-training baseline to benchmark our ML model against
+
+**Acceptance criteria:**
+- TimesFM runs in a Docker container on Hetzner VPS
+- Inference API: `POST /forecast` with `dog_id`, returns projected sectional trajectory over next 5 races
+- Latency: <500ms per forecast
+- Used as the "naive baseline" in the prompt-eval pipeline (E16)
+- No training required (zero-shot)
+- Self-hosted weights to avoid Inference-API data egress
+- Benchmarked against XGBoost baseline monthly; metrics stored in `PromptEvalResult` table
+
+**Given** I want to know Aston Queen's projected form over the next 3 races
+**When** the system calls `POST /forecast` with her recent form
+**Then** TimesFM returns a forecast trajectory within 500ms
+
+#### US-2.23 — Win-probability XGBoost model (Hugging Face AutoTrain)
+**As a** system
+**I want** an ML model that predicts the win probability for each runner in an upcoming race
+**So that** the race-analyst agent has calibrated predictions to give users
+
+**Acceptance criteria:**
+- Model trained via Hugging Face AutoTrain on 5+ years of historical Topaz form + Betfair BSP data
+- Features: box, distance, track, going, recent sectionals, trainer strike rate, days since last run, weight trend, class, weather
+- Output: calibrated win probability per runner (sums to 1.0 across the field)
+- Per-runner factor attributions (SHAP values) for explainability
+- Model versioned (`v1.0`, `v1.1`, ...); predictions stored in `RacePrediction` with `modelVersion`
+- Re-trained monthly via AutoTrain scheduled job
+- Inference latency: <200ms per race (10 runners)
+- Self-hosted weights; no Inference-API egress
+- Calibration tracked in `PromptEvalResult` (Brier score, log-loss)
+
+**Given** a race with 8 runners is declared
+**When** the system runs inference
+**Then** within 200ms each runner has a calibrated win probability with SHAP attributions
+
+#### US-2.24 — AutoTrain retraining job
+**As a** system
+**I want** the win-probability model to retrain monthly on fresh race results
+**So that** prediction quality doesn't decay as the racing conditions evolve
+
+**Acceptance criteria:**
+- Monthly cron (1st of month, 3am AEST) triggers AutoTrain retraining
+- Training data: most recent 12 months of completed races (rolling window)
+- Validation: held-out 1-month window, evaluated by Brier score
+- New model promoted to `champion` only if Brier score beats the current champion
+- Champion model loaded by the agent harness; challenger is shadow-tested for 2 weeks before promotion
+- Model registry stored in `ModelRegistry` table (new)
+- Audit log entry on every promotion
+
+---
+
+## E22 · Aider (git-native AI pair programmer)
+
+*Added from Technology Opportunities report — dev workflow epic. "Aider" is a git-native terminal pair-programmer that fits our agent pattern.*
+
+#### US-2.25 — Aider is available for in-repo coding tasks
+**As a** developer (Daniel or a future team member)
+**I want** Aider wired up for in-repo refactoring, test-writing, and PR-prep work
+**So that** I can move faster on routine code changes
+
+**Acceptance criteria:**
+- Aider installed on the Hetzner VPS (Python venv, separate from the app)
+- Wrapper script `scripts/aider.sh` that:
+  - Activates the venv
+  - Loads the repo tree map
+  - Sets `--model` to MiniMax M3 via OpenRouter (or local fallback)
+  - Auto-commits after each change with a Co-Authored-By trailer
+- Default commit message format: `aider: <what changed>`
+- `.aider.conf.yml` checked in: includes repo conventions, lint rules, and excluded paths
+- Used in: refactors, doc updates, dependency bumps, test scaffolding
+- NOT used in: schema changes (review by Daniel), auth/RBAC code (security-critical)
+
+---
+
+## E23 · Dify (self-hostable RAG pipeline)
+
+*Added from Technology Opportunities report — alternative to Mem0+Cognee for one-shot RAG use cases. Pairs with Mem0 for agent memory + Cognee for graph; Dify for ad-hoc document Q&A.*
+
+#### US-2.26 — Dify provides document Q&A for breeders
+**As a** breeder
+**I want** to ask "what's the GRV stewards' report say about scratching patterns in 2026?"
+**So that** I can make decisions without reading 100 PDFs
+
+**Acceptance criteria:**
+- Dify runs in Docker on Hetzner VPS (port 5000)
+- Document source: Firecrawl-crawled GRNSW / GRV / Tasracing PDFs and stewards' reports
+- Indexed in pgvector (same store as Mem0 — different namespace)
+- Query: natural-language question → top-k chunks → LLM answer with citations
+- Citation clickable: opens the source PDF at the referenced page
+- Rate limit: 20 queries/day for free, 200/day for Pro, unlimited for Pro+
+- Tier-gated in `/breeding` and `/statistics` pages
+
+---
+
+## E24 · GEO citation audits (Generative Engine Optimization)
+
+*Added from Technology Opportunities report — "GEO" = making pages answer-engine-citable. Beyond SEO, this is being citable by ChatGPT / Claude / Perplexity.*
+
+#### US-2.27 — Pages are optimised for answer-engine citation
+**As a** system
+**I want** key pages to be structured so generative engines cite them directly
+**So that** GreyhoundIQ surfaces in AI answers about greyhound racing
+
+**Acceptance criteria:**
+- Every key page (home, races, dogs, statistics, breeding, pricing, about, contact) has:
+  - Clear, scannable headings (h1 → h2 → h3 with question-phrased headings for FAQ content)
+  - Concise 40-60 word summary block at the top (citation snippet)
+  - Author/date metadata in JSON-LD (`@type: Article`)
+  - FAQ schema (`@type: FAQPage`) where applicable
+- Audit pipeline runs weekly: crawls the site, sends each page to a Claude/GPT evaluation prompt
+- Audit report lists pages with low citation probability + concrete fixes
+- Audit results stored in `GeoAuditResult` table
+- GEO score tracked per page over time
+
+**Given** I ask Claude "best Australian greyhound racing data platforms"
+**When** it generates an answer
+**Then** GreyhoundIQ's home page or /pricing page is among the cited sources
+
+---
+
+## E25 · Observability (OpenTelemetry + Grafana)
+
+*Added from Technology Opportunities report — beyond Sentry errors, we need OTel traces + Grafana dashboards for agent token/latency/error monitoring.*
+
+#### US-2.28 — Agent runs are traced end-to-end
+**As a** system
+**I want** every agent run to emit OpenTelemetry spans for: prompt assembly, tool calls, LLM invocations, memory writes
+**So that** I can see exactly where time and tokens are spent
+
+**Acceptance criteria:**
+- OpenTelemetry SDK in `nextjs`, `agents`, `localai`, `whisper`, `cognee` services
+- OTel collector runs on Hetzner VPS (port 4317/4318)
+- Spans for:
+  - `agent.run` (top-level, durationMs, status, runId)
+  - `agent.memory.load` (top-20 + similarity search duration)
+  - `agent.tool_call` (tool name, args sanitized, result size, duration)
+  - `agent.llm.call` (model, prompt_tokens, completion_tokens, duration)
+- Grafana dashboards:
+  - "Agent token usage by agent type and user tier" (last 24h)
+  - "P95 agent run duration" (last 7d)
+  - "Tool call success rate" (last 24h)
+  - "Memory write rate per user" (detect runaway agents)
+- Grafana alerts on P95 > 30s, error rate > 5%
+
+#### US-2.29 — Grafana + Prometheus + Loki stack on Hetzner
+**As a** system
+**I want** a self-hosted observability stack on the Hetzner VPS
+**So that** I have full control over telemetry and metrics retention
+
+**Acceptance criteria:**
+- Prometheus (port 9090) scrapes `/api/internal/metrics` every 15s
+- Loki (port 3100) collects stdout from all containers
+- Grafana (port 3000 internal) connects to Prometheus + Loki
+- Retention: 30 days for metrics, 14 days for logs
+- Dashboards auto-loaded from `infra/grafana/dashboards/` on container start
+- Alertmanager routes alerts to Telegram via existing alerting channel
+- Total stack memory footprint: < 2GB
+
+---
+
+## E26 · Open-weight model fallback (GLM-5.2 / Kimi K2.7 / Qwen 3)
+
+*Added from Technology Opportunities report — MiniMax M3 leads open-weight, but a fallback model is needed for resilience and cost.*
+
+#### US-2.30 — Agent falls back to a secondary model if MiniMax M3 is unavailable
+**As a** system
+**I want** the agent harness to fall back to a secondary open-weight model when MiniMax M3 is rate-limited or down
+**So that** user-facing agent runs always succeed
+
+**Acceptance criteria:**
+- Configured fallback chain: `MiniMax M3` (primary) → `GLM-5.2` (fallback 1) → `Kimi K2.7` (fallback 2) → `Qwen 3` (fallback 3)
+- Harness checks primary health (last success rate over 5 min); if < 95%, switches to fallback
+- Fallback invocations recorded in `AgentRun.outputJson` with `model: "minimax-m3 | glm-5.2 | kimi-k2.7 | qwen-3"`
+- All fallbacks billed to user's tier as if they were primary (no surprise overage)
+- Fallback model latency benchmarked monthly; if a fallback is consistently faster/cheaper, promote it
+- Models accessed via OpenRouter (single API key, multiple providers)
+
+#### US-2.31 — DeepSeek-V4-Flash as cost-optimisation route (gated)
+**As a** system
+**I want** DeepSeek-V4-Flash available as a cost-optimisation route for SEO content generation and bulk memory extraction
+**So that** I can reduce MiniMax M3 token spend on high-volume, low-stakes workloads
+
+**Acceptance criteria:**
+- **Gated behind AU data-sovereignty review** (Chinese provider — PII cannot touch DeepSeek until reviewed)
+- If approved: cache-aware prompt structure (fixed prefix + variable suffix) to exploit DeepSeek's $0.0028/M cache-hit pricing
+- Used for: SEO content generation, bulk memory extraction, agent system-prompt-only operations
+- NOT used for: agent responses that touch user PII (memory, conversations, predictions)
+- Rate-limited per-user; monthly cost cap ($200/mo for DeepSeek usage)
+- Kill-switch: instant disable via env var `DEEPSEEK_ENABLED=false`
+
 ---
 
 ## Out of scope

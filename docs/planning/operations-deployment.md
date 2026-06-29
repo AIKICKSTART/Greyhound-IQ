@@ -58,9 +58,18 @@
 | **n8n** | 5678 | Workflow orchestration (Topaz, Betfair, Firecrawl) | Triggers via schedule; writes to Supabase via service-role |
 | **localai** | 8080 | Embeddings (all-MiniLM-L6-v2 or text-embedding-3-small) + LLM fallback | Caddy mTLS reverse proxy; only `nextjs` and `agents` can reach it |
 | **whisper** | 9000 | Voice message transcription (distil-large-v3) | Triggered on voice upload; writes transcript to Supabase |
+| **piper** | 9001 | TTS for narrated form guides | Triggered by agent; writes audio MediaAsset to Supabase |
 | **firecrawl** | 3002 | Self-hosted web scraping (GRNSW, GRV, Tasracing) | n8n-driven; quota 1000 pages/day per source |
 | **cognee** | 8000 | Knowledge graph for breeding (Postgres `graph` extension) | Event-driven sync from Prisma writes via middleware |
 | **mem0** | 8000 (shared with cognee) | Per-user memory extraction + storage | Embedding via localai, storage in Supabase |
+| **timesfm** | 9002 | Form trajectory forecasting (zero-shot) | Stateless inference; called by race-analyst agent |
+| **autotrain** | — | Monthly win-probability model retraining (cron) | Reads Supabase training data; writes model to Hetzner Storage Box |
+| **dify** | 5000 | Document Q&A (RAG over stewards' reports etc.) | pgvector-backed; tier-gated UI on /breeding and /statistics |
+| **aider** | — | Dev pair-programmer (Python venv, terminal) | Called via `scripts/aider.sh`; not a service |
+| **prometheus** | 9090 | Metrics scraping (every 15s) | Scrapes `/api/internal/metrics` from all services |
+| **loki** | 3100 | Log aggregation | Reads container stdout |
+| **grafana** | 3000 (internal) | Dashboards + alerting | Connected to Prometheus + Loki + Alertmanager |
+| **otel-collector** | 4317/4318 | OpenTelemetry trace receiver | Agents/services export spans here |
 
 ---
 
@@ -359,19 +368,37 @@ curl -s https://staging.greyhoundiq.com.au/api/health
 | Firecrawl (self-hosted) | $0 | Docker container |
 | Cognee (in-process) | $0 | Same Postgres + pgvector + graph extensions |
 | Mem0 (Apache-2.0) | $0 | Same Postgres |
-| **VPS upgrade** (cx22 → cx32) | **+$30/mo** | Required for v2 compute |
-| **Total fixed (v2)** | **$95/mo** |
 
-At 6,000 paying users × $99/yr avg = $49,500 ARR. Cost-to-revenue ratio: 95 × 12 / 49,500 = 2.3%. Still healthy.
+### v3 additions (Technology Opportunities report, 2026-06-29)
 
-### v2 cost caps (per user)
+| Service | Cost | Notes |
+|---------|------|-------|
+| TimesFM (Google pretrained, self-hosted) | $0 | Docker container; ~2GB RAM |
+| Hugging Face AutoTrain (monthly retraining) | $0 | Self-hosted cron job |
+| Dify (RAG pipeline) | $0 | Docker container on Hetzner |
+| Aider (dev workflow) | $0 | Python venv; called via wrapper script |
+| Piper / Voicebox (TTS) | $0 | Already included in v2 |
+| Prometheus + Loki + Grafana stack | $0 (compute) | ~2GB RAM additional |
+| OpenTelemetry collector | $0 | Docker sidecar |
+| Open-weight fallback models (GLM-5.2, Kimi, Qwen) | ~$20/mo | OpenRouter metered; cached aggressively |
+| DeepSeek-V4-Flash (gated — AU data-sovereignty review needed) | ~$30-100/mo | Cache-aware prompts only |
+| **VPS upgrade** (cx22 → cx42 — 16 vCPU, 32GB) | **+$60/mo** | Required for v3 compute (TimesFM + AutoTrain + Grafana stack) |
+| **Total fixed (v3)** | **~$175/mo** |
+
+At 6,000 paying users × $99/yr avg = $49,500 ARR. Cost-to-revenue ratio: 175 × 12 / 49,500 = 4.2%. Still healthy, but trending toward needing a managed plan.
+
+### v3 cost caps (per user)
 
 - LocalAI embeddings: 100 req/sec, ~$0.0001/embed → 1M embeds = $100
 - Whisper transcription: ~0.5 min/voice msg, $0.0006/min (if we were using OpenAI) — local = $0
 - Cognee graph traversal: compute-bound on Postgres, negligible
 - n8n runs: negligible
+- TimesFM forecasts: ~$0.001/forecast; 100k forecasts/mo = $100
+- AutoTrain retraining: $0 (self-hosted)
+- Open-weight fallback: $20/mo baseline; cache-aware reduces further
+- DeepSeek (if gated cleared): capped at $200/mo
 
-**At 6,000 users avg 50 memory entries each = 300k memories. 50k voice msgs/month × 30s avg = 25k min/month. All within Hetzner cx32 capacity.**
+**At 6,000 users avg 50 memory entries each = 300k memories. 50k voice msgs/month × 30s avg = 25k min/month. 1M forecasts/month = $100. All within Hetzner cx42 capacity (16 vCPU, 32GB).**
 
 ---
 

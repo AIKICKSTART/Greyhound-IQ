@@ -445,6 +445,35 @@ These endpoints back the public web UI and the AI agent tools. Most are public r
 | POST | `/api/admin/breeding/resync-graph` | admin | Full Cognee graph resync |
 | GET | `/api/admin/agents/sandbox-status` | admin | List active agent containers |
 
+## Models & ML (added in v3 — Technology Opportunities)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/admin/models` | admin | List all models in registry |
+| GET | `/api/admin/models/:id` | admin | Get model details + metrics |
+| POST | `/api/admin/models/:id/promote` | admin | Promote challenger → champion |
+| POST | `/api/admin/models/:id/archive` | admin | Archive a model |
+| POST | `/api/internal/models/retrain` | internal | Trigger AutoTrain retraining (cron calls this) |
+| POST | `/api/races/:id/forecast` | session (Pro+) | Get TimesFM forecast for the race |
+| POST | `/api/dogs/:id/form-forecast` | session (Pro+) | Get TimesFM form trend for a dog |
+
+## Observability (added in v3)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/internal/metrics` | internal | Prometheus scrape endpoint |
+| GET | `/api/admin/observability/traces` | admin | Recent OTel traces (filterable by runId) |
+| GET | `/api/admin/observability/spans/:traceId` | admin | All spans for a trace |
+| GET | `/api/admin/observability/token-usage` | admin | Token usage by agent type / tier / day |
+
+## GEO audits (added in v3)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/admin/geo/audits` | admin | List GEO audit results |
+| POST | `/api/internal/geo/run-audit` | internal | Trigger weekly GEO audit |
+| GET | `/api/admin/geo/scores` | admin | Per-page GEO score history |
+
 ---
 
 ## Error codes (stable)

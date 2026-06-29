@@ -186,12 +186,12 @@ When implementation is complete and tests pass:
 
 ## Status
 
-- [x] user-stories.md — **59 user stories** across 20 epics in 4 phases
-- [x] api-architecture.md — ~70 REST routes, auth, rate limits, error codes
-- [x] data-model.md — Prisma schema for 22+ new models + ERD + RLS policies
+- [x] user-stories.md — **62 user stories** across 26 epics in 4 phases
+- [x] api-architecture.md — ~80 REST routes, auth, rate limits, error codes
+- [x] data-model.md — Prisma schema for 24+ new models + ERD + RLS policies
 - [x] security-threat-model.md — 15 threat categories, RLS, agent sandbox, APPs
-- [x] operations-deployment.md — Hetzner + Supabase + 9 internal services
-- [x] testing-strategy.md — Test pyramid, mock all v2 services
+- [x] operations-deployment.md — Hetzner + Supabase + 17 internal services
+- [x] testing-strategy.md — Test pyramid, mock all v3 services
 - [x] planning README (this file)
 
 **Architecture v2 deltas (from agent corpus re-read):**
@@ -201,5 +201,14 @@ When implementation is complete and tests pass:
 - 3 new security mitigations: agent Docker sandbox, tier 3 approval gate, internal mTLS
 - VPS upgrade path: cx22 → cx32 (+$30/mo) to host new compute
 - Cost-to-revenue ratio: 1.6% → 2.3% (still healthy)
+
+**Technology Opportunities v3 deltas (2026-06-29):**
+- 12 more user stories (E21-E26): TimesFM+HF AutoTrain ML pipeline, Aider dev workflow, Dify RAG, GEO citation audits, OTel+Grafana, open-weight model fallback
+- 2 new Prisma tables: `ModelRegistry`, `GeoAuditResult`
+- 8 new service components: timesfm, autotrain, dify, aider, prometheus, loki, grafana, otel-collector
+- New admin endpoints: `/api/admin/models/*`, `/api/admin/observability/*`, `/api/admin/geo/*`
+- VPS upgrade: cx32 → cx42 (+$60/mo) to host TimesFM + AutoTrain + Grafana stack
+- Cost-to-revenue ratio: 2.3% → 4.2% (still healthy, monitor as we scale)
+- 3 documented open-source fallback model options (GLM-5.2, Kimi K2.7, Qwen 3) for resilience
 
 **Planning phase complete.** Ready for implementation once the 10 architecture questions are answered.

@@ -46,7 +46,7 @@ export default async function TracksPage() {
             {tracks.map((track) => (
               <Link
                 key={track.id}
-                href={`/races?track=${track.id}`}
+                href={`/tracks/${track.id}`}
                 id={track.name.toLowerCase().replace(/\s+/g, "-")}
                 className="block rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all scroll-mt-20"
               >

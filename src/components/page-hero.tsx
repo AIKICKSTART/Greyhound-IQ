@@ -46,27 +46,29 @@ export function PageHero({
         />
         <div className="absolute inset-0 bg-gradient-to-r from-[hsl(150_30%_3%)] via-[hsl(150_30%_3%/0.7)] to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-[hsl(150_30%_3%)] via-transparent to-[hsl(150_30%_3%/0.4)]" />
+        <div className="track-rail-overlay absolute inset-x-0 bottom-0 h-32" />
+        <div className="race-box-strip absolute inset-x-6 bottom-8 mx-auto max-w-7xl opacity-70" />
       </div>
 
       <div className={`relative mx-auto max-w-7xl px-6 ${py} w-full`}>
         <div className="max-w-2xl">
           {badge && (
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 mb-5 backdrop-blur-sm">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-1 backdrop-blur-sm">
               {badgeIcon}
               <span
-                className={`text-[11px] tracking-[0.04em] font-medium ${BADGE_COLORS[badgeColor]}`}
+                className={`text-[11px] font-semibold uppercase ${BADGE_COLORS[badgeColor]}`}
               >
                 {badge}
               </span>
             </div>
           )}
           <h1
-            className={`${titleClass} font-semibold tracking-[-0.04em] leading-[1.05] text-[hsl(210_13%_97%)]`}
+            className={`${titleClass} font-semibold leading-[1.05] text-[hsl(210_13%_97%)]`}
           >
             {title}
           </h1>
           <p
-            className={`mt-4 text-base md:text-lg text-[hsl(215_14%_65%)] max-w-xl tracking-[-0.011em] leading-[1.5]`}
+            className="mt-4 max-w-xl text-base leading-[1.55] text-[hsl(215_14%_72%)] md:text-lg"
           >
             {subtitle}
           </p>

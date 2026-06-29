@@ -1,4 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BadgeCheck, Clock, Lock, ShieldCheck } from "lucide-react";
+import { claimDogOwnership } from "@/app/actions";
+import { SubmitButton } from "@/components/submit-button";
+import { getCurrentUser } from "@/lib/auth";
 import { getDogById } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -26,8 +31,14 @@ export default async function DogProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const dog = await getDogById(id);
+  const [dog, user] = await Promise.all([getDogById(id), getCurrentUser()]);
   if (!dog) notFound();
+
+  const verifiedOwnership = dog.ownership.filter((entry) => entry.verified);
+  const currentOwnership = user?.profileId
+    ? dog.ownership.find((entry) => entry.profileId === user.profileId)
+    : null;
+  const claimAction = claimDogOwnership.bind(null, dog.id);
 
   const wins = dog.formEntries.filter((e) => e.finish === 1).length;
   const total = dog.formEntries.length;
@@ -81,6 +92,115 @@ export default async function DogProfilePage({
           </div>
         ))}
       </div>
+
+      {/* Ownership */}
+      <section className="mb-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+        <div className="mb-5 flex items-center gap-3">
+          <ShieldCheck className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+          <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-[hsl(210_13%_97%)]">
+            Ownership
+          </h2>
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-[1fr_280px]">
+          <div className="space-y-3">
+            {verifiedOwnership.length > 0 ? (
+              verifiedOwnership.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4"
+                >
+                  <div>
+                    <p className="font-semibold text-[hsl(210_13%_97%)]">
+                      {entry.profile.displayName}
+                    </p>
+                    <p className="mt-1 text-[13px] text-[hsl(215_14%_65%)]">
+                      {formatRole(entry.role)}
+                      {entry.profile.kennelName ? ` · ${entry.profile.kennelName}` : ""}
+                      {entry.profile.state ? ` · ${entry.profile.state}` : ""}
+                    </p>
+                  </div>
+                  <OwnershipBadge verified />
+                </div>
+              ))
+            ) : (
+              <div className="rounded-lg border border-dashed border-white/[0.12] p-4">
+                <p className="text-[14px] text-[hsl(215_14%_65%)]">
+                  No verified profile is linked to this dog yet.
+                </p>
+              </div>
+            )}
+
+            {currentOwnership && !currentOwnership.verified && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[hsl(25_95%_53%/0.25)] bg-[hsl(25_95%_53%/0.08)] p-4">
+                <div>
+                  <p className="font-semibold text-[hsl(210_13%_97%)]">
+                    Your claim is pending
+                  </p>
+                  <p className="mt-1 text-[13px] text-[hsl(215_14%_65%)]">
+                    {formatRole(currentOwnership.role)} claim submitted for review.
+                  </p>
+                </div>
+                <OwnershipBadge verified={false} />
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+            {user ? (
+              currentOwnership ? (
+                <div>
+                  <OwnershipBadge verified={currentOwnership.verified} />
+                  <p className="mt-3 text-[14px] leading-relaxed text-[hsl(215_14%_65%)]">
+                    This dog is linked to your GreyhoundIQ profile as{" "}
+                    {formatRole(currentOwnership.role)}.
+                  </p>
+                  <Link
+                    href="/account"
+                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-[hsl(210_13%_97%)] transition-all hover:bg-white/[0.06]"
+                  >
+                    Manage profile
+                  </Link>
+                </div>
+              ) : (
+                <form action={claimAction} className="grid gap-4">
+                  <label className="block">
+                    <span className="text-[12px] font-semibold uppercase text-[hsl(220_7%_42%)]">
+                      Claim role
+                    </span>
+                    <select
+                      name="role"
+                      className="mt-2 w-full rounded-lg border border-white/[0.08] bg-[hsl(150_30%_3%)] px-3 py-2 text-[14px] text-[hsl(210_13%_97%)] outline-none transition-colors focus:border-[hsl(142_76%_36%)]"
+                      defaultValue="owner"
+                    >
+                      <option value="owner">Owner</option>
+                      <option value="co-owner">Co-owner</option>
+                      <option value="breeder">Breeder</option>
+                      <option value="trainer">Trainer</option>
+                    </select>
+                  </label>
+                  <SubmitButton pendingLabel="Submitting claim...">
+                    Claim dog
+                  </SubmitButton>
+                </form>
+              )
+            ) : (
+              <div>
+                <Lock className="mb-3 h-5 w-5 text-[hsl(142_60%_48%)]" />
+                <p className="text-[14px] leading-relaxed text-[hsl(215_14%_65%)]">
+                  Sign in to link this dog to your GreyhoundIQ profile.
+                </p>
+                <Link
+                  href="/sign-in"
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-4 py-2 text-[13px] font-semibold text-white transition-all hover:brightness-110"
+                >
+                  Sign in
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* Pedigree */}
       {(dog.sire || dog.dam) && (
@@ -187,4 +307,30 @@ export default async function DogProfilePage({
       </div>
     </div>
   );
+}
+
+function OwnershipBadge({ verified }: { verified: boolean }) {
+  return (
+    <span
+      className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-semibold ${
+        verified
+          ? "border-[hsl(142_76%_36%/0.35)] bg-[hsl(142_76%_36%/0.12)] text-[hsl(142_60%_48%)]"
+          : "border-[hsl(25_95%_53%/0.35)] bg-[hsl(25_95%_53%/0.1)] text-[hsl(25_95%_53%)]"
+      }`}
+    >
+      {verified ? (
+        <BadgeCheck className="h-3.5 w-3.5" />
+      ) : (
+        <Clock className="h-3.5 w-3.5" />
+      )}
+      {verified ? "Verified" : "Pending"}
+    </span>
+  );
+}
+
+function formatRole(role: string) {
+  return role
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("-");
 }

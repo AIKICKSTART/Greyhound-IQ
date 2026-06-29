@@ -158,6 +158,8 @@ model User {
   subscriptionTier     String   @default("free")
   stripeCustomerId     String?  @unique
   stripeSubscriptionId String?  @unique
+  isBanned             Boolean  @default(false)
+  deletionRequestedAt  DateTime?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -166,7 +168,12 @@ model User {
 
   // ponytail: community relations are on Profile (1:1), not User.
   // Access via user.profile.posts etc — no redundant FKs here.
-  profile Profile?
+  profile        Profile?
+  reportsFiled   Report[] @relation("Reporter")
+  reportsAgainst Report[] @relation("Reported")
+  mediaAssets    MediaAsset[]
+  memoryEntries  MemoryEntry[]
+  agentContexts  ConversationContext[]
 }
 
 // === COMMUNITY ===
@@ -193,6 +200,8 @@ model Profile {
   listings         Listing[]
   messagesSent     Message[]      @relation("SenderMessages")
   messagesReceived Message[]      @relation("RecipientMessages")
+  conversationsA   Conversation[] @relation("ConversationA")
+  conversationsB   Conversation[] @relation("ConversationB")
   dogsOwned        DogOwnership[]
 }
 
@@ -256,30 +265,121 @@ model Listing {
   title       String
   description String
   price       Float?
+  currency    String   @default("AUD")
   state       String?
   dogId       String?
   dog         Dog?     @relation(fields: [dogId], references: [id])
   imageUrl    String?
-  status      String   @default("active") // active | sold | withdrawn
+  status      String   @default("active") // active | expired | sold | withdrawn | archived
+  expiresAt   DateTime?
+  soldAt      DateTime?
+  archivedAt  DateTime?
+  views       Int      @default(0)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  media       ListingMedia[]
 
   @@index([profileId])
   @@index([type])
   @@index([status])
+  @@index([expiresAt])
+  @@index([soldAt])
 }
 
 model Message {
-  id          String   @id @default(cuid())
-  senderId    String
-  sender      Profile  @relation("SenderMessages", fields: [senderId], references: [id])
-  recipientId String
-  recipient   Profile  @relation("RecipientMessages", fields: [recipientId], references: [id])
-  body        String
-  read        Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id                   String        @id @default(cuid())
+  conversationId       String?
+  conversation         Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId             String
+  sender               Profile       @relation("SenderMessages", fields: [senderId], references: [id])
+  recipientId          String
+  recipient            Profile       @relation("RecipientMessages", fields: [recipientId], references: [id])
+  body                 String
+  mediaIdsJson         String?
+  read                 Boolean       @default(false)
+  readAt               DateTime?
+  deletedBySenderAt    DateTime?
+  deletedByRecipientAt DateTime?
+  createdAt            DateTime      @default(now())
+  media                MessageMedia[]
 
+  @@index([conversationId, createdAt])
   @@index([senderId])
   @@index([recipientId])
+}
+
+model MediaAsset {
+  id              String    @id @default(cuid())
+  uploaderId      String
+  uploader        User      @relation(fields: [uploaderId], references: [id])
+  storageBucket   String
+  storagePath     String
+  originalName    String?
+  mimeType        String
+  sizeBytes       Int
+  widthPx         Int?
+  heightPx        Int?
+  durationSec     Float?
+  scanStatus      String    @default("pending") // pending | clean | infected | error
+  scanCompletedAt DateTime?
+  sha256          String?
+  expiresAt       DateTime?
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  messageAttachments MessageMedia[]
+  listingAttachments ListingMedia[]
+
+  @@unique([storageBucket, storagePath])
+  @@index([uploaderId, createdAt])
+  @@index([uploaderId, sha256])
+  @@index([scanStatus])
+}
+
+model MessageMedia {
+  messageId String
+  message   Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     MediaAsset @relation(fields: [mediaId], references: [id])
+  position  Int
+  createdAt DateTime   @default(now())
+
+  @@id([messageId, mediaId])
+  @@unique([messageId, position])
+  @@index([mediaId])
+}
+
+model ListingMedia {
+  listingId String
+  listing   Listing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     MediaAsset @relation(fields: [mediaId], references: [id])
+  position  Int
+  createdAt DateTime   @default(now())
+
+  @@id([listingId, mediaId])
+  @@unique([listingId, position])
+  @@index([mediaId])
+}
+
+model Conversation {
+  id             String    @id @default(cuid())
+  participantAId String
+  participantA   Profile   @relation("ConversationA", fields: [participantAId], references: [id])
+  participantBId String
+  participantB   Profile   @relation("ConversationB", fields: [participantBId], references: [id])
+  lastMessageAt  DateTime?
+  blockedById    String?
+  blockedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  messages       Message[]
+
+  @@unique([participantAId, participantBId])
+  @@index([participantAId])
+  @@index([participantBId])
+  @@index([lastMessageAt])
 }
 
 // === AGENTS ===
@@ -290,15 +390,97 @@ model AgentRun {
   userId           String? // null for cron-triggered
   inputJson        String // JSON: input params
   outputJson       String? // JSON: structured result
+  toolInvocations  String?
+  createdMemoryIds String?
   status           String    @default("pending") // pending | running | completed | failed
   error            String?
   promptTokens     Int?
   completionTokens Int?
   durationMs       Int?
+  harnessPid       Int?
+  harnessSessionId String?
   createdAt        DateTime  @default(now())
   completedAt      DateTime?
 
   @@index([agentType])
+  @@index([userId, createdAt])
   @@index([userId])
   @@index([status])
+}
+
+model MemoryEntry {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind           String // episodic | semantic | preference | unfinished
+  content        String
+  source         String // conversation | explicit_user_input | agent_inference | tool_observation
+  sourceRef      String?
+  importance     Float     @default(0.5)
+  lastAccessedAt DateTime  @default(now())
+  lastMaintainedAt DateTime?
+  accessCount    Int       @default(0)
+  supersededById String?
+  supersededAt   DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId, kind])
+  @@index([userId, importance])
+  @@index([userId, lastAccessedAt])
+  @@index([lastMaintainedAt])
+}
+
+model ConversationContext {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentType     String
+  lastMessageAt DateTime @default(now())
+  pendingAction String?
+  windowSize    Int      @default(50)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, agentType])
+  @@index([userId, updatedAt])
+}
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  actorId    String?
+  actorType  String
+  action     String
+  targetType String?
+  targetId   String?
+  ip         String?
+  userAgent  String?
+  metadata   String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, targetId])
+}
+
+model Report {
+  id              String   @id @default(cuid())
+  reporterId      String
+  reporter        User     @relation("Reporter", fields: [reporterId], references: [id])
+  reportedId      String?
+  reported        User?    @relation("Reported", fields: [reportedId], references: [id])
+  targetType      String
+  targetId        String
+  reason          String
+  description     String?
+  status          String   @default("open")
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  resolutionNotes String?
+  createdAt       DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+  @@index([reporterId, targetType, targetId, createdAt])
 }

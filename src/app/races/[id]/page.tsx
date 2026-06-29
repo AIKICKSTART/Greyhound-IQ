@@ -89,7 +89,7 @@ export default async function RacePage({
             </thead>
             <tbody>
               {race.runners.map((runner) => (
-                <RunnerRow key={runner.id} runner={runner as any} />
+                <RunnerRow key={runner.id} runner={runner} />
               ))}
             </tbody>
           </table>

@@ -1,6 +1,10 @@
 import { Dna, Sparkles, GitBranch, Layers, TrendingUp, Calendar } from "lucide-react";
 import Link from "next/link";
 import { PageHero } from "@/components/page-hero";
+import { getSireLeaderboard } from "@/lib/queries";
+import { ProGate } from "@/components/pro-gate";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Breeding Analytics — GreyhoundIQ",
@@ -14,15 +18,18 @@ const FEATURES = [
   { icon: Layers, title: "Litter Performance", desc: "Track every litter by sire × dam combination. Identify overperforming and underperforming crosses.", phase: "Phase 2" },
 ];
 
-const SIRE_LEADERS = [
-  { name: "Barcia Bale", progeny: 184, winners: 102, strike: 55.4, earnings: "$2.4M" },
-  { name: "Fernando Bale", progeny: 156, winners: 89, strike: 57.1, earnings: "$2.1M" },
-  { name: "Kinloch Brae", progeny: 142, winners: 76, strike: 53.5, earnings: "$1.8M" },
-  { name: "Premier Fantasy", progeny: 128, winners: 71, strike: 55.5, earnings: "$1.6M" },
-  { name: "Superior Panama", progeny: 119, winners: 64, strike: 53.8, earnings: "$1.4M" },
-];
+function formatEarnings(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+  return `$${n.toFixed(0)}`;
+}
 
-export default function BreedingPage() {
+export default async function BreedingPage() {
+  const SIRE_LEADERS = (await getSireLeaderboard(8)).map((s) => ({
+    ...s,
+    earnings: formatEarnings(s.earnings),
+  }));
+
   return (
     <div className="fade-in">
       <PageHero
@@ -90,14 +97,16 @@ export default function BreedingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-16">
+      <div className="mx-auto max-w-6xl px-6 pb-16">
+        <ProGate minTier="pro" feature="Breeding analytics">
+      <section className="px-0">
         <div className="flex items-end justify-between mb-6">
           <div>
             <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)] mb-1 tracking-[-0.03em]">
               Top Active Sires
             </h2>
             <p className="text-[13px] text-[hsl(215_14%_65%)] tracking-[-0.013em]">
-              Sample data — full leaderboard with Phase 2
+              Live from current data — ranked by progeny winners
             </p>
           </div>
           <TrendingUp className="h-5 w-5 text-[hsl(142_60%_48%)]" />
@@ -146,6 +155,8 @@ export default function BreedingPage() {
           </table>
         </div>
       </section>
+        </ProGate>
+      </div>
 
       <section className="mx-auto max-w-3xl px-6 pb-20 text-center">
         <Calendar className="h-5 w-5 text-[hsl(25_95%_53%)] mx-auto mb-3" />

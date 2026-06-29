@@ -253,7 +253,16 @@ System cron on VPS, no Redis/BullMQ at this scale.
 | `backup:media` | 05:00 AEST daily | Storage backup verification | Alert if missing |
 | `metrics:export` | Hourly | Push metrics to monitoring | Skip silently if down |
 
-All cron jobs use the shared-secret header for internal auth.
+All cron jobs use the shared-secret header for internal auth. Set
+`INTERNAL_API_SECRET` on the web service and send it as `X-Internal-Secret`.
+Marketplace expiry is exposed at `POST /api/internal/listing-expiry` and can be
+run locally with `npm run maintain:listings`. Account deletion finalization is
+exposed at `POST /api/internal/account-deletion` and can be run locally with
+`npm run maintain:accounts`. Memory decay is exposed at
+`POST /api/internal/memory-decay` and can be run locally with
+`npm run maintain:memory`. Agent timeout cleanup is exposed at
+`POST /api/internal/agent-cleanup` and can be run locally with
+`npm run maintain:agents`.
 
 ---
 

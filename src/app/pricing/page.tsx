@@ -168,7 +168,7 @@ export default function PricingPage() {
         <div className="mt-10 text-center">
           <p className="text-[13px] text-[hsl(220_7%_42%)] tracking-[-0.013em]">
             greyhound-data.com Gold: ~$125 AUD/year. GreyhoundIQ Pro:{" "}
-            <span className="font-semibold text-[hsl(142_60%_48%)]">$99 AUD/year</span>. That's 21% cheaper.
+            <span className="font-semibold text-[hsl(142_60%_48%)]">$99 AUD/year</span>. That&apos;s 21% cheaper.
           </p>
         </div>
       </section>

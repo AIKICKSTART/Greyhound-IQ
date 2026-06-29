@@ -23,20 +23,41 @@ export function DogSearch() {
 
   useEffect(() => {
     if (query.length < 2) {
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/dogs/search?q=${encodeURIComponent(query)}`,
+          { signal: controller.signal }
+        );
+        const data = (await res.json()) as SearchResult[];
+        setResults(data);
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("[dog-search] failed:", err);
+          setResults([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, 300);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  function handleQueryChange(next: string) {
+    setQuery(next);
+    if (next.length < 2) {
       setResults([]);
+      setLoading(false);
       return;
     }
     setLoading(true);
-    const timer = setTimeout(async () => {
-      const res = await fetch(
-        `/api/dogs/search?q=${encodeURIComponent(query)}`
-      );
-      const data = await res.json();
-      setResults(data);
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [query]);
+  }
 
   return (
       <div className="w-full max-w-2xl mx-auto">
@@ -51,7 +72,7 @@ export function DogSearch() {
             placeholder="Search for a greyhound..."
             aria-label="Search for a greyhound by name"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
             className="pl-11 h-12 text-[15px] bg-white/[0.03] border-white/[0.08] text-[hsl(210_13%_97%)] placeholder:text-[hsl(220_7%_42%)] focus:border-[hsl(142_76%_36%)] rounded-xl tracking-[-0.013em]"
             autoFocus
           />

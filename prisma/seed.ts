@@ -2,11 +2,27 @@
  * Seed script — populates the database with realistic sample data
  * for Australian greyhound racing so the site works on first load.
  *
- * Run with: npm run seed
+ * Batched with createMany + client-generated ids to keep round-trips low
+ * (the DB is a remote Supabase pooler; per-row inserts are far too slow).
+ *
+ * Run with: npm run db:seed
  */
 import { PrismaClient } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
+
+const id = () => randomUUID();
+
+async function createManyChunked<T>(
+  create: (args: { data: T[] }) => Promise<unknown>,
+  rows: T[],
+  size = 1000
+) {
+  for (let i = 0; i < rows.length; i += size) {
+    await create({ data: rows.slice(i, i + size) });
+  }
+}
 
 // Realistic Australian greyhound tracks
 const TRACKS = [
@@ -25,7 +41,6 @@ const TRACKS = [
   { name: "Launceston", state: "TAS", surface: "Sand", circumference: 480, straightLength: 95, hasIsolynx: false },
 ];
 
-// Realistic trainer names
 const TRAINERS = [
   "Jason Thompson", "David Greene", "Mark Riley", "Lisa Delaney",
   "Paul Stuart", "Donna Knight", "Graeme Bate", "James Langton",
@@ -34,14 +49,12 @@ const TRAINERS = [
   "Peter Rocket", "Steve White", "Wayne Vassallo", "Corey Pell",
 ];
 
-// Realistic sire names (well-known Australian sires)
 const SIRES = [
   "Barcia Bale", "Fernando Bale", "Kinloch Brae", "Premier Fantasy",
   "Spiral Nikita", "Superior Panama", "Surf Lorian", "Turrito Bale",
   "Awesome Assasin", "Magic Sprite", "Outa Credit", "Bogie LeBron",
 ];
 
-// Name generator components
 const NAME_PREFIXES = [
   "Akina", "Aston", "Bago", "Black", "Blue", "Campbell", "Canya", "Catch",
   "Check", "Chocolate", "Cindy", "Citi", "Coral", "Cosmic", "Coty", "Crazy",
@@ -84,37 +97,21 @@ const NAME_SUFFIXES = [
   "Pearl", "Phantom", "Phoenix", "Power", "Predator", "Premier", "Prince",
   "Princess", "Pride", "Prime", "Punch", "Queen", "Quest", "Racer",
   "Ranger", "Rascal", "Raven", "Rebel", "Reign", "Rhythm", "Riot",
-  "Ripple", "Rocket", "Rogue", "Royale", "Runner", "Rush", "Rhythm",
+  "Ripple", "Rocket", "Rogue", "Royale", "Runner", "Rush",
   "Sabre", "Sensation", "Shadow", "Shark", "Shield", "Shock", "Sky",
-  "Slammer", "Sniper", "Solitaire", "Sonic", "Spark", "Spirit", "Spirit",
+  "Slammer", "Sniper", "Solitaire", "Sonic", "Spark", "Spirit",
   "Star", "Starr", "Sterling", "Storm", "Strike", "Sundance", "Sunset",
   "Superstar", "Surprise", "Survivor", "Sword", "Tactic", "Talent",
   "Tango", "Tempest", "Thunder", "Tiger", "Titan", "Tornado", "Treasure",
   "Trick", "Triumph", "Trooper", "Turbo", "Tycoon", "Typhoon", "Universe",
   "Viper", "Vortex", "Voyage", "Warrior", "Whisper", "Wild", "Wing",
   "Winner", "Wizard", "Wonder", "Xtreme", "Yield", "Zenith", "Zone",
-  "Action", "Affair", "Arrow", "Avenue", "Baby", "Bandit", "Banjo",
-  "Beauty", "Bliss", "Bolt", "Bonus", "Boy", "Breaker", "Brother",
-  "Buck", "Caper", "Cash", "Catcher", "Champ", "Chance", "Charge",
-  "Cheetah", "Cobber", "Cuddle", "Cup", "Dasher", "Dawn", "Deal",
-  "Digger", "Diva", "Drift", "Duke", "Dutchess", "Eddy", "Edition",
-  "Energy", "Epilogue", "Era", "Event", "Express", "Eyes", "Factor",
-  "Fella", "Fever", "Fidget", "Figure", "Film", "Finisher", "Flick",
-  "Flirt", "Flo", "Flower", "Flyer", "Font", "Fountain", "Free",
-  "Frenzy", "Friend", "Frost", "Gal", "Game", "Gate", "Gear",
-  "Gem", "Giant", "Glider", "Goblet", "Grace", "Grain", "Grand",
-  "Gunner", "Hammer", "Hand", "Havoc", "Heart", "Heist", "Hint",
-  "Holiday", "Honey", "Hook", "Hope", "Hopper", "Horn", "Hub",
-  "Hype", "Ice", "Idol", "Image", "Ink", "Instance", "Intent",
-  "Irl", "Isle", "Jive", "Joust", "Junction", "Junket", "Kapa",
-  "Keeper", "Kelp", "Khana", "Kicker", "Kiss", "Knot", "Label",
-  "Lake", "Lambo", "Lark", "Lasso", "Legend", "Lie", "Lingo",
-  "Loft", "Logic", "Look", "Loop", "Lotto", "Lucky", "Lunar",
 ];
 
 const DOG_COLOURS = ["Black", "Brindle", "Fawn", "Blue", "White", "Black & White"];
 const SEXES = ["M", "F"];
 const GRADES = ["Maiden", "Tier 3", "Grade 5", "Grade 4", "Grade 3", "Grade 2", "Grade 1", "Mixed 4/5", "Free For All"];
+const RACE_DISTANCES = [400, 450, 500, 515, 520, 525, 600];
 
 function randomChoice<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -124,10 +121,31 @@ function generateDogName(): string {
   return `${randomChoice(NAME_PREFIXES)} ${randomChoice(NAME_SUFFIXES)}`;
 }
 
-async function main() {
-  console.log("🌱 Seeding GreyhoundIQ database...\n");
+function whelp(minYear: number, span: number): Date {
+  return new Date(minYear + Math.floor(Math.random() * span), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
+}
 
-  // Clear existing data
+async function main() {
+  console.log("🌱 Seeding GreyhoundIQ database (batched)...\n");
+
+  // Clear existing data (child -> parent to respect FKs)
+  await prisma.messageMedia.deleteMany();
+  await prisma.listingMedia.deleteMany();
+  await prisma.message.deleteMany();
+  await prisma.conversation.deleteMany();
+  await prisma.post.deleteMany();
+  await prisma.thread.deleteMany();
+  await prisma.forumCategory.deleteMany();
+  await prisma.listing.deleteMany();
+  await prisma.mediaAsset.deleteMany();
+  await prisma.dogOwnership.deleteMany();
+  await prisma.memoryEntry.deleteMany();
+  await prisma.conversationContext.deleteMany();
+  await prisma.agentRun.deleteMany();
+  await prisma.auditLog.deleteMany();
+  await prisma.report.deleteMany();
+  await prisma.profile.deleteMany();
+  await prisma.user.deleteMany();
   await prisma.result.deleteMany();
   await prisma.formEntry.deleteMany();
   await prisma.runner.deleteMany();
@@ -137,237 +155,292 @@ async function main() {
   await prisma.trainer.deleteMany();
   await prisma.track.deleteMany();
 
-  // 1. Create tracks
-  console.log("Creating tracks...");
-  const trackIds: Record<string, string> = {};
-  for (const t of TRACKS) {
-    const track = await prisma.track.create({ data: t });
-    trackIds[t.name] = track.id;
-  }
-  console.log(`  ✓ ${TRACKS.length} tracks`);
+  // 1. Tracks
+  const trackRows = TRACKS.map((t) => ({ id: id(), ...t }));
+  await prisma.track.createMany({ data: trackRows });
+  const trackIds: Record<string, string> = Object.fromEntries(trackRows.map((t) => [t.name, t.id]));
+  console.log(`  ✓ ${trackRows.length} tracks`);
 
-  // 2. Create trainers
-  console.log("Creating trainers...");
-  const trainerIds: string[] = [];
-  for (const name of TRAINERS) {
-    const state = randomChoice(["NSW", "VIC", "QLD", "SA", "WA", "TAS"]);
-    const trainer = await prisma.trainer.create({
-      data: { name, state, licenseNumber: `AU-${Math.floor(Math.random() * 999999)}` },
-    });
-    trainerIds.push(trainer.id);
-  }
-  console.log(`  ✓ ${TRAINERS.length} trainers`);
+  // 2. Trainers
+  const trainerRows = TRAINERS.map((name) => ({
+    id: id(),
+    name,
+    state: randomChoice(["NSW", "VIC", "QLD", "SA", "WA", "TAS"]),
+    licenseNumber: `AU-${Math.floor(Math.random() * 999999)}`,
+  }));
+  await prisma.trainer.createMany({ data: trainerRows });
+  const trainerIds = trainerRows.map((t) => t.id);
+  console.log(`  ✓ ${trainerRows.length} trainers`);
 
-  // 3. Create sires (as dogs first — they need to exist for relations)
-  console.log("Creating sire dogs...");
-  const sireIds: Record<string, string> = {};
-  for (const sireName of SIRES) {
-    const sire = await prisma.dog.create({
-      data: {
-        name: sireName,
-        sex: "M",
-        colour: randomChoice(DOG_COLOURS),
-        whelpDate: new Date(2015 + Math.floor(Math.random() * 5), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-      },
-    });
-    sireIds[sireName] = sire.id;
-  }
+  // 3. Sires
+  const sireRows = SIRES.map((name) => ({
+    id: id(),
+    name,
+    sex: "M",
+    colour: randomChoice(DOG_COLOURS),
+    whelpDate: whelp(2015, 5),
+  }));
+  await prisma.dog.createMany({ data: sireRows });
+  const sireIds: Record<string, string> = Object.fromEntries(sireRows.map((s) => [s.name, s.id]));
 
-  // 4. Create brood bitches
-  console.log("Creating brood bitches...");
-  const damIds: string[] = [];
-  for (let i = 0; i < 30; i++) {
-    const dam = await prisma.dog.create({
-      data: {
-        name: generateDogName(),
-        sex: "F",
-        colour: randomChoice(DOG_COLOURS),
-        whelpDate: new Date(2016 + Math.floor(Math.random() * 4), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-      },
-    });
-    damIds.push(dam.id);
-  }
+  // 4. Brood bitches
+  const damRows = Array.from({ length: 30 }, () => ({
+    id: id(),
+    name: generateDogName(),
+    sex: "F",
+    colour: randomChoice(DOG_COLOURS),
+    whelpDate: whelp(2016, 4),
+  }));
+  await prisma.dog.createMany({ data: damRows });
+  const damIds = damRows.map((d) => d.id);
 
-  // 5. Create racing dogs (400 of them)
-  console.log("Creating racing dogs...");
-  const dogIds: string[] = [];
-  for (let i = 0; i < 400; i++) {
-    const sireName = randomChoice(SIRES);
-    const dog = await prisma.dog.create({
-      data: {
-        name: generateDogName(),
-        sex: randomChoice(SEXES),
-        colour: randomChoice(DOG_COLOURS),
-        whelpDate: new Date(2021 + Math.floor(Math.random() * 3), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-        sireId: sireIds[sireName],
-        damId: randomChoice(damIds),
-        trainerId: randomChoice(trainerIds),
-        earBrand: `AU${Math.floor(Math.random() * 999999).toString().padStart(6, "0")}`,
-      },
-    });
-    dogIds.push(dog.id);
-  }
-  console.log(`  ✓ 400 racing dogs`);
+  // 5. Racing dogs (earBrand made unique via index to avoid collisions)
+  const dogRows = Array.from({ length: 400 }, (_, i) => ({
+    id: id(),
+    name: generateDogName(),
+    sex: randomChoice(SEXES),
+    colour: randomChoice(DOG_COLOURS),
+    whelpDate: whelp(2021, 3),
+    sireId: sireIds[randomChoice(SIRES)],
+    damId: randomChoice(damIds),
+    trainerId: randomChoice(trainerIds),
+    earBrand: `AU${(100000 + i).toString()}`,
+  }));
+  await prisma.dog.createMany({ data: dogRows });
+  const dogIds = dogRows.map((d) => d.id);
+  console.log(`  ✓ ${sireRows.length} sires, ${damRows.length} dams, ${dogRows.length} racing dogs`);
 
-  // 6. Create form history for each dog (past races)
-  console.log("Creating form history...");
-  let formCount = 0;
+  // 6. Form history
+  const formRows: {
+    id: string; dogId: string; trackId: string; date: Date;
+    boxNumber: number; finish: number; time: number; distance: number; grade: string; weight: number;
+  }[] = [];
   for (const dogId of dogIds) {
     const numStarts = Math.floor(Math.random() * 30) + 3;
     for (let i = 0; i < numStarts; i++) {
-      const trackName = randomChoice(TRACKS).name;
-      const distance = randomChoice([400, 450, 500, 515, 520, 525, 600]);
+      const distance = randomChoice(RACE_DISTANCES);
       const finish = Math.random() < 0.15 ? 1 : Math.floor(Math.random() * 8) + 1;
-      const time = distance / 10 + Math.random() * 2;
-
-      await prisma.formEntry.create({
-        data: {
-          dogId,
-          trackId: trackIds[trackName],
-          date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-          boxNumber: Math.floor(Math.random() * 8) + 1,
-          finish,
-          time: parseFloat(time.toFixed(2)),
-          distance,
-          grade: randomChoice(GRADES),
-          weight: parseFloat((28 + Math.random() * 8).toFixed(1)),
-        },
+      formRows.push({
+        id: id(),
+        dogId,
+        trackId: trackIds[randomChoice(TRACKS).name],
+        date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+        boxNumber: Math.floor(Math.random() * 8) + 1,
+        finish,
+        time: parseFloat((distance / 10 + Math.random() * 2).toFixed(2)),
+        distance,
+        grade: randomChoice(GRADES),
+        weight: parseFloat((28 + Math.random() * 8).toFixed(1)),
       });
-      formCount++;
     }
   }
-  console.log(`  ✓ ${formCount} form entries`);
+  await createManyChunked((a) => prisma.formEntry.createMany(a), formRows);
+  console.log(`  ✓ ${formRows.length} form entries`);
 
-  // 7. Create today's meetings and races
-  console.log("Creating today's meetings...");
+  // Collect meetings/races/runners/results across both days, then batch-insert.
+  const meetingRows: { id: string; trackId: string; meetingDate: Date; meetingType: string }[] = [];
+  const raceRows: { id: string; meetingId: string; raceNumber: number; raceTime: Date; distance: number; grade: string; prizeMoney: number }[] = [];
+  const runnerRows: { id: string; raceId: string; dogId: string; boxNumber: number; weight: number; trainerId: string; startingPrice: number; scratched: boolean }[] = [];
+  const resultRows: { id: string; runnerId: string; raceId: string; finishingPosition: number; runningTime: number; margin: number; splitTime: number }[] = [];
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const todaysTracks = [...TRACKS].sort(() => Math.random() - 0.5).slice(0, 5);
-  let raceCount = 0;
-  let runnerCount = 0;
-
-  for (const t of todaysTracks) {
-    const meeting = await prisma.meeting.create({
-      data: {
-        trackId: trackIds[t.name],
-        meetingDate: today,
-        meetingType: randomChoice(["TAB", "Non-TAB", "Twilight"]),
-      },
-    });
-
-    const numRaces = Math.floor(Math.random() * 5) + 8; // 8-12 races
+  function buildMeeting(trackName: string, date: Date, type: string, numRaces: number, withResults: boolean) {
+    const meetingId = id();
+    meetingRows.push({ id: meetingId, trackId: trackIds[trackName], meetingDate: date, meetingType: type });
     for (let r = 0; r < numRaces; r++) {
-      const raceTime = new Date(today);
+      const raceId = id();
+      const raceTime = new Date(date);
       raceTime.setHours(17 + Math.floor(r / 4), (r % 4) * 15, 0, 0);
-
-      const distance = randomChoice([400, 450, 500, 515, 520, 525, 600]);
-      const race = await prisma.race.create({
-        data: {
-          meetingId: meeting.id,
-          raceNumber: r + 1,
-          raceTime,
-          distance,
-          grade: randomChoice(GRADES),
-          prizeMoney: parseFloat((2000 + Math.random() * 8000).toFixed(0)),
-        },
+      const distance = randomChoice(RACE_DISTANCES);
+      raceRows.push({
+        id: raceId, meetingId, raceNumber: r + 1, raceTime, distance,
+        grade: randomChoice(GRADES), prizeMoney: parseFloat((2000 + Math.random() * 8000).toFixed(0)),
       });
-      raceCount++;
-
-      // Add 8 runners per race
       const raceDogs = [...dogIds].sort(() => Math.random() - 0.5).slice(0, 8);
-      for (let box = 0; box < 8; box++) {
-        const runner = await prisma.runner.create({
-          data: {
-            raceId: race.id,
-            dogId: raceDogs[box],
-            boxNumber: box + 1,
-            weight: parseFloat((28 + Math.random() * 8).toFixed(1)),
-            trainerId: randomChoice(trainerIds),
-            scratched: Math.random() < 0.03,
-          },
-        });
-        runnerCount++;
-      }
-    }
-  }
-  console.log(`  ✓ ${todaysTracks.length} meetings, ${raceCount} races, ${runnerCount} runners`);
-
-  // 8. Create yesterday's meeting with results
-  console.log("Creating yesterday's results...");
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const yesterTracks = [...TRACKS].sort(() => Math.random() - 0.5).slice(0, 4);
-  let resultsCount = 0;
-
-  for (const t of yesterTracks) {
-    const meeting = await prisma.meeting.create({
-      data: {
-        trackId: trackIds[t.name],
-        meetingDate: yesterday,
-        meetingType: "TAB",
-      },
-    });
-
-    const numRaces = Math.floor(Math.random() * 3) + 7;
-    for (let r = 0; r < numRaces; r++) {
-      const raceTime = new Date(yesterday);
-      raceTime.setHours(17 + Math.floor(r / 4), (r % 4) * 15, 0, 0);
-
-      const distance = randomChoice([400, 450, 500, 515, 520, 525, 600]);
-      const race = await prisma.race.create({
-        data: {
-          meetingId: meeting.id,
-          raceNumber: r + 1,
-          raceTime,
-          distance,
-          grade: randomChoice(GRADES),
-          prizeMoney: parseFloat((2000 + Math.random() * 8000).toFixed(0)),
-        },
-      });
-
-      const raceDogs = [...dogIds].sort(() => Math.random() - 0.5).slice(0, 8);
-      // Random finishing order
       const finishOrder = [1, 2, 3, 4, 5, 6, 7, 8].sort(() => Math.random() - 0.5);
-
       for (let box = 0; box < 8; box++) {
-        const runner = await prisma.runner.create({
-          data: {
-            raceId: race.id,
-            dogId: raceDogs[box],
-            boxNumber: box + 1,
-            weight: parseFloat((28 + Math.random() * 8).toFixed(1)),
-            trainerId: randomChoice(trainerIds),
-          },
+        const runnerId = id();
+        runnerRows.push({
+          id: runnerId, raceId, dogId: raceDogs[box], boxNumber: box + 1,
+          weight: parseFloat((28 + Math.random() * 8).toFixed(1)),
+          trainerId: randomChoice(trainerIds),
+          startingPrice: parseFloat((1.5 + Math.random() * 20).toFixed(2)),
+          scratched: !withResults && Math.random() < 0.03,
         });
-
-        const time = distance / 10 + Math.random() * 2;
-        await prisma.result.create({
-          data: {
-            runnerId: runner.id,
-            raceId: race.id,
-            finishingPosition: finishOrder[box],
-            runningTime: parseFloat(time.toFixed(2)),
+        if (withResults) {
+          resultRows.push({
+            id: id(), runnerId, raceId, finishingPosition: finishOrder[box],
+            runningTime: parseFloat((distance / 10 + Math.random() * 2).toFixed(2)),
             margin: finishOrder[box] === 1 ? 0 : parseFloat((Math.random() * 5).toFixed(2)),
             splitTime: parseFloat((distance / 10 + Math.random()).toFixed(2)),
-          },
-        });
-        resultsCount++;
+          });
+        }
       }
     }
   }
-  console.log(`  ✓ ${resultsCount} results`);
 
-  console.log("\n✅ Seed complete!\n");
-  console.log("Summary:");
-  console.log(`  Tracks: ${TRACKS.length}`);
-  console.log(`  Trainers: ${TRAINERS.length}`);
-  console.log(`  Sires: ${SIRES.length}`);
-  console.log(`  Racing dogs: 400`);
-  console.log(`  Form entries: ${formCount}`);
-  console.log(`  Today's races: ${raceCount}`);
-  console.log(`  Yesterday's results: ${resultsCount}`);
+  // 7. Today + next 6 days of meetings (upcoming, no results)
+  for (let d = 0; d <= 6; d++) {
+    const day = new Date(today);
+    day.setDate(day.getDate() + d);
+    for (const t of [...TRACKS].sort(() => Math.random() - 0.5).slice(0, d === 0 ? 5 : 3)) {
+      buildMeeting(t.name, day, randomChoice(["TAB", "Non-TAB", "Twilight"]), Math.floor(Math.random() * 5) + 8, false);
+    }
+  }
+  // 8. Yesterday's meetings (with results)
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  for (const t of [...TRACKS].sort(() => Math.random() - 0.5).slice(0, 4)) {
+    buildMeeting(t.name, yesterday, "TAB", Math.floor(Math.random() * 3) + 7, true);
+  }
+  // 8b. A week of historical results so stats/records have depth
+  for (let d = 2; d <= 8; d++) {
+    const day = new Date(today);
+    day.setDate(day.getDate() - d);
+    for (const t of [...TRACKS].sort(() => Math.random() - 0.5).slice(0, 4)) {
+      buildMeeting(t.name, day, "TAB", Math.floor(Math.random() * 3) + 7, true);
+    }
+  }
+
+  await prisma.meeting.createMany({ data: meetingRows });
+  await createManyChunked((a) => prisma.race.createMany(a), raceRows);
+  await createManyChunked((a) => prisma.runner.createMany(a), runnerRows);
+  await createManyChunked((a) => prisma.result.createMany(a), resultRows);
+  console.log(`  ✓ ${meetingRows.length} meetings, ${raceRows.length} races, ${runnerRows.length} runners, ${resultRows.length} results`);
+
+  // 9. Users across every tier (matched to WorkOS by email; tier drives ProGate)
+  const USERS = [
+    { email: "free@greyhoundiq.test", name: "Freddie Free", tier: "free", role: "member", kennel: null },
+    { email: "pro@greyhoundiq.test", name: "Patricia Pro", tier: "pro", role: "trainer", kennel: "Riverside Racing" },
+    { email: "proplus@greyhoundiq.test", name: "Quentin Quant", tier: "pro_plus", role: "breeder", kennel: "Bale Bloodlines" },
+    { email: "admin@greyhoundiq.test", name: "Adele Admin", tier: "pro_plus", role: "admin", kennel: null },
+  ];
+  const userRows = USERS.map((u) => ({ id: id(), email: u.email, name: u.name, subscriptionTier: u.tier }));
+  await prisma.user.createMany({ data: userRows });
+  const profileRows = USERS.map((u, i) => ({
+    id: id(),
+    userId: userRows[i].id,
+    displayName: u.name,
+    bio: `${u.role[0].toUpperCase()}${u.role.slice(1)} on GreyhoundIQ.`,
+    state: randomChoice(["NSW", "VIC", "QLD", "SA", "WA", "TAS"]),
+    kennelName: u.kennel ?? undefined,
+    kennelPrefix: u.kennel ? u.kennel.split(" ")[0] : undefined,
+    role: u.role,
+    verified: u.role !== "member",
+  }));
+  await prisma.profile.createMany({ data: profileRows });
+  const profileIds = profileRows.map((p) => p.id);
+  console.log(`  ✓ ${userRows.length} users + profiles`);
+
+  // 10. Dog ownership
+  const ownershipRows: { id: string; dogId: string; profileId: string; role: string; verified: boolean }[] = [];
+  for (const profileId of profileIds) {
+    for (const dogId of [...dogIds].sort(() => Math.random() - 0.5).slice(0, 4)) {
+      ownershipRows.push({ id: id(), dogId, profileId, role: randomChoice(["owner", "breeder", "trainer", "co-owner"]), verified: Math.random() < 0.6 });
+    }
+  }
+  await prisma.dogOwnership.createMany({ data: ownershipRows });
+  console.log(`  ✓ ${ownershipRows.length} ownership links`);
+
+  // 11. Forum
+  const CATEGORIES = [
+    { name: "General Discussion", slug: "general", description: "Talk all things greyhound racing." },
+    { name: "Form & Tips", slug: "form-tips", description: "Share your reads and get feedback." },
+    { name: "Breeding", slug: "breeding", description: "Bloodlines, matings, and litters." },
+    { name: "Buy, Sell & Stud", slug: "marketplace", description: "Marketplace chatter." },
+  ];
+  const THREAD_TITLES = [
+    "Box 1 bias at Wentworth Park — real or myth?",
+    "Best value sire for staying types?",
+    "Sandown 515 sectionals — who's flying?",
+    "First-time owner — what should I look for?",
+    "Anyone tracking the new Isolynx timing data?",
+  ];
+  const POST_BODIES = [
+    "Good question — I've seen the same pattern over the last month.",
+    "Depends on the distance, but the data backs you up.",
+    "Disagree, the sample size is too small to call it.",
+    "Anyone got the split times for that one?",
+    "Welcome aboard! Start with the form guide and box stats.",
+  ];
+  const categoryRows = CATEGORIES.map((c, i) => ({ id: id(), name: c.name, slug: c.slug, description: c.description, sortOrder: i }));
+  await prisma.forumCategory.createMany({ data: categoryRows });
+  const threadRows: { id: string; categoryId: string; title: string; authorId: string; pinned: boolean; views: number }[] = [];
+  const postRows: { id: string; threadId: string; authorId: string; body: string }[] = [];
+  for (const c of categoryRows) {
+    const numThreads = Math.floor(Math.random() * 2) + 2;
+    for (let t = 0; t < numThreads; t++) {
+      const threadId = id();
+      threadRows.push({ id: threadId, categoryId: c.id, title: randomChoice(THREAD_TITLES), authorId: randomChoice(profileIds), pinned: t === 0 && Math.random() < 0.4, views: Math.floor(Math.random() * 800) });
+      for (let p = 0; p < Math.floor(Math.random() * 4) + 1; p++) {
+        postRows.push({ id: id(), threadId, authorId: randomChoice(profileIds), body: randomChoice(POST_BODIES) });
+      }
+    }
+  }
+  await prisma.thread.createMany({ data: threadRows });
+  await prisma.post.createMany({ data: postRows });
+  console.log(`  ✓ ${categoryRows.length} categories, ${threadRows.length} threads, ${postRows.length} posts`);
+
+  // 12. Marketplace listings
+  const LISTING_TYPES = ["pup_for_sale", "dog_for_sale", "stud_service", "wanted", "share"];
+  const listingRows = Array.from({ length: 12 }, () => {
+    const type = randomChoice(LISTING_TYPES);
+    const status = randomChoice(["active", "active", "active", "sold"]);
+    return {
+      id: id(),
+      profileId: randomChoice(profileIds),
+      type,
+      title: type === "stud_service" ? `Stud service — ${randomChoice(SIRES)}` : `${generateDogName()} — ${type.replace(/_/g, " ")}`,
+      description: "Well-bred, sound, ready to go. Genuine enquiries only.",
+      price: type === "wanted" ? null : parseFloat((1000 + Math.random() * 9000).toFixed(0)),
+      currency: "AUD",
+      state: randomChoice(["NSW", "VIC", "QLD", "SA", "WA", "TAS"]),
+      dogId: Math.random() < 0.5 ? randomChoice(dogIds) : undefined,
+      status,
+      expiresAt: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 90),
+      soldAt:
+        status === "sold"
+          ? new Date(today.getFullYear(), today.getMonth(), today.getDate() - 3)
+          : undefined,
+    };
+  });
+  await prisma.listing.createMany({ data: listingRows });
+  console.log(`  ✓ ${listingRows.length} listings`);
+
+  // 13. Direct messages
+  const MSG_BODIES = ["Hi — is the listing still available?", "Great race today, congrats!", "Can you send the pedigree?", "What's your best price?"];
+  const messageRows = Array.from({ length: 10 }, () => {
+    const sender = randomChoice(profileIds);
+    let recipient = randomChoice(profileIds);
+    while (recipient === sender) recipient = randomChoice(profileIds);
+    return { id: id(), senderId: sender, recipientId: recipient, body: randomChoice(MSG_BODIES), read: Math.random() < 0.5 };
+  });
+  await prisma.message.createMany({ data: messageRows });
+  console.log(`  ✓ ${messageRows.length} messages`);
+
+  // 14. Agent runs (AI feature history)
+  const AGENT_TYPES = ["race_analyst", "breeding_advisor", "form_reader", "moderator"];
+  const agentRows = Array.from({ length: 15 }, () => {
+    const agentType = randomChoice(AGENT_TYPES);
+    const done = Math.random() < 0.85;
+    return {
+      id: id(),
+      agentType,
+      inputJson: JSON.stringify({ sample: true, agentType }),
+      outputJson: done ? JSON.stringify({ summary: "Sample structured output", confidence: parseFloat(Math.random().toFixed(2)) }) : null,
+      status: done ? "completed" : randomChoice(["pending", "running", "failed"]),
+      promptTokens: done ? Math.floor(Math.random() * 2000) + 200 : null,
+      completionTokens: done ? Math.floor(Math.random() * 1500) + 100 : null,
+      durationMs: done ? Math.floor(Math.random() * 8000) + 500 : null,
+      completedAt: done ? new Date() : null,
+    };
+  });
+  await prisma.agentRun.createMany({ data: agentRows });
+  console.log(`  ✓ ${agentRows.length} agent runs`);
+
+  console.log("\n✅ Seed complete!");
 }
 
 main()

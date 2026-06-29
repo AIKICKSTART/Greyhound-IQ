@@ -4,7 +4,7 @@ import { Clock, MapPin } from "lucide-react";
 type MeetingData = {
   id: string;
   meetingDate: Date;
-  track: { name: string; state: string; hasIsolynx: boolean };
+  track: { id: string; name: string; state: string; hasIsolynx: boolean };
   races: {
     id: string;
     raceNumber: number;
@@ -25,7 +25,7 @@ export function MeetingCard({ meeting }: { meeting: MeetingData }) {
       <div className="flex items-start justify-between mb-4">
         <div>
           <Link
-            href={`/tracks#${track.name.toLowerCase().replace(/\s+/g, "-")}`}
+            href={`/tracks/${track.id}`}
           >
             <h3
               className="text-[16px] font-semibold text-[hsl(210_13%_97%)] hover:text-[hsl(142_60%_48%)] transition-colors tracking-[-0.02em]"

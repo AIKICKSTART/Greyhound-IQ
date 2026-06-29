@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CookiePreferencePanel } from "@/components/cookie-consent";
 
 export const metadata = {
   title: "Privacy Policy — GreyhoundIQ",
@@ -8,21 +9,22 @@ export const metadata = {
 export default function PrivacyPage() {
   return (
     <div className="fade-in mx-auto max-w-3xl px-6 py-16">
-      <h1 className="text-3xl text-[hsl(210_13%_97%)] mb-2 tracking-[-0.03em]">
+      <div className="race-box-strip mb-5 w-40" />
+      <h1 className="mb-2 text-3xl text-[hsl(210_13%_97%)]">
         Privacy Policy
       </h1>
-      <p className="text-[13px] text-[hsl(220_7%_42%)] mb-8 tracking-[-0.013em]">
+      <p className="mb-8 text-[13px] text-[hsl(220_7%_42%)]">
         Last updated: 28 June 2026
       </p>
 
-      <div className="space-y-6 text-[15px] text-[hsl(215_14%_65%)] leading-relaxed tracking-[-0.011em]">
+      <div className="space-y-6 text-[15px] leading-relaxed text-[hsl(215_14%_65%)]">
         <p>
           GreyhoundIQ is built and operated in Australia. This policy explains
           what data we collect, how we use it, and your rights under the
           Australian Privacy Principles (APPs).
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
           What we collect
         </h2>
         <ul className="list-disc pl-6 space-y-2">
@@ -40,7 +42,7 @@ export default function PrivacyPage() {
           </li>
         </ul>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
           How we use it
         </h2>
         <p>
@@ -48,7 +50,7 @@ export default function PrivacyPage() {
           usage, and comply with legal obligations. We do not sell your data.
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
           Data storage
         </h2>
         <p>
@@ -56,7 +58,7 @@ export default function PrivacyPage() {
           payments only). Backups run daily.
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
           Your rights
         </h2>
         <p>
@@ -64,16 +66,17 @@ export default function PrivacyPage() {
           analytics. Email privacy@greyhoundiq.com.au.
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
           Cookies
         </h2>
         <p>
           We use essential cookies for authentication and optional analytics
-          cookies (you can opt out via your browser settings or our cookie
-          banner — coming soon).
+          cookies. You can accept or decline optional analytics below; the
+          preference is stored in this browser.
         </p>
+        <CookiePreferencePanel />
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
           Responsible gambling
         </h2>
         <p>
@@ -90,7 +93,7 @@ export default function PrivacyPage() {
           on 1800 858 858.
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
           Changes
         </h2>
         <p>
@@ -98,7 +101,7 @@ export default function PrivacyPage() {
           changes will be announced on the homepage.
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
           Contact
         </h2>
         <p>

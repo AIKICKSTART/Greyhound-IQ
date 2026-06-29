@@ -6,12 +6,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   const routes = [
     "",
+    "/account",
     "/races",
     "/results",
     "/dogs",
     "/tracks",
     "/breeding",
     "/statistics",
+    "/agents",
+    "/forum",
+    "/listings",
+    "/messages",
     "/pricing",
     "/about",
     "/contact",

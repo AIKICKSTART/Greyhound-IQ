@@ -1,39 +1,28 @@
-import { BarChart3, TrendingUp, Award, MapPin, Users, Target } from "lucide-react";
+import { BarChart3, Award, MapPin, Users, Target } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
+import { getBoxBias, getTrainerLeaderboard, getTrackRecords } from "@/lib/queries";
+import { ProGate } from "@/components/pro-gate";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Statistics — GreyhoundIQ",
   description: "Box bias, trainer leaderboards, track records, and speed maps — the data serious Australian punters use.",
 };
 
-const BOX_BIAS = [
-  { box: 1, winRate: 13.2, color: "#EF4444" },
-  { box: 2, winRate: 11.8, color: "#3B82F6" },
-  { box: 3, winRate: 10.4, color: "#FCD34D" },
-  { box: 4, winRate: 12.1, color: "#1B7A3D" },
-  { box: 5, winRate: 13.6, color: "#FCD34D" },
-  { box: 6, winRate: 12.9, color: "#8B5CF6" },
-  { box: 7, winRate: 13.0, color: "#EC4899" },
-  { box: 8, winRate: 12.5, color: "#111827" },
-];
+// Per-box colour palette (box 1-8) for the bias chart.
+const BOX_COLORS = ["#EF4444", "#3B82F6", "#FCD34D", "#1B7A3D", "#F97316", "#8B5CF6", "#EC4899", "#111827"];
 
-const TRAINER_LEADERS = [
-  { name: "Jason Thompson", wins: 142, starters: 312, roi: 18.4 },
-  { name: "Mark Riley", wins: 128, starters: 287, roi: 15.2 },
-  { name: "Graeme Bate", wins: 119, starters: 264, roi: 21.7 },
-  { name: "David Greene", wins: 112, starters: 251, roi: 12.8 },
-  { name: "Robert Britton", wins: 108, starters: 245, roi: 16.5 },
-];
+export default async function StatisticsPage() {
+  const [boxBiasRows, trainerLeaders, trackRecords] = await Promise.all([
+    getBoxBias(),
+    getTrainerLeaderboard(8),
+    getTrackRecords(12),
+  ]);
+  const BOX_BIAS = boxBiasRows.map((b) => ({ box: b.box, winRate: b.winRate, color: BOX_COLORS[(b.box - 1) % 8] }));
+  const TRAINER_LEADERS = trainerLeaders;
+  const TRACK_RECORDS = trackRecords;
 
-const TRACK_RECORDS = [
-  { track: "Wentworth Park", dist: 520, time: 29.07, dog: "Shima Shine", year: 2024 },
-  { track: "The Meadows", dist: 525, time: 29.05, dog: "She's A Pearl", year: 2024 },
-  { track: "Sandown Park", dist: 515, time: 28.92, dog: "Koblenz", year: 2023 },
-  { track: "Albion Park", dist: 520, time: 29.34, dog: "Mepunga Blazer", year: 2024 },
-  { track: "Angle Park", dist: 530, time: 30.18, dog: "Tommy Shelby", year: 2024 },
-];
-
-export default function StatisticsPage() {
   return (
     <div className="fade-in">
       <PageHero
@@ -89,7 +78,9 @@ export default function StatisticsPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-16">
+      <div className="mx-auto max-w-6xl px-6 pb-20">
+        <ProGate minTier="pro" feature="Advanced statistics">
+      <section className="px-0 pb-16">
         <div className="flex items-center gap-3 mb-6">
           <Users className="h-5 w-5 text-[hsl(142_60%_48%)]" />
           <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)] tracking-[-0.03em]">
@@ -147,7 +138,7 @@ export default function StatisticsPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-20">
+      <section className="px-0 pb-0">
         <div className="flex items-center gap-3 mb-6">
           <Award className="h-5 w-5 text-[hsl(25_95%_53%)]" />
           <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)] tracking-[-0.03em]">
@@ -185,6 +176,8 @@ export default function StatisticsPage() {
           ))}
         </div>
       </section>
+        </ProGate>
+      </div>
     </div>
   );
 }

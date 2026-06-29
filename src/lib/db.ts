@@ -20,7 +20,7 @@ function makePrisma(): PrismaClient | null {
   }
 }
 
-const realPrisma = makePrisma();
+const realPrisma = globalForPrisma.prisma ?? makePrisma();
 
 if (realPrisma && process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = realPrisma;
@@ -29,7 +29,7 @@ if (realPrisma && process.env.NODE_ENV !== "production") {
 // Stub that returns empty results for every model call. Lets the app render
 // without a DB; queries will still surface in error logs.
 const stub = new Proxy({} as PrismaClient, {
-  get: (_target, prop) => {
+  get: () => {
     return new Proxy({}, {
       get: (_t, method) => {
         // findUnique / findFirst → return null

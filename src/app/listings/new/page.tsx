@@ -178,7 +178,7 @@ export default async function NewListingPage() {
             </div>
             <Link
               href="/sign-in"
-              className="inline-flex items-center justify-center rounded-md bg-[hsl(142_60%_42%)] px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-[hsl(142_76%_36%/0.18)] transition-colors hover:bg-[hsl(142_60%_48%)]"
+              className="giq-button giq-button-primary px-4 text-[13px] font-semibold"
             >
               Sign in
             </Link>

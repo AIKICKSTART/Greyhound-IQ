@@ -33,7 +33,7 @@ export default async function BreedingPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/feature-breeding-analytics.png"
+        image="/images/hero-greyhoundiq-brand.png"
         badge="BREEDING ANALYTICS"
         badgeIcon={<Dna className="h-3 w-3 text-[hsl(142_60%_48%)]" />}
         badgeColor="green"

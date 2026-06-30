@@ -4,6 +4,7 @@ import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import "./globals.css";
 import { CookieConsentBanner } from "@/components/cookie-consent";
+import { MobileBottomDock } from "@/components/mobile-bottom-dock";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -61,6 +62,7 @@ export default async function RootLayout({
             <main id="main-content" className="flex-1">{children}</main>
             <SiteFooter />
           </div>
+          <MobileBottomDock />
           <CookieConsentBanner />
         </AuthKitProvider>
       </body>

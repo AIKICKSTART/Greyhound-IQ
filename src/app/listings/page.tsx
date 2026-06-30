@@ -11,6 +11,10 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
+import {
+  getDemoListingImages,
+  type DemoListingImage,
+} from "@/lib/demo-listing-media";
 import { getMarketplaceListings } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -69,7 +73,7 @@ export default async function ListingsPage({
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/feature-breeding-analytics.png"
+        image="/images/hero-greyhoundiq-brand.png"
         title={
           <>
             Marketplace.
@@ -82,13 +86,13 @@ export default async function ListingsPage({
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/forum"
-            className="inline-flex items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-5 py-2.5 text-[13px] font-semibold text-[hsl(210_13%_97%)] transition-all hover:bg-white/[0.07]"
+            className="giq-button giq-button-glass px-5 text-[13px] font-semibold"
           >
             Discuss listings
           </Link>
           <Link
             href="/listings/new"
-            className="inline-flex items-center gap-2 rounded-md bg-[hsl(142_60%_42%)] px-5 py-2.5 text-[13px] font-semibold text-white shadow-xl shadow-[hsl(142_76%_36%/0.2)] transition-colors hover:bg-[hsl(142_60%_48%)]"
+            className="giq-button giq-button-primary px-5 text-[13px] font-semibold"
           >
             Create listing
           </Link>
@@ -150,7 +154,7 @@ export default async function ListingsPage({
             <button
               type="submit"
               aria-label="Search listings"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-[hsl(215_14%_80%)] transition-colors hover:bg-white/[0.06]"
+              className="giq-button giq-button-glass giq-icon-button text-[hsl(215_14%_84%)]"
             >
               <Search className="h-4 w-4" />
             </button>
@@ -170,11 +174,24 @@ export default async function ListingsPage({
                 key={listing.id}
                 className="race-panel flex min-h-[360px] flex-col transition-all hover:-translate-y-0.5 hover:border-white/[0.13]"
               >
-                {listing.media[0] && (
-                  <div className="p-2 pb-0">
-                    <ListingMediaPreview media={listing.media[0].media} />
-                  </div>
-                )}
+                {(() => {
+                  const demoImage = getDemoListingImages(listing, 1)[0];
+                  if (listing.media[0]) {
+                    return (
+                      <div className="p-2 pb-0">
+                        <ListingMediaPreview media={listing.media[0].media} />
+                      </div>
+                    );
+                  }
+                  if (demoImage) {
+                    return (
+                      <div className="p-2 pb-0">
+                        <ListingDemoMediaPreview image={demoImage} />
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 <div className="flex flex-1 flex-col p-5">
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div>
@@ -262,6 +279,20 @@ export default async function ListingsPage({
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function ListingDemoMediaPreview({ image }: { image: DemoListingImage }) {
+  return (
+    <div className="block overflow-hidden rounded-md border border-white/[0.08] bg-black/20">
+      <NextImage
+        src={image.src}
+        alt={image.alt}
+        width={image.width}
+        height={image.height}
+        className="h-40 w-full object-cover"
+      />
     </div>
   );
 }

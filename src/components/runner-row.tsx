@@ -1,13 +1,4 @@
-const BOX_COLOURS: Record<number, string> = {
-  1: "bg-[#EF4444] text-white",
-  2: "bg-[#3B82F6] text-white",
-  3: "bg-white text-gray-900 border border-white/20",
-  4: "bg-[#1B7A3D] text-white",
-  5: "bg-[#FCD34D] text-gray-900",
-  6: "bg-[#8B5CF6] text-white",
-  7: "bg-[#111827] text-white border border-white/10",
-  8: "bg-[#EC4899] text-white",
-};
+import { getBoxColourStyle } from "@/lib/box-colours";
 
 type RunnerData = {
   id: string;
@@ -36,6 +27,7 @@ type RunnerData = {
 
 export function RunnerRow({ runner }: { runner: RunnerData }) {
   const dog = runner.dog;
+  const boxStyle = getBoxColourStyle(runner.boxNumber);
   const form = dog.formEntries
     .map((e) => (e.finish === null ? "-" : e.finish === 0 ? "✕" : e.finish))
     .join("");
@@ -48,9 +40,8 @@ export function RunnerRow({ runner }: { runner: RunnerData }) {
     >
       <td className="p-3 text-center">
         <span
-          className={`inline-flex h-7 w-7 items-center justify-center rounded text-[12px] font-bold ${
-            BOX_COLOURS[runner.boxNumber] ?? "bg-gray-600 text-white"
-          }`}
+          className="inline-flex h-7 w-7 items-center justify-center rounded border text-[12px] font-bold shadow-[inset_0_1px_0_hsl(0_0%_100%/0.22),0_6px_14px_hsl(0_0%_0%/0.20)]"
+          style={boxStyle}
         >
           {runner.boxNumber}
         </span>

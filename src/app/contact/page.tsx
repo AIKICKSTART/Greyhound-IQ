@@ -31,7 +31,7 @@ export default function ContactPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/feature-ai-predictions.png"
+        image="/images/hero-greyhoundiq-brand.png"
         badge="CONTACT"
         badgeColor="green"
         title={

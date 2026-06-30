@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, Clock, MapPin, Route, Trophy } from "lucide-react";
+import { getBoxColourStyle } from "@/lib/box-colours";
 import { getTrackById } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -194,22 +195,32 @@ export default async function TrackDetailPage({
               </h2>
             </div>
             <div className="space-y-3">
-              {boxWins.map((row) => (
-                <div key={row.box} className="grid grid-cols-[32px_1fr_32px] items-center gap-3">
-                  <span className="text-[12px] font-bold text-[hsl(210_13%_97%)]">
-                    {row.box}
-                  </span>
-                  <div className="h-2 rounded-full bg-white/[0.06]">
-                    <div
-                      className="h-2 rounded-full bg-[hsl(142_60%_48%)]"
-                      style={{ width: `${Math.max((row.wins / maxWins) * 100, 4)}%` }}
-                    />
+              {boxWins.map((row) => {
+                const boxStyle = getBoxColourStyle(row.box);
+
+                return (
+                  <div key={row.box} className="grid grid-cols-[32px_1fr_32px] items-center gap-3">
+                    <span
+                      className="inline-flex h-7 w-7 items-center justify-center rounded border text-[12px] font-bold"
+                      style={boxStyle}
+                    >
+                      {row.box}
+                    </span>
+                    <div className="h-2 rounded-full bg-white/[0.06]">
+                      <div
+                        className="h-2 rounded-full"
+                        style={{
+                          width: `${Math.max((row.wins / maxWins) * 100, 4)}%`,
+                          background: boxStyle.background,
+                        }}
+                      />
+                    </div>
+                    <span className="text-right font-mono text-[12px] text-[hsl(215_14%_65%)]">
+                      {row.wins}
+                    </span>
                   </div>
-                  <span className="text-right font-mono text-[12px] text-[hsl(215_14%_65%)]">
-                    {row.wins}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </aside>

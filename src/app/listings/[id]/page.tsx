@@ -26,6 +26,10 @@ import {
   getPublicListingById,
   listingIsExpired,
 } from "@/lib/listing-service";
+import {
+  getDemoListingImages,
+  type DemoListingImage,
+} from "@/lib/demo-listing-media";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +80,7 @@ export default async function ListingDetailPage({
   const renewAction = renewListing.bind(null, listing.id);
   const soldAction = markListingSold.bind(null, listing.id);
   const withdrawAction = withdrawListing.bind(null, listing.id);
+  const demoImages = getDemoListingImages(listing, 3);
 
   return (
     <div className="fade-in mx-auto max-w-6xl px-6 py-10">
@@ -128,6 +133,12 @@ export default async function ListingDetailPage({
                     key={attachment.mediaId}
                     media={attachment.media}
                   />
+                ))}
+              </div>
+            ) : demoImages.length > 0 ? (
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {demoImages.map((image) => (
+                  <DemoListingAttachment key={image.src} image={image} />
                 ))}
               </div>
             ) : (
@@ -248,7 +259,7 @@ export default async function ListingDetailPage({
                   <form action={renewAction}>
                     <SubmitButton
                       pendingLabel="Renewing..."
-                      className="inline-flex items-center gap-2 rounded-md bg-[hsl(142_60%_42%)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[hsl(142_60%_48%)] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="giq-button giq-button-primary px-4 text-[13px] font-semibold disabled:cursor-not-allowed"
                     >
                       <RefreshCw className="h-3.5 w-3.5" />
                       Renew
@@ -260,7 +271,7 @@ export default async function ListingDetailPage({
                     <form action={soldAction}>
                       <SubmitButton
                         pendingLabel="Marking..."
-                        className="inline-flex items-center gap-2 rounded-md border border-[hsl(25_95%_53%/0.35)] bg-[hsl(25_95%_53%/0.1)] px-4 py-2 text-[13px] font-semibold text-[hsl(25_95%_76%)] transition-colors hover:bg-[hsl(25_95%_53%/0.16)] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="giq-button giq-button-copper px-4 text-[13px] font-semibold disabled:cursor-not-allowed"
                       >
                         Mark sold
                       </SubmitButton>
@@ -268,7 +279,7 @@ export default async function ListingDetailPage({
                     <form action={withdrawAction}>
                       <SubmitButton
                         pendingLabel="Withdrawing..."
-                        className="inline-flex items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-[13px] font-semibold text-[hsl(210_13%_97%)] transition-colors hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="giq-button giq-button-glass px-4 text-[13px] font-semibold disabled:cursor-not-allowed"
                       >
                         Withdraw
                       </SubmitButton>
@@ -302,6 +313,20 @@ function DetailRow({
       <span className="text-right font-semibold text-[hsl(210_13%_97%)]">
         {value}
       </span>
+    </div>
+  );
+}
+
+function DemoListingAttachment({ image }: { image: DemoListingImage }) {
+  return (
+    <div className="block overflow-hidden rounded-md border border-white/[0.08] bg-black/20">
+      <NextImage
+        src={image.src}
+        alt={image.alt}
+        width={image.width}
+        height={image.height}
+        className="h-64 w-full object-cover"
+      />
     </div>
   );
 }

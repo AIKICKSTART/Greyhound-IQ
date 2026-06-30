@@ -113,27 +113,33 @@
 
 ### CI (GitHub Actions)
 
+The current repository gate is implemented in
+`.github/workflows/production-gate.yml`. It runs against a disposable Postgres
+16 service and verifies the production build path.
+
 ```yaml
-# .github/workflows/ci.yml
-name: CI
-on: [push, pull_request]
+# .github/workflows/production-gate.yml
+name: Production Gate
+on:
+  push:
+    branches: ["main"]
+  pull_request:
 jobs:
-  test:
+  gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: npm ci
-      - run: npx prisma generate
+      - run: npm run check:env -- --ci --production
+      - run: npx prisma migrate deploy
+      - run: npm run db:seed
       - run: npx prisma validate
-      - run: npx tsc --noEmit
-      - run: npx next lint
-      - run: npm run test
-      - run: npx playwright test
-        env:
-          DATABASE_URL: postgres://staging@localhost:5432/greyhoundiq
-      - run: npx audit-ci --config audit-ci.json
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test:smoke
 ```
 
 ### CD (manual tag → deploy)
@@ -162,10 +168,21 @@ jobs:
 ### Database migrations
 - Run via `npx prisma migrate deploy` on container startup
 - Prisma tracks applied migrations in `_prisma_migrations` table
+- New environments start from `prisma/migrations/20260630093000_baseline`
 - Manual review required for any migration that:
   - Drops a column or table
   - Adds a NOT NULL column without default
   - Changes an index
+- Existing environments previously synchronized with `prisma db push` must be
+  baselined once after confirming the schema matches:
+
+```bash
+npm run check:env -- --production
+npx prisma migrate resolve --applied 20260630093000_baseline
+npx prisma migrate deploy
+```
+
+Do not run `db:baseline` on an empty database; use `npm run bootstrap` there.
 
 ---
 
@@ -183,6 +200,11 @@ SUPABASE_SERVICE_ROLE_KEY="<service-role-key>"
 # Auth
 NEXTAUTH_SECRET="<32-byte-base64>"
 NEXTAUTH_URL="https://greyhoundiq.com.au"
+AUTH_SECRET="<same class of secret; optional fallback for signed media URLs>"
+WORKOS_CLIENT_ID="client_***"
+WORKOS_API_KEY="sk_live_***"
+WORKOS_COOKIE_PASSWORD="<32-byte-minimum>"
+NEXT_PUBLIC_WORKOS_REDIRECT_URI="https://greyhoundiq.com.au/callback"
 
 # Stripe
 STRIPE_SECRET_KEY="sk_live_***"
@@ -205,6 +227,12 @@ SENTRY_PROJECT="web"
 # Internal
 INTERNAL_API_SECRET="<32-byte-base64>"
 
+# Optional live racing feed
+TOPAZ_API_KEY="<licensed Topaz key>"
+TOPAZ_API_BASE="https://topaz.grv.org.au/api"
+TOPAZ_OWNING_AUTHORITY_CODE="VIC"
+TOPAZ_TIME_ZONE="Australia/Sydney"
+
 # Agents
 HERMES_CLI_PATH="/usr/local/bin/hermes"
 HERMES_TOKEN_PLAN="minimax-m3"
@@ -215,6 +243,18 @@ STORAGE_BUCKET_MESSAGES="messages"
 STORAGE_BUCKET_LISTINGS="listings"
 STORAGE_BUCKET_AVATARS="avatars"
 STORAGE_BUCKET_AGENT_OUTPUTS="agent-outputs"
+```
+
+Local production gate commands:
+
+```bash
+npm run check:env -- --production
+npm run db:migrate
+npm run db:seed
+npm run typecheck
+npm run lint
+npm run build
+SMOKE_BASE_URL=http://localhost:3000 npm run test:smoke
 ```
 
 ### Environment variables (staging)

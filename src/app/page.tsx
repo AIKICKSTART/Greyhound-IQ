@@ -31,7 +31,7 @@ export default async function HomePage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-breaking-from-boxes.png"
+        image="/images/hero-greyhoundiq-brand.png"
         size="tall"
         title={
           <>

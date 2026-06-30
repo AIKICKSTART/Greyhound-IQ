@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search, Menu } from "lucide-react";
+import { Activity, Crown, LogIn, LogOut, Menu, Search, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { signOut } from "@workos-inc/authkit-nextjs";
 import {
@@ -33,121 +33,188 @@ export async function SiteHeader() {
   const badge = user ? TIER_BADGE[user.tier] ?? TIER_BADGE.free : null;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/[0.06] bg-[hsl(150_24%_4%/0.88)] backdrop-blur-xl relative">
-      <div aria-hidden="true" className="race-box-strip absolute inset-x-0 bottom-0 h-px rounded-none opacity-75" />
-      <div className="mx-auto flex h-14 max-w-7xl items-center px-4 md:px-6">
-        {/* Mobile menu */}
-        <Sheet>
-          <SheetTrigger
-            aria-label="Open navigation menu"
-            className="inline-flex items-center justify-center rounded-md p-2 text-[hsl(215_14%_65%)] transition-colors hover:bg-white/[0.05] hover:text-[hsl(210_13%_97%)] md:hidden"
-          >
-            <Menu aria-hidden="true" className="h-5 w-5" />
-          </SheetTrigger>
-          <SheetContent side="left" className="border-white/[0.06] bg-[hsl(150_18%_6%)]">
-            <SheetTitle className="sr-only">Navigation</SheetTitle>
-            <div className="race-box-strip mt-4" />
-            <nav className="mt-8 flex flex-col gap-4">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-base font-medium text-[hsl(210_13%_97%)] transition-colors hover:text-[hsl(142_60%_48%)]"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-          </SheetContent>
-        </Sheet>
+    <header className="sticky top-2 z-50 w-full px-3 md:px-5">
+      <div className="relative isolate mx-auto min-h-[132px] max-w-7xl overflow-hidden rounded-2xl border border-white/25 bg-[hsl(168_22%_18%/0.68)] shadow-[0_22px_55px_hsl(0_0%_0%/0.34)] backdrop-blur-xl md:min-h-[168px]">
+        <Image
+          src="/images/site-header-banner-bg.png"
+          alt=""
+          fill
+          priority
+          className="pointer-events-none z-0 object-cover object-[24%_52%] opacity-[0.98] saturate-125"
+          sizes="100vw"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 z-10 bg-[linear-gradient(90deg,hsl(158_24%_8%/0.40)_0%,hsl(178_18%_16%/0.16)_45%,hsl(190_24%_24%/0.06)_100%)]"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 z-10 bg-[linear-gradient(180deg,hsl(0_0%_100%/0.18)_0%,transparent_44%,hsl(150_24%_5%/0.30)_100%)]"
+        />
+        <div aria-hidden="true" className="race-box-strip absolute inset-x-6 bottom-0 z-30 h-[3px] rounded-none opacity-95" />
 
-        {/* Logo */}
-        <Link href="/" className="group mr-3 flex items-center gap-2 md:mr-10">
-          <Image
-            src="/images/logo-mark-new.png"
-            alt="GreyhoundIQ"
-            width={28}
-            height={28}
-            className="rounded-lg"
-            priority
-          />
-          <span
-            className="text-[15px] font-semibold text-[hsl(210_13%_97%)]"
-          >
-            Greyhound<span className="text-[hsl(142_60%_48%)]">IQ</span>
-          </span>
-        </Link>
+        <div className="relative z-20 mx-auto flex min-h-[132px] max-w-7xl flex-col justify-between gap-4 px-4 py-4 md:min-h-[168px] md:px-6 md:py-5">
+          <div className="flex items-start gap-3">
+            <Sheet>
+              <SheetTrigger
+                aria-label="Open navigation menu"
+                className="giq-logo-menu-button md:hidden"
+              >
+                <Image
+                  src="/images/logo-mark-new.png"
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="50px"
+                  priority
+                />
+                <span className="giq-logo-menu-glyph" aria-hidden="true">
+                  <Menu className="h-3 w-3" />
+                </span>
+              </SheetTrigger>
+              <SheetContent side="left" className="border-white/[0.06] bg-[hsl(150_18%_6%)]">
+                <SheetTitle className="sr-only">Navigation</SheetTitle>
+                <div className="race-box-strip mt-4" />
+                <nav className="mt-8 flex flex-col gap-3">
+                  {NAV_LINKS.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="giq-button giq-button-glass justify-start px-4 text-base font-semibold"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </nav>
+              </SheetContent>
+            </Sheet>
 
-        {/* Desktop nav */}
-        <nav className="hidden flex-1 items-center gap-1 md:flex">
-          {NAV_LINKS.map((link) => (
             <Link
-              key={link.href}
-              href={link.href}
-              className="rounded-md px-2.5 py-1.5 text-[13px] font-medium text-[hsl(215_14%_65%)] transition-all hover:bg-white/[0.04] hover:text-[hsl(210_13%_97%)]"
+              href="/"
+              aria-label="GreyhoundIQ home"
+              className="group flex min-w-0 shrink items-center transition-transform hover:-translate-y-px"
             >
-              {link.label}
+              <span className="relative hidden h-14 w-[238px] shrink overflow-hidden rounded-xl shadow-[0_14px_28px_hsl(0_0%_0%/0.24)] sm:block md:h-[76px] md:w-[360px] lg:w-[470px]">
+                <Image
+                  src="/images/logo-wordmark.png"
+                  alt=""
+                  fill
+                  className="object-contain object-left"
+                  sizes="(min-width: 1024px) 470px, (min-width: 768px) 360px, 238px"
+                  priority
+                />
+              </span>
             </Link>
-          ))}
-        </nav>
 
-        {/* Right side */}
-        <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              <Link
+                href="/dogs"
+                className="giq-button giq-button-glass hidden px-3.5 text-[13px] font-semibold lg:inline-flex"
+              >
+                <Search className="h-3.5 w-3.5" />
+                <span>Search</span>
+              </Link>
+
+              {user ? (
+                <>
+                  <span className="hidden items-center gap-2 text-[13px] text-[hsl(215_14%_65%)] sm:flex">
+                    <span className="max-w-[140px] truncate font-medium text-[hsl(210_13%_97%)]">
+                      <Link href="/account" className="hover:text-[hsl(142_60%_48%)]">
+                        {user.firstName || user.name}
+                      </Link>
+                    </span>
+                    {badge && (
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        style={{ background: `hsl(${badge.color} / 0.14)`, color: `hsl(${badge.color})` }}
+                      >
+                        {badge.label}
+                      </span>
+                    )}
+                  </span>
+                  <form
+                    action={async () => {
+                      "use server";
+                      await signOut();
+                    }}
+                  >
+                    <button
+                      type="submit"
+                      className="giq-button giq-button-glass px-3 text-[13px] font-semibold md:px-4"
+                    >
+                      <LogOut className="h-3.5 w-3.5" />
+                      Sign out
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/sign-in"
+                    className="giq-button giq-button-glass hidden px-4 text-[13px] font-semibold sm:inline-flex"
+                  >
+                    <LogIn className="h-3.5 w-3.5" />
+                    Log in
+                  </Link>
+                  <Link
+                    href="/pricing"
+                    className="giq-button giq-button-copper px-3.5 text-[13px] font-bold sm:px-5"
+                  >
+                    <Crown className="h-3.5 w-3.5" />
+                    <span className="sm:hidden">Pro</span>
+                    <span className="hidden sm:inline">Go Pro</span>
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+
           <Link
-            href="/dogs"
-            className="hidden items-center gap-2 rounded-md px-3 py-1.5 text-[13px] font-medium text-[hsl(215_14%_65%)] transition-all hover:bg-white/[0.04] hover:text-[hsl(210_13%_97%)] sm:flex"
+            href="/"
+            aria-hidden="true"
+            tabIndex={-1}
+            className="relative h-16 w-full max-w-[320px] overflow-hidden rounded-xl shadow-[0_14px_28px_hsl(0_0%_0%/0.24)] sm:hidden"
           >
-            <Search className="h-3.5 w-3.5" />
-            <span>Search</span>
+            <Image
+              src="/images/logo-wordmark.png"
+              alt=""
+              fill
+              className="object-contain object-left"
+              sizes="320px"
+              priority
+            />
           </Link>
 
-          {user ? (
-            <>
-              <span className="hidden items-center gap-2 text-[13px] text-[hsl(215_14%_65%)] sm:flex">
-                <span className="max-w-[140px] truncate font-medium text-[hsl(210_13%_97%)]">
-                  <Link href="/account" className="hover:text-[hsl(142_60%_48%)]">
-                    {user.firstName || user.name}
-                  </Link>
-                </span>
-                {badge && (
-                  <span
-                    className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                    style={{ background: `hsl(${badge.color} / 0.14)`, color: `hsl(${badge.color})` }}
-                  >
-                    {badge.label}
-                  </span>
-                )}
+          <nav className="giq-header-nav hidden w-full items-center gap-2 overflow-x-auto rounded-xl p-2 md:flex 2xl:justify-center">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="giq-header-nav-link shrink-0"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="hidden items-center justify-between gap-4 text-[11px] text-[hsl(210_13%_88%)] lg:flex">
+            <div className="flex items-center gap-3">
+              <span className="giq-header-status inline-flex items-center gap-2 rounded-lg px-3 py-1.5 font-semibold uppercase tracking-[0.12em] text-[hsl(142_60%_68%)]">
+                <Activity className="h-3.5 w-3.5" />
+                Live form desk
               </span>
-              <form
-                action={async () => {
-                  "use server";
-                  await signOut();
-                }}
-              >
-                <button
-                  type="submit"
-                  className="inline-flex items-center whitespace-nowrap rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[13px] font-medium text-[hsl(210_13%_97%)] transition-all hover:bg-white/[0.06]"
-                >
-                  Sign out
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <Link
-                href="/sign-in"
-                className="inline-flex items-center whitespace-nowrap rounded-md border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-[13px] font-medium text-[hsl(210_13%_97%)] transition-all hover:bg-white/[0.06] md:px-3"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/pricing"
-                className="inline-flex items-center whitespace-nowrap rounded-md bg-[hsl(142_60%_42%)] px-3 py-1.5 text-[13px] font-semibold text-white shadow-lg shadow-[hsl(142_76%_36%/0.18)] transition-all hover:bg-[hsl(142_60%_48%)] md:px-3.5"
-              >
-                Go Pro
-              </Link>
-            </>
-          )}
+              <span className="text-[hsl(210_13%_88%)] drop-shadow">
+                Race cards, ownership, breeding, agents, and marketplace in one track-side view
+              </span>
+            </div>
+            <Link
+              href="/agents"
+              className="giq-button giq-button-glass min-h-9 px-3 text-[11px] font-semibold"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-[hsl(25_95%_60%)]" />
+              Agent console
+            </Link>
+          </div>
         </div>
       </div>
     </header>

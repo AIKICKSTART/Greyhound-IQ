@@ -35,7 +35,7 @@ export default async function MessagesPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/feature-pricing-product.png"
+        image="/images/hero-greyhoundiq-brand.png"
         title={
           <>
             Private racing

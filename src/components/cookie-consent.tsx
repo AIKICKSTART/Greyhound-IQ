@@ -32,7 +32,7 @@ export function CookieConsentBanner() {
           <button
             type="button"
             onClick={() => setConsent("declined")}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-[hsl(210_13%_97%)] transition-colors hover:bg-white/[0.06]"
+            className="giq-button giq-button-glass px-4 text-[13px] font-semibold"
           >
             <X className="h-3.5 w-3.5" />
             Decline
@@ -40,7 +40,7 @@ export function CookieConsentBanner() {
           <button
             type="button"
             onClick={() => setConsent("accepted")}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-[hsl(142_60%_42%)] px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-[hsl(142_76%_36%/0.2)] transition-colors hover:bg-[hsl(142_60%_48%)]"
+            className="giq-button giq-button-primary px-4 text-[13px] font-semibold"
           >
             <Check className="h-3.5 w-3.5" />
             Accept
@@ -79,7 +79,7 @@ export function CookiePreferencePanel() {
           <button
             type="button"
             onClick={() => setConsent("declined")}
-            className="inline-flex items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-[hsl(210_13%_97%)] transition-colors hover:bg-white/[0.06]"
+            className="giq-button giq-button-glass px-4 text-[13px] font-semibold"
           >
             <X className="h-3.5 w-3.5" />
             Decline
@@ -87,7 +87,7 @@ export function CookiePreferencePanel() {
           <button
             type="button"
             onClick={() => setConsent("accepted")}
-            className="inline-flex items-center gap-2 rounded-md bg-[hsl(142_60%_42%)] px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-[hsl(142_76%_36%/0.2)] transition-colors hover:bg-[hsl(142_60%_48%)]"
+            className="giq-button giq-button-primary px-4 text-[13px] font-semibold"
           >
             <Check className="h-3.5 w-3.5" />
             Accept

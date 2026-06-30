@@ -2,6 +2,7 @@ import { BarChart3, Award, MapPin, Users, Target } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
 import { getBoxBias, getTrainerLeaderboard, getTrackRecords } from "@/lib/queries";
 import { ProGate } from "@/components/pro-gate";
+import { getBoxColourStyle } from "@/lib/box-colours";
 
 export const dynamic = "force-dynamic";
 
@@ -10,23 +11,24 @@ export const metadata = {
   description: "Box bias, trainer leaderboards, track records, and speed maps — the data serious Australian punters use.",
 };
 
-// Per-box colour palette (box 1-8) for the bias chart.
-const BOX_COLORS = ["#EF4444", "#3B82F6", "#FCD34D", "#1B7A3D", "#F97316", "#8B5CF6", "#EC4899", "#111827"];
-
 export default async function StatisticsPage() {
   const [boxBiasRows, trainerLeaders, trackRecords] = await Promise.all([
     getBoxBias(),
     getTrainerLeaderboard(8),
     getTrackRecords(12),
   ]);
-  const BOX_BIAS = boxBiasRows.map((b) => ({ box: b.box, winRate: b.winRate, color: BOX_COLORS[(b.box - 1) % 8] }));
+  const BOX_BIAS = boxBiasRows.map((b) => ({
+    box: b.box,
+    winRate: b.winRate,
+    style: getBoxColourStyle(b.box),
+  }));
   const TRAINER_LEADERS = trainerLeaders;
   const TRACK_RECORDS = trackRecords;
 
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/feature-advanced-stats.png"
+        image="/images/hero-greyhoundiq-brand.png"
         badge="ADVANCED STATISTICS"
         badgeIcon={<BarChart3 className="h-3 w-3 text-[hsl(25_95%_53%)]" />}
         badgeColor="orange"
@@ -61,11 +63,11 @@ export default async function StatisticsPage() {
                 </div>
                 <div
                   className="w-full rounded-t-md transition-all hover:brightness-110"
-                  style={{ height: `${b.winRate * 14}px`, background: b.color }}
+                  style={{ height: `${b.winRate * 14}px`, background: b.style.background }}
                 />
                 <div
-                  className="flex h-7 w-7 items-center justify-center rounded text-[12px] font-bold text-white"
-                  style={{ background: b.color }}
+                  className="flex h-7 w-7 items-center justify-center rounded border text-[12px] font-bold"
+                  style={b.style}
                 >
                   {b.box}
                 </div>

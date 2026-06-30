@@ -93,7 +93,7 @@ export default function PricingPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/feature-pricing-product.png"
+        image="/images/hero-greyhoundiq-brand.png"
         badge="PRICING"
         badgeIcon={<CreditCard className="h-3 w-3 text-[hsl(142_60%_48%)]" />}
         badgeColor="green"

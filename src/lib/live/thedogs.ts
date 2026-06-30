@@ -210,6 +210,8 @@ export function parseTheDogsRaceResult(
   const distance = Number(gradeAndDistance.match(/(\d{3,4})m\b/i)?.[1] ?? 0);
   const raceTime = parseRaceTimestamp(html) ?? fallbackRaceTimeIso(date, link.raceNumber);
   const runners = parseRunners(html);
+  const replayUrl = parseReplayUrl(html);
+  const photoFinishUrl = parsePhotoFinishUrl(html);
 
   if (runners.length === 0) return null;
 
@@ -218,8 +220,12 @@ export function parseTheDogsRaceResult(
     sourceRawJson: JSON.stringify({
       href: link.href,
       resultPage: true,
-      replayUrl: parseReplayUrl(html),
-      photoFinishUrl: parsePhotoFinishUrl(html),
+      replayUrl,
+      photoFinishUrl,
+      weather: parseWeatherIcon(html),
+      trackRecord: parseTrackRecord(html),
+      prizePlaces: parsePrizePlaces(html),
+      resultSummary: parseActiveResultOrder(html),
     }),
     raceNumber: link.raceNumber,
     name: cleanHtml(
@@ -232,17 +238,19 @@ export function parseTheDogsRaceResult(
     distance,
     grade:
       gradeAndDistance.replace(/\s*\d{3,4}m\s*$/i, "").trim() || undefined,
-    prizeMoney: parseMoney(
-      firstMatch(
-        html,
-        /<div class="race-header__prize__title">PRIZE MONEY\s*([\s\S]*?)<sup>/i
-      )
-    ),
+    prizeMoney:
+      parseMoney(firstMatch(html, /<div class="race-header__prize__total">([\s\S]*?)<\/div>/i)) ??
+      parseMoney(
+        firstMatch(
+          html,
+          /<div class="race-header__prize__title">PRIZE MONEY\s*([\s\S]*?)<sup>/i
+        )
+      ),
     resultStatus: runners.some((runner) => runner.finishingPosition != null)
       ? "posted"
       : "pending",
-    replayUrl: parseReplayUrl(html),
-    photoFinishUrl: parsePhotoFinishUrl(html),
+    replayUrl,
+    photoFinishUrl,
     runners,
   };
 }
@@ -396,6 +404,13 @@ function parseRunner(row: string, index: number): LiveRunner | null {
   const runningTime = parseNumber(
     firstMatch(row, /<td class="race-runners__time">([\s\S]*?)<\/td>/i)
   );
+  const raceTrait = cleanHtml(
+    firstMatch(row, /<td class="race-runners__track-sa-trait">([\s\S]*?)<\/td>/i)
+  );
+  const runnerGrade = cleanHtml(
+    firstMatch(row, /<td class="race-runners__grade">([\s\S]*?)<\/td>/i)
+  );
+  const trainer = parseTrainer(row);
   const margin =
     finish === 1
       ? 0
@@ -405,11 +420,19 @@ function parseRunner(row: string, index: number): LiveRunner | null {
     sourceId: dog.sourceId ? `dog:${dog.sourceId}:box:${boxNumber}` : undefined,
     sourceRawJson: JSON.stringify({
       dogId: dog.sourceId,
+      dogProfileUrl: dog.url,
+      dogDisplayTime: parseNumber(
+        firstMatch(row, /<span class="race-runners__name__time">([\s\S]*?)<\/span>/i)
+      ),
       boxNumber,
       finish,
       runningTime,
       margin,
       sectionals,
+      raceTrait: raceTrait || undefined,
+      grade: runnerGrade || undefined,
+      trainerId: trainer.sourceId,
+      trainerProfileUrl: trainer.url,
     }),
     boxNumber,
     dog: {
@@ -419,13 +442,8 @@ function parseRunner(row: string, index: number): LiveRunner | null {
       sex: parseSex(colourSex),
     },
     trainerName:
+      trainer.name ||
       cleanHtml(firstMatch(row, /T:\s*([^<]+)/i)) ||
-      cleanHtml(
-        firstMatch(
-          row,
-          /<td class="table__cell--tight race-runners__trainer">([\s\S]*?)<\/td>/i
-        )
-      ) ||
       undefined,
     weight: parseNumber(firstMatch(row, /<td class="race-runners__weight">([\s\S]*?)<\/td>/i)),
     startingPrice: parseMoney(
@@ -451,6 +469,26 @@ function parseDog(row: string) {
   return {
     name,
     sourceId: dogLink?.[1],
+    url: dogLink?.[1] ? firstMatch(dogLink[0] ?? "", /href="([^"]+)"/i) : undefined,
+  };
+}
+
+function parseTrainer(row: string) {
+  const link = row.match(/<a\b[^>]*href="\/trainers\/(\d+)\/[^"]*"[^>]*>([\s\S]*?)<\/a>/i);
+  if (link) {
+    return {
+      name: cleanHtml(link[2]).replace(/^T:\s*/i, ""),
+      sourceId: link[1],
+      url: firstMatch(link[0] ?? "", /href="([^"]+)"/i) || undefined,
+    };
+  }
+
+  return {
+    name: cleanHtml(
+      firstMatch(row, /<td class="[^"]*\brace-runners__trainer\b[^"]*">([\s\S]*?)<\/td>/i)
+    ),
+    sourceId: undefined,
+    url: undefined,
   };
 }
 
@@ -521,6 +559,51 @@ function parsePhotoFinishUrl(html: string) {
     firstMatch(html, /<a class="button button--size-small" href="([^"]+)"[^>]*>\s*<sprite-svg name="icon_camera"/i) ||
     undefined
   );
+}
+
+function parseWeatherIcon(html: string) {
+  const name = firstMatch(
+    html,
+    /<div class="race-header__info__time">[\s\S]*?<sprite-svg[^>]+name="(weather_[^"]+)"/i
+  );
+  return name ? name.replace(/^weather_/i, "") : undefined;
+}
+
+function parseTrackRecord(html: string) {
+  return parseNumber(
+    firstMatch(html, /<div class="race-header__record">[\s\S]*?<th>TRACK RECORD<\/th><th>([\s\S]*?)<\/th>/i)
+  );
+}
+
+function parsePrizePlaces(html: string) {
+  const raw = cleanHtml(
+    firstMatch(html, /<div class="race-header__prize__places">([\s\S]*?)<\/div>/i)
+  );
+  if (!raw) return undefined;
+
+  const amounts = raw
+    .split(/\s*-\s*/)
+    .map((value) => parseMoney(value))
+    .filter((value): value is number => value != null);
+  return {
+    text: raw,
+    amounts: amounts.length > 0 ? amounts : undefined,
+  };
+}
+
+function parseActiveResultOrder(html: string) {
+  const header = firstMatch(
+    html,
+    /<div class="race-header race-header--result">([\s\S]*?)<div class="race-header__info">/i
+  );
+  const order = [...header.matchAll(/<div class="race-box__caption">([\s\S]*?)<\/div>/gi)]
+    .flatMap((match) =>
+      [...(match[1] ?? "").matchAll(/<span>(\d+)<\/span>/g)].map((span) =>
+        Number(span[1])
+      )
+    )
+    .filter((box) => Number.isFinite(box));
+  return order.length > 0 ? order : undefined;
 }
 
 function parseResultOrder(html: string) {

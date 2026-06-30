@@ -3,11 +3,12 @@
  *
  * Examples:
  *   npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 3
+ *   npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 20 --provider-concurrency 1
  *   npm run backfill:thedogs:shards -- status
  *   npm run backfill:thedogs:shards -- stop
  */
 import { spawn, spawnSync } from "node:child_process";
-import { createWriteStream, existsSync } from "node:fs";
+import { closeSync, existsSync, openSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -27,6 +28,7 @@ type Options = {
   workers: number;
   pauseMs: number;
   maxErrors: number;
+  providerConcurrency: number;
   force: boolean;
 };
 
@@ -35,6 +37,8 @@ type ShardManifest = {
   from: string;
   to: string;
   workers: number;
+  providerConcurrency: number;
+  pauseMs: number;
   shards: ShardRecord[];
 };
 
@@ -107,6 +111,7 @@ async function startShards(options: Options) {
   }
 
   const ranges = splitRange(from, options.to, options.workers);
+  const providerConcurrency = providerConcurrencyFor(options);
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
   const shards: ShardRecord[] = [];
 
@@ -118,35 +123,43 @@ async function startShards(options: Options) {
     );
     const outLog = path.join(LOG_DIR, `thedogs-shard-${id}-${stamp}.out.log`);
     const errLog = path.join(LOG_DIR, `thedogs-shard-${id}-${stamp}.err.log`);
-    const out = createWriteStream(outLog, { flags: "a" });
-    const err = createWriteStream(errLog, { flags: "a" });
-    const child = spawn(
-      npmCommand(),
-      [
-        "run",
-        "backfill:thedogs",
-        "--",
-        "--from",
-        range.from,
-        "--to",
-        range.to,
-        "--full",
-        "--continue-on-error",
-        "--max-errors",
-        String(options.maxErrors),
-        "--pause-ms",
-        String(options.pauseMs),
+    const out = openSync(outLog, "a");
+    const err = openSync(errLog, "a");
+    const npmArgs = [
+      "run",
+      "backfill:thedogs",
+      "--",
+      "--from",
+      range.from,
+      "--to",
+      range.to,
+      "--full",
+      "--continue-on-error",
+      "--max-errors",
+      String(options.maxErrors),
+      "--pause-ms",
+      String(options.pauseMs),
         "--progress-file",
         progressFile,
-      ],
+      ];
+    const launch = launchCommand(npmArgs);
+    const child = spawn(
+      launch.command,
+      launch.args,
       {
         cwd: process.cwd(),
         detached: true,
         stdio: ["ignore", out, err],
         windowsHide: true,
+        env: {
+          ...process.env,
+          THEDOGS_CONCURRENCY: String(providerConcurrency),
+        },
       }
     );
     child.unref();
+    closeSync(out);
+    closeSync(err);
     shards.push({
       id,
       from: range.from,
@@ -163,6 +176,8 @@ async function startShards(options: Options) {
     from,
     to: options.to,
     workers: shards.length,
+    providerConcurrency,
+    pauseMs: options.pauseMs,
     shards,
   };
   await writeFile(MANIFEST_FILE, `${JSON.stringify(manifest, null, 2)}\n`);
@@ -341,6 +356,7 @@ function parseOptions(args: string[]): Options {
     workers: positiveInt(stringOption(values, "workers"), 3),
     pauseMs: positiveInt(stringOption(values, "pause-ms"), 750),
     maxErrors: positiveInt(stringOption(values, "max-errors"), 250),
+    providerConcurrency: positiveInt(stringOption(values, "provider-concurrency"), 0),
     force: values.has("force"),
   };
 }
@@ -373,6 +389,13 @@ function isCommand(value: string | undefined): value is Command {
   return value === "start" || value === "status" || value === "stop";
 }
 
+function providerConcurrencyFor(options: Options) {
+  if (options.providerConcurrency > 0) return options.providerConcurrency;
+  if (options.workers >= 12) return 1;
+  if (options.workers >= 6) return 2;
+  return positiveInt(process.env.THEDOGS_CONCURRENCY, 5);
+}
+
 function isProcessRunning(pid: number) {
   if (!pid) return false;
   try {
@@ -394,8 +417,17 @@ function stopProcessTree(pid: number) {
   return result.status === 0;
 }
 
-function npmCommand() {
-  return process.platform === "win32" ? "npm.cmd" : "npm";
+function launchCommand(args: string[]) {
+  if (process.platform !== "win32") return { command: "npm", args };
+  return {
+    command: "cmd.exe",
+    args: ["/d", "/s", "/c", ["npm.cmd", ...args].map(cmdQuote).join(" ")],
+  };
+}
+
+function cmdQuote(value: string) {
+  if (!/[\s"]/u.test(value)) return value;
+  return `"${value.replace(/"/g, '\\"')}"`;
 }
 
 function assertDate(value: string, label: string) {

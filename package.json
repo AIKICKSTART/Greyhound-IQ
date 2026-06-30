@@ -23,6 +23,7 @@
     "sync:live": "tsx scripts/sync-live.ts",
     "backfill:thedogs": "tsx scripts/backfill-thedogs-history.ts",
     "backfill:thedogs:shards": "tsx scripts/backfill-thedogs-shards.ts",
+    "import:thedogs:raw": "tsx scripts/import-thedogs-raw-history.ts",
     "backfill:thedogs:dog-profiles": "tsx scripts/backfill-thedogs-dog-profiles.ts",
     "backfill:thedogs:dog-profile-shards": "tsx scripts/backfill-thedogs-dog-profile-shards.ts",
     "audit:live-race-coverage": "tsx scripts/audit-live-race-coverage.ts",

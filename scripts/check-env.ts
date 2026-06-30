@@ -75,6 +75,9 @@ const optional = [
   "TOPAZ_API_BASE",
   "TOPAZ_OWNING_AUTHORITY_CODE",
   "TOPAZ_TIME_ZONE",
+  "FASTTRACK_PROTOTYPE_ENABLED",
+  "FASTTRACK_BASE_URL",
+  "FASTTRACK_MAX_MEETINGS",
 ];
 
 const failures: string[] = [];

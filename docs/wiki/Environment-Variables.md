@@ -24,6 +24,9 @@ Use `.env.example` as the contract. Real values live in the team secret store, V
 - `TOPAZ_API_BASE`
 - `TOPAZ_OWNING_AUTHORITY_CODE`
 - `TOPAZ_TIME_ZONE`
+- `FASTTRACK_PROTOTYPE_ENABLED`
+- `FASTTRACK_BASE_URL`
+- `FASTTRACK_MAX_MEETINGS`
 
 `CRON_SECRET` secures Vercel Cron calls to `/api/internal/live-sync`. `INTERNAL_API_SECRET` remains available for manual internal maintenance calls with the `X-Internal-Secret` header.
 

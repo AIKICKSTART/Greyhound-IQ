@@ -15,7 +15,9 @@ export async function getLiveFeedStatus() {
     ? await getDataFreshness(today, nextWeek)
     : emptyFreshness();
   const providerConfig = getLiveProviderConfig();
-  const missingEnv = providerConfig.feeds.flatMap((feed) => feed.missingEnv);
+  const missingEnv = providerConfig.feeds.flatMap((feed) =>
+    feed.blocking ? feed.missingEnv : []
+  );
 
   return {
     status: missingEnv.length === 0 ? "configured" : "waiting_for_credentials",
@@ -73,7 +75,7 @@ async function getDataFreshness(today: Date, nextWeek: Date) {
         orderBy: { createdAt: "desc" },
         select: { createdAt: true },
       }),
-      null
+    null
   );
 
   return {

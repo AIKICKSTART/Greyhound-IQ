@@ -79,7 +79,7 @@ GitHub Actions:
 - `Codex PR Review`: runs Codex as an automated reviewer.
 - `Supabase Migrate`: manual staging/production migration workflow.
 
-`Live Racing Sync` calls `/api/internal/live-sync` every 5 minutes from GitHub Actions. Vercel Cron is configured as a daily backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. The sync is safe without a Topaz key, but real live race ingestion requires the licensed `TOPAZ_API_KEY` in Vercel.
+`Live Racing Sync` calls `/api/internal/live-sync` every 5 minutes from GitHub Actions. Vercel Cron is configured as a daily backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. Without `TOPAZ_API_KEY`, the app can use a bounded public FastTrack prototype fallback for pre-production demos; real production ingestion requires the licensed `TOPAZ_API_KEY` in Vercel.
 
 Feed readiness is exposed at `/api/health/feeds`. It reports configured providers, scheduler coverage, upcoming race counts, and missing feed credentials without exposing secret values.
 

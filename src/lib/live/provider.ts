@@ -1,6 +1,9 @@
 // Live data abstraction. Any external feed (Topaz/GRV, TAB, etc.) maps its
 // payload into these normalized DTOs; the sync layer (./sync) is provider-agnostic.
 
+import { FastTrackPrototypeProvider } from "./fasttrack";
+import { TopazProvider } from "./topaz";
+
 export interface LiveDog {
   name: string;
   earBrand?: string;
@@ -44,19 +47,24 @@ export interface LiveDataProvider {
   fetchResults(days: number): Promise<LiveMeeting[]>;
 }
 
-import { TopazProvider } from "./topaz";
-
 export function getLiveProviderConfig() {
   const topazConfigured = Boolean(process.env.TOPAZ_API_KEY?.trim());
+  const fastTrackPrototypeEnabled = isFastTrackPrototypeEnabled(topazConfigured);
+  const activeProvider = topazConfigured
+    ? "topaz"
+    : fastTrackPrototypeEnabled
+      ? "fasttrack-prototype"
+      : null;
 
   return {
-    activeProvider: topazConfigured ? "topaz" : null,
+    activeProvider,
     feeds: [
       {
         name: "topaz",
         role: "live_race_fields_and_results",
         implemented: true,
         configured: topazConfigured,
+        blocking: !fastTrackPrototypeEnabled,
         requiredEnv: ["TOPAZ_API_KEY"],
         optionalEnv: [
           "TOPAZ_API_BASE",
@@ -65,15 +73,37 @@ export function getLiveProviderConfig() {
         ],
         missingEnv: topazConfigured ? [] : ["TOPAZ_API_KEY"],
       },
+      {
+        name: "fasttrack-prototype",
+        role: "prototype_public_race_fields_and_results",
+        implemented: true,
+        configured: fastTrackPrototypeEnabled,
+        blocking: false,
+        requiredEnv: [],
+        optionalEnv: [
+          "FASTTRACK_PROTOTYPE_ENABLED",
+          "FASTTRACK_BASE_URL",
+          "FASTTRACK_MAX_MEETINGS",
+        ],
+        missingEnv: [],
+      },
     ],
   };
 }
 
-// Returns the configured live provider, or null when no feed is wired yet.
-// Adding TOPAZ_API_KEY to the environment turns live sync on.
+// Returns the configured live provider. TOPAZ_API_KEY wins; the FastTrack reader
+// is a bounded prototype fallback while the licensed key is not available.
 export function getLiveProvider(): LiveDataProvider | null {
-  if (process.env.TOPAZ_API_KEY) {
-    return new TopazProvider(process.env.TOPAZ_API_KEY);
+  const topazKey = process.env.TOPAZ_API_KEY?.trim();
+  if (topazKey) {
+    return new TopazProvider(topazKey);
   }
+  if (isFastTrackPrototypeEnabled(false)) return new FastTrackPrototypeProvider();
   return null;
+}
+
+function isFastTrackPrototypeEnabled(topazConfigured: boolean) {
+  const raw = process.env.FASTTRACK_PROTOTYPE_ENABLED?.trim().toLowerCase();
+  if (!raw) return !topazConfigured;
+  return !["0", "false", "off", "no"].includes(raw);
 }

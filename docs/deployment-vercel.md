@@ -48,6 +48,9 @@ Optional:
 - `TOPAZ_API_BASE`
 - `TOPAZ_OWNING_AUTHORITY_CODE`
 - `TOPAZ_TIME_ZONE`
+- `FASTTRACK_PROTOTYPE_ENABLED`
+- `FASTTRACK_BASE_URL`
+- `FASTTRACK_MAX_MEETINGS`
 
 ## Scheduled live data sync
 
@@ -56,9 +59,11 @@ Optional:
 - `Authorization: Bearer <CRON_SECRET>` from Vercel Cron.
 - `X-Internal-Secret: <INTERNAL_API_SECRET>` for manual operator runs.
 
-The job no-ops safely until `TOPAZ_API_KEY` is configured. Once the licensed Topaz key is present, each run refreshes meetings, races, runners, scratchings, prices, and recent results.
+Without `TOPAZ_API_KEY`, the job can use the bounded FastTrack prototype fallback for pre-production demos. Set `FASTTRACK_PROTOTYPE_ENABLED=false` to force a no-op until the licensed Topaz key is configured. Once the licensed Topaz key is present, each run refreshes meetings, races, runners, scratchings, prices, and recent results through the official provider.
 
-Use `/api/health/feeds` on the deployed app to verify feed readiness. A `waiting_for_credentials` status means the endpoint, scheduler, and database checks are reachable, but a required feed credential such as `TOPAZ_API_KEY` is still absent.
+Use `/api/health/feeds` on the deployed app to verify feed readiness. A `waiting_for_credentials` status means the endpoint, scheduler, and database checks are reachable, but all configured feed paths are blocked by missing credentials.
+
+Runtime Prisma clients cap each serverless instance at one Postgres connection by appending `connection_limit=1` when the deployed `DATABASE_URL` does not already specify a limit. This prevents Vercel function bursts and health checks from exhausting the Supabase session pool.
 
 ## Local Vercel setup
 

@@ -147,13 +147,18 @@ export interface SyncResult {
 export async function syncLiveData(days = 3): Promise<SyncResult> {
   const provider = getLiveProvider();
   if (!provider) {
-    const topaz = getLiveProviderConfig().feeds.find((feed) => feed.name === "topaz");
-    console.log("[live-sync] No live provider configured (set TOPAZ_API_KEY to enable). App uses seeded data.");
+    const providerConfig = getLiveProviderConfig();
+    const missingEnv = providerConfig.feeds.flatMap((feed) =>
+      feed.blocking ? feed.missingEnv : []
+    );
+    console.log(
+      "[live-sync] No live provider configured. Set TOPAZ_API_KEY or enable FASTTRACK_PROTOTYPE_ENABLED for prototype sync."
+    );
     return {
       synced: false,
       provider: "none",
       configured: false,
-      missingEnv: topaz?.missingEnv ?? ["TOPAZ_API_KEY"],
+      missingEnv,
     };
   }
   console.log(`[live-sync] Using provider: ${provider.name}`);

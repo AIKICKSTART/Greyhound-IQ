@@ -27,7 +27,7 @@ async function runLiveSync(request: NextRequest) {
 
 function daysFromRequest(request: NextRequest) {
   const raw = request.nextUrl.searchParams.get("days");
-  if (!raw) return 3;
+  if (!raw) return 1;
 
   const days = Number(raw);
   if (!Number.isInteger(days) || days < 1 || days > 7) {

@@ -8,7 +8,7 @@ on:
       days:
         description: "Number of days to sync"
         required: true
-        default: "3"
+        default: "1"
 
 permissions:
   contents: read
@@ -24,7 +24,7 @@ jobs:
     env:
       PROD_INTERNAL_API_SECRET: ${{ secrets.PROD_INTERNAL_API_SECRET }}
       LIVE_SYNC_BASE_URL: ${{ vars.LIVE_SYNC_BASE_URL }}
-      DAYS: ${{ inputs.days || '3' }}
+      DAYS: ${{ inputs.days || '1' }}
     steps:
       - name: Trigger production live sync
         run: |

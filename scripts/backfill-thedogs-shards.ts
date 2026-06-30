@@ -3,7 +3,7 @@
  *
  * Examples:
  *   npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 3
- *   npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 20 --provider-concurrency 1
+ *   npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 12 --provider-concurrency 1
  *   npm run backfill:thedogs:shards -- status
  *   npm run backfill:thedogs:shards -- stop
  */
@@ -18,6 +18,7 @@ const BACKFILL_DIR = ".backfill";
 const LOG_DIR = path.join(BACKFILL_DIR, "logs");
 const MANIFEST_FILE = path.join(BACKFILL_DIR, "thedogs-shards-manifest.json");
 const BASE_PROGRESS_FILE = path.join(BACKFILL_DIR, "thedogs-history-progress.jsonl");
+const DEFAULT_DB_CONNECTION_BUDGET = 12;
 
 type Command = "start" | "status" | "stop";
 
@@ -29,6 +30,7 @@ type Options = {
   pauseMs: number;
   maxErrors: number;
   providerConcurrency: number;
+  dbConnectionBudget: number;
   force: boolean;
 };
 
@@ -39,6 +41,7 @@ type ShardManifest = {
   workers: number;
   providerConcurrency: number;
   pauseMs: number;
+  dbConnectionBudget: number;
   shards: ShardRecord[];
 };
 
@@ -86,6 +89,11 @@ async function startShards(options: Options) {
         `Refusing to start duplicate shard workers. ${running.length} worker(s) are already running. Pass --force only after confirming this is intentional.`
       );
     }
+  }
+  if (options.workers > options.dbConnectionBudget && !options.force) {
+    throw new Error(
+      `Refusing to start ${options.workers} workers with dbConnectionBudget=${options.dbConnectionBudget}. Current Supabase session-pool evidence showed 20 workers can hit EMAXCONNSESSION. Lower --workers, raise --db-connection-budget only after changing the DB pool, or pass --force deliberately.`
+    );
   }
 
   const from =
@@ -178,6 +186,7 @@ async function startShards(options: Options) {
     workers: shards.length,
     providerConcurrency,
     pauseMs: options.pauseMs,
+    dbConnectionBudget: options.dbConnectionBudget,
     shards,
   };
   await writeFile(MANIFEST_FILE, `${JSON.stringify(manifest, null, 2)}\n`);
@@ -357,6 +366,10 @@ function parseOptions(args: string[]): Options {
     pauseMs: positiveInt(stringOption(values, "pause-ms"), 750),
     maxErrors: positiveInt(stringOption(values, "max-errors"), 250),
     providerConcurrency: positiveInt(stringOption(values, "provider-concurrency"), 0),
+    dbConnectionBudget: positiveInt(
+      stringOption(values, "db-connection-budget"),
+      DEFAULT_DB_CONNECTION_BUDGET
+    ),
     force: values.has("force"),
   };
 }

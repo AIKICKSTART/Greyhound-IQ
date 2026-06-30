@@ -104,12 +104,12 @@ npm run backfill:thedogs -- --from 2025-01-01 --to 2025-01-31 --max-days 7
 npm run backfill:thedogs -- --from 2006-08-01 --to 2006-12-31 --full
 npm run backfill:thedogs -- --from 2006-08-01 --to 2026-06-30 --full --continue-on-error --max-errors 500
 npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 3
-npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 20 --provider-concurrency 1 --pause-ms 1000
+npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 12 --provider-concurrency 1 --pause-ms 1000
 npm run backfill:thedogs:shards -- status
 npm run backfill:thedogs:shards -- stop
 ```
 
-Backfill progress is written to `.backfill/thedogs-history-progress.jsonl`, which is ignored by git. Successful dates are skipped on the next run unless `--no-resume` is passed. Use `--continue-on-error` for full archive runs so an isolated malformed legacy page is logged and the job continues. For the full multi-year archive, prefer the shard launcher: it splits the remaining date range across non-overlapping local workers, writes one progress file per shard, and keeps a `.backfill/thedogs-shards-manifest.json` status/stop manifest. When using high shard counts, set `--provider-concurrency 1` so each worker fetches politely.
+Backfill progress is written to `.backfill/thedogs-history-progress.jsonl`, which is ignored by git. Successful dates are skipped on the next run unless `--no-resume` is passed. Use `--continue-on-error` for full archive runs so an isolated malformed legacy page is logged and the job continues. For the full multi-year archive, prefer the shard launcher: it splits the remaining date range across non-overlapping local workers, writes one progress file per shard, and keeps a `.backfill/thedogs-shards-manifest.json` status/stop manifest. When using high shard counts, set `--provider-concurrency 1` so each worker fetches politely. The current Supabase session pool rejected 20 simultaneous workers with `EMAXCONNSESSION`; use 12 workers unless the database pool is increased.
 
 Marketplace listing cards and details use optimized demo WebP media while `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA` is enabled. Turn that flag off when real listing uploads should be the only displayed media.
 

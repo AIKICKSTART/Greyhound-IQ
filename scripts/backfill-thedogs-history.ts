@@ -6,11 +6,12 @@
  *   npm run backfill:thedogs -- --from 2025-01-01 --to 2025-01-31 --max-days 7
  *   npm run backfill:thedogs -- --from 2007-01-01 --to 2007-12-31 --full
  */
-import { mkdir, readFile, appendFile, readdir } from "node:fs/promises";
+import { mkdir, readFile, appendFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadEnvConfig } from "@next/env";
 import { prisma } from "../src/lib/db";
 import { syncLiveMeetings, type SyncCounts } from "../src/lib/live/sync";
+import type { LiveMeeting } from "../src/lib/live/provider";
 import { TheDogsProvider } from "../src/lib/live/thedogs";
 
 loadEnvConfig(process.cwd());
@@ -34,13 +35,19 @@ type Options = {
   retryAttempts: number;
   retryDelayMs: number;
   stopOnDbError: boolean;
+  rawOutputDir?: string;
+  fetchOnly: boolean;
 };
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
   const allDates = enumerateDates(options.from, options.to, options.direction);
   const completed = options.resume
-    ? await readCompletedDates(options.progressFile, options.globalResume)
+    ? await readCompletedDates(
+        options.progressFile,
+        options.globalResume,
+        options.fetchOnly
+      )
     : new Set<string>();
   const pending = allDates.filter((date) => !completed.has(date));
   const selected = options.full ? pending : pending.slice(0, options.maxDays);
@@ -63,6 +70,8 @@ async function main() {
         retryAttempts: options.retryAttempts,
         retryDelayMs: options.retryDelayMs,
         stopOnDbError: options.stopOnDbError,
+        rawOutputDir: options.rawOutputDir,
+        fetchOnly: options.fetchOnly,
       },
       null,
       2
@@ -86,6 +95,7 @@ async function main() {
         ok: false,
         durationMs: result.durationMs,
         attempts: result.attempts,
+        rawPath: result.rawPath,
         error: err instanceof Error ? err.message : String(err),
       });
       console.error(`[backfill:thedogs] ${date} failed`, err);
@@ -114,13 +124,37 @@ async function backfillDateWithRetries(
   const startedAt = Date.now();
   const maxAttempts = options.retryAttempts + 1;
   let lastError: unknown;
+  let lastRawPath: string | undefined;
+  let attemptsUsed = 0;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    attemptsUsed = attempt;
     try {
       const meetings = await provider.fetchResultsForDate(date);
+      const rawPath = options.rawOutputDir
+        ? await writeRawArchive(date, meetings, options.rawOutputDir)
+        : undefined;
+      lastRawPath = rawPath;
+      if (options.fetchOnly) {
+        const counts = countsFromMeetings(meetings);
+        await appendProgress(options.progressFile, {
+          date,
+          ok: true,
+          rawOnly: true,
+          rawPath,
+          durationMs: Date.now() - startedAt,
+          attempts: attempt,
+          ...counts,
+        });
+        console.log(
+          `[backfill:thedogs] ${date} raw ok: ${formatCounts(counts)} in ${Date.now() - startedAt}ms (attempt ${attempt}/${maxAttempts})`
+        );
+        return { ok: true as const };
+      }
       const counts = await syncLiveMeetings(meetings, provider.name);
       await appendProgress(options.progressFile, {
         date,
         ok: true,
+        rawPath,
         durationMs: Date.now() - startedAt,
         attempts: attempt,
         ...counts,
@@ -131,6 +165,7 @@ async function backfillDateWithRetries(
       return { ok: true as const };
     } catch (err) {
       lastError = err;
+      if (options.stopOnDbError && isDatabaseConnectivityError(err)) break;
       if (attempt >= maxAttempts) break;
       console.warn(
         `[backfill:thedogs] ${date} attempt ${attempt}/${maxAttempts} failed; retrying in ${options.retryDelayMs}ms`,
@@ -142,7 +177,8 @@ async function backfillDateWithRetries(
   return {
     ok: false as const,
     error: lastError,
-    attempts: maxAttempts,
+    rawPath: lastRawPath,
+    attempts: attemptsUsed,
     durationMs: Date.now() - startedAt,
   };
 }
@@ -188,6 +224,8 @@ function parseOptions(args: string[]): Options {
     retryAttempts: positiveInt(stringOption(values, "retry-attempts"), 3),
     retryDelayMs: positiveInt(stringOption(values, "retry-delay-ms"), 10_000),
     stopOnDbError: values.has("stop-on-db-error"),
+    rawOutputDir: stringOption(values, "raw-output-dir") ?? process.env.THEDOGS_RAW_ARCHIVE_DIR,
+    fetchOnly: values.has("fetch-only"),
   };
 }
 
@@ -204,7 +242,11 @@ function enumerateDates(from: string, to: string, direction: "forward" | "backwa
   return direction === "backward" ? dates.reverse() : dates;
 }
 
-async function readCompletedDates(progressFile: string, globalResume: boolean) {
+async function readCompletedDates(
+  progressFile: string,
+  globalResume: boolean,
+  includeRawOnly = false
+) {
   const completed = new Set<string>();
   const files = new Set([progressFile]);
   if (globalResume) {
@@ -220,7 +262,7 @@ async function readCompletedDates(progressFile: string, globalResume: boolean) {
   }
 
   for (const file of files) {
-    await readCompletedDatesFromFile(file, completed);
+    await readCompletedDatesFromFile(file, completed, includeRawOnly);
   }
 
   return completed;
@@ -228,14 +270,17 @@ async function readCompletedDates(progressFile: string, globalResume: boolean) {
 
 async function readCompletedDatesFromFile(
   progressFile: string,
-  completed: Set<string>
+  completed: Set<string>,
+  includeRawOnly: boolean
 ) {
   try {
     const body = await readFile(progressFile, "utf8");
     for (const line of body.split(/\r?\n/)) {
       if (!line.trim()) continue;
-      const record = JSON.parse(line) as { date?: string; ok?: boolean };
-      if (record.date && record.ok) completed.add(record.date);
+      const record = JSON.parse(line) as { date?: string; ok?: boolean; rawOnly?: boolean };
+      if (record.date && record.ok && (includeRawOnly || !record.rawOnly)) {
+        completed.add(record.date);
+      }
     }
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
@@ -249,6 +294,44 @@ async function appendProgress(progressFile: string, record: Record<string, unkno
 
 function formatCounts(counts: SyncCounts) {
   return `${counts.meetings} meetings, ${counts.races} races, ${counts.runners} runners, ${counts.results} results`;
+}
+
+async function writeRawArchive(
+  date: string,
+  meetings: LiveMeeting[],
+  rawOutputDir: string
+) {
+  const [year, month, day] = date.split("-");
+  const file = path.join(rawOutputDir, year, month, `${day}.json`);
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(
+    file,
+    `${JSON.stringify({
+      source: "thedogs",
+      date,
+      fetchedAt: new Date().toISOString(),
+      meetings,
+    })}\n`
+  );
+  return file;
+}
+
+function countsFromMeetings(meetings: LiveMeeting[]): SyncCounts {
+  const races = meetings.flatMap((meeting) => meeting.races);
+  const runners = races.flatMap((race) => race.runners);
+  const results = runners.filter(
+    (runner) =>
+      runner.finishingPosition != null ||
+      runner.runningTime != null ||
+      runner.margin != null ||
+      runner.splitTime != null
+  ).length;
+  return {
+    meetings: meetings.length,
+    races: races.length,
+    runners: runners.length,
+    results,
+  };
 }
 
 function isDatabaseConnectivityError(err: unknown) {

@@ -19,6 +19,7 @@ const BACKFILL_DIR = ".backfill";
 const LOG_DIR = path.join(BACKFILL_DIR, "logs");
 const MANIFEST_FILE = path.join(BACKFILL_DIR, "thedogs-shards-manifest.json");
 const BASE_PROGRESS_FILE = path.join(BACKFILL_DIR, "thedogs-history-progress.jsonl");
+const DEFAULT_RAW_ARCHIVE_DIR = path.join(BACKFILL_DIR, "thedogs-raw");
 const DEFAULT_DB_CONNECTION_BUDGET = 12;
 const DB_UNAVAILABLE_EXIT_CODE = 75;
 
@@ -37,6 +38,8 @@ type Options = {
   maxErrors: number;
   providerConcurrency: number;
   dbConnectionBudget: number;
+  rawOutputDir: string;
+  fetchOnly: boolean;
   force: boolean;
 };
 
@@ -51,6 +54,8 @@ type ShardManifest = {
   pollMs?: number;
   maxErrors?: number;
   dbConnectionBudget: number;
+  rawOutputDir?: string;
+  fetchOnly?: boolean;
   queuePid?: number;
   queueStatus?: QueueStatus;
   queueOrder?: number[];
@@ -81,6 +86,8 @@ type ProgressRecord = {
   races?: number;
   runners?: number;
   results?: number;
+  rawOnly?: boolean;
+  rawPath?: string;
   error?: string;
 };
 
@@ -113,7 +120,7 @@ async function startShards(options: Options) {
       );
     }
   }
-  if (options.workers > options.dbConnectionBudget && !options.force) {
+  if (!options.fetchOnly && options.workers > options.dbConnectionBudget && !options.force) {
     throw new Error(
       `Refusing to start ${options.workers} workers with dbConnectionBudget=${options.dbConnectionBudget}. Current Supabase session-pool evidence showed 20 workers can hit EMAXCONNSESSION. Lower --workers, raise --db-connection-budget only after changing the DB pool, or pass --force deliberately.`
     );
@@ -121,7 +128,7 @@ async function startShards(options: Options) {
 
   const from =
     options.from === "auto"
-      ? await nextMissingDate(DEFAULT_FLOOR)
+      ? await nextMissingDate(DEFAULT_FLOOR, options.fetchOnly ? "raw" : "db")
       : options.from;
   assertDate(from, "--from");
   assertDate(options.to, "--to");
@@ -161,6 +168,8 @@ async function startShards(options: Options) {
     pollMs: options.pollMs,
     maxErrors: options.maxErrors,
     dbConnectionBudget: options.dbConnectionBudget,
+    rawOutputDir: options.rawOutputDir,
+    fetchOnly: options.fetchOnly,
     queueOrder: queuedMode ? spreadShardOrder(shards.length, options.workers) : undefined,
     shards,
   };
@@ -230,8 +239,14 @@ function launchShardProcess(
     String(manifest.pauseMs),
     "--progress-file",
     shard.progressFile,
-    "--stop-on-db-error",
+    "--raw-output-dir",
+    manifest.rawOutputDir ?? DEFAULT_RAW_ARCHIVE_DIR,
   ];
+  if (manifest.fetchOnly) {
+    npmArgs.push("--fetch-only");
+  } else {
+    npmArgs.push("--stop-on-db-error");
+  }
   const launch = launchCommand(npmArgs);
   const child = spawn(launch.command, launch.args, {
     cwd: process.cwd(),
@@ -509,13 +524,16 @@ async function stopManifestWorkers() {
 
 async function coverageFrom(from: string, progressFiles: string[]) {
   const okDates = new Set<string>();
+  const rawDates = new Set<string>();
   const failedDates = new Set<string>();
   let failedAttempts = 0;
   let latestLog: ProgressRecord | undefined;
 
   for (const file of progressFiles) {
     for (const record of await readProgress(file)) {
-      if (record.ok && record.date) okDates.add(record.date);
+      if (record.date && record.rawPath) rawDates.add(record.date);
+      if (record.ok && record.date && !record.rawOnly) okDates.add(record.date);
+      if (record.ok && record.date && record.rawOnly) rawDates.add(record.date);
       if (record.ok === false) {
         failedAttempts += 1;
         if (record.date) failedDates.add(record.date);
@@ -536,6 +554,13 @@ async function coverageFrom(from: string, progressFiles: string[]) {
     cursor += 86_400_000;
   }
 
+  let rawCursor = dayValue(from);
+  let rawContiguousThrough: string | null = null;
+  while (rawDates.has(formatDate(rawCursor))) {
+    rawContiguousThrough = formatDate(rawCursor);
+    rawCursor += 86_400_000;
+  }
+
   const unresolvedFailedDates = [...failedDates]
     .filter((date) => !okDates.has(date))
     .sort();
@@ -545,6 +570,9 @@ async function coverageFrom(from: string, progressFiles: string[]) {
     contiguousThrough,
     nextMissingDate: formatDate(cursor),
     uniqueSuccessfulDates: okDates.size,
+    rawFetchedDates: rawDates.size,
+    rawContiguousThrough,
+    nextMissingRawDate: formatDate(rawCursor),
     failedAttempts,
     uniqueFailedDates: failedDates.size,
     unresolvedFailedDates: unresolvedFailedDates.length,
@@ -571,9 +599,10 @@ async function summarizeProgress(progressFile: string, from: string, to: string)
   };
 }
 
-async function nextMissingDate(from: string) {
+async function nextMissingDate(from: string, mode: "db" | "raw" = "db") {
   const files = await findProgressFiles(await readManifest());
-  return (await coverageFrom(from, files)).nextMissingDate;
+  const coverage = await coverageFrom(from, files);
+  return mode === "raw" ? coverage.nextMissingRawDate : coverage.nextMissingDate;
 }
 
 async function findProgressFiles(manifest: ShardManifest | null) {
@@ -659,6 +688,8 @@ function parseOptions(args: string[]): Options {
       stringOption(values, "db-connection-budget"),
       DEFAULT_DB_CONNECTION_BUDGET
     ),
+    rawOutputDir: stringOption(values, "raw-output-dir") ?? DEFAULT_RAW_ARCHIVE_DIR,
+    fetchOnly: values.has("fetch-only"),
     force: values.has("force"),
   };
 }

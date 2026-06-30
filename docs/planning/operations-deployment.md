@@ -2,7 +2,9 @@
 
 > Source: `docs/GreyhoundIQ-Architecture-Premium.html` (sections 11, 14, 16)
 > Status: Architecture spec. Operations runbooks to be written in Phase 4.
-> Hosting: Hetzner VPS (existing) + Supabase (managed)
+> Hosting note: this document preserves the longer-term Hetzner architecture.
+> The current GitHub deployment path is Vercel + Supabase staging/prod; see
+> `docs/deployment-vercel.md` for the active CI/CD setup.
 
 ---
 

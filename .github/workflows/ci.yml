@@ -1,12 +1,32 @@
-name: Production Gate
+name: CI
 
 on:
   push:
     branches: ["main"]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run docs:check
+
   gate:
+    name: gate
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -44,7 +64,9 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - run: npm audit --audit-level=high
       - run: npm run check:env -- --ci --production
+      - run: npx prisma validate
       - run: npx prisma migrate deploy
       - run: npm run db:seed
       - run: npm run typecheck

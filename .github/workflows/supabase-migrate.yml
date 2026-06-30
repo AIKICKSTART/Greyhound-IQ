@@ -1,0 +1,48 @@
+name: Supabase Migrate
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target Supabase environment"
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      seed:
+        description: "Seed after migration"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: migrate-${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      DATABASE_URL: ${{ inputs.environment == 'production' && secrets.PROD_DATABASE_URL || secrets.STAGING_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Verify database secret
+        run: test -n "$DATABASE_URL" || (echo "Missing database URL secret for ${{ inputs.environment }}" && exit 1)
+
+      - run: npx prisma validate
+      - run: npx prisma migrate deploy
+
+      - name: Seed staging data
+        if: inputs.seed == true
+        run: npm run db:seed

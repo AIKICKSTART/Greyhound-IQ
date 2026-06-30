@@ -14,9 +14,30 @@ function makePrisma(): PrismaClient | null {
     return null;
   }
   try {
-    return new PrismaClient();
+    return new PrismaClient({
+      datasources: {
+        db: {
+          url: runtimeDatabaseUrl(url),
+        },
+      },
+    });
   } catch {
     return null;
+  }
+}
+
+function runtimeDatabaseUrl(rawUrl: string) {
+  try {
+    const url = new URL(rawUrl);
+    if (!url.searchParams.has("connection_limit")) {
+      url.searchParams.set("connection_limit", "1");
+    }
+    if (!url.searchParams.has("pool_timeout")) {
+      url.searchParams.set("pool_timeout", "10");
+    }
+    return url.toString();
+  } catch {
+    return rawUrl;
   }
 }
 

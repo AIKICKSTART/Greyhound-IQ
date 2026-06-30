@@ -147,108 +147,79 @@ async function findDogs(options: Options, completed: Set<string>) {
 }
 
 async function saveProfile(dogId: string, profile: TheDogsDogProfile) {
-  const [sireId, damId, trainerId] = await Promise.all([
-    ensureParentDog(profile.sire),
-    ensureParentDog(profile.dam),
-    ensureTrainer(profile.trainerName),
-  ]);
+  const sireId = await ensureParentDog(profile.sire);
+  const damId = await ensureParentDog(profile.dam);
+  const trainerId = await ensureTrainer(profile.trainerName);
 
-  await prisma.dog.update({
-    where: { id: dogId },
-    data: {
-      name: profile.name,
-      earBrand: `thedogs:${profile.sourceId}`,
-      colour: profile.colour,
-      sex: profile.sex,
-      whelpDate: profile.whelpDate,
-      sireId,
-      damId,
-      trainerId,
-      sourceProvider: profile.sourceProvider,
-      sourceId: profile.sourceId,
-      profileUrl: profile.profileUrl,
-      ownerName: profile.ownerName,
-      careerStarts: profile.careerStarts,
-      careerWins: profile.careerWins,
-      careerSeconds: profile.careerSeconds,
-      careerThirds: profile.careerThirds,
-      prizeMoney: profile.prizeMoney,
-      winPercentage: profile.winPercentage,
-      placePercentage: profile.placePercentage,
-      profileStatsJson: profile.profileStatsJson,
-      bestTimesJson: profile.bestTimesJson,
-      boxHistoryJson: profile.boxHistoryJson,
-      distanceHistoryJson: profile.distanceHistoryJson,
-      profileSourceRawJson: profile.profileSourceRawJson,
-      lastProfileSyncedAt: new Date(),
-    },
-  });
+  await prisma.$transaction(async (tx) => {
+    await tx.dog.update({
+      where: { id: dogId },
+      data: {
+        name: profile.name,
+        earBrand: `thedogs:${profile.sourceId}`,
+        colour: profile.colour,
+        sex: profile.sex,
+        whelpDate: profile.whelpDate,
+        sireId,
+        damId,
+        trainerId,
+        sourceProvider: profile.sourceProvider,
+        sourceId: profile.sourceId,
+        profileUrl: profile.profileUrl,
+        ownerName: profile.ownerName,
+        careerStarts: profile.careerStarts,
+        careerWins: profile.careerWins,
+        careerSeconds: profile.careerSeconds,
+        careerThirds: profile.careerThirds,
+        prizeMoney: profile.prizeMoney,
+        winPercentage: profile.winPercentage,
+        placePercentage: profile.placePercentage,
+        profileStatsJson: profile.profileStatsJson,
+        bestTimesJson: profile.bestTimesJson,
+        boxHistoryJson: profile.boxHistoryJson,
+        distanceHistoryJson: profile.distanceHistoryJson,
+        profileSourceRawJson: profile.profileSourceRawJson,
+        lastProfileSyncedAt: new Date(),
+      },
+    });
 
-  await mapLimit(profile.formRows, 10, async (row) => {
-    await prisma.dogProfileForm.upsert({
-      where: {
-        dogId_sourceProvider_sourceId: {
+    await tx.dogProfileForm.deleteMany({
+      where: { dogId, sourceProvider: profile.sourceProvider },
+    });
+
+    if (profile.formRows.length > 0) {
+      await tx.dogProfileForm.createMany({
+        data: profile.formRows.map((row) => ({
           dogId,
           sourceProvider: profile.sourceProvider,
           sourceId: row.sourceId,
-        },
-      },
-      create: {
-        dogId,
-        sourceProvider: profile.sourceProvider,
-        sourceId: row.sourceId,
-        raceUrl: row.raceUrl,
-        date: row.date,
-        trackCode: row.trackCode,
-        raceName: row.raceName,
-        finishText: row.finishText,
-        finishingPosition: row.finishingPosition,
-        starters: row.starters,
-        boxNumber: row.boxNumber,
-        weight: row.weight,
-        distance: row.distance,
-        grade: row.grade,
-        runningTime: row.runningTime,
-        winnerTime: row.winnerTime,
-        bestOfNightTime: row.bestOfNightTime,
-        firstSectional: row.firstSectional,
-        margin: row.margin,
-        winnerDogName: row.winnerDogName,
-        winnerDogSourceId: row.winnerDogSourceId
-          ? `thedogs:${row.winnerDogSourceId}`
-          : undefined,
-        inRunningPositions: row.inRunningPositions,
-        startingPrice: row.startingPrice,
-        hasVideo: row.hasVideo,
-        sourceRawJson: row.sourceRawJson,
-      },
-      update: {
-        raceUrl: row.raceUrl,
-        date: row.date,
-        trackCode: row.trackCode,
-        raceName: row.raceName,
-        finishText: row.finishText,
-        finishingPosition: row.finishingPosition,
-        starters: row.starters,
-        boxNumber: row.boxNumber,
-        weight: row.weight,
-        distance: row.distance,
-        grade: row.grade,
-        runningTime: row.runningTime,
-        winnerTime: row.winnerTime,
-        bestOfNightTime: row.bestOfNightTime,
-        firstSectional: row.firstSectional,
-        margin: row.margin,
-        winnerDogName: row.winnerDogName,
-        winnerDogSourceId: row.winnerDogSourceId
-          ? `thedogs:${row.winnerDogSourceId}`
-          : undefined,
-        inRunningPositions: row.inRunningPositions,
-        startingPrice: row.startingPrice,
-        hasVideo: row.hasVideo,
-        sourceRawJson: row.sourceRawJson,
-      },
-    });
+          raceUrl: row.raceUrl,
+          date: row.date,
+          trackCode: row.trackCode,
+          raceName: row.raceName,
+          finishText: row.finishText,
+          finishingPosition: row.finishingPosition,
+          starters: row.starters,
+          boxNumber: row.boxNumber,
+          weight: row.weight,
+          distance: row.distance,
+          grade: row.grade,
+          runningTime: row.runningTime,
+          winnerTime: row.winnerTime,
+          bestOfNightTime: row.bestOfNightTime,
+          firstSectional: row.firstSectional,
+          margin: row.margin,
+          winnerDogName: row.winnerDogName,
+          winnerDogSourceId: row.winnerDogSourceId
+            ? `thedogs:${row.winnerDogSourceId}`
+            : undefined,
+          inRunningPositions: row.inRunningPositions,
+          startingPrice: row.startingPrice,
+          hasVideo: row.hasVideo,
+          sourceRawJson: row.sourceRawJson,
+        })),
+      });
+    }
   });
 }
 

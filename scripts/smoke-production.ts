@@ -29,10 +29,15 @@ async function main() {
   for (const check of checks) {
     const url = new URL(check.path, baseUrl);
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { redirect: "manual" });
       const allowed = Array.isArray(check.expected)
         ? check.expected
         : [check.expected];
+
+      if (isVercelProtectedRedirect(response)) {
+        console.log(`${check.label}: ${response.status} (Vercel deployment protection)`);
+        continue;
+      }
 
       if (!allowed.includes(response.status)) {
         const body = await response.text();
@@ -55,6 +60,12 @@ async function main() {
   }
 
   console.log(`Smoke gate passed against ${baseUrl}`);
+}
+
+function isVercelProtectedRedirect(response: Response) {
+  if (![301, 302, 303, 307, 308].includes(response.status)) return false;
+  const location = response.headers.get("location");
+  return Boolean(location?.startsWith("https://vercel.com/sso-api"));
 }
 
 export {};

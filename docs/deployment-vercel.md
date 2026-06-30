@@ -20,6 +20,7 @@ For now, Vercel production env values may point to Supabase staging so the stabl
 | `VERCEL_ORG_ID`        | Vercel workflows          | From `.vercel/project.json` after linking. |
 | `VERCEL_PROJECT_ID`    | Vercel workflows          | From `.vercel/project.json` after linking. |
 | `OPENAI_API_KEY`       | Codex PR review           | Required for `openai/codex-action@v1`.     |
+| `PROD_INTERNAL_API_SECRET` | Live sync workflow    | Same value as production `INTERNAL_API_SECRET`. |
 | `STAGING_DATABASE_URL` | Manual migration workflow | Supabase staging direct connection.        |
 | `PROD_DATABASE_URL`    | Manual migration workflow | Supabase production direct connection.     |
 
@@ -39,6 +40,7 @@ Set these in Vercel Preview and Production environments:
 - `WORKOS_COOKIE_PASSWORD`
 - `NEXT_PUBLIC_WORKOS_REDIRECT_URI`
 - `INTERNAL_API_SECRET`
+- `CRON_SECRET`
 
 Optional:
 
@@ -46,6 +48,15 @@ Optional:
 - `TOPAZ_API_BASE`
 - `TOPAZ_OWNING_AUTHORITY_CODE`
 - `TOPAZ_TIME_ZONE`
+
+## Scheduled live data sync
+
+`Live Racing Sync` calls `/api/internal/live-sync` every 5 minutes from GitHub Actions. `vercel.json` also configures Vercel Cron to call the same route once daily as a backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. The route accepts either:
+
+- `Authorization: Bearer <CRON_SECRET>` from Vercel Cron.
+- `X-Internal-Secret: <INTERNAL_API_SECRET>` for manual operator runs.
+
+The job no-ops safely until `TOPAZ_API_KEY` is configured. Once the licensed Topaz key is present, each run refreshes meetings, races, runners, scratchings, prices, and recent results.
 
 ## Local Vercel setup
 

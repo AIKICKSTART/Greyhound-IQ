@@ -61,6 +61,7 @@ Copy `.env.example` to `.env`. Required production-class values include:
 - `WORKOS_COOKIE_PASSWORD`
 - `NEXT_PUBLIC_WORKOS_REDIRECT_URI`
 - `INTERNAL_API_SECRET`
+- `CRON_SECRET`
 
 Supabase values are required for Supabase-backed runtime features:
 
@@ -78,12 +79,15 @@ GitHub Actions:
 - `Codex PR Review`: runs Codex as an automated reviewer.
 - `Supabase Migrate`: manual staging/production migration workflow.
 
+`Live Racing Sync` calls `/api/internal/live-sync` every 5 minutes from GitHub Actions. Vercel Cron is configured as a daily backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. The sync is safe without a Topaz key, but real live race ingestion requires the licensed `TOPAZ_API_KEY` in Vercel.
+
 Required GitHub secrets:
 
 - `VERCEL_TOKEN`
 - `VERCEL_ORG_ID`
 - `VERCEL_PROJECT_ID`
 - `OPENAI_API_KEY`
+- `PROD_INTERNAL_API_SECRET`
 - `STAGING_DATABASE_URL`
 - `PROD_DATABASE_URL`
 

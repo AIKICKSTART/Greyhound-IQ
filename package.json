@@ -28,6 +28,7 @@
     "backfill:thedogs:dog-profile-shards": "tsx scripts/backfill-thedogs-dog-profile-shards.ts",
     "audit:live-race-coverage": "tsx scripts/audit-live-race-coverage.ts",
     "audit:live-result-coverage": "tsx scripts/audit-live-result-coverage.ts",
+    "audit:thedogs:raw": "tsx scripts/audit-thedogs-raw-archive.ts",
     "maintain:listings": "tsx scripts/listing-maintenance.ts",
     "maintain:accounts": "tsx scripts/account-deletion-maintenance.ts",
     "maintain:memory": "tsx scripts/memory-maintenance.ts",

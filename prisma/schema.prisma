@@ -26,17 +26,75 @@ model Dog {
   progenyDam  Dog[]          @relation("DamRelation")
   trainerId   String?
   trainer     Trainer?       @relation(fields: [trainerId], references: [id])
+  sourceProvider String?
+  sourceId       String?
+  profileUrl     String?
+  ownerName      String?
+  careerStarts   Int?
+  careerWins     Int?
+  careerSeconds  Int?
+  careerThirds   Int?
+  prizeMoney     Float?
+  winPercentage  Float?
+  placePercentage Float?
+  profileStatsJson String?
+  bestTimesJson    String?
+  boxHistoryJson   String?
+  distanceHistoryJson String?
+  profileSourceRawJson String?
+  lastProfileSyncedAt DateTime?
   retiredAt   DateTime?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   runners     Runner[]
   formEntries FormEntry[]
+  profileForms DogProfileForm[]
   ownership   DogOwnership[]
   listings    Listing[]
 
   @@index([name])
   @@index([sireId])
   @@index([damId])
+  @@index([sourceProvider])
+  @@unique([sourceProvider, sourceId])
+}
+
+model DogProfileForm {
+  id                  String   @id @default(cuid())
+  dogId               String
+  dog                 Dog      @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  sourceProvider      String
+  sourceId            String
+  raceUrl             String
+  date                DateTime
+  trackCode           String?
+  trackName           String?
+  raceName            String?
+  finishText          String?
+  finishingPosition   Int?
+  starters            Int?
+  boxNumber           Int?
+  weight              Float?
+  distance            Int?
+  grade               String?
+  runningTime         Float?
+  winnerTime          Float?
+  bestOfNightTime     Float?
+  firstSectional      Float?
+  margin              Float?
+  winnerDogName       String?
+  winnerDogSourceId   String?
+  inRunningPositions  String?
+  startingPrice       Float?
+  hasVideo            Boolean  @default(false)
+  sourceRawJson       String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([dogId])
+  @@index([date])
+  @@index([sourceProvider])
+  @@unique([dogId, sourceProvider, sourceId])
 }
 
 model Trainer {

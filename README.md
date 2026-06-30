@@ -107,9 +107,13 @@ npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 3
 npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 12 --provider-concurrency 1 --pause-ms 1000
 npm run backfill:thedogs:shards -- status
 npm run backfill:thedogs:shards -- stop
+npm run backfill:thedogs:dog-profiles -- --limit 25
+npm run backfill:thedogs:dog-profiles -- --source-id 60626 --no-resume
 ```
 
 Backfill progress is written to `.backfill/thedogs-history-progress.jsonl`, which is ignored by git. Successful dates are skipped on the next run unless `--no-resume` is passed. Use `--continue-on-error` for full archive runs so an isolated malformed legacy page is logged and the job continues. For the full multi-year archive, prefer the shard launcher: it splits the remaining date range across non-overlapping local workers, writes one progress file per shard, and keeps a `.backfill/thedogs-shards-manifest.json` status/stop manifest. When using high shard counts, set `--provider-concurrency 1` so each worker fetches politely. The current Supabase session pool rejected 20 simultaneous workers with `EMAXCONNSESSION`; use 12 workers unless the database pool is increased.
+
+Dog profile enrichment uses the public dog profile pages to store source dog IDs, owner/trainer, sire/dam, DOB, career summary, prize money, win/place rates, best-time/box/distance table snapshots, and rich per-dog form rows including weight, box, track, distance, grade, run time, winner time, best-of-night, first sectional, margin, winner, PIR, and starting price. Progress is written to `.backfill/thedogs-dog-profile-progress.jsonl`.
 
 Marketplace listing cards and details use optimized demo WebP media while `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA` is enabled. Turn that flag off when real listing uploads should be the only displayed media.
 

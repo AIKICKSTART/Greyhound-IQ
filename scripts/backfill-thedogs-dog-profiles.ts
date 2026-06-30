@@ -5,6 +5,7 @@
  *   npm run backfill:thedogs:dog-profiles -- --limit 25
  *   npm run backfill:thedogs:dog-profiles -- --source-id 60626 --no-resume
  *   npm run backfill:thedogs:dog-profiles -- --full --concurrency 2
+ *   npm run backfill:thedogs:dog-profiles -- --full --shard-index 1 --shard-count 4
  */
 import { mkdir, readFile, appendFile } from "node:fs/promises";
 import path from "node:path";
@@ -32,6 +33,8 @@ type Options = {
   sourceId?: string;
   continueOnError: boolean;
   maxErrors: number;
+  shardIndex: number;
+  shardCount: number;
 };
 
 type DogSeed = {
@@ -59,6 +62,8 @@ async function main() {
         concurrency: options.concurrency,
         progressFile: options.progressFile,
         sourceId: options.sourceId,
+        shardIndex: options.shardIndex,
+        shardCount: options.shardCount,
       },
       null,
       2
@@ -136,7 +141,9 @@ async function findDogs(options: Options, completed: Set<string>) {
     },
     orderBy: { createdAt: "asc" },
   });
-  return dogs.filter((dog) => !completed.has(dog.id));
+  return dogs
+    .filter((dog) => !completed.has(dog.id))
+    .filter((dog) => belongsToShard(dog, options));
 }
 
 async function saveProfile(dogId: string, profile: TheDogsDogProfile) {
@@ -250,22 +257,23 @@ async function ensureParentDog(
 ) {
   if (!dog?.sourceId) return null;
   const earBrand = `thedogs:${dog.sourceId}`;
-  const existing = await prisma.dog.findUnique({
+  const row = await prisma.dog.upsert({
     where: { earBrand },
-    select: { id: true },
-  });
-  if (existing) return existing.id;
-  const created = await prisma.dog.create({
-    data: {
+    create: {
       name: dog.name,
       earBrand,
       sourceProvider: "thedogs",
       sourceId: dog.sourceId,
       profileUrl: new URL(dog.url, "https://www.thedogs.com.au").toString(),
     },
+    update: {
+      sourceProvider: "thedogs",
+      sourceId: dog.sourceId,
+      profileUrl: new URL(dog.url, "https://www.thedogs.com.au").toString(),
+    },
     select: { id: true },
   });
-  return created.id;
+  return row.id;
 }
 
 async function ensureTrainer(name: string | undefined) {
@@ -309,6 +317,8 @@ function parseOptions(args: string[]): Options {
     sourceId: stringOption(values, "source-id"),
     continueOnError: !values.has("stop-on-error"),
     maxErrors: positiveInt(stringOption(values, "max-errors"), 25),
+    shardIndex: positiveInt(stringOption(values, "shard-index"), 1),
+    shardCount: positiveInt(stringOption(values, "shard-count"), 1),
   };
 }
 
@@ -355,6 +365,21 @@ async function mapLimit<T>(
 
 function profileIdFor(dog: DogSeed) {
   return dog.sourceId ?? dog.earBrand?.replace(/^thedogs:/, "");
+}
+
+function belongsToShard(dog: DogSeed, options: Options) {
+  if (options.sourceId || options.shardCount <= 1) return true;
+  const shardIndex = Math.min(options.shardIndex, options.shardCount) - 1;
+  const key = profileIdFor(dog) ?? dog.id;
+  return stableHash(key) % options.shardCount === shardIndex;
+}
+
+function stableHash(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
 }
 
 function stringOption(values: Map<string, string | true>, key: string) {

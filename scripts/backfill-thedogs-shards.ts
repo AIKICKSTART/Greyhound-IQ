@@ -20,6 +20,7 @@ const LOG_DIR = path.join(BACKFILL_DIR, "logs");
 const MANIFEST_FILE = path.join(BACKFILL_DIR, "thedogs-shards-manifest.json");
 const BASE_PROGRESS_FILE = path.join(BACKFILL_DIR, "thedogs-history-progress.jsonl");
 const DEFAULT_DB_CONNECTION_BUDGET = 12;
+const DB_UNAVAILABLE_EXIT_CODE = 75;
 
 type Command = "start" | "status" | "stop" | "run-queue";
 type QueueStatus = "running" | "completed" | "failed" | "stopped";
@@ -229,6 +230,7 @@ function launchShardProcess(
     String(manifest.pauseMs),
     "--progress-file",
     shard.progressFile,
+    "--stop-on-db-error",
   ];
   const launch = launchCommand(npmArgs);
   const child = spawn(launch.command, launch.args, {
@@ -284,7 +286,13 @@ async function runQueue() {
   await writeManifest(manifest);
 
   for (;;) {
-    let changed = applyFinishedChildren(manifest, active, finished);
+    const finishedResult = applyFinishedChildren(manifest, active, finished);
+    let changed = finishedResult.changed;
+    if (finishedResult.dbUnavailable) {
+      stopActiveAndQueuedShards(manifest, active);
+      await writeManifest(manifest);
+      return;
+    }
 
     while (active.size < manifest.workers) {
       const shard = nextQueuedShard(manifest);
@@ -325,6 +333,7 @@ function applyFinishedChildren(
   finished: Array<{ id: number; code: number | null; signal: NodeJS.Signals | null }>
 ) {
   let changed = false;
+  let dbUnavailable = false;
   for (;;) {
     const item = finished.shift();
     if (!item) break;
@@ -335,9 +344,32 @@ function applyFinishedChildren(
     shard.exitCode = item.code;
     shard.signal = item.signal;
     shard.finishedAt = new Date().toISOString();
+    if (item.code === DB_UNAVAILABLE_EXIT_CODE) dbUnavailable = true;
     changed = true;
   }
-  return changed;
+  return { changed, dbUnavailable };
+}
+
+function stopActiveAndQueuedShards(
+  manifest: ShardManifest,
+  active: Map<number, ChildProcess>
+) {
+  const now = new Date().toISOString();
+  for (const [id, child] of active) {
+    if (child.pid) stopProcessTree(child.pid);
+    const shard = manifest.shards.find((candidate) => candidate.id === id);
+    if (!shard || shard.state !== "running") continue;
+    shard.state = "stopped";
+    shard.finishedAt = now;
+  }
+  active.clear();
+  for (const shard of manifest.shards) {
+    if (shard.state !== "queued") continue;
+    shard.state = "stopped";
+    shard.finishedAt = now;
+  }
+  manifest.queueStatus = "failed";
+  manifest.completedAt = now;
 }
 
 function nextQueuedShard(manifest: ShardManifest) {

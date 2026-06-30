@@ -17,6 +17,7 @@ loadEnvConfig(process.cwd());
 
 const DEFAULT_FROM = process.env.THEDOGS_BACKFILL_FROM ?? "2006-08-01";
 const DEFAULT_PROGRESS = ".backfill/thedogs-history-progress.jsonl";
+const DB_UNAVAILABLE_EXIT_CODE = 75;
 
 type Options = {
   from: string;
@@ -32,6 +33,7 @@ type Options = {
   maxErrors: number;
   retryAttempts: number;
   retryDelayMs: number;
+  stopOnDbError: boolean;
 };
 
 async function main() {
@@ -60,6 +62,7 @@ async function main() {
         maxErrors: options.maxErrors,
         retryAttempts: options.retryAttempts,
         retryDelayMs: options.retryDelayMs,
+        stopOnDbError: options.stopOnDbError,
       },
       null,
       2
@@ -87,8 +90,16 @@ async function main() {
       });
       console.error(`[backfill:thedogs] ${date} failed`, err);
       errorCount += 1;
-      process.exitCode = 1;
-      if (!options.continueOnError || errorCount >= options.maxErrors) break;
+      const dbUnavailable = isDatabaseConnectivityError(err);
+      process.exitCode =
+        options.stopOnDbError && dbUnavailable ? DB_UNAVAILABLE_EXIT_CODE : 1;
+      if (
+        (options.stopOnDbError && dbUnavailable) ||
+        !options.continueOnError ||
+        errorCount >= options.maxErrors
+      ) {
+        break;
+      }
     }
 
     if (options.pauseMs > 0) await sleep(options.pauseMs);
@@ -176,6 +187,7 @@ function parseOptions(args: string[]): Options {
     maxErrors: positiveInt(stringOption(values, "max-errors"), 50),
     retryAttempts: positiveInt(stringOption(values, "retry-attempts"), 3),
     retryDelayMs: positiveInt(stringOption(values, "retry-delay-ms"), 10_000),
+    stopOnDbError: values.has("stop-on-db-error"),
   };
 }
 
@@ -237,6 +249,19 @@ async function appendProgress(progressFile: string, record: Record<string, unkno
 
 function formatCounts(counts: SyncCounts) {
   return `${counts.meetings} meetings, ${counts.races} races, ${counts.runners} runners, ${counts.results} results`;
+}
+
+function isDatabaseConnectivityError(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  return (
+    /can't reach database server/i.test(message) ||
+    /timed out fetching a new connection/i.test(message) ||
+    /too many clients/i.test(message) ||
+    /remaining connection slots/i.test(message) ||
+    /\bEMAXCONNSESSION\b/i.test(message) ||
+    /\bP1001\b/i.test(message) ||
+    /\bP1002\b/i.test(message)
+  );
 }
 
 function assertDate(value: string, label: string) {

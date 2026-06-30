@@ -30,6 +30,8 @@ type Options = {
   direction: "forward" | "backward";
   continueOnError: boolean;
   maxErrors: number;
+  retryAttempts: number;
+  retryDelayMs: number;
 };
 
 async function main() {
@@ -56,6 +58,8 @@ async function main() {
         full: options.full,
         continueOnError: options.continueOnError,
         maxErrors: options.maxErrors,
+        retryAttempts: options.retryAttempts,
+        retryDelayMs: options.retryDelayMs,
       },
       null,
       2
@@ -71,24 +75,14 @@ async function main() {
   const provider = new TheDogsProvider();
   let errorCount = 0;
   for (const date of selected) {
-    const startedAt = Date.now();
-    try {
-      const meetings = await provider.fetchResultsForDate(date);
-      const counts = await syncLiveMeetings(meetings, provider.name);
-      await appendProgress(options.progressFile, {
-        date,
-        ok: true,
-        durationMs: Date.now() - startedAt,
-        ...counts,
-      });
-      console.log(
-        `[backfill:thedogs] ${date} ok: ${formatCounts(counts)} in ${Date.now() - startedAt}ms`
-      );
-    } catch (err) {
+    const result = await backfillDateWithRetries(date, provider, options);
+    if (!result.ok) {
+      const err = result.error;
       await appendProgress(options.progressFile, {
         date,
         ok: false,
-        durationMs: Date.now() - startedAt,
+        durationMs: result.durationMs,
+        attempts: result.attempts,
         error: err instanceof Error ? err.message : String(err),
       });
       console.error(`[backfill:thedogs] ${date} failed`, err);
@@ -99,6 +93,47 @@ async function main() {
 
     if (options.pauseMs > 0) await sleep(options.pauseMs);
   }
+}
+
+async function backfillDateWithRetries(
+  date: string,
+  provider: TheDogsProvider,
+  options: Options
+) {
+  const startedAt = Date.now();
+  const maxAttempts = options.retryAttempts + 1;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const meetings = await provider.fetchResultsForDate(date);
+      const counts = await syncLiveMeetings(meetings, provider.name);
+      await appendProgress(options.progressFile, {
+        date,
+        ok: true,
+        durationMs: Date.now() - startedAt,
+        attempts: attempt,
+        ...counts,
+      });
+      console.log(
+        `[backfill:thedogs] ${date} ok: ${formatCounts(counts)} in ${Date.now() - startedAt}ms (attempt ${attempt}/${maxAttempts})`
+      );
+      return { ok: true as const };
+    } catch (err) {
+      lastError = err;
+      if (attempt >= maxAttempts) break;
+      console.warn(
+        `[backfill:thedogs] ${date} attempt ${attempt}/${maxAttempts} failed; retrying in ${options.retryDelayMs}ms`,
+        err
+      );
+      if (options.retryDelayMs > 0) await sleep(options.retryDelayMs);
+    }
+  }
+  return {
+    ok: false as const,
+    error: lastError,
+    attempts: maxAttempts,
+    durationMs: Date.now() - startedAt,
+  };
 }
 
 function parseOptions(args: string[]): Options {
@@ -139,6 +174,8 @@ function parseOptions(args: string[]): Options {
     globalResume: !values.has("no-global-resume"),
     continueOnError: values.has("continue-on-error"),
     maxErrors: positiveInt(stringOption(values, "max-errors"), 50),
+    retryAttempts: positiveInt(stringOption(values, "retry-attempts"), 3),
+    retryDelayMs: positiveInt(stringOption(values, "retry-delay-ms"), 10_000),
   };
 }
 

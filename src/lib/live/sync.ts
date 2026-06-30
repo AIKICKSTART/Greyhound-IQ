@@ -20,7 +20,6 @@ export type SyncCounts = {
 export type SyncScope = "upcoming" | "results" | "all";
 
 type TrackRow = { id: string; name: string; state: string };
-type MeetingRow = { id: string; trackId: string; meetingDate: Date };
 type RaceRow = { id: string; meetingId: string; raceNumber: number };
 type RunnerRow = { id: string; raceId: string; boxNumber: number; dogId: string };
 
@@ -84,10 +83,34 @@ type FormEntryUpsertRow = {
   weight: number | null;
 };
 
-const LIVE_SYNC_WRITE_CONCURRENCY = positiveInt(
-  process.env.LIVE_SYNC_WRITE_CONCURRENCY,
-  1
-);
+type MeetingUpsertRow = {
+  id: string;
+  trackId: string;
+  meetingDate: Date;
+  meetingType: string | null;
+  sourceProvider: string | null;
+  sourceId: string | null;
+  sourceRawJson: string | null;
+  lastSyncedAt: Date;
+};
+
+type RaceUpsertRow = {
+  id: string;
+  meetingId: string;
+  raceNumber: number;
+  name: string | null;
+  raceTime: Date;
+  distance: number;
+  grade: string | null;
+  prizeMoney: number | null;
+  resultStatus: string | null;
+  replayUrl: string | null;
+  photoFinishUrl: string | null;
+  sourceProvider: string | null;
+  sourceId: string | null;
+  sourceRawJson: string | null;
+  lastSyncedAt: Date;
+};
 
 export interface SyncResult {
   synced: boolean;
@@ -258,107 +281,124 @@ async function ensureMeetings(
   now: Date
 ) {
   const trackIds = [...new Set([...tracks.values()].map((track) => track.id))];
-  const dates = [...new Set(meetings.map((meeting) => meetingDate(meeting).toISOString()))]
-    .map((date) => new Date(date));
-  const sourcePairs = meetings
-    .filter((meeting) => meeting.sourceId)
-    .map((meeting) => ({
-      sourceProvider: meeting.sourceProvider,
-      sourceId: meeting.sourceId,
-    }));
-
-  const existing = await prisma.meeting.findMany({
-    where: {
-      OR: [
-        { trackId: { in: trackIds }, meetingDate: { in: dates } },
-        ...sourcePairs.map((pair) => ({
-          sourceProvider: pair.sourceProvider,
-          sourceId: pair.sourceId,
-        })),
-      ],
-    },
-    select: { id: true, trackId: true, meetingDate: true },
-  });
-  const rows = new Map<string, MeetingRow>();
-  for (const row of existing) {
-    rows.set(naturalMeetingKey(row.trackId, row.meetingDate), row);
-  }
-
-  await mapLimit(meetings, LIVE_SYNC_WRITE_CONCURRENCY, async (meeting) => {
+  const rows = meetings.flatMap((meeting): MeetingUpsertRow[] => {
     const track = tracks.get(meeting.trackName);
-    if (!track) return;
-    const key = naturalMeetingKey(track.id, meetingDate(meeting));
-    const data = {
-      meetingType: meeting.meetingType,
-      sourceProvider: meeting.sourceProvider,
-      sourceId: meeting.sourceId,
-      sourceRawJson: meeting.sourceRawJson,
-      lastSyncedAt: now,
-    };
-    const existingRow = rows.get(key);
-    if (existingRow) {
-      await prisma.meeting.update({
-        where: { id: existingRow.id },
-        data,
-      });
-      return;
-    }
-    const created = await prisma.meeting.create({
-      data: {
+    if (!track) return [];
+    return [
+      {
+        id: randomUUID(),
         trackId: track.id,
         meetingDate: meetingDate(meeting),
-        ...data,
+        meetingType: meeting.meetingType ?? null,
+        sourceProvider: meeting.sourceProvider ?? null,
+        sourceId: meeting.sourceId ?? null,
+        sourceRawJson: meeting.sourceRawJson ?? null,
+        lastSyncedAt: now,
       },
-      select: { id: true, trackId: true, meetingDate: true },
-    });
-    rows.set(key, created);
+    ];
   });
 
-  return rows;
+  await bulkUpsertMeetings(rows);
+
+  const dates = [
+    ...new Set(rows.map((row) => row.meetingDate.toISOString())),
+  ].map((date) => new Date(date));
+  const allRows = await prisma.meeting.findMany({
+    where: { trackId: { in: trackIds }, meetingDate: { in: dates } },
+    select: { id: true, trackId: true, meetingDate: true },
+  });
+  return new Map(
+    allRows.map((row) => [naturalMeetingKey(row.trackId, row.meetingDate), row])
+  );
 }
 
 async function ensureRaces(items: RaceWithMeeting[], now: Date) {
   if (items.length === 0) return new Map<string, RaceRow>();
   const meetingIds = [...new Set(items.map((item) => item.meetingId))];
-  const existing = await prisma.race.findMany({
+  const upserts: RaceUpsertRow[] = items.map((item) => ({
+    id: randomUUID(),
+    meetingId: item.meetingId,
+    raceNumber: item.race.raceNumber,
+    name: item.race.name ?? null,
+    raceTime: new Date(item.race.raceTime),
+    distance: item.race.distance,
+    grade: item.race.grade ?? null,
+    prizeMoney: item.race.prizeMoney ?? null,
+    resultStatus: item.race.resultStatus ?? null,
+    replayUrl: item.race.replayUrl ?? null,
+    photoFinishUrl: item.race.photoFinishUrl ?? null,
+    sourceProvider: item.race.sourceProvider ?? item.meeting.sourceProvider ?? null,
+    sourceId: item.race.sourceId ?? null,
+    sourceRawJson: item.race.sourceRawJson ?? null,
+    lastSyncedAt: now,
+  }));
+
+  await bulkUpsertRaces(upserts);
+
+  const allRows = await prisma.race.findMany({
     where: { meetingId: { in: meetingIds } },
     select: { id: true, meetingId: true, raceNumber: true },
   });
-  const rows = new Map(existing.map((row) => [raceKey(row.meetingId, row), row]));
+  return new Map(allRows.map((row) => [raceKey(row.meetingId, row), row]));
+}
 
-  await mapLimit(items, LIVE_SYNC_WRITE_CONCURRENCY, async (item) => {
-    const key = raceKey(item.meetingId, item.race);
-    const data = {
-      name: item.race.name,
-      raceTime: new Date(item.race.raceTime),
-      distance: item.race.distance,
-      grade: item.race.grade,
-      prizeMoney: item.race.prizeMoney,
-      resultStatus: item.race.resultStatus,
-      replayUrl: item.race.replayUrl,
-      photoFinishUrl: item.race.photoFinishUrl,
-      sourceProvider: item.race.sourceProvider ?? item.meeting.sourceProvider,
-      sourceId: item.race.sourceId,
-      sourceRawJson: item.race.sourceRawJson,
-      lastSyncedAt: now,
-    };
-    const existingRow = rows.get(key);
-    if (existingRow) {
-      await prisma.race.update({ where: { id: existingRow.id }, data });
-      return;
-    }
-    const created = await prisma.race.create({
-      data: {
-        meetingId: item.meetingId,
-        raceNumber: item.race.raceNumber,
-        ...data,
-      },
-      select: { id: true, meetingId: true, raceNumber: true },
-    });
-    rows.set(key, created);
-  });
+async function bulkUpsertMeetings(rows: MeetingUpsertRow[]) {
+  const uniqueRows = uniqueBy(rows, (row) =>
+    naturalMeetingKey(row.trackId, row.meetingDate)
+  );
+  for (let index = 0; index < uniqueRows.length; index += 500) {
+    const chunk = uniqueRows.slice(index, index + 500);
+    if (chunk.length === 0) continue;
 
-  return rows;
+    await prisma.$executeRaw`
+      INSERT INTO "Meeting"
+        ("id", "trackId", "meetingDate", "meetingType", "sourceProvider", "sourceId", "sourceRawJson", "lastSyncedAt", "createdAt")
+      VALUES ${Prisma.join(
+        chunk.map((row) => Prisma.sql`
+          (${row.id}, ${row.trackId}, ${row.meetingDate}, ${row.meetingType}, ${row.sourceProvider}, ${row.sourceId}, ${row.sourceRawJson}, ${row.lastSyncedAt}, NOW())
+        `)
+      )}
+      ON CONFLICT ("trackId", "meetingDate") DO UPDATE SET
+        "meetingType" = EXCLUDED."meetingType",
+        "sourceProvider" = EXCLUDED."sourceProvider",
+        "sourceId" = EXCLUDED."sourceId",
+        "sourceRawJson" = EXCLUDED."sourceRawJson",
+        "lastSyncedAt" = EXCLUDED."lastSyncedAt"
+    `;
+  }
+}
+
+async function bulkUpsertRaces(rows: RaceUpsertRow[]) {
+  const uniqueRows = uniqueBy(rows, (row) =>
+    raceKey(row.meetingId, { raceNumber: row.raceNumber })
+  );
+  for (let index = 0; index < uniqueRows.length; index += 500) {
+    const chunk = uniqueRows.slice(index, index + 500);
+    if (chunk.length === 0) continue;
+
+    await prisma.$executeRaw`
+      INSERT INTO "Race"
+        ("id", "meetingId", "raceNumber", "name", "raceTime", "distance", "grade", "prizeMoney", "resultStatus", "replayUrl", "photoFinishUrl", "sourceProvider", "sourceId", "sourceRawJson", "lastSyncedAt", "createdAt")
+      VALUES ${Prisma.join(
+        chunk.map((row) => Prisma.sql`
+          (${row.id}, ${row.meetingId}, ${row.raceNumber}, ${row.name}, ${row.raceTime}, ${row.distance}, ${row.grade}, ${row.prizeMoney}, ${row.resultStatus}, ${row.replayUrl}, ${row.photoFinishUrl}, ${row.sourceProvider}, ${row.sourceId}, ${row.sourceRawJson}, ${row.lastSyncedAt}, NOW())
+        `)
+      )}
+      ON CONFLICT ("meetingId", "raceNumber") DO UPDATE SET
+        "name" = EXCLUDED."name",
+        "raceTime" = EXCLUDED."raceTime",
+        "distance" = EXCLUDED."distance",
+        "grade" = EXCLUDED."grade",
+        "prizeMoney" = EXCLUDED."prizeMoney",
+        "resultStatus" = EXCLUDED."resultStatus",
+        "replayUrl" = EXCLUDED."replayUrl",
+        "photoFinishUrl" = EXCLUDED."photoFinishUrl",
+        "sourceProvider" = EXCLUDED."sourceProvider",
+        "sourceId" = EXCLUDED."sourceId",
+        "sourceRawJson" = EXCLUDED."sourceRawJson",
+        "lastSyncedAt" = EXCLUDED."lastSyncedAt"
+    `;
+  }
 }
 
 async function ensureDogs(dogs: LiveDog[]) {
@@ -663,24 +703,6 @@ async function bulkUpsertFormEntries(rows: FormEntryUpsertRow[]) {
   }
 }
 
-async function mapLimit<T>(
-  items: T[],
-  limit: number,
-  worker: (item: T) => Promise<void>
-) {
-  let next = 0;
-  await Promise.all(
-    Array.from({ length: Math.max(1, limit) }, async () => {
-      for (;;) {
-        const index = next;
-        next += 1;
-        if (index >= items.length) return;
-        await worker(items[index]);
-      }
-    })
-  );
-}
-
 function meetingDate(meeting: LiveMeeting) {
   return new Date(meeting.meetingDate);
 }
@@ -710,9 +732,4 @@ function uniqueBy<T>(rows: T[], keyFor: (row: T) => string) {
   const byKey = new Map<string, T>();
   for (const row of rows) byKey.set(keyFor(row), row);
   return [...byKey.values()];
-}
-
-function positiveInt(value: string | undefined, fallback: number) {
-  const parsed = Number.parseInt(value ?? "", 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }

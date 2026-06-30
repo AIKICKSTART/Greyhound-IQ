@@ -72,16 +72,20 @@ export class TheDogsDogProfileProvider {
   }
 
   async fetchFullForm(pathOrUrl: string) {
-    return this.getText(pathOrUrl);
+    return this.getText(pathOrUrl, {
+      accept: "application/json, text/javascript, */*; q=0.01",
+      "X-Application-Layout": "injection",
+    });
   }
 
-  private async getText(pathOrUrl: string) {
+  private async getText(pathOrUrl: string, extraHeaders: Record<string, string> = {}) {
     const url = new URL(pathOrUrl, THEDOGS_BASE);
     const response = await this.fetchImpl(url, {
       headers: {
         accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "accept-language": "en-US,en;q=0.9",
         "user-agent": THEDOGS_USER_AGENT,
+        ...extraHeaders,
       },
     });
 

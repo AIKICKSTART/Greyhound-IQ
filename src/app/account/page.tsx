@@ -26,6 +26,8 @@ export const metadata = {
     "Manage your GreyhoundIQ account, subscription tier, profile, privacy, and message summary.",
 };
 
+const DEMO_ACCOUNT_ENABLED = demoAccountEnabled();
+
 export default async function AccountPage() {
   const user = await getCurrentUser();
 
@@ -314,21 +316,87 @@ async function SignedInAccount({
 
 function SignedOutAccount() {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8">
-      <Lock className="mb-4 h-7 w-7 text-[hsl(142_60%_48%)]" />
-      <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)]">
-        Sign in to manage your account
-      </h2>
-      <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[hsl(215_14%_65%)]">
-        Account state is backed by the local user row created after the WorkOS
-        AuthKit callback.
-      </p>
-      <Link
-        href="/sign-in"
-        className="mt-6 inline-flex rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:brightness-110"
-      >
-        Sign in
-      </Link>
+    <div className="grid gap-6">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8">
+        <Lock className="mb-4 h-7 w-7 text-[hsl(142_60%_48%)]" />
+        <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)]">
+          Sign in to manage your account
+        </h2>
+        <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[hsl(215_14%_65%)]">
+          Account state is backed by the local user row created after the WorkOS
+          AuthKit callback.
+        </p>
+        <Link
+          href="/sign-in"
+          className="mt-6 inline-flex rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:brightness-110"
+        >
+          Sign in
+        </Link>
+      </div>
+      {DEMO_ACCOUNT_ENABLED && <DemoAccountPreview />}
+    </div>
+  );
+}
+
+function DemoAccountPreview() {
+  return (
+    <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+        <div className="mb-5 flex items-center gap-3">
+          <User className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+          <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)]">
+            Demo profile
+          </h2>
+        </div>
+        <div className="space-y-3 text-[14px] text-[hsl(215_14%_72%)]">
+          <InfoRow label="Name" value="South Coast Syndicate" />
+          <InfoRow label="State" value="NSW" />
+          <InfoRow label="Kennel" value="Harbourline Kennels" />
+          <InfoRow label="Role" value="Owner / breeder" />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+        <div className="mb-5 flex items-center gap-3">
+          <Crown className="h-5 w-5 text-[hsl(25_95%_53%)]" />
+          <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)]">
+            Demo activity
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Metric label="Tier" value="Pro+" />
+          <Metric label="Messages" value={8} />
+          <Metric label="Listings" value={5} />
+          <Metric label="Owned dogs" value={3} />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 lg:col-span-2">
+        <div className="mb-5 flex items-center gap-3">
+          <PawPrint className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+          <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)]">
+            Demo kennel
+          </h2>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {([
+            ["Jetstream Juno", "Owner", true],
+            ["Cobalt Ace", "Syndicate", true],
+            ["Harbour Mist", "Breeder", false],
+          ] as const).map(([name, role, verified]) => (
+            <div
+              key={name}
+              className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4"
+            >
+              <p className="font-semibold text-[hsl(210_13%_97%)]">{name}</p>
+              <p className="mb-3 mt-1 text-[13px] text-[hsl(215_14%_65%)]">
+                {role}
+              </p>
+              <StatusBadge verified={Boolean(verified)} />
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
@@ -397,4 +465,21 @@ function ControlCard({
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-white/[0.05] pb-3 last:border-0 last:pb-0">
+      <span className="text-[hsl(220_7%_58%)]">{label}</span>
+      <span className="text-right font-semibold text-[hsl(210_13%_97%)]">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function demoAccountEnabled() {
+  const raw = process.env.NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT;
+  if (!raw) return true;
+  return !["0", "false", "off", "no"].includes(raw.trim().toLowerCase());
 }

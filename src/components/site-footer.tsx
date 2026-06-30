@@ -43,7 +43,7 @@ const FOOTER_SECTIONS = [
   },
 ];
 
-const FOOTER_BG = siteAssetUrl("/images/site-footer-racing-bg.webp");
+const FOOTER_BG = siteAssetUrl("/images/site-footer-finish-line-bg.webp");
 const LOGO_MARK = siteAssetUrl("/images/logo-mark-new.webp");
 const LOGO_WORDMARK = siteAssetUrl("/images/logo-wordmark.webp");
 

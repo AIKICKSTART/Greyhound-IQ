@@ -16,7 +16,7 @@ async function main() {
   ]);
 
   try {
-    const result = await syncLiveData(3);
+    const result = await syncLiveData(3, "all");
     if (!result.synced) return;
     console.log("Done:", result);
   } finally {

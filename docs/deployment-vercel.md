@@ -54,19 +54,20 @@ Optional:
 - `FASTTRACK_BASE_URL`
 - `FASTTRACK_MAX_MEETINGS`
 - `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA`
+- `NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT`
 
-`NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=true` keeps the marketplace media-rich with mock listing images during pre-launch and local development. Set it to `false` when real listing uploads should be the only marketplace media.
+Public racing, listing, dog, track, statistics, and breeding pages read the live database/query layer. `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=true` keeps the marketplace media-rich with local WebP fallback images when real listing uploads are missing. `NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT=true` shows a signed-out account preview for demos without replacing real WorkOS account flows.
 
 After Supabase migrations run for an environment, run `npm run storage:upload-site-assets` with that environment's Supabase values to populate the `site-assets` bucket. Public site images, logos, Open Graph images, and demo listing placeholders are served from Supabase public object URLs when `NEXT_PUBLIC_SUPABASE_URL` is configured.
 
 ## Scheduled live data sync
 
-`Live Racing Sync` calls `/api/internal/live-sync?days=1` every 5 minutes from GitHub Actions. `vercel.json` also configures Vercel Cron to call the same route once daily as a backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. The route accepts either:
+`Live Racing Sync` calls `/api/internal/live-sync?days=1&scope=upcoming` every 5 minutes from GitHub Actions. `vercel.json` also configures Vercel Cron to call the same route once daily as a backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. The route accepts either:
 
 - `Authorization: Bearer <CRON_SECRET>` from Vercel Cron.
 - `X-Internal-Secret: <INTERNAL_API_SECRET>` for manual operator runs.
 
-Without `TOPAZ_API_KEY`, the job can use the bounded FastTrack prototype fallback for pre-production demos. The fallback defaults to `FASTTRACK_MAX_MEETINGS=2` so the high-frequency Vercel function stays inside the 60-second runtime limit. Set `FASTTRACK_PROTOTYPE_ENABLED=false` to force a no-op until the licensed Topaz key is configured. Once the licensed Topaz key is present, each run refreshes meetings, races, runners, scratchings, prices, and recent results through the official provider.
+Scheduled sync uses `scope=upcoming` so it can refresh near-term cards inside the Vercel runtime limit. Manual operator sync can call `scope=all` through `npm run sync:live` to include recent results. Without `TOPAZ_API_KEY`, the job can use the bounded FastTrack prototype fallback for pre-production feed checks. The fallback defaults to `FASTTRACK_MAX_MEETINGS=1` so the high-frequency Vercel function stays inside the 60-second runtime limit. Set `FASTTRACK_PROTOTYPE_ENABLED=false` to force a no-op until the licensed Topaz key is configured. Once the licensed Topaz key is present, the official provider is used for production ingestion.
 
 Use `/api/health/feeds` on the deployed app to verify feed readiness. A `waiting_for_credentials` status means the endpoint, scheduler, and database checks are reachable, but all configured feed paths are blocked by missing credentials.
 

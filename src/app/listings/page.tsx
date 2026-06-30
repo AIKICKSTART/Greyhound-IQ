@@ -403,7 +403,6 @@ function ListingMediaPreview({
         alt={media.originalName ?? "Listing media"}
         width={media.widthPx ?? 520}
         height={media.heightPx ?? 320}
-        unoptimized
         sizes="(min-width: 1024px) 30vw, (min-width: 768px) 50vw, 100vw"
         className="h-40 w-full object-cover"
       />

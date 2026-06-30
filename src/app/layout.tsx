@@ -15,7 +15,7 @@ const inter = Inter({
   weight: ["300", "400", "500", "600", "700"],
 });
 
-const LOGO_MARK = siteAssetUrl("/images/logo-mark-new.png");
+const LOGO_MARK = siteAssetUrl("/images/logo-mark-new.webp");
 const OG_IMAGE = siteAssetUrl("/images/og-image.webp");
 
 export const metadata: Metadata = {

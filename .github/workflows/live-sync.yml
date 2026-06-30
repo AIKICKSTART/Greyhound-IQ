@@ -33,4 +33,4 @@ jobs:
           base_url="${LIVE_SYNC_BASE_URL:-https://greyhound-iq-delta.vercel.app}"
           curl -fsS -X POST \
             -H "X-Internal-Secret: $PROD_INTERNAL_API_SECRET" \
-            "$base_url/api/internal/live-sync?days=$DAYS"
+            "$base_url/api/internal/live-sync?days=$DAYS&scope=upcoming"

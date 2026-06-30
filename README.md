@@ -73,6 +73,13 @@ Supabase values are required for Supabase-backed runtime features:
 
 Supabase Storage uses `site-assets`, `public-user-media`, and `private-user-media` buckets. After migrations, run `npm run storage:upload-site-assets` to upload public website media into the `site-assets` bucket.
 
+Pre-launch demo boundary:
+
+- Racing, listings, dogs, tracks, statistics, and breeding pages read the live database/query layer.
+- `Live Racing Sync` keeps demo race data fresh from the configured provider.
+- `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=true` keeps listing cards and detail pages media-rich with local WebP fallbacks when real uploads are missing.
+- `NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT=true` shows a signed-out demo account preview without replacing real WorkOS account flows.
+
 ## CI/CD
 
 GitHub Actions:
@@ -83,11 +90,11 @@ GitHub Actions:
 - `Codex PR Review`: runs Codex as an automated reviewer.
 - `Supabase Migrate`: manual staging/production migration workflow.
 
-`Live Racing Sync` calls `/api/internal/live-sync?days=1` every 5 minutes from GitHub Actions. Vercel Cron is configured as a daily backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. Without `TOPAZ_API_KEY`, the app can use a bounded public FastTrack prototype fallback for pre-production demos; the fallback caps at `FASTTRACK_MAX_MEETINGS=2` by default so each scheduled run stays inside the Vercel function limit. Real production ingestion requires the licensed `TOPAZ_API_KEY` in Vercel.
+`Live Racing Sync` calls `/api/internal/live-sync?days=1&scope=upcoming` every 5 minutes from GitHub Actions. Vercel Cron is configured as a daily backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. Manual operator sync can run `npm run sync:live` for `scope=all`. Topaz is the licensed production feed; the bounded FastTrack prototype fallback can keep demo race data flowing while the Topaz key is not available.
 
 Feed readiness is exposed at `/api/health/feeds`. It reports configured providers, scheduler coverage, upcoming race counts, and missing feed credentials without exposing secret values.
 
-Marketplace listing cards use optimized demo WebP media while `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA` is enabled. Turn that flag off when real listing uploads should be the only displayed media.
+Marketplace listing cards and details use optimized demo WebP media while `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA` is enabled. Turn that flag off when real listing uploads should be the only displayed media.
 
 Required GitHub secrets:
 

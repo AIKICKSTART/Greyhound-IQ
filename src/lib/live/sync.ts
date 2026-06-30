@@ -13,6 +13,8 @@ type SyncCounts = {
   results: number;
 };
 
+export type SyncScope = "upcoming" | "results" | "all";
+
 // Resolve-or-create helpers (the schema has no unique natural keys for these).
 async function trackId(name: string, state?: string): Promise<string> {
   const existing = await prisma.track.findFirst({ where: { name } });
@@ -133,6 +135,7 @@ async function upsertRace(meetingId: string, race: LiveRace, counts: SyncCounts)
 export interface SyncResult {
   synced: boolean;
   provider?: string;
+  scope?: SyncScope;
   configured?: boolean;
   missingEnv?: string[];
   meetings?: number;
@@ -141,10 +144,13 @@ export interface SyncResult {
   results?: number;
 }
 
-// Pulls upcoming meetings + recent results from the configured live provider and
+// Pulls scoped data from the configured live provider and
 // upserts them. No-ops (synced:false) when no provider is wired — the app keeps
 // running on seeded data.
-export async function syncLiveData(days = 3): Promise<SyncResult> {
+export async function syncLiveData(
+  days = 1,
+  scope: SyncScope = "upcoming"
+): Promise<SyncResult> {
   const provider = getLiveProvider();
   if (!provider) {
     const providerConfig = getLiveProviderConfig();
@@ -157,19 +163,23 @@ export async function syncLiveData(days = 3): Promise<SyncResult> {
     return {
       synced: false,
       provider: "none",
+      scope,
       configured: false,
       missingEnv,
     };
   }
-  console.log(`[live-sync] Using provider: ${provider.name}`);
-  const meetings = [
-    ...(await provider.fetchUpcomingMeetings(days)),
-    ...(await provider.fetchResults(days)),
-  ];
+  console.log(`[live-sync] Using provider: ${provider.name} scope=${scope}`);
+  const meetings: LiveMeeting[] = [];
+  if (scope === "upcoming" || scope === "all") {
+    meetings.push(...(await provider.fetchUpcomingMeetings(days)));
+  }
+  if (scope === "results" || scope === "all") {
+    meetings.push(...(await provider.fetchResults(days)));
+  }
   const counts: SyncCounts = { meetings: 0, races: 0, runners: 0, results: 0 };
   for (const m of meetings) await upsertMeeting(m, counts);
   console.log(
-    `[live-sync] Synced ${counts.meetings} meetings, ${counts.races} races, ${counts.runners} runners, ${counts.results} results via ${provider.name}.`
+    `[live-sync] Synced ${counts.meetings} meetings, ${counts.races} races, ${counts.runners} runners, ${counts.results} results via ${provider.name} (${scope}).`
   );
-  return { synced: true, provider: provider.name, ...counts };
+  return { synced: true, provider: provider.name, scope, ...counts };
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Activity, Crown, LogIn, LogOut, Menu, Search, Sparkles } from "lucide-react";
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import { signOut } from "@workos-inc/authkit-nextjs";
 import {
   Sheet,
@@ -30,9 +30,46 @@ const NAV_LINKS = [
   { href: "/pricing", label: "Pricing" },
 ];
 
-const HEADER_BANNER_BG = siteAssetUrl("/images/site-header-banner-bg.webp");
+const HEADER_BANNER_LANDSCAPE = siteAssetUrl("/images/site-header-gate-burst-landscape.webp");
+const HEADER_BANNER_PORTRAIT = siteAssetUrl("/images/site-header-gate-burst-portrait.webp");
 const LOGO_MARK = siteAssetUrl("/images/logo-mark-new.webp");
 const LOGO_WORDMARK = siteAssetUrl("/images/logo-wordmark.webp");
+
+function HeaderBannerImage() {
+  const common = {
+    alt: "",
+    className:
+      "pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-left opacity-[0.98] saturate-125",
+    loading: "eager" as const,
+    sizes: "100vw",
+  };
+  const {
+    props: { srcSet: desktop },
+  } = getImageProps({
+    ...common,
+    height: 500,
+    quality: 82,
+    src: HEADER_BANNER_LANDSCAPE,
+    width: 2400,
+  });
+  const {
+    props: { srcSet: mobile, ...rest },
+  } = getImageProps({
+    ...common,
+    height: 550,
+    quality: 82,
+    src: HEADER_BANNER_PORTRAIT,
+    width: 1200,
+  });
+
+  return (
+    <picture>
+      <source media="(min-width: 768px)" srcSet={desktop} />
+      <source srcSet={mobile} />
+      <img {...rest} alt="" />
+    </picture>
+  );
+}
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
@@ -41,13 +78,7 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-2 z-50 w-full px-3 md:px-5">
       <div className="relative isolate mx-auto min-h-[132px] max-w-7xl overflow-hidden rounded-2xl border border-white/25 bg-[hsl(168_22%_18%/0.68)] shadow-[0_22px_55px_hsl(0_0%_0%/0.34)] backdrop-blur-xl md:min-h-[168px]">
-        <Image
-          src={HEADER_BANNER_BG}
-          alt=""
-          fill
-          className="pointer-events-none z-0 object-cover object-[24%_52%] opacity-[0.98] saturate-125"
-          sizes="100vw"
-        />
+        <HeaderBannerImage />
         <div
           aria-hidden="true"
           className="absolute inset-0 z-10 bg-[linear-gradient(90deg,hsl(158_24%_8%/0.40)_0%,hsl(178_18%_16%/0.16)_45%,hsl(190_24%_24%/0.06)_100%)]"

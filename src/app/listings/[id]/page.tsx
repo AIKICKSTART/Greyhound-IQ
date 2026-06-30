@@ -361,7 +361,6 @@ function ListingAttachment({
           alt={media.originalName ?? "Listing media"}
           width={media.widthPx ?? 640}
           height={media.heightPx ?? 420}
-          unoptimized
           sizes="(min-width: 1024px) 520px, (min-width: 640px) 50vw, 100vw"
           className="h-64 w-full object-cover"
         />

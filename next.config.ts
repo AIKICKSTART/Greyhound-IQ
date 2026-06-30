@@ -7,6 +7,7 @@ const supabaseImageHost = supabaseUrl ? safeHostname(supabaseUrl) : null;
 const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
+    qualities: [70, 75, 78, 82],
     minimumCacheTTL: 31536000,
     remotePatterns: supabaseImageHost
       ? [

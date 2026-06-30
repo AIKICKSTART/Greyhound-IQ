@@ -52,6 +52,7 @@ type ShardManifest = {
   dbConnectionBudget: number;
   queuePid?: number;
   queueStatus?: QueueStatus;
+  queueOrder?: number[];
   completedAt?: string;
   shards: ShardRecord[];
 };
@@ -159,6 +160,7 @@ async function startShards(options: Options) {
     pollMs: options.pollMs,
     maxErrors: options.maxErrors,
     dbConnectionBudget: options.dbConnectionBudget,
+    queueOrder: queuedMode ? spreadShardOrder(shards.length, options.workers) : undefined,
     shards,
   };
 
@@ -285,7 +287,7 @@ async function runQueue() {
     let changed = applyFinishedChildren(manifest, active, finished);
 
     while (active.size < manifest.workers) {
-      const shard = manifest.shards.find((item) => item.state === "queued");
+      const shard = nextQueuedShard(manifest);
       if (!shard) break;
       const child = launchShardProcess(shard, manifest, false);
       shard.pid = child.pid ?? 0;
@@ -338,10 +340,44 @@ function applyFinishedChildren(
   return changed;
 }
 
+function nextQueuedShard(manifest: ShardManifest) {
+  const order =
+    manifest.queueOrder && manifest.queueOrder.length > 0
+      ? manifest.queueOrder
+      : spreadShardOrder(manifest.shards.length, manifest.workers);
+  for (const id of order) {
+    const shard = manifest.shards.find((item) => item.id === id);
+    if (shard?.state === "queued") return shard;
+  }
+  return manifest.shards.find((item) => item.state === "queued");
+}
+
+function spreadShardOrder(totalShards: number, activeWorkers: number) {
+  const total = Math.max(totalShards, 1);
+  const active = Math.max(Math.min(activeWorkers, total), 1);
+  const firstWave: number[] = [];
+  const used = new Set<number>();
+  for (let slot = 0; slot < active; slot += 1) {
+    const id = Math.floor((slot * total) / active) + 1;
+    if (!used.has(id)) {
+      firstWave.push(id);
+      used.add(id);
+    }
+  }
+  const rest: number[] = [];
+  for (let id = 1; id <= total; id += 1) {
+    if (!used.has(id)) rest.push(id);
+  }
+  return [...firstWave, ...rest];
+}
+
 async function printStatus() {
   const manifest = await readManifest();
   const progressFiles = await findProgressFiles(manifest);
   const coverage = await coverageFrom(DEFAULT_FLOOR, progressFiles);
+  const queueCounts = manifest
+    ? countShardStates(manifest.shards)
+    : undefined;
   const shardStatuses = manifest
     ? await Promise.all(
         manifest.shards.map(async (shard) => ({
@@ -364,6 +400,11 @@ async function printStatus() {
               running: manifest.queuePid ? isProcessRunning(manifest.queuePid) : false,
               activeWorkers: manifest.workers,
               logicalShards: manifest.logicalShards ?? manifest.shards.length,
+              queuedShards: queueCounts?.queued ?? 0,
+              runningShards: queueCounts?.running ?? 0,
+              completedShards: queueCounts?.completed ?? 0,
+              failedShards: queueCounts?.failed ?? 0,
+              queueOrder: manifest.queueOrder ?? null,
               completedAt: manifest.completedAt ?? null,
             }
           : null,
@@ -373,6 +414,23 @@ async function printStatus() {
       null,
       2
     )
+  );
+}
+
+function countShardStates(shards: ShardRecord[]) {
+  return shards.reduce(
+    (counts, shard) => {
+      const state = shard.state ?? "running";
+      counts[state] += 1;
+      return counts;
+    },
+    {
+      queued: 0,
+      running: 0,
+      completed: 0,
+      failed: 0,
+      stopped: 0,
+    } satisfies Record<ShardState, number>
   );
 }
 

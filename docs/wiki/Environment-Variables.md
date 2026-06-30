@@ -16,6 +16,7 @@ Use `.env.example` as the contract. Real values live in the team secret store, V
 - `WORKOS_COOKIE_PASSWORD`
 - `NEXT_PUBLIC_WORKOS_REDIRECT_URI`
 - `INTERNAL_API_SECRET`
+- `CRON_SECRET`
 
 ## Optional live racing variables
 
@@ -24,12 +25,15 @@ Use `.env.example` as the contract. Real values live in the team secret store, V
 - `TOPAZ_OWNING_AUTHORITY_CODE`
 - `TOPAZ_TIME_ZONE`
 
+`CRON_SECRET` secures Vercel Cron calls to `/api/internal/live-sync`. `INTERNAL_API_SECRET` remains available for manual internal maintenance calls with the `X-Internal-Secret` header.
+
 ## CI/CD secrets
 
 - `VERCEL_TOKEN`
 - `VERCEL_ORG_ID`
 - `VERCEL_PROJECT_ID`
 - `OPENAI_API_KEY`
+- `PROD_INTERNAL_API_SECRET`
 - `STAGING_DATABASE_URL`
 - `PROD_DATABASE_URL`
 

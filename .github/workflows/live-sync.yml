@@ -1,0 +1,36 @@
+name: Live Racing Sync
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Number of days to sync"
+        required: true
+        default: "3"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-racing-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: sync-live-racing
+    runs-on: ubuntu-latest
+    env:
+      PROD_INTERNAL_API_SECRET: ${{ secrets.PROD_INTERNAL_API_SECRET }}
+      LIVE_SYNC_BASE_URL: ${{ vars.LIVE_SYNC_BASE_URL }}
+      DAYS: ${{ inputs.days || '3' }}
+    steps:
+      - name: Trigger production live sync
+        run: |
+          test -n "$PROD_INTERNAL_API_SECRET" || (echo "Missing PROD_INTERNAL_API_SECRET secret" && exit 1)
+
+          base_url="${LIVE_SYNC_BASE_URL:-https://greyhound-iq-delta.vercel.app}"
+          curl -fsS -X POST \
+            -H "X-Internal-Secret: $PROD_INTERNAL_API_SECRET" \
+            "$base_url/api/internal/live-sync?days=$DAYS"

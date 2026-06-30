@@ -238,13 +238,17 @@ async function stopManifestWorkers() {
 
 async function coverageFrom(from: string, progressFiles: string[]) {
   const okDates = new Set<string>();
+  const failedDates = new Set<string>();
   let failedAttempts = 0;
   let latestLog: ProgressRecord | undefined;
 
   for (const file of progressFiles) {
     for (const record of await readProgress(file)) {
       if (record.ok && record.date) okDates.add(record.date);
-      if (record.ok === false) failedAttempts += 1;
+      if (record.ok === false) {
+        failedAttempts += 1;
+        if (record.date) failedDates.add(record.date);
+      }
       if (
         record.loggedAt &&
         (!latestLog?.loggedAt || record.loggedAt > latestLog.loggedAt)
@@ -261,12 +265,19 @@ async function coverageFrom(from: string, progressFiles: string[]) {
     cursor += 86_400_000;
   }
 
+  const unresolvedFailedDates = [...failedDates]
+    .filter((date) => !okDates.has(date))
+    .sort();
+
   return {
     contiguousFrom: from,
     contiguousThrough,
     nextMissingDate: formatDate(cursor),
     uniqueSuccessfulDates: okDates.size,
     failedAttempts,
+    uniqueFailedDates: failedDates.size,
+    unresolvedFailedDates: unresolvedFailedDates.length,
+    unresolvedFailedDateSamples: unresolvedFailedDates.slice(0, 20),
     latestLog,
   };
 }
@@ -305,7 +316,7 @@ async function findProgressFiles(manifest: ShardManifest | null) {
   try {
     const entries = await readdir(BACKFILL_DIR);
     for (const entry of entries) {
-      if (/^thedogs-history-shard-.+\.jsonl$/.test(entry)) {
+      if (/^thedogs-history.*\.jsonl$/i.test(entry)) {
         files.add(path.join(BACKFILL_DIR, entry));
       }
     }

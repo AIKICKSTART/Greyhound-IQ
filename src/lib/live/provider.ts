@@ -46,6 +46,29 @@ export interface LiveDataProvider {
 
 import { TopazProvider } from "./topaz";
 
+export function getLiveProviderConfig() {
+  const topazConfigured = Boolean(process.env.TOPAZ_API_KEY?.trim());
+
+  return {
+    activeProvider: topazConfigured ? "topaz" : null,
+    feeds: [
+      {
+        name: "topaz",
+        role: "live_race_fields_and_results",
+        implemented: true,
+        configured: topazConfigured,
+        requiredEnv: ["TOPAZ_API_KEY"],
+        optionalEnv: [
+          "TOPAZ_API_BASE",
+          "TOPAZ_OWNING_AUTHORITY_CODE",
+          "TOPAZ_TIME_ZONE",
+        ],
+        missingEnv: topazConfigured ? [] : ["TOPAZ_API_KEY"],
+      },
+    ],
+  };
+}
+
 // Returns the configured live provider, or null when no feed is wired yet.
 // Adding TOPAZ_API_KEY to the environment turns live sync on.
 export function getLiveProvider(): LiveDataProvider | null {

@@ -27,6 +27,8 @@ Use `.env.example` as the contract. Real values live in the team secret store, V
 
 `CRON_SECRET` secures Vercel Cron calls to `/api/internal/live-sync`. `INTERNAL_API_SECRET` remains available for manual internal maintenance calls with the `X-Internal-Secret` header.
 
+`/api/health/feeds` reports whether live feed credentials are configured without returning secret values.
+
 ## CI/CD secrets
 
 - `VERCEL_TOKEN`

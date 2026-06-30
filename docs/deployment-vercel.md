@@ -58,6 +58,8 @@ Optional:
 
 The job no-ops safely until `TOPAZ_API_KEY` is configured. Once the licensed Topaz key is present, each run refreshes meetings, races, runners, scratchings, prices, and recent results.
 
+Use `/api/health/feeds` on the deployed app to verify feed readiness. A `waiting_for_credentials` status means the endpoint, scheduler, and database checks are reachable, but a required feed credential such as `TOPAZ_API_KEY` is still absent.
+
 ## Local Vercel setup
 
 ```bash

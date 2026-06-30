@@ -1,5 +1,10 @@
 import { prisma } from "../db";
-import { getLiveProvider, type LiveMeeting, type LiveRace } from "./provider";
+import {
+  getLiveProvider,
+  getLiveProviderConfig,
+  type LiveMeeting,
+  type LiveRace,
+} from "./provider";
 
 type SyncCounts = {
   meetings: number;
@@ -128,6 +133,8 @@ async function upsertRace(meetingId: string, race: LiveRace, counts: SyncCounts)
 export interface SyncResult {
   synced: boolean;
   provider?: string;
+  configured?: boolean;
+  missingEnv?: string[];
   meetings?: number;
   races?: number;
   runners?: number;
@@ -140,8 +147,14 @@ export interface SyncResult {
 export async function syncLiveData(days = 3): Promise<SyncResult> {
   const provider = getLiveProvider();
   if (!provider) {
+    const topaz = getLiveProviderConfig().feeds.find((feed) => feed.name === "topaz");
     console.log("[live-sync] No live provider configured (set TOPAZ_API_KEY to enable). App uses seeded data.");
-    return { synced: false };
+    return {
+      synced: false,
+      provider: "none",
+      configured: false,
+      missingEnv: topaz?.missingEnv ?? ["TOPAZ_API_KEY"],
+    };
   }
   console.log(`[live-sync] Using provider: ${provider.name}`);
   const meetings = [

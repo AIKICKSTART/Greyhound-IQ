@@ -12,6 +12,7 @@ const requireReady = process.env.SMOKE_REQUIRE_READY !== "false";
 const checks: SmokeCheck[] = [
   { label: "liveness", path: "/api/health", expected: 200 },
   { label: "readiness", path: "/api/health/ready", expected: requireReady ? 200 : [200, 503] },
+  { label: "feed status", path: "/api/health/feeds", expected: 200 },
   { label: "current user requires auth", path: "/api/users/me", expected: 401 },
   { label: "forum categories", path: "/api/forum/categories", expected: 200 },
   { label: "marketplace listings", path: "/api/listings", expected: 200 },

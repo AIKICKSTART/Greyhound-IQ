@@ -6,7 +6,7 @@
  *   npm run backfill:thedogs -- --from 2025-01-01 --to 2025-01-31 --max-days 7
  *   npm run backfill:thedogs -- --from 2007-01-01 --to 2007-12-31 --full
  */
-import { mkdir, readFile, appendFile } from "node:fs/promises";
+import { mkdir, readFile, appendFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { loadEnvConfig } from "@next/env";
 import { prisma } from "../src/lib/db";
@@ -26,6 +26,7 @@ type Options = {
   pauseMs: number;
   progressFile: string;
   resume: boolean;
+  globalResume: boolean;
   direction: "forward" | "backward";
   continueOnError: boolean;
   maxErrors: number;
@@ -35,7 +36,7 @@ async function main() {
   const options = parseOptions(process.argv.slice(2));
   const allDates = enumerateDates(options.from, options.to, options.direction);
   const completed = options.resume
-    ? await readCompletedDates(options.progressFile)
+    ? await readCompletedDates(options.progressFile, options.globalResume)
     : new Set<string>();
   const pending = allDates.filter((date) => !completed.has(date));
   const selected = options.full ? pending : pending.slice(0, options.maxDays);
@@ -51,6 +52,7 @@ async function main() {
         pendingDates: pending.length,
         selectedDates: selected.length,
         progressFile: options.progressFile,
+        globalResume: options.globalResume,
         full: options.full,
         continueOnError: options.continueOnError,
         maxErrors: options.maxErrors,
@@ -134,6 +136,7 @@ function parseOptions(args: string[]): Options {
     pauseMs: positiveInt(stringOption(values, "pause-ms"), 750),
     progressFile: stringOption(values, "progress-file") ?? DEFAULT_PROGRESS,
     resume: !values.has("no-resume"),
+    globalResume: !values.has("no-global-resume"),
     continueOnError: values.has("continue-on-error"),
     maxErrors: positiveInt(stringOption(values, "max-errors"), 50),
   };
@@ -152,8 +155,32 @@ function enumerateDates(from: string, to: string, direction: "forward" | "backwa
   return direction === "backward" ? dates.reverse() : dates;
 }
 
-async function readCompletedDates(progressFile: string) {
+async function readCompletedDates(progressFile: string, globalResume: boolean) {
   const completed = new Set<string>();
+  const files = new Set([progressFile]);
+  if (globalResume) {
+    try {
+      for (const entry of await readdir(".backfill")) {
+        if (/^thedogs-history.*\.jsonl$/i.test(entry)) {
+          files.add(path.join(".backfill", entry));
+        }
+      }
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+    }
+  }
+
+  for (const file of files) {
+    await readCompletedDatesFromFile(file, completed);
+  }
+
+  return completed;
+}
+
+async function readCompletedDatesFromFile(
+  progressFile: string,
+  completed: Set<string>
+) {
   try {
     const body = await readFile(progressFile, "utf8");
     for (const line of body.split(/\r?\n/)) {
@@ -164,7 +191,6 @@ async function readCompletedDates(progressFile: string) {
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
   }
-  return completed;
 }
 
 async function appendProgress(progressFile: string, record: Record<string, unknown>) {

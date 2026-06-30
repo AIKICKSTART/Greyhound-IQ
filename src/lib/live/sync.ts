@@ -84,6 +84,11 @@ type FormEntryUpsertRow = {
   weight: number | null;
 };
 
+const LIVE_SYNC_WRITE_CONCURRENCY = positiveInt(
+  process.env.LIVE_SYNC_WRITE_CONCURRENCY,
+  1
+);
+
 export interface SyncResult {
   synced: boolean;
   provider?: string;
@@ -279,7 +284,7 @@ async function ensureMeetings(
     rows.set(naturalMeetingKey(row.trackId, row.meetingDate), row);
   }
 
-  await mapLimit(meetings, 10, async (meeting) => {
+  await mapLimit(meetings, LIVE_SYNC_WRITE_CONCURRENCY, async (meeting) => {
     const track = tracks.get(meeting.trackName);
     if (!track) return;
     const key = naturalMeetingKey(track.id, meetingDate(meeting));
@@ -321,7 +326,7 @@ async function ensureRaces(items: RaceWithMeeting[], now: Date) {
   });
   const rows = new Map(existing.map((row) => [raceKey(row.meetingId, row), row]));
 
-  await mapLimit(items, 25, async (item) => {
+  await mapLimit(items, LIVE_SYNC_WRITE_CONCURRENCY, async (item) => {
     const key = raceKey(item.meetingId, item.race);
     const data = {
       name: item.race.name,
@@ -705,4 +710,9 @@ function uniqueBy<T>(rows: T[], keyFor: (row: T) => string) {
   const byKey = new Map<string, T>();
   for (const row of rows) byKey.set(keyFor(row), row);
   return [...byKey.values()];
+}
+
+function positiveInt(value: string | undefined, fallback: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }

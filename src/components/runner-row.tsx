@@ -40,7 +40,7 @@ export function RunnerRow({ runner }: { runner: RunnerData }) {
     >
       <td className="p-3 text-center">
         <span
-          className="inline-flex h-7 w-7 items-center justify-center rounded border text-[12px] font-bold shadow-[inset_0_1px_0_hsl(0_0%_100%/0.22),0_6px_14px_hsl(0_0%_0%/0.20)]"
+          className="inline-flex h-9 w-11 items-center justify-center rounded-[3px] border-2 text-[18px] font-black leading-none tracking-[-0.03em] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.58),inset_0_-7px_10px_hsl(0_0%_0%/0.14),0_8px_18px_hsl(0_0%_0%/0.24)]"
           style={boxStyle}
         >
           {runner.boxNumber}

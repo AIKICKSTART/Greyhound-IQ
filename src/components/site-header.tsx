@@ -9,6 +9,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { getCurrentUser } from "@/lib/auth";
+import { HeaderNav } from "@/components/header-nav";
 
 const TIER_BADGE: Record<string, { label: string; color: string }> = {
   free: { label: "Free", color: "215 14% 65%" },
@@ -76,15 +77,7 @@ export async function SiteHeader() {
                 <SheetTitle className="sr-only">Navigation</SheetTitle>
                 <div className="race-box-strip mt-4" />
                 <nav className="mt-8 flex flex-col gap-3">
-                  {NAV_LINKS.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className="giq-button giq-button-glass justify-start px-4 text-base font-semibold"
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
+                  <HeaderNav links={NAV_LINKS} variant="mobile" />
                 </nav>
               </SheetContent>
             </Sheet>
@@ -186,15 +179,7 @@ export async function SiteHeader() {
           </Link>
 
           <nav className="giq-header-nav hidden w-full items-center gap-2 overflow-x-auto rounded-xl p-2 md:flex 2xl:justify-center">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="giq-header-nav-link shrink-0"
-              >
-                {link.label}
-              </Link>
-            ))}
+            <HeaderNav links={NAV_LINKS} variant="desktop" />
           </nav>
 
           <div className="hidden items-center justify-between gap-4 text-[11px] text-[hsl(210_13%_88%)] lg:flex">

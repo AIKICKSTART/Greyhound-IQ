@@ -4,7 +4,7 @@ const FASTTRACK_BASE =
   process.env.FASTTRACK_BASE_URL ?? "https://fasttrack.grv.org.au";
 const FASTTRACK_MAX_MEETINGS = positiveInt(
   process.env.FASTTRACK_MAX_MEETINGS,
-  8
+  2
 );
 const FASTTRACK_TIME_ZONE = process.env.TOPAZ_TIME_ZONE ?? "Australia/Sydney";
 const FASTTRACK_USER_AGENT =

@@ -61,12 +61,12 @@ After Supabase migrations run for an environment, run `npm run storage:upload-si
 
 ## Scheduled live data sync
 
-`Live Racing Sync` calls `/api/internal/live-sync` every 5 minutes from GitHub Actions. `vercel.json` also configures Vercel Cron to call the same route once daily as a backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. The route accepts either:
+`Live Racing Sync` calls `/api/internal/live-sync?days=1` every 5 minutes from GitHub Actions. `vercel.json` also configures Vercel Cron to call the same route once daily as a backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. The route accepts either:
 
 - `Authorization: Bearer <CRON_SECRET>` from Vercel Cron.
 - `X-Internal-Secret: <INTERNAL_API_SECRET>` for manual operator runs.
 
-Without `TOPAZ_API_KEY`, the job can use the bounded FastTrack prototype fallback for pre-production demos. Set `FASTTRACK_PROTOTYPE_ENABLED=false` to force a no-op until the licensed Topaz key is configured. Once the licensed Topaz key is present, each run refreshes meetings, races, runners, scratchings, prices, and recent results through the official provider.
+Without `TOPAZ_API_KEY`, the job can use the bounded FastTrack prototype fallback for pre-production demos. The fallback defaults to `FASTTRACK_MAX_MEETINGS=2` so the high-frequency Vercel function stays inside the 60-second runtime limit. Set `FASTTRACK_PROTOTYPE_ENABLED=false` to force a no-op until the licensed Topaz key is configured. Once the licensed Topaz key is present, each run refreshes meetings, races, runners, scratchings, prices, and recent results through the official provider.
 
 Use `/api/health/feeds` on the deployed app to verify feed readiness. A `waiting_for_credentials` status means the endpoint, scheduler, and database checks are reachable, but all configured feed paths are blocked by missing credentials.
 

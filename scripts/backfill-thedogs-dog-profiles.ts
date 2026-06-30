@@ -129,7 +129,7 @@ async function main() {
 async function findDogs(options: Options, completed: Set<string>) {
   const where = options.sourceId
     ? { earBrand: `thedogs:${options.sourceId}` }
-    : { earBrand: { startsWith: "thedogs:" } };
+    : { earBrand: { startsWith: "thedogs:" }, lastProfileSyncedAt: null };
   const dogs = await prisma.dog.findMany({
     where,
     select: {

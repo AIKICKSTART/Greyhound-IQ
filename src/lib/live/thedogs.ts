@@ -9,6 +9,10 @@ const THEDOGS_MAX_MEETINGS = positiveInt(
 const THEDOGS_CONCURRENCY = positiveInt(process.env.THEDOGS_CONCURRENCY, 5);
 const THEDOGS_TIME_ZONE =
   process.env.THEDOGS_TIME_ZONE ?? "Australia/Sydney";
+const THEDOGS_FETCH_TIMEOUT_MS = positiveInt(
+  process.env.THEDOGS_FETCH_TIMEOUT_MS,
+  60_000
+);
 const THEDOGS_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -126,6 +130,7 @@ export class TheDogsProvider implements LiveDataProvider {
   ): Promise<string> {
     const url = new URL(path, THEDOGS_BASE);
     const response = await this.fetchImpl(url, {
+      signal: AbortSignal.timeout(THEDOGS_FETCH_TIMEOUT_MS),
       headers: {
         accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "accept-language": "en-US,en;q=0.9",

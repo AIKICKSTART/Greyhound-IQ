@@ -1,5 +1,9 @@
 const THEDOGS_BASE =
   process.env.THEDOGS_BASE_URL ?? "https://www.thedogs.com.au";
+const THEDOGS_FETCH_TIMEOUT_MS = positiveInt(
+  process.env.THEDOGS_FETCH_TIMEOUT_MS,
+  60_000
+);
 const THEDOGS_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 
@@ -81,6 +85,7 @@ export class TheDogsDogProfileProvider {
   private async getText(pathOrUrl: string, extraHeaders: Record<string, string> = {}) {
     const url = new URL(pathOrUrl, THEDOGS_BASE);
     const response = await this.fetchImpl(url, {
+      signal: AbortSignal.timeout(THEDOGS_FETCH_TIMEOUT_MS),
       headers: {
         accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "accept-language": "en-US,en;q=0.9",
@@ -428,4 +433,9 @@ function uniqueBy<T>(rows: T[], keyFor: (row: T) => string) {
   const byKey = new Map<string, T>();
   for (const row of rows) byKey.set(keyFor(row), row);
   return [...byKey.values()];
+}
+
+function positiveInt(value: string | undefined, fallback: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }

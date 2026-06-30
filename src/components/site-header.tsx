@@ -32,8 +32,8 @@ const NAV_LINKS = [
 
 const HEADER_BANNER_LANDSCAPE = siteAssetUrl("/images/site-header-gate-burst-landscape.webp");
 const HEADER_BANNER_PORTRAIT = siteAssetUrl("/images/site-header-gate-burst-portrait.webp");
+const LOGO_MAIN = siteAssetUrl("/images/logo-main.webp");
 const LOGO_MARK = siteAssetUrl("/images/logo-mark-new.webp");
-const LOGO_WORDMARK = siteAssetUrl("/images/logo-wordmark.webp");
 
 function HeaderBannerImage() {
   const common = {
@@ -121,13 +121,13 @@ export async function SiteHeader() {
               aria-label="GreyhoundIQ home"
               className="group flex min-w-0 shrink items-center transition-transform hover:-translate-y-px"
             >
-              <span className="relative hidden h-14 w-[238px] shrink overflow-hidden rounded-xl shadow-[0_14px_28px_hsl(0_0%_0%/0.24)] sm:block md:h-[76px] md:w-[360px] lg:w-[470px]">
+              <span className="relative hidden h-20 w-[300px] shrink overflow-hidden rounded-xl shadow-[0_14px_28px_hsl(0_0%_0%/0.24)] sm:block md:h-[104px] md:w-[360px] lg:w-[420px]">
                 <Image
-                  src={LOGO_WORDMARK}
+                  src={LOGO_MAIN}
                   alt=""
                   fill
                   className="object-contain object-left"
-                  sizes="(min-width: 1024px) 470px, (min-width: 768px) 360px, 238px"
+                  sizes="(min-width: 1024px) 420px, (min-width: 768px) 360px, 300px"
                 />
               </span>
             </Link>
@@ -200,14 +200,14 @@ export async function SiteHeader() {
             href="/"
             aria-hidden="true"
             tabIndex={-1}
-            className="relative h-16 w-full max-w-[320px] overflow-hidden rounded-xl shadow-[0_14px_28px_hsl(0_0%_0%/0.24)] sm:hidden"
+            className="relative h-[92px] w-full max-w-[310px] overflow-hidden rounded-xl shadow-[0_14px_28px_hsl(0_0%_0%/0.24)] sm:hidden"
           >
             <Image
-              src={LOGO_WORDMARK}
+              src={LOGO_MAIN}
               alt=""
               fill
               className="object-contain object-left"
-              sizes="320px"
+              sizes="310px"
             />
           </Link>
 

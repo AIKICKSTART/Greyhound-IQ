@@ -3,6 +3,7 @@ name: Live Racing Sync
 on:
   schedule:
     - cron: "*/5 * * * *"
+    - cron: "17 * * * *"
   workflow_dispatch:
     inputs:
       days:
@@ -24,7 +25,7 @@ jobs:
     env:
       PROD_INTERNAL_API_SECRET: ${{ secrets.PROD_INTERNAL_API_SECRET }}
       LIVE_SYNC_BASE_URL: ${{ vars.LIVE_SYNC_BASE_URL }}
-      DAYS: ${{ inputs.days || '1' }}
+      DAYS: ${{ inputs.days || (github.event.schedule == '17 * * * *' && '7' || '1') }}
     steps:
       - name: Trigger production live sync
         run: |

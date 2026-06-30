@@ -44,8 +44,7 @@ const FOOTER_SECTIONS = [
 ];
 
 const FOOTER_BG = siteAssetUrl("/images/site-footer-finish-line-bg.webp");
-const LOGO_MARK = siteAssetUrl("/images/logo-mark-new.webp");
-const LOGO_WORDMARK = siteAssetUrl("/images/logo-wordmark.webp");
+const LOGO_MAIN = siteAssetUrl("/images/logo-main.webp");
 
 export function SiteFooter() {
   return (
@@ -68,25 +67,14 @@ export function SiteFooter() {
       <div className="relative z-20 mx-auto max-w-7xl px-6 py-16 md:py-20">
         <div className="mb-12 grid gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-end">
           <div>
-            <div className="mb-5 flex items-center gap-3">
-              <div className="relative h-12 w-12 overflow-hidden rounded-xl shadow-lg shadow-black/35">
-                <Image
-                  src={LOGO_MARK}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="48px"
-                />
-              </div>
-              <div className="relative h-12 w-64 overflow-hidden">
-                <Image
-                  src={LOGO_WORDMARK}
-                  alt="GreyhoundIQ"
-                  fill
-                  className="object-contain object-left"
-                  sizes="256px"
-                />
-              </div>
+            <div className="relative mb-5 h-24 w-full max-w-sm overflow-hidden rounded-xl shadow-lg shadow-black/35">
+              <Image
+                src={LOGO_MAIN}
+                alt="GreyhoundIQ"
+                fill
+                className="object-contain object-left"
+                sizes="384px"
+              />
             </div>
             <p className="max-w-2xl text-2xl font-semibold leading-tight text-[hsl(210_13%_97%)] md:text-4xl">
               Track-side intelligence for race night, breeding decisions, and the market between them.
@@ -110,25 +98,14 @@ export function SiteFooter() {
         <div className="grid grid-cols-2 gap-8 md:grid-cols-6">
           {/* Brand */}
           <div className="col-span-2">
-            <div className="mb-3 flex items-center gap-2.5">
-              <div className="relative h-8 w-8 overflow-hidden rounded-lg">
-                <Image
-                  src={LOGO_MARK}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="32px"
-                />
-              </div>
-              <div className="relative h-8 w-40 overflow-hidden">
-                <Image
-                  src={LOGO_WORDMARK}
-                  alt="GreyhoundIQ"
-                  fill
-                  className="object-contain object-left"
-                  sizes="160px"
-                />
-              </div>
+            <div className="relative mb-3 h-14 w-full max-w-[220px] overflow-hidden rounded-lg">
+              <Image
+                src={LOGO_MAIN}
+                alt="GreyhoundIQ"
+                fill
+                className="object-contain object-left"
+                sizes="220px"
+              />
             </div>
             <p className="max-w-xs text-[13px] leading-relaxed text-[hsl(215_14%_72%)]">
               The smartest greyhound racing data platform in Australia.

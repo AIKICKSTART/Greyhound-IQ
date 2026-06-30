@@ -74,11 +74,17 @@ model Meeting {
   track       Track    @relation(fields: [trackId], references: [id])
   meetingDate DateTime
   meetingType String?
+  sourceProvider String?
+  sourceId       String?
+  lastSyncedAt   DateTime?
   races       Race[]
   createdAt   DateTime @default(now())
 
   @@index([trackId])
   @@index([meetingDate])
+  @@index([sourceProvider])
+  @@index([lastSyncedAt])
+  @@unique([trackId, meetingDate])
 }
 
 model Race {
@@ -90,11 +96,17 @@ model Race {
   distance   Int
   grade      String?
   prizeMoney Float?
+  sourceProvider String?
+  sourceId       String?
+  lastSyncedAt   DateTime?
   runners    Runner[]
   createdAt  DateTime @default(now())
 
   @@index([meetingId])
   @@index([raceTime])
+  @@index([sourceProvider])
+  @@index([lastSyncedAt])
+  @@unique([meetingId, raceNumber])
 }
 
 model Runner {
@@ -114,6 +126,7 @@ model Runner {
 
   @@index([raceId])
   @@index([dogId])
+  @@unique([raceId, boxNumber])
 }
 
 model Result {

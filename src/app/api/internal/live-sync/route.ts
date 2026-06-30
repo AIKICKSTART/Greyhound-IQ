@@ -5,7 +5,7 @@ import { syncLiveData, type SyncScope } from "@/lib/live/sync";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function GET(request: NextRequest) {
   return runLiveSync(request);
@@ -38,7 +38,7 @@ function scopeFromRequest(request: NextRequest): SyncScope {
 
 function daysFromRequest(request: NextRequest) {
   const raw = request.nextUrl.searchParams.get("days");
-  if (!raw) return 1;
+  if (!raw) return 7;
 
   const days = Number(raw);
   if (!Number.isInteger(days) || days < 1 || days > 7) {

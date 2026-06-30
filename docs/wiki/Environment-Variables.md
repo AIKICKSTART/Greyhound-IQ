@@ -26,6 +26,11 @@ Use `.env.example` as the contract. Real values live in the team secret store, V
 - `TOPAZ_API_BASE`
 - `TOPAZ_OWNING_AUTHORITY_CODE`
 - `TOPAZ_TIME_ZONE`
+- `THEDOGS_PROVIDER_ENABLED` (defaults to `true` for all-Australia racecard coverage)
+- `THEDOGS_BASE_URL`
+- `THEDOGS_MAX_MEETINGS`
+- `THEDOGS_CONCURRENCY`
+- `THEDOGS_TIME_ZONE`
 - `FASTTRACK_PROTOTYPE_ENABLED` (defaults to `true` in `.env.example` for demo race data)
 - `FASTTRACK_BASE_URL`
 - `FASTTRACK_MAX_MEETINGS` (defaults to `1` for the high-frequency fallback sync)

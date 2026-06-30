@@ -21,6 +21,7 @@
     "db:reset": "prisma migrate reset --force",
     "set-tier": "tsx scripts/set-tier.ts",
     "sync:live": "tsx scripts/sync-live.ts",
+    "audit:live-race-coverage": "tsx scripts/audit-live-race-coverage.ts",
     "maintain:listings": "tsx scripts/listing-maintenance.ts",
     "maintain:accounts": "tsx scripts/account-deletion-maintenance.ts",
     "maintain:memory": "tsx scripts/memory-maintenance.ts",

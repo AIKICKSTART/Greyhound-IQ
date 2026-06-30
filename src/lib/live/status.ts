@@ -60,6 +60,38 @@ async function getDataFreshness(today: Date, nextWeek: Date) {
       }),
     null
   );
+  const liveSourcedMeetings = await safeQuery(
+    () =>
+      prisma.meeting.count({
+        where: {
+          meetingDate: { gte: today, lte: nextWeek },
+          sourceProvider: { not: null },
+        },
+      }),
+    null
+  );
+  const liveSourcedRaces = await safeQuery(
+    () =>
+      prisma.race.count({
+        where: {
+          raceTime: { gte: today, lte: nextWeek },
+          sourceProvider: { not: null },
+        },
+      }),
+    null
+  );
+  const liveProviders = await safeQuery(
+    () =>
+      prisma.meeting.groupBy({
+        by: ["sourceProvider"],
+        where: {
+          meetingDate: { gte: today, lte: nextWeek },
+          sourceProvider: { not: null },
+        },
+        _count: { _all: true },
+      }),
+    []
+  );
   const totalResults = await safeQuery(() => prisma.result.count(), null);
   const latestRace = await safeQuery(
     () =>
@@ -82,6 +114,12 @@ async function getDataFreshness(today: Date, nextWeek: Date) {
     upcomingMeetings,
     upcomingRaces,
     upcomingRunners,
+    liveSourcedMeetings,
+    liveSourcedRaces,
+    liveProviders: liveProviders.map((provider) => ({
+      name: provider.sourceProvider,
+      meetings: provider._count._all,
+    })),
     totalResults,
     latestRaceTime: latestRace?.raceTime?.toISOString() ?? null,
     latestResultAt: latestResult?.createdAt?.toISOString() ?? null,
@@ -93,6 +131,9 @@ function emptyFreshness() {
     upcomingMeetings: null,
     upcomingRaces: null,
     upcomingRunners: null,
+    liveSourcedMeetings: null,
+    liveSourcedRaces: null,
+    liveProviders: [],
     totalResults: null,
     latestRaceTime: null,
     latestResultAt: null,

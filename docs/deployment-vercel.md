@@ -50,6 +50,11 @@ Optional:
 - `TOPAZ_API_BASE`
 - `TOPAZ_OWNING_AUTHORITY_CODE`
 - `TOPAZ_TIME_ZONE`
+- `THEDOGS_PROVIDER_ENABLED`
+- `THEDOGS_BASE_URL`
+- `THEDOGS_MAX_MEETINGS`
+- `THEDOGS_CONCURRENCY`
+- `THEDOGS_TIME_ZONE`
 - `FASTTRACK_PROTOTYPE_ENABLED`
 - `FASTTRACK_BASE_URL`
 - `FASTTRACK_MAX_MEETINGS`
@@ -62,12 +67,14 @@ After Supabase migrations run for an environment, run `npm run storage:upload-si
 
 ## Scheduled live data sync
 
-`Live Racing Sync` calls `/api/internal/live-sync?days=1&scope=upcoming` every 5 minutes from GitHub Actions. `vercel.json` also configures Vercel Cron to call the same route once daily as a backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. The route accepts either:
+`Live Racing Sync` calls `/api/internal/live-sync?scope=upcoming` from GitHub Actions. The fast job refreshes the current national racecards every 5 minutes with `days=1`; the full job refreshes the 7-day national horizon hourly with `days=7`. `vercel.json` also configures Vercel Cron to call the same route once daily as a backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. The route accepts either:
 
 - `Authorization: Bearer <CRON_SECRET>` from Vercel Cron.
 - `X-Internal-Secret: <INTERNAL_API_SECRET>` for manual operator runs.
 
-Scheduled sync uses `scope=upcoming` so it can refresh near-term cards inside the Vercel runtime limit. Manual operator sync can call `scope=all` through `npm run sync:live` to include recent results. Without `TOPAZ_API_KEY`, the job can use the bounded FastTrack prototype fallback for pre-production feed checks. The fallback defaults to `FASTTRACK_MAX_MEETINGS=1` so the high-frequency Vercel function stays inside the 60-second runtime limit. Set `FASTTRACK_PROTOTYPE_ENABLED=false` to force a no-op until the licensed Topaz key is configured. Once the licensed Topaz key is present, the official provider is used for production ingestion.
+Scheduled sync uses `scope=upcoming` so it can refresh national racecards inside the Vercel runtime limit. Manual operator sync can call `scope=all` through `npm run sync:live` to include recent results where the configured provider exposes them. `THEDOGS_PROVIDER_ENABLED=true` enables public all-Australia racecard ingestion; `THEDOGS_MAX_MEETINGS` and `THEDOGS_CONCURRENCY` bound the sync workload. Without `TOPAZ_API_KEY`, the job still has national field coverage from The Dogs. FastTrack remains a VIC-only prototype fallback if the all-Australia feed is disabled.
+
+Run `npm run audit:live-race-coverage -- 7` after production sync to verify every expected all-Australia racecard in the live provider exists in the database with live provenance.
 
 Use `/api/health/feeds` on the deployed app to verify feed readiness. A `waiting_for_credentials` status means the endpoint, scheduler, and database checks are reachable, but all configured feed paths are blocked by missing credentials.
 

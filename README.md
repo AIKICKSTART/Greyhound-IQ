@@ -90,9 +90,11 @@ GitHub Actions:
 - `Codex PR Review`: runs Codex as an automated reviewer.
 - `Supabase Migrate`: manual staging/production migration workflow.
 
-`Live Racing Sync` calls `/api/internal/live-sync?days=1&scope=upcoming` every 5 minutes from GitHub Actions. Vercel Cron is configured as a daily backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. Manual operator sync can run `npm run sync:live` for `scope=all`. Topaz is the licensed production feed; the bounded FastTrack prototype fallback can keep demo race data flowing while the Topaz key is not available.
+`Live Racing Sync` calls `/api/internal/live-sync?scope=upcoming` from GitHub Actions. The fast schedule refreshes the current national racecards every 5 minutes with `days=1`; the full schedule refreshes the 7-day national horizon hourly with `days=7`. Vercel Cron is configured as a daily full-horizon backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. Manual operator sync can run `npm run sync:live` for `scope=all`. `THEDOGS_PROVIDER_ENABLED=true` enables the public all-Australia racecard feed for national field coverage. Topaz remains the licensed production feed where available, and the bounded FastTrack prototype fallback can keep demo race data flowing if the all-Australia feed is disabled.
 
 Feed readiness is exposed at `/api/health/feeds`. It reports configured providers, scheduler coverage, upcoming race counts, and missing feed credentials without exposing secret values.
+
+Run `npm run audit:live-race-coverage -- 7` after a sync to compare the database against the live all-Australia racecard feed. The audit exits non-zero while any expected live venue/date/racecard is missing or stale.
 
 Marketplace listing cards and details use optimized demo WebP media while `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA` is enabled. Turn that flag off when real listing uploads should be the only displayed media.
 

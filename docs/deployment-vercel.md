@@ -79,9 +79,12 @@ Historical backfills are operator jobs, not Vercel cron jobs:
 ```bash
 npm run backfill:thedogs -- --from 2006-08-01 --to 2006-12-31 --full
 npm run backfill:thedogs -- --from 2006-08-01 --to 2026-06-30 --full --continue-on-error --max-errors 500
+npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 3
+npm run backfill:thedogs:shards -- status
+npm run backfill:thedogs:shards -- stop
 ```
 
-The command reads the public The Dogs archive endpoint (`/racing?date=YYYY-MM-DD`) and writes normalized meetings, races, runners, results, dog identities, and form entries. Progress is recorded in `.backfill/thedogs-history-progress.jsonl` so year/month chunks can resume safely. Use `--continue-on-error` for full archive runs so isolated malformed legacy pages are logged without stopping the whole job. Do not run multi-year backfills inside Vercel functions.
+The command reads the public The Dogs archive endpoint (`/racing?date=YYYY-MM-DD`) and writes normalized meetings, races, runners, results, dog identities, and form entries. Progress is recorded in `.backfill/thedogs-history-progress.jsonl` so year/month chunks can resume safely. Use `--continue-on-error` for full archive runs so isolated malformed legacy pages are logged without stopping the whole job. For the full archive, use the shard launcher with a small worker count so ranges do not overlap and Supabase/The Dogs are not overloaded. Do not run multi-year backfills inside Vercel functions.
 
 Run `npm run audit:live-race-coverage -- 7` after production sync to verify every expected all-Australia racecard in the live provider exists in the database with live provenance.
 

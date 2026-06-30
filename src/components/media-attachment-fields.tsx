@@ -2,19 +2,30 @@
 
 import { useRef, useState } from "react";
 import { ImagePlus, Loader2, Paperclip, X } from "lucide-react";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const ACCEPTED_MEDIA_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
+  "image/avif",
   "video/mp4",
   "video/webm",
+  "video/quicktime",
   "audio/mp4",
   "audio/webm",
   "audio/ogg",
+  "application/pdf",
 ];
 
-type Bucket = "messages" | "listings" | "avatars" | "agent-outputs";
+type MediaContext =
+  | "avatars"
+  | "dogs"
+  | "listings"
+  | "forum"
+  | "messages"
+  | "verification"
+  | "agent-outputs";
 
 interface UploadedItem {
   id: string;
@@ -23,13 +34,15 @@ interface UploadedItem {
 }
 
 interface MediaAttachmentFieldsProps {
-  bucket?: Bucket;
+  mediaContext?: MediaContext;
   maxFiles?: number;
   compact?: boolean;
 }
 
+let browserSupabase: SupabaseClient | null = null;
+
 export function MediaAttachmentFields({
-  bucket = "messages",
+  mediaContext = "messages",
   maxFiles = 4,
   compact = false,
 }: MediaAttachmentFieldsProps) {
@@ -55,21 +68,24 @@ export function MediaAttachmentFields({
         setStatus(`Uploading ${file.name}`);
         const signed = await postJson<{
           mediaId: string;
-          uploadUrl: string;
+          bucket: string;
+          objectPath: string;
+          uploadToken: string;
         }>("/api/media/sign-upload", {
           filename: file.name,
           mimeType: file.type,
           sizeBytes: file.size,
-          bucket,
+          mediaContext,
         });
 
-        const uploadResponse = await fetch(signed.uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": file.type },
-          body: file,
-        });
-        if (!uploadResponse.ok) {
-          throw new Error(await errorMessage(uploadResponse));
+        const { error: uploadError } = await getBrowserSupabase()
+          .storage.from(signed.bucket)
+          .uploadToSignedUrl(signed.objectPath, signed.uploadToken, file, {
+            contentType: file.type,
+            cacheControl: "31536000",
+          });
+        if (uploadError) {
+          throw new Error(uploadError.message);
         }
 
         const finalized = await postJson<{
@@ -171,6 +187,24 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   });
   if (!response.ok) throw new Error(await errorMessage(response));
   return response.json() as Promise<T>;
+}
+
+function getBrowserSupabase() {
+  if (browserSupabase) return browserSupabase;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    throw new Error("Supabase Storage is not configured for browser uploads.");
+  }
+
+  browserSupabase = createClient(url, anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+  return browserSupabase;
 }
 
 async function errorMessage(response: Response) {

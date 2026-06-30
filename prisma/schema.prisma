@@ -315,12 +315,16 @@ model MediaAsset {
   uploader        User      @relation(fields: [uploaderId], references: [id])
   storageBucket   String
   storagePath     String
+  publicUrl       String?
+  mediaType       String    @default("file")
   originalName    String?
   mimeType        String
   sizeBytes       Int
   widthPx         Int?
   heightPx        Int?
   durationSec     Float?
+  linkedEntityType String?
+  linkedEntityId   String?
   scanStatus      String    @default("pending") // pending | clean | infected | error
   scanCompletedAt DateTime?
   sha256          String?
@@ -335,6 +339,8 @@ model MediaAsset {
   @@unique([storageBucket, storagePath])
   @@index([uploaderId, createdAt])
   @@index([uploaderId, sha256])
+  @@index([storageBucket, createdAt])
+  @@index([linkedEntityType, linkedEntityId])
   @@index([scanStatus])
 }
 

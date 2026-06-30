@@ -32,6 +32,8 @@ Set these in Vercel Preview and Production environments:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXTAUTH_URL`
 - `NEXTAUTH_SECRET`
 - `AUTH_SECRET`
@@ -51,6 +53,11 @@ Optional:
 - `FASTTRACK_PROTOTYPE_ENABLED`
 - `FASTTRACK_BASE_URL`
 - `FASTTRACK_MAX_MEETINGS`
+- `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA`
+
+`NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=true` keeps the marketplace media-rich with mock listing images during pre-launch and local development. Set it to `false` when real listing uploads should be the only marketplace media.
+
+After Supabase migrations run for an environment, run `npm run storage:upload-site-assets` with that environment's Supabase values to populate the `site-assets` bucket. Public site images, logos, Open Graph images, and demo listing placeholders are served from Supabase public object URLs when `NEXT_PUBLIC_SUPABASE_URL` is configured.
 
 ## Scheduled live data sync
 

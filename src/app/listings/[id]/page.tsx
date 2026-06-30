@@ -30,6 +30,7 @@ import {
   getDemoListingImages,
   type DemoListingImage,
 } from "@/lib/demo-listing-media";
+import { mediaDeliveryUrl } from "@/lib/media-service";
 
 export const dynamic = "force-dynamic";
 
@@ -325,6 +326,7 @@ function DemoListingAttachment({ image }: { image: DemoListingImage }) {
         alt={image.alt}
         width={image.width}
         height={image.height}
+        sizes="(min-width: 1024px) 520px, (min-width: 640px) 50vw, 100vw"
         className="h-64 w-full object-cover"
       />
     </div>
@@ -336,13 +338,16 @@ function ListingAttachment({
 }: {
   media: {
     id: string;
+    storageBucket: string;
+    storagePath: string;
+    publicUrl: string | null;
     originalName: string | null;
     mimeType: string;
     widthPx: number | null;
     heightPx: number | null;
   };
 }) {
-  const url = `/api/media/${media.id}/blob`;
+  const url = mediaDeliveryUrl(media);
   if (media.mimeType.startsWith("image/")) {
     return (
       <a
@@ -357,6 +362,7 @@ function ListingAttachment({
           width={media.widthPx ?? 640}
           height={media.heightPx ?? 420}
           unoptimized
+          sizes="(min-width: 1024px) 520px, (min-width: 640px) 50vw, 100vw"
           className="h-64 w-full object-cover"
         />
       </a>

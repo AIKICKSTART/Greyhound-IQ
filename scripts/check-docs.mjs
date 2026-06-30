@@ -20,7 +20,7 @@ const requiredFiles = [
 ];
 
 const requiredReadmeSnippets = [
-  "public/images/og-image.png",
+  "public/images/og-image.webp",
   "npm run dev",
   "npm run ci",
   "Vercel",

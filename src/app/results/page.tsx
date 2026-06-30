@@ -25,7 +25,7 @@ export default async function ResultsPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.png"
+        image="/images/hero-greyhoundiq-brand.webp"
         badge="RECENT RESULTS"
         badgeIcon={<Trophy className="h-3 w-3 text-[hsl(25_95%_53%)]" />}
         badgeColor="orange"

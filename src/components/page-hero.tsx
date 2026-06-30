@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { siteAssetUrl } from "@/lib/storage-paths";
 
 interface PageHeroProps {
   image: string;
@@ -27,6 +28,7 @@ export function PageHero({
   size = "default",
   children,
 }: PageHeroProps) {
+  const imageSrc = siteAssetUrl(image);
   const minH = size === "tall" ? "min-h-[620px]" : "min-h-[420px]";
   const titleClass =
     size === "tall"
@@ -66,12 +68,13 @@ export function PageHero({
           {children}
         </div>
 
-        <div className={`relative min-h-[260px] overflow-hidden rounded-2xl border border-white/[0.14] bg-[linear-gradient(180deg,hsl(0_0%_100%/0.08),hsl(0_0%_100%/0.02))] shadow-[0_28px_70px_hsl(0_0%_0%/0.36)] ${mediaClass}`}>
+        <div className={`relative overflow-hidden rounded-2xl border border-white/[0.14] bg-[linear-gradient(180deg,hsl(0_0%_100%/0.08),hsl(0_0%_100%/0.02))] shadow-[0_28px_70px_hsl(0_0%_0%/0.36)] sm:min-h-[260px] ${mediaClass}`}>
           <Image
-            src={image}
+            src={imageSrc}
             alt=""
             fill
-            priority={size === "tall"}
+            preload
+            fetchPriority="high"
             className="object-contain"
             sizes="(min-width: 1024px) 58vw, 100vw"
           />

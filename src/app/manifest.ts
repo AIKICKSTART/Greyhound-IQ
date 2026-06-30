@@ -1,4 +1,7 @@
 import type { MetadataRoute } from "next";
+import { siteAssetUrl } from "@/lib/storage-paths";
+
+const LOGO_MARK = siteAssetUrl("/images/logo-mark-new.png");
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -11,7 +14,7 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#0B5C1E",
     icons: [
       { src: "/icon.png", sizes: "any", type: "image/png" },
-      { src: "/images/logo-mark-new.png", sizes: "512x512", type: "image/png" },
+      { src: LOGO_MARK, sizes: "512x512", type: "image/png" },
     ],
   };
 }

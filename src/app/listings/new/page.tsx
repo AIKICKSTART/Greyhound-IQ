@@ -156,7 +156,7 @@ export default async function NewListingPage() {
               </label>
             </div>
 
-            <MediaAttachmentFields bucket="listings" maxFiles={11} />
+            <MediaAttachmentFields mediaContext="listings" maxFiles={11} />
 
             <SubmitButton pendingLabel="Publishing...">
               <PlusCircle className="h-3.5 w-3.5" />

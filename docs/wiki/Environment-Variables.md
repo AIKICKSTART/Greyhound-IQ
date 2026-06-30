@@ -8,6 +8,8 @@ Use `.env.example` as the contract. Real values live in the team secret store, V
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXTAUTH_URL`
 - `NEXTAUTH_SECRET`
 - `AUTH_SECRET`
@@ -27,10 +29,15 @@ Use `.env.example` as the contract. Real values live in the team secret store, V
 - `FASTTRACK_PROTOTYPE_ENABLED`
 - `FASTTRACK_BASE_URL`
 - `FASTTRACK_MAX_MEETINGS`
+- `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA`
 
 `CRON_SECRET` secures Vercel Cron calls to `/api/internal/live-sync`. `INTERNAL_API_SECRET` remains available for manual internal maintenance calls with the `X-Internal-Secret` header.
 
 `/api/health/feeds` reports whether live feed credentials are configured without returning secret values.
+
+`NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA` controls pre-launch marketplace mock imagery. Keep it enabled while listings need demo media, then set it to `false` for live-only listing uploads.
+
+Supabase Storage browser uploads require `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Server-side signed upload/download operations require `SUPABASE_SERVICE_ROLE_KEY`; keep it server-only in Vercel and GitHub secrets.
 
 ## CI/CD secrets
 

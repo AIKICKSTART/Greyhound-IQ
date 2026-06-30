@@ -5,6 +5,7 @@ import {
   assertMediaAttachable,
   attachMediaToListing,
 } from "@/lib/media-service";
+import { PUBLIC_USER_MEDIA_BUCKET } from "@/lib/storage-paths";
 
 const LISTING_DURATION_DAYS = 90;
 const SOLD_SEARCH_DAYS = 30;
@@ -276,6 +277,9 @@ async function assertListingMediaAttachable(
 
   if (imageCount + videoCount !== media.length) {
     throw new Error("listing.media_unsupported");
+  }
+  if (media.some((item) => item.storageBucket !== PUBLIC_USER_MEDIA_BUCKET)) {
+    throw new Error("listing.media_must_be_public");
   }
   if (imageCount > MAX_LISTING_IMAGES) {
     throw new Error("listing.too_many_images");

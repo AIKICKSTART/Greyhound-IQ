@@ -1,21 +1,38 @@
-import { createHash, createHmac, randomUUID, timingSafeEqual } from "crypto";
-import { createReadStream } from "fs";
-import { mkdir, readFile, stat, writeFile } from "fs/promises";
-import path from "path";
+import { randomUUID } from "crypto";
 import type { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/account-service";
-import type { CurrentUser, CurrentUserProfile } from "@/lib/auth";
+import {
+  isModeratorRole,
+  type CurrentUser,
+  type CurrentUserProfile,
+} from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   mediaMaxBytes,
-  type MediaBucket,
+  resolveMediaBucket,
+  resolveMediaContext,
+  type MediaContext,
   type MediaMimeType,
 } from "@/lib/media-validation";
+import {
+  PRIVATE_USER_MEDIA_BUCKET,
+  PUBLIC_USER_MEDIA_BUCKET,
+  SITE_ASSETS_BUCKET,
+  isPublicStorageBucket,
+  mediaTypeForMimeType,
+  publicStorageUrl,
+  type SupabaseStorageBucket,
+} from "@/lib/storage-paths";
+import {
+  createSignedStorageDownloadUrl,
+  createSignedStorageUploadUrl,
+  downloadStorageObject,
+  getStorageObjectInfo,
+  removeStorageObject,
+} from "@/lib/supabase-storage";
 
-const UPLOAD_URL_TTL_MS = 10 * 60 * 1000;
-const DOWNLOAD_URL_TTL_MS = 15 * 60 * 1000;
-const EICAR_SIGNATURE =
-  "X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*";
+const UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
+const DOWNLOAD_URL_TTL_SECONDS = 15 * 60;
 
 const QUOTA_BYTES = {
   free: 1 * 1024 * 1024 * 1024,
@@ -29,7 +46,10 @@ export interface SignedUploadIntentInput {
   filename: string;
   mimeType: MediaMimeType;
   sizeBytes: number;
-  bucket: MediaBucket;
+  bucket?: string;
+  mediaContext?: MediaContext;
+  linkedEntityType?: string;
+  linkedEntityId?: string;
 }
 
 export interface FinalizeMediaInput {
@@ -43,28 +63,39 @@ export interface FinalizeMediaInput {
 export async function createSignedUploadIntent(
   current: CurrentUserProfile,
   input: SignedUploadIntentInput,
-  origin: string
+  _origin?: string
 ) {
-  assertMediaSize(input.mimeType, input.sizeBytes);
-  tokenSecret();
+  void _origin;
+
+  const bucket = resolveMediaBucket(input);
+  const mediaContext = resolveMediaContext(input);
+  assertUploadAllowedForContext(bucket, mediaContext, current);
+  assertMediaSize(bucket, input.mimeType, input.sizeBytes);
   await assertQuotaAvailable(current, input.sizeBytes);
 
+  const objectPath = buildObjectPath({
+    bucket,
+    context: mediaContext,
+    userId: current.dbUserId,
+    linkedEntityId: input.linkedEntityId,
+    filename: input.filename,
+  });
+  const signedUpload = await createSignedStorageUploadUrl(bucket, objectPath);
+  const publicUrl = publicUrlForMedia(bucket, objectPath);
   const expiresAt = new Date(Date.now() + UPLOAD_URL_TTL_MS);
-  const storagePath = [
-    input.bucket,
-    current.dbUserId,
-    randomUUID(),
-    sanitizeFilename(input.filename),
-  ].join("/");
 
   const media = await prisma.mediaAsset.create({
     data: {
       uploaderId: current.dbUserId,
-      storageBucket: input.bucket,
-      storagePath,
+      storageBucket: bucket,
+      storagePath: objectPath,
+      publicUrl,
+      mediaType: mediaTypeForMimeType(input.mimeType),
       originalName: input.filename,
       mimeType: input.mimeType,
       sizeBytes: input.sizeBytes,
+      linkedEntityType: input.linkedEntityType ?? null,
+      linkedEntityId: input.linkedEntityId ?? null,
       expiresAt,
       scanStatus: "pending",
     },
@@ -77,73 +108,25 @@ export async function createSignedUploadIntent(
     targetType: "media",
     targetId: media.id,
     metadata: {
-      bucket: input.bucket,
+      bucket,
+      objectPath,
+      mediaContext,
       mimeType: input.mimeType,
       sizeBytes: input.sizeBytes,
-      storageMode: "local_signed",
+      storageMode: "supabase_storage",
     },
   });
-
-  const expires = expiresAt.getTime().toString();
-  const token = signToken("upload", media.id, expires);
-  const uploadUrl = new URL(
-    `/api/media/${media.id}/local-upload`,
-    origin
-  );
-  uploadUrl.searchParams.set("expires", expires);
-  uploadUrl.searchParams.set("token", token);
 
   return {
     mediaId: media.id,
-    uploadUrl: uploadUrl.toString(),
-    storagePath: media.storagePath,
+    bucket,
+    objectPath,
+    uploadUrl: signedUpload.signedUrl,
+    uploadToken: signedUpload.token,
+    publicUrl,
     expiresAt: expiresAt.toISOString(),
-    storageMode: "local_signed",
+    storageMode: "supabase_storage",
   };
-}
-
-export async function acceptLocalUpload(
-  mediaId: string,
-  expires: string | null,
-  token: string | null,
-  request: Request
-) {
-  verifyToken("upload", mediaId, expires, token);
-
-  const media = await prisma.mediaAsset.findFirst({
-    where: { id: mediaId, deletedAt: null },
-  });
-  if (!media) throw new Error("media.not_found");
-  if (media.scanStatus !== "pending") throw new Error("media.already_finalized");
-  if (media.expiresAt && media.expiresAt < new Date()) {
-    throw new Error("media.upload_expired");
-  }
-
-  const contentType = request.headers.get("content-type")?.split(";")[0];
-  if (contentType && contentType !== media.mimeType) {
-    throw new Error("media.mime_mismatch");
-  }
-
-  const body = Buffer.from(await request.arrayBuffer());
-  if (body.byteLength !== media.sizeBytes) {
-    throw new Error("media.size_mismatch");
-  }
-  assertMediaSize(media.mimeType as MediaMimeType, body.byteLength);
-
-  const absolutePath = localPathForStoragePath(media.storagePath);
-  await mkdir(path.dirname(absolutePath), { recursive: true });
-  await writeFile(absolutePath, body);
-
-  const sha256 = createHash("sha256").update(body).digest("hex");
-  await prisma.mediaAsset.update({
-    where: { id: media.id },
-    data: {
-      sha256,
-      sizeBytes: body.byteLength,
-    },
-  });
-
-  return { mediaId: media.id, sha256 };
 }
 
 export async function finalizeMediaUpload(
@@ -160,6 +143,8 @@ export async function finalizeMediaUpload(
   });
   if (!media) throw new Error("media.not_found");
 
+  const bucket = assertKnownBucket(media.storageBucket);
+
   if (input.scanStatus === "infected") {
     await markMediaScanStatus(media.id, "infected");
     throw new Error("media.infected");
@@ -169,29 +154,25 @@ export async function finalizeMediaUpload(
     throw new Error("media.scan_failed");
   }
 
-  const localPath = localPathForStoragePath(media.storagePath);
-  const localFile = await localFileExists(localPath);
-  const sha256 =
-    input.sha256?.toLowerCase() ??
-    media.sha256 ??
-    (localFile ? await hashFile(localPath) : null);
+  const objectInfo = await getStorageObjectInfo(bucket, media.storagePath);
+  const sizeBytes =
+    typeof objectInfo.size === "number" && objectInfo.size > 0
+      ? objectInfo.size
+      : media.sizeBytes;
 
-  if (!sha256) throw new Error("media.hash_required");
-  if (localFile && (await localFileLooksInfected(localPath))) {
-    await markMediaScanStatus(media.id, "infected");
-    throw new Error("media.infected");
-  }
-
-  assertMediaSize(media.mimeType as MediaMimeType, media.sizeBytes);
+  assertMediaSize(bucket, media.mimeType as MediaMimeType, sizeBytes);
   await assertQuotaAvailable(current, 0);
 
   const finalized = await prisma.mediaAsset.update({
     where: { id: media.id },
     data: {
-      sha256,
+      sha256: input.sha256?.toLowerCase() ?? media.sha256,
+      sizeBytes,
       widthPx: input.widthPx ?? null,
       heightPx: input.heightPx ?? null,
       durationSec: input.durationSec ?? null,
+      mediaType: mediaTypeForMimeType(media.mimeType),
+      publicUrl: publicUrlForMedia(bucket, media.storagePath),
       scanStatus: "clean",
       scanCompletedAt: new Date(),
       expiresAt: null,
@@ -205,9 +186,12 @@ export async function finalizeMediaUpload(
     targetType: "media",
     targetId: finalized.id,
     metadata: {
+      bucket: finalized.storageBucket,
+      objectPath: finalized.storagePath,
       mimeType: finalized.mimeType,
       sizeBytes: finalized.sizeBytes,
       scanStatus: finalized.scanStatus,
+      storageMode: "supabase_storage",
     },
   });
 
@@ -232,23 +216,36 @@ export async function getMediaForCurrentUser(
 export async function createMediaDownloadUrl(
   current: CurrentUserProfile,
   mediaId: string,
-  origin: string
+  _origin?: string
 ) {
+  void _origin;
+
   const media = await getMediaForCurrentUser(current, mediaId);
   assertMediaClean(media.scanStatus);
 
-  const expiresAt = new Date(Date.now() + DOWNLOAD_URL_TTL_MS);
-  const expires = expiresAt.getTime().toString();
-  const token = signToken("download", media.id, expires);
-  const url = new URL(`/api/media/${media.id}/blob`, origin);
-  url.searchParams.set("expires", expires);
-  url.searchParams.set("token", token);
+  const bucket = assertKnownBucket(media.storageBucket);
+  const publicUrl = mediaPublicUrl(media);
+  if (publicUrl) {
+    return {
+      mediaId: media.id,
+      url: publicUrl,
+      expiresAt: null,
+      storageMode: "supabase_public",
+    };
+  }
+
+  const signedUrl = await createSignedStorageDownloadUrl(
+    bucket,
+    media.storagePath,
+    DOWNLOAD_URL_TTL_SECONDS
+  );
+  const expiresAt = new Date(Date.now() + DOWNLOAD_URL_TTL_SECONDS * 1000);
 
   return {
     mediaId: media.id,
-    url: url.toString(),
+    url: signedUrl,
     expiresAt: expiresAt.toISOString(),
-    storageMode: "local_signed",
+    storageMode: "supabase_signed",
   };
 }
 
@@ -259,11 +256,17 @@ export async function deleteMediaForCurrentUser(
   const media = await prisma.mediaAsset.findFirst({
     where: {
       id: mediaId,
-      uploaderId: current.dbUserId,
       deletedAt: null,
+      OR: [
+        { uploaderId: current.dbUserId },
+        ...(isModeratorRole(current.profileRole) ? [{}] : []),
+      ],
     },
   });
   if (!media) throw new Error("media.not_found");
+
+  const bucket = assertKnownBucket(media.storageBucket);
+  await removeStorageObject(bucket, media.storagePath);
 
   const deleted = await prisma.mediaAsset.update({
     where: { id: media.id },
@@ -276,6 +279,10 @@ export async function deleteMediaForCurrentUser(
     action: "media.delete",
     targetType: "media",
     targetId: media.id,
+    metadata: {
+      bucket: media.storageBucket,
+      objectPath: media.storagePath,
+    },
   });
 
   return deleted;
@@ -284,51 +291,48 @@ export async function deleteMediaForCurrentUser(
 export async function getMediaBlob(
   mediaId: string,
   current: CurrentUser | null,
-  expires: string | null,
-  token: string | null
+  _expires: string | null,
+  _token: string | null
 ) {
-  const tokenValid =
-    expires !== null && token !== null
-      ? isTokenValid("download", mediaId, expires, token)
-      : false;
+  void _expires;
+  void _token;
 
-  const media = tokenValid
+  const media = current?.profileId
     ? await prisma.mediaAsset.findFirst({
-        where: { id: mediaId, deletedAt: null, scanStatus: "clean" },
+        where: mediaAccessWhere(mediaId, {
+          ...current,
+          dbUserId: current.dbUserId ?? "",
+          profileId: current.profileId,
+        }),
       })
-    : current?.profileId
-      ? await prisma.mediaAsset.findFirst({
-          where: mediaAccessWhere(mediaId, {
-            ...current,
-            dbUserId: current.dbUserId ?? "",
-            profileId: current.profileId,
-          }),
-        })
-      : await prisma.mediaAsset.findFirst({
-          where: {
-            id: mediaId,
-            deletedAt: null,
-            scanStatus: "clean",
-            listingAttachments: {
-              some: {
-                listing: publicListingMediaWhere(),
+    : await prisma.mediaAsset.findFirst({
+        where: {
+          id: mediaId,
+          deletedAt: null,
+          scanStatus: "clean",
+          OR: [
+            { storageBucket: SITE_ASSETS_BUCKET },
+            {
+              storageBucket: PUBLIC_USER_MEDIA_BUCKET,
+              listingAttachments: {
+                some: {
+                  listing: publicListingMediaWhere(),
+                },
               },
             },
-          },
-        });
+          ],
+        },
+      });
 
   if (!media) throw new Error("media.not_found");
   assertMediaClean(media.scanStatus);
 
-  const absolutePath = localPathForStoragePath(media.storagePath);
-  if (!(await localFileExists(absolutePath))) {
-    throw new Error("media.file_not_found");
-  }
+  const bucket = assertKnownBucket(media.storageBucket);
+  const blob = await downloadStorageObject(bucket, media.storagePath);
 
   return {
     media,
-    absolutePath,
-    stream: createReadStream(absolutePath),
+    blob,
   };
 }
 
@@ -365,6 +369,7 @@ export async function attachMediaToListing(
   mediaIds: string[]
 ) {
   if (mediaIds.length === 0) return;
+
   await tx.listingMedia.createMany({
     data: mediaIds.map((mediaId, position) => ({
       listingId,
@@ -372,16 +377,43 @@ export async function attachMediaToListing(
       position,
     })),
   });
+  await tx.mediaAsset.updateMany({
+    where: { id: { in: mediaIds } },
+    data: {
+      linkedEntityType: "listing",
+      linkedEntityId: listingId,
+    },
+  });
+}
+
+export function mediaDeliveryUrl(media: {
+  id: string;
+  storageBucket: string;
+  storagePath: string;
+  publicUrl?: string | null;
+}) {
+  return mediaPublicUrl(media) ?? `/api/media/${media.id}/blob`;
+}
+
+export function mediaPublicUrl(media: {
+  storageBucket: string;
+  storagePath: string;
+  publicUrl?: string | null;
+}) {
+  const bucket = assertKnownBucket(media.storageBucket);
+  if (!isPublicStorageBucket(bucket)) return null;
+  return media.publicUrl ?? publicStorageUrl(bucket, media.storagePath);
 }
 
 function mediaAccessWhere(
   mediaId: string,
-  current: { dbUserId: string; profileId: string }
+  current: { dbUserId: string; profileId: string; profileRole?: string | null }
 ) {
   return {
     id: mediaId,
     deletedAt: null,
     OR: [
+      ...(isModeratorRole(current.profileRole) ? [{}] : []),
       { uploaderId: current.dbUserId },
       {
         messageAttachments: {
@@ -425,8 +457,28 @@ function publicListingMediaWhere() {
   };
 }
 
-function assertMediaSize(mimeType: MediaMimeType, sizeBytes: number) {
-  const maxBytes = mediaMaxBytes(mimeType);
+function assertUploadAllowedForContext(
+  bucket: SupabaseStorageBucket,
+  context: MediaContext,
+  current: CurrentUserProfile
+) {
+  if (bucket === SITE_ASSETS_BUCKET && !isModeratorRole(current.profileRole)) {
+    throw new Error("auth.forbidden");
+  }
+  if (context === "messages" && bucket !== PRIVATE_USER_MEDIA_BUCKET) {
+    throw new Error("media.messages_must_be_private");
+  }
+  if (context !== "messages" && bucket === PRIVATE_USER_MEDIA_BUCKET) {
+    if (context !== "verification") throw new Error("media.context_bucket_mismatch");
+  }
+}
+
+function assertMediaSize(
+  bucket: SupabaseStorageBucket,
+  mimeType: MediaMimeType,
+  sizeBytes: number
+) {
+  const maxBytes = mediaMaxBytes(bucket, mimeType);
   if (sizeBytes > maxBytes) throw new Error("media.too_large");
 }
 
@@ -463,6 +515,23 @@ function assertMediaClean(scanStatus: string) {
   if (scanStatus !== "clean") throw new Error("media.scan_failed");
 }
 
+function buildObjectPath(input: {
+  bucket: SupabaseStorageBucket;
+  context: MediaContext;
+  userId: string;
+  linkedEntityId?: string;
+  filename: string;
+}) {
+  const filename = `${randomUUID()}-${sanitizeFilename(input.filename)}`;
+  const entityId = sanitizePathSegment(input.linkedEntityId ?? "pending");
+
+  if (input.bucket === SITE_ASSETS_BUCKET) {
+    return `site/${entityId}/${filename}`;
+  }
+
+  return `users/${sanitizePathSegment(input.userId)}/${input.context}/${entityId}/${filename}`;
+}
+
 function sanitizeFilename(filename: string) {
   const safe = filename
     .replace(/\\/g, "/")
@@ -470,88 +539,34 @@ function sanitizeFilename(filename: string) {
     .pop()
     ?.trim()
     .replace(/[^a-zA-Z0-9._-]/g, "-")
-    .replace(/-+/g, "-");
+    .replace(/-+/g, "-")
+    .replace(/^\.+/, "");
   return safe || "upload.bin";
 }
 
-function localMediaRoot() {
-  return path.resolve(process.cwd(), ".local-media");
-}
-
-function localPathForStoragePath(storagePath: string) {
-  const root = localMediaRoot();
-  const resolved = path.resolve(root, ...storagePath.split("/").filter(Boolean));
-  if (resolved !== root && !resolved.startsWith(`${root}${path.sep}`)) {
-    throw new Error("media.invalid_path");
-  }
-  return resolved;
-}
-
-async function localFileExists(absolutePath: string) {
-  try {
-    const info = await stat(absolutePath);
-    return info.isFile();
-  } catch {
-    return false;
-  }
-}
-
-async function hashFile(absolutePath: string) {
-  const hash = createHash("sha256");
-  const stream = createReadStream(absolutePath);
-  for await (const chunk of stream) {
-    hash.update(chunk);
-  }
-  return hash.digest("hex");
-}
-
-async function localFileLooksInfected(absolutePath: string) {
-  const buffer = await readFile(absolutePath);
-  return buffer.includes(Buffer.from(EICAR_SIGNATURE));
-}
-
-function tokenSecret() {
-  const secret =
-    process.env.AUTH_SECRET ??
-    process.env.NEXTAUTH_SECRET ??
-    process.env.WORKOS_CLIENT_SECRET ??
-    null;
-  if (!secret) throw new Error("media.secret_not_configured");
-  return secret;
-}
-
-function signToken(scope: "upload" | "download", mediaId: string, expires: string) {
-  return createHmac("sha256", tokenSecret())
-    .update(`${scope}:${mediaId}:${expires}`)
-    .digest("hex");
-}
-
-function verifyToken(
-  scope: "upload" | "download",
-  mediaId: string,
-  expires: string | null,
-  token: string | null
-) {
-  if (!isTokenValid(scope, mediaId, expires, token)) {
-    throw new Error("auth.forbidden");
-  }
-}
-
-function isTokenValid(
-  scope: "upload" | "download",
-  mediaId: string,
-  expires: string | null,
-  token: string | null
-) {
-  if (!expires || !token) return false;
-  const expiresAt = Number(expires);
-  if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) return false;
-
-  const expected = signToken(scope, mediaId, expires);
-  const expectedBuffer = Buffer.from(expected, "hex");
-  const actualBuffer = Buffer.from(token, "hex");
+function sanitizePathSegment(value: string) {
   return (
-    expectedBuffer.length === actualBuffer.length &&
-    timingSafeEqual(expectedBuffer, actualBuffer)
+    value
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "-")
+      .replace(/-+/g, "-") || "pending"
   );
+}
+
+function publicUrlForMedia(
+  bucket: SupabaseStorageBucket,
+  objectPath: string
+) {
+  return isPublicStorageBucket(bucket) ? publicStorageUrl(bucket, objectPath) : null;
+}
+
+function assertKnownBucket(bucket: string): SupabaseStorageBucket {
+  if (
+    bucket === SITE_ASSETS_BUCKET ||
+    bucket === PUBLIC_USER_MEDIA_BUCKET ||
+    bucket === PRIVATE_USER_MEDIA_BUCKET
+  ) {
+    return bucket;
+  }
+  throw new Error("media.unknown_bucket");
 }

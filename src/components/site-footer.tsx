@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { siteAssetUrl } from "@/lib/storage-paths";
 
 const FOOTER_SECTIONS = [
   {
@@ -42,11 +43,15 @@ const FOOTER_SECTIONS = [
   },
 ];
 
+const FOOTER_BG = siteAssetUrl("/images/site-footer-racing-bg.webp");
+const LOGO_MARK = siteAssetUrl("/images/logo-mark-new.webp");
+const LOGO_WORDMARK = siteAssetUrl("/images/logo-wordmark.webp");
+
 export function SiteFooter() {
   return (
     <footer className="relative isolate mt-auto overflow-hidden border-t border-white/[0.08] bg-[hsl(150_30%_3%)]">
       <Image
-        src="/images/site-footer-racing-bg.png"
+        src={FOOTER_BG}
         alt=""
         fill
         className="pointer-events-none z-0 object-cover object-[58%_50%] opacity-[0.76]"
@@ -66,7 +71,7 @@ export function SiteFooter() {
             <div className="mb-5 flex items-center gap-3">
               <div className="relative h-12 w-12 overflow-hidden rounded-xl shadow-lg shadow-black/35">
                 <Image
-                  src="/images/logo-mark-new.png"
+                  src={LOGO_MARK}
                   alt=""
                   fill
                   className="object-cover"
@@ -75,7 +80,7 @@ export function SiteFooter() {
               </div>
               <div className="relative h-12 w-64 overflow-hidden">
                 <Image
-                  src="/images/logo-wordmark.png"
+                  src={LOGO_WORDMARK}
                   alt="GreyhoundIQ"
                   fill
                   className="object-contain object-left"
@@ -108,7 +113,7 @@ export function SiteFooter() {
             <div className="mb-3 flex items-center gap-2.5">
               <div className="relative h-8 w-8 overflow-hidden rounded-lg">
                 <Image
-                  src="/images/logo-mark-new.png"
+                  src={LOGO_MARK}
                   alt=""
                   fill
                   className="object-cover"
@@ -117,7 +122,7 @@ export function SiteFooter() {
               </div>
               <div className="relative h-8 w-40 overflow-hidden">
                 <Image
-                  src="/images/logo-wordmark.png"
+                  src={LOGO_WORDMARK}
                   alt="GreyhoundIQ"
                   fill
                   className="object-contain object-left"

@@ -437,8 +437,9 @@ CONSTRAINTS
 ## How to Use These Prompts
 
 1. Upload the GreyhoundIQ logo files as reference images:
-   - `logo-main.png` (full logo with wordmark)
+   - `logo-main.webp` or `logo-wordmark.webp` (full logo with wordmark)
    - `logo-mark-new.png` (square icon only)
+   - `logo-mark-new.webp` (optimized square icon)
 
 2. Copy the prompt text into GPT Image 2 or Nano Banana 2.
 
@@ -450,7 +451,7 @@ CONSTRAINTS
    the feature cards:
    - `hero-breaking-from-boxes.webp`
    - `feature-ai-predictions.webp`
-   - `feature-breeding-analytics.webp`
-   - `feature-advanced-stats.webp`
-   - `feature-pricing-product.webp`
-   - `og-image.png`
+    - `feature-breeding-analytics.webp`
+    - `feature-advanced-stats.webp`
+    - `feature-pricing-product.webp`
+    - `og-image.webp`

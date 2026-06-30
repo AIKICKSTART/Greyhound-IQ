@@ -48,6 +48,10 @@ jobs:
       NEXTAUTH_URL: http://127.0.0.1:3000
       NEXTAUTH_SECRET: ci-nextauth-secret-32-characters-minimum
       AUTH_SECRET: ci-nextauth-secret-32-characters-minimum
+      SUPABASE_URL: https://ci.supabase.co
+      NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-supabase-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-supabase-service-role-key
       WORKOS_CLIENT_ID: client_ci_dummy
       WORKOS_API_KEY: sk_test_ci_dummy
       WORKOS_COOKIE_PASSWORD: ci-workos-cookie-password-32-characters

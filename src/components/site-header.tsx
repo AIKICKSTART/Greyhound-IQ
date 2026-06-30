@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { getCurrentUser } from "@/lib/auth";
 import { HeaderNav } from "@/components/header-nav";
+import { siteAssetUrl } from "@/lib/storage-paths";
 
 const TIER_BADGE: Record<string, { label: string; color: string }> = {
   free: { label: "Free", color: "215 14% 65%" },
@@ -29,6 +30,10 @@ const NAV_LINKS = [
   { href: "/pricing", label: "Pricing" },
 ];
 
+const HEADER_BANNER_BG = siteAssetUrl("/images/site-header-banner-bg.webp");
+const LOGO_MARK = siteAssetUrl("/images/logo-mark-new.webp");
+const LOGO_WORDMARK = siteAssetUrl("/images/logo-wordmark.webp");
+
 export async function SiteHeader() {
   const user = await getCurrentUser();
   const badge = user ? TIER_BADGE[user.tier] ?? TIER_BADGE.free : null;
@@ -37,10 +42,9 @@ export async function SiteHeader() {
     <header className="sticky top-2 z-50 w-full px-3 md:px-5">
       <div className="relative isolate mx-auto min-h-[132px] max-w-7xl overflow-hidden rounded-2xl border border-white/25 bg-[hsl(168_22%_18%/0.68)] shadow-[0_22px_55px_hsl(0_0%_0%/0.34)] backdrop-blur-xl md:min-h-[168px]">
         <Image
-          src="/images/site-header-banner-bg.png"
+          src={HEADER_BANNER_BG}
           alt=""
           fill
-          priority
           className="pointer-events-none z-0 object-cover object-[24%_52%] opacity-[0.98] saturate-125"
           sizes="100vw"
         />
@@ -62,12 +66,11 @@ export async function SiteHeader() {
                 className="giq-logo-menu-button md:hidden"
               >
                 <Image
-                  src="/images/logo-mark-new.png"
+                  src={LOGO_MARK}
                   alt=""
                   fill
                   className="object-cover"
                   sizes="50px"
-                  priority
                 />
                 <span className="giq-logo-menu-glyph" aria-hidden="true">
                   <Menu className="h-3 w-3" />
@@ -89,12 +92,11 @@ export async function SiteHeader() {
             >
               <span className="relative hidden h-14 w-[238px] shrink overflow-hidden rounded-xl shadow-[0_14px_28px_hsl(0_0%_0%/0.24)] sm:block md:h-[76px] md:w-[360px] lg:w-[470px]">
                 <Image
-                  src="/images/logo-wordmark.png"
+                  src={LOGO_WORDMARK}
                   alt=""
                   fill
                   className="object-contain object-left"
                   sizes="(min-width: 1024px) 470px, (min-width: 768px) 360px, 238px"
-                  priority
                 />
               </span>
             </Link>
@@ -144,6 +146,7 @@ export async function SiteHeader() {
                 <>
                   <Link
                     href="/sign-in"
+                    prefetch={false}
                     className="giq-button giq-button-glass hidden px-4 text-[13px] font-semibold sm:inline-flex"
                   >
                     <LogIn className="h-3.5 w-3.5" />
@@ -169,12 +172,11 @@ export async function SiteHeader() {
             className="relative h-16 w-full max-w-[320px] overflow-hidden rounded-xl shadow-[0_14px_28px_hsl(0_0%_0%/0.24)] sm:hidden"
           >
             <Image
-              src="/images/logo-wordmark.png"
+              src={LOGO_WORDMARK}
               alt=""
               fill
               className="object-contain object-left"
               sizes="320px"
-              priority
             />
           </Link>
 

@@ -32,7 +32,7 @@ export default async function AccountPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.png"
+        image="/images/hero-greyhoundiq-brand.webp"
         title={
           <>
             Your GreyhoundIQ

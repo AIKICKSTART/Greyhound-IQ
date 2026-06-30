@@ -1,7 +1,7 @@
 # GreyhoundIQ — Video Animation Prompt Pack v1
 
 > For AI video generation tools: Sora, Runway Gen-4, Kling 2.1, Veo 3.
-> Source image: `public/images/feature-breeding-analytics.png`
+> Source image: `public/images/feature-breeding-analytics.webp`
 > (the Breeding Analytics still-life used as the hero on /breeding)
 >
 > Style: heritage still-life, brass nameplate, dark walnut, racing green velvet,
@@ -42,7 +42,7 @@ Atmosphere: warm directional key from upper-left, cool greenish fill from below,
 
 1. Pick the prompt that matches the intended duration and use case.
 2. Copy the prompt into Sora / Runway Gen-4 / Kling 2.1 / Veo 3.
-3. Upload `public/images/feature-breeding-analytics.png` as the **first-frame** reference (Runway Gen-4 and Kling both support image-to-video).
+3. Upload `public/images/feature-breeding-analytics.webp` as the **first-frame** reference (Runway Gen-4 and Kling both support image-to-video).
 4. Render at 24fps, 1080p or higher.
 5. Save outputs as `public/videos/breeding-{loop,reveal,cinematic}.mp4` and reference from `/breeding` page once rendered.
 

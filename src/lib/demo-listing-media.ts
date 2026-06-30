@@ -1,3 +1,5 @@
+import { siteAssetUrl } from "@/lib/storage-paths";
+
 export interface DemoListingImage {
   src: string;
   alt: string;
@@ -16,24 +18,24 @@ const DEMO_MEDIA_ENABLED =
   process.env.ENABLE_DEMO_LISTING_MEDIA;
 
 const IMAGE_SIZE = {
-  width: 1586,
-  height: 992,
+  width: 1200,
+  height: 751,
 };
 
 const LISTING_IMAGES: Record<string, string[]> = {
-  pup_for_sale: ["/images/demo-listings/demo-listing-pup-for-sale.png"],
-  dog_for_sale: ["/images/demo-listings/demo-listing-dog-for-sale.png"],
-  stud_service: ["/images/demo-listings/demo-listing-stud-service.png"],
-  wanted: ["/images/demo-listings/demo-listing-wanted.png"],
-  share: ["/images/demo-listings/demo-listing-share.png"],
+  pup_for_sale: ["/images/demo-listings/demo-listing-pup-for-sale.webp"],
+  dog_for_sale: ["/images/demo-listings/demo-listing-dog-for-sale.webp"],
+  stud_service: ["/images/demo-listings/demo-listing-stud-service.webp"],
+  wanted: ["/images/demo-listings/demo-listing-wanted.webp"],
+  share: ["/images/demo-listings/demo-listing-share.webp"],
 };
 
 const ALL_IMAGES = [
-  "/images/demo-listings/demo-listing-pup-for-sale.png",
-  "/images/demo-listings/demo-listing-dog-for-sale.png",
-  "/images/demo-listings/demo-listing-stud-service.png",
-  "/images/demo-listings/demo-listing-share.png",
-  "/images/demo-listings/demo-listing-wanted.png",
+  "/images/demo-listings/demo-listing-pup-for-sale.webp",
+  "/images/demo-listings/demo-listing-dog-for-sale.webp",
+  "/images/demo-listings/demo-listing-stud-service.webp",
+  "/images/demo-listings/demo-listing-share.webp",
+  "/images/demo-listings/demo-listing-wanted.webp",
 ];
 
 export function getDemoListingImages(
@@ -51,7 +53,7 @@ export function getDemoListingImages(
   const unique = Array.from(new Set(ordered));
 
   return unique.slice(0, count).map((src, index) => ({
-    src,
+    src: siteAssetUrl(src),
     alt:
       index === 0
         ? `${listing.title} listing media`
@@ -61,8 +63,12 @@ export function getDemoListingImages(
 }
 
 function demoListingMediaEnabled() {
-  if (DEMO_MEDIA_ENABLED) return DEMO_MEDIA_ENABLED === "true";
-  return process.env.NODE_ENV !== "production";
+  if (DEMO_MEDIA_ENABLED) {
+    return !["0", "false", "off", "no"].includes(
+      DEMO_MEDIA_ENABLED.trim().toLowerCase()
+    );
+  }
+  return true;
 }
 
 function rotate<T>(items: T[], start: number) {

@@ -45,7 +45,7 @@ export default async function AgentsPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.png"
+        image="/images/hero-greyhoundiq-brand.webp"
         title={
           <>
             AI agents for

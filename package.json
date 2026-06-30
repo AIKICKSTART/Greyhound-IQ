@@ -26,6 +26,7 @@
     "maintain:memory": "tsx scripts/memory-maintenance.ts",
     "maintain:agents": "tsx scripts/agent-cleanup.ts",
     "check:env": "tsx scripts/check-env.ts",
+    "storage:upload-site-assets": "tsx scripts/upload-site-assets.ts",
     "test:smoke": "tsx scripts/smoke-production.ts",
     "bootstrap": "prisma migrate deploy && tsx prisma/seed.ts",
     "postinstall": "prisma generate"

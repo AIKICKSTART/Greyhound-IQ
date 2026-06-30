@@ -15,7 +15,7 @@ export default async function TracksPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.png"
+        image="/images/hero-greyhoundiq-brand.webp"
         badge="AUSTRALIAN TRACKS"
         badgeIcon={<MapPin className="h-3 w-3 text-[hsl(142_60%_48%)]" />}
         badgeColor="green"

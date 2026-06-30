@@ -34,7 +34,7 @@ export default function AboutPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.png"
+        image="/images/hero-greyhoundiq-brand.webp"
         badge="ABOUT"
         badgeColor="green"
         title={

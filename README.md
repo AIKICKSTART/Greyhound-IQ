@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/images/og-image.png" alt="GreyhoundIQ - Australian Greyhound Racing Intelligence" width="100%">
+  <img src="public/images/og-image.webp" alt="GreyhoundIQ - Australian Greyhound Racing Intelligence" width="100%">
 </p>
 
 # GreyhoundIQ
@@ -68,6 +68,10 @@ Supabase values are required for Supabase-backed runtime features:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+Supabase Storage uses `site-assets`, `public-user-media`, and `private-user-media` buckets. After migrations, run `npm run storage:upload-site-assets` to upload public website media into the `site-assets` bucket.
 
 ## CI/CD
 
@@ -82,6 +86,8 @@ GitHub Actions:
 `Live Racing Sync` calls `/api/internal/live-sync` every 5 minutes from GitHub Actions. Vercel Cron is configured as a daily backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. Without `TOPAZ_API_KEY`, the app can use a bounded public FastTrack prototype fallback for pre-production demos; real production ingestion requires the licensed `TOPAZ_API_KEY` in Vercel.
 
 Feed readiness is exposed at `/api/health/feeds`. It reports configured providers, scheduler coverage, upcoming race counts, and missing feed credentials without exposing secret values.
+
+Marketplace listing cards use optimized demo WebP media while `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA` is enabled. Turn that flag off when real listing uploads should be the only displayed media.
 
 Required GitHub secrets:
 

@@ -1,4 +1,3 @@
-import { Readable } from "stream";
 import { getCurrentUser } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { getMediaBlob } from "@/lib/media-service";
@@ -12,14 +11,14 @@ export async function GET(
   try {
     const [{ id }, current] = await Promise.all([params, getCurrentUser()]);
     const url = new URL(request.url);
-    const { media, stream } = await getMediaBlob(
+    const { media, blob } = await getMediaBlob(
       id,
       current,
       url.searchParams.get("expires"),
       url.searchParams.get("token")
     );
 
-    return new Response(Readable.toWeb(stream) as ReadableStream, {
+    return new Response(blob.stream(), {
       headers: {
         "Cache-Control": "private, max-age=60",
         "Content-Type": media.mimeType,

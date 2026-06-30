@@ -36,6 +36,28 @@ const specs: EnvSpec[] = [
       value.length >= 32 ? null : "must be at least 32 characters",
   },
   {
+    names: ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"],
+    description: "Supabase project URL for database-adjacent services and Storage",
+    productionOnly: true,
+    validate: validateUrl,
+  },
+  {
+    names: ["NEXT_PUBLIC_SUPABASE_URL"],
+    description: "browser-visible Supabase project URL for Storage uploads",
+    productionOnly: true,
+    validate: validateUrl,
+  },
+  {
+    names: ["NEXT_PUBLIC_SUPABASE_ANON_KEY"],
+    description: "browser-visible Supabase anon key for Storage signed uploads",
+    productionOnly: true,
+  },
+  {
+    names: ["SUPABASE_SERVICE_ROLE_KEY"],
+    description: "server-only Supabase service-role key for signed Storage operations",
+    productionOnly: true,
+  },
+  {
     names: ["WORKOS_CLIENT_ID"],
     description: "WorkOS AuthKit client id",
     productionOnly: true,
@@ -68,9 +90,8 @@ const specs: EnvSpec[] = [
 ];
 
 const optional = [
-  "SUPABASE_URL",
-  "SUPABASE_ANON_KEY",
-  "SUPABASE_SERVICE_ROLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "TOPAZ_API_KEY",
   "TOPAZ_API_BASE",
   "TOPAZ_OWNING_AUTHORITY_CODE",
@@ -78,6 +99,7 @@ const optional = [
   "FASTTRACK_PROTOTYPE_ENABLED",
   "FASTTRACK_BASE_URL",
   "FASTTRACK_MAX_MEETINGS",
+  "NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA",
 ];
 
 const failures: string[] = [];

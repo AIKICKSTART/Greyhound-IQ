@@ -2,6 +2,7 @@ import { createAuditLog } from "@/lib/account-service";
 import type { CurrentUserProfile } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { assertMediaAttachable } from "@/lib/media-service";
+import { PRIVATE_USER_MEDIA_BUCKET } from "@/lib/storage-paths";
 
 const CONVERSATION_INCLUDE = {
   participantA: {
@@ -139,7 +140,10 @@ export async function sendConversationMessage(
       : conversation.participantAId;
   await assertProfileCanReceiveMessage(recipientId);
   const mediaIds = input.mediaIds ?? [];
-  await assertMediaAttachable(current, mediaIds, 4);
+  const media = await assertMediaAttachable(current, mediaIds, 4);
+  if (media.some((item) => item.storageBucket !== PRIVATE_USER_MEDIA_BUCKET)) {
+    throw new Error("message.media_must_be_private");
+  }
   const createdAt = new Date();
 
   const message = await prisma.$transaction(async (tx) => {
@@ -166,6 +170,15 @@ export async function sendConversationMessage(
       where: { id: conversation.id },
       data: { lastMessageAt: createdAt },
     });
+    if (mediaIds.length > 0) {
+      await tx.mediaAsset.updateMany({
+        where: { id: { in: mediaIds } },
+        data: {
+          linkedEntityType: "message",
+          linkedEntityId: created.id,
+        },
+      });
+    }
     return created;
   });
 

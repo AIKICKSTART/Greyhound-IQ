@@ -4,10 +4,11 @@
  * Examples:
  *   npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 3
  *   npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 12 --provider-concurrency 1
+ *   npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 10 --logical-shards 20 --provider-concurrency 1
  *   npm run backfill:thedogs:shards -- status
  *   npm run backfill:thedogs:shards -- stop
  */
-import { spawn, spawnSync } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { closeSync, existsSync, openSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -20,14 +21,18 @@ const MANIFEST_FILE = path.join(BACKFILL_DIR, "thedogs-shards-manifest.json");
 const BASE_PROGRESS_FILE = path.join(BACKFILL_DIR, "thedogs-history-progress.jsonl");
 const DEFAULT_DB_CONNECTION_BUDGET = 12;
 
-type Command = "start" | "status" | "stop";
+type Command = "start" | "status" | "stop" | "run-queue";
+type QueueStatus = "running" | "completed" | "failed" | "stopped";
+type ShardState = "queued" | "running" | "completed" | "failed" | "stopped";
 
 type Options = {
   command: Command;
   from: string;
   to: string;
   workers: number;
+  logicalShards: number;
   pauseMs: number;
+  pollMs: number;
   maxErrors: number;
   providerConcurrency: number;
   dbConnectionBudget: number;
@@ -39,9 +44,15 @@ type ShardManifest = {
   from: string;
   to: string;
   workers: number;
+  logicalShards?: number;
   providerConcurrency: number;
   pauseMs: number;
+  pollMs?: number;
+  maxErrors?: number;
   dbConnectionBudget: number;
+  queuePid?: number;
+  queueStatus?: QueueStatus;
+  completedAt?: string;
   shards: ShardRecord[];
 };
 
@@ -53,6 +64,11 @@ type ShardRecord = {
   progressFile: string;
   outLog: string;
   errLog: string;
+  state?: ShardState;
+  startedAt?: string;
+  finishedAt?: string;
+  exitCode?: number | null;
+  signal?: NodeJS.Signals | null;
 };
 
 type ProgressRecord = {
@@ -76,6 +92,10 @@ async function main() {
     await stopManifestWorkers();
     return;
   }
+  if (options.command === "run-queue") {
+    await runQueue();
+    return;
+  }
   await startShards(options);
 }
 
@@ -84,9 +104,10 @@ async function startShards(options: Options) {
   const existing = await readManifest();
   if (existing && !options.force) {
     const running = existing.shards.filter((shard) => isProcessRunning(shard.pid));
-    if (running.length > 0) {
+    const queueRunning = existing.queuePid ? isProcessRunning(existing.queuePid) : false;
+    if (running.length > 0 || queueRunning) {
       throw new Error(
-        `Refusing to start duplicate shard workers. ${running.length} worker(s) are already running. Pass --force only after confirming this is intentional.`
+        `Refusing to start duplicate shard workers. ${running.length} worker(s) and queueRunning=${queueRunning} are already active. Pass --force only after confirming this is intentional.`
       );
     }
   }
@@ -118,79 +139,203 @@ async function startShards(options: Options) {
     return;
   }
 
-  const ranges = splitRange(from, options.to, options.workers);
+  const logicalShards = Math.max(options.logicalShards, options.workers);
+  const ranges = splitRange(from, options.to, logicalShards);
   const providerConcurrency = providerConcurrencyFor(options);
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
-  const shards: ShardRecord[] = [];
-
-  for (const [index, range] of ranges.entries()) {
-    const id = index + 1;
-    const progressFile = path.join(
-      BACKFILL_DIR,
-      `thedogs-history-shard-${id}-${range.from}-${range.to}.jsonl`
-    );
-    const outLog = path.join(LOG_DIR, `thedogs-shard-${id}-${stamp}.out.log`);
-    const errLog = path.join(LOG_DIR, `thedogs-shard-${id}-${stamp}.err.log`);
-    const out = openSync(outLog, "a");
-    const err = openSync(errLog, "a");
-    const npmArgs = [
-      "run",
-      "backfill:thedogs",
-      "--",
-      "--from",
-      range.from,
-      "--to",
-      range.to,
-      "--full",
-      "--continue-on-error",
-      "--max-errors",
-      String(options.maxErrors),
-      "--pause-ms",
-      String(options.pauseMs),
-        "--progress-file",
-        progressFile,
-      ];
-    const launch = launchCommand(npmArgs);
-    const child = spawn(
-      launch.command,
-      launch.args,
-      {
-        cwd: process.cwd(),
-        detached: true,
-        stdio: ["ignore", out, err],
-        windowsHide: true,
-        env: {
-          ...process.env,
-          THEDOGS_CONCURRENCY: String(providerConcurrency),
-        },
-      }
-    );
-    child.unref();
-    closeSync(out);
-    closeSync(err);
-    shards.push({
-      id,
-      from: range.from,
-      to: range.to,
-      pid: child.pid ?? 0,
-      progressFile,
-      outLog,
-      errLog,
-    });
-  }
+  const queuedMode = ranges.length > options.workers;
+  const shards: ShardRecord[] = ranges.map((range, index) =>
+    createShardRecord(index + 1, range, stamp, queuedMode ? "queued" : undefined)
+  );
 
   const manifest: ShardManifest = {
     launchedAt: new Date().toISOString(),
     from,
     to: options.to,
-    workers: shards.length,
+    workers: queuedMode ? options.workers : shards.length,
+    logicalShards: shards.length,
     providerConcurrency,
     pauseMs: options.pauseMs,
+    pollMs: options.pollMs,
+    maxErrors: options.maxErrors,
     dbConnectionBudget: options.dbConnectionBudget,
     shards,
   };
-  await writeFile(MANIFEST_FILE, `${JSON.stringify(manifest, null, 2)}\n`);
-  console.log(JSON.stringify({ started: true, manifest }, null, 2));
+
+  if (queuedMode) {
+    await writeManifest(manifest);
+    const queue = launchQueueCoordinator();
+    manifest.queuePid = queue.pid ?? 0;
+    manifest.queueStatus = "running";
+    await writeManifest(manifest);
+    console.log(JSON.stringify({ started: true, mode: "queued", manifest }, null, 2));
+    return;
+  }
+
+  for (const shard of manifest.shards) {
+    const child = launchShardProcess(shard, manifest, true);
+    shard.pid = child.pid ?? 0;
+    shard.state = "running";
+    shard.startedAt = new Date().toISOString();
+  }
+
+  await writeManifest(manifest);
+  console.log(JSON.stringify({ started: true, mode: "direct", manifest }, null, 2));
+}
+
+function createShardRecord(
+  id: number,
+  range: { from: string; to: string },
+  stamp: string,
+  state?: ShardState
+): ShardRecord {
+  return {
+    id,
+    from: range.from,
+    to: range.to,
+    pid: 0,
+    progressFile: path.join(
+      BACKFILL_DIR,
+      `thedogs-history-shard-${id}-${range.from}-${range.to}.jsonl`
+    ),
+    outLog: path.join(LOG_DIR, `thedogs-shard-${id}-${stamp}.out.log`),
+    errLog: path.join(LOG_DIR, `thedogs-shard-${id}-${stamp}.err.log`),
+    state,
+  };
+}
+
+function launchShardProcess(
+  shard: ShardRecord,
+  manifest: ShardManifest,
+  detached: boolean
+): ChildProcess {
+  const out = openSync(shard.outLog, "a");
+  const err = openSync(shard.errLog, "a");
+  const npmArgs = [
+    "run",
+    "backfill:thedogs",
+    "--",
+    "--from",
+    shard.from,
+    "--to",
+    shard.to,
+    "--full",
+    "--continue-on-error",
+    "--max-errors",
+    String(manifest.maxErrors ?? 250),
+    "--pause-ms",
+    String(manifest.pauseMs),
+    "--progress-file",
+    shard.progressFile,
+  ];
+  const launch = launchCommand(npmArgs);
+  const child = spawn(launch.command, launch.args, {
+    cwd: process.cwd(),
+    detached,
+    stdio: ["ignore", out, err],
+    windowsHide: true,
+    env: {
+      ...process.env,
+      THEDOGS_CONCURRENCY: String(manifest.providerConcurrency),
+    },
+  });
+  if (detached) child.unref();
+  closeSync(out);
+  closeSync(err);
+  return child;
+}
+
+function launchQueueCoordinator(): ChildProcess {
+  const outLog = path.join(LOG_DIR, "thedogs-shard-queue.out.log");
+  const errLog = path.join(LOG_DIR, "thedogs-shard-queue.err.log");
+  const out = openSync(outLog, "a");
+  const err = openSync(errLog, "a");
+  const launch = launchCommand(["run", "backfill:thedogs:shards", "--", "run-queue"]);
+  const child = spawn(launch.command, launch.args, {
+    cwd: process.cwd(),
+    detached: true,
+    stdio: ["ignore", out, err],
+    windowsHide: true,
+    env: process.env,
+  });
+  child.unref();
+  closeSync(out);
+  closeSync(err);
+  return child;
+}
+
+async function runQueue() {
+  await mkdir(LOG_DIR, { recursive: true });
+  const manifest = await readManifest();
+  if (!manifest) throw new Error("Cannot run queued shards without a manifest.");
+
+  const active = new Map<number, ChildProcess>();
+  const finished: Array<{
+    id: number;
+    code: number | null;
+    signal: NodeJS.Signals | null;
+  }> = [];
+  const pollMs = manifest.pollMs && manifest.pollMs > 0 ? manifest.pollMs : 5000;
+
+  manifest.queuePid = process.pid;
+  manifest.queueStatus = "running";
+  await writeManifest(manifest);
+
+  for (;;) {
+    let changed = applyFinishedChildren(manifest, active, finished);
+
+    while (active.size < manifest.workers) {
+      const shard = manifest.shards.find((item) => item.state === "queued");
+      if (!shard) break;
+      const child = launchShardProcess(shard, manifest, false);
+      shard.pid = child.pid ?? 0;
+      shard.state = "running";
+      shard.startedAt = new Date().toISOString();
+      active.set(shard.id, child);
+      child.once("exit", (code, signal) => {
+        finished.push({ id: shard.id, code, signal });
+      });
+      child.once("error", () => {
+        finished.push({ id: shard.id, code: 1, signal: null });
+      });
+      changed = true;
+    }
+
+    if (changed) await writeManifest(manifest);
+
+    const queued = manifest.shards.some((shard) => shard.state === "queued");
+    if (!queued && active.size === 0) {
+      manifest.queueStatus = manifest.shards.some((shard) => shard.state === "failed")
+        ? "failed"
+        : "completed";
+      manifest.completedAt = new Date().toISOString();
+      await writeManifest(manifest);
+      return;
+    }
+
+    await sleep(pollMs);
+  }
+}
+
+function applyFinishedChildren(
+  manifest: ShardManifest,
+  active: Map<number, ChildProcess>,
+  finished: Array<{ id: number; code: number | null; signal: NodeJS.Signals | null }>
+) {
+  let changed = false;
+  for (;;) {
+    const item = finished.shift();
+    if (!item) break;
+    const shard = manifest.shards.find((candidate) => candidate.id === item.id);
+    if (!shard) continue;
+    active.delete(item.id);
+    shard.state = item.code === 0 ? "completed" : "failed";
+    shard.exitCode = item.code;
+    shard.signal = item.signal;
+    shard.finishedAt = new Date().toISOString();
+    changed = true;
+  }
+  return changed;
 }
 
 async function printStatus() {
@@ -212,6 +357,16 @@ async function printStatus() {
       {
         manifestFile: MANIFEST_FILE,
         manifestFound: manifest != null,
+        queue: manifest
+          ? {
+              pid: manifest.queuePid ?? null,
+              status: manifest.queueStatus ?? null,
+              running: manifest.queuePid ? isProcessRunning(manifest.queuePid) : false,
+              activeWorkers: manifest.workers,
+              logicalShards: manifest.logicalShards ?? manifest.shards.length,
+              completedAt: manifest.completedAt ?? null,
+            }
+          : null,
         coverage,
         shards: shardStatuses,
       },
@@ -227,13 +382,39 @@ async function stopManifestWorkers() {
     console.log(JSON.stringify({ stopped: false, reason: "manifest_not_found" }, null, 2));
     return;
   }
+  const queueStopped = manifest.queuePid
+    ? {
+        pid: manifest.queuePid,
+        wasRunning: isProcessRunning(manifest.queuePid),
+        stopped: stopProcessTree(manifest.queuePid),
+      }
+    : null;
   const stopped = manifest.shards.map((shard) => ({
     id: shard.id,
     pid: shard.pid,
     wasRunning: isProcessRunning(shard.pid),
     stopped: stopProcessTree(shard.pid),
   }));
-  console.log(JSON.stringify({ stopped }, null, 2));
+  for (const item of stopped) {
+    if (!item.wasRunning && !item.stopped) continue;
+    const shard = manifest.shards.find((candidate) => candidate.id === item.id);
+    if (!shard) continue;
+    shard.state = "stopped";
+    shard.finishedAt = new Date().toISOString();
+  }
+  if (manifest.queuePid) {
+    manifest.queueStatus = "stopped";
+    for (const shard of manifest.shards) {
+      if (shard.state !== "queued" && shard.state !== "running") continue;
+      shard.state = "stopped";
+      shard.finishedAt = new Date().toISOString();
+    }
+  }
+  if (manifest.queuePid || stopped.some((item) => item.wasRunning || item.stopped)) {
+    manifest.completedAt = new Date().toISOString();
+    await writeManifest(manifest);
+  }
+  console.log(JSON.stringify({ queueStopped, stopped }, null, 2));
 }
 
 async function coverageFrom(from: string, progressFiles: string[]) {
@@ -335,6 +516,10 @@ async function readManifest() {
   }
 }
 
+async function writeManifest(manifest: ShardManifest) {
+  await writeFile(MANIFEST_FILE, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
 async function readProgress(progressFile: string) {
   try {
     const body = await readFile(progressFile, "utf8");
@@ -369,12 +554,15 @@ function parseOptions(args: string[]): Options {
   const [first, ...rest] = args;
   const command = isCommand(first) ? first : "start";
   const values = parseFlags(isCommand(first) ? rest : args);
+  const workers = positiveInt(stringOption(values, "workers"), 3);
   return {
     command,
     from: stringOption(values, "from") ?? "auto",
     to: stringOption(values, "to") ?? DEFAULT_TO,
-    workers: positiveInt(stringOption(values, "workers"), 3),
+    workers,
+    logicalShards: positiveInt(stringOption(values, "logical-shards"), workers),
     pauseMs: positiveInt(stringOption(values, "pause-ms"), 750),
+    pollMs: positiveInt(stringOption(values, "poll-ms"), 5000),
     maxErrors: positiveInt(stringOption(values, "max-errors"), 250),
     providerConcurrency: positiveInt(stringOption(values, "provider-concurrency"), 0),
     dbConnectionBudget: positiveInt(
@@ -410,7 +598,7 @@ function stringOption(values: Map<string, string | true>, key: string) {
 }
 
 function isCommand(value: string | undefined): value is Command {
-  return value === "start" || value === "status" || value === "stop";
+  return value === "start" || value === "status" || value === "stop" || value === "run-queue";
 }
 
 function providerConcurrencyFor(options: Options) {
@@ -487,6 +675,10 @@ function formatSydneyDate(date: Date) {
   }).formatToParts(date);
   const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${byType.year}-${byType.month}-${byType.day}`;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 main().catch((err) => {

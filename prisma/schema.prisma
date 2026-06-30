@@ -1,6 +1,7 @@
 // GreyhoundIQ Prisma schema — SQLite for dev, swap to PostgreSQL for production
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {

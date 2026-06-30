@@ -386,15 +386,19 @@ async function ensureDogs(dogs: LiveDog[]) {
     const existingId = dog.earBrand ? ids.get(dog.earBrand) : undefined;
     const nameId = ids.get(dog.name);
     if (existingId || !nameId || !dog.earBrand) continue;
-    await prisma.dog.update({
-      where: { id: nameId },
-      data: {
-        earBrand: dog.earBrand,
-        sex: dog.sex,
-        colour: dog.colour,
-      },
-    });
-    ids.set(dog.earBrand, nameId);
+    try {
+      await prisma.dog.update({
+        where: { id: nameId },
+        data: {
+          earBrand: dog.earBrand,
+          sex: dog.sex,
+          colour: dog.colour,
+        },
+      });
+      ids.set(dog.earBrand, nameId);
+    } catch (err) {
+      if (!isUniqueConstraintError(err)) throw err;
+    }
   }
 
   const missing = values.filter((dog) => !ids.has(dogKey(dog)));
@@ -407,6 +411,7 @@ async function ensureDogs(dogs: LiveDog[]) {
         sex: dog.sex,
         colour: dog.colour,
       })),
+      skipDuplicates: true,
     });
     const created = await prisma.dog.findMany({
       where: {
@@ -430,6 +435,12 @@ async function ensureDogs(dogs: LiveDog[]) {
   }
 
   return ids;
+}
+
+function isUniqueConstraintError(err: unknown) {
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002"
+  );
 }
 
 async function ensureTrainers(names: Array<string | undefined>) {

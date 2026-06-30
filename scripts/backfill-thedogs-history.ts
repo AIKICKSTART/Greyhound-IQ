@@ -27,6 +27,8 @@ type Options = {
   progressFile: string;
   resume: boolean;
   direction: "forward" | "backward";
+  continueOnError: boolean;
+  maxErrors: number;
 };
 
 async function main() {
@@ -50,6 +52,8 @@ async function main() {
         selectedDates: selected.length,
         progressFile: options.progressFile,
         full: options.full,
+        continueOnError: options.continueOnError,
+        maxErrors: options.maxErrors,
       },
       null,
       2
@@ -63,6 +67,7 @@ async function main() {
   }
 
   const provider = new TheDogsProvider();
+  let errorCount = 0;
   for (const date of selected) {
     const startedAt = Date.now();
     try {
@@ -85,8 +90,9 @@ async function main() {
         error: err instanceof Error ? err.message : String(err),
       });
       console.error(`[backfill:thedogs] ${date} failed`, err);
+      errorCount += 1;
       process.exitCode = 1;
-      break;
+      if (!options.continueOnError || errorCount >= options.maxErrors) break;
     }
 
     if (options.pauseMs > 0) await sleep(options.pauseMs);
@@ -128,6 +134,8 @@ function parseOptions(args: string[]): Options {
     pauseMs: positiveInt(stringOption(values, "pause-ms"), 750),
     progressFile: stringOption(values, "progress-file") ?? DEFAULT_PROGRESS,
     resume: !values.has("no-resume"),
+    continueOnError: values.has("continue-on-error"),
+    maxErrors: positiveInt(stringOption(values, "max-errors"), 50),
   };
 }
 

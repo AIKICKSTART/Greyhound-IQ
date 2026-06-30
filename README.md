@@ -102,9 +102,10 @@ Historical archive backfill uses the public The Dogs racing archive (`/racing?da
 npm run backfill:thedogs -- --date 2025-06-30
 npm run backfill:thedogs -- --from 2025-01-01 --to 2025-01-31 --max-days 7
 npm run backfill:thedogs -- --from 2006-08-01 --to 2006-12-31 --full
+npm run backfill:thedogs -- --from 2006-08-01 --to 2026-06-30 --full --continue-on-error --max-errors 500
 ```
 
-Backfill progress is written to `.backfill/thedogs-history-progress.jsonl`, which is ignored by git. Successful dates are skipped on the next run unless `--no-resume` is passed.
+Backfill progress is written to `.backfill/thedogs-history-progress.jsonl`, which is ignored by git. Successful dates are skipped on the next run unless `--no-resume` is passed. Use `--continue-on-error` for full archive runs so an isolated malformed legacy page is logged and the job continues.
 
 Marketplace listing cards and details use optimized demo WebP media while `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA` is enabled. Turn that flag off when real listing uploads should be the only displayed media.
 

@@ -128,7 +128,7 @@ async function startShards(options: Options) {
 
   const from =
     options.from === "auto"
-      ? await nextMissingDate(DEFAULT_FLOOR, options.fetchOnly ? "raw" : "db")
+      ? await nextMissingDate(DEFAULT_FLOOR, options.fetchOnly ? "harvested" : "db")
       : options.from;
   assertDate(from, "--from");
   assertDate(options.to, "--to");
@@ -561,6 +561,14 @@ async function coverageFrom(from: string, progressFiles: string[]) {
     rawCursor += 86_400_000;
   }
 
+  const harvestedDates = new Set([...okDates, ...rawDates]);
+  let harvestedCursor = dayValue(from);
+  let harvestedContiguousThrough: string | null = null;
+  while (harvestedDates.has(formatDate(harvestedCursor))) {
+    harvestedContiguousThrough = formatDate(harvestedCursor);
+    harvestedCursor += 86_400_000;
+  }
+
   const unresolvedFailedDates = [...failedDates]
     .filter((date) => !okDates.has(date))
     .sort();
@@ -573,6 +581,9 @@ async function coverageFrom(from: string, progressFiles: string[]) {
     rawFetchedDates: rawDates.size,
     rawContiguousThrough,
     nextMissingRawDate: formatDate(rawCursor),
+    harvestedDates: harvestedDates.size,
+    harvestedContiguousThrough,
+    nextMissingHarvestedDate: formatDate(harvestedCursor),
     failedAttempts,
     uniqueFailedDates: failedDates.size,
     unresolvedFailedDates: unresolvedFailedDates.length,
@@ -599,9 +610,10 @@ async function summarizeProgress(progressFile: string, from: string, to: string)
   };
 }
 
-async function nextMissingDate(from: string, mode: "db" | "raw" = "db") {
+async function nextMissingDate(from: string, mode: "db" | "raw" | "harvested" = "db") {
   const files = await findProgressFiles(await readManifest());
   const coverage = await coverageFrom(from, files);
+  if (mode === "harvested") return coverage.nextMissingHarvestedDate;
   return mode === "raw" ? coverage.nextMissingRawDate : coverage.nextMissingDate;
 }
 

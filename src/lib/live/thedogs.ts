@@ -91,7 +91,10 @@ export class TheDogsProvider implements LiveDataProvider {
           const resultRaces = (
             await mapLimit(resultLinks, THEDOGS_CONCURRENCY, async (raceLink) => {
               try {
-                const raceHtml = await this.getText(raceLink.href);
+                const raceHtml = await this.getText(raceLink.href, {
+                  accept: "application/json, text/javascript, */*; q=0.01",
+                  "X-Application-Layout": "injection",
+                });
                 return parseTheDogsRaceResult(raceHtml, raceLink, link.date);
               } catch (err) {
                 console.warn(
@@ -117,13 +120,17 @@ export class TheDogsProvider implements LiveDataProvider {
     ).filter((meeting): meeting is LiveMeeting => meeting != null);
   }
 
-  private async getText(path: string): Promise<string> {
+  private async getText(
+    path: string,
+    extraHeaders: Record<string, string> = {}
+  ): Promise<string> {
     const url = new URL(path, THEDOGS_BASE);
     const response = await this.fetchImpl(url, {
       headers: {
         accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "accept-language": "en-US,en;q=0.9",
         "user-agent": THEDOGS_USER_AGENT,
+        ...extraHeaders,
       },
     });
 

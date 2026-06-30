@@ -76,6 +76,7 @@ model Meeting {
   meetingType String?
   sourceProvider String?
   sourceId       String?
+  sourceRawJson  String?
   lastSyncedAt   DateTime?
   races       Race[]
   createdAt   DateTime @default(now())
@@ -92,12 +93,17 @@ model Race {
   meetingId  String
   meeting    Meeting  @relation(fields: [meetingId], references: [id])
   raceNumber Int
+  name       String?
   raceTime   DateTime
   distance   Int
   grade      String?
   prizeMoney Float?
+  resultStatus String?
+  replayUrl    String?
+  photoFinishUrl String?
   sourceProvider String?
   sourceId       String?
+  sourceRawJson  String?
   lastSyncedAt   DateTime?
   runners    Runner[]
   createdAt  DateTime @default(now())
@@ -121,11 +127,15 @@ model Runner {
   trainer       Trainer? @relation(fields: [trainerId], references: [id])
   startingPrice Float?
   scratched     Boolean  @default(false)
+  sourceProvider String?
+  sourceId       String?
+  sourceRawJson  String?
   result        Result?
   createdAt     DateTime @default(now())
 
   @@index([raceId])
   @@index([dogId])
+  @@index([sourceProvider])
   @@unique([raceId, boxNumber])
 }
 
@@ -140,9 +150,15 @@ model Result {
   splitTime         Float?
   sectionals        String?
   gpsData           String?
+  sourceProvider    String?
+  sourceId          String?
+  sourceRawJson     String?
+  lastSyncedAt      DateTime?
   createdAt         DateTime @default(now())
 
   @@index([raceId])
+  @@index([sourceProvider])
+  @@index([lastSyncedAt])
 }
 
 model FormEntry {
@@ -163,6 +179,7 @@ model FormEntry {
 
   @@index([dogId])
   @@index([date])
+  @@unique([dogId, raceId])
 }
 
 model User {

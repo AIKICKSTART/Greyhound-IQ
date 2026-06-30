@@ -67,12 +67,20 @@ After Supabase migrations run for an environment, run `npm run storage:upload-si
 
 ## Scheduled live data sync
 
-`Live Racing Sync` calls `/api/internal/live-sync?scope=upcoming` from GitHub Actions. The fast job refreshes the current national racecards every 5 minutes with `days=1`; the full job refreshes the 7-day national horizon hourly with `days=7`. `vercel.json` also configures Vercel Cron to call the same route once daily as a backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. The route accepts either:
+`Live Racing Sync` calls `/api/internal/live-sync` from GitHub Actions. The fast job refreshes the current national racecards and posted results every 5 minutes with `days=1&scope=all`; the full job refreshes the 7-day national racecard horizon hourly with `days=7&scope=upcoming`. `vercel.json` also configures Vercel Cron to call the same route once daily as a backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. The route accepts either:
 
 - `Authorization: Bearer <CRON_SECRET>` from Vercel Cron.
 - `X-Internal-Secret: <INTERNAL_API_SECRET>` for manual operator runs.
 
-Scheduled sync uses `scope=upcoming` so it can refresh national racecards inside the Vercel runtime limit. Manual operator sync can call `scope=all` through `npm run sync:live` to include recent results where the configured provider exposes them. `THEDOGS_PROVIDER_ENABLED=true` enables public all-Australia racecard ingestion; `THEDOGS_MAX_MEETINGS` and `THEDOGS_CONCURRENCY` bound the sync workload. Without `TOPAZ_API_KEY`, the job still has national field coverage from The Dogs. FastTrack remains a VIC-only prototype fallback if the all-Australia feed is disabled.
+Scheduled sync uses `scope=all` for the 5-minute current-day job so national racecards and posted results stay current inside the 300-second Vercel runtime limit. The hourly 7-day job uses `scope=upcoming` because the result pages are current-day only and fetching them with the full horizon is unnecessary. `THEDOGS_PROVIDER_ENABLED=true` enables public all-Australia racecard and result ingestion; `THEDOGS_MAX_MEETINGS` and `THEDOGS_CONCURRENCY` bound the sync workload. Without `TOPAZ_API_KEY`, the job still has national field and posted-result coverage from The Dogs. FastTrack remains a VIC-only prototype fallback if the all-Australia feed is disabled.
+
+Historical backfills are operator jobs, not Vercel cron jobs:
+
+```bash
+npm run backfill:thedogs -- --from 2006-08-01 --to 2006-12-31 --full
+```
+
+The command reads the public The Dogs archive endpoint (`/racing?date=YYYY-MM-DD`) and writes normalized meetings, races, runners, results, dog identities, and form entries. Progress is recorded in `.backfill/thedogs-history-progress.jsonl` so year/month chunks can resume safely. Do not run multi-year backfills inside Vercel functions.
 
 Run `npm run audit:live-race-coverage -- 7` after production sync to verify every expected all-Australia racecard in the live provider exists in the database with live provenance.
 

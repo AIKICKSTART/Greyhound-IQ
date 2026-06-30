@@ -31,6 +31,7 @@ Use `.env.example` as the contract. Real values live in the team secret store, V
 - `THEDOGS_MAX_MEETINGS`
 - `THEDOGS_CONCURRENCY`
 - `THEDOGS_TIME_ZONE`
+- `THEDOGS_BACKFILL_FROM` (defaults to `2006-08-01` for the historical backfill command)
 - `FASTTRACK_PROTOTYPE_ENABLED` (defaults to `true` in `.env.example` for demo race data)
 - `FASTTRACK_BASE_URL`
 - `FASTTRACK_MAX_MEETINGS` (defaults to `1` for the high-frequency fallback sync)

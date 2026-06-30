@@ -1,0 +1,19 @@
+ALTER TABLE "Meeting" ADD COLUMN IF NOT EXISTS "sourceRawJson" TEXT;
+
+ALTER TABLE "Race" ADD COLUMN IF NOT EXISTS "name" TEXT;
+ALTER TABLE "Race" ADD COLUMN IF NOT EXISTS "resultStatus" TEXT;
+ALTER TABLE "Race" ADD COLUMN IF NOT EXISTS "replayUrl" TEXT;
+ALTER TABLE "Race" ADD COLUMN IF NOT EXISTS "photoFinishUrl" TEXT;
+ALTER TABLE "Race" ADD COLUMN IF NOT EXISTS "sourceRawJson" TEXT;
+
+ALTER TABLE "Runner" ADD COLUMN IF NOT EXISTS "sourceProvider" TEXT;
+ALTER TABLE "Runner" ADD COLUMN IF NOT EXISTS "sourceId" TEXT;
+ALTER TABLE "Runner" ADD COLUMN IF NOT EXISTS "sourceRawJson" TEXT;
+CREATE INDEX IF NOT EXISTS "Runner_sourceProvider_idx" ON "Runner"("sourceProvider");
+
+ALTER TABLE "Result" ADD COLUMN IF NOT EXISTS "sourceProvider" TEXT;
+ALTER TABLE "Result" ADD COLUMN IF NOT EXISTS "sourceId" TEXT;
+ALTER TABLE "Result" ADD COLUMN IF NOT EXISTS "sourceRawJson" TEXT;
+ALTER TABLE "Result" ADD COLUMN IF NOT EXISTS "lastSyncedAt" TIMESTAMP(3);
+CREATE INDEX IF NOT EXISTS "Result_sourceProvider_idx" ON "Result"("sourceProvider");
+CREATE INDEX IF NOT EXISTS "Result_lastSyncedAt_idx" ON "Result"("lastSyncedAt");

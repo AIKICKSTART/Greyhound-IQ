@@ -10,7 +10,7 @@ import {
   type LiveRunner,
 } from "./provider";
 
-type SyncCounts = {
+export type SyncCounts = {
   meetings: number;
   races: number;
   runners: number;
@@ -22,7 +22,7 @@ export type SyncScope = "upcoming" | "results" | "all";
 type TrackRow = { id: string; name: string; state: string };
 type MeetingRow = { id: string; trackId: string; meetingDate: Date };
 type RaceRow = { id: string; meetingId: string; raceNumber: number };
-type RunnerRow = { id: string; raceId: string; boxNumber: number };
+type RunnerRow = { id: string; raceId: string; boxNumber: number; dogId: string };
 
 type RaceWithMeeting = {
   meeting: LiveMeeting;
@@ -32,6 +32,12 @@ type RaceWithMeeting = {
 
 type RunnerWithRace = {
   raceId: string;
+  trackId: string;
+  meetingDate: Date;
+  distance: number;
+  grade?: string;
+  sourceProvider?: string;
+  raceSourceId?: string;
   runner: LiveRunner;
 };
 
@@ -44,6 +50,38 @@ type RunnerUpsertRow = {
   trainerId: string | null;
   startingPrice: number | null;
   scratched: boolean;
+  sourceProvider: string | null;
+  sourceId: string | null;
+  sourceRawJson: string | null;
+};
+
+type ResultUpsertRow = {
+  id: string;
+  runnerId: string;
+  raceId: string;
+  finishingPosition: number | null;
+  runningTime: number | null;
+  margin: number | null;
+  splitTime: number | null;
+  sectionals: string | null;
+  sourceProvider: string | null;
+  sourceId: string | null;
+  sourceRawJson: string | null;
+  lastSyncedAt: Date;
+};
+
+type FormEntryUpsertRow = {
+  id: string;
+  dogId: string;
+  raceId: string;
+  trackId: string;
+  date: Date;
+  boxNumber: number;
+  finish: number | null;
+  time: number | null;
+  distance: number | null;
+  grade: string | null;
+  weight: number | null;
 };
 
 export interface SyncResult {
@@ -84,20 +122,40 @@ export async function syncLiveData(
   }
 
   console.log(`[live-sync] Using provider: ${provider.name} scope=${scope}`);
-  const fetched: LiveMeeting[] = [];
+  const counts: SyncCounts = { meetings: 0, races: 0, runners: 0, results: 0 };
   if (scope === "upcoming" || scope === "all") {
-    fetched.push(...(await provider.fetchUpcomingMeetings(days)));
+    addCounts(
+      counts,
+      await upsertMeetings(
+        stampMeetings(await provider.fetchUpcomingMeetings(days), provider.name)
+      )
+    );
   }
   if (scope === "results" || scope === "all") {
-    fetched.push(...(await provider.fetchResults(days)));
+    addCounts(
+      counts,
+      await upsertMeetings(stampMeetings(await provider.fetchResults(days), provider.name))
+    );
   }
 
-  const meetings = stampMeetings(fetched, provider.name);
-  const counts = await upsertMeetings(meetings);
   console.log(
     `[live-sync] Synced ${counts.meetings} meetings, ${counts.races} races, ${counts.runners} runners, ${counts.results} results via ${provider.name} (${scope}).`
   );
   return { synced: true, provider: provider.name, scope, ...counts };
+}
+
+function addCounts(total: SyncCounts, next: SyncCounts) {
+  total.meetings += next.meetings;
+  total.races += next.races;
+  total.runners += next.runners;
+  total.results += next.results;
+}
+
+export async function syncLiveMeetings(
+  meetings: LiveMeeting[],
+  fallbackProvider: string
+): Promise<SyncCounts> {
+  return upsertMeetings(stampMeetings(meetings, fallbackProvider));
 }
 
 function stampMeetings(meetings: LiveMeeting[], fallbackProvider: string) {
@@ -134,8 +192,18 @@ async function upsertMeetings(meetings: LiveMeeting[]): Promise<SyncCounts> {
 
   const runnerItems = raceItems.flatMap((item) => {
     const raceId = raceRows.get(raceKey(item.meetingId, item.race))?.id;
-    if (!raceId) return [];
-    return item.race.runners.map((runner) => ({ raceId, runner }));
+    const meetingRow = meetingRows.get(meetingKey(item.meeting, tracks));
+    if (!raceId || !meetingRow) return [];
+    return item.race.runners.map((runner) => ({
+      raceId,
+      trackId: meetingRow.trackId,
+      meetingDate: meetingDate(item.meeting),
+      distance: item.race.distance,
+      grade: item.race.grade,
+      sourceProvider: item.race.sourceProvider ?? item.meeting.sourceProvider,
+      raceSourceId: item.race.sourceId,
+      runner,
+    }));
   });
 
   const dogIds = await ensureDogs(runnerItems.map((item) => item.runner.dog));
@@ -145,6 +213,7 @@ async function upsertMeetings(meetings: LiveMeeting[]): Promise<SyncCounts> {
   const runnerRows = await ensureRunners(runnerItems, dogIds, trainerIds);
   counts.runners = runnerItems.length;
   counts.results = await ensureResults(runnerItems, runnerRows);
+  await ensureFormEntries(runnerItems, runnerRows);
 
   return counts;
 }
@@ -218,6 +287,7 @@ async function ensureMeetings(
       meetingType: meeting.meetingType,
       sourceProvider: meeting.sourceProvider,
       sourceId: meeting.sourceId,
+      sourceRawJson: meeting.sourceRawJson,
       lastSyncedAt: now,
     };
     const existingRow = rows.get(key);
@@ -254,12 +324,17 @@ async function ensureRaces(items: RaceWithMeeting[], now: Date) {
   await mapLimit(items, 25, async (item) => {
     const key = raceKey(item.meetingId, item.race);
     const data = {
+      name: item.race.name,
       raceTime: new Date(item.race.raceTime),
       distance: item.race.distance,
       grade: item.race.grade,
       prizeMoney: item.race.prizeMoney,
+      resultStatus: item.race.resultStatus,
+      replayUrl: item.race.replayUrl,
+      photoFinishUrl: item.race.photoFinishUrl,
       sourceProvider: item.race.sourceProvider ?? item.meeting.sourceProvider,
       sourceId: item.race.sourceId,
+      sourceRawJson: item.race.sourceRawJson,
       lastSyncedAt: now,
     };
     const existingRow = rows.get(key);
@@ -282,17 +357,47 @@ async function ensureRaces(items: RaceWithMeeting[], now: Date) {
 }
 
 async function ensureDogs(dogs: LiveDog[]) {
-  const byName = new Map<string, LiveDog>();
+  const byKey = new Map<string, LiveDog>();
   for (const dog of dogs) {
-    if (dog.name && !byName.has(dog.name)) byName.set(dog.name, dog);
+    const key = dogKey(dog);
+    if (key && !byKey.has(key)) byKey.set(key, dog);
   }
 
+  const values = [...byKey.values()];
+  if (values.length === 0) return new Map<string, string>();
+  const names = [...new Set(values.map((dog) => dog.name).filter(Boolean))];
+  const earBrands = [
+    ...new Set(values.map((dog) => dog.earBrand).filter((value): value is string => Boolean(value))),
+  ];
+  const dogLookupClauses: Prisma.DogWhereInput[] = [];
+  if (names.length > 0) dogLookupClauses.push({ name: { in: names } });
+  if (earBrands.length > 0) dogLookupClauses.push({ earBrand: { in: earBrands } });
   const existing = await prisma.dog.findMany({
-    where: { name: { in: [...byName.keys()] } },
-    select: { id: true, name: true },
+    where: { OR: dogLookupClauses },
+    select: { id: true, name: true, earBrand: true },
   });
-  const ids = new Map(existing.map((dog) => [dog.name, dog.id]));
-  const missing = [...byName.values()].filter((dog) => !ids.has(dog.name));
+  const ids = new Map<string, string>();
+  for (const dog of existing) {
+    if (dog.earBrand) ids.set(dog.earBrand, dog.id);
+    ids.set(dog.name, dog.id);
+  }
+
+  for (const dog of values) {
+    const existingId = dog.earBrand ? ids.get(dog.earBrand) : undefined;
+    const nameId = ids.get(dog.name);
+    if (existingId || !nameId || !dog.earBrand) continue;
+    await prisma.dog.update({
+      where: { id: nameId },
+      data: {
+        earBrand: dog.earBrand,
+        sex: dog.sex,
+        colour: dog.colour,
+      },
+    });
+    ids.set(dog.earBrand, nameId);
+  }
+
+  const missing = values.filter((dog) => !ids.has(dogKey(dog)));
 
   if (missing.length > 0) {
     await prisma.dog.createMany({
@@ -304,11 +409,23 @@ async function ensureDogs(dogs: LiveDog[]) {
       })),
     });
     const created = await prisma.dog.findMany({
-      where: { name: { in: missing.map((dog) => dog.name) } },
-      select: { id: true, name: true },
+      where: {
+        OR: [
+          { name: { in: missing.map((dog) => dog.name) } },
+          {
+            earBrand: {
+              in: missing
+                .map((dog) => dog.earBrand)
+                .filter((value): value is string => Boolean(value)),
+            },
+          },
+        ],
+      },
+      select: { id: true, name: true, earBrand: true },
     });
     for (const dog of created) {
       if (!ids.has(dog.name)) ids.set(dog.name, dog.id);
+      if (dog.earBrand && !ids.has(dog.earBrand)) ids.set(dog.earBrand, dog.id);
     }
   }
 
@@ -354,7 +471,7 @@ async function ensureRunners(
   const upserts: RunnerUpsertRow[] = [];
 
   for (const item of items) {
-    const dogId = dogIds.get(item.runner.dog.name);
+    const dogId = dogIds.get(dogKey(item.runner.dog));
     if (!dogId) continue;
     upserts.push({
       id: randomUUID(),
@@ -367,6 +484,11 @@ async function ensureRunners(
         : null,
       startingPrice: item.runner.startingPrice ?? null,
       scratched: item.runner.scratched ?? false,
+      sourceProvider: item.runner.sourceProvider ?? item.sourceProvider ?? null,
+      sourceId:
+        item.runner.sourceId ??
+        (item.raceSourceId ? `${item.raceSourceId}#box-${item.runner.boxNumber}` : null),
+      sourceRawJson: item.runner.sourceRawJson ?? null,
     });
   }
 
@@ -374,22 +496,23 @@ async function ensureRunners(
 
   const allRows = await prisma.runner.findMany({
     where: { raceId: { in: raceIds } },
-    select: { id: true, raceId: true, boxNumber: true },
+    select: { id: true, raceId: true, boxNumber: true, dogId: true },
   });
   return new Map(allRows.map((row) => [runnerKey(row.raceId, row.boxNumber), row]));
 }
 
 async function bulkUpsertRunners(rows: RunnerUpsertRow[]) {
-  for (let index = 0; index < rows.length; index += 500) {
-    const chunk = rows.slice(index, index + 500);
+  const uniqueRows = uniqueBy(rows, (row) => runnerKey(row.raceId, row.boxNumber));
+  for (let index = 0; index < uniqueRows.length; index += 500) {
+    const chunk = uniqueRows.slice(index, index + 500);
     if (chunk.length === 0) continue;
 
     await prisma.$executeRaw`
       INSERT INTO "Runner"
-        ("id", "raceId", "boxNumber", "dogId", "weight", "trainerId", "startingPrice", "scratched", "createdAt")
+        ("id", "raceId", "boxNumber", "dogId", "weight", "trainerId", "startingPrice", "scratched", "sourceProvider", "sourceId", "sourceRawJson", "createdAt")
       VALUES ${Prisma.join(
         chunk.map((row) => Prisma.sql`
-          (${row.id}, ${row.raceId}, ${row.boxNumber}, ${row.dogId}, ${row.weight}, ${row.trainerId}, ${row.startingPrice}, ${row.scratched}, NOW())
+          (${row.id}, ${row.raceId}, ${row.boxNumber}, ${row.dogId}, ${row.weight}, ${row.trainerId}, ${row.startingPrice}, ${row.scratched}, ${row.sourceProvider}, ${row.sourceId}, ${row.sourceRawJson}, NOW())
         `)
       )}
       ON CONFLICT ("raceId", "boxNumber") DO UPDATE SET
@@ -397,7 +520,10 @@ async function bulkUpsertRunners(rows: RunnerUpsertRow[]) {
         "weight" = EXCLUDED."weight",
         "trainerId" = EXCLUDED."trainerId",
         "startingPrice" = EXCLUDED."startingPrice",
-        "scratched" = EXCLUDED."scratched"
+        "scratched" = EXCLUDED."scratched",
+        "sourceProvider" = EXCLUDED."sourceProvider",
+        "sourceId" = EXCLUDED."sourceId",
+        "sourceRawJson" = EXCLUDED."sourceRawJson"
     `;
   }
 }
@@ -409,48 +535,116 @@ async function ensureResults(
   const resultItems = items.filter((item) => item.runner.finishingPosition != null);
   if (resultItems.length === 0) return 0;
 
-  const runnerIds = resultItems
-    .map((item) => runners.get(runnerKey(item.raceId, item.runner.boxNumber))?.id)
-    .filter((id): id is string => Boolean(id));
-  const existing = await prisma.result.findMany({
-    where: { runnerId: { in: runnerIds } },
-    select: { runnerId: true },
-  });
-  const existingIds = new Set(existing.map((result) => result.runnerId));
-
-  const creates = resultItems.flatMap((item) => {
+  const rows = resultItems.flatMap((item) => {
     const runner = runners.get(runnerKey(item.raceId, item.runner.boxNumber));
-    if (!runner || existingIds.has(runner.id)) return [];
+    if (!runner) return [];
+    const now = new Date();
     return [
       {
+        id: randomUUID(),
         runnerId: runner.id,
         raceId: item.raceId,
-        finishingPosition: item.runner.finishingPosition,
-        runningTime: item.runner.runningTime,
-        margin: item.runner.margin,
+        finishingPosition: item.runner.finishingPosition ?? null,
+        runningTime: item.runner.runningTime ?? null,
+        margin: item.runner.margin ?? null,
+        splitTime: item.runner.splitTime ?? null,
+        sectionals: item.runner.sectionals ?? null,
+        sourceProvider: item.runner.sourceProvider ?? item.sourceProvider ?? null,
+        sourceId:
+          item.runner.sourceId ??
+          (item.raceSourceId ? `${item.raceSourceId}#box-${item.runner.boxNumber}` : null),
+        sourceRawJson: item.runner.sourceRawJson ?? null,
+        lastSyncedAt: now,
       },
     ];
   });
-  const updates = resultItems.flatMap((item) => {
+
+  await bulkUpsertResults(rows);
+  return rows.length;
+}
+
+async function bulkUpsertResults(rows: ResultUpsertRow[]) {
+  const uniqueRows = uniqueBy(rows, (row) => row.runnerId);
+  for (let index = 0; index < uniqueRows.length; index += 500) {
+    const chunk = uniqueRows.slice(index, index + 500);
+    if (chunk.length === 0) continue;
+
+    await prisma.$executeRaw`
+      INSERT INTO "Result"
+        ("id", "runnerId", "raceId", "finishingPosition", "runningTime", "margin", "splitTime", "sectionals", "sourceProvider", "sourceId", "sourceRawJson", "lastSyncedAt", "createdAt")
+      VALUES ${Prisma.join(
+        chunk.map((row) => Prisma.sql`
+          (${row.id}, ${row.runnerId}, ${row.raceId}, ${row.finishingPosition}, ${row.runningTime}, ${row.margin}, ${row.splitTime}, ${row.sectionals}, ${row.sourceProvider}, ${row.sourceId}, ${row.sourceRawJson}, ${row.lastSyncedAt}, NOW())
+        `)
+      )}
+      ON CONFLICT ("runnerId") DO UPDATE SET
+        "raceId" = EXCLUDED."raceId",
+        "finishingPosition" = EXCLUDED."finishingPosition",
+        "runningTime" = EXCLUDED."runningTime",
+        "margin" = EXCLUDED."margin",
+        "splitTime" = EXCLUDED."splitTime",
+        "sectionals" = EXCLUDED."sectionals",
+        "sourceProvider" = EXCLUDED."sourceProvider",
+        "sourceId" = EXCLUDED."sourceId",
+        "sourceRawJson" = EXCLUDED."sourceRawJson",
+        "lastSyncedAt" = EXCLUDED."lastSyncedAt"
+    `;
+  }
+}
+
+async function ensureFormEntries(
+  items: RunnerWithRace[],
+  runners: Map<string, RunnerRow>
+) {
+  const rows = items.flatMap((item) => {
+    if (item.runner.finishingPosition == null) return [];
     const runner = runners.get(runnerKey(item.raceId, item.runner.boxNumber));
-    if (!runner || !existingIds.has(runner.id)) return [];
-    return [{ runnerId: runner.id, raceId: item.raceId, runner: item.runner }];
-  });
-
-  if (creates.length > 0) await prisma.result.createMany({ data: creates });
-  await mapLimit(updates, 30, async (item) => {
-    await prisma.result.update({
-      where: { runnerId: item.runnerId },
-      data: {
+    if (!runner) return [];
+    return [
+      {
+        id: randomUUID(),
+        dogId: runner.dogId,
         raceId: item.raceId,
-        finishingPosition: item.runner.finishingPosition,
-        runningTime: item.runner.runningTime,
-        margin: item.runner.margin,
+        trackId: item.trackId,
+        date: item.meetingDate,
+        boxNumber: item.runner.boxNumber,
+        finish: item.runner.finishingPosition ?? null,
+        time: item.runner.runningTime ?? null,
+        distance: item.distance || null,
+        grade: item.grade ?? null,
+        weight: item.runner.weight ?? null,
       },
-    });
+    ];
   });
 
-  return resultItems.length;
+  await bulkUpsertFormEntries(rows);
+}
+
+async function bulkUpsertFormEntries(rows: FormEntryUpsertRow[]) {
+  const uniqueRows = uniqueBy(rows, (row) => `${row.dogId}:${row.raceId}`);
+  for (let index = 0; index < uniqueRows.length; index += 500) {
+    const chunk = uniqueRows.slice(index, index + 500);
+    if (chunk.length === 0) continue;
+
+    await prisma.$executeRaw`
+      INSERT INTO "FormEntry"
+        ("id", "dogId", "raceId", "trackId", "date", "boxNumber", "finish", "time", "distance", "grade", "weight", "createdAt")
+      VALUES ${Prisma.join(
+        chunk.map((row) => Prisma.sql`
+          (${row.id}, ${row.dogId}, ${row.raceId}, ${row.trackId}, ${row.date}, ${row.boxNumber}, ${row.finish}, ${row.time}, ${row.distance}, ${row.grade}, ${row.weight}, NOW())
+        `)
+      )}
+      ON CONFLICT ("dogId", "raceId") DO UPDATE SET
+        "trackId" = EXCLUDED."trackId",
+        "date" = EXCLUDED."date",
+        "boxNumber" = EXCLUDED."boxNumber",
+        "finish" = EXCLUDED."finish",
+        "time" = EXCLUDED."time",
+        "distance" = EXCLUDED."distance",
+        "grade" = EXCLUDED."grade",
+        "weight" = EXCLUDED."weight"
+    `;
+  }
 }
 
 async function mapLimit<T>(
@@ -490,4 +684,14 @@ function raceKey(meetingId: string, race: { raceNumber: number }) {
 
 function runnerKey(raceId: string, boxNumber: number) {
   return `${raceId}:B${boxNumber}`;
+}
+
+function dogKey(dog: LiveDog) {
+  return dog.earBrand ?? dog.name;
+}
+
+function uniqueBy<T>(rows: T[], keyFor: (row: T) => string) {
+  const byKey = new Map<string, T>();
+  for (const row of rows) byKey.set(keyFor(row), row);
+  return [...byKey.values()];
 }

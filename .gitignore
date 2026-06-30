@@ -25,6 +25,7 @@
 .DS_Store
 *.pem
 .local-media/
+.backfill/
 
 # debug
 npm-debug.log*

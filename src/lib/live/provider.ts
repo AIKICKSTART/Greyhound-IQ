@@ -13,6 +13,9 @@ export interface LiveDog {
 }
 
 export interface LiveRunner {
+  sourceProvider?: string;
+  sourceId?: string;
+  sourceRawJson?: string;
   boxNumber: number;
   dog: LiveDog;
   trainerName?: string;
@@ -23,22 +26,30 @@ export interface LiveRunner {
   finishingPosition?: number;
   runningTime?: number;
   margin?: number;
+  splitTime?: number;
+  sectionals?: string;
 }
 
 export interface LiveRace {
   sourceProvider?: string;
   sourceId?: string;
+  sourceRawJson?: string;
   raceNumber: number;
+  name?: string;
   raceTime: string; // ISO
   distance: number;
   grade?: string;
   prizeMoney?: number;
+  resultStatus?: string;
+  replayUrl?: string;
+  photoFinishUrl?: string;
   runners: LiveRunner[];
 }
 
 export interface LiveMeeting {
   sourceProvider?: string;
   sourceId?: string;
+  sourceRawJson?: string;
   trackName: string;
   state?: string;
   meetingDate: string; // ISO (date)
@@ -71,7 +82,7 @@ export function getLiveProviderConfig() {
     feeds: [
       {
         name: "thedogs",
-        role: "all_australia_public_racecards",
+        role: "all_australia_public_racecards_and_results",
         implemented: true,
         configured: theDogsEnabled,
         blocking: false,

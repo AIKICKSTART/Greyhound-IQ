@@ -28,10 +28,10 @@ export default async function StatisticsPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.webp"
+        image="/images/wentworth-track-hero.webp"
         badge="ADVANCED STATISTICS"
-        badgeIcon={<BarChart3 className="h-3 w-3 text-[hsl(25_95%_53%)]" />}
-        badgeColor="orange"
+        badgeIcon={<BarChart3 className="h-3 w-3 text-[hsl(var(--secondary))]" />}
+        badgeColor="gold"
         title={
           <>
             Find the
@@ -44,12 +44,12 @@ export default async function StatisticsPage() {
 
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="flex items-center gap-3 mb-6">
-          <Target className="h-5 w-5 text-[hsl(25_95%_53%)]" />
-          <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)] tracking-[-0.03em]">
+          <Target className="h-5 w-5 text-[hsl(var(--secondary))]" />
+          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] tracking-[-0.03em]">
             Box Win Rate — All Tracks
           </h2>
         </div>
-        <p className="text-[14px] text-[hsl(215_14%_65%)] mb-8 tracking-[-0.013em]">
+        <p className="text-[14px] text-[hsl(var(--muted-foreground))] mb-8 tracking-[-0.013em]">
           National aggregate across 4,800+ meetings. Phase 2 lets you filter by
           track and distance.
         </p>
@@ -58,7 +58,7 @@ export default async function StatisticsPage() {
           <div className="grid grid-cols-8 gap-3 items-end min-h-[240px]">
             {BOX_BIAS.map((b) => (
               <div key={b.box} className="flex flex-col items-center gap-2">
-                <div className="text-[11px] font-mono font-semibold text-[hsl(210_13%_97%)]">
+                <div className="text-[11px] font-mono font-semibold text-[hsl(var(--foreground))]">
                   {b.winRate}%
                 </div>
                 <div
@@ -74,7 +74,7 @@ export default async function StatisticsPage() {
               </div>
             ))}
           </div>
-          <div className="mt-6 text-[12px] text-[hsl(220_7%_42%)] text-center tracking-[0.04em]">
+          <div className="mt-6 text-[12px] text-[hsl(var(--subtle-foreground))] text-center tracking-[0.04em]">
             BOX NUMBER (1-8) · NATIONAL WIN RATE PERCENTAGE
           </div>
         </div>
@@ -84,19 +84,19 @@ export default async function StatisticsPage() {
         <ProGate minTier="pro" feature="Advanced statistics">
       <section className="px-0 pb-16">
         <div className="flex items-center gap-3 mb-6">
-          <Users className="h-5 w-5 text-[hsl(142_60%_48%)]" />
-          <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)] tracking-[-0.03em]">
+          <Users className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] tracking-[-0.03em]">
             Trainer Leaderboard
           </h2>
         </div>
-        <p className="text-[14px] text-[hsl(215_14%_65%)] mb-6 tracking-[-0.013em]">
+        <p className="text-[14px] text-[hsl(var(--muted-foreground))] mb-6 tracking-[-0.013em]">
           Top performers by wins over the last 12 months.
         </p>
 
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[11px] uppercase tracking-wider text-[hsl(220_7%_42%)]">
+              <tr className="border-b border-white/[0.06] text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))]">
                 <th className="text-left p-4 tracking-[0.04em]">Rank</th>
                 <th className="text-left p-4 tracking-[0.04em]">Trainer</th>
                 <th className="text-right p-4 tracking-[0.04em]">Wins</th>
@@ -108,8 +108,8 @@ export default async function StatisticsPage() {
             <tbody>
               {TRAINER_LEADERS.map((t, i) => {
                 const strike = ((t.wins / t.starters) * 100).toFixed(1);
-                const rankBg = i === 0 ? "hsl(25 95% 53% / 0.2)" : "hsl(220 7% 16%)";
-                const rankColor = i === 0 ? "hsl(25 95% 53%)" : "hsl(215 14% 65%)";
+                const rankBg = i === 0 ? "hsl(var(--secondary) / 0.20)" : "hsl(var(--surface-3))";
+                const rankColor = i === 0 ? "hsl(var(--secondary))" : "hsl(var(--muted-foreground))";
                 return (
                   <tr
                     key={t.name}
@@ -123,13 +123,13 @@ export default async function StatisticsPage() {
                         {i + 1}
                       </span>
                     </td>
-                    <td className="p-4 text-[14px] font-medium text-[hsl(210_13%_97%)] tracking-[-0.013em]">
+                    <td className="p-4 text-[14px] font-medium text-[hsl(var(--foreground))] tracking-[-0.013em]">
                       {t.name}
                     </td>
-                    <td className="p-4 text-right text-[13px] text-[hsl(215_14%_65%)] font-mono">{t.wins}</td>
-                    <td className="p-4 text-right text-[13px] text-[hsl(215_14%_65%)] font-mono">{t.starters}</td>
-                    <td className="p-4 text-right text-[13px] text-[hsl(215_14%_65%)] font-mono">{strike}%</td>
-                    <td className="p-4 text-right text-[13px] font-mono font-semibold text-[hsl(142_60%_48%)]">
+                    <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.wins}</td>
+                    <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.starters}</td>
+                    <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{strike}%</td>
+                    <td className="p-4 text-right text-[13px] font-mono font-semibold text-[hsl(var(--primary-bright))]">
                       +{t.roi}%
                     </td>
                   </tr>
@@ -142,8 +142,8 @@ export default async function StatisticsPage() {
 
       <section className="px-0 pb-0">
         <div className="flex items-center gap-3 mb-6">
-          <Award className="h-5 w-5 text-[hsl(25_95%_53%)]" />
-          <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)] tracking-[-0.03em]">
+          <Award className="h-5 w-5 text-[hsl(var(--secondary))]" />
+          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] tracking-[-0.03em]">
             Current Track Records
           </h2>
         </div>
@@ -156,23 +156,23 @@ export default async function StatisticsPage() {
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="text-[15px] font-semibold text-[hsl(210_13%_97%)] tracking-[-0.02em]">
+                  <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.02em]">
                     {r.track}
                   </h3>
-                  <p className="flex items-center gap-1 mt-0.5 text-[11px] text-[hsl(220_7%_42%)]">
+                  <p className="flex items-center gap-1 mt-0.5 text-[11px] text-[hsl(var(--subtle-foreground))]">
                     <MapPin className="h-3 w-3" />
                     {r.dist}m
                   </p>
                 </div>
-                <span className="rounded-full bg-[hsl(25_95%_53%/0.12)] px-2 py-0.5 text-[10px] font-semibold text-[hsl(25_95%_53%)]">
+                <span className="rounded-full bg-[hsl(var(--secondary)/0.12)] px-2 py-0.5 text-[10px] font-semibold text-[hsl(var(--secondary))]">
                   {r.year}
                 </span>
               </div>
-              <div className="text-2xl font-mono font-semibold text-[hsl(25_95%_53%)]">
+              <div className="text-2xl font-mono font-semibold text-[hsl(var(--secondary))]">
                 {r.time}s
               </div>
-              <p className="text-[12px] text-[hsl(220_7%_42%)] mt-1">
-                by <span className="text-[hsl(215_14%_65%)]">{r.dog}</span>
+              <p className="text-[12px] text-[hsl(var(--subtle-foreground))] mt-1">
+                by <span className="text-[hsl(var(--muted-foreground))]">{r.dog}</span>
               </p>
             </div>
           ))}

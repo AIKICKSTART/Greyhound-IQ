@@ -20,10 +20,10 @@ export function CookieConsentBanner() {
     <div className="race-panel fixed bottom-3 left-1/2 z-50 w-[calc(100vw-24px)] max-w-5xl -translate-x-1/2 px-4 py-4 shadow-2xl shadow-black/45 backdrop-blur-md">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="max-w-3xl">
-          <p className="text-[14px] font-semibold text-[hsl(210_13%_97%)]">
+          <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
             Cookie preferences
           </p>
-          <p className="mt-1 text-[13px] leading-relaxed text-[hsl(215_14%_72%)]">
+          <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
             GreyhoundIQ uses essential cookies for sign-in and security. Optional
             analytics cookies help improve the product and can be declined.
           </p>
@@ -65,14 +65,14 @@ export function CookiePreferencePanel() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="h-4 w-4 text-[hsl(142_60%_48%)]" />
-            <h3 className="text-[15px] font-semibold text-[hsl(210_13%_97%)]">
+            <SlidersHorizontal className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
+            <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))]">
               Cookie preferences
             </h3>
           </div>
-          <p className="mt-2 text-[13px] leading-relaxed text-[hsl(215_14%_65%)]">
+          <p className="mt-2 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
             Current browser setting:{" "}
-            <span className="font-semibold text-[hsl(210_13%_97%)]">{label}</span>
+            <span className="font-semibold text-[hsl(var(--foreground))]">{label}</span>
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

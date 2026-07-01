@@ -4,6 +4,7 @@
  * Usage: npm run set-tier -- <email> <free|pro|pro_plus>
  * Creates the user if they don't exist yet (handy before first WorkOS login).
  */
+import "./load-env";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();

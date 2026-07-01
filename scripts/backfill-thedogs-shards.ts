@@ -570,7 +570,7 @@ async function coverageFrom(from: string, progressFiles: string[]) {
   }
 
   const unresolvedFailedDates = [...failedDates]
-    .filter((date) => !okDates.has(date))
+    .filter((date) => !okDates.has(date) && !rawDates.has(date))
     .sort();
 
   return {

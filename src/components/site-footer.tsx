@@ -43,12 +43,12 @@ const FOOTER_SECTIONS = [
   },
 ];
 
-const FOOTER_BG = siteAssetUrl("/images/site-footer-finish-line-bg.webp");
-const LOGO_MAIN = siteAssetUrl("/images/logo-main.webp");
+const FOOTER_BG = siteAssetUrl("/images/wentworth-track-footer.webp");
+const LOGO_MAIN = siteAssetUrl("/images/logo-main-purple-gold.webp");
 
 export function SiteFooter() {
   return (
-    <footer className="relative isolate mt-auto overflow-hidden border-t border-white/[0.08] bg-[hsl(150_30%_3%)]">
+    <footer className="relative isolate mt-auto overflow-hidden border-t border-white/[0.08] bg-[hsl(var(--background))]">
       <Image
         src={FOOTER_BG}
         alt=""
@@ -58,11 +58,11 @@ export function SiteFooter() {
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 z-10 bg-[linear-gradient(90deg,hsl(150_30%_3%/0.96)_0%,hsl(150_24%_4%/0.82)_48%,hsl(150_24%_4%/0.56)_100%)]"
+        className="absolute inset-0 z-10 bg-[linear-gradient(90deg,hsl(var(--background)/0.96)_0%,hsl(var(--surface-1)/0.82)_48%,hsl(var(--surface-1)/0.56)_100%)]"
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 z-10 bg-[linear-gradient(180deg,hsl(150_30%_3%/0.52)_0%,transparent_34%,hsl(150_30%_3%/0.90)_100%)]"
+        className="absolute inset-0 z-10 bg-[linear-gradient(180deg,hsl(var(--background)/0.52)_0%,transparent_34%,hsl(var(--background)/0.90)_100%)]"
       />
       <div className="relative z-20 mx-auto max-w-7xl px-6 py-16 md:py-20">
         <div className="mb-12 grid gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-end">
@@ -76,7 +76,7 @@ export function SiteFooter() {
                 sizes="384px"
               />
             </div>
-            <p className="max-w-2xl text-2xl font-semibold leading-tight text-[hsl(210_13%_97%)] md:text-4xl">
+            <p className="max-w-2xl text-2xl font-semibold leading-tight text-[hsl(var(--foreground))] md:text-4xl">
               Track-side intelligence for race night, breeding decisions, and the market between them.
             </p>
           </div>
@@ -88,7 +88,7 @@ export function SiteFooter() {
             >
               Race cards
             </Link>
-            <p className="max-w-sm text-sm leading-relaxed text-[hsl(215_14%_72%)] md:text-right">
+            <p className="max-w-sm text-sm leading-relaxed text-[hsl(var(--muted-foreground))] md:text-right">
               Built for Australian greyhound racing. 18+ only. Bet responsibly.
             </p>
           </div>
@@ -107,7 +107,7 @@ export function SiteFooter() {
                 sizes="220px"
               />
             </div>
-            <p className="max-w-xs text-[13px] leading-relaxed text-[hsl(215_14%_72%)]">
+            <p className="max-w-xs text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
               The smartest greyhound racing data platform in Australia.
               AI predictions, breeding analytics, and real-time form.
             </p>
@@ -117,7 +117,7 @@ export function SiteFooter() {
           {FOOTER_SECTIONS.map((section) => (
             <div key={section.title}>
               <h4
-                className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[hsl(142_60%_62%)]"
+                className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[hsl(var(--primary-light))]"
               >
                 {section.title}
               </h4>
@@ -126,7 +126,7 @@ export function SiteFooter() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-[13px] text-[hsl(215_14%_74%)] transition-colors hover:text-[hsl(210_13%_97%)]"
+                      className="text-[13px] text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
                     >
                       {link.label}
                     </Link>
@@ -138,11 +138,11 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-white/[0.08] pt-6">
-          <p className="text-[11px] text-[hsl(215_14%_60%)]">
+          <p className="text-[11px] text-[hsl(var(--subtle-foreground))]">
             (c) 2026 GreyhoundIQ - 18+ only - Bet responsibly
           </p>
           <div className="flex items-center gap-4">
-            <span className="text-[11px] text-[hsl(215_14%_60%)]">
+            <span className="text-[11px] text-[hsl(var(--subtle-foreground))]">
               Built in Australia
             </span>
           </div>

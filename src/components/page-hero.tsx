@@ -6,7 +6,7 @@ interface PageHeroProps {
   image: string;
   badge?: string;
   badgeIcon?: ReactNode;
-  badgeColor?: "green" | "orange";
+  badgeColor?: "primary" | "gold";
   title: ReactNode;
   subtitle: string;
   size?: "default" | "tall";
@@ -14,15 +14,15 @@ interface PageHeroProps {
 }
 
 const BADGE_COLORS = {
-  green: "text-[hsl(142_60%_48%)]",
-  orange: "text-[hsl(25_95%_53%)]",
+  primary: "text-[hsl(var(--primary-bright))]",
+  gold: "text-[hsl(var(--secondary))]",
 } as const;
 
 export function PageHero({
   image,
   badge,
   badgeIcon,
-  badgeColor = "green",
+  badgeColor = "primary",
   title,
   subtitle,
   size = "default",
@@ -32,19 +32,19 @@ export function PageHero({
   const minH = size === "tall" ? "min-h-[620px]" : "min-h-[420px]";
   const titleClass =
     size === "tall"
-      ? "text-4xl md:text-6xl xl:text-7xl"
-      : "text-4xl md:text-5xl";
+      ? "text-[2.1rem] sm:text-5xl md:text-6xl xl:text-7xl"
+      : "text-[2.1rem] sm:text-4xl md:text-5xl";
   const py = size === "tall" ? "py-16 md:py-24" : "py-14 md:py-20";
   const mediaClass = "aspect-[16/9]";
 
   return (
     <section className={`relative overflow-hidden ${minH} flex items-center`}>
-      <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,hsl(142_60%_48%/0.18),transparent_34%),radial-gradient(circle_at_18%_88%,hsl(25_95%_53%/0.10),transparent_30%),linear-gradient(180deg,hsl(150_30%_3%)_0%,hsl(155_28%_5%)_100%)]" />
+      <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,hsl(var(--primary-bright)/0.18),transparent_34%),radial-gradient(circle_at_18%_88%,hsl(var(--secondary)/0.10),transparent_30%),linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--surface-1))_100%)]" />
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-32 track-rail-overlay" />
       <div aria-hidden="true" className="race-box-strip absolute inset-x-6 bottom-8 mx-auto max-w-7xl opacity-70" />
 
       <div className={`relative mx-auto grid w-full max-w-7xl items-center gap-10 px-6 ${py} lg:grid-cols-[0.86fr_1.14fr]`}>
-        <div className="max-w-2xl">
+        <div className="max-w-[21rem] sm:max-w-2xl">
           {badge && (
             <div className="mb-5 inline-flex items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-1 backdrop-blur-sm">
               {badgeIcon}
@@ -56,12 +56,12 @@ export function PageHero({
             </div>
           )}
           <h1
-            className={`${titleClass} font-semibold leading-[1.05] text-[hsl(210_13%_97%)]`}
+            className={`${titleClass} max-w-full break-words font-semibold leading-[1.05] text-[hsl(var(--foreground))]`}
           >
             {title}
           </h1>
           <p
-            className="mt-4 max-w-xl text-base leading-[1.55] text-[hsl(215_14%_72%)] md:text-lg"
+            className="mt-4 max-w-[21rem] text-base leading-[1.55] text-[hsl(var(--muted-foreground))] sm:max-w-xl md:text-lg"
           >
             {subtitle}
           </p>

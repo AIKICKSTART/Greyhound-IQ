@@ -4,6 +4,7 @@
 import { FastTrackPrototypeProvider } from "./fasttrack";
 import { TheDogsProvider } from "./thedogs";
 import { TopazProvider } from "./topaz";
+import { WatchdogProvider } from "./watchdog";
 
 export interface LiveDog {
   name: string;
@@ -43,6 +44,8 @@ export interface LiveRace {
   resultStatus?: string;
   replayUrl?: string;
   photoFinishUrl?: string;
+  videoSourceId?: string;
+  videoSourceType?: string;
   runners: LiveRunner[];
 }
 
@@ -66,13 +69,15 @@ export interface LiveDataProvider {
 export function getLiveProviderConfig() {
   const topazConfigured = Boolean(process.env.TOPAZ_API_KEY?.trim());
   const theDogsEnabled = isTheDogsProviderEnabled();
+  const watchdogEnabled = isWatchdogProviderEnabled();
   const fastTrackPrototypeEnabled = isFastTrackPrototypeEnabled(
-    topazConfigured || theDogsEnabled
+    topazConfigured || theDogsEnabled || watchdogEnabled
   );
   const activeProviders = [
     theDogsEnabled ? "thedogs" : null,
     topazConfigured ? "topaz" : null,
-    !theDogsEnabled && !topazConfigured && fastTrackPrototypeEnabled
+    watchdogEnabled ? "watchdog" : null,
+    !theDogsEnabled && !topazConfigured && !watchdogEnabled && fastTrackPrototypeEnabled
       ? "fasttrack-prototype"
       : null,
   ].filter((provider): provider is string => provider != null);
@@ -111,6 +116,22 @@ export function getLiveProviderConfig() {
         missingEnv: topazConfigured ? [] : ["TOPAZ_API_KEY"],
       },
       {
+        name: "watchdog",
+        role: "victoria_public_racecards_results_tips_and_replay_ids",
+        implemented: true,
+        configured: watchdogEnabled,
+        blocking: false,
+        requiredEnv: [],
+        optionalEnv: [
+          "WATCHDOG_PROVIDER_ENABLED",
+          "WATCHDOG_BASE_URL",
+          "WATCHDOG_MAX_MEETINGS",
+          "WATCHDOG_CONCURRENCY",
+          "WATCHDOG_FETCH_TIMEOUT_MS",
+        ],
+        missingEnv: [],
+      },
+      {
         name: "fasttrack-prototype",
         role: "prototype_public_race_fields_and_results",
         implemented: true,
@@ -128,8 +149,9 @@ export function getLiveProviderConfig() {
   };
 }
 
-// Returns the configured live provider. TOPAZ_API_KEY wins; the FastTrack reader
-// is a bounded prototype fallback while the licensed key is not available.
+// Returns the configured live provider. The Dogs supplies the national baseline,
+// Topaz supplies licensed VIC data when configured, and Watchdog enriches VIC
+// public racecards/results/replays. FastTrack is only a bounded prototype fallback.
 export function getLiveProvider(): LiveDataProvider | null {
   const providers: LiveDataProvider[] = [];
   const topazKey = process.env.TOPAZ_API_KEY?.trim();
@@ -138,6 +160,9 @@ export function getLiveProvider(): LiveDataProvider | null {
   }
   if (topazKey) {
     providers.push(new TopazProvider(topazKey));
+  }
+  if (isWatchdogProviderEnabled()) {
+    providers.push(new WatchdogProvider());
   }
   if (providers.length === 0 && isFastTrackPrototypeEnabled(false)) {
     providers.push(new FastTrackPrototypeProvider());
@@ -184,6 +209,12 @@ function withSourceProvider(meetings: LiveMeeting[], sourceProvider: string) {
 
 function isTheDogsProviderEnabled() {
   const raw = process.env.THEDOGS_PROVIDER_ENABLED?.trim().toLowerCase();
+  if (!raw) return true;
+  return !["0", "false", "off", "no"].includes(raw);
+}
+
+function isWatchdogProviderEnabled() {
+  const raw = process.env.WATCHDOG_PROVIDER_ENABLED?.trim().toLowerCase();
   if (!raw) return true;
   return !["0", "false", "off", "no"].includes(raw);
 }

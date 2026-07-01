@@ -55,6 +55,11 @@ Optional:
 - `THEDOGS_MAX_MEETINGS`
 - `THEDOGS_CONCURRENCY`
 - `THEDOGS_TIME_ZONE`
+- `WATCHDOG_PROVIDER_ENABLED`
+- `WATCHDOG_BASE_URL`
+- `WATCHDOG_MAX_MEETINGS`
+- `WATCHDOG_CONCURRENCY`
+- `WATCHDOG_FETCH_TIMEOUT_MS`
 - `FASTTRACK_PROTOTYPE_ENABLED`
 - `FASTTRACK_BASE_URL`
 - `FASTTRACK_MAX_MEETINGS`
@@ -72,7 +77,7 @@ After Supabase migrations run for an environment, run `npm run storage:upload-si
 - `Authorization: Bearer <CRON_SECRET>` from Vercel Cron.
 - `X-Internal-Secret: <INTERNAL_API_SECRET>` for manual operator runs.
 
-Scheduled sync uses `scope=all` for the 5-minute current-day job so national racecards and posted results stay current inside the 300-second Vercel runtime limit. The hourly 7-day job uses `scope=upcoming` because the result pages are current-day only and fetching them with the full horizon is unnecessary. `THEDOGS_PROVIDER_ENABLED=true` enables public all-Australia racecard and result ingestion; `THEDOGS_MAX_MEETINGS` and `THEDOGS_CONCURRENCY` bound the sync workload. Without `TOPAZ_API_KEY`, the job still has national field and posted-result coverage from The Dogs. FastTrack remains a VIC-only prototype fallback if the all-Australia feed is disabled.
+Scheduled sync uses `scope=all` for the 5-minute current-day job so national racecards and posted results stay current inside the 300-second Vercel runtime limit. The hourly 7-day job uses `scope=upcoming` because the result pages are current-day only and fetching them with the full horizon is unnecessary. `THEDOGS_PROVIDER_ENABLED=true` enables public all-Australia racecard and result ingestion; `THEDOGS_MAX_MEETINGS` and `THEDOGS_CONCURRENCY` bound the sync workload. `WATCHDOG_PROVIDER_ENABLED=true` adds Victoria/GRV racecards, results, Watchdog tips, and replay IDs; `WATCHDOG_MAX_MEETINGS` and `WATCHDOG_CONCURRENCY` bound that VIC enrichment workload. Without `TOPAZ_API_KEY`, the job still has national field and posted-result coverage from The Dogs plus Victoria enrichment from Watchdog. FastTrack remains a VIC-only prototype fallback if the public feeds are disabled.
 
 Historical backfills are operator jobs, not Vercel cron jobs:
 

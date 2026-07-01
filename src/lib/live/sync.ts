@@ -19,6 +19,8 @@ export type SyncCounts = {
 
 export type SyncScope = "upcoming" | "results" | "all";
 
+const BULK_WRITE_CHUNK_SIZE = 100;
+
 type TrackRow = { id: string; name: string; state: string };
 type RaceRow = { id: string; meetingId: string; raceNumber: number };
 type RunnerRow = { id: string; raceId: string; boxNumber: number; dogId: string };
@@ -109,6 +111,25 @@ type RaceUpsertRow = {
   sourceProvider: string | null;
   sourceId: string | null;
   sourceRawJson: string | null;
+  lastSyncedAt: Date;
+};
+
+type RaceVideoUpsertRow = {
+  id: string;
+  raceId: string;
+  sourceProvider: string;
+  sourceId: string;
+  kind: string;
+  pageUrl: string;
+  embedSourceType: string | null;
+  sourceStatus: number | null;
+  sourceCode: string | null;
+  streamUrl: string | null;
+  streamContentType: string | null;
+  title: string | null;
+  description: string | null;
+  sourceRawJson: string | null;
+  fetchedAt: Date | null;
   lastSyncedAt: Date;
 };
 
@@ -205,8 +226,18 @@ async function upsertMeetings(meetings: LiveMeeting[]): Promise<SyncCounts> {
   if (meetings.length === 0) return counts;
 
   const now = new Date();
-  const tracks = await ensureTracks(meetings);
-  const meetingRows = await ensureMeetings(meetings, tracks, now);
+  syncDebug("upsertMeetings start", {
+    meetings: meetings.length,
+    races: meetings.reduce((total, meeting) => total + meeting.races.length, 0),
+  });
+  const tracks = await syncStage("ensureTracks", { meetings: meetings.length }, () =>
+    ensureTracks(meetings)
+  );
+  const meetingRows = await syncStage(
+    "ensureMeetings",
+    { meetings: meetings.length, tracks: tracks.size },
+    () => ensureMeetings(meetings, tracks, now)
+  );
   counts.meetings = meetings.length;
 
   const raceItems = meetings.flatMap((meeting) => {
@@ -215,7 +246,12 @@ async function upsertMeetings(meetings: LiveMeeting[]): Promise<SyncCounts> {
     return meeting.races.map((race) => ({ meeting, meetingId, race }));
   });
 
-  const raceRows = await ensureRaces(raceItems, now);
+  const raceRows = await syncStage("ensureRaces", { races: raceItems.length }, () =>
+    ensureRaces(raceItems, now)
+  );
+  await syncStage("ensureRaceVideos", { races: raceItems.length }, () =>
+    ensureRaceVideos(raceItems, raceRows, now)
+  );
   counts.races = raceItems.length;
 
   const runnerItems = raceItems.flatMap((item) => {
@@ -234,16 +270,76 @@ async function upsertMeetings(meetings: LiveMeeting[]): Promise<SyncCounts> {
     }));
   });
 
-  const dogIds = await ensureDogs(runnerItems.map((item) => item.runner.dog));
-  const trainerIds = await ensureTrainers(
-    runnerItems.map((item) => item.runner.trainerName)
+  const dogIds = await syncStage("ensureDogs", { runners: runnerItems.length }, () =>
+    ensureDogs(runnerItems.map((item) => item.runner.dog))
   );
-  const runnerRows = await ensureRunners(runnerItems, dogIds, trainerIds);
+  const trainerIds = await syncStage(
+    "ensureTrainers",
+    { runners: runnerItems.length },
+    () => ensureTrainers(runnerItems.map((item) => item.runner.trainerName))
+  );
+  const runnerRows = await syncStage(
+    "ensureRunners",
+    { runners: runnerItems.length, dogs: dogIds.size, trainers: trainerIds.size },
+    () => ensureRunners(runnerItems, dogIds, trainerIds)
+  );
   counts.runners = runnerItems.length;
-  counts.results = await ensureResults(runnerItems, runnerRows);
-  await ensureFormEntries(runnerItems, runnerRows);
+  counts.results = await syncStage("ensureResults", { runners: runnerItems.length }, () =>
+    ensureResults(runnerItems, runnerRows)
+  );
+  await syncStage("ensureFormEntries", { runners: runnerItems.length }, () =>
+    ensureFormEntries(runnerItems, runnerRows)
+  );
+  syncDebug("upsertMeetings ok", counts);
 
   return counts;
+}
+
+async function syncStage<T>(
+  name: string,
+  meta: Record<string, unknown>,
+  run: () => Promise<T>
+): Promise<T> {
+  if (!shouldDebugSync()) return run();
+
+  const startedAt = Date.now();
+  syncDebug(`${name} start`, meta);
+  try {
+    const result = await run();
+    syncDebug(`${name} ok`, {
+      ...meta,
+      durationMs: Date.now() - startedAt,
+      ...resultSummary(result),
+    });
+    return result;
+  } catch (err) {
+    syncDebug(`${name} failed`, {
+      ...meta,
+      durationMs: Date.now() - startedAt,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
+  }
+}
+
+function syncDebug(message: string, meta?: Record<string, unknown>) {
+  if (!shouldDebugSync()) return;
+  const suffix = meta ? ` ${JSON.stringify(meta)}` : "";
+  console.log(`[live-sync:debug] ${message}${suffix}`);
+}
+
+function shouldDebugSync() {
+  return process.env.LIVE_SYNC_DEBUG === "1";
+}
+
+function resultSummary(value: unknown) {
+  if (value instanceof Map) return { rows: value.size };
+  if (typeof value === "number") return { rows: value };
+  return {};
+}
+
+function conflictAction(updateSql: Prisma.Sql) {
+  return process.env.LIVE_SYNC_INSERT_ONLY === "1" ? Prisma.sql`DO NOTHING` : updateSql;
 }
 
 async function ensureTracks(meetings: LiveMeeting[]) {
@@ -342,12 +438,85 @@ async function ensureRaces(items: RaceWithMeeting[], now: Date) {
   return new Map(allRows.map((row) => [raceKey(row.meetingId, row), row]));
 }
 
+async function ensureRaceVideos(
+  items: RaceWithMeeting[],
+  races: Map<string, RaceRow>,
+  now: Date
+) {
+  const rows = items.flatMap((item): RaceVideoUpsertRow[] => {
+    if (!item.race.videoSourceId || !item.race.replayUrl) return [];
+    const race = races.get(raceKey(item.meetingId, item.race));
+    const sourceProvider = item.race.sourceProvider ?? item.meeting.sourceProvider;
+    if (!race || !sourceProvider) return [];
+
+    return [
+      {
+        id: randomUUID(),
+        raceId: race.id,
+        sourceProvider,
+        sourceId: item.race.videoSourceId,
+        kind: "replay",
+        pageUrl: item.race.replayUrl,
+        embedSourceType:
+          item.race.videoSourceType ?? inferEmbedSourceType(item.race.replayUrl),
+        sourceStatus: 200,
+        sourceCode: "provider-video-id",
+        streamUrl: null,
+        streamContentType: null,
+        title: item.race.name ?? null,
+        description: item.race.grade ?? null,
+        sourceRawJson: item.race.sourceRawJson ?? null,
+        fetchedAt: now,
+        lastSyncedAt: now,
+      },
+    ];
+  });
+
+  await bulkUpsertRaceVideos(rows);
+  return rows.length;
+}
+
+async function bulkUpsertRaceVideos(rows: RaceVideoUpsertRow[]) {
+  const uniqueRows = uniqueBy(
+    rows,
+    (row) => `${row.raceId}:${row.sourceProvider}:${row.kind}`
+  );
+  for (let index = 0; index < uniqueRows.length; index += BULK_WRITE_CHUNK_SIZE) {
+    const chunk = uniqueRows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
+    if (chunk.length === 0) continue;
+
+    await prisma.$executeRaw`
+      INSERT INTO "RaceVideo"
+        ("id", "raceId", "sourceProvider", "sourceId", "kind", "pageUrl", "embedSourceType", "sourceStatus", "sourceCode", "streamUrl", "streamContentType", "title", "description", "sourceRawJson", "fetchedAt", "lastSyncedAt", "createdAt", "updatedAt")
+      VALUES ${Prisma.join(
+        chunk.map((row) => Prisma.sql`
+          (${row.id}, ${row.raceId}, ${row.sourceProvider}, ${row.sourceId}, ${row.kind}, ${row.pageUrl}, ${row.embedSourceType}, ${row.sourceStatus}, ${row.sourceCode}, ${row.streamUrl}, ${row.streamContentType}, ${row.title}, ${row.description}, ${row.sourceRawJson}, ${row.fetchedAt}, ${row.lastSyncedAt}, NOW(), NOW())
+        `)
+      )}
+      ON CONFLICT ("raceId", "sourceProvider", "kind") ${conflictAction(Prisma.sql`DO UPDATE SET
+        "sourceId" = EXCLUDED."sourceId",
+        "pageUrl" = EXCLUDED."pageUrl",
+        "embedSourceType" = EXCLUDED."embedSourceType",
+        "sourceStatus" = EXCLUDED."sourceStatus",
+        "sourceCode" = EXCLUDED."sourceCode",
+        "streamUrl" = EXCLUDED."streamUrl",
+        "streamContentType" = EXCLUDED."streamContentType",
+        "title" = EXCLUDED."title",
+        "description" = EXCLUDED."description",
+        "sourceRawJson" = EXCLUDED."sourceRawJson",
+        "fetchedAt" = EXCLUDED."fetchedAt",
+        "lastSyncedAt" = EXCLUDED."lastSyncedAt",
+        "updatedAt" = NOW()`)}
+    `;
+  }
+}
+
 async function bulkUpsertMeetings(rows: MeetingUpsertRow[]) {
   const uniqueRows = uniqueBy(rows, (row) =>
     naturalMeetingKey(row.trackId, row.meetingDate)
   );
-  for (let index = 0; index < uniqueRows.length; index += 500) {
-    const chunk = uniqueRows.slice(index, index + 500);
+  for (let index = 0; index < uniqueRows.length; index += BULK_WRITE_CHUNK_SIZE) {
+    const chunk = uniqueRows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
     if (chunk.length === 0) continue;
 
     await prisma.$executeRaw`
@@ -358,12 +527,12 @@ async function bulkUpsertMeetings(rows: MeetingUpsertRow[]) {
           (${row.id}, ${row.trackId}, ${row.meetingDate}, ${row.meetingType}, ${row.sourceProvider}, ${row.sourceId}, ${row.sourceRawJson}, ${row.lastSyncedAt}, NOW())
         `)
       )}
-      ON CONFLICT ("trackId", "meetingDate") DO UPDATE SET
+      ON CONFLICT ("trackId", "meetingDate") ${conflictAction(Prisma.sql`DO UPDATE SET
         "meetingType" = EXCLUDED."meetingType",
         "sourceProvider" = EXCLUDED."sourceProvider",
         "sourceId" = EXCLUDED."sourceId",
         "sourceRawJson" = EXCLUDED."sourceRawJson",
-        "lastSyncedAt" = EXCLUDED."lastSyncedAt"
+        "lastSyncedAt" = EXCLUDED."lastSyncedAt"`)}
     `;
   }
 }
@@ -372,8 +541,8 @@ async function bulkUpsertRaces(rows: RaceUpsertRow[]) {
   const uniqueRows = uniqueBy(rows, (row) =>
     raceKey(row.meetingId, { raceNumber: row.raceNumber })
   );
-  for (let index = 0; index < uniqueRows.length; index += 500) {
-    const chunk = uniqueRows.slice(index, index + 500);
+  for (let index = 0; index < uniqueRows.length; index += BULK_WRITE_CHUNK_SIZE) {
+    const chunk = uniqueRows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
     if (chunk.length === 0) continue;
 
     await prisma.$executeRaw`
@@ -384,7 +553,7 @@ async function bulkUpsertRaces(rows: RaceUpsertRow[]) {
           (${row.id}, ${row.meetingId}, ${row.raceNumber}, ${row.name}, ${row.raceTime}, ${row.distance}, ${row.grade}, ${row.prizeMoney}, ${row.resultStatus}, ${row.replayUrl}, ${row.photoFinishUrl}, ${row.sourceProvider}, ${row.sourceId}, ${row.sourceRawJson}, ${row.lastSyncedAt}, NOW())
         `)
       )}
-      ON CONFLICT ("meetingId", "raceNumber") DO UPDATE SET
+      ON CONFLICT ("meetingId", "raceNumber") ${conflictAction(Prisma.sql`DO UPDATE SET
         "name" = EXCLUDED."name",
         "raceTime" = EXCLUDED."raceTime",
         "distance" = EXCLUDED."distance",
@@ -396,7 +565,7 @@ async function bulkUpsertRaces(rows: RaceUpsertRow[]) {
         "sourceProvider" = EXCLUDED."sourceProvider",
         "sourceId" = EXCLUDED."sourceId",
         "sourceRawJson" = EXCLUDED."sourceRawJson",
-        "lastSyncedAt" = EXCLUDED."lastSyncedAt"
+        "lastSyncedAt" = EXCLUDED."lastSyncedAt"`)}
     `;
   }
 }
@@ -559,8 +728,8 @@ async function ensureRunners(
 
 async function bulkUpsertRunners(rows: RunnerUpsertRow[]) {
   const uniqueRows = uniqueBy(rows, (row) => runnerKey(row.raceId, row.boxNumber));
-  for (let index = 0; index < uniqueRows.length; index += 500) {
-    const chunk = uniqueRows.slice(index, index + 500);
+  for (let index = 0; index < uniqueRows.length; index += BULK_WRITE_CHUNK_SIZE) {
+    const chunk = uniqueRows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
     if (chunk.length === 0) continue;
 
     await prisma.$executeRaw`
@@ -571,7 +740,7 @@ async function bulkUpsertRunners(rows: RunnerUpsertRow[]) {
           (${row.id}, ${row.raceId}, ${row.boxNumber}, ${row.dogId}, ${row.weight}, ${row.trainerId}, ${row.startingPrice}, ${row.scratched}, ${row.sourceProvider}, ${row.sourceId}, ${row.sourceRawJson}, NOW())
         `)
       )}
-      ON CONFLICT ("raceId", "boxNumber") DO UPDATE SET
+      ON CONFLICT ("raceId", "boxNumber") ${conflictAction(Prisma.sql`DO UPDATE SET
         "dogId" = EXCLUDED."dogId",
         "weight" = EXCLUDED."weight",
         "trainerId" = EXCLUDED."trainerId",
@@ -579,7 +748,7 @@ async function bulkUpsertRunners(rows: RunnerUpsertRow[]) {
         "scratched" = EXCLUDED."scratched",
         "sourceProvider" = EXCLUDED."sourceProvider",
         "sourceId" = EXCLUDED."sourceId",
-        "sourceRawJson" = EXCLUDED."sourceRawJson"
+        "sourceRawJson" = EXCLUDED."sourceRawJson"`)}
     `;
   }
 }
@@ -620,9 +789,9 @@ async function ensureResults(
 }
 
 async function bulkUpsertResults(rows: ResultUpsertRow[]) {
-  const uniqueRows = uniqueBy(rows, (row) => row.runnerId);
-  for (let index = 0; index < uniqueRows.length; index += 500) {
-    const chunk = uniqueRows.slice(index, index + 500);
+  const uniqueRows = mergeResultRows(rows);
+  for (let index = 0; index < uniqueRows.length; index += BULK_WRITE_CHUNK_SIZE) {
+    const chunk = uniqueRows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
     if (chunk.length === 0) continue;
 
     await prisma.$executeRaw`
@@ -633,19 +802,40 @@ async function bulkUpsertResults(rows: ResultUpsertRow[]) {
           (${row.id}, ${row.runnerId}, ${row.raceId}, ${row.finishingPosition}, ${row.runningTime}, ${row.margin}, ${row.splitTime}, ${row.sectionals}, ${row.sourceProvider}, ${row.sourceId}, ${row.sourceRawJson}, ${row.lastSyncedAt}, NOW())
         `)
       )}
-      ON CONFLICT ("runnerId") DO UPDATE SET
+      ON CONFLICT ("runnerId") ${conflictAction(Prisma.sql`DO UPDATE SET
         "raceId" = EXCLUDED."raceId",
         "finishingPosition" = EXCLUDED."finishingPosition",
-        "runningTime" = EXCLUDED."runningTime",
-        "margin" = EXCLUDED."margin",
-        "splitTime" = EXCLUDED."splitTime",
-        "sectionals" = EXCLUDED."sectionals",
+        "runningTime" = COALESCE(EXCLUDED."runningTime", "Result"."runningTime"),
+        "margin" = COALESCE(EXCLUDED."margin", "Result"."margin"),
+        "splitTime" = COALESCE(EXCLUDED."splitTime", "Result"."splitTime"),
+        "sectionals" = COALESCE(EXCLUDED."sectionals", "Result"."sectionals"),
         "sourceProvider" = EXCLUDED."sourceProvider",
         "sourceId" = EXCLUDED."sourceId",
-        "sourceRawJson" = EXCLUDED."sourceRawJson",
-        "lastSyncedAt" = EXCLUDED."lastSyncedAt"
+        "sourceRawJson" = COALESCE(EXCLUDED."sourceRawJson", "Result"."sourceRawJson"),
+        "lastSyncedAt" = EXCLUDED."lastSyncedAt"`)}
     `;
   }
+}
+
+function mergeResultRows(rows: ResultUpsertRow[]) {
+  const byRunner = new Map<string, ResultUpsertRow>();
+  for (const row of rows) {
+    const existing = byRunner.get(row.runnerId);
+    if (!existing) {
+      byRunner.set(row.runnerId, row);
+      continue;
+    }
+    byRunner.set(row.runnerId, {
+      ...row,
+      finishingPosition: row.finishingPosition ?? existing.finishingPosition,
+      runningTime: row.runningTime ?? existing.runningTime,
+      margin: row.margin ?? existing.margin,
+      splitTime: row.splitTime ?? existing.splitTime,
+      sectionals: row.sectionals ?? existing.sectionals,
+      sourceRawJson: row.sourceRawJson ?? existing.sourceRawJson,
+    });
+  }
+  return [...byRunner.values()];
 }
 
 async function ensureFormEntries(
@@ -678,8 +868,8 @@ async function ensureFormEntries(
 
 async function bulkUpsertFormEntries(rows: FormEntryUpsertRow[]) {
   const uniqueRows = uniqueBy(rows, (row) => `${row.dogId}:${row.raceId}`);
-  for (let index = 0; index < uniqueRows.length; index += 500) {
-    const chunk = uniqueRows.slice(index, index + 500);
+  for (let index = 0; index < uniqueRows.length; index += BULK_WRITE_CHUNK_SIZE) {
+    const chunk = uniqueRows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
     if (chunk.length === 0) continue;
 
     await prisma.$executeRaw`
@@ -690,7 +880,7 @@ async function bulkUpsertFormEntries(rows: FormEntryUpsertRow[]) {
           (${row.id}, ${row.dogId}, ${row.raceId}, ${row.trackId}, ${row.date}, ${row.boxNumber}, ${row.finish}, ${row.time}, ${row.distance}, ${row.grade}, ${row.weight}, NOW())
         `)
       )}
-      ON CONFLICT ("dogId", "raceId") DO UPDATE SET
+      ON CONFLICT ("dogId", "raceId") ${conflictAction(Prisma.sql`DO UPDATE SET
         "trackId" = EXCLUDED."trackId",
         "date" = EXCLUDED."date",
         "boxNumber" = EXCLUDED."boxNumber",
@@ -698,7 +888,7 @@ async function bulkUpsertFormEntries(rows: FormEntryUpsertRow[]) {
         "time" = EXCLUDED."time",
         "distance" = EXCLUDED."distance",
         "grade" = EXCLUDED."grade",
-        "weight" = EXCLUDED."weight"
+        "weight" = EXCLUDED."weight"`)}
     `;
   }
 }
@@ -726,6 +916,16 @@ function runnerKey(raceId: string, boxNumber: number) {
 
 function dogKey(dog: LiveDog) {
   return dog.earBrand ?? dog.name;
+}
+
+function inferEmbedSourceType(url: string) {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host.includes("youtube.com") || host.includes("youtu.be")) return "youtube";
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 function uniqueBy<T>(rows: T[], keyFor: (row: T) => string) {

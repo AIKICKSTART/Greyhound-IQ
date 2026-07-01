@@ -1,8 +1,6 @@
-import { loadEnvConfig } from "@next/env";
+import "./load-env";
 import { PrismaClient } from "@prisma/client";
 import { TheDogsProvider } from "../src/lib/live/thedogs";
-
-loadEnvConfig(process.cwd());
 
 const prisma = new PrismaClient();
 const days = positiveInt(process.argv[2], 7);
@@ -27,13 +25,13 @@ function positiveInt(value: string | undefined, fallback: number) {
 async function main() {
   const provider = new TheDogsProvider();
   const expected = await provider.fetchUpcomingMeetings(days);
-  const start = startOfSydneyDay(new Date());
-  const end = new Date(start);
-  end.setDate(end.getDate() + Math.max(days, 1));
+  const expectedDates = [
+    ...new Set(expected.map((meeting) => dateKey(meeting.meetingDate))),
+  ].map((date) => new Date(`${date}T00:00:00.000Z`));
 
   const dbMeetings = await prisma.meeting.findMany({
     where: {
-      meetingDate: { gte: start, lte: end },
+      meetingDate: { in: expectedDates },
       sourceProvider: { not: null },
     },
     select: {
@@ -134,17 +132,6 @@ async function main() {
 
   console.log(JSON.stringify({ summary, missingOrStale, dbOnly }, null, 2));
   if (missingOrStale.length > 0) process.exitCode = 1;
-}
-
-function startOfSydneyDay(date: Date) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Australia/Sydney",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return new Date(`${byType.year}-${byType.month}-${byType.day}T00:00:00+10:00`);
 }
 
 main()

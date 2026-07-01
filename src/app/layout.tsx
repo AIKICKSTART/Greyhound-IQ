@@ -15,7 +15,7 @@ const inter = Inter({
   weight: ["300", "400", "500", "600", "700"],
 });
 
-const LOGO_MARK = siteAssetUrl("/images/logo-mark-new.webp");
+const LOGO_MARK = siteAssetUrl("/images/logo-mark-purple-gold.webp");
 const OG_IMAGE = siteAssetUrl("/images/og-image.webp");
 
 export const metadata: Metadata = {
@@ -57,7 +57,7 @@ export default async function RootLayout({
         <AuthKitProvider initialAuth={initialAuth}>
           <a
             href="#main-content"
-            className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-md focus:bg-[hsl(142_76%_36%)] focus:text-white focus:text-sm focus:font-semibold"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-md focus:bg-[hsl(var(--primary))] focus:text-white focus:text-sm focus:font-semibold"
           >
             Skip to main content
           </a>

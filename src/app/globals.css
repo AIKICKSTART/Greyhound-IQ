@@ -2,31 +2,34 @@
 
 /* ═══════════════════════════════════════════════════════════
    GreyhoundIQ Design System
-   Inspired by Linear's dark-mode-native aesthetic
-   Brand: Racing Green (#1B7A3D) replaces Linear's indigo
-   Accent: Electric Orange (#F97316) for energy/motion
+   Brand: graphite chrome, metallic gold, polished silver,
+   and IQ purple. Racing box colours stay isolated below.
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  /* Brand — extracted from GreyhoundIQ logo */
-  --primary: 142 72% 20%;          /* #0B5C1E deep racing green (logo) */
-  --primary-light: 142 60% 36%;    /* #145A2D logo mid-green */
-  --primary-bright: 142 60% 48%;   /* #2BAE5A UI accent green */
+  /* Brand — extracted from the purple/gold/silver GreyhoundsIQ logo */
+  --primary: 284 68% 48%;          /* IQ purple */
+  --primary-light: 286 86% 70%;    /* neon purple edge */
+  --primary-bright: 288 100% 66%;  /* polished purple highlight */
   --primary-foreground: 0 0% 100%;
-  --secondary: 25 95% 53%;         /* #F97316 electric orange (logo) */
-  --secondary-light: 32 95% 60%;   /* #F89838 warm amber (logo) */
-  --secondary-foreground: 0 0% 100%;
+  --secondary: 41 74% 55%;         /* metallic gold */
+  --secondary-light: 44 92% 74%;   /* bright gold glint */
+  --secondary-deep: 36 58% 33%;    /* antique gold shadow */
+  --secondary-foreground: 268 28% 6%;
+  --metal-silver: 42 10% 82%;      /* chrome letter face */
+  --metal-silver-bright: 45 22% 96%;
+  --metal-graphite: 260 12% 13%;
 
-  /* Dark surfaces — green-tinted near-black from logo background */
-  --background: 150 30% 3%;        /* #040A04 near-black w/ green tint */
-  --surface-1: 150 15% 6%;         /* #0A0E0A panel */
-  --surface-2: 150 10% 10%;        /* #121612 elevated */
-  --surface-3: 150 8% 16%;         /* #282A28 hover */
+  /* Dark surfaces — purple-black graphite */
+  --background: 270 30% 3%;
+  --surface-1: 270 20% 6%;
+  --surface-2: 270 14% 10%;
+  --surface-3: 272 12% 16%;
 
   /* Text (never pure white) */
-  --foreground: 210 13% 97%;        /* #F7F8F8 — primary text */
-  --muted-foreground: 215 14% 65%;  /* #8A8F98 — secondary text */
-  --subtle-foreground: 220 7% 42%;  /* #62666D — tertiary text */
+  --foreground: 45 18% 94%;
+  --muted-foreground: 40 8% 69%;
+  --subtle-foreground: 270 5% 48%;
 
   /* Borders — always semi-transparent white */
   --border: 0 0% 100% / 0.08;       /* rgba(255,255,255,0.08) */
@@ -52,6 +55,9 @@
   --color-primary-foreground: hsl(var(--primary-foreground));
   --color-secondary: hsl(var(--secondary));
   --color-secondary-light: hsl(var(--secondary-light));
+  --color-secondary-deep: hsl(var(--secondary-deep));
+  --color-metal-silver: hsl(var(--metal-silver));
+  --color-metal-silver-bright: hsl(var(--metal-silver-bright));
   --color-muted: hsl(var(--surface-2));
   --color-muted-foreground: hsl(var(--muted-foreground));
   --color-card: hsl(var(--surface-2));
@@ -71,18 +77,21 @@ html {
 
 body {
   background:
-    linear-gradient(180deg, hsl(150 30% 3%) 0%, hsl(152 24% 4%) 42%, hsl(150 30% 3%) 100%),
+    radial-gradient(circle at 82% 0%, hsl(var(--primary) / 0.16), transparent 36%),
+    radial-gradient(circle at 10% 14%, hsl(var(--secondary) / 0.10), transparent 30%),
+    linear-gradient(180deg, hsl(var(--background)) 0%, hsl(270 24% 4%) 42%, hsl(var(--background)) 100%),
     repeating-linear-gradient(
       112deg,
       transparent 0,
       transparent 44px,
-      hsl(142 60% 48% / 0.035) 45px,
+      hsl(var(--metal-silver) / 0.035) 45px,
       transparent 46px
     );
   color: hsl(var(--foreground));
   font-feature-settings: "cv01", "ss03", "rlig" 1, "calt" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
 }
 
 /* Custom scrollbar — Linear style */
@@ -103,21 +112,21 @@ body {
 
 /* Selection */
 ::selection {
-  background: hsl(var(--primary) / 0.3);
+  background: hsl(var(--primary) / 0.36);
   color: hsl(var(--foreground));
 }
 
 /* Glow utility */
-.glow-green {
+.glow-primary {
   box-shadow: 0 0 24px -4px hsl(var(--primary) / 0.4);
 }
-.glow-orange {
+.glow-gold {
   box-shadow: 0 0 24px -4px hsl(var(--secondary) / 0.4);
 }
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(90deg, hsl(var(--primary-bright)), hsl(var(--secondary-light)));
+  background: linear-gradient(90deg, hsl(var(--metal-silver-bright)), hsl(var(--secondary-light)) 48%, hsl(var(--primary-light)));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -130,7 +139,7 @@ body {
   border-radius: 8px;
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.035), hsl(0 0% 100% / 0.015)),
-    hsl(150 20% 5% / 0.92);
+    hsl(var(--surface-1) / 0.92);
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.05),
     0 20px 60px hsl(0 0% 0% / 0.22);
@@ -189,25 +198,25 @@ body {
       100deg,
       transparent 0,
       transparent 38px,
-      hsl(142 60% 48% / 0.12) 39px,
+      hsl(var(--secondary) / 0.14) 39px,
       transparent 40px
     ),
-    linear-gradient(90deg, hsl(0 0% 100% / 0.08), transparent 22%);
-  opacity: 0.42;
+    linear-gradient(90deg, hsl(var(--metal-silver) / 0.10), transparent 22%);
+  opacity: 0.48;
 }
 
 .program-label {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: hsl(220 7% 58%);
+  color: hsl(var(--muted-foreground));
 }
 
 .giq-button {
-  --giq-btn-bg: hsl(150 22% 8% / 0.78);
-  --giq-btn-border: hsl(0 0% 100% / 0.16);
-  --giq-btn-color: hsl(210 13% 97%);
-  --giq-btn-glow: hsl(142 60% 48% / 0.18);
+  --giq-btn-bg: hsl(var(--surface-2) / 0.78);
+  --giq-btn-border: hsl(var(--metal-silver) / 0.20);
+  --giq-btn-color: hsl(var(--foreground));
+  --giq-btn-glow: hsl(var(--primary) / 0.22);
   position: relative;
   isolation: isolate;
   min-height: 44px;
@@ -255,7 +264,7 @@ body {
 
 .giq-button:hover {
   transform: translateY(-1px);
-  border-color: hsl(142 60% 64% / 0.42);
+  border-color: hsl(var(--primary-light) / 0.46);
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.26),
     inset 0 -1px 0 hsl(0 0% 0% / 0.46),
@@ -284,53 +293,121 @@ body {
 }
 
 .giq-button-primary {
-  --giq-btn-bg: hsl(150 64% 22% / 0.94);
-  --giq-btn-border: hsl(142 60% 62% / 0.40);
-  --giq-btn-glow: hsl(142 60% 48% / 0.34);
+  --giq-btn-bg: hsl(var(--primary) / 0.94);
+  --giq-btn-border: hsl(var(--primary-light) / 0.48);
+  --giq-btn-glow: hsl(var(--primary-bright) / 0.34);
 }
 
 .giq-button-glass {
-  --giq-btn-bg: hsl(160 16% 10% / 0.62);
-  --giq-btn-border: hsl(0 0% 100% / 0.18);
-  --giq-btn-glow: hsl(178 46% 54% / 0.16);
+  --giq-btn-bg: hsl(var(--surface-2) / 0.68);
+  --giq-btn-border: hsl(var(--metal-silver) / 0.22);
+  --giq-btn-glow: hsl(var(--primary-light) / 0.18);
   backdrop-filter: blur(18px) saturate(1.18);
   -webkit-backdrop-filter: blur(18px) saturate(1.18);
 }
 
-.giq-button-copper {
-  --giq-btn-bg: hsl(26 72% 41% / 0.96);
-  --giq-btn-border: hsl(32 95% 68% / 0.48);
-  --giq-btn-glow: hsl(25 95% 53% / 0.24);
-  background-color: hsl(26 72% 41%);
-}
-
-.giq-button-green {
-  --giq-btn-bg: hsl(150 64% 23% / 0.96);
-  --giq-btn-border: hsl(142 60% 66% / 0.52);
-  --giq-btn-glow: hsl(142 60% 48% / 0.36);
-  background-color: hsl(150 64% 23%);
+.giq-button-gold {
+  --giq-btn-bg: hsl(var(--secondary-deep) / 0.96);
+  --giq-btn-border: hsl(var(--secondary-light) / 0.56);
+  --giq-btn-glow: hsl(var(--secondary) / 0.30);
+  --giq-btn-color: hsl(var(--metal-silver-bright));
+  background-color: hsl(var(--secondary-deep));
 }
 
 .giq-button-carbon {
-  --giq-btn-border: hsl(184 42% 68% / 0.34);
-  --giq-btn-glow: hsl(178 54% 48% / 0.18);
+  --giq-btn-border: hsl(var(--metal-silver) / 0.38);
+  --giq-btn-glow: hsl(var(--primary-light) / 0.20);
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.13), hsl(0 0% 100% / 0.02) 28%, hsl(0 0% 0% / 0.58)),
-    linear-gradient(103deg, transparent 0 37%, hsl(0 0% 100% / 0.15) 48%, hsl(178 54% 48% / 0.11) 54%, transparent 68%),
+    linear-gradient(103deg, transparent 0 37%, hsl(0 0% 100% / 0.15) 48%, hsl(var(--secondary) / 0.13) 54%, transparent 68%),
     repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.052) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.38) 5px 7px, transparent 7px 11px),
     repeating-linear-gradient(135deg, hsl(0 0% 100% / 0.04) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.42) 5px 7px, transparent 7px 11px),
-    linear-gradient(135deg, hsl(154 32% 4%) 0%, hsl(176 26% 10%) 52%, hsl(150 24% 5%) 100%);
+    linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--surface-2)) 52%, hsl(var(--surface-1)) 100%);
   background-size: auto, auto, 12px 12px, 12px 12px, auto;
 }
 
 .giq-button-chrome {
   --giq-btn-border: hsl(0 0% 100% / 0.56);
-  --giq-btn-color: hsl(154 24% 8%);
-  --giq-btn-glow: hsl(178 42% 58% / 0.16);
+  --giq-btn-color: hsl(var(--secondary-foreground));
+  --giq-btn-glow: hsl(var(--metal-silver) / 0.18);
   color: var(--giq-btn-color);
   background:
     linear-gradient(180deg, #f6faf9 0%, #d9e1de 24%, #aeb8b5 50%, #7e8986 76%, #59635f 100%);
   text-shadow: 0 1px 0 hsl(0 0% 100% / 0.55);
+}
+
+.giq-liquid-purple-button {
+  position: relative;
+  isolation: isolate;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  border: 1px solid hsl(var(--primary-light) / 0.58);
+  border-radius: 10px;
+  padding: 0.75rem 1.5rem;
+  color: hsl(var(--metal-silver-bright));
+  background-color: hsl(var(--primary) / 0.82);
+  box-shadow:
+    inset 0 1px 0 hsl(var(--metal-silver-bright) / 0.32),
+    inset 0 -13px 24px hsl(270 70% 13% / 0.62),
+    inset 0 0 18px hsl(var(--primary-bright) / 0.18),
+    0 14px 32px hsl(var(--primary) / 0.34),
+    0 0 0 1px hsl(var(--metal-silver-bright) / 0.08);
+  text-decoration: none;
+  text-shadow: 0 1px 1px hsl(0 0% 0% / 0.46);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease;
+}
+
+.giq-liquid-purple-button::before {
+  content: "";
+  position: absolute;
+  inset: 2px 3px auto;
+  z-index: -1;
+  height: 48%;
+  border-radius: 8px;
+  background-color: hsl(var(--metal-silver-bright) / 0.14);
+  box-shadow:
+    0 8px 18px hsl(var(--metal-silver-bright) / 0.08),
+    inset 0 1px 0 hsl(var(--metal-silver-bright) / 0.22);
+  pointer-events: none;
+}
+
+.giq-liquid-purple-button::after {
+  content: "";
+  position: absolute;
+  inset: auto 14% 7px;
+  z-index: -1;
+  height: 12px;
+  border-radius: 999px;
+  background-color: hsl(var(--primary-bright) / 0.28);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+.giq-liquid-purple-button:hover {
+  transform: translateY(-1px);
+  border-color: hsl(var(--primary-light) / 0.76);
+  background-color: hsl(var(--primary-bright) / 0.78);
+  box-shadow:
+    inset 0 1px 0 hsl(var(--metal-silver-bright) / 0.38),
+    inset 0 -13px 24px hsl(270 70% 13% / 0.58),
+    inset 0 0 22px hsl(var(--primary-bright) / 0.24),
+    0 16px 36px hsl(var(--primary) / 0.42),
+    0 0 24px hsl(var(--primary-bright) / 0.22);
+}
+
+.giq-liquid-purple-button:active {
+  transform: translateY(0);
 }
 
 .giq-icon-button,
@@ -359,9 +436,9 @@ body {
   padding: 0;
   overflow: hidden;
   appearance: none;
-  border: 1px solid hsl(0 0% 100% / 0.24);
+  border: 1px solid hsl(var(--metal-silver) / 0.30);
   border-radius: 13px;
-  background: hsl(150 24% 4%);
+  background: hsl(var(--surface-1));
   cursor: pointer;
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.22),
@@ -374,11 +451,11 @@ body {
 
 .giq-logo-menu-button:hover {
   transform: translateY(-1px);
-  border-color: hsl(142 60% 62% / 0.48);
+  border-color: hsl(var(--secondary-light) / 0.54);
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.28),
     0 18px 36px hsl(0 0% 0% / 0.36),
-    0 0 20px hsl(142 60% 48% / 0.14);
+    0 0 20px hsl(var(--secondary) / 0.18);
 }
 
 .giq-logo-menu-glyph {
@@ -392,16 +469,17 @@ body {
   place-items: center;
   border: 1px solid hsl(0 0% 100% / 0.36);
   border-radius: 999px;
-  background: hsl(154 30% 6% / 0.84);
-  color: hsl(142 60% 68%);
+  background: hsl(var(--surface-1) / 0.88);
+  color: hsl(var(--secondary-light));
   box-shadow: 0 5px 12px hsl(0 0% 0% / 0.36);
 }
 
 .giq-header-nav {
-  border: 1px solid hsl(0 0% 100% / 0.18);
+  border: 1px solid hsl(var(--metal-silver) / 0.24);
   background:
-    radial-gradient(circle at 12% 0%, hsl(142 60% 48% / 0.16), transparent 42%),
-    hsl(155 22% 7% / 0.66);
+    radial-gradient(circle at 12% 0%, hsl(var(--primary) / 0.20), transparent 42%),
+    radial-gradient(circle at 88% 0%, hsl(var(--secondary) / 0.12), transparent 46%),
+    hsl(var(--surface-1) / 0.74);
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.18),
     0 18px 40px hsl(0 0% 0% / 0.24);
@@ -420,10 +498,10 @@ body {
   border: 1px solid hsl(0 0% 100% / 0.18);
   border-radius: 9px;
   padding: 0 16px;
-  color: hsl(210 13% 96%);
+  color: hsl(var(--foreground));
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.17), hsl(0 0% 100% / 0.035) 45%, hsl(0 0% 0% / 0.28)),
-    hsl(158 20% 9% / 0.76);
+    hsl(var(--surface-2) / 0.80);
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.18),
     inset 0 -1px 0 hsl(0 0% 0% / 0.42),
@@ -440,42 +518,42 @@ body {
 
 .giq-header-nav-link:hover {
   transform: translateY(-1px);
-  border-color: hsl(142 60% 64% / 0.44);
+  border-color: hsl(var(--secondary-light) / 0.46);
   color: white;
-  background-color: hsl(155 26% 12% / 0.84);
+  background-color: hsl(var(--surface-3) / 0.86);
 }
 
 .giq-header-nav-link.is-active {
   min-height: 44px;
-  border-color: hsl(142 70% 72% / 0.72);
+  border-color: hsl(var(--secondary-light) / 0.76);
   color: white;
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.24), hsl(0 0% 100% / 0.055) 38%, hsl(0 0% 0% / 0.24)),
-    radial-gradient(ellipse 76% 54% at 50% 0%, hsl(142 80% 78% / 0.42), transparent 62%),
-    linear-gradient(135deg, hsl(154 78% 35% / 0.98), hsl(148 66% 26% / 0.98));
+    radial-gradient(ellipse 76% 54% at 50% 0%, hsl(var(--secondary-light) / 0.38), transparent 62%),
+    linear-gradient(135deg, hsl(var(--primary) / 0.98), hsl(var(--secondary-deep) / 0.98));
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.34),
     inset 0 -1px 0 hsl(0 0% 0% / 0.42),
     0 15px 34px hsl(0 0% 0% / 0.30),
-    0 0 34px -8px hsl(142 66% 52% / 0.86);
+    0 0 34px -8px hsl(var(--primary-bright) / 0.72);
   text-shadow: 0 1px 1px hsl(0 0% 0% / 0.46);
   transform: translateY(-1px);
 }
 
 .giq-header-nav-link.is-active:hover {
-  border-color: hsl(142 78% 78% / 0.80);
+  border-color: hsl(var(--secondary-light) / 0.84);
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.27), hsl(0 0% 100% / 0.06) 38%, hsl(0 0% 0% / 0.20)),
-    radial-gradient(ellipse 76% 54% at 50% 0%, hsl(142 84% 80% / 0.48), transparent 62%),
-    linear-gradient(135deg, hsl(154 82% 38% / 0.98), hsl(148 68% 28% / 0.98));
+    radial-gradient(ellipse 76% 54% at 50% 0%, hsl(var(--secondary-light) / 0.46), transparent 62%),
+    linear-gradient(135deg, hsl(var(--primary-bright) / 0.96), hsl(var(--secondary-deep) / 0.98));
 }
 
 .giq-header-status {
   min-height: 36px;
-  border: 1px solid hsl(0 0% 100% / 0.18);
+  border: 1px solid hsl(var(--metal-silver) / 0.22);
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.11), hsl(0 0% 100% / 0.025)),
-    hsl(155 20% 8% / 0.64);
+    hsl(var(--surface-2) / 0.68);
   box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.14), 0 10px 22px hsl(0 0% 0% / 0.16);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -491,12 +569,12 @@ body {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 5px;
   padding: 7px;
-  border: 1px solid hsl(0 0% 100% / 0.20);
+  border: 1px solid hsl(var(--metal-silver) / 0.24);
   border-radius: 12px;
   background:
-    radial-gradient(circle at 20% 0%, hsl(142 60% 48% / 0.16), transparent 44%),
-    radial-gradient(circle at 84% 100%, hsl(25 95% 53% / 0.12), transparent 50%),
-    hsl(154 26% 5% / 0.88);
+    radial-gradient(circle at 20% 0%, hsl(var(--primary) / 0.20), transparent 44%),
+    radial-gradient(circle at 84% 100%, hsl(var(--secondary) / 0.16), transparent 50%),
+    hsl(var(--background) / 0.90);
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.18),
     0 24px 60px hsl(0 0% 0% / 0.46);
@@ -524,7 +602,7 @@ body {
   gap: 4px;
   border: 1px solid transparent;
   border-radius: 9px;
-  color: hsl(215 14% 78%);
+  color: hsl(var(--muted-foreground));
   text-decoration: none;
   transition:
     transform 160ms ease,
@@ -550,20 +628,20 @@ body {
 .giq-mobile-dock-link:hover,
 .giq-mobile-dock-link:focus-visible,
 .giq-mobile-dock-link.is-active {
-  border-color: hsl(142 60% 62% / 0.32);
-  color: hsl(210 13% 98%);
+  border-color: hsl(var(--primary-light) / 0.38);
+  color: hsl(var(--foreground));
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.12), hsl(0 0% 100% / 0.025)),
-    hsl(154 30% 10% / 0.62);
+    hsl(var(--surface-2) / 0.68);
 }
 
 .giq-mobile-dock-link[data-tone="pro"].is-active,
 .giq-mobile-dock-link[data-tone="pro"]:hover,
 .giq-mobile-dock-link[data-tone="pro"]:focus-visible {
-  border-color: hsl(32 95% 68% / 0.44);
+  border-color: hsl(var(--secondary-light) / 0.50);
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.13), hsl(0 0% 100% / 0.025)),
-    hsl(26 72% 32% / 0.72);
+    hsl(var(--secondary-deep) / 0.76);
 }
 
 .giq-mobile-dock-link:active {
@@ -605,6 +683,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .giq-button,
   .giq-button::before,
+  .giq-liquid-purple-button,
+  .giq-liquid-purple-button::before,
+  .giq-liquid-purple-button::after,
   .giq-logo-menu-button,
   .giq-header-nav-link,
   .giq-mobile-dock,
@@ -613,6 +694,7 @@ body {
   }
 
   .giq-button:hover,
+  .giq-liquid-purple-button:hover,
   .giq-logo-menu-button:hover,
   .giq-header-nav-link:hover,
   .giq-mobile-dock-link:active {
@@ -660,7 +742,7 @@ body {
 
 /* Visible focus ring for keyboard users (WCAG 2.4.7) */
 *:focus-visible {
-  outline: 2px solid hsl(142 60% 48%);
+  outline: 2px solid hsl(var(--secondary));
   outline-offset: 2px;
   border-radius: 6px;
 }

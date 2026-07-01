@@ -10,39 +10,39 @@ export default function PrivacyPage() {
   return (
     <div className="fade-in mx-auto max-w-3xl px-6 py-16">
       <div className="race-box-strip mb-5 w-40" />
-      <h1 className="mb-2 text-3xl text-[hsl(210_13%_97%)]">
+      <h1 className="mb-2 text-3xl text-[hsl(var(--foreground))]">
         Privacy Policy
       </h1>
-      <p className="mb-8 text-[13px] text-[hsl(220_7%_42%)]">
+      <p className="mb-8 text-[13px] text-[hsl(var(--subtle-foreground))]">
         Last updated: 28 June 2026
       </p>
 
-      <div className="space-y-6 text-[15px] leading-relaxed text-[hsl(215_14%_65%)]">
+      <div className="space-y-6 text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
         <p>
           GreyhoundIQ is built and operated in Australia. This policy explains
           what data we collect, how we use it, and your rights under the
           Australian Privacy Principles (APPs).
         </p>
 
-        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
           What we collect
         </h2>
         <ul className="list-disc pl-6 space-y-2">
           <li>
-            <strong className="text-[hsl(210_13%_97%)]">Account data:</strong>{" "}
+            <strong className="text-[hsl(var(--foreground))]">Account data:</strong>{" "}
             email, name, subscription status (via Supabase Auth and Stripe).
           </li>
           <li>
-            <strong className="text-[hsl(210_13%_97%)]">Usage data:</strong>{" "}
+            <strong className="text-[hsl(var(--foreground))]">Usage data:</strong>{" "}
             pages viewed, features used, search queries (anonymised analytics).
           </li>
           <li>
-            <strong className="text-[hsl(210_13%_97%)]">Payment data:</strong>{" "}
+            <strong className="text-[hsl(var(--foreground))]">Payment data:</strong>{" "}
             handled by Stripe — we never see or store card numbers.
           </li>
         </ul>
 
-        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
           How we use it
         </h2>
         <p>
@@ -50,7 +50,7 @@ export default function PrivacyPage() {
           usage, and comply with legal obligations. We do not sell your data.
         </p>
 
-        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
           Data storage
         </h2>
         <p>
@@ -58,7 +58,7 @@ export default function PrivacyPage() {
           payments only). Backups run daily.
         </p>
 
-        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
           Your rights
         </h2>
         <p>
@@ -66,7 +66,7 @@ export default function PrivacyPage() {
           analytics. Email privacy@greyhoundiq.com.au.
         </p>
 
-        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
           Cookies
         </h2>
         <p>
@@ -76,7 +76,7 @@ export default function PrivacyPage() {
         </p>
         <CookiePreferencePanel />
 
-        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
           Responsible gambling
         </h2>
         <p>
@@ -86,14 +86,14 @@ export default function PrivacyPage() {
             href="https://www.gamblinghelponline.org.au"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[hsl(142_60%_48%)] hover:underline"
+            className="text-[hsl(var(--primary-bright))] hover:underline"
           >
             Gambling Help Online
           </a>{" "}
           on 1800 858 858.
         </p>
 
-        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
           Changes
         </h2>
         <p>
@@ -101,12 +101,12 @@ export default function PrivacyPage() {
           changes will be announced on the homepage.
         </p>
 
-        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(210_13%_97%)]">
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
           Contact
         </h2>
         <p>
           Privacy questions?{" "}
-          <Link href="/contact" className="text-[hsl(142_60%_48%)] hover:underline">
+          <Link href="/contact" className="text-[hsl(var(--primary-bright))] hover:underline">
             Contact us
           </Link>
           .

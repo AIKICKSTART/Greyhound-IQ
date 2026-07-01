@@ -15,10 +15,10 @@ export default async function TracksPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.webp"
+        image="/images/wentworth-track-hero.webp"
         badge="AUSTRALIAN TRACKS"
-        badgeIcon={<MapPin className="h-3 w-3 text-[hsl(142_60%_48%)]" />}
-        badgeColor="green"
+        badgeIcon={<MapPin className="h-3 w-3 text-[hsl(var(--primary-bright))]" />}
+        badgeColor="primary"
         title={
           <>
             {tracks.length} tracks.
@@ -31,12 +31,12 @@ export default async function TracksPage() {
       <section className="mx-auto max-w-5xl px-6 py-10">
         {tracks.length === 0 ? (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-12 text-center">
-            <p className="text-[14px] text-[hsl(215_14%_65%)]">
+            <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
               No tracks loaded yet. The data pipeline connects in Phase 2.
             </p>
             <Link
               href="/races"
-              className="inline-block mt-4 text-[13px] font-semibold text-[hsl(142_60%_48%)] hover:underline tracking-[-0.013em]"
+              className="inline-block mt-4 text-[13px] font-semibold text-[hsl(var(--primary-bright))] hover:underline tracking-[-0.013em]"
             >
               Browse upcoming races →
             </Link>
@@ -52,19 +52,19 @@ export default async function TracksPage() {
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-[16px] font-semibold text-[hsl(210_13%_97%)] tracking-[-0.02em]">{track.name}</h3>
-                    <p className="flex items-center gap-1 mt-0.5 text-[12px] text-[hsl(220_7%_42%)]"><MapPin className="h-3 w-3" />{track.state}</p>
+                    <h3 className="text-[16px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.02em]">{track.name}</h3>
+                    <p className="flex items-center gap-1 mt-0.5 text-[12px] text-[hsl(var(--subtle-foreground))]"><MapPin className="h-3 w-3" />{track.state}</p>
                   </div>
                   {track.hasIsolynx && (
-                    <span className="rounded-full bg-[hsl(142_76%_36%/0.12)] px-2 py-0.5 text-[10px] font-semibold text-[hsl(142_60%_48%)]">GPS</span>
+                    <span className="rounded-full bg-[hsl(var(--primary)/0.12)] px-2 py-0.5 text-[10px] font-semibold text-[hsl(var(--primary-bright))]">GPS</span>
                   )}
                 </div>
-                <div className="mt-4 flex gap-4 text-[12px] text-[hsl(220_7%_42%)] tracking-[-0.013em]">
+                <div className="mt-4 flex gap-4 text-[12px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]">
                   {track.circumference && <span>{track.circumference}m circ.</span>}
                   {track.straightLength && <span>{track.straightLength}m straight</span>}
                   <span>{track.boxCount} boxes</span>
                 </div>
-                <p className="mt-2 text-[11px] text-[hsl(220_7%_42%)]">{track._count.meetings} meetings</p>
+                <p className="mt-2 text-[11px] text-[hsl(var(--subtle-foreground))]">{track._count.meetings} meetings</p>
               </Link>
             ))}
           </div>

@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
+import { runtimeDatabaseUrl } from "@/lib/database-url";
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
@@ -23,21 +25,6 @@ function makePrisma(): PrismaClient | null {
     });
   } catch {
     return null;
-  }
-}
-
-function runtimeDatabaseUrl(rawUrl: string) {
-  try {
-    const url = new URL(rawUrl);
-    if (!url.searchParams.has("connection_limit")) {
-      url.searchParams.set("connection_limit", "1");
-    }
-    if (!url.searchParams.has("pool_timeout")) {
-      url.searchParams.set("pool_timeout", "10");
-    }
-    return url.toString();
-  } catch {
-    return rawUrl;
   }
 }
 
@@ -78,13 +65,39 @@ const stub = new Proxy({} as PrismaClient, {
 
 export const prisma: PrismaClient = (realPrisma as PrismaClient) ?? (stub as PrismaClient);
 
+function summarizeDatabaseError(err: unknown) {
+  const maybeRecord = err && typeof err === "object" ? err as Record<string, unknown> : null;
+  const name = err instanceof Error ? err.name : "DatabaseError";
+  const code = typeof maybeRecord?.code === "string" ? maybeRecord.code : null;
+  const rawMessage = err instanceof Error ? err.message : String(err);
+
+  if (code === "P2024" || /connection pool|Timed out fetching a new connection/i.test(rawMessage)) {
+    return `${name}: connection pool timeout${code ? ` (${code})` : ""}`;
+  }
+  if (code === "P1001" || /can't reach database server|database server/i.test(rawMessage)) {
+    return `${name}: database unreachable${code ? ` (${code})` : ""}`;
+  }
+  if (/57014|statement timeout|canceling statement due to statement timeout/i.test(rawMessage)) {
+    return `${name}: statement timeout (Postgres 57014)`;
+  }
+
+  const message = rawMessage.replace(/\s+/g, " ").trim();
+  const shortMessage = message.length > 360 ? `${message.slice(0, 360)}...` : message;
+
+  return code ? `${name} ${code}: ${shortMessage}` : `${name}: ${shortMessage}`;
+}
+
 // ponytail: wraps a query so a DB connection failure renders an empty state
-// instead of a 500. Always logs so connection issues surface in production logs.
+// instead of a 500. Production logs keep connection issues visible; development
+// stays quiet so expected DB fallbacks do not trip the Next.js console overlay.
 export async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await fn();
   } catch (err) {
-    console.error("[safeQuery] DB error, returning fallback:", err);
+    if (process.env.NODE_ENV === "production") {
+      const message = `[safeQuery] DB error, returning fallback: ${summarizeDatabaseError(err)}`;
+      console.error(message);
+    }
     return fallback;
   }
 }

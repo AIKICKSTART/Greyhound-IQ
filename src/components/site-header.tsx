@@ -13,9 +13,9 @@ import { HeaderNav } from "@/components/header-nav";
 import { siteAssetUrl } from "@/lib/storage-paths";
 
 const TIER_BADGE: Record<string, { label: string; color: string }> = {
-  free: { label: "Free", color: "215 14% 65%" },
-  pro: { label: "Pro", color: "142 60% 48%" },
-  pro_plus: { label: "Pro+", color: "25 95% 53%" },
+  free: { label: "Free", color: "var(--muted-foreground)" },
+  pro: { label: "Pro", color: "var(--primary-bright)" },
+  pro_plus: { label: "Pro+", color: "var(--secondary)" },
 };
 
 const NAV_LINKS = [
@@ -30,16 +30,16 @@ const NAV_LINKS = [
   { href: "/pricing", label: "Pricing" },
 ];
 
-const HEADER_BANNER_LANDSCAPE = siteAssetUrl("/images/site-header-gate-burst-landscape.webp");
-const HEADER_BANNER_PORTRAIT = siteAssetUrl("/images/site-header-gate-burst-portrait.webp");
-const LOGO_MAIN = siteAssetUrl("/images/logo-main.webp");
-const LOGO_MARK = siteAssetUrl("/images/logo-mark-new.webp");
+const HEADER_BANNER_LANDSCAPE = siteAssetUrl("/images/wentworth-track-banner-landscape.webp");
+const HEADER_BANNER_PORTRAIT = siteAssetUrl("/images/wentworth-track-banner-portrait.webp");
+const LOGO_MAIN = siteAssetUrl("/images/logo-main-purple-gold.webp");
+const LOGO_MARK = siteAssetUrl("/images/logo-mark-purple-gold.webp");
 
 function HeaderBannerImage() {
   const common = {
     alt: "",
     className:
-      "pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-left opacity-[0.98] saturate-125",
+      "pointer-events-none absolute inset-0 z-0 h-full w-full object-contain object-center opacity-[0.98] saturate-125",
     loading: "eager" as const,
     sizes: "100vw",
   };
@@ -77,15 +77,15 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-2 z-50 w-full px-3 md:px-5">
-      <div className="relative isolate mx-auto min-h-[132px] max-w-7xl overflow-hidden rounded-2xl border border-white/25 bg-[hsl(168_22%_18%/0.68)] shadow-[0_22px_55px_hsl(0_0%_0%/0.34)] backdrop-blur-xl md:min-h-[168px]">
+      <div className="relative isolate mx-auto min-h-[132px] max-w-7xl overflow-hidden rounded-2xl border border-white/25 bg-[hsl(var(--surface-3)/0.68)] shadow-[0_22px_55px_hsl(0_0%_0%/0.34)] backdrop-blur-xl md:min-h-[168px]">
         <HeaderBannerImage />
         <div
           aria-hidden="true"
-          className="absolute inset-0 z-10 bg-[linear-gradient(90deg,hsl(158_24%_8%/0.40)_0%,hsl(178_18%_16%/0.16)_45%,hsl(190_24%_24%/0.06)_100%)]"
+          className="absolute inset-0 z-10 bg-[linear-gradient(90deg,hsl(var(--surface-1)/0.40)_0%,hsl(var(--surface-3)/0.16)_45%,hsl(var(--surface-3)/0.06)_100%)]"
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 z-10 bg-[linear-gradient(180deg,hsl(0_0%_100%/0.18)_0%,transparent_44%,hsl(150_24%_5%/0.30)_100%)]"
+          className="absolute inset-0 z-10 bg-[linear-gradient(180deg,hsl(0_0%_100%/0.18)_0%,transparent_44%,hsl(var(--surface-1)/0.30)_100%)]"
         />
         <div aria-hidden="true" className="race-box-strip absolute inset-x-6 bottom-0 z-30 h-[3px] rounded-none opacity-95" />
 
@@ -107,7 +107,7 @@ export async function SiteHeader() {
                   <Menu className="h-3 w-3" />
                 </span>
               </SheetTrigger>
-              <SheetContent side="left" className="border-white/[0.06] bg-[hsl(150_18%_6%)]">
+              <SheetContent side="left" className="border-white/[0.06] bg-[hsl(var(--surface-1))]">
                 <SheetTitle className="sr-only">Navigation</SheetTitle>
                 <div className="race-box-strip mt-4" />
                 <nav className="mt-8 flex flex-col gap-3">
@@ -143,9 +143,9 @@ export async function SiteHeader() {
 
               {user ? (
                 <>
-                  <span className="hidden items-center gap-2 text-[13px] text-[hsl(215_14%_65%)] sm:flex">
-                    <span className="max-w-[140px] truncate font-medium text-[hsl(210_13%_97%)]">
-                      <Link href="/account" className="hover:text-[hsl(142_60%_48%)]">
+                  <span className="hidden items-center gap-2 text-[13px] text-[hsl(var(--muted-foreground))] sm:flex">
+                    <span className="max-w-[140px] truncate font-medium text-[hsl(var(--foreground))]">
+                      <Link href="/account" className="hover:text-[hsl(var(--primary-bright))]">
                         {user.firstName || user.name}
                       </Link>
                     </span>
@@ -185,7 +185,7 @@ export async function SiteHeader() {
                   </Link>
                   <Link
                     href="/pricing"
-                    className="giq-button giq-button-copper px-3.5 text-[13px] font-bold sm:px-5"
+                    className="giq-button giq-button-gold px-3.5 text-[13px] font-bold sm:px-5"
                   >
                     <Crown className="h-3.5 w-3.5" />
                     <span className="sm:hidden">Pro</span>
@@ -215,13 +215,13 @@ export async function SiteHeader() {
             <HeaderNav links={NAV_LINKS} variant="desktop" />
           </nav>
 
-          <div className="hidden items-center justify-between gap-4 text-[11px] text-[hsl(210_13%_88%)] lg:flex">
+          <div className="hidden items-center justify-between gap-4 text-[11px] text-[hsl(var(--muted-foreground))] lg:flex">
             <div className="flex items-center gap-3">
-              <span className="giq-header-status inline-flex items-center gap-2 rounded-lg px-3 py-1.5 font-semibold uppercase tracking-[0.12em] text-[hsl(142_60%_68%)]">
+              <span className="giq-header-status inline-flex items-center gap-2 rounded-lg px-3 py-1.5 font-semibold uppercase tracking-[0.12em] text-[hsl(var(--primary-light))]">
                 <Activity className="h-3.5 w-3.5" />
                 Live form desk
               </span>
-              <span className="text-[hsl(210_13%_88%)] drop-shadow">
+              <span className="text-[hsl(var(--muted-foreground))] drop-shadow">
                 Race cards, ownership, breeding, agents, and marketplace in one track-side view
               </span>
             </div>
@@ -229,7 +229,7 @@ export async function SiteHeader() {
               href="/agents"
               className="giq-button giq-button-glass min-h-9 px-3 text-[11px] font-semibold"
             >
-              <Sparkles className="h-3.5 w-3.5 text-[hsl(25_95%_60%)]" />
+              <Sparkles className="h-3.5 w-3.5 text-[hsl(var(--secondary-light))]" />
               Agent console
             </Link>
           </div>

@@ -25,10 +25,10 @@ export default async function ResultsPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.webp"
+        image="/images/wentworth-track-hero.webp"
         badge="RECENT RESULTS"
-        badgeIcon={<Trophy className="h-3 w-3 text-[hsl(25_95%_53%)]" />}
-        badgeColor="orange"
+        badgeIcon={<Trophy className="h-3 w-3 text-[hsl(var(--secondary))]" />}
+        badgeColor="gold"
         title={
           <>
             Past 48 hours.
@@ -42,7 +42,7 @@ export default async function ResultsPage() {
         {results.length === 0 ? (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-12 text-center">
             <p
-              className="text-[14px] text-[hsl(215_14%_65%)] tracking-[-0.013em]"
+              className="text-[14px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]"
             >
               No results available yet. The data pipeline connects in Phase 2.
             </p>
@@ -50,31 +50,31 @@ export default async function ResultsPage() {
         ) : (
           Object.entries(byTrack).map(([trackName, races]) => (
             <div key={trackName} className="mb-8">
-              <h2 className="text-[18px] font-semibold text-[hsl(210_13%_97%)] mb-3 tracking-[-0.02em]">
+              <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))] mb-3 tracking-[-0.02em]">
                 {trackName}
               </h2>
               <div className="space-y-1.5">
                 {races.map((race) => (
                   <div key={race.id} className="flex items-center gap-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3.5 hover:bg-white/[0.04] transition-all">
-                    <Link href={`/races/${race.id}`} className="text-[13px] font-medium text-[hsl(142_60%_48%)] w-14">
+                    <Link href={`/races/${race.id}`} className="text-[13px] font-medium text-[hsl(var(--primary-bright))] w-14">
                       R{race.raceNumber}
                     </Link>
-                    <span className="text-[12px] text-[hsl(220_7%_42%)] w-16 tracking-[-0.013em]">{race.distance}m</span>
+                    <span className="text-[12px] text-[hsl(var(--subtle-foreground))] w-16 tracking-[-0.013em]">{race.distance}m</span>
                     <div className="flex-1 flex flex-wrap gap-3">
                       {race.runners.map((r, i) => (
                         <div key={r.id} className="flex items-center gap-1.5">
                           <span className={`flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold ${
-                            i === 0 ? "bg-[#FCD34D] text-gray-900" : "border border-white/[0.08] text-[hsl(215_14%_65%)]"
+                            i === 0 ? "bg-[hsl(var(--secondary-light))] text-[hsl(var(--secondary-foreground))]" : "border border-white/[0.08] text-[hsl(var(--muted-foreground))]"
                           }`}>
                             {r.result?.finishingPosition}
                           </span>
-                          <span className={`text-[13px] text-[hsl(210_13%_97%)] ${i === 0 ? "font-semibold" : "font-normal"}`}>
+                          <span className={`text-[13px] text-[hsl(var(--foreground))] ${i === 0 ? "font-semibold" : "font-normal"}`}>
                             {r.dog.name}
                           </span>
                         </div>
                       ))}
                     </div>
-                    <span className="text-[12px] text-[hsl(220_7%_42%)] tracking-[-0.013em]">
+                    <span className="text-[12px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]">
                       {race.raceTime.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false })}
                     </span>
                   </div>

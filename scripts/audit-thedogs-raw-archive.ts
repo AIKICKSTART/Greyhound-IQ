@@ -5,8 +5,9 @@
  * Examples:
  *   npm run audit:thedogs:raw
  *   npm run audit:thedogs:raw -- --from 2006-11-18 --to 2026-07-01
+ *   npm run audit:thedogs:raw -- --output-file .backfill/reports/thedogs-raw-richness-latest.json
  */
-import { readdir, readFile, stat } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { LiveMeeting, LiveRace, LiveRunner } from "../src/lib/live/provider";
 
@@ -18,6 +19,8 @@ type Options = {
   from?: string;
   to?: string;
   missingLimit: number;
+  outputFile?: string;
+  compact: boolean;
 };
 
 type RawCandidate = {
@@ -162,38 +165,40 @@ async function main() {
     },
   };
 
-  console.log(
-    JSON.stringify(
-      {
-        summary,
-        missingRawDateSamples: missingDates.slice(0, options.missingLimit),
-        invalidFileSamples: invalidFiles.slice(0, options.missingLimit),
-        years: Object.fromEntries(
-          [...years.entries()]
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([year, stats]) => [
-              year,
-              {
-                ...stats,
-                richnessRates: {
-                  runnerWeight: ratio(stats.runnersWithWeight, stats.runners),
-                  runnerTrainer: ratio(stats.runnersWithTrainer, stats.runners),
-                  startingPrice: ratio(stats.runnersWithStartingPrice, stats.runners),
-                  runningTime: ratio(stats.runnersWithRunningTime, stats.runners),
-                  margin: ratio(stats.runnersWithMargin, stats.runners),
-                  splitTime: ratio(stats.runnersWithSplitTime, stats.runners),
-                  sectionals: ratio(stats.runnersWithSectionals, stats.runners),
-                  prizeMoney: ratio(stats.racesWithPrizeMoney, stats.races),
-                  replay: ratio(stats.racesWithReplay, stats.races),
-                },
-              },
-            ])
-        ),
-      },
-      null,
-      2
-    )
-  );
+  const report = {
+    generatedAt: new Date().toISOString(),
+    summary,
+    missingRawDateSamples: missingDates.slice(0, options.missingLimit),
+    invalidFileSamples: invalidFiles.slice(0, options.missingLimit),
+    years: Object.fromEntries(
+      [...years.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([year, stats]) => [
+          year,
+          {
+            ...stats,
+            richnessRates: {
+              runnerWeight: ratio(stats.runnersWithWeight, stats.runners),
+              runnerTrainer: ratio(stats.runnersWithTrainer, stats.runners),
+              startingPrice: ratio(stats.runnersWithStartingPrice, stats.runners),
+              runningTime: ratio(stats.runnersWithRunningTime, stats.runners),
+              margin: ratio(stats.runnersWithMargin, stats.runners),
+              splitTime: ratio(stats.runnersWithSplitTime, stats.runners),
+              sectionals: ratio(stats.runnersWithSectionals, stats.runners),
+              prizeMoney: ratio(stats.racesWithPrizeMoney, stats.races),
+              replay: ratio(stats.racesWithReplay, stats.races),
+            },
+          },
+        ])
+    ),
+  };
+
+  if (options.outputFile) {
+    await mkdir(path.dirname(options.outputFile), { recursive: true });
+    await writeFile(options.outputFile, `${JSON.stringify(report, null, 2)}\n`);
+  }
+
+  console.log(JSON.stringify(report, null, options.compact ? 0 : 2));
 
   if (invalidFiles.length > 0) process.exitCode = 1;
 }
@@ -291,6 +296,8 @@ function parseOptions(args: string[]): Options {
       stringOption(values, "missing-limit"),
       DEFAULT_MISSING_LIMIT
     ),
+    outputFile: stringOption(values, "output-file"),
+    compact: values.has("compact"),
   };
 }
 

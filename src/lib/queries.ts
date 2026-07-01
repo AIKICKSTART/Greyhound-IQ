@@ -2,6 +2,7 @@ import { cache } from "react";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { safeQuery } from "@/lib/db";
+import { getApproximateTableCounts } from "@/lib/db-stats";
 import { listingInclude, soldSearchCutoffDate } from "@/lib/listing-service";
 
 export async function getTodaysMeetings() {
@@ -50,6 +51,23 @@ export const getRaceById = cache(async (id: string) => {
               },
               trainer: true,
               result: true,
+            },
+          },
+          videos: {
+            orderBy: { fetchedAt: "desc" },
+            select: {
+              id: true,
+              kind: true,
+              pageUrl: true,
+              embedSourceType: true,
+              sourceStatus: true,
+              sourceCode: true,
+              streamUrl: true,
+              streamContentType: true,
+              title: true,
+              description: true,
+              fetchedAt: true,
+              lastSyncedAt: true,
             },
           },
         },
@@ -175,6 +193,228 @@ export async function getUpcomingRaces(days = 7) {
       }),
     []
   );
+}
+
+export interface RaceExplorerFilters {
+  date?: string | null;
+  state?: string | null;
+}
+
+export async function getRaceExplorerData(filters: RaceExplorerFilters = {}) {
+  const [latestRace, states, datasetStats, recentRaceDates] = await Promise.all([
+    safeQuery(
+      () =>
+        prisma.race.findFirst({
+          orderBy: { raceTime: "desc" },
+          select: { raceTime: true },
+        }),
+      null
+    ),
+    getRaceStates(),
+    getDatasetStats(),
+    getRecentRaceDates(),
+  ]);
+
+  const selectedDate =
+    normaliseDateParam(filters.date) ??
+    formatDateInput(latestRace?.raceTime ?? new Date());
+  const selectedState = states.includes(filters.state ?? "")
+    ? filters.state ?? null
+    : null;
+  const { gte, lt } = raceDateWindow(selectedDate);
+  const raceWhere: Prisma.RaceWhereInput = {
+    raceTime: { gte, lt },
+    ...(selectedState
+      ? { meeting: { track: { state: selectedState } } }
+      : {}),
+  };
+  const meetingWhere: Prisma.MeetingWhereInput = {
+    races: { some: { raceTime: { gte, lt } } },
+    ...(selectedState ? { track: { state: selectedState } } : {}),
+  };
+
+  const [meetings, dateSummary, replayRaces] = await Promise.all([
+    safeQuery(
+      () =>
+        prisma.meeting.findMany({
+          where: meetingWhere,
+          include: {
+            track: true,
+            races: {
+              where: { raceTime: { gte, lt } },
+              orderBy: { raceTime: "asc" },
+              include: {
+                runners: { select: { id: true } },
+                videos: {
+                  select: {
+                    id: true,
+                    streamUrl: true,
+                    sourceStatus: true,
+                  },
+                  orderBy: { fetchedAt: "desc" },
+                  take: 1,
+                },
+              },
+            },
+          },
+          orderBy: [{ track: { state: "asc" } }, { track: { name: "asc" } }],
+        }),
+      []
+    ),
+    getRaceDateSummary(raceWhere, meetingWhere),
+    safeQuery(
+      () =>
+        prisma.race.findMany({
+          where: {
+            ...raceWhere,
+            videos: { some: { streamUrl: { not: null } } },
+          },
+          orderBy: { raceTime: "desc" },
+          take: 8,
+          include: {
+            meeting: { include: { track: true } },
+            videos: {
+              where: { streamUrl: { not: null } },
+              orderBy: { fetchedAt: "desc" },
+              take: 1,
+            },
+          },
+        }),
+      []
+    ),
+  ]);
+
+  return {
+    selectedDate,
+    selectedState,
+    states,
+    datasetStats,
+    recentRaceDates,
+    dateSummary,
+    meetings,
+    replayRaces,
+  };
+}
+
+async function getRaceStates() {
+  const rows = await safeQuery(
+    () =>
+      prisma.track.findMany({
+        distinct: ["state"],
+        select: { state: true },
+        orderBy: { state: "asc" },
+      }),
+    []
+  );
+  return rows.map((row) => row.state).filter(Boolean);
+}
+
+async function getDatasetStats() {
+  const fallback = {
+    races: 0,
+    runners: 0,
+    results: 0,
+    dogs: 0,
+    dogProfileForms: 0,
+    videos: 0,
+    videosWithStream: 0,
+    latestRaceTime: null as string | null,
+  };
+  return safeQuery(async () => {
+    const [tableCounts, videosWithStream, latestRace] = await Promise.all([
+      getApproximateTableCounts([
+        "Race",
+        "Runner",
+        "Result",
+        "Dog",
+        "DogProfileForm",
+        "RaceVideo",
+      ]),
+      prisma.raceVideo.count({ where: { streamUrl: { not: null } } }),
+      prisma.race.findFirst({
+        orderBy: { raceTime: "desc" },
+        select: { raceTime: true },
+      }),
+    ]);
+
+    return {
+      races: tableCounts.get("Race") ?? 0,
+      runners: tableCounts.get("Runner") ?? 0,
+      results: tableCounts.get("Result") ?? 0,
+      dogs: tableCounts.get("Dog") ?? 0,
+      dogProfileForms: tableCounts.get("DogProfileForm") ?? 0,
+      videos: tableCounts.get("RaceVideo") ?? 0,
+      videosWithStream,
+      latestRaceTime: latestRace?.raceTime.toISOString() ?? null,
+    };
+  }, fallback);
+}
+
+async function getRecentRaceDates() {
+  const rows = await safeQuery(
+    () =>
+      prisma.$queryRaw<{ date: Date; races: number }[]>`
+        SELECT date_trunc('day', r."raceTime") AS date,
+               COUNT(*)::int AS races
+        FROM "Race" r
+        GROUP BY 1
+        ORDER BY 1 DESC
+        LIMIT 14
+      `,
+    []
+  );
+
+  return rows.map((row) => ({
+    date: formatDateInput(row.date),
+    races: row.races,
+  }));
+}
+
+async function getRaceDateSummary(
+  raceWhere: Prisma.RaceWhereInput,
+  meetingWhere: Prisma.MeetingWhereInput
+) {
+  const fallback = {
+    meetings: 0,
+    races: 0,
+    runners: 0,
+    results: 0,
+    videos: 0,
+    videosWithStream: 0,
+  };
+
+  return safeQuery(async () => {
+    const [meetings, races, runners, results, videos, videosWithStream] =
+      await Promise.all([
+        prisma.meeting.count({ where: meetingWhere }),
+        prisma.race.count({ where: raceWhere }),
+        prisma.runner.count({ where: { race: raceWhere } }),
+        prisma.result.count({ where: { runner: { race: raceWhere } } }),
+        prisma.raceVideo.count({ where: { race: raceWhere } }),
+        prisma.raceVideo.count({
+          where: { race: raceWhere, streamUrl: { not: null } },
+        }),
+      ]);
+
+    return { meetings, races, runners, results, videos, videosWithStream };
+  }, fallback);
+}
+
+function normaliseDateParam(value: string | null | undefined) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(parsed.valueOf()) ? null : value;
+}
+
+function raceDateWindow(date: string) {
+  const gte = new Date(`${date}T00:00:00.000Z`);
+  const lt = new Date(gte);
+  lt.setUTCDate(lt.getUTCDate() + 1);
+  return { gte, lt };
+}
+
+function formatDateInput(date: Date) {
+  return date.toISOString().slice(0, 10);
 }
 
 export async function getAllTracks() {

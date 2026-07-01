@@ -6,19 +6,19 @@
  *   npm run backfill:thedogs -- --from 2025-01-01 --to 2025-01-31 --max-days 7
  *   npm run backfill:thedogs -- --from 2007-01-01 --to 2007-12-31 --full
  */
+import "./load-import-env";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdir, readFile, appendFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { loadEnvConfig } from "@next/env";
 import { prisma } from "../src/lib/db";
 import { syncLiveMeetings, type SyncCounts } from "../src/lib/live/sync";
 import type { LiveMeeting } from "../src/lib/live/provider";
 import { TheDogsProvider } from "../src/lib/live/thedogs";
 
-loadEnvConfig(process.cwd());
-
 const DEFAULT_FROM = process.env.THEDOGS_BACKFILL_FROM ?? "2006-08-01";
 const DEFAULT_PROGRESS = ".backfill/thedogs-history-progress.jsonl";
 const DB_UNAVAILABLE_EXIT_CODE = 75;
+const DB_PREFLIGHT_TIMEOUT_MS = 15_000;
 
 type Options = {
   from: string;
@@ -82,6 +82,27 @@ async function main() {
     console.log(
       `[backfill:thedogs] Capped to ${selected.length} day(s). Pass --full or raise --max-days to continue more dates.`
     );
+  }
+
+  if (!options.fetchOnly && selected.length > 0) {
+    const watchdog = setTimeout(() => {
+      console.error(
+        `[backfill:thedogs] database preflight exceeded ${DB_PREFLIGHT_TIMEOUT_MS}ms; exiting`
+      );
+      process.exit(DB_UNAVAILABLE_EXIT_CODE);
+    }, DB_PREFLIGHT_TIMEOUT_MS + 1_000);
+    const dbCheck = await preflightDatabase();
+    clearTimeout(watchdog);
+    if (!dbCheck.ok) {
+      const message = dbCheck.error instanceof Error
+        ? dbCheck.error.message
+        : String(dbCheck.error);
+      console.error(
+        `[backfill:thedogs] database unavailable before sync after ${dbCheck.durationMs}ms: ${message}`
+      );
+      process.exit(DB_UNAVAILABLE_EXIT_CODE);
+    }
+    console.log(`[backfill:thedogs] database preflight ok in ${dbCheck.durationMs}ms`);
   }
 
   const provider = new TheDogsProvider();
@@ -183,6 +204,79 @@ async function backfillDateWithRetries(
   };
 }
 
+async function preflightDatabase() {
+  const startedAt = Date.now();
+  const tsxCli = path.join(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs");
+  const preflightScript = path.join(process.cwd(), "scripts", "preflight-import-database.ts");
+  const child = spawn(process.execPath, [tsxCli, preflightScript], {
+    cwd: process.cwd(),
+    env: process.env,
+    windowsHide: true,
+  });
+  let stdout = "";
+  let stderr = "";
+
+  return new Promise<
+    | { ok: true; durationMs: number }
+    | { ok: false; error: Error; durationMs: number }
+  >((resolve) => {
+    let settled = false;
+    const finish = (result: { ok: true } | { ok: false; error: Error }) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      resolve({ ...result, durationMs: Date.now() - startedAt });
+    };
+    const timeout = setTimeout(() => {
+      killProcessTree(child.pid);
+      finish({
+        ok: false,
+        error: new Error(
+          `database preflight child timed out after ${DB_PREFLIGHT_TIMEOUT_MS}ms`
+        ),
+      });
+    }, DB_PREFLIGHT_TIMEOUT_MS);
+
+    child.stdout.on("data", (chunk) => {
+      stdout += String(chunk);
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += String(chunk);
+    });
+    child.on("error", (error) => finish({ ok: false, error }));
+    child.on("exit", (code, signal) => {
+      if (code === 0) {
+        finish({ ok: true });
+        return;
+      }
+      finish({
+        ok: false,
+        error: new Error(
+          `database preflight child exited with code ${String(code)} signal ${String(signal)}${preflightOutput(stdout, stderr)}`
+        ),
+      });
+    });
+  });
+}
+
+function killProcessTree(pid: number | undefined) {
+  if (!pid) return;
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore" });
+    return;
+  }
+  try {
+    process.kill(pid, "SIGKILL");
+  } catch {
+    // Process may already have exited.
+  }
+}
+
+function preflightOutput(stdout: string, stderr: string) {
+  const output = [stderr.trim(), stdout.trim()].filter(Boolean).join("\n");
+  return output ? `: ${output.slice(-2_000)}` : "";
+}
+
 function parseOptions(args: string[]): Options {
   const values = new Map<string, string | true>();
   for (let index = 0; index < args.length; index += 1) {
@@ -278,7 +372,8 @@ async function readCompletedDatesFromFile(
     for (const line of body.split(/\r?\n/)) {
       if (!line.trim()) continue;
       const record = JSON.parse(line) as { date?: string; ok?: boolean; rawOnly?: boolean };
-      if (record.date && record.ok && (includeRawOnly || !record.rawOnly)) {
+      const completedForMode = includeRawOnly ? record.rawOnly : !record.rawOnly;
+      if (record.date && record.ok && completedForMode) {
         completed.add(record.date);
       }
     }
@@ -336,14 +431,21 @@ function countsFromMeetings(meetings: LiveMeeting[]): SyncCounts {
 
 function isDatabaseConnectivityError(err: unknown) {
   const message = err instanceof Error ? err.message : String(err);
+  const name =
+    typeof err === "object" && err != null && "name" in err && typeof err.name === "string"
+      ? err.name
+      : "";
+  const text = `${name}\n${message}\n${String(err)}`;
   return (
-    /can't reach database server/i.test(message) ||
-    /timed out fetching a new connection/i.test(message) ||
-    /too many clients/i.test(message) ||
-    /remaining connection slots/i.test(message) ||
-    /\bEMAXCONNSESSION\b/i.test(message) ||
-    /\bP1001\b/i.test(message) ||
-    /\bP1002\b/i.test(message)
+    /can't reach database server/i.test(text) ||
+    /timed out fetching a new connection/i.test(text) ||
+    /too many clients/i.test(text) ||
+    /remaining connection slots/i.test(text) ||
+    /\bEMAXCONNSESSION\b/i.test(text) ||
+    /\bP1001\b/i.test(text) ||
+    /\bP1002\b/i.test(text) ||
+    (/PrismaClientInitializationError/i.test(text) &&
+      /database server|pooler\.supabase\.com/i.test(text))
   );
 }
 

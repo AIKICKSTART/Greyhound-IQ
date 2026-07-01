@@ -6,14 +6,12 @@
  *   npm run backfill:thedogs:dog-profile-shards -- start --workers 4 --concurrency 1
  *   npm run backfill:thedogs:dog-profile-shards -- stop
  */
+import "./load-env";
 import { spawn, spawnSync } from "node:child_process";
 import { closeSync, existsSync, openSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { loadEnvConfig } from "@next/env";
 import { prisma } from "../src/lib/db";
-
-loadEnvConfig(process.cwd());
 
 const BACKFILL_DIR = ".backfill";
 const LOG_DIR = path.join(BACKFILL_DIR, "logs");

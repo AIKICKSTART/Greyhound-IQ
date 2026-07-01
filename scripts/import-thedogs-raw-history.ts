@@ -6,18 +6,19 @@
  *   npm run import:thedogs:raw -- --from 2006-11-18 --to 2006-11-30 --full --stop-on-db-error
  *   npm run import:thedogs:raw -- --full --raw-dir .backfill/thedogs-raw
  */
+import "./load-import-env";
+import { spawn, spawnSync } from "node:child_process";
 import { access, appendFile, mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { loadEnvConfig } from "@next/env";
 import { prisma } from "../src/lib/db";
 import { syncLiveMeetings, type SyncCounts } from "../src/lib/live/sync";
 import type { LiveMeeting } from "../src/lib/live/provider";
 
-loadEnvConfig(process.cwd());
-
 const DEFAULT_RAW_DIR = ".backfill/thedogs-raw";
 const DEFAULT_PROGRESS = ".backfill/thedogs-raw-import-progress.jsonl";
 const DB_UNAVAILABLE_EXIT_CODE = 75;
+const DB_PREFLIGHT_TIMEOUT_MS = 15_000;
+const DEFAULT_CANDIDATE_TIMEOUT_MS = 600_000;
 
 type Options = {
   date?: string;
@@ -35,6 +36,10 @@ type Options = {
   pauseMs: number;
   retryAttempts: number;
   retryDelayMs: number;
+  candidateTimeoutMs: number;
+  debugSync: boolean;
+  shardIndex?: number;
+  shardCount?: number;
 };
 
 type RawArchive = {
@@ -51,11 +56,14 @@ type RawCandidate = {
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
+  process.env.LIVE_SYNC_INSERT_ONLY ??= "1";
+  if (options.debugSync) process.env.LIVE_SYNC_DEBUG = "1";
   const completed = options.resume && !options.dryRun
     ? await readImportedDates(options.progressFile)
     : new Set<string>();
   const candidates = await findCandidates(options);
-  const pending = candidates.filter((candidate) => !completed.has(candidate.date));
+  const shardCandidates = filterShard(candidates, options);
+  const pending = shardCandidates.filter((candidate) => !completed.has(candidate.date));
   const selected = options.full ? pending : pending.slice(0, options.limit);
 
   console.log(
@@ -71,6 +79,7 @@ async function main() {
         full: options.full,
         limit: options.limit,
         discoveredRawDates: candidates.length,
+        shardRawDates: shardCandidates.length,
         completedImports: completed.size,
         pendingDates: pending.length,
         selectedDates: selected.length,
@@ -80,6 +89,10 @@ async function main() {
         pauseMs: options.pauseMs,
         retryAttempts: options.retryAttempts,
         retryDelayMs: options.retryDelayMs,
+        candidateTimeoutMs: options.candidateTimeoutMs,
+        debugSync: options.debugSync,
+        shardIndex: options.shardIndex ?? null,
+        shardCount: options.shardCount ?? null,
       },
       null,
       2
@@ -92,8 +105,27 @@ async function main() {
     );
   }
 
+  if (!options.dryRun && selected.length > 0) {
+    const watchdog = setTimeout(() => {
+      console.error(
+        `[import:thedogs:raw] database preflight exceeded ${DB_PREFLIGHT_TIMEOUT_MS}ms; exiting`
+      );
+      process.exit(DB_UNAVAILABLE_EXIT_CODE);
+    }, DB_PREFLIGHT_TIMEOUT_MS + 1_000);
+    const dbCheck = await preflightDatabase();
+    clearTimeout(watchdog);
+    if (!dbCheck.ok) {
+      console.error(
+        `[import:thedogs:raw] database unavailable before replay after ${dbCheck.durationMs}ms: ${errorMessage(dbCheck.error)}`
+      );
+      process.exit(DB_UNAVAILABLE_EXIT_CODE);
+    }
+    console.log(`[import:thedogs:raw] database preflight ok in ${dbCheck.durationMs}ms`);
+  }
+
   let errorCount = 0;
   for (const candidate of selected) {
+    console.log(`[import:thedogs:raw] starting ${candidate.date}: ${candidate.rawPath}`);
     const result = await importRawCandidateWithRetries(candidate, options);
     if (!result.ok) {
       await appendProgress(options.progressFile, {
@@ -124,6 +156,79 @@ async function main() {
   }
 }
 
+async function preflightDatabase() {
+  const startedAt = Date.now();
+  const tsxCli = path.join(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs");
+  const preflightScript = path.join(process.cwd(), "scripts", "preflight-import-database.ts");
+  const child = spawn(process.execPath, [tsxCli, preflightScript], {
+    cwd: process.cwd(),
+    env: process.env,
+    windowsHide: true,
+  });
+  let stdout = "";
+  let stderr = "";
+
+  return new Promise<
+    | { ok: true; durationMs: number }
+    | { ok: false; error: Error; durationMs: number }
+  >((resolve) => {
+    let settled = false;
+    const finish = (result: { ok: true } | { ok: false; error: Error }) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      resolve({ ...result, durationMs: Date.now() - startedAt });
+    };
+    const timeout = setTimeout(() => {
+      killProcessTree(child.pid);
+      finish({
+        ok: false,
+        error: new Error(
+          `database preflight child timed out after ${DB_PREFLIGHT_TIMEOUT_MS}ms`
+        ),
+      });
+    }, DB_PREFLIGHT_TIMEOUT_MS);
+
+    child.stdout.on("data", (chunk) => {
+      stdout += String(chunk);
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += String(chunk);
+    });
+    child.on("error", (error) => finish({ ok: false, error }));
+    child.on("exit", (code, signal) => {
+      if (code === 0) {
+        finish({ ok: true });
+        return;
+      }
+      finish({
+        ok: false,
+        error: new Error(
+          `database preflight child exited with code ${String(code)} signal ${String(signal)}${preflightOutput(stdout, stderr)}`
+        ),
+      });
+    });
+  });
+}
+
+function killProcessTree(pid: number | undefined) {
+  if (!pid) return;
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore" });
+    return;
+  }
+  try {
+    process.kill(pid, "SIGKILL");
+  } catch {
+    // Process may already have exited.
+  }
+}
+
+function preflightOutput(stdout: string, stderr: string) {
+  const output = [stderr.trim(), stdout.trim()].filter(Boolean).join("\n");
+  return output ? `: ${output.slice(-2_000)}` : "";
+}
+
 async function importRawCandidateWithRetries(
   candidate: RawCandidate,
   options: Options
@@ -135,11 +240,21 @@ async function importRawCandidateWithRetries(
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     attemptsUsed = attempt;
+    let watchdog: NodeJS.Timeout | undefined;
     try {
+      if (!options.dryRun && options.candidateTimeoutMs > 0) {
+        watchdog = setTimeout(() => {
+          console.error(
+            `[import:thedogs:raw] ${candidate.date} exceeded ${options.candidateTimeoutMs}ms; exiting so the supervisor can retry`
+          );
+          process.exit(DB_UNAVAILABLE_EXIT_CODE);
+        }, options.candidateTimeoutMs);
+      }
       const archive = await readRawArchive(candidate);
       const counts = options.dryRun
         ? countsFromMeetings(archive.meetings)
         : await syncLiveMeetings(archive.meetings, archive.source);
+      if (watchdog) clearTimeout(watchdog);
 
       await appendProgress(options.progressFile, {
         date: candidate.date,
@@ -157,6 +272,7 @@ async function importRawCandidateWithRetries(
       );
       return { ok: true as const };
     } catch (err) {
+      if (watchdog) clearTimeout(watchdog);
       lastError = err;
       if (options.stopOnDbError && isDatabaseConnectivityError(err)) break;
       if (attempt >= maxAttempts) break;
@@ -317,10 +433,18 @@ function parseOptions(args: string[]): Options {
   const date = stringOption(values, "date");
   const from = stringOption(values, "from");
   const to = stringOption(values, "to");
+  const shardIndex = optionalPositiveInt(stringOption(values, "shard-index"));
+  const shardCount = optionalPositiveInt(stringOption(values, "shard-count"));
   if (date && (from || to)) throw new Error("Use --date or --from/--to, not both.");
   if (date) assertDate(date, "--date");
   if (from) assertDate(from, "--from");
   if (to) assertDate(to, "--to");
+  if ((shardIndex == null) !== (shardCount == null)) {
+    throw new Error("--shard-index and --shard-count must be provided together");
+  }
+  if (shardIndex != null && shardCount != null && shardIndex > shardCount) {
+    throw new Error("--shard-index must be less than or equal to --shard-count");
+  }
   if (from && to && dayValue(from) > dayValue(to)) {
     throw new Error("--from must be before or equal to --to");
   }
@@ -344,6 +468,13 @@ function parseOptions(args: string[]): Options {
     pauseMs: nonNegativeInt(stringOption(values, "pause-ms"), 0),
     retryAttempts: nonNegativeInt(stringOption(values, "retry-attempts"), 0),
     retryDelayMs: nonNegativeInt(stringOption(values, "retry-delay-ms"), 10_000),
+    candidateTimeoutMs: positiveInt(
+      stringOption(values, "candidate-timeout-ms"),
+      DEFAULT_CANDIDATE_TIMEOUT_MS
+    ),
+    debugSync: values.has("debug-sync"),
+    shardIndex,
+    shardCount,
   };
 }
 
@@ -424,16 +555,17 @@ function isDatabaseConnectivityError(err: unknown) {
   const message = errorMessage(err);
   const name =
     isRecord(err) && typeof err.name === "string" ? err.name : "";
+  const text = `${name}\n${message}\n${String(err)}`;
   return (
-    /can't reach database server/i.test(message) ||
-    /timed out fetching a new connection/i.test(message) ||
-    /too many clients/i.test(message) ||
-    /remaining connection slots/i.test(message) ||
-    /\bEMAXCONNSESSION\b/i.test(message) ||
-    /\bP1001\b/i.test(message) ||
-    /\bP1002\b/i.test(message) ||
-    (/PrismaClientInitializationError/i.test(name) &&
-      /database server/i.test(message))
+    /can't reach database server/i.test(text) ||
+    /timed out fetching a new connection/i.test(text) ||
+    /too many clients/i.test(text) ||
+    /remaining connection slots/i.test(text) ||
+    /\bEMAXCONNSESSION\b/i.test(text) ||
+    /\bP1001\b/i.test(text) ||
+    /\bP1002\b/i.test(text) ||
+    (/PrismaClientInitializationError/i.test(text) &&
+      /database server|pooler\.supabase\.com/i.test(text))
   );
 }
 
@@ -459,6 +591,29 @@ function positiveInt(value: string | undefined, fallback: number) {
 function nonNegativeInt(value: string | undefined, fallback: number) {
   const parsed = Number.parseInt(value ?? "", 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function optionalPositiveInt(value: string | undefined) {
+  if (value == null) return undefined;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`Expected a positive integer, got ${value}`);
+  }
+  return parsed;
+}
+
+function filterShard(candidates: RawCandidate[], options: Options) {
+  if (options.date || options.shardIndex == null || options.shardCount == null) {
+    return candidates;
+  }
+  return candidates.filter(
+    (candidate) => shardIndexFor(candidate.date, options.shardCount as number) === options.shardIndex
+  );
+}
+
+function shardIndexFor(date: string, shardCount: number) {
+  const dayNumber = Math.trunc(dayValue(date) / 86_400_000);
+  return (dayNumber % shardCount) + 1;
 }
 
 function dayValue(date: string) {

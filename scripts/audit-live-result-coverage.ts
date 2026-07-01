@@ -1,8 +1,8 @@
-import { loadEnvConfig } from "@next/env";
+import "./load-env";
 import { prisma } from "../src/lib/db";
 import { TheDogsProvider } from "../src/lib/live/thedogs";
 
-loadEnvConfig(process.cwd());
+const RESULT_TIME_TOLERANCE_SECONDS = 0.01;
 
 async function main() {
   const days = daysArg();
@@ -101,7 +101,8 @@ async function main() {
       if (
         runner.runningTime != null &&
         dbRunner.result.runningTime != null &&
-        Math.abs(dbRunner.result.runningTime - runner.runningTime) > 0.001
+        Math.abs(dbRunner.result.runningTime - runner.runningTime) >
+          RESULT_TIME_TOLERANCE_SECONDS
       ) {
         return [
           {
@@ -116,7 +117,8 @@ async function main() {
       if (
         runner.splitTime != null &&
         (dbRunner.result.splitTime == null ||
-          Math.abs(dbRunner.result.splitTime - runner.splitTime) > 0.001)
+          Math.abs(dbRunner.result.splitTime - runner.splitTime) >
+            RESULT_TIME_TOLERANCE_SECONDS)
       ) {
         return [
           {

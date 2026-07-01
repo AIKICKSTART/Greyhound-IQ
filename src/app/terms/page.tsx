@@ -8,20 +8,20 @@ export const metadata = {
 export default function TermsPage() {
   return (
     <div className="fade-in mx-auto max-w-3xl px-6 py-16">
-      <h1 className="text-3xl text-[hsl(210_13%_97%)] mb-2 tracking-[-0.03em]">
+      <h1 className="text-3xl text-[hsl(var(--foreground))] mb-2 tracking-[-0.03em]">
         Terms of Service
       </h1>
-      <p className="text-[13px] text-[hsl(220_7%_42%)] mb-8 tracking-[-0.013em]">
+      <p className="text-[13px] text-[hsl(var(--subtle-foreground))] mb-8 tracking-[-0.013em]">
         Last updated: 28 June 2026
       </p>
 
-      <div className="space-y-6 text-[15px] text-[hsl(215_14%_65%)] leading-relaxed tracking-[-0.011em]">
+      <div className="space-y-6 text-[15px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.011em]">
         <p>
           By using GreyhoundIQ you agree to these terms. If you don&apos;t agree,
           don&apos;t use the service.
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="text-[20px] text-[hsl(var(--foreground))] mt-8 mb-3 tracking-[-0.02em]">
           1. The service
         </h2>
         <p>
@@ -30,7 +30,7 @@ export default function TermsPage() {
           predictions for entertainment and informational purposes only.
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="text-[20px] text-[hsl(var(--foreground))] mt-8 mb-3 tracking-[-0.02em]">
           2. 18+ only
         </h2>
         <p>
@@ -39,7 +39,7 @@ export default function TermsPage() {
           from anyone under 18.
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="text-[20px] text-[hsl(var(--foreground))] mt-8 mb-3 tracking-[-0.02em]">
           3. No betting advice
         </h2>
         <p>
@@ -48,7 +48,7 @@ export default function TermsPage() {
           guarantees. Bet responsibly and within your means.
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="text-[20px] text-[hsl(var(--foreground))] mt-8 mb-3 tracking-[-0.02em]">
           4. Account & billing
         </h2>
         <p>
@@ -57,7 +57,7 @@ export default function TermsPage() {
           offer a 14-day money-back guarantee on new paid subscriptions.
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="text-[20px] text-[hsl(var(--foreground))] mt-8 mb-3 tracking-[-0.02em]">
           5. Data accuracy
         </h2>
         <p>
@@ -66,7 +66,7 @@ export default function TermsPage() {
           cannot guarantee 100% accuracy. Use at your own discretion.
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="text-[20px] text-[hsl(var(--foreground))] mt-8 mb-3 tracking-[-0.02em]">
           6. Limitation of liability
         </h2>
         <p>
@@ -75,7 +75,7 @@ export default function TermsPage() {
           or service interruptions.
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="text-[20px] text-[hsl(var(--foreground))] mt-8 mb-3 tracking-[-0.02em]">
           7. Changes
         </h2>
         <p>
@@ -83,12 +83,12 @@ export default function TermsPage() {
           after changes constitutes acceptance of the new terms.
         </p>
 
-        <h2 className="text-[20px] text-[hsl(210_13%_97%)] mt-8 mb-3 tracking-[-0.02em]">
+        <h2 className="text-[20px] text-[hsl(var(--foreground))] mt-8 mb-3 tracking-[-0.02em]">
           8. Contact
         </h2>
         <p>
           Questions about these terms?{" "}
-          <Link href="/contact" className="text-[hsl(142_60%_48%)] hover:underline">
+          <Link href="/contact" className="text-[hsl(var(--primary-bright))] hover:underline">
             Contact us
           </Link>
           .

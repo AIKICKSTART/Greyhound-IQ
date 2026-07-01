@@ -45,7 +45,7 @@ export default async function AgentsPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.webp"
+        image="/images/wentworth-track-hero.webp"
         title={
           <>
             AI agents for
@@ -58,13 +58,13 @@ export default async function AgentsPage() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/pricing"
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-5 py-2.5 text-[13px] font-semibold text-white shadow-xl shadow-[hsl(142_76%_36%/0.25)] transition-all hover:brightness-110"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-5 py-2.5 text-[13px] font-semibold text-white shadow-xl shadow-[hsl(var(--primary)/0.25)] transition-all hover:brightness-110"
           >
             Unlock Pro agents
           </Link>
           <Link
             href="/statistics"
-            className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-[13px] font-semibold text-[hsl(210_13%_97%)] transition-all hover:bg-white/[0.06]"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-[13px] font-semibold text-[hsl(var(--foreground))] transition-all hover:bg-white/[0.06]"
           >
             View statistics
           </Link>
@@ -77,14 +77,14 @@ export default async function AgentsPage() {
         <div>
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)]">
+              <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
                 Agent lineup
               </h2>
-              <p className="mt-1 text-[14px] text-[hsl(215_14%_65%)]">
+              <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
                 Agents backed by stored runs, tier checks, and user memory.
               </p>
             </div>
-            <Sparkles className="h-5 w-5 text-[hsl(25_95%_53%)]" />
+            <Sparkles className="h-5 w-5 text-[hsl(var(--secondary))]" />
           </div>
           <div className="grid gap-3">
             {AGENT_CARDS.map((agent) => (
@@ -94,14 +94,14 @@ export default async function AgentsPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-[16px] font-semibold text-[hsl(210_13%_97%)]">
+                    <h3 className="text-[16px] font-semibold text-[hsl(var(--foreground))]">
                       {agent.name}
                     </h3>
-                    <p className="mt-2 text-[13px] leading-relaxed text-[hsl(215_14%_65%)]">
+                    <p className="mt-2 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                       {agent.body}
                     </p>
                   </div>
-                  <span className="rounded-full bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-[hsl(215_14%_65%)]">
+                  <span className="rounded-full bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]">
                     {agent.tier}
                   </span>
                 </div>
@@ -119,22 +119,22 @@ export default async function AgentsPage() {
               className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6"
             >
               <div className="mb-5">
-                <h2 className="text-[18px] font-semibold text-[hsl(210_13%_97%)]">
+                <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
                   Run an agent
                 </h2>
-                <p className="mt-1 text-[13px] leading-relaxed text-[hsl(215_14%_65%)]">
+                <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                   Creates a stored AgentRun, loads relevant memory, writes a new
                   memory entry, and validates the structured output.
                 </p>
               </div>
               <div className="space-y-4">
                 <label className="block">
-                  <span className="text-[12px] font-semibold uppercase text-[hsl(220_7%_42%)]">
+                  <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                     Agent
                   </span>
                   <select
                     name="agentType"
-                    className="mt-2 w-full rounded-lg border border-white/[0.08] bg-[hsl(150_30%_3%)] px-3 py-2 text-[14px] text-[hsl(210_13%_97%)] outline-none transition-colors focus:border-[hsl(142_76%_36%)]"
+                    className="mt-2 w-full rounded-lg border border-white/[0.08] bg-[hsl(var(--background))] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors focus:border-[hsl(var(--primary))]"
                     defaultValue="race_analyst"
                   >
                     <option value="race_analyst">Race Analyst</option>
@@ -143,7 +143,7 @@ export default async function AgentsPage() {
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-[12px] font-semibold uppercase text-[hsl(220_7%_42%)]">
+                  <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                     Prompt
                   </span>
                   <textarea
@@ -152,7 +152,7 @@ export default async function AgentsPage() {
                     minLength={10}
                     maxLength={5000}
                     rows={7}
-                    className="mt-2 w-full resize-y rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] leading-relaxed text-[hsl(210_13%_97%)] outline-none transition-colors placeholder:text-[hsl(220_7%_42%)] focus:border-[hsl(142_76%_36%)]"
+                    className="mt-2 w-full resize-y rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] leading-relaxed text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
                     placeholder="Top 3 picks for R5 The Meadows Friday"
                   />
                 </label>
@@ -163,25 +163,25 @@ export default async function AgentsPage() {
             <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)]">
+                <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
                   Recent agent runs
                 </h2>
-                <p className="mt-1 text-[14px] text-[hsl(215_14%_65%)]">
+                <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
                   {runs.length} stored runs, {completed} completed.
                 </p>
               </div>
-              <ShieldCheck className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+              <ShieldCheck className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
             </div>
 
             {runs.length === 0 ? (
-              <p className="text-[14px] text-[hsl(215_14%_65%)]">
+              <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
                 No agent runs recorded yet.
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-white/[0.06] text-[11px] uppercase text-[hsl(220_7%_42%)]">
+                    <tr className="border-b border-white/[0.06] text-[11px] uppercase text-[hsl(var(--subtle-foreground))]">
                       <th className="p-3 text-left">Agent</th>
                       <th className="p-3 text-left">Status</th>
                       <th className="p-3 text-right">Tokens</th>
@@ -195,15 +195,15 @@ export default async function AgentsPage() {
                         key={run.id}
                         className="border-b border-white/[0.04] last:border-0"
                       >
-                        <td className="p-3 text-[13px] font-medium text-[hsl(210_13%_97%)]">
+                        <td className="p-3 text-[13px] font-medium text-[hsl(var(--foreground))]">
                           {run.agentType.replace(/_/g, " ")}
                         </td>
                         <td className="p-3">
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                               run.status === "completed"
-                                ? "bg-[hsl(142_76%_36%/0.12)] text-[hsl(142_60%_48%)]"
-                                : "bg-white/[0.05] text-[hsl(215_14%_65%)]"
+                                ? "bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary-bright))]"
+                                : "bg-white/[0.05] text-[hsl(var(--muted-foreground))]"
                             }`}
                           >
                             {run.status === "completed" ? (
@@ -214,13 +214,13 @@ export default async function AgentsPage() {
                             {run.status}
                           </span>
                         </td>
-                        <td className="p-3 text-right font-mono text-[12px] text-[hsl(215_14%_65%)]">
+                        <td className="p-3 text-right font-mono text-[12px] text-[hsl(var(--muted-foreground))]">
                           {(run.promptTokens ?? 0) + (run.completionTokens ?? 0)}
                         </td>
-                        <td className="p-3 text-right font-mono text-[12px] text-[hsl(215_14%_65%)]">
+                        <td className="p-3 text-right font-mono text-[12px] text-[hsl(var(--muted-foreground))]">
                           {run.durationMs ? `${run.durationMs}ms` : "-"}
                         </td>
-                        <td className="p-3 text-right text-[12px] text-[hsl(220_7%_42%)]">
+                        <td className="p-3 text-right text-[12px] text-[hsl(var(--subtle-foreground))]">
                           {run.createdAt.toLocaleDateString("en-AU")}
                         </td>
                       </tr>

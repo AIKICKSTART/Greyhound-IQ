@@ -7,9 +7,9 @@
  *   npm run backfill:thedogs:dog-profiles -- --full --concurrency 2
  *   npm run backfill:thedogs:dog-profiles -- --full --shard-index 1 --shard-count 4
  */
+import "./load-env";
 import { mkdir, readFile, appendFile } from "node:fs/promises";
 import path from "node:path";
-import { loadEnvConfig } from "@next/env";
 import { prisma } from "../src/lib/db";
 import {
   buildTheDogsProfilePath,
@@ -18,8 +18,6 @@ import {
   TheDogsDogProfileProvider,
   type TheDogsDogProfile,
 } from "../src/lib/live/thedogs-profile";
-
-loadEnvConfig(process.cwd());
 
 const DEFAULT_PROGRESS = ".backfill/thedogs-dog-profile-progress.jsonl";
 

@@ -35,7 +35,7 @@ export default async function MessagesPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.webp"
+        image="/images/wentworth-track-hero.webp"
         title={
           <>
             Private racing
@@ -50,19 +50,19 @@ export default async function MessagesPage() {
         {!user ? (
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[hsl(142_76%_36%/0.12)]">
-                <Lock className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[hsl(var(--primary)/0.12)]">
+                <Lock className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
               </div>
-              <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)]">
+              <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
                 Sign in to open your inbox
               </h2>
-              <p className="mt-3 text-[14px] leading-relaxed text-[hsl(215_14%_65%)]">
+              <p className="mt-3 text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                 Conversations are private 1:1 threads between GreyhoundIQ
                 profiles, with read receipts, soft delete, and block controls.
               </p>
               <Link
                 href="/sign-in"
-                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-5 py-2.5 text-[13px] font-semibold text-white shadow-xl shadow-[hsl(142_76%_36%/0.25)] transition-all hover:brightness-110"
+                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-5 py-2.5 text-[13px] font-semibold text-white shadow-xl shadow-[hsl(var(--primary)/0.25)] transition-all hover:brightness-110"
               >
                 Sign in
                 <Send className="h-3.5 w-3.5" />
@@ -76,23 +76,23 @@ export default async function MessagesPage() {
             <div>
               <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)]">
+                  <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
                     Inbox
                   </h2>
-                  <p className="mt-1 text-[14px] text-[hsl(215_14%_65%)]">
+                  <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
                     {conversations.length} conversations - {unread} unread
                   </p>
                 </div>
-                <Inbox className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+                <Inbox className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
               </div>
 
               {conversations.length === 0 ? (
                 <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-12 text-center">
-                  <MessageSquare className="mx-auto mb-4 h-8 w-8 text-[hsl(142_60%_48%)]" />
-                  <h3 className="text-[18px] font-semibold text-[hsl(210_13%_97%)]">
+                  <MessageSquare className="mx-auto mb-4 h-8 w-8 text-[hsl(var(--primary-bright))]" />
+                  <h3 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
                     No conversations yet
                   </h3>
-                  <p className="mx-auto mt-2 max-w-md text-[14px] text-[hsl(215_14%_65%)]">
+                  <p className="mx-auto mt-2 max-w-md text-[14px] text-[hsl(var(--muted-foreground))]">
                     Send a direct message to a verified profile from the
                     composer.
                   </p>
@@ -117,10 +117,10 @@ export default async function MessagesPage() {
                       >
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
-                            <h3 className="text-[15px] font-semibold text-[hsl(210_13%_97%)]">
+                            <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))]">
                               {other.displayName}
                             </h3>
-                            <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-[hsl(215_14%_65%)]">
+                            <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                               {message
                                 ? `${isSent ? "You: " : ""}${message.body}`
                                 : "Conversation started"}
@@ -131,8 +131,8 @@ export default async function MessagesPage() {
                               conversation.blockedAt
                                 ? "bg-red-500/10 text-red-200"
                                 : isUnread
-                                  ? "bg-[hsl(142_76%_36%/0.12)] text-[hsl(142_60%_48%)]"
-                                  : "bg-white/[0.05] text-[hsl(220_7%_42%)]"
+                                  ? "bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary-bright))]"
+                                  : "bg-white/[0.05] text-[hsl(var(--subtle-foreground))]"
                             }`}
                           >
                             {conversation.blockedAt
@@ -153,20 +153,20 @@ export default async function MessagesPage() {
 
             <aside className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
               <div className="mb-5 flex items-center gap-3">
-                <Send className="h-5 w-5 text-[hsl(142_60%_48%)]" />
-                <h2 className="text-[18px] font-semibold text-[hsl(210_13%_97%)]">
+                <Send className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+                <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
                   New message
                 </h2>
               </div>
               <form action={sendMessage} className="space-y-4">
                 <label className="block">
-                  <span className="text-[12px] font-semibold uppercase text-[hsl(220_7%_42%)]">
+                  <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                     Recipient
                   </span>
                   <select
                     name="recipientProfileId"
                     required
-                    className="mt-2 w-full rounded-lg border border-white/[0.08] bg-[hsl(150_30%_3%)] px-3 py-2 text-[14px] text-[hsl(210_13%_97%)] outline-none transition-colors focus:border-[hsl(142_76%_36%)]"
+                    className="mt-2 w-full rounded-lg border border-white/[0.08] bg-[hsl(var(--background))] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors focus:border-[hsl(var(--primary))]"
                     defaultValue=""
                   >
                     <option value="" disabled>
@@ -181,7 +181,7 @@ export default async function MessagesPage() {
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-[12px] font-semibold uppercase text-[hsl(220_7%_42%)]">
+                  <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                     Message
                   </span>
                   <textarea
@@ -189,7 +189,7 @@ export default async function MessagesPage() {
                     required
                     maxLength={5000}
                     rows={6}
-                    className="mt-2 w-full resize-y rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] leading-relaxed text-[hsl(210_13%_97%)] outline-none transition-colors placeholder:text-[hsl(220_7%_42%)] focus:border-[hsl(142_76%_36%)]"
+                    className="mt-2 w-full resize-y rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] leading-relaxed text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
                     placeholder="Ask about a listing, dog record, or race note."
                   />
                 </label>
@@ -214,16 +214,16 @@ function MessagingWorkflow() {
 
   return (
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8">
-      <h2 className="text-[18px] font-semibold text-[hsl(210_13%_97%)]">
+      <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
         Messaging workflow
       </h2>
       <div className="mt-5 space-y-3">
         {steps.map((step, index) => (
           <div key={step} className="flex items-center gap-3">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[hsl(142_76%_36%/0.12)] text-[12px] font-bold text-[hsl(142_60%_48%)]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[hsl(var(--primary)/0.12)] text-[12px] font-bold text-[hsl(var(--primary-bright))]">
               {index + 1}
             </span>
-            <span className="text-[14px] text-[hsl(215_14%_65%)]">
+            <span className="text-[14px] text-[hsl(var(--muted-foreground))]">
               {step}
             </span>
           </div>

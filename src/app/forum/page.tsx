@@ -20,7 +20,7 @@ export default async function ForumPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.webp"
+        image="/images/wentworth-track-hero.webp"
         title={
           <>
             Community form room.
@@ -35,14 +35,14 @@ export default async function ForumPage() {
         <div>
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)]">
+              <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
                 Categories
               </h2>
-              <p className="mt-1 text-[14px] text-[hsl(215_14%_65%)]">
+              <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
                 Seeded from the community epics in the build plan.
               </p>
             </div>
-            <Users className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+            <Users className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
           </div>
 
           <div className="space-y-3">
@@ -55,15 +55,15 @@ export default async function ForumPage() {
                   <div>
                     <Link
                       href={`/forum/${category.slug}`}
-                      className="text-[17px] font-semibold text-[hsl(210_13%_97%)] transition-colors hover:text-[hsl(142_60%_48%)]"
+                      className="text-[17px] font-semibold text-[hsl(var(--foreground))] transition-colors hover:text-[hsl(var(--primary-bright))]"
                     >
                       {category.name}
                     </Link>
-                    <p className="mt-1 max-w-xl text-[13px] text-[hsl(215_14%_65%)]">
+                    <p className="mt-1 max-w-xl text-[13px] text-[hsl(var(--muted-foreground))]">
                       {category.description}
                     </p>
                   </div>
-                  <span className="rounded-full border border-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-[hsl(215_14%_65%)]">
+                  <span className="rounded-full border border-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]">
                     {category._count.threads} threads
                   </span>
                 </div>
@@ -89,14 +89,14 @@ export default async function ForumPage() {
         <aside>
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)]">
+              <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
                 Latest threads
               </h2>
-              <p className="mt-1 text-[14px] text-[hsl(215_14%_65%)]">
+              <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
                 Live from the current seed data.
               </p>
             </div>
-            <MessageSquare className="h-5 w-5 text-[hsl(25_95%_53%)]" />
+            <MessageSquare className="h-5 w-5 text-[hsl(var(--secondary))]" />
           </div>
 
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02]">
@@ -107,18 +107,18 @@ export default async function ForumPage() {
               >
                 <div className="flex items-start gap-3">
                   {thread.pinned ? (
-                    <Pin className="mt-0.5 h-4 w-4 text-[hsl(25_95%_53%)]" />
+                    <Pin className="mt-0.5 h-4 w-4 text-[hsl(var(--secondary))]" />
                   ) : (
-                    <MessageSquare className="mt-0.5 h-4 w-4 text-[hsl(142_60%_48%)]" />
+                    <MessageSquare className="mt-0.5 h-4 w-4 text-[hsl(var(--primary-bright))]" />
                   )}
                   <div>
-                    <h3 className="text-[14px] font-semibold text-[hsl(210_13%_97%)]">
+                    <h3 className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
                       {thread.title}
                     </h3>
-                    <p className="mt-1 text-[12px] text-[hsl(220_7%_42%)]">
+                    <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
                       {thread.category.name} by {thread.author.displayName}
                     </p>
-                    <p className="mt-2 text-[12px] text-[hsl(215_14%_65%)]">
+                    <p className="mt-2 text-[12px] text-[hsl(var(--muted-foreground))]">
                       {Math.max(thread._count.posts - 1, 0)} replies -{" "}
                       {thread.views} views
                     </p>
@@ -130,7 +130,7 @@ export default async function ForumPage() {
 
           <Link
             href="/listings"
-            className="mt-5 inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-[hsl(210_13%_97%)] transition-all hover:bg-white/[0.06]"
+            className="mt-5 inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-[hsl(var(--foreground))] transition-all hover:bg-white/[0.06]"
           >
             Browse marketplace
             <ArrowRight className="h-3.5 w-3.5" />
@@ -138,7 +138,7 @@ export default async function ForumPage() {
           {categories[0] && (
             <Link
               href={`/forum/${categories[0].slug}`}
-              className="ml-3 mt-5 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-[hsl(142_76%_36%/0.2)] transition-all hover:brightness-110"
+              className="ml-3 mt-5 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-[hsl(var(--primary)/0.2)] transition-all hover:brightness-110"
             >
               Start a thread
               <ArrowRight className="h-3.5 w-3.5" />
@@ -168,22 +168,22 @@ function ThreadRow({
   return (
     <div className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
       {pinned ? (
-        <Pin className="h-4 w-4 text-[hsl(25_95%_53%)]" />
+        <Pin className="h-4 w-4 text-[hsl(var(--secondary))]" />
       ) : (
-        <MessageSquare className="h-4 w-4 text-[hsl(142_60%_48%)]" />
+        <MessageSquare className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
       )}
       <div className="min-w-0 flex-1">
         <Link
           href={href}
-          className="block truncate text-[14px] font-medium text-[hsl(210_13%_97%)] transition-colors hover:text-[hsl(142_60%_48%)]"
+          className="block truncate text-[14px] font-medium text-[hsl(var(--foreground))] transition-colors hover:text-[hsl(var(--primary-bright))]"
         >
           {title}
         </Link>
-        <p className="mt-0.5 text-[12px] text-[hsl(220_7%_42%)]">
+        <p className="mt-0.5 text-[12px] text-[hsl(var(--subtle-foreground))]">
           by {author} - {replies} replies
         </p>
       </div>
-      <span className="inline-flex items-center gap-1 text-[12px] text-[hsl(220_7%_42%)]">
+      <span className="inline-flex items-center gap-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
         <Eye className="h-3.5 w-3.5" />
         {views}
       </span>

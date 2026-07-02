@@ -230,6 +230,20 @@ async function SignedInAccount({
             <MessageSquare className="h-3.5 w-3.5" />
             Open messages
           </Link>
+          <Link
+            href="/account/billing"
+            className={ACTION_CLASS}
+          >
+            <Crown className="h-3.5 w-3.5" />
+            Billing
+          </Link>
+          <Link
+            href="/account/usage"
+            className={ACTION_CLASS}
+          >
+            <Database className="h-3.5 w-3.5" />
+            Usage
+          </Link>
         </div>
       </section>
 

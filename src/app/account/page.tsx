@@ -15,7 +15,7 @@ import {
 import { requestAccountDeletion, updateProfile } from "@/app/actions";
 import { PageHero } from "@/components/page-hero";
 import { SubmitButton } from "@/components/submit-button";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isModeratorRole } from "@/lib/auth";
 import { getAccountSummary, getMessagesForUserEmail } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -86,6 +86,7 @@ async function SignedInAccount({
   const profile = summary?.profile;
   const ownedDogs = profile?.dogsOwned ?? [];
   const deletionRequestedAt = user.deletionRequestedAt;
+  const canAccessAdmin = isModeratorRole(user.role);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -244,6 +245,15 @@ async function SignedInAccount({
             <Database className="h-3.5 w-3.5" />
             Usage
           </Link>
+          {canAccessAdmin && (
+            <Link
+              href="/admin"
+              className={ACTION_CLASS}
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Admin
+            </Link>
+          )}
         </div>
       </section>
 

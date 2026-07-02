@@ -354,6 +354,7 @@ model User {
   termsAcceptances     TermsAcceptance[]
   consentEvents        ConsentEvent[]
   marketingPreferences MarketingPreference[]
+  sentOrganizationInvitations OrganizationInvitation[] @relation("OrganizationInvitationsSent")
 }
 
 model TermsAcceptance {
@@ -405,6 +406,7 @@ model Organization {
   ownerId                String?
   owner                  User?        @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   memberships            Membership[]
+  invitations            OrganizationInvitation[]
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
 
@@ -427,6 +429,26 @@ model Membership {
   @@unique([organizationId, userId])
   @@index([userId])
   @@index([organizationId, status])
+}
+
+model OrganizationInvitation {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedByUserId String?
+  invitedByUser   User?        @relation("OrganizationInvitationsSent", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+  emailHash       String
+  role            String       @default("member")
+  status          String       @default("pending")
+  tokenHash       String       @unique
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId, status])
+  @@index([emailHash, status])
+  @@index([expiresAt])
 }
 
 model SupportTicket {

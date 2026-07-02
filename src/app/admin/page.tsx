@@ -13,6 +13,7 @@ export const metadata = {
 const COUNTS = [
   { key: "users", label: "Users" },
   { key: "billingCustomers", label: "Billing customers" },
+  { key: "plans", label: "Plans" },
   { key: "subscriptions", label: "Subscriptions" },
   { key: "webhookEvents", label: "Webhook events" },
   { key: "invoiceRecords", label: "Invoice records" },
@@ -50,6 +51,9 @@ export default async function AdminPage() {
           </Link>
           <Link href="/admin/organizations" className="giq-outline-action">
             Organizations
+          </Link>
+          <Link href="/admin/plans" className="giq-outline-action">
+            Plans
           </Link>
           <Link href="/admin/subscriptions" className="giq-outline-action">
             Subscriptions
@@ -116,6 +120,7 @@ async function getAdminCounts(): Promise<AdminCounts> {
   const [
     users,
     billingCustomers,
+    plans,
     subscriptions,
     webhookEvents,
     invoiceRecords,
@@ -124,6 +129,7 @@ async function getAdminCounts(): Promise<AdminCounts> {
   ] = await Promise.all([
     countRows(() => prisma.user.count()),
     countRows(() => prisma.billingCustomer.count()),
+    countRows(() => prisma.plan.count()),
     countRows(() => prisma.subscription.count()),
     countRows(() => prisma.webhookEvent.count()),
     countRows(() => prisma.invoiceRecord.count()),
@@ -134,6 +140,7 @@ async function getAdminCounts(): Promise<AdminCounts> {
   return {
     users,
     billingCustomers,
+    plans,
     subscriptions,
     webhookEvents,
     invoiceRecords,

@@ -51,7 +51,7 @@ export default async function DogProfilePage({
   const bestTime = allTimes.length > 0 ? Math.min(...allTimes) : null;
 
   return (
-    <div className="fade-in mx-auto max-w-4xl px-6 py-10">
+    <div className="giq-dog-detail-page fade-in mx-auto max-w-4xl px-6 py-10">
       {/* Header */}
       <div className="mb-8">
         <h1
@@ -75,7 +75,7 @@ export default async function DogProfilePage({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+      <div className="giq-dog-stat-grid grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         {[
           { label: "Starts", value: total, color: "text-[hsl(var(--foreground))]" },
           { label: `Wins (${winPct}%)`, value: wins, color: "text-[hsl(var(--primary-bright))]" },
@@ -264,7 +264,39 @@ export default async function DogProfilePage({
             Recent Form
           </h3>
         </div>
-        <div className="overflow-x-auto">
+        <div className="grid gap-3 p-3 sm:hidden">
+          {dog.formEntries.slice(0, 20).map((entry, i) => (
+            <article key={i} className="giq-subpanel p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
+                    {entry.track?.name ?? "Unknown track"}
+                  </p>
+                  <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
+                    {entry.date.toLocaleDateString("en-AU", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "2-digit",
+                    })}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-mono text-[13px] font-semibold text-[hsl(var(--primary-bright))]">
+                    {entry.time ? `${entry.time.toFixed(2)}s` : "-"}
+                  </p>
+                  <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
+                    {entry.distance ? `${entry.distance}m` : "-"}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
+                <span>Box {entry.boxNumber ?? "-"}</span>
+                <span className="text-right">Finish {entry.finish ?? "-"}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full">
             <thead>
               <tr className="giq-table-head">

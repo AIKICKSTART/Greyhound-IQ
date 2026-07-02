@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="fade-in mx-auto max-w-3xl px-6 py-16">
+    <div className="giq-legal-page fade-in mx-auto max-w-3xl px-6 py-16">
       <div className="race-box-strip mb-5 w-40" />
       <h1 className="mb-2 text-3xl text-[hsl(var(--foreground))]">
         Privacy Policy
@@ -17,7 +17,7 @@ export default function PrivacyPage() {
         Last updated: 28 June 2026
       </p>
 
-      <div className="space-y-6 text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+      <div className="giq-legal-body space-y-6 text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
         <p>
           GreyhoundIQ is built and operated in Australia. This policy explains
           what data we collect, how we use it, and your rights under the

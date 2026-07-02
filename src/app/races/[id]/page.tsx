@@ -147,7 +147,7 @@ export default async function RacePage({
             />
           )}
 
-          <section className="giq-table-shell overflow-hidden">
+          <section className="giq-racecard-section giq-table-shell overflow-hidden">
             <div className="flex flex-col gap-2 border-b border-white/[0.07] p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="program-label">Racecard</p>

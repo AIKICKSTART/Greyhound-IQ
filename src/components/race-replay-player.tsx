@@ -169,7 +169,7 @@ export function RaceReplayPlayer({
             href={pageUrl}
             target="_blank"
             rel="noreferrer"
-            className="giq-button giq-button-glass min-h-10 px-4 text-[12px] font-semibold"
+            className="giq-button giq-button-glass hidden min-h-10 px-4 text-[12px] font-semibold sm:inline-flex"
           >
             Source page
             <ExternalLink className="h-3.5 w-3.5" />

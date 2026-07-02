@@ -2,13 +2,15 @@ import { getTodaysMeetings } from "@/lib/queries";
 import { MeetingCard } from "@/components/meeting-card";
 import { PageHero } from "@/components/page-hero";
 import {
-  Activity,
   ArrowRight,
-  BarChart3,
+  BadgeDollarSign,
+  CheckCircle2,
+  CircleMinus,
+  Code2,
+  DatabaseZap,
   ShieldCheck,
-  Target,
-  Users,
-  type LucideIcon,
+  Smartphone,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -56,30 +58,60 @@ const FEATURES = [
   },
 ] as const;
 
-const STATS: { value: string; label: string; icon: LucideIcon }[] = [
-  { value: "25K+", label: "Active Members", icon: Users },
-  { value: "2.4M+", label: "Races Analysed", icon: BarChart3 },
-  { value: "89%", label: "Prediction Accuracy", icon: Target },
-  { value: "100%", label: "Ad Free Experience", icon: ShieldCheck },
-];
-
 const COMPARISON = [
-  ["Data source", "User-contributed", "Official feeds"],
-  ["Currency", "GBP (£)", "AUD ($)"],
-  ["Pro price/year", "~$125 AUD", "$99 AUD"],
-  ["AI predictions", "—", "ML-powered"],
-  ["Mobile-first", "—", "Built mobile-first"],
-  ["Ad-free", "Ad-heavy", "Zero ads"],
-  ["API access", "—", "Pro+ tier"],
-];
+  {
+    feature: "Data source",
+    them: "User-contributed",
+    us: "Official feeds",
+    Icon: DatabaseZap,
+  },
+  {
+    feature: "Currency",
+    them: "GBP (£)",
+    us: "AUD ($)",
+    Icon: BadgeDollarSign,
+  },
+  {
+    feature: "Pro price/year",
+    them: "~$125 AUD",
+    us: "$99 AUD",
+    Icon: BadgeDollarSign,
+    emphasis: true,
+  },
+  {
+    feature: "AI predictions",
+    them: "Not available",
+    us: "ML-powered",
+    Icon: Sparkles,
+    emphasis: true,
+  },
+  {
+    feature: "Mobile-first",
+    them: "Not available",
+    us: "Built mobile-first",
+    Icon: Smartphone,
+  },
+  {
+    feature: "Ad-free",
+    them: "Ad-heavy",
+    us: "Zero ads",
+    Icon: ShieldCheck,
+  },
+  {
+    feature: "API access",
+    them: "Not available",
+    us: "Pro+ tier",
+    Icon: Code2,
+  },
+] as const;
 
 export default function HomePage() {
   return (
-    <div className="fade-in">
+    <div className="giq-home-page fade-in">
       <HomeHero />
 
-      <section className="relative mx-auto max-w-7xl px-6 py-16">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <section className="giq-home-features-section relative mx-auto max-w-7xl px-6 py-16">
+        <div className="giq-home-feature-grid grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => (
             <FeatureCard key={f.title} {...f} />
           ))}
@@ -99,9 +131,6 @@ function HomeHero() {
   return (
     <PageHero
       image="/images/wentworth-gate-hero.webp"
-      badge="REAL-TIME. AI-POWERED. BUILT FOR WINNERS."
-      badgeIcon={<Activity className="h-3.5 w-3.5 text-[hsl(var(--secondary-light))]" />}
-      badgeColor="gold"
       size="tall"
       title={
         <>
@@ -128,21 +157,6 @@ function HomeHero() {
           See Pricing
         </Link>
       </div>
-      <div className="giq-home-stat-grid mt-9">
-        {STATS.map((stat) => {
-          const Icon = stat.icon;
-
-          return (
-            <div key={stat.label} className="giq-home-stat">
-              <div className="flex items-center gap-2">
-                <Icon className="h-4 w-4 text-[hsl(var(--secondary-light))]" />
-                <span className="giq-home-stat-value">{stat.value}</span>
-              </div>
-              <span className="giq-home-stat-label">{stat.label}</span>
-            </div>
-          );
-        })}
-      </div>
     </PageHero>
   );
 }
@@ -152,7 +166,7 @@ async function TodaysRacesSection() {
   const totalRaces = meetings.reduce((acc, m) => acc + m.races.length, 0);
 
   return (
-    <section id="races" className="relative mx-auto max-w-7xl px-6 py-8">
+    <section id="races" className="giq-home-races-section relative mx-auto max-w-7xl px-6 py-8">
       <div className="flex items-end justify-between mb-6">
         <div>
           <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
@@ -192,7 +206,7 @@ async function TodaysRacesSection() {
 
 function TodaysRacesFallback() {
   return (
-    <section id="races" className="relative mx-auto max-w-7xl px-6 py-8">
+    <section id="races" className="giq-home-races-section relative mx-auto max-w-7xl px-6 py-8">
       <div className="mb-6">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
           Today&apos;s Races
@@ -215,35 +229,74 @@ function TodaysRacesFallback() {
 
 function WhyGreyhoundIQSection() {
   return (
-    <section className="relative mx-auto max-w-4xl px-6 py-20">
-      <h2 className="text-center text-2xl font-semibold text-[hsl(var(--foreground))] mb-8 tracking-[-0.03em]">
-        Why GreyhoundIQ?
-      </h2>
-      <div className="giq-glass-panel overflow-hidden rounded-xl">
-        <table className="w-full text-[14px]">
-          <thead>
-            <tr className="border-b border-white/[0.06] bg-white/[0.02]">
-              <th className="text-left p-4 font-medium text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
-                Feature
-              </th>
-              <th className="text-center p-4 font-medium text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
-                greyhound-data.com
-              </th>
-              <th className="text-center p-4 font-medium text-[hsl(var(--primary-bright))] tracking-[-0.013em]">
-                GreyhoundIQ
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {COMPARISON.map(([feature, them, us]) => (
-              <tr key={feature} className="border-b border-white/[0.04] last:border-0">
-                <td className="p-4 text-[hsl(var(--foreground))] tracking-[-0.013em]">{feature}</td>
-                <td className="p-4 text-center text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]">{them}</td>
-                <td className="p-4 text-center text-[hsl(var(--primary-bright))] tracking-[-0.013em]">{us}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <section className="giq-home-why-section giq-comparison-section relative mx-auto max-w-7xl px-6 py-12 md:py-14">
+      <div className="giq-comparison-heading">
+        <div>
+          <h2>
+            Why <span className="giq-text-purple-glass">Greyhound</span><span className="giq-text-gold-glass">IQ?</span>
+          </h2>
+          <p>
+            Built for serious local racing users with official feeds, AUD pricing, AI predictions, mobile-first workflows, and zero ads.
+          </p>
+        </div>
+        <div className="giq-comparison-meta" aria-label="GreyhoundIQ advantages">
+          <span className="giq-pill giq-pill-purple">AI powered</span>
+          <span className="giq-pill giq-pill-gold">$99 AUD</span>
+          <span className="giq-pill giq-pill-muted">Zero ads</span>
+        </div>
+      </div>
+
+      <div className="giq-comparison-board">
+        <div className="giq-comparison-board-glow" aria-hidden="true" />
+
+        <div className="giq-comparison-column-header">
+          <span>Feature</span>
+          <span>greyhound-data.com</span>
+          <span>GreyhoundIQ</span>
+        </div>
+
+        <div className="giq-comparison-row-list">
+          {COMPARISON.map((item) => {
+            const isUnavailable = item.them === "Not available";
+            const isLimited = isUnavailable || item.them === "Ad-heavy";
+            const isEmphasis = "emphasis" in item && item.emphasis;
+            const Icon = item.Icon;
+
+            return (
+              <article
+                key={item.feature}
+                className={`giq-comparison-row${isEmphasis ? " is-emphasis" : ""}`}
+              >
+                <div className="giq-comparison-feature">
+                  <span className="giq-comparison-feature-icon">
+                    <Icon aria-hidden="true" className="h-4 w-4" />
+                  </span>
+                  <span>{item.feature}</span>
+                </div>
+
+                <div className={`giq-comparison-cell giq-comparison-cell--competitor${isLimited ? " is-limited" : ""}`}>
+                  <span className="giq-comparison-mobile-label">greyhound-data.com</span>
+                  <span className="giq-comparison-value">
+                    {isLimited ? (
+                      <CircleMinus aria-hidden="true" className="h-4 w-4" />
+                    ) : (
+                      <span className="giq-comparison-neutral-dot" aria-hidden="true" />
+                    )}
+                    {item.them}
+                  </span>
+                </div>
+
+                <div className={`giq-comparison-cell giq-comparison-cell--giq${isEmphasis ? " is-highlight" : ""}`}>
+                  <span className="giq-comparison-mobile-label">GreyhoundIQ</span>
+                  <span className="giq-comparison-value">
+                    <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
+                    {item.us}
+                  </span>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

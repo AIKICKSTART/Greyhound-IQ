@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="fade-in mx-auto max-w-3xl px-6 py-16">
+    <div className="giq-legal-page fade-in mx-auto max-w-3xl px-6 py-16">
       <h1 className="text-3xl text-[hsl(var(--foreground))] mb-2 tracking-[-0.03em]">
         Terms of Service
       </h1>
@@ -15,7 +15,7 @@ export default function TermsPage() {
         Last updated: 28 June 2026
       </p>
 
-      <div className="space-y-6 text-[15px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.011em]">
+      <div className="giq-legal-body space-y-6 text-[15px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.011em]">
         <p>
           By using GreyhoundIQ you agree to these terms. If you don&apos;t agree,
           don&apos;t use the service.

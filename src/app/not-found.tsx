@@ -5,7 +5,7 @@ export const metadata = { title: "Page Not Found — GreyhoundIQ" };
 
 export default function NotFound() {
   return (
-    <div className="fade-in min-h-[60vh] flex items-center justify-center px-6">
+    <div className="giq-not-found-page fade-in min-h-[60vh] flex items-center justify-center px-6">
       <div className="max-w-md w-full text-center">
         <div className="giq-badge giq-badge-gold mb-6">
           <span className="text-[11px] text-[hsl(var(--secondary))] font-medium tracking-[0.04em]">
@@ -23,7 +23,7 @@ export default function NotFound() {
           The page you&apos;re looking for has either been moved, or never existed.
           Try one of these instead.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="giq-not-found-actions flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/"
             className="giq-liquid-purple-button px-5 text-[13px] font-semibold"

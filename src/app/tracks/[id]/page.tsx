@@ -91,7 +91,7 @@ export default async function TrackDetailPage({
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-8 px-6 py-12 lg:grid-cols-[1fr_0.85fr]">
+      <section className="giq-track-detail-content mx-auto grid max-w-6xl gap-8 px-6 py-12 lg:grid-cols-[1fr_0.85fr]">
         <div>
           <div className="mb-5 flex items-center gap-3">
             <CalendarDays className="h-5 w-5 text-[hsl(var(--primary-bright))]" />

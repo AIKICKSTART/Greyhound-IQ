@@ -19,7 +19,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       duplicate: result.duplicate,
-      event: result.event,
     });
   } catch (err) {
     if (err instanceof LagoWebhookError) {

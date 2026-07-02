@@ -59,14 +59,6 @@ export async function ingestLagoWebhook({
     headersJson: JSON.stringify(safeHeaders(headers)),
   };
 
-  if (!lagoEventId) {
-    const event = await prisma.webhookEvent.create({
-      data,
-      select: eventSelect,
-    });
-    return { event, duplicate: false };
-  }
-
   try {
     const event = await prisma.webhookEvent.create({
       data,

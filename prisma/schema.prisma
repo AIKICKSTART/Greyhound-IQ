@@ -337,6 +337,8 @@ model User {
   mediaAssets    MediaAsset[]
   memoryEntries  MemoryEntry[]
   agentContexts  ConversationContext[]
+  ownedOrganizations Organization[] @relation("OrganizationOwner")
+  memberships         Membership[]
   billingCustomer     BillingCustomer?
   subscriptions       Subscription[]
   entitlementSnapshots EntitlementSnapshot[]
@@ -344,6 +346,37 @@ model User {
   billingEvents       BillingEvent[]
   usageEvents         UsageEvent[]
   usageOutboxItems    UsageOutbox[]
+}
+
+model Organization {
+  id                     String       @id @default(cuid())
+  name                   String
+  workosOrganizationId   String       @unique
+  ownerId                String?
+  owner                  User?        @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  memberships            Membership[]
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  @@index([ownerId])
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String       @default("member")
+  status         String       @default("invited")
+  invitedAt      DateTime?
+  acceptedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId, status])
 }
 
 // === BILLING ===

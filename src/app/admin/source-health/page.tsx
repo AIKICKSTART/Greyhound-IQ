@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { requireModeratorProfile } from "@/lib/auth";
+import { prisma, safeQuery } from "@/lib/db";
 import { getLiveFeedStatus } from "@/lib/live/status";
 
 export const dynamic = "force-dynamic";
@@ -12,9 +13,23 @@ export const metadata = {
 
 type LiveFeedStatus = Awaited<ReturnType<typeof getLiveFeedStatus>>;
 
+type DataSourceHealthRow = {
+  sourceProvider: string;
+  status: string;
+  lastCheckedAt: Date;
+  lastSuccessAt: Date | null;
+  lastFailureAt: Date | null;
+  latencyMs: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export default async function AdminSourceHealthPage() {
   await requireModeratorProfile();
-  const liveStatus = await getLiveFeedStatus();
+  const [liveStatus, dataSourceHealthRows] = await Promise.all([
+    getLiveFeedStatus(),
+    getDataSourceHealthRows(),
+  ]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
@@ -36,6 +51,7 @@ export default async function AdminSourceHealthPage() {
 
         <StatusSummary liveStatus={liveStatus} />
         <StatusDetails liveStatus={liveStatus} />
+        <DataSourceHealthTable rows={dataSourceHealthRows} />
       </section>
     </main>
   );
@@ -158,6 +174,81 @@ function StatusDetails({ liveStatus }: { liveStatus: LiveFeedStatus }) {
   );
 }
 
+function DataSourceHealthTable({ rows }: { rows: DataSourceHealthRow[] }) {
+  return (
+    <div className="mt-6">
+      <h2 className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+        Data source health
+      </h2>
+      <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+        Local DataSourceHealth rows. Error text and provider payloads are not
+        selected or displayed.
+      </p>
+
+      <div className="giq-table-shell mt-3 overflow-x-auto">
+        <table className="w-full min-w-[1180px]">
+          <thead>
+            <tr className="giq-table-head">
+              <th className="px-4 py-3 text-left">Source provider</th>
+              <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-left">Last checked</th>
+              <th className="px-4 py-3 text-left">Last success</th>
+              <th className="px-4 py-3 text-left">Last failure</th>
+              <th className="px-4 py-3 text-right">Latency</th>
+              <th className="px-4 py-3 text-left">Created</th>
+              <th className="px-4 py-3 text-left">Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={8}
+                  className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
+                >
+                  No data source health rows found.
+                </td>
+              </tr>
+            ) : (
+              rows.map((row) => (
+                <tr
+                  key={row.sourceProvider}
+                  className="border-t border-white/[0.06]"
+                >
+                  <td className="px-4 py-3 font-mono text-[12px] text-[hsl(var(--foreground))]">
+                    {row.sourceProvider}
+                  </td>
+                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
+                    {row.status}
+                  </td>
+                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                    {formatTimestamp(row.lastCheckedAt)}
+                  </td>
+                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                    {formatTimestamp(row.lastSuccessAt, "No success")}
+                  </td>
+                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                    {formatTimestamp(row.lastFailureAt, "No failure")}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-[13px] text-[hsl(var(--muted-foreground))]">
+                    {formatLatency(row.latencyMs)}
+                  </td>
+                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                    {formatTimestamp(row.createdAt)}
+                  </td>
+                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                    {formatTimestamp(row.updatedAt)}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="giq-metric-card">
@@ -222,10 +313,37 @@ function formatLiveProviders(
     .join(", ");
 }
 
-function formatTimestamp(value: string | null | undefined, fallback = "Unavailable") {
+function getDataSourceHealthRows() {
+  return safeQuery<DataSourceHealthRow[]>(
+    () =>
+      prisma.dataSourceHealth.findMany({
+        orderBy: [{ lastCheckedAt: "desc" }, { sourceProvider: "asc" }],
+        select: {
+          sourceProvider: true,
+          status: true,
+          lastCheckedAt: true,
+          lastSuccessAt: true,
+          lastFailureAt: true,
+          latencyMs: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+    []
+  );
+}
+
+function formatLatency(value: number | null) {
+  return value === null ? "Unavailable" : `${value.toLocaleString("en-AU")} ms`;
+}
+
+function formatTimestamp(
+  value: string | Date | null | undefined,
+  fallback = "Unavailable"
+) {
   if (!value) return fallback;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+  if (Number.isNaN(date.getTime())) return String(value);
 
   return new Intl.DateTimeFormat("en-AU", {
     dateStyle: "medium",

@@ -351,6 +351,8 @@ model User {
   usageOutboxItems    UsageOutbox[]
   supportTickets      SupportTicket[]
   supportMessages     SupportMessage[]
+  feedback            Feedback[]
+  bugReports          BugReport[]
   termsAcceptances     TermsAcceptance[]
   consentEvents        ConsentEvent[]
   marketingPreferences MarketingPreference[]
@@ -358,6 +360,7 @@ model User {
   adminActions        AdminAction[] @relation("AdminActionAdmin")
   affectedAdminActions AdminAction[] @relation("AdminActionAffectedUser")
   triggeredJobRuns    JobRun[]      @relation("JobRunAdmin")
+  agentRunUsage       AgentRunUsage[]
 }
 
 model TermsAcceptance {
@@ -487,6 +490,37 @@ model SupportMessage {
   @@index([userId])
   @@index([createdAt])
   @@index([updatedAt])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  body      String
+  status    String   @default("new")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status, updatedAt])
+  @@index([createdAt])
+}
+
+model BugReport {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  title       String
+  description String?
+  status      String   @default("open")
+  severity    String   @default("normal")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status, updatedAt])
+  @@index([severity, status])
+  @@index([createdAt])
 }
 
 // === BILLING ===
@@ -1111,11 +1145,30 @@ model AgentRun {
   harnessSessionId String?
   createdAt        DateTime  @default(now())
   completedAt      DateTime?
+  usageEntries     AgentRunUsage[]
 
   @@index([agentType])
   @@index([userId, createdAt])
   @@index([userId])
   @@index([status])
+}
+
+model AgentRunUsage {
+  id         String    @id @default(cuid())
+  agentRunId String?
+  agentRun   AgentRun? @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  metricKey  String
+  quantity   Int       @default(1)
+  unit       String?
+  occurredAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+
+  @@index([agentRunId])
+  @@index([userId, occurredAt])
+  @@index([metricKey, occurredAt])
+  @@index([occurredAt])
 }
 
 model MemoryEntry {

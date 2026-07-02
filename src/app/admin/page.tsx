@@ -23,6 +23,9 @@ const COUNTS = [
   { key: "invoiceRecords", label: "Invoice records" },
   { key: "paymentRecords", label: "Payment records" },
   { key: "usageOutbox", label: "Usage outbox" },
+  { key: "adminActions", label: "Admin actions" },
+  { key: "jobRuns", label: "Job runs" },
+  { key: "dataSourceHealth", label: "Data source health" },
 ] as const;
 
 type CountKey = (typeof COUNTS)[number]["key"];
@@ -46,7 +49,7 @@ export default async function AdminPage() {
           Read-only overview
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Local account, invitation, compliance, billing, webhook, invoice, and usage outbox counts.
+          Local account, invitation, compliance, billing, webhook, job, source health, and usage counts.
         </p>
 
         <div className="mt-5 flex flex-wrap gap-3">
@@ -91,6 +94,9 @@ export default async function AdminPage() {
           </Link>
           <Link href="/admin/audit" className="giq-outline-action">
             Audit
+          </Link>
+          <Link href="/admin/actions" className="giq-outline-action">
+            Admin actions
           </Link>
           <Link href="/admin/compliance" className="giq-outline-action">
             Compliance
@@ -140,6 +146,9 @@ async function getAdminCounts(): Promise<AdminCounts> {
     invoiceRecords,
     paymentRecords,
     usageOutbox,
+    adminActions,
+    jobRuns,
+    dataSourceHealth,
   ] = await Promise.all([
     countRows(() => prisma.user.count()),
     countRows(() => prisma.organizationInvitation.count()),
@@ -153,6 +162,9 @@ async function getAdminCounts(): Promise<AdminCounts> {
     countRows(() => prisma.invoiceRecord.count()),
     countRows(() => prisma.paymentRecord.count()),
     countRows(() => prisma.usageOutbox.count()),
+    countRows(() => prisma.adminAction.count()),
+    countRows(() => prisma.jobRun.count()),
+    countRows(() => prisma.dataSourceHealth.count()),
   ]);
 
   return {
@@ -168,6 +180,9 @@ async function getAdminCounts(): Promise<AdminCounts> {
     invoiceRecords,
     paymentRecords,
     usageOutbox,
+    adminActions,
+    jobRuns,
+    dataSourceHealth,
   };
 }
 

@@ -67,6 +67,14 @@ type WebhookEventRow = {
   processedAt: Date | null;
 };
 
+type JobRunRow = {
+  name: string;
+  status: string;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  createdAt: Date;
+};
+
 type AgentRunRow = {
   agentType: string;
   status: string;
@@ -100,12 +108,12 @@ export default async function AdminJobsPage() {
           </h1>
           <p className="mt-3 max-w-3xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
             Read-only local operational status across usage outbox, usage
-            events, webhook events, and agent runs. Raw payloads, webhook
+            events, webhook events, job runs, and agent runs. Raw payloads, webhook
             bodies, metadata, errors, user identifiers, provider identifiers,
             emails, IP addresses, and user agents are not selected or displayed.
           </p>
 
-          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             {summaries.map((summary) => (
               <StatusSummaryCard key={summary.source} summary={summary} />
             ))}
@@ -260,12 +268,14 @@ function DateCell({
 }
 
 async function getJobStatusSummaries(): Promise<JobStatusSummary[]> {
-  const [usageOutbox, usageEvents, webhookEvents, agentRuns] = await Promise.all([
-    getUsageOutboxStatusCounts(),
-    getUsageEventStatusCounts(),
-    getWebhookEventStatusCounts(),
-    getAgentRunStatusCounts(),
-  ]);
+  const [usageOutbox, usageEvents, webhookEvents, jobRuns, agentRuns] =
+    await Promise.all([
+      getUsageOutboxStatusCounts(),
+      getUsageEventStatusCounts(),
+      getWebhookEventStatusCounts(),
+      getJobRunStatusCounts(),
+      getAgentRunStatusCounts(),
+    ]);
 
   return [
     {
@@ -282,6 +292,11 @@ async function getJobStatusSummaries(): Promise<JobStatusSummary[]> {
       source: "Webhook events",
       description: "Stored webhook processing records from the local database.",
       counts: webhookEvents,
+    },
+    {
+      source: "Job runs",
+      description: "Local admin job records without errors or admin details.",
+      counts: jobRuns,
     },
     {
       source: "Agent runs",
@@ -333,6 +348,20 @@ function getWebhookEventStatusCounts() {
   );
 }
 
+function getJobRunStatusCounts() {
+  return safeQuery(
+    async () => {
+      const rows = await prisma.jobRun.groupBy({
+        by: ["status"],
+        _count: { _all: true },
+        orderBy: { status: "asc" },
+      });
+      return normalizeStatusCounts(rows);
+    },
+    []
+  );
+}
+
 function getAgentRunStatusCounts() {
   return safeQuery(
     async () => {
@@ -355,17 +384,20 @@ function normalizeStatusCounts(rows: StatusCountRow[]): StatusCountRow[] {
 }
 
 async function getRecentOperationalRows(): Promise<OperationalJobRow[]> {
-  const [usageOutbox, usageEvents, webhookEvents, agentRuns] = await Promise.all([
-    getRecentUsageOutboxRows(),
-    getRecentUsageEventRows(),
-    getRecentWebhookEventRows(),
-    getRecentAgentRunRows(),
-  ]);
+  const [usageOutbox, usageEvents, webhookEvents, jobRuns, agentRuns] =
+    await Promise.all([
+      getRecentUsageOutboxRows(),
+      getRecentUsageEventRows(),
+      getRecentWebhookEventRows(),
+      getRecentJobRunRows(),
+      getRecentAgentRunRows(),
+    ]);
 
   return [
     ...usageOutbox.map(toUsageOutboxJobRow),
     ...usageEvents.map(toUsageEventJobRow),
     ...webhookEvents.map(toWebhookEventJobRow),
+    ...jobRuns.map(toJobRunJobRow),
     ...agentRuns.map(toAgentRunJobRow),
   ]
     .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())
@@ -432,6 +464,24 @@ function getRecentWebhookEventRows() {
   );
 }
 
+function getRecentJobRunRows() {
+  return safeQuery<JobRunRow[]>(
+    () =>
+      prisma.jobRun.findMany({
+        orderBy: [{ createdAt: "desc" }],
+        take: RECENT_PER_SOURCE,
+        select: {
+          name: true,
+          status: true,
+          startedAt: true,
+          completedAt: true,
+          createdAt: true,
+        },
+      }),
+    []
+  );
+}
+
 function getRecentAgentRunRows() {
   return safeQuery<AgentRunRow[]>(
     () =>
@@ -488,6 +538,19 @@ function toWebhookEventJobRow(row: WebhookEventRow): OperationalJobRow {
     lastAttemptAt: null,
     nextActionAt: null,
     finishedAt: row.processedAt,
+  };
+}
+
+function toJobRunJobRow(row: JobRunRow): OperationalJobRow {
+  return {
+    source: "Job run",
+    category: row.name,
+    status: row.status,
+    retryCount: null,
+    startedAt: row.startedAt ?? row.createdAt,
+    lastAttemptAt: null,
+    nextActionAt: null,
+    finishedAt: row.completedAt,
   };
 }
 

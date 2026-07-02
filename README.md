@@ -10,8 +10,11 @@ Current delivery model:
 
 - **App:** Next.js 16 App Router
 - **Database:** Supabase Postgres via Prisma
-- **Auth/runtime integrations:** WorkOS, Supabase, internal maintenance APIs
-- **Deployments:** Vercel preview/temp URLs
+- **Auth:** WorkOS AuthKit only
+- **Billing:** Lago is the billing and subscription source of truth
+- **Storage/runtime integrations:** Supabase Storage, internal maintenance APIs
+- **Production hosting:** AI Kick Start Google Cloud VPS
+- **Preview/temp deployments:** Vercel PR previews and temporary URLs only
 - **Review gates:** GitHub Actions, Codex PR review, human approval
 
 ## Quick start
@@ -54,16 +57,15 @@ npm run db:reset         # reset local database
 Copy `.env.example` to `.env`. Required production-class values include:
 
 - `DATABASE_URL`
-- `NEXTAUTH_URL`
-- `NEXTAUTH_SECRET` or `AUTH_SECRET`
 - `WORKOS_CLIENT_ID`
 - `WORKOS_API_KEY`
 - `WORKOS_COOKIE_PASSWORD`
 - `NEXT_PUBLIC_WORKOS_REDIRECT_URI`
+- Lago billing credentials and webhook secrets
 - `INTERNAL_API_SECRET`
 - `CRON_SECRET`
 
-Supabase values are required for Supabase-backed runtime features:
+Supabase values are required for database/storage-backed runtime features, not production auth or billing:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
@@ -86,7 +88,7 @@ GitHub Actions:
 
 - `CI`: docs, audit, env gate, Prisma validation/migration/seed on disposable Postgres, typecheck, lint, build, production server boot, smoke tests.
 - `Vercel Preview`: deploys PR previews and comments the URL.
-- `Vercel Main`: deploys the stable temporary Vercel URL after `main` passes CI.
+- `Vercel Main`: deploys a stable temporary Vercel URL after `main` passes CI; this is not the production hosting target.
 - `Codex PR Review`: runs Codex as an automated reviewer.
 - `Supabase Migrate`: manual staging/production migration workflow.
 
@@ -146,13 +148,15 @@ Required GitHub secrets:
 - `STAGING_DATABASE_URL`
 - `PROD_DATABASE_URL`
 
-## Vercel
+## Production and previews
 
-The active deployment path is Vercel + Supabase:
+The production deployment path is the AI Kick Start Google Cloud VPS:
 
-- PR previews use Supabase staging.
-- The temporary `main` Vercel URL uses Supabase staging until launch.
-- Production domain launch switches Vercel production env vars to Supabase production.
+- Production runs on the AI Kick Start Google Cloud VPS.
+- WorkOS is the only production auth system.
+- Lago is the billing and subscription source of truth.
+- Supabase remains the database/storage provider.
+- Vercel remains available for PR previews and temporary validation URLs only.
 
 See [docs/deployment-vercel.md](docs/deployment-vercel.md).
 

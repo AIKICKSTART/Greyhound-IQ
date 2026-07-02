@@ -431,8 +431,10 @@ model WebhookEvent {
   lagoEventId String?   @unique
   eventType   String
   status      String    @default("received")
+  payloadHash String?
   payloadJson String
   headersJson String?
+  retryCount  Int       @default(0)
   receivedAt  DateTime  @default(now())
   processedAt DateTime?
   error       String?
@@ -441,7 +443,9 @@ model WebhookEvent {
 
   billingEvents BillingEvent[]
 
+  @@unique([provider, payloadHash])
   @@index([eventType, receivedAt])
+  @@index([provider, eventType, payloadHash])
   @@index([status, receivedAt])
   @@index([receivedAt])
 }

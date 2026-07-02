@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, Crown, LogIn, LogOut, Menu, Search, Sparkles } from "lucide-react";
+import { Activity, Bell, Crown, LogIn, LogOut, Search, Sparkles } from "lucide-react";
 import Image, { getImageProps } from "next/image";
 import { signOut } from "@workos-inc/authkit-nextjs";
 import {
@@ -19,6 +19,7 @@ const TIER_BADGE: Record<string, { label: string; color: string }> = {
 };
 
 const NAV_LINKS = [
+  { href: "/", label: "Home" },
   { href: "/races", label: "Races" },
   { href: "/results", label: "Results" },
   { href: "/dogs", label: "Dogs" },
@@ -33,13 +34,14 @@ const NAV_LINKS = [
 const HEADER_BANNER_LANDSCAPE = siteAssetUrl("/images/wentworth-track-banner-landscape.webp");
 const HEADER_BANNER_PORTRAIT = siteAssetUrl("/images/wentworth-track-banner-portrait.webp");
 const LOGO_MAIN = siteAssetUrl("/images/logo-main-purple-gold.webp");
-const LOGO_MARK = siteAssetUrl("/images/logo-mark-purple-gold.webp");
+const LOGO_MARK = "/images/logo-mark-purple-gold.webp";
+const LOGO_COMPACT = siteAssetUrl("/images/brand/greyhoundiq-wordmark-compact-ghiq.png");
 
 function HeaderBannerImage() {
   const common = {
     alt: "",
     className:
-      "pointer-events-none absolute inset-0 z-0 h-full w-full object-contain object-center opacity-[0.98] saturate-125",
+      "pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-center opacity-[0.52] saturate-125",
     loading: "eager" as const,
     sizes: "100vw",
   };
@@ -77,19 +79,15 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-2 z-50 w-full px-3 md:px-5">
-      <div className="relative isolate mx-auto min-h-[132px] max-w-7xl overflow-hidden rounded-2xl border border-white/25 bg-[hsl(var(--surface-3)/0.68)] shadow-[0_22px_55px_hsl(0_0%_0%/0.34)] backdrop-blur-xl md:min-h-[168px]">
+      <div className="giq-site-header-frame relative isolate mx-auto min-h-[150px] max-w-[70rem] overflow-hidden rounded-2xl border border-white/25 bg-[hsl(var(--surface-3)/0.68)] shadow-[0_22px_55px_hsl(0_0%_0%/0.34)] backdrop-blur-xl">
         <HeaderBannerImage />
         <div
           aria-hidden="true"
-          className="absolute inset-0 z-10 bg-[linear-gradient(90deg,hsl(var(--surface-1)/0.40)_0%,hsl(var(--surface-3)/0.16)_45%,hsl(var(--surface-3)/0.06)_100%)]"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 z-10 bg-[linear-gradient(180deg,hsl(0_0%_100%/0.18)_0%,transparent_44%,hsl(var(--surface-1)/0.30)_100%)]"
+          className="absolute inset-0 z-10 bg-[linear-gradient(90deg,hsl(var(--surface-1)/0.70)_0%,hsl(var(--surface-3)/0.25)_55%,transparent_100%)]"
         />
         <div aria-hidden="true" className="race-box-strip absolute inset-x-6 bottom-0 z-30 h-[3px] rounded-none opacity-95" />
 
-        <div className="relative z-20 mx-auto flex min-h-[132px] max-w-7xl flex-col justify-between gap-4 px-4 py-4 md:min-h-[168px] md:px-6 md:py-5">
+        <div className="giq-site-header-inner relative z-20 mx-auto flex min-h-[150px] max-w-[70rem] flex-col justify-between gap-4 px-4 py-4 md:px-6 md:py-[18px]">
           <div className="flex items-start gap-3">
             <Sheet>
               <SheetTrigger
@@ -100,12 +98,9 @@ export async function SiteHeader() {
                   src={LOGO_MARK}
                   alt=""
                   fill
-                  className="object-cover"
-                  sizes="50px"
+                  className="object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.45)]"
+                  sizes="54px"
                 />
-                <span className="giq-logo-menu-glyph" aria-hidden="true">
-                  <Menu className="h-3 w-3" />
-                </span>
               </SheetTrigger>
               <SheetContent side="left" className="border-white/[0.06] bg-[hsl(var(--surface-1))]">
                 <SheetTitle className="sr-only">Navigation</SheetTitle>
@@ -121,7 +116,7 @@ export async function SiteHeader() {
               aria-label="GreyhoundIQ home"
               className="group flex min-w-0 shrink items-center transition-transform hover:-translate-y-px"
             >
-              <span className="relative hidden h-20 w-[300px] shrink overflow-hidden rounded-xl shadow-[0_14px_28px_hsl(0_0%_0%/0.24)] sm:block md:h-[104px] md:w-[360px] lg:w-[420px]">
+              <span className="relative hidden h-[76px] w-[300px] shrink overflow-hidden drop-shadow-[0_10px_20px_rgba(0,0,0,0.40)] sm:block md:w-[360px] lg:w-[420px]">
                 <Image
                   src={LOGO_MAIN}
                   alt=""
@@ -130,15 +125,34 @@ export async function SiteHeader() {
                   sizes="(min-width: 1024px) 420px, (min-width: 768px) 360px, 300px"
                 />
               </span>
+              <span className="relative block h-12 w-[154px] shrink overflow-hidden drop-shadow-[0_8px_16px_rgba(0,0,0,0.45)] sm:hidden">
+                <Image
+                  src={LOGO_COMPACT}
+                  alt=""
+                  fill
+                  className="object-contain object-left"
+                  sizes="154px"
+                />
+              </span>
             </Link>
 
             <div className="ml-auto flex shrink-0 items-center gap-2">
+              <form action="/dogs" className="giq-search-shell hidden lg:flex">
+                <Search className="h-3.5 w-3.5" aria-hidden="true" />
+                <input
+                  type="search"
+                  name="q"
+                  className="giq-search-input"
+                  placeholder="Search dogs, tracks, trainers"
+                  aria-label="Search dogs, tracks, trainers"
+                />
+              </form>
               <Link
-                href="/dogs"
-                className="giq-button giq-button-glass hidden px-3.5 text-[13px] font-semibold lg:inline-flex"
+                href="/messages"
+                aria-label="Notifications"
+                className="giq-button giq-button-carbon giq-icon-button hidden min-h-10 w-10 px-0 lg:inline-flex"
               >
-                <Search className="h-3.5 w-3.5" />
-                <span>Search</span>
+                <Bell className="h-4 w-4" />
               </Link>
 
               {user ? (
@@ -196,22 +210,7 @@ export async function SiteHeader() {
             </div>
           </div>
 
-          <Link
-            href="/"
-            aria-hidden="true"
-            tabIndex={-1}
-            className="relative h-[92px] w-full max-w-[310px] overflow-hidden rounded-xl shadow-[0_14px_28px_hsl(0_0%_0%/0.24)] sm:hidden"
-          >
-            <Image
-              src={LOGO_MAIN}
-              alt=""
-              fill
-              className="object-contain object-left"
-              sizes="310px"
-            />
-          </Link>
-
-          <nav className="giq-header-nav hidden w-full items-center gap-2 overflow-x-auto rounded-xl p-2 md:flex 2xl:justify-center">
+          <nav className="giq-header-nav hidden w-full items-center justify-center gap-2 overflow-x-auto rounded-xl p-2 md:flex">
             <HeaderNav links={NAV_LINKS} variant="desktop" />
           </nav>
 

@@ -33,7 +33,7 @@ export default async function BreedingPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/wentworth-track-hero.webp"
+        image="/images/wentworth-gate-hero.webp"
         badge="BREEDING ANALYTICS"
         badgeIcon={<Dna className="h-3 w-3 text-[hsl(var(--primary-bright))]" />}
         badgeColor="primary"
@@ -49,13 +49,13 @@ export default async function BreedingPage() {
         <div className="mt-8 flex gap-3">
           <Link
             href="/dogs"
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-5 py-2.5 text-[13px] font-semibold text-white shadow-xl shadow-[hsl(var(--primary)/0.25)] hover:brightness-110 transition-all tracking-[-0.013em]"
+            className="giq-liquid-purple-button px-5 text-[13px] font-semibold"
           >
             Search Dogs
           </Link>
           <Link
             href="/pricing"
-            className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-[13px] font-medium text-[hsl(var(--foreground))] hover:bg-white/[0.06] backdrop-blur-sm transition-all"
+            className="giq-button giq-button-glass px-5 text-[13px] font-medium"
           >
             See Pricing
           </Link>
@@ -75,13 +75,13 @@ export default async function BreedingPage() {
             return (
               <div
                 key={f.title}
-                className="group rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 hover:bg-white/[0.04] hover:border-white/[0.12] transition-all"
+                className="giq-panel giq-panel-hover group p-6"
               >
                 <div className="flex items-start justify-between mb-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[hsl(var(--primary)/0.1)]">
+                  <div className="giq-icon-plate flex h-10 w-10 items-center justify-center rounded-lg">
                     <Icon className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
                   </div>
-                  <span className="rounded-full bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 text-[10px] font-semibold text-[hsl(var(--muted-foreground))] tracking-[0.04em]">
+                  <span className="giq-badge giq-badge-neutral">
                     {f.phase}
                   </span>
                 </div>
@@ -112,10 +112,10 @@ export default async function BreedingPage() {
           <TrendingUp className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
         </div>
 
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+        <div className="giq-table-shell">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))]">
+              <tr className="giq-table-head">
                 <th className="text-left p-4 tracking-[0.04em]">Sire</th>
                 <th className="text-right p-4 tracking-[0.04em]">Progeny</th>
                 <th className="text-right p-4 tracking-[0.04em]">Winners</th>
@@ -127,7 +127,7 @@ export default async function BreedingPage() {
               {SIRE_LEADERS.map((s, i) => (
                 <tr
                   key={s.name}
-                  className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors"
+                  className="giq-table-row"
                 >
                   <td className="p-4">
                     <div className="flex items-center gap-3">

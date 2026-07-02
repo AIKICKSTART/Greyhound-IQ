@@ -36,7 +36,7 @@ export function HeaderNav({ links, variant }: HeaderNavProps) {
                 ? cn("giq-header-nav-link shrink-0", active && "is-active")
                 : cn(
                     "giq-button justify-start px-4 text-base font-semibold",
-                    active ? "giq-button-primary" : "giq-button-glass",
+                    active ? "giq-button-primary is-active" : "giq-button-carbon",
                   )
             }
           >

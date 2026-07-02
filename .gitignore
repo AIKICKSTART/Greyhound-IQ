@@ -20,6 +20,7 @@
 
 # production
 /build
+/output/runtime/
 
 # misc
 .DS_Store

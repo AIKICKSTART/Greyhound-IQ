@@ -45,7 +45,7 @@ export default async function AgentsPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/wentworth-track-hero.webp"
+        image="/images/wentworth-gate-hero.webp"
         title={
           <>
             AI agents for
@@ -58,13 +58,13 @@ export default async function AgentsPage() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/pricing"
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-5 py-2.5 text-[13px] font-semibold text-white shadow-xl shadow-[hsl(var(--primary)/0.25)] transition-all hover:brightness-110"
+            className="giq-liquid-purple-button px-5 text-[13px] font-semibold"
           >
             Unlock Pro agents
           </Link>
           <Link
             href="/statistics"
-            className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-[13px] font-semibold text-[hsl(var(--foreground))] transition-all hover:bg-white/[0.06]"
+            className="giq-button giq-button-glass px-5 text-[13px] font-semibold"
           >
             View statistics
           </Link>
@@ -90,7 +90,7 @@ export default async function AgentsPage() {
             {AGENT_CARDS.map((agent) => (
               <article
                 key={agent.name}
-                className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5"
+                className="giq-panel giq-panel-hover p-5"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -101,7 +101,7 @@ export default async function AgentsPage() {
                       {agent.body}
                     </p>
                   </div>
-                  <span className="rounded-full bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]">
+                  <span className="giq-badge giq-badge-neutral">
                     {agent.tier}
                   </span>
                 </div>
@@ -116,7 +116,7 @@ export default async function AgentsPage() {
           <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
             <form
               action={createAgentRun}
-              className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6"
+              className="giq-panel p-6"
             >
               <div className="mb-5">
                 <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
@@ -134,7 +134,7 @@ export default async function AgentsPage() {
                   </span>
                   <select
                     name="agentType"
-                    className="mt-2 w-full rounded-lg border border-white/[0.08] bg-[hsl(var(--background))] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors focus:border-[hsl(var(--primary))]"
+                    className="giq-form-control mt-2 px-3 py-2"
                     defaultValue="race_analyst"
                   >
                     <option value="race_analyst">Race Analyst</option>
@@ -152,7 +152,7 @@ export default async function AgentsPage() {
                     minLength={10}
                     maxLength={5000}
                     rows={7}
-                    className="mt-2 w-full resize-y rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] leading-relaxed text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+                    className="giq-form-control giq-textarea mt-2 px-3 py-2"
                     placeholder="Top 3 picks for R5 The Meadows Friday"
                   />
                 </label>
@@ -160,7 +160,7 @@ export default async function AgentsPage() {
               </div>
             </form>
 
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+            <div className="giq-panel p-6">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
@@ -178,10 +178,10 @@ export default async function AgentsPage() {
                 No agent runs recorded yet.
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="giq-table-shell overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-white/[0.06] text-[11px] uppercase text-[hsl(var(--subtle-foreground))]">
+                    <tr className="giq-table-head">
                       <th className="p-3 text-left">Agent</th>
                       <th className="p-3 text-left">Status</th>
                       <th className="p-3 text-right">Tokens</th>
@@ -193,17 +193,17 @@ export default async function AgentsPage() {
                     {runs.map((run) => (
                       <tr
                         key={run.id}
-                        className="border-b border-white/[0.04] last:border-0"
+                        className="giq-table-row"
                       >
                         <td className="p-3 text-[13px] font-medium text-[hsl(var(--foreground))]">
                           {run.agentType.replace(/_/g, " ")}
                         </td>
                         <td className="p-3">
                           <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            className={`giq-status-pill ${
                               run.status === "completed"
-                                ? "bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary-bright))]"
-                                : "bg-white/[0.05] text-[hsl(var(--muted-foreground))]"
+                                ? "giq-status-pill-purple"
+                                : ""
                             }`}
                           >
                             {run.status === "completed" ? (

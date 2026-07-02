@@ -20,7 +20,7 @@ export default async function ForumPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/wentworth-track-hero.webp"
+        image="/images/wentworth-gate-hero.webp"
         title={
           <>
             Community form room.
@@ -49,7 +49,7 @@ export default async function ForumPage() {
             {categories.map((category) => (
               <section
                 key={category.id}
-                className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5"
+                className="giq-panel giq-panel-hover p-5"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -63,7 +63,7 @@ export default async function ForumPage() {
                       {category.description}
                     </p>
                   </div>
-                  <span className="rounded-full border border-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]">
+                  <span className="giq-badge giq-badge-neutral">
                     {category._count.threads} threads
                   </span>
                 </div>
@@ -99,7 +99,7 @@ export default async function ForumPage() {
             <MessageSquare className="h-5 w-5 text-[hsl(var(--secondary))]" />
           </div>
 
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02]">
+          <div className="giq-panel overflow-hidden">
             {recentThreads.map((thread) => (
               <div
                 key={thread.id}
@@ -130,7 +130,7 @@ export default async function ForumPage() {
 
           <Link
             href="/listings"
-            className="mt-5 inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-[hsl(var(--foreground))] transition-all hover:bg-white/[0.06]"
+            className="giq-outline-action mt-5"
           >
             Browse marketplace
             <ArrowRight className="h-3.5 w-3.5" />
@@ -138,7 +138,7 @@ export default async function ForumPage() {
           {categories[0] && (
             <Link
               href={`/forum/${categories[0].slug}`}
-              className="ml-3 mt-5 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-[hsl(var(--primary)/0.2)] transition-all hover:brightness-110"
+              className="giq-liquid-purple-button ml-3 mt-5 min-h-10 px-4 text-[13px] font-semibold"
             >
               Start a thread
               <ArrowRight className="h-3.5 w-3.5" />

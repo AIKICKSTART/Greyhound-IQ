@@ -1,0 +1,16 @@
+{
+  "errors": [
+    "console: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+    "console: Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+  ],
+  "metrics": {
+    "button": null,
+    "image": null,
+    "imgSrc": null,
+    "borderTopWidth": null,
+    "backgroundColor": null,
+    "boxShadow": null,
+    "glyphExists": false,
+    "overflowX": false
+  }
+}

@@ -70,7 +70,7 @@ export default function ListingsPage({
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/wentworth-track-hero.webp"
+        image="/images/wentworth-gate-hero.webp"
         title={
           <>
             Marketplace.
@@ -129,7 +129,7 @@ async function ListingsResults({
       <ListingsToolbar status={status} q={q} count={listings.length} />
 
       {listings.length === 0 ? (
-        <div className="race-panel p-12 text-center">
+        <div className="giq-empty-state p-12 text-center">
           <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
             No listings loaded yet.
           </p>
@@ -139,7 +139,7 @@ async function ListingsResults({
           {listings.map((listing) => (
             <article
               key={listing.id}
-              className="race-panel flex min-h-[360px] flex-col transition-all hover:-translate-y-0.5 hover:border-white/[0.13]"
+              className="giq-panel giq-panel-hover giq-listing-card flex min-h-[360px] flex-col"
             >
               {(() => {
                 const demoImage = getDemoListingImages(listing, 1)[0];
@@ -163,15 +163,15 @@ async function ListingsResults({
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div>
                     <p className="program-label">Marketplace</p>
-                    <span className="mt-2 inline-flex rounded-md bg-[hsl(var(--primary)/0.12)] px-2.5 py-1 text-[11px] font-semibold text-[hsl(var(--primary-bright))]">
+                    <span className="giq-badge giq-badge-purple mt-2">
                       {TYPE_LABEL[listing.type] ?? listing.type}
                     </span>
                   </div>
                   <span
-                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold ${
+                    className={`giq-badge ${
                       listing.status === "active"
-                        ? "bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary-bright))]"
-                        : "bg-white/[0.05] text-[hsl(var(--subtle-foreground))]"
+                        ? "giq-badge-purple"
+                        : "giq-badge-neutral"
                     }`}
                   >
                     {listing.status}
@@ -191,7 +191,7 @@ async function ListingsResults({
                 </p>
 
                 <div className="mt-5 grid grid-cols-2 gap-3 text-[12px] text-[hsl(var(--muted-foreground))]">
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-[hsl(var(--foreground))]">
+                  <span className="giq-listing-price inline-flex items-center gap-1.5">
                     <DollarSign className="h-3.5 w-3.5 text-[hsl(var(--secondary))]" />
                     {formatPrice(listing.price)}
                   </span>
@@ -210,7 +210,7 @@ async function ListingsResults({
                 {listing.dog && (
                   <Link
                     href={`/dogs/${listing.dog.id}`}
-                    className="race-panel-muted mt-4 block p-3 transition-colors hover:bg-white/[0.05]"
+                    className="giq-subpanel mt-4 block p-3 transition-colors hover:bg-white/[0.04]"
                   >
                     <p className="text-[12px] font-semibold text-[hsl(var(--foreground))]">
                       {listing.dog.name}
@@ -234,7 +234,7 @@ async function ListingsResults({
                   </div>
                   <Link
                     href={`/listings/${listing.id}`}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[12px] font-semibold text-[hsl(var(--foreground))] transition-colors hover:bg-white/[0.07]"
+                    className="giq-outline-action w-full text-[12px]"
                   >
                     View listing
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -263,7 +263,7 @@ function ListingsFallback({
         {[1, 2, 3, 4, 5, 6].map((item) => (
           <div
             key={item}
-            className="race-panel min-h-[360px] animate-pulse bg-white/[0.02]"
+            className="giq-panel giq-listing-card min-h-[360px] animate-pulse"
           />
         ))}
       </div>
@@ -294,29 +294,29 @@ function ListingsToolbar({
               : "Loading marketplace listings."}
           </p>
         </div>
-        <div className="race-panel-muted flex h-10 w-10 items-center justify-center">
+        <div className="giq-icon-plate flex h-10 w-10 items-center justify-center rounded-xl">
           <ShoppingBag className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
         </div>
       </div>
 
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="race-panel-muted flex p-1">
+        <div className="giq-segmented">
           <Link
             href={listingHref({ q })}
-            className={`rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+            className={`giq-segment ${
               status === "active"
-                ? "bg-[hsl(var(--primary)/0.16)] text-[hsl(var(--primary-bright))]"
-                : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+                ? "giq-segment-active"
+                : ""
             }`}
           >
             Available
           </Link>
           <Link
             href={listingHref({ status: "sold", q })}
-            className={`rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+            className={`giq-segment ${
               status === "sold"
-                ? "bg-[hsl(var(--primary)/0.16)] text-[hsl(var(--primary-bright))]"
-                : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+                ? "giq-segment-active"
+                : ""
             }`}
           >
             Recently sold
@@ -332,7 +332,7 @@ function ListingsToolbar({
             name="q"
             defaultValue={q}
             placeholder="Search title or description"
-            className="min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[13px] text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+            className="giq-form-control min-w-0 flex-1 px-3 py-2 text-[13px]"
           />
           <button
             type="submit"
@@ -349,7 +349,7 @@ function ListingsToolbar({
 
 function ListingDemoMediaPreview({ image }: { image: DemoListingImage }) {
   return (
-    <div className="block overflow-hidden rounded-md border border-white/[0.08] bg-black/20">
+    <div className="giq-listing-media block">
       <NextImage
         src={image.src}
         alt={image.alt}
@@ -383,7 +383,7 @@ function ListingMediaPreview({
         href={url}
         target="_blank"
         rel="noreferrer"
-        className="flex h-40 items-center justify-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.03] text-[12px] font-semibold text-[hsl(215_14%_80%)]"
+        className="giq-listing-media flex h-40 items-center justify-center gap-2 text-[12px] font-semibold text-[hsl(215_14%_80%)]"
       >
         <Paperclip className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
         {media.originalName ?? media.mimeType}
@@ -396,7 +396,7 @@ function ListingMediaPreview({
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="block overflow-hidden rounded-md border border-white/[0.08] bg-black/20"
+      className="giq-listing-media block"
     >
       <NextImage
         src={url}

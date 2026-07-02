@@ -25,15 +25,16 @@ export async function ProGate({ minTier, feature, children }: ProGateProps) {
 
   const Icon = minTier === "pro_plus" ? Crown : Sparkles;
   const tierName = TIER_LABEL[minTier];
-  const accent = minTier === "pro_plus" ? "var(--secondary)" : "var(--primary-bright)";
-
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.02] p-8 text-center">
-      <div
-        className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
-        style={{ background: `hsl(${accent} / 0.12)` }}
-      >
-        <Lock className="h-5 w-5" style={{ color: `hsl(${accent})` }} />
+    <div className="giq-panel p-8 text-center">
+      <div className="giq-icon-plate mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl">
+        <Lock
+          className={`h-5 w-5 ${
+            minTier === "pro_plus"
+              ? "text-[hsl(var(--secondary-light))]"
+              : "text-[hsl(var(--primary-light))]"
+          }`}
+        />
       </div>
       <h3 className="text-[17px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.02em]">
         {feature ?? "This feature"} is a {tierName} feature
@@ -46,8 +47,9 @@ export async function ProGate({ minTier, feature, children }: ProGateProps) {
       <div className="mt-5 flex items-center justify-center gap-3">
         <Link
           href="/pricing"
-          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold text-white transition-all hover:brightness-110"
-          style={{ background: `hsl(${accent})` }}
+          className={`giq-button px-4 text-[13px] font-semibold ${
+            minTier === "pro_plus" ? "giq-button-gold" : "giq-button-primary"
+          }`}
         >
           <Icon className="h-3.5 w-3.5" />
           See {tierName} plans
@@ -55,7 +57,7 @@ export async function ProGate({ minTier, feature, children }: ProGateProps) {
         {!user && (
           <Link
             href="/sign-in"
-            className="inline-flex items-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-medium text-[hsl(var(--foreground))] transition-all hover:bg-white/[0.06]"
+            className="giq-button giq-button-glass px-4 text-[13px] font-medium"
           >
             Sign in
           </Link>

@@ -34,7 +34,7 @@ export default function AboutPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/wentworth-track-hero.webp"
+        image="/images/wentworth-gate-hero.webp"
         badge="ABOUT"
         badgeColor="primary"
         title={
@@ -88,9 +88,9 @@ export default function AboutPage() {
             return (
               <div
                 key={v.title}
-                className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 hover:bg-white/[0.04] hover:border-white/[0.12] transition-all"
+                className="giq-panel giq-panel-hover p-6"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[hsl(var(--primary)/0.1)] mb-4">
+                <div className="giq-icon-plate mb-4 flex h-10 w-10 items-center justify-center rounded-lg">
                   <Icon className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
                 </div>
                 <h3
@@ -122,7 +122,7 @@ export default function AboutPage() {
         </p>
         <Link
           href="/contact"
-          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-5 py-2.5 text-[13px] font-semibold text-white shadow-xl shadow-[hsl(var(--primary)/0.25)] hover:brightness-110 transition-all tracking-[-0.013em]"
+          className="giq-liquid-purple-button px-5 text-[13px] font-semibold"
         >
           Contact us
         </Link>

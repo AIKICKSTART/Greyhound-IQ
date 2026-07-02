@@ -76,7 +76,7 @@ export default async function TrackDetailPage({
                 box-bias signals, and current seeded records.
               </p>
             </div>
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-5">
+            <div className="giq-panel p-5">
               <div className="grid grid-cols-2 gap-4">
                 <Metric label="Meetings" value={track.meetings.length} />
                 <Metric label="Races" value={races.length} />
@@ -104,7 +104,7 @@ export default async function TrackDetailPage({
             {track.meetings.map((meeting) => (
               <article
                 key={meeting.id}
-                className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5"
+                className="giq-panel giq-panel-hover p-5"
               >
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -119,7 +119,7 @@ export default async function TrackDetailPage({
                       {meeting.meetingType ?? "Race meeting"}
                     </p>
                   </div>
-                  <span className="rounded-full border border-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]">
+                  <span className="giq-badge giq-badge-neutral">
                     {meeting.races.length} races
                   </span>
                 </div>
@@ -128,7 +128,7 @@ export default async function TrackDetailPage({
                     <Link
                       key={race.id}
                       href={`/races/${race.id}`}
-                      className="inline-flex items-center gap-2 rounded-md bg-white/[0.04] px-3 py-1.5 text-[12px] font-medium text-[hsl(var(--muted-foreground))] transition-all hover:bg-white/[0.08] hover:text-[hsl(var(--foreground))]"
+                      className="giq-outline-action min-h-8 px-3 py-1.5 text-[12px] font-medium"
                     >
                       <Clock className="h-3 w-3" />
                       R{race.raceNumber}
@@ -142,7 +142,7 @@ export default async function TrackDetailPage({
         </div>
 
         <aside className="space-y-6">
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+          <div className="giq-panel p-5">
             <div className="mb-5 flex items-center gap-3">
               <Route className="h-5 w-5 text-[hsl(var(--secondary))]" />
               <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
@@ -163,7 +163,7 @@ export default async function TrackDetailPage({
             </div>
           </div>
 
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+          <div className="giq-panel p-5">
             <div className="mb-5 flex items-center gap-3">
               <Trophy className="h-5 w-5 text-[hsl(var(--secondary))]" />
               <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
@@ -187,7 +187,7 @@ export default async function TrackDetailPage({
             )}
           </div>
 
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+          <div className="giq-panel p-5">
             <div className="mb-5 flex items-center gap-3">
               <MapPin className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
               <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">

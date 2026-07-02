@@ -33,7 +33,7 @@ export default function GlobalError({
             )}
             <button
               onClick={reset}
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-5 py-2.5 text-[13px] font-semibold text-white tracking-[-0.013em]"
+              className="giq-liquid-purple-button px-5 text-[13px] font-semibold"
             >
               Reload
             </button>

@@ -13,6 +13,10 @@ import {
 import { getRaceById } from "@/lib/queries";
 import { RaceReplayPlayer } from "@/components/race-replay-player";
 import { RunnerRow } from "@/components/runner-row";
+import {
+  absoluteTheDogsUrl,
+  resolveTheDogsRaceReplay,
+} from "@/lib/live/thedogs-replay";
 
 export const dynamic = "force-dynamic";
 
@@ -55,9 +59,22 @@ export default async function RacePage({
 
   const track = race.meeting.track;
   const streamVideo = race.videos.find((video) => video.streamUrl);
-  const replayStreamUrl = streamVideo?.streamUrl ?? null;
   const primaryVideo = streamVideo ?? race.videos[0] ?? null;
-  const replayPageUrl = primaryVideo?.pageUrl ?? race.replayUrl;
+  const providerReplay = streamVideo
+    ? null
+    : await resolveProviderReplay({
+        sourceProvider: race.sourceProvider,
+        sourceId: race.sourceId,
+        replayUrl: race.replayUrl,
+      });
+  const replayStreamUrl = streamVideo?.streamUrl ?? providerReplay?.streamUrl ?? null;
+  const replayStreamContentType =
+    streamVideo?.streamContentType ?? providerReplay?.streamContentType ?? null;
+  const replayPageUrl = normaliseReplayPageUrl(
+    primaryVideo?.pageUrl ?? race.replayUrl ?? providerReplay?.pageUrl ?? null,
+    race.sourceProvider
+  );
+  const replayTitle = primaryVideo?.title ?? providerReplay?.title ?? race.name;
   const hasResults = race.runners.some((runner) => runner.result);
   const winner = race.runners.find(
     (runner) => runner.result?.finishingPosition === 1
@@ -116,9 +133,9 @@ export default async function RacePage({
           {replayStreamUrl ? (
             <RaceReplayPlayer
               streamUrl={replayStreamUrl}
-              streamContentType={streamVideo?.streamContentType}
+              streamContentType={replayStreamContentType}
               pageUrl={replayPageUrl}
-              title={primaryVideo?.title ?? race.name}
+              title={replayTitle}
               trackName={track.name}
               raceLabel={`Race ${race.raceNumber} / ${race.distance}m`}
               raceTimeLabel={raceTimeLabel}
@@ -126,11 +143,11 @@ export default async function RacePage({
           ) : (
             <ReplayFallback
               replayPageUrl={replayPageUrl}
-              hasVideoRecord={Boolean(primaryVideo)}
+              hasVideoRecord={Boolean(primaryVideo || race.replayUrl || providerReplay)}
             />
           )}
 
-          <section className="race-panel overflow-hidden">
+          <section className="giq-table-shell overflow-hidden">
             <div className="flex flex-col gap-2 border-b border-white/[0.07] p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="program-label">Racecard</p>
@@ -138,14 +155,14 @@ export default async function RacePage({
                   Runners and results
                 </h2>
               </div>
-              <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]">
+              <span className="giq-badge giq-badge-neutral">
                 {race.runners.length} runners
               </span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/[0.06] text-[11px] uppercase tracking-wider text-[hsl(220_7%_52%)]">
+                  <tr className="giq-table-head">
                     <th className="w-14 p-3 text-center tracking-[0.04em]">
                       Box
                     </th>
@@ -180,7 +197,7 @@ export default async function RacePage({
           </section>
 
           {race.runners.length === 0 && (
-            <div className="race-panel-muted p-8 text-center">
+            <div className="giq-empty-state p-8 text-center">
               <p className="text-[14px] tracking-[-0.013em] text-[hsl(var(--muted-foreground))]">
                 No runners loaded for this race yet.
               </p>
@@ -189,7 +206,7 @@ export default async function RacePage({
         </section>
 
         <aside className="space-y-3">
-          <section className="race-panel p-5">
+          <section className="giq-panel p-5">
             <p className="program-label">Race summary</p>
             <div className="mt-5 grid gap-3">
               <SummaryTile
@@ -217,7 +234,7 @@ export default async function RacePage({
           </section>
 
           {winner?.result && (
-            <section className="race-panel p-5">
+            <section className="giq-panel p-5">
               <div className="flex items-start gap-3">
                 <span className="grid h-11 w-11 place-items-center rounded-lg border border-[hsl(var(--secondary)/0.28)] bg-[hsl(var(--secondary)/0.12)] text-[hsl(var(--secondary))]">
                   <Trophy className="h-5 w-5" />
@@ -261,6 +278,25 @@ export default async function RacePage({
   );
 }
 
+async function resolveProviderReplay({
+  sourceProvider,
+  sourceId,
+  replayUrl,
+}: {
+  sourceProvider?: string | null;
+  sourceId?: string | null;
+  replayUrl?: string | null;
+}) {
+  if (sourceProvider !== "thedogs") return null;
+  return resolveTheDogsRaceReplay({ sourceId, replayUrl });
+}
+
+function normaliseReplayPageUrl(value: string | null, sourceProvider?: string | null) {
+  if (!value) return null;
+  if (sourceProvider === "thedogs") return absoluteTheDogsUrl(value);
+  return value;
+}
+
 function ReplayFallback({
   replayPageUrl,
   hasVideoRecord,
@@ -269,11 +305,11 @@ function ReplayFallback({
   hasVideoRecord: boolean;
 }) {
   return (
-    <section className="race-panel p-6">
-      <div className="relative overflow-hidden rounded-lg border border-white/[0.08] bg-[linear-gradient(135deg,hsl(var(--surface-1)),hsl(var(--surface-2)))] p-8">
+    <section className="giq-panel p-6">
+      <div className="giq-subpanel relative overflow-hidden p-8">
         <div className="track-rail-overlay absolute inset-0" />
         <div className="relative max-w-xl">
-          <span className="grid h-14 w-14 place-items-center rounded-full border border-white/[0.16] bg-white/[0.06] text-[hsl(var(--primary-light))]">
+          <span className="giq-icon-plate grid h-14 w-14 place-items-center rounded-full">
             <PlayCircle className="h-7 w-7" />
           </span>
           <h2 className="mt-5 text-2xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
@@ -313,7 +349,7 @@ function SummaryTile({
   tone?: "primary" | "gold";
 }) {
   return (
-    <div className="race-panel-muted flex items-center gap-3 p-3">
+    <div className="giq-subpanel flex items-center gap-3 p-3">
       <span
         className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg border ${
           tone === "gold"

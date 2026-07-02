@@ -7,7 +7,7 @@ export default function NotFound() {
   return (
     <div className="fade-in min-h-[60vh] flex items-center justify-center px-6">
       <div className="max-w-md w-full text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 mb-6">
+        <div className="giq-badge giq-badge-gold mb-6">
           <span className="text-[11px] text-[hsl(var(--secondary))] font-medium tracking-[0.04em]">
             404
           </span>
@@ -26,14 +26,14 @@ export default function NotFound() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-5 py-2.5 text-[13px] font-semibold text-white shadow-xl shadow-[hsl(var(--primary)/0.25)] hover:brightness-110 transition-all tracking-[-0.013em]"
+            className="giq-liquid-purple-button px-5 text-[13px] font-semibold"
           >
             <Home className="h-4 w-4" />
             Back to home
           </Link>
           <Link
             href="/dogs"
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-[13px] font-medium text-[hsl(var(--foreground))] hover:bg-white/[0.06] backdrop-blur-sm transition-all"
+            className="giq-button giq-button-glass px-5 text-[13px] font-medium"
           >
             <Search className="h-4 w-4" />
             Search dogs

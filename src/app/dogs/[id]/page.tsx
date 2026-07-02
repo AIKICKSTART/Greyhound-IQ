@@ -82,7 +82,7 @@ export default async function DogProfilePage({
           { label: "Placings", value: placings, color: "text-[hsl(var(--foreground))]" },
           { label: "Best Time", value: bestTime ? `${bestTime.toFixed(2)}s` : "—", color: "text-[hsl(var(--secondary))]" },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 text-center">
+          <div key={stat.label} className="giq-metric-card text-center">
             <div className={`text-3xl font-semibold tracking-[-0.02em] ${stat.color}`}>
               {stat.value}
             </div>
@@ -94,7 +94,7 @@ export default async function DogProfilePage({
       </div>
 
       {/* Ownership */}
-      <section className="mb-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+      <section className="giq-panel mb-6 p-6">
         <div className="mb-5 flex items-center gap-3">
           <ShieldCheck className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
           <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))]">
@@ -108,7 +108,7 @@ export default async function DogProfilePage({
               verifiedOwnership.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4"
+                  className="giq-subpanel flex flex-wrap items-center justify-between gap-3 p-4"
                 >
                   <div>
                     <p className="font-semibold text-[hsl(var(--foreground))]">
@@ -124,7 +124,7 @@ export default async function DogProfilePage({
                 </div>
               ))
             ) : (
-              <div className="rounded-lg border border-dashed border-white/[0.12] p-4">
+              <div className="giq-dashed-panel p-4">
                 <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
                   No verified profile is linked to this dog yet.
                 </p>
@@ -146,7 +146,7 @@ export default async function DogProfilePage({
             )}
           </div>
 
-          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+          <div className="giq-subpanel p-4">
             {user ? (
               currentOwnership ? (
                 <div>
@@ -157,7 +157,7 @@ export default async function DogProfilePage({
                   </p>
                   <Link
                     href="/account"
-                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-[hsl(var(--foreground))] transition-all hover:bg-white/[0.06]"
+                    className="giq-outline-action mt-4"
                   >
                     Manage profile
                   </Link>
@@ -170,7 +170,7 @@ export default async function DogProfilePage({
                     </span>
                     <select
                       name="role"
-                      className="mt-2 w-full rounded-lg border border-white/[0.08] bg-[hsl(var(--background))] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors focus:border-[hsl(var(--primary))]"
+                      className="giq-form-control mt-2 px-3 py-2"
                       defaultValue="owner"
                     >
                       <option value="owner">Owner</option>
@@ -192,7 +192,7 @@ export default async function DogProfilePage({
                 </p>
                 <Link
                   href="/sign-in"
-                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-4 py-2 text-[13px] font-semibold text-white transition-all hover:brightness-110"
+                  className="giq-liquid-purple-button mt-4 min-h-10 px-4 text-[13px] font-semibold"
                 >
                   Sign in
                 </Link>
@@ -204,7 +204,7 @@ export default async function DogProfilePage({
 
       {/* Pedigree */}
       {(dog.sire || dog.dam) && (
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 mb-6">
+        <div className="giq-panel mb-6 p-6">
           <h3
             className="text-[15px] font-semibold text-[hsl(var(--foreground))] mb-4 tracking-[-0.02em]"
           >
@@ -256,8 +256,8 @@ export default async function DogProfilePage({
       )}
 
       {/* Form table */}
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-        <div className="p-5 border-b border-white/[0.06]">
+      <div className="giq-table-shell">
+        <div className="border-b border-white/[0.06] p-5">
           <h3
             className="text-[15px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.02em]"
           >
@@ -267,7 +267,7 @@ export default async function DogProfilePage({
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))]">
+              <tr className="giq-table-head">
                 <th className="text-left p-3 tracking-[0.04em]">Date</th>
                 <th className="text-left p-3 tracking-[0.04em]">Track</th>
                 <th className="text-center p-3 tracking-[0.04em]">Dist</th>
@@ -278,7 +278,7 @@ export default async function DogProfilePage({
             </thead>
             <tbody>
               {dog.formEntries.slice(0, 20).map((entry, i) => (
-                <tr key={i} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
+                <tr key={i} className="giq-table-row">
                   <td className="p-3 text-[13px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
                     {entry.date.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "2-digit" })}
                   </td>
@@ -312,10 +312,10 @@ export default async function DogProfilePage({
 function OwnershipBadge({ verified }: { verified: boolean }) {
   return (
     <span
-      className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-semibold ${
+      className={`giq-status-pill ${
         verified
-          ? "border-[hsl(var(--primary)/0.35)] bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary-bright))]"
-          : "border-[hsl(var(--secondary)/0.35)] bg-[hsl(var(--secondary)/0.1)] text-[hsl(var(--secondary))]"
+          ? "giq-status-pill-purple"
+          : "giq-status-pill-gold"
       }`}
     >
       {verified ? (

@@ -5,6 +5,7 @@ import { withAuth } from "@workos-inc/authkit-nextjs";
 import "./globals.css";
 import { CookieConsentBanner } from "@/components/cookie-consent";
 import { MobileBottomDock } from "@/components/mobile-bottom-dock";
+import { ResponsibleUseAlert } from "@/components/responsible-use-alert";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { siteAssetUrl } from "@/lib/storage-paths";
@@ -15,7 +16,6 @@ const inter = Inter({
   weight: ["300", "400", "500", "600", "700"],
 });
 
-const LOGO_MARK = siteAssetUrl("/images/logo-mark-purple-gold.webp");
 const OG_IMAGE = siteAssetUrl("/images/og-image.webp");
 
 export const metadata: Metadata = {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     "The smartest greyhound racing data platform in Australia. Real-time race cards, AI predictions, breeding analytics, and community.",
   icons: {
     icon: "/icon.png",
-    apple: LOGO_MARK,
+    apple: "/apple-icon.png",
   },
   openGraph: {
     title: "GreyhoundIQ — Australian Greyhound Racing Intelligence",
@@ -63,6 +63,7 @@ export default async function RootLayout({
           </a>
           <div className="flex min-h-screen flex-col">
             <SiteHeader />
+            <ResponsibleUseAlert />
             <main id="main-content" className="min-h-screen flex-1">{children}</main>
             <SiteFooter />
           </div>

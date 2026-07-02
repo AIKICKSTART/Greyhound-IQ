@@ -11,7 +11,7 @@ export default function DogsPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/wentworth-track-hero.webp"
+        image="/images/wentworth-gate-hero.webp"
         badge="DOG SEARCH"
         badgeIcon={<Search className="h-3 w-3 text-[hsl(var(--primary-bright))]" />}
         badgeColor="primary"

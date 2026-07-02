@@ -35,7 +35,7 @@ export default async function MessagesPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/wentworth-track-hero.webp"
+        image="/images/wentworth-gate-hero.webp"
         title={
           <>
             Private racing
@@ -49,8 +49,8 @@ export default async function MessagesPage() {
       <section className="mx-auto max-w-5xl px-6 py-12">
         {!user ? (
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[hsl(var(--primary)/0.12)]">
+            <div className="giq-panel p-8">
+              <div className="giq-icon-plate mb-4 flex h-12 w-12 items-center justify-center rounded-xl">
                 <Lock className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
               </div>
               <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
@@ -62,7 +62,7 @@ export default async function MessagesPage() {
               </p>
               <Link
                 href="/sign-in"
-                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-5 py-2.5 text-[13px] font-semibold text-white shadow-xl shadow-[hsl(var(--primary)/0.25)] transition-all hover:brightness-110"
+                className="giq-liquid-purple-button mt-6 px-5 text-[13px] font-semibold"
               >
                 Sign in
                 <Send className="h-3.5 w-3.5" />
@@ -87,7 +87,7 @@ export default async function MessagesPage() {
               </div>
 
               {conversations.length === 0 ? (
-                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-12 text-center">
+                <div className="giq-empty-state p-12 text-center">
                   <MessageSquare className="mx-auto mb-4 h-8 w-8 text-[hsl(var(--primary-bright))]" />
                   <h3 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
                     No conversations yet
@@ -98,7 +98,7 @@ export default async function MessagesPage() {
                   </p>
                 </div>
               ) : (
-                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                <div className="giq-panel overflow-hidden">
                   {conversations.map((conversation) => {
                     const other =
                       conversation.participantAId === user.profileId
@@ -113,7 +113,7 @@ export default async function MessagesPage() {
                       <Link
                         key={conversation.id}
                         href={`/messages/${conversation.id}`}
-                        className="block border-b border-white/[0.05] p-5 transition-colors last:border-0 hover:bg-white/[0.03]"
+                        className="giq-table-row block p-5"
                       >
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
@@ -127,12 +127,12 @@ export default async function MessagesPage() {
                             </p>
                           </div>
                           <span
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            className={`giq-status-pill ${
                               conversation.blockedAt
-                                ? "bg-red-500/10 text-red-200"
+                                ? "border-red-500/25 bg-red-500/10 text-red-200"
                                 : isUnread
-                                  ? "bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary-bright))]"
-                                  : "bg-white/[0.05] text-[hsl(var(--subtle-foreground))]"
+                                  ? "giq-status-pill-purple"
+                                  : ""
                             }`}
                           >
                             {conversation.blockedAt
@@ -151,7 +151,7 @@ export default async function MessagesPage() {
               )}
             </div>
 
-            <aside className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+            <aside className="giq-panel p-5">
               <div className="mb-5 flex items-center gap-3">
                 <Send className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
                 <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
@@ -166,7 +166,7 @@ export default async function MessagesPage() {
                   <select
                     name="recipientProfileId"
                     required
-                    className="mt-2 w-full rounded-lg border border-white/[0.08] bg-[hsl(var(--background))] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors focus:border-[hsl(var(--primary))]"
+                    className="giq-form-control mt-2 px-3 py-2"
                     defaultValue=""
                   >
                     <option value="" disabled>
@@ -189,7 +189,7 @@ export default async function MessagesPage() {
                     required
                     maxLength={5000}
                     rows={6}
-                    className="mt-2 w-full resize-y rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] leading-relaxed text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+                    className="giq-form-control giq-textarea mt-2 px-3 py-2"
                     placeholder="Ask about a listing, dog record, or race note."
                   />
                 </label>
@@ -213,14 +213,14 @@ function MessagingWorkflow() {
   ];
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8">
+    <div className="giq-panel p-8">
       <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
         Messaging workflow
       </h2>
       <div className="mt-5 space-y-3">
         {steps.map((step, index) => (
           <div key={step} className="flex items-center gap-3">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[hsl(var(--primary)/0.12)] text-[12px] font-bold text-[hsl(var(--primary-bright))]">
+            <span className="giq-icon-plate flex h-7 w-7 items-center justify-center rounded-md text-[12px] font-bold">
               {index + 1}
             </span>
             <span className="text-[14px] text-[hsl(var(--muted-foreground))]">

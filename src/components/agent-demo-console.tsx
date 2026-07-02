@@ -47,7 +47,7 @@ export function AgentDemoConsole() {
   }
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+    <div className="giq-panel p-5">
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
           <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
@@ -74,8 +74,8 @@ export function AgentDemoConsole() {
               }}
               className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-[13px] font-semibold transition-all ${
                 active
-                  ? "border-[hsl(var(--primary)/0.6)] bg-[hsl(var(--primary)/0.14)] text-[hsl(var(--foreground))]"
-                  : "border-white/[0.06] bg-white/[0.02] text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05]"
+                  ? "border-[hsl(var(--primary)/0.6)] bg-[hsl(var(--primary)/0.14)] text-[hsl(var(--foreground))] shadow-[0_0_18px_-12px_hsl(var(--primary-bright)/0.9)]"
+                  : "border-[hsl(var(--metal-silver)/0.12)] bg-[hsl(0_0%_100%/0.02)] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(0_0%_100%/0.05)]"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -85,7 +85,7 @@ export function AgentDemoConsole() {
         })}
       </div>
 
-      <div className="mt-5 rounded-lg border border-white/[0.06] bg-[hsl(var(--background)/0.55)] p-4">
+      <div className="giq-subpanel mt-5 p-4">
         <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
           Prompt
         </p>
@@ -98,7 +98,7 @@ export function AgentDemoConsole() {
         type="button"
         onClick={runDemo}
         disabled={status === "running"}
-        className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-[hsl(var(--primary)/0.2)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+        className="giq-liquid-purple-button mt-4 min-h-10 px-4 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
       >
         {status === "running" ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -109,7 +109,7 @@ export function AgentDemoConsole() {
       </button>
 
       {status !== "idle" && (
-        <div className="mt-4 rounded-lg border border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)] p-4">
+        <div className="giq-subpanel mt-4 border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)] p-4">
           <p className="text-[12px] font-semibold uppercase text-[hsl(var(--primary-bright))]">
             {status === "running" ? "Running" : "Completed"}
           </p>

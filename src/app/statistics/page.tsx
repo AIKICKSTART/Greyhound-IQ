@@ -28,7 +28,7 @@ export default async function StatisticsPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/wentworth-track-hero.webp"
+        image="/images/wentworth-gate-hero.webp"
         badge="ADVANCED STATISTICS"
         badgeIcon={<BarChart3 className="h-3 w-3 text-[hsl(var(--secondary))]" />}
         badgeColor="gold"
@@ -54,7 +54,7 @@ export default async function StatisticsPage() {
           track and distance.
         </p>
 
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8">
+        <div className="giq-panel p-8">
           <div className="grid grid-cols-8 gap-3 items-end min-h-[240px]">
             {BOX_BIAS.map((b) => (
               <div key={b.box} className="flex flex-col items-center gap-2">
@@ -93,10 +93,10 @@ export default async function StatisticsPage() {
           Top performers by wins over the last 12 months.
         </p>
 
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+        <div className="giq-table-shell">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))]">
+              <tr className="giq-table-head">
                 <th className="text-left p-4 tracking-[0.04em]">Rank</th>
                 <th className="text-left p-4 tracking-[0.04em]">Trainer</th>
                 <th className="text-right p-4 tracking-[0.04em]">Wins</th>
@@ -113,7 +113,7 @@ export default async function StatisticsPage() {
                 return (
                   <tr
                     key={t.name}
-                    className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors"
+                    className="giq-table-row"
                   >
                     <td className="p-4">
                       <span
@@ -152,7 +152,7 @@ export default async function StatisticsPage() {
           {TRACK_RECORDS.map((r) => (
             <div
               key={r.track}
-              className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] transition-all"
+              className="giq-panel giq-panel-hover p-5"
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -164,7 +164,7 @@ export default async function StatisticsPage() {
                     {r.dist}m
                   </p>
                 </div>
-                <span className="rounded-full bg-[hsl(var(--secondary)/0.12)] px-2 py-0.5 text-[10px] font-semibold text-[hsl(var(--secondary))]">
+                <span className="giq-badge giq-badge-gold">
                   {r.year}
                 </span>
               </div>

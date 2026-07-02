@@ -45,7 +45,7 @@ export default function Error({
         )}
         <button
           onClick={reset}
-          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-5 py-2.5 text-[13px] font-semibold text-white shadow-xl shadow-[hsl(var(--primary)/0.25)] hover:brightness-110 transition-all tracking-[-0.013em]"
+          className="giq-liquid-purple-button px-5 text-[13px] font-semibold"
         >
           <RotateCcw className="h-4 w-4" />
           Try again

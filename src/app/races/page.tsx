@@ -58,7 +58,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/wentworth-track-hero.webp"
+        image="/images/wentworth-gate-hero.webp"
         badge="RACE CONTROL"
         badgeIcon={<Flag className="h-3 w-3 text-[hsl(var(--primary-bright))]" />}
         badgeColor="primary"
@@ -97,9 +97,9 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
 
       <main className="mx-auto max-w-7xl px-6 py-10">
         <section className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="race-panel p-5">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div>
+          <div className="giq-panel p-5">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+              <div className="min-w-0">
                 <p className="program-label">Race day explorer</p>
                 <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
                   {formatDate(data.selectedDate)}
@@ -118,7 +118,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
 
               <form
                 action="/races"
-                className="grid gap-2 sm:grid-cols-[170px_150px_auto]"
+                className="grid w-full gap-3 sm:grid-cols-[minmax(160px,1fr)_minmax(150px,1fr)_132px] xl:w-[560px] xl:flex-none"
               >
                 <label className="grid gap-1">
                   <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--subtle-foreground))]">
@@ -128,7 +128,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                     type="date"
                     name="date"
                     defaultValue={data.selectedDate}
-                    className="min-h-11 rounded-lg border border-white/[0.10] bg-white/[0.04] px-3 text-sm text-[hsl(var(--foreground))] outline-none"
+                    className="giq-form-control min-h-11 px-3 text-sm"
                   />
                 </label>
                 <label className="grid gap-1">
@@ -138,7 +138,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                   <select
                     name="state"
                     defaultValue={selectedState ?? ""}
-                    className="min-h-11 rounded-lg border border-white/[0.10] bg-[hsl(var(--surface-1))] px-3 text-sm text-[hsl(var(--foreground))] outline-none"
+                    className="giq-form-control min-h-11 px-3 text-sm"
                   >
                     <option value="">All states</option>
                     {data.states.map((state) => (
@@ -150,7 +150,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                 </label>
                 <button
                   type="submit"
-                  className="giq-button giq-button-primary mt-5 min-h-11 px-5 text-[13px] font-semibold"
+                  className="giq-button giq-button-primary min-h-11 w-full px-5 text-[13px] font-semibold whitespace-nowrap sm:mt-5 sm:w-auto"
                 >
                   <Search className="h-4 w-4" />
                   Search
@@ -165,10 +165,10 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                   <Link
                     key={item.date}
                     href={dateLink(item.date, selectedState)}
-                    className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-[12px] font-semibold transition-all ${
+                    className={`giq-outline-action min-h-10 px-3 text-[12px] ${
                       active
                         ? "border-[hsl(var(--primary-light)/0.46)] bg-[hsl(var(--primary)/0.26)] text-white"
-                        : "border-white/[0.08] bg-white/[0.03] text-[hsl(var(--muted-foreground))] hover:border-white/[0.16] hover:bg-white/[0.05]"
+                        : ""
                     }`}
                   >
                     <CalendarDays className="h-3.5 w-3.5" />
@@ -228,7 +228,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                   Playable replays on this date
                 </h2>
               </div>
-              <span className="hidden rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[11px] font-semibold text-[hsl(var(--muted-foreground))] sm:inline-flex">
+              <span className="giq-badge giq-badge-neutral hidden sm:inline-flex">
                 {formatCount(data.replayRaces.length)} shown
               </span>
             </div>
@@ -237,7 +237,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                 <Link
                   key={race.id}
                   href={`/races/${race.id}`}
-                  className="race-panel group p-4 transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--secondary)/0.34)]"
+                  className="giq-panel giq-panel-hover group p-4 hover:border-[hsl(var(--secondary)/0.34)]"
                 >
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div>
@@ -287,7 +287,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
               ))}
             </div>
           ) : (
-            <div className="race-panel p-12 text-center">
+            <div className="giq-empty-state p-12 text-center">
               <Database className="mx-auto h-8 w-8 text-[hsl(var(--primary-bright))]" />
               <p className="mt-4 text-[15px] text-[hsl(var(--muted-foreground))]">
                 No meetings match this date and state. Try one of the recent
@@ -309,7 +309,7 @@ function LiveStatusPanel({
   const configured = liveStatus.status === "configured";
 
   return (
-    <aside className="race-panel p-5">
+    <aside className="giq-panel p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="program-label">Live feed</p>
@@ -369,7 +369,7 @@ function MetricCard({
   tone?: "primary" | "gold";
 }) {
   return (
-    <div className="race-panel-muted p-4">
+    <div className="giq-metric-card">
       <div
         className={`mb-4 inline-grid h-9 w-9 place-items-center rounded-lg border ${
           tone === "gold"
@@ -391,7 +391,7 @@ function MetricCard({
 
 function StatusRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.06] bg-white/[0.025] px-3 py-2">
+    <div className="giq-subpanel flex items-center justify-between gap-3 px-3 py-2">
       <span className="text-[12px] text-[hsl(var(--subtle-foreground))]">{label}</span>
       <span className="text-right text-[12px] font-semibold text-[hsl(var(--foreground))]">
         {value}

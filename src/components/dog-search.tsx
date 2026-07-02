@@ -64,7 +64,7 @@ export function DogSearch() {
         <label htmlFor="dog-search-input" className="sr-only">
           Search for a greyhound
         </label>
-        <div className="relative">
+        <div className="giq-input-panel relative">
           <Search aria-hidden="true" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--subtle-foreground))]" />
           <Input
             id="dog-search-input"
@@ -73,7 +73,7 @@ export function DogSearch() {
             aria-label="Search for a greyhound by name"
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
-            className="pl-11 h-12 text-[15px] bg-white/[0.03] border-white/[0.08] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))] rounded-xl tracking-[-0.013em]"
+            className="h-12 rounded-xl border-0 bg-transparent pl-11 text-[15px] text-[hsl(var(--foreground))] tracking-[-0.013em] placeholder:text-[hsl(var(--subtle-foreground))] focus-visible:ring-0"
             autoFocus
           />
         </div>
@@ -90,7 +90,7 @@ export function DogSearch() {
             <Link
               key={dog.id}
               href={`/dogs/${dog.id}`}
-              className="block rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all"
+              className="giq-glass-panel block p-4 transition-all hover:-translate-y-0.5"
             >
               <div className="flex justify-between items-center">
                 <div>

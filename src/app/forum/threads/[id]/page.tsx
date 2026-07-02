@@ -51,7 +51,7 @@ export default async function ForumThreadPage({
         {thread.category.name}
       </Link>
 
-      <header className="mb-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+      <header className="giq-panel mb-6 p-6">
         <div className="mb-3 flex flex-wrap items-center gap-3 text-[12px] text-[hsl(var(--subtle-foreground))]">
           <span>{thread.category.name}</span>
           <span>-</span>
@@ -68,7 +68,7 @@ export default async function ForumThreadPage({
         {thread.posts.map((post, index) => (
           <article
             key={post.id}
-            className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5"
+            className="giq-panel p-5"
           >
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -79,7 +79,7 @@ export default async function ForumThreadPage({
                   {post.createdAt.toLocaleString("en-AU")}
                 </p>
               </div>
-              <span className="rounded-full border border-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]">
+              <span className="giq-badge giq-badge-neutral">
                 {index === 0 ? "Original post" : `Reply ${index}`}
               </span>
             </div>
@@ -90,7 +90,7 @@ export default async function ForumThreadPage({
         ))}
       </div>
 
-      <section className="mt-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+      <section className="giq-panel mt-6 p-5">
         <div className="mb-5 flex items-center gap-3">
           {thread.locked ? (
             <Lock className="h-5 w-5 text-[hsl(var(--secondary))]" />
@@ -114,7 +114,7 @@ export default async function ForumThreadPage({
               minLength={20}
               maxLength={20000}
               rows={6}
-              className="w-full resize-y rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] leading-relaxed text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+              className="giq-form-control giq-textarea px-3 py-2"
               placeholder="Add a useful reply with data, context, or practical experience."
             />
             <SubmitButton pendingLabel="Posting...">Post reply</SubmitButton>
@@ -126,7 +126,7 @@ export default async function ForumThreadPage({
             </p>
             <Link
               href="/sign-in"
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-[hsl(var(--primary)/0.2)] transition-all hover:brightness-110"
+              className="giq-liquid-purple-button min-h-10 px-4 text-[13px] font-semibold"
             >
               <MessageSquare className="h-3.5 w-3.5" />
               Sign in

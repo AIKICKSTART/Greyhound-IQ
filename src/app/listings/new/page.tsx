@@ -31,7 +31,7 @@ export default async function NewListingPage() {
   ]);
 
   return (
-    <div className="fade-in mx-auto max-w-4xl px-6 py-10">
+    <div className="giq-form-page fade-in mx-auto max-w-4xl px-6 py-10">
       <Link
         href="/listings"
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
@@ -40,18 +40,18 @@ export default async function NewListingPage() {
         Listings
       </Link>
 
-      <div className="mb-8">
+      <div className="giq-form-page-intro mb-8">
         <div className="race-box-strip mb-4 w-40" />
         <h1 className="text-4xl font-semibold text-[hsl(var(--foreground))]">
           Create a marketplace listing
         </h1>
-        <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+        <p className="giq-form-page-subtitle mt-3 max-w-2xl text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
           Publish a listing connected to your GreyhoundIQ profile with clean,
           scanned media attached to the record.
         </p>
       </div>
 
-      <section className="race-panel p-6">
+      <section className="giq-panel p-6">
         {user ? (
           <form action={createListing} className="grid gap-5">
             <div className="grid gap-4 md:grid-cols-2">
@@ -62,7 +62,7 @@ export default async function NewListingPage() {
                 <select
                   name="type"
                   required
-                  className="mt-2 w-full rounded-md border border-white/[0.08] bg-[hsl(var(--background))] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors focus:border-[hsl(var(--primary))]"
+                  className="giq-form-control mt-2 px-3 py-2"
                   defaultValue="pup_for_sale"
                 >
                   {LISTING_TYPES.map(([value, label]) => (
@@ -79,7 +79,7 @@ export default async function NewListingPage() {
                 </span>
                 <select
                   name="state"
-                  className="mt-2 w-full rounded-md border border-white/[0.08] bg-[hsl(var(--background))] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors focus:border-[hsl(var(--primary))]"
+                  className="giq-form-control mt-2 px-3 py-2"
                   defaultValue=""
                 >
                   <option value="">Australia-wide</option>
@@ -101,7 +101,7 @@ export default async function NewListingPage() {
                 required
                 minLength={5}
                 maxLength={100}
-                className="mt-2 w-full rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+                className="giq-form-control mt-2 px-3 py-2"
                 placeholder="Fernando Bale pup for sale"
               />
             </label>
@@ -116,7 +116,7 @@ export default async function NewListingPage() {
                 minLength={20}
                 maxLength={5000}
                 rows={8}
-                className="mt-2 w-full resize-y rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] leading-relaxed text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+                className="giq-form-control giq-textarea mt-2 px-3 py-2"
                 placeholder="Include breeding, age, location, contact expectations, and any relevant racing context."
               />
             </label>
@@ -131,7 +131,7 @@ export default async function NewListingPage() {
                   type="number"
                   min={0}
                   step={1}
-                  className="mt-2 w-full rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+                  className="giq-form-control mt-2 px-3 py-2"
                   placeholder="5000"
                 />
               </label>
@@ -142,7 +142,7 @@ export default async function NewListingPage() {
                 </span>
                 <select
                   name="dogId"
-                  className="mt-2 w-full rounded-md border border-white/[0.08] bg-[hsl(var(--background))] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors focus:border-[hsl(var(--primary))]"
+                  className="giq-form-control mt-2 px-3 py-2"
                   defaultValue=""
                 >
                   <option value="">No dog linked</option>
@@ -165,7 +165,7 @@ export default async function NewListingPage() {
           </form>
         ) : (
           <div className="grid gap-5 md:grid-cols-[56px_1fr_auto] md:items-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[hsl(var(--primary)/0.12)]">
+            <div className="giq-icon-plate flex h-12 w-12 items-center justify-center rounded-lg">
               <Lock className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
             </div>
             <div>

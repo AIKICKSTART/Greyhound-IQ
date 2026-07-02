@@ -93,7 +93,7 @@ export default function PricingPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/wentworth-track-hero.webp"
+        image="/images/wentworth-gate-hero.webp"
         badge="PRICING"
         badgeIcon={<CreditCard className="h-3 w-3 text-[hsl(var(--primary-bright))]" />}
         badgeColor="primary"
@@ -108,20 +108,16 @@ export default function PricingPage() {
       />
 
       <section className="mx-auto max-w-6xl px-6 py-10">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {PLANS.map((plan) => {
             const Icon = plan.icon;
             return (
               <div
                 key={plan.name}
-                className={`relative rounded-2xl p-6 transition-all ${
-                  plan.highlighted
-                    ? "border-2 border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.04)] shadow-2xl shadow-[hsl(var(--primary)/0.1)] md:scale-[1.02]"
-                    : "border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.1]"
-                }`}
+                className={`giq-pricing-card ${plan.highlighted ? "giq-pricing-card-featured lg:scale-[1.02]" : ""}`}
               >
                 {plan.highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[hsl(var(--primary))] px-3 py-1 text-[11px] font-bold text-white shadow-lg">
+                  <div className="giq-badge giq-badge-purple giq-plan-popular">
                     MOST POPULAR
                   </div>
                 )}
@@ -130,17 +126,19 @@ export default function PricingPage() {
                   <span className="text-[16px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.02em]">{plan.name}</span>
                 </div>
                 <div className="mb-1">
-                  <span className="text-4xl font-semibold text-[hsl(var(--foreground))] tracking-[-0.03em]">{plan.price}</span>
+                  <span className="giq-plan-price">{plan.price}</span>
                   <span className="text-[13px] text-[hsl(var(--muted-foreground))] ml-1 tracking-[-0.013em]">{plan.period}</span>
                 </div>
                 <p className="text-[13px] text-[hsl(var(--muted-foreground))] mb-5 mt-2 tracking-[-0.013em]">{plan.description}</p>
 
                 <Link
                   href={`/contact?plan=${plan.name.toLowerCase().replace("+", "plus")}`}
-                  className={`block text-center w-full rounded-lg py-2.5 text-[13px] font-semibold tracking-[-0.013em] transition-all mb-5 ${
+                  className={`mb-5 w-full text-center text-[13px] font-semibold ${
                     plan.highlighted
-                      ? "bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] text-white hover:brightness-110 shadow-lg shadow-[hsl(var(--primary)/0.2)]"
-                      : "border border-white/[0.08] bg-white/[0.03] text-[hsl(var(--foreground))] hover:bg-white/[0.06]"
+                      ? "giq-liquid-purple-button"
+                      : plan.name === "Pro+"
+                        ? "giq-button giq-button-gold"
+                        : "giq-button giq-button-carbon"
                   }`}
                 >
                   {plan.cta}
@@ -148,13 +146,13 @@ export default function PricingPage() {
 
                 <ul className="space-y-2">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-[13px] text-[hsl(var(--foreground))] tracking-[-0.013em]">
+                    <li key={f} className="giq-plan-feature">
                       <Check className="h-3.5 w-3.5 text-[hsl(var(--primary-bright))] flex-shrink-0 mt-0.5" />
                       <span>{f}</span>
                     </li>
                   ))}
                   {plan.notIncluded.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-[13px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]">
+                    <li key={f} className="giq-plan-feature giq-plan-feature-muted">
                       <X className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
                       <span>{f}</span>
                     </li>
@@ -182,7 +180,7 @@ export default function PricingPage() {
           {FAQ.map((item, i) => (
             <details
               key={i}
-              className="group rounded-xl border border-white/[0.06] bg-white/[0.02] open:bg-white/[0.04] transition-all"
+              className="giq-faq-item group"
             >
               <summary className="flex items-center justify-between p-5 cursor-pointer list-none">
                 <span className="text-[15px] font-medium text-[hsl(var(--foreground))] tracking-[-0.013em]">
@@ -202,7 +200,7 @@ export default function PricingPage() {
 
       {/* Final CTA */}
       <section className="mx-auto max-w-3xl px-6 pb-20 text-center">
-        <div className="rounded-2xl border border-[hsl(var(--primary)/0.3)] bg-gradient-to-br from-[hsl(var(--primary)/0.08)] to-transparent p-10">
+        <div className="giq-final-cta p-10">
           <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] mb-3 tracking-[-0.03em]">
             Ready to start?
           </h2>
@@ -211,7 +209,7 @@ export default function PricingPage() {
           </p>
           <Link
             href="/contact?plan=free"
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-6 py-3 text-[14px] font-semibold text-white shadow-xl shadow-[hsl(var(--primary)/0.25)] hover:brightness-110 transition-all tracking-[-0.013em]"
+            className="giq-liquid-purple-button px-6 text-[14px] font-semibold"
           >
             Create free account
           </Link>

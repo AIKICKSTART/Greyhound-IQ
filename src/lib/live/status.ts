@@ -8,10 +8,9 @@ export async function getLiveFeedStatus() {
   const nextWeek = new Date(today);
   nextWeek.setDate(nextWeek.getDate() + 7);
 
-  const databaseReady = await safeQuery(
-    () => prisma.track.count().then(() => true),
-    false
-  );
+  const databaseReady =
+    isDatabaseConfigured() &&
+    await safeQuery(() => prisma.track.count().then(() => true), false);
   const freshness = databaseReady
     ? await getDataFreshness(today, nextWeek)
     : emptyFreshness();
@@ -158,4 +157,9 @@ function startOfDay(date: Date) {
   const copy = new Date(date);
   copy.setHours(0, 0, 0, 0);
   return copy;
+}
+
+function isDatabaseConfigured() {
+  const databaseUrl = process.env.DATABASE_URL ?? "";
+  return databaseUrl.startsWith("postgresql://") || databaseUrl.startsWith("postgres://");
 }

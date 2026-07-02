@@ -14,8 +14,8 @@ interface PageHeroProps {
 }
 
 const BADGE_COLORS = {
-  primary: "text-[hsl(var(--primary-bright))]",
-  gold: "text-[hsl(var(--secondary))]",
+  primary: "giq-badge-purple",
+  gold: "giq-badge-gold",
 } as const;
 
 export function PageHero({
@@ -38,37 +38,33 @@ export function PageHero({
   const mediaClass = "aspect-[16/9]";
 
   return (
-    <section className={`relative overflow-hidden ${minH} flex items-center`}>
+    <section className={`giq-page-hero relative overflow-hidden ${minH} flex items-center`}>
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,hsl(var(--primary-bright)/0.18),transparent_34%),radial-gradient(circle_at_18%_88%,hsl(var(--secondary)/0.10),transparent_30%),linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--surface-1))_100%)]" />
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-32 track-rail-overlay" />
       <div aria-hidden="true" className="race-box-strip absolute inset-x-6 bottom-8 mx-auto max-w-7xl opacity-70" />
 
-      <div className={`relative mx-auto grid w-full max-w-7xl items-center gap-10 px-6 ${py} lg:grid-cols-[0.86fr_1.14fr]`}>
-        <div className="max-w-[21rem] sm:max-w-2xl">
+      <div className={`giq-page-hero-inner giq-hero-split relative mx-auto w-full max-w-7xl px-6 ${py}`}>
+        <div className="giq-page-hero-copy max-w-[21rem] sm:max-w-2xl">
           {badge && (
-            <div className="mb-5 inline-flex items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-1 backdrop-blur-sm">
+            <div className={`giq-badge mb-5 ${BADGE_COLORS[badgeColor]}`}>
               {badgeIcon}
-              <span
-                className={`text-[11px] font-semibold uppercase ${BADGE_COLORS[badgeColor]}`}
-              >
-                {badge}
-              </span>
+              <span>{badge}</span>
             </div>
           )}
           <h1
-            className={`${titleClass} max-w-full break-words font-semibold leading-[1.05] text-[hsl(var(--foreground))]`}
+            className={`giq-page-hero-title ${titleClass} max-w-full break-words font-normal leading-[1.05] text-[hsl(var(--foreground))]`}
           >
             {title}
           </h1>
           <p
-            className="mt-4 max-w-[21rem] text-base leading-[1.55] text-[hsl(var(--muted-foreground))] sm:max-w-xl md:text-lg"
+            className="giq-page-hero-subtitle mt-4 max-w-[21rem] text-base leading-[1.55] text-[hsl(var(--muted-foreground))] sm:max-w-xl md:text-lg"
           >
             {subtitle}
           </p>
           {children}
         </div>
 
-        <div className={`relative overflow-hidden rounded-2xl border border-white/[0.14] bg-[linear-gradient(180deg,hsl(0_0%_100%/0.08),hsl(0_0%_100%/0.02))] shadow-[0_28px_70px_hsl(0_0%_0%/0.36)] sm:min-h-[260px] ${mediaClass}`}>
+        <div className={`giq-page-hero-media giq-glass-panel relative overflow-hidden rounded-2xl sm:min-h-[260px] ${mediaClass}`}>
           <Image
             src={imageSrc}
             alt=""

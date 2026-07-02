@@ -499,12 +499,12 @@ async function bulkUpsertRaceVideos(rows: RaceVideoUpsertRow[]) {
         "embedSourceType" = EXCLUDED."embedSourceType",
         "sourceStatus" = EXCLUDED."sourceStatus",
         "sourceCode" = EXCLUDED."sourceCode",
-        "streamUrl" = EXCLUDED."streamUrl",
-        "streamContentType" = EXCLUDED."streamContentType",
+        "streamUrl" = COALESCE(EXCLUDED."streamUrl", "RaceVideo"."streamUrl"),
+        "streamContentType" = COALESCE(EXCLUDED."streamContentType", "RaceVideo"."streamContentType"),
         "title" = EXCLUDED."title",
         "description" = EXCLUDED."description",
         "sourceRawJson" = EXCLUDED."sourceRawJson",
-        "fetchedAt" = EXCLUDED."fetchedAt",
+        "fetchedAt" = COALESCE(EXCLUDED."fetchedAt", "RaceVideo"."fetchedAt"),
         "lastSyncedAt" = EXCLUDED."lastSyncedAt",
         "updatedAt" = NOW()`)}
     `;
@@ -923,8 +923,10 @@ function inferEmbedSourceType(url: string) {
     const host = new URL(url).hostname.toLowerCase();
     if (host.includes("youtube.com") || host.includes("youtu.be")) return "youtube";
   } catch {
+    if (/\/videos\/watch\/races\/\d+\/replay\b/i.test(url)) return "race-replay";
     return null;
   }
+  if (/\/videos\/watch\/races\/\d+\/replay\b/i.test(url)) return "race-replay";
   return null;
 }
 

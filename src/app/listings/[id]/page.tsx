@@ -43,11 +43,11 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 const STATUS_STYLE: Record<string, string> = {
-  active: "bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary-bright))]",
-  expired: "bg-white/[0.05] text-[hsl(var(--muted-foreground))]",
-  sold: "bg-[hsl(var(--secondary)/0.14)] text-[hsl(var(--secondary-light))]",
-  withdrawn: "bg-white/[0.05] text-[hsl(220_7%_60%)]",
-  archived: "bg-white/[0.05] text-[hsl(var(--subtle-foreground))]",
+  active: "giq-badge-purple",
+  expired: "giq-badge-neutral",
+  sold: "giq-badge-gold",
+  withdrawn: "giq-badge-neutral",
+  archived: "giq-badge-neutral",
 };
 
 export async function generateMetadata({
@@ -95,16 +95,16 @@ export default async function ListingDetailPage({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <main className="min-w-0">
-          <div className="race-panel p-6">
+          <div className="giq-panel p-6">
             <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="program-label">Marketplace listing</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="rounded-md bg-[hsl(var(--primary)/0.12)] px-2.5 py-1 text-[11px] font-semibold text-[hsl(var(--primary-bright))]">
+                  <span className="giq-badge giq-badge-purple">
                     {TYPE_LABEL[listing.type] ?? listing.type}
                   </span>
                   <span
-                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold ${
+                    className={`giq-badge ${
                       STATUS_STYLE[listing.status] ?? STATUS_STYLE.archived
                     }`}
                   >
@@ -143,7 +143,7 @@ export default async function ListingDetailPage({
                 ))}
               </div>
             ) : (
-              <div className="race-panel-muted mt-6 grid min-h-36 place-items-center p-6 text-center">
+              <div className="giq-dashed-panel mt-6 grid min-h-36 place-items-center p-6 text-center">
                 <div>
                   <div className="race-box-strip mx-auto mb-4 w-40" />
                   <p className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
@@ -159,7 +159,7 @@ export default async function ListingDetailPage({
             {listing.dog && (
               <Link
                 href={`/dogs/${listing.dog.id}`}
-                className="race-panel-muted mt-6 block p-4 transition-colors hover:bg-white/[0.05]"
+                className="giq-subpanel mt-6 block p-4 transition-colors hover:bg-white/[0.04]"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -182,7 +182,7 @@ export default async function ListingDetailPage({
         </main>
 
         <aside className="space-y-4">
-          <section className="race-panel p-5">
+          <section className="giq-panel p-5">
             <div className="mb-5 flex items-center gap-3">
               <ShoppingBag className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
               <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
@@ -222,7 +222,7 @@ export default async function ListingDetailPage({
             </div>
           </section>
 
-          <section className="race-panel p-5">
+          <section className="giq-panel p-5">
             <div className="mb-4 flex items-center gap-3">
               <BadgeCheck className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
               <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
@@ -242,7 +242,7 @@ export default async function ListingDetailPage({
             {!isOwner && (
               <Link
                 href="/messages"
-                className="mt-5 inline-flex items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-[13px] font-semibold text-[hsl(var(--foreground))] transition-colors hover:bg-white/[0.07]"
+                className="giq-outline-action mt-5"
               >
                 <MessageSquare className="h-3.5 w-3.5" />
                 Message seller
@@ -251,7 +251,7 @@ export default async function ListingDetailPage({
           </section>
 
           {isOwner && (
-            <section className="race-panel p-5">
+            <section className="giq-panel p-5">
               <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
                 Owner controls
               </h2>
@@ -320,7 +320,7 @@ function DetailRow({
 
 function DemoListingAttachment({ image }: { image: DemoListingImage }) {
   return (
-    <div className="block overflow-hidden rounded-md border border-white/[0.08] bg-black/20">
+    <div className="giq-listing-media block rounded-md">
       <NextImage
         src={image.src}
         alt={image.alt}
@@ -354,7 +354,7 @@ function ListingAttachment({
         href={url}
         target="_blank"
         rel="noreferrer"
-        className="block overflow-hidden rounded-md border border-white/[0.08] bg-black/20"
+        className="giq-listing-media block rounded-md"
       >
         <NextImage
           src={url}
@@ -372,7 +372,7 @@ function ListingAttachment({
     return (
       <video
         controls
-        className="h-64 w-full rounded-md border border-white/[0.08] bg-black/30 object-cover"
+        className="giq-listing-media h-64 w-full rounded-md object-cover"
       >
         <source src={url} type={media.mimeType} />
       </video>
@@ -384,7 +384,7 @@ function ListingAttachment({
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="flex min-h-24 items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[12px] font-semibold text-[hsl(215_14%_80%)] transition-colors hover:bg-white/[0.06]"
+      className="giq-outline-action min-h-24 px-3 py-2 text-[12px]"
     >
       <Paperclip className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
       <span className="truncate">{media.originalName ?? media.mimeType}</span>

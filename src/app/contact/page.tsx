@@ -31,7 +31,7 @@ export default function ContactPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/wentworth-track-hero.webp"
+        image="/images/wentworth-gate-hero.webp"
         badge="CONTACT"
         badgeColor="primary"
         title={
@@ -51,9 +51,9 @@ export default function ContactPage() {
             return (
               <div
                 key={c.title}
-                className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 hover:bg-white/[0.04] hover:border-white/[0.12] transition-all text-center"
+                className="giq-panel giq-panel-hover p-6 text-center"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[hsl(var(--primary)/0.1)] mx-auto mb-4">
+                <div className="giq-icon-plate mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg">
                   <Icon className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
                 </div>
                 <h3
@@ -78,7 +78,7 @@ export default function ContactPage() {
       </section>
 
       <section className="mx-auto max-w-2xl px-6 pb-20 text-center">
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8">
+        <div className="giq-panel p-8">
           <h2
             className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2 tracking-[-0.02em]"
           >

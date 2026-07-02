@@ -1,7 +1,15 @@
 import { getTodaysMeetings } from "@/lib/queries";
 import { MeetingCard } from "@/components/meeting-card";
 import { PageHero } from "@/components/page-hero";
-import { ArrowRight } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  BarChart3,
+  ShieldCheck,
+  Target,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { siteAssetUrl } from "@/lib/storage-paths";
@@ -10,10 +18,49 @@ import { Suspense } from "react";
 export const dynamic = "force-dynamic";
 
 const FEATURES = [
-  { image: "/images/feature-full-career-form-v2.webp", title: "Full Career Form", description: "Every start, every time, every track. Complete career history with sectionals and split times." },
-  { image: "/images/feature-ai-predictions-v2.webp", title: "AI Predictions", description: "Machine learning race predictions with probability modelling and confidence intervals." },
-  { image: "/images/feature-breeding-analytics-v2.webp", title: "Breeding Analytics", description: "5-generation pedigrees, testmating tools, sire strike rates, and litter performance." },
-  { image: "/images/feature-advanced-stats-v2.webp", title: "Advanced Stats", description: "Track bias, box statistics, trainer leaderboards, speed maps, and custom dashboards." },
+  {
+    image: "/images/feature-career-form-purple.webp",
+    title: "Full Career Form",
+    description:
+      "Every start, every time, every track. Complete career history with sectionals and split times.",
+    href: "/dogs",
+    link: "Explore Form",
+    tone: "primary",
+  },
+  {
+    image: "/images/feature-ai-predictions-blue.webp",
+    title: "AI Predictions",
+    description:
+      "Machine learning race predictions with probability modelling and confidence intervals.",
+    href: "/agents",
+    link: "View Predictions",
+    tone: "info",
+  },
+  {
+    image: "/images/feature-breeding-analytics-gold.webp",
+    title: "Breeding Analytics",
+    description:
+      "5-generation pedigrees, testmating tools, sire strike rates, and litter performance.",
+    href: "/breeding",
+    link: "Analyse Breeding",
+    tone: "secondary",
+  },
+  {
+    image: "/images/feature-advanced-stats-green.webp",
+    title: "Advanced Stats",
+    description:
+      "Track bias, box statistics, trainer leaderboards, speed maps, and custom dashboards.",
+    href: "/statistics",
+    link: "View Stats",
+    tone: "success",
+  },
+] as const;
+
+const STATS: { value: string; label: string; icon: LucideIcon }[] = [
+  { value: "25K+", label: "Active Members", icon: Users },
+  { value: "2.4M+", label: "Races Analysed", icon: BarChart3 },
+  { value: "89%", label: "Prediction Accuracy", icon: Target },
+  { value: "100%", label: "Ad Free Experience", icon: ShieldCheck },
 ];
 
 const COMPARISON = [
@@ -52,12 +99,16 @@ function HomeHero() {
   return (
     <PageHero
       image="/images/wentworth-gate-hero.webp"
+      badge="REAL-TIME. AI-POWERED. BUILT FOR WINNERS."
+      badgeIcon={<Activity className="h-3.5 w-3.5 text-[hsl(var(--secondary-light))]" />}
+      badgeColor="gold"
       size="tall"
       title={
         <>
           Australian greyhound racing,
           <br />
-          <span className="gradient-text">done right.</span>
+          <span className="giq-text-gold-glass">done</span>{" "}
+          <span className="giq-text-purple-glass">right.</span>
         </>
       }
       subtitle="Real-time race cards, full career form, breeding analytics, AI predictions, and a community for breeders and owners — all in one place. No ads. No clutter. No GBP pricing."
@@ -72,10 +123,25 @@ function HomeHero() {
         </Link>
         <Link
           href="/pricing"
-          className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-6 py-3 text-[14px] font-medium text-[hsl(var(--foreground))] hover:bg-white/[0.06] backdrop-blur-sm transition-all tracking-[-0.013em]"
+          className="giq-button giq-button-carbon px-6 text-[14px] font-semibold"
         >
           See Pricing
         </Link>
+      </div>
+      <div className="giq-home-stat-grid mt-9">
+        {STATS.map((stat) => {
+          const Icon = stat.icon;
+
+          return (
+            <div key={stat.label} className="giq-home-stat">
+              <div className="flex items-center gap-2">
+                <Icon className="h-4 w-4 text-[hsl(var(--secondary-light))]" />
+                <span className="giq-home-stat-value">{stat.value}</span>
+              </div>
+              <span className="giq-home-stat-label">{stat.label}</span>
+            </div>
+          );
+        })}
       </div>
     </PageHero>
   );
@@ -108,7 +174,7 @@ async function TodaysRacesSection() {
       </div>
 
       {meetings.length === 0 ? (
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-16 text-center">
+        <div className="giq-empty-state p-16 text-center">
           <p className="text-[hsl(var(--muted-foreground))] text-[15px] tracking-[-0.013em]">
             No meetings in the database yet. The data pipeline connects in Phase 2.
           </p>
@@ -153,7 +219,7 @@ function WhyGreyhoundIQSection() {
       <h2 className="text-center text-2xl font-semibold text-[hsl(var(--foreground))] mb-8 tracking-[-0.03em]">
         Why GreyhoundIQ?
       </h2>
-      <div className="rounded-xl border border-white/[0.06] overflow-hidden">
+      <div className="giq-glass-panel overflow-hidden rounded-xl">
         <table className="w-full text-[14px]">
           <thead>
             <tr className="border-b border-white/[0.06] bg-white/[0.02]">
@@ -187,14 +253,20 @@ function FeatureCard({
   image,
   title,
   description,
+  href,
+  link,
+  tone,
 }: {
   image: string;
   title: string;
   description: string;
+  href: string;
+  link: string;
+  tone: "primary" | "info" | "secondary" | "success";
 }) {
   return (
-    <div className="group relative rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden hover:border-white/[0.12] transition-all">
-      <div className="relative aspect-[16/10] overflow-hidden">
+    <article className={`giq-glass-panel giq-feature-card giq-feature-card--${tone} group overflow-hidden`}>
+      <div className="giq-feature-media giq-shine giq-shine-hover">
         <Image
           src={siteAssetUrl(image)}
           alt={title}
@@ -202,16 +274,19 @@ function FeatureCard({
           className="object-cover group-hover:scale-105 transition-transform duration-500"
           sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--background))] via-transparent to-transparent" />
       </div>
       <div className="p-5">
         <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))] mb-1.5 tracking-[-0.015em]">
           {title}
         </h3>
-        <p className="text-[13px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.013em]">
+        <p className="min-h-[68px] text-[13px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.013em]">
           {description}
         </p>
+        <Link href={href} className="giq-feature-link mt-4">
+          {link}
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
       </div>
-    </div>
+    </article>
   );
 }

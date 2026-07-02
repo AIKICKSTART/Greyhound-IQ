@@ -27,6 +27,10 @@ export const metadata = {
 };
 
 const DEMO_ACCOUNT_ENABLED = demoAccountEnabled();
+const PANEL_CLASS = "giq-panel p-6";
+const INPUT_CLASS = "giq-form-control mt-2 px-3 py-2";
+const TEXTAREA_CLASS = "giq-form-control giq-textarea mt-2 px-3 py-2";
+const ACTION_CLASS = "giq-outline-action";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
@@ -34,7 +38,7 @@ export default async function AccountPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/wentworth-track-hero.webp"
+        image="/images/wentworth-gate-hero.webp"
         title={
           <>
             Your GreyhoundIQ
@@ -67,7 +71,7 @@ async function SignedInAccount({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-      <section className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+      <section className={PANEL_CLASS}>
         <div className="mb-5 flex items-center gap-3">
           <Pencil className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
           <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
@@ -85,7 +89,7 @@ async function SignedInAccount({
               minLength={2}
               maxLength={80}
               defaultValue={profile?.displayName ?? user.name}
-              className="mt-2 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+              className={INPUT_CLASS}
             />
           </label>
 
@@ -98,7 +102,7 @@ async function SignedInAccount({
                 name="state"
                 maxLength={8}
                 defaultValue={profile?.state ?? ""}
-                className="mt-2 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+                className={INPUT_CLASS}
                 placeholder="NSW"
               />
             </label>
@@ -110,7 +114,7 @@ async function SignedInAccount({
                 name="phone"
                 maxLength={40}
                 defaultValue={profile?.phone ?? ""}
-                className="mt-2 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+                className={INPUT_CLASS}
               />
             </label>
           </div>
@@ -124,7 +128,7 @@ async function SignedInAccount({
                 name="kennelName"
                 maxLength={120}
                 defaultValue={profile?.kennelName ?? ""}
-                className="mt-2 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+                className={INPUT_CLASS}
               />
             </label>
             <label className="block">
@@ -135,7 +139,7 @@ async function SignedInAccount({
                 name="kennelPrefix"
                 maxLength={40}
                 defaultValue={profile?.kennelPrefix ?? ""}
-                className="mt-2 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+                className={INPUT_CLASS}
               />
             </label>
           </div>
@@ -149,7 +153,7 @@ async function SignedInAccount({
               type="url"
               maxLength={200}
               defaultValue={profile?.website ?? ""}
-              className="mt-2 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+              className={INPUT_CLASS}
               placeholder="https://example.com"
             />
           </label>
@@ -163,7 +167,7 @@ async function SignedInAccount({
               maxLength={1000}
               rows={4}
               defaultValue={profile?.bio ?? ""}
-              className="mt-2 w-full resize-y rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] leading-relaxed text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+              className={TEXTAREA_CLASS}
             />
           </label>
 
@@ -177,7 +181,7 @@ async function SignedInAccount({
         </form>
       </section>
 
-      <section className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+      <section className={PANEL_CLASS}>
         <div className="mb-5 flex items-center gap-3">
           <Crown className="h-5 w-5 text-[hsl(var(--secondary))]" />
           <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
@@ -196,13 +200,13 @@ async function SignedInAccount({
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
             href="/pricing"
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-4 py-2 text-[13px] font-semibold text-white transition-all hover:brightness-110"
+            className="giq-liquid-purple-button min-h-10 px-4 text-[13px] font-semibold"
           >
             Manage tier
           </Link>
           <Link
             href="/messages"
-            className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-[hsl(var(--foreground))] transition-all hover:bg-white/[0.06]"
+            className={ACTION_CLASS}
           >
             <MessageSquare className="h-3.5 w-3.5" />
             Open messages
@@ -210,7 +214,7 @@ async function SignedInAccount({
         </div>
       </section>
 
-      <section className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 lg:col-span-2">
+      <section className={`${PANEL_CLASS} lg:col-span-2`}>
         <div className="mb-5 flex items-center gap-3">
           <PawPrint className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
           <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
@@ -224,7 +228,7 @@ async function SignedInAccount({
               <Link
                 key={ownership.id}
                 href={`/dogs/${ownership.dog.id}`}
-                className="grid gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04] sm:grid-cols-[1fr_auto] sm:items-center"
+                className="giq-subpanel grid gap-3 p-4 transition-colors hover:bg-white/[0.04] sm:grid-cols-[1fr_auto] sm:items-center"
               >
                 <div>
                   <p className="font-semibold text-[hsl(var(--foreground))]">
@@ -241,13 +245,13 @@ async function SignedInAccount({
             ))}
           </div>
         ) : (
-          <div className="rounded-lg border border-dashed border-white/[0.12] p-5">
+          <div className="giq-dashed-panel p-5">
             <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
               No dogs are linked to this profile yet.
             </p>
             <Link
               href="/dogs"
-              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-[hsl(var(--foreground))] transition-all hover:bg-white/[0.06]"
+              className={`${ACTION_CLASS} mt-4`}
             >
               <PawPrint className="h-3.5 w-3.5" />
               Search dogs
@@ -256,7 +260,7 @@ async function SignedInAccount({
         )}
       </section>
 
-      <section className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 lg:col-span-2">
+      <section className={`${PANEL_CLASS} lg:col-span-2`}>
         <div className="mb-5 flex items-center gap-3">
           <ShieldCheck className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
           <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
@@ -271,7 +275,7 @@ async function SignedInAccount({
             action={
               <Link
                 href="/api/users/me/export"
-                className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-[hsl(var(--foreground))] transition-all hover:bg-white/[0.06]"
+                className={ACTION_CLASS}
               >
                 Download JSON
               </Link>
@@ -295,7 +299,7 @@ async function SignedInAccount({
                 <form action={requestAccountDeletion}>
                   <SubmitButton
                     pendingLabel="Requesting..."
-                    className="inline-flex items-center gap-2 rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-2 text-[13px] font-semibold text-red-200 transition-all hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="giq-danger-action disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Request deletion
                   </SubmitButton>
@@ -317,7 +321,7 @@ async function SignedInAccount({
 function SignedOutAccount() {
   return (
     <div className="grid gap-6">
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8">
+      <div className="giq-panel p-8">
         <Lock className="mb-4 h-7 w-7 text-[hsl(var(--primary-bright))]" />
         <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
           Sign in to manage your account
@@ -328,7 +332,7 @@ function SignedOutAccount() {
         </p>
         <Link
           href="/sign-in"
-          className="mt-6 inline-flex rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:brightness-110"
+          className="giq-liquid-purple-button mt-6 px-5 text-[13px] font-semibold"
         >
           Sign in
         </Link>
@@ -341,7 +345,7 @@ function SignedOutAccount() {
 function DemoAccountPreview() {
   return (
     <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-      <section className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+      <section className={PANEL_CLASS}>
         <div className="mb-5 flex items-center gap-3">
           <User className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
           <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
@@ -356,7 +360,7 @@ function DemoAccountPreview() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+      <section className={PANEL_CLASS}>
         <div className="mb-5 flex items-center gap-3">
           <Crown className="h-5 w-5 text-[hsl(var(--secondary))]" />
           <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
@@ -371,7 +375,7 @@ function DemoAccountPreview() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 lg:col-span-2">
+      <section className={`${PANEL_CLASS} lg:col-span-2`}>
         <div className="mb-5 flex items-center gap-3">
           <PawPrint className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
           <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
@@ -386,7 +390,7 @@ function DemoAccountPreview() {
           ] as const).map(([name, role, verified]) => (
             <div
               key={name}
-              className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4"
+              className="giq-subpanel p-4"
             >
               <p className="font-semibold text-[hsl(var(--foreground))]">{name}</p>
               <p className="mb-3 mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
@@ -404,10 +408,10 @@ function DemoAccountPreview() {
 function StatusBadge({ verified }: { verified: boolean }) {
   return (
     <span
-      className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-semibold ${
+      className={`giq-status-pill ${
         verified
-          ? "border-[hsl(var(--primary)/0.35)] bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary-bright))]"
-          : "border-[hsl(var(--secondary)/0.35)] bg-[hsl(var(--secondary)/0.1)] text-[hsl(var(--secondary))]"
+          ? "giq-status-pill-purple"
+          : "giq-status-pill-gold"
       }`}
     >
       {verified ? (
@@ -429,7 +433,7 @@ function formatRole(role: string) {
 
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+    <div className="giq-metric-card">
       <p className="text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
         {label}
       </p>
@@ -452,8 +456,8 @@ function ControlCard({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
-      <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-md bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary-bright))]">
+    <div className="giq-subpanel p-4">
+      <div className="giq-icon-plate mb-3 flex h-8 w-8 items-center justify-center rounded-md">
         {icon}
       </div>
       <h3 className="text-[14px] font-semibold text-[hsl(var(--foreground))]">

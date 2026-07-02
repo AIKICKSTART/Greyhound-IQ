@@ -1,4 +1,5 @@
 import { getBoxColourStyle } from "@/lib/box-colours";
+import { Trophy } from "lucide-react";
 
 type RunnerData = {
   id: string;
@@ -49,7 +50,7 @@ export function RunnerRow({
     >
       <td className="p-3 text-center">
         <span
-          className="inline-flex h-9 w-11 items-center justify-center rounded-[3px] border-2 text-[18px] font-black leading-none tracking-[-0.03em] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.58),inset_0_-7px_10px_hsl(0_0%_0%/0.14),0_8px_18px_hsl(0_0%_0%/0.24)]"
+          className="giq-box-plate"
           style={boxStyle}
         >
           {runner.boxNumber}
@@ -108,21 +109,22 @@ export function RunnerRow({
 function ResultBadge({ position }: { position: number | null }) {
   if (position === 1) {
     return (
-      <span className="rounded-md bg-[hsl(var(--secondary-light))] px-2 py-0.5 text-[11px] font-bold text-[hsl(var(--secondary-foreground))]">
+      <span className="giq-result-badge giq-result-badge-gold">
+        <Trophy className="h-3 w-3" aria-hidden="true" />
         1st
       </span>
     );
   }
   if (position === 2) {
     return (
-      <span className="rounded-md bg-white/[0.08] px-2 py-0.5 text-[11px] font-semibold text-[hsl(var(--foreground))]">
+      <span className="giq-result-badge giq-result-badge-purple">
         2nd
       </span>
     );
   }
   if (position === 3) {
     return (
-      <span className="rounded-md border border-white/[0.08] px-2 py-0.5 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]">
+      <span className="giq-result-badge giq-result-badge-chrome">
         3rd
       </span>
     );

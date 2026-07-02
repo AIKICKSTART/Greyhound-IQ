@@ -62,12 +62,12 @@ export default async function ForumCategoryPage({
                 {category.description}
               </p>
             </div>
-            <span className="rounded-full border border-white/[0.06] px-3 py-1.5 text-[12px] font-semibold text-[hsl(var(--muted-foreground))]">
+            <span className="giq-badge giq-badge-neutral">
               {category.threads.length} threads
             </span>
           </div>
 
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02]">
+          <div className="giq-panel overflow-hidden">
             {category.threads.length === 0 ? (
               <div className="p-10 text-center">
                 <MessageSquare className="mx-auto mb-4 h-8 w-8 text-[hsl(var(--primary-bright))]" />
@@ -81,7 +81,7 @@ export default async function ForumCategoryPage({
                 return (
                   <article
                     key={thread.id}
-                    className="border-b border-white/[0.05] p-5 last:border-0"
+                    className="giq-table-row p-5"
                   >
                     <div className="flex items-start gap-3">
                       {thread.pinned ? (
@@ -115,7 +115,7 @@ export default async function ForumCategoryPage({
           </div>
         </main>
 
-        <aside className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+        <aside className="giq-panel p-5">
           <div className="mb-5 flex items-center gap-3">
             <PlusCircle className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
             <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
@@ -134,7 +134,7 @@ export default async function ForumCategoryPage({
                   required
                   minLength={5}
                   maxLength={200}
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+                  className="giq-form-control mt-2 px-3 py-2"
                   placeholder="Best young sires for 2026?"
                 />
               </label>
@@ -148,7 +148,7 @@ export default async function ForumCategoryPage({
                   minLength={20}
                   maxLength={20000}
                   rows={8}
-                  className="mt-2 w-full resize-y rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] leading-relaxed text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--subtle-foreground))] focus:border-[hsl(var(--primary))]"
+                  className="giq-form-control giq-textarea mt-2 px-3 py-2"
                   placeholder="Share the context, data, or question you want the community to discuss."
                 />
               </label>
@@ -161,7 +161,7 @@ export default async function ForumCategoryPage({
               </p>
               <Link
                 href="/sign-in"
-                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--secondary))] to-[hsl(var(--primary))] px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-[hsl(var(--primary)/0.2)] transition-all hover:brightness-110"
+                className="giq-liquid-purple-button mt-5 min-h-10 px-4 text-[13px] font-semibold"
               >
                 Sign in
               </Link>

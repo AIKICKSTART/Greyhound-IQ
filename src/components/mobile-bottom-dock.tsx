@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import {
+  Activity,
   Crown,
   Dog,
-  MessageCircle,
-  Search,
+  Flag,
   Trophy,
   type LucideIcon,
 } from "lucide-react";
@@ -20,49 +19,20 @@ type DockLink = {
 };
 
 const DOCK_LINKS: DockLink[] = [
-  { href: "/races", label: "Races", icon: Trophy },
-  { href: "/dogs", label: "Dogs", icon: Search },
-  { href: "/listings", label: "Market", icon: Dog },
-  { href: "/forum", label: "Forum", icon: MessageCircle },
+  { href: "/", label: "Home", icon: Activity },
+  { href: "/races", label: "Races", icon: Flag },
+  { href: "/results", label: "Results", icon: Trophy },
+  { href: "/dogs", label: "Dogs", icon: Dog },
   { href: "/pricing", label: "Pro", icon: Crown, tone: "pro" },
 ];
 
 export function MobileBottomDock() {
   const pathname = usePathname();
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    let frame = 0;
-
-    function syncNow() {
-      setVisible(window.scrollY > 160);
-    }
-
-    function syncVisibility() {
-      if (frame) return;
-      frame = window.requestAnimationFrame(() => {
-        frame = 0;
-        syncNow();
-      });
-    }
-
-    syncNow();
-    const intervalId = window.setInterval(syncNow, 300);
-    window.addEventListener("scroll", syncVisibility, { passive: true });
-    window.addEventListener("resize", syncVisibility);
-
-    return () => {
-      window.clearInterval(intervalId);
-      window.removeEventListener("scroll", syncVisibility);
-      window.removeEventListener("resize", syncVisibility);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, [pathname]);
 
   return (
     <nav
-      aria-label="Mobile quick navigation"
-      className={`giq-mobile-dock md:hidden ${visible ? "is-visible" : ""}`}
+      aria-label="Quick actions"
+      className="giq-mobile-dock is-visible"
     >
       {DOCK_LINKS.map((item) => {
         const Icon = item.icon;

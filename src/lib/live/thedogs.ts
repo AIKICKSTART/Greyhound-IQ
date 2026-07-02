@@ -216,6 +216,7 @@ export function parseTheDogsRaceResult(
   const raceTime = parseRaceTimestamp(html) ?? fallbackRaceTimeIso(date, link.raceNumber);
   const runners = parseRunners(html);
   const replayUrl = parseReplayUrl(html);
+  const videoSourceId = parseReplayVideoSourceId(replayUrl);
   const photoFinishUrl = parsePhotoFinishUrl(html);
 
   if (runners.length === 0) return null;
@@ -231,6 +232,7 @@ export function parseTheDogsRaceResult(
       trackRecord: parseTrackRecord(html),
       prizePlaces: parsePrizePlaces(html),
       resultSummary: parseActiveResultOrder(html),
+      videoSourceId,
     }),
     raceNumber: link.raceNumber,
     name: cleanHtml(
@@ -255,6 +257,8 @@ export function parseTheDogsRaceResult(
       ? "posted"
       : "pending",
     replayUrl,
+    videoSourceId,
+    videoSourceType: videoSourceId ? "race-replay" : undefined,
     photoFinishUrl,
     runners,
   };
@@ -554,8 +558,14 @@ function validIso(value: string | number) {
 function parseReplayUrl(html: string) {
   return (
     firstMatch(html, /<a[^>]+data-turbolinks-action="video"[^>]+href="([^"]+)"/i) ||
+    firstMatch(html, /<a[^>]+race-header__media__item--replay[^>]+href="([^"]+)"/i) ||
+    firstMatch(html, /<a[^>]+href="([^"]*\/videos\/watch\/races\/\d+\/replay[^"]*)"/i) ||
     undefined
   );
+}
+
+function parseReplayVideoSourceId(replayUrl?: string) {
+  return replayUrl?.match(/\/videos\/watch\/races\/(\d+)\/replay\b/i)?.[1];
 }
 
 function parsePhotoFinishUrl(html: string) {

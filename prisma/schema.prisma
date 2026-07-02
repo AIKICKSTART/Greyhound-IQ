@@ -463,6 +463,56 @@ model SupportMessage {
 
 // === BILLING ===
 
+model Plan {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String
+  status     String   @default("active")
+  lagoPlanId String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  prices       PriceCatalog[]
+  entitlements PlanEntitlement[]
+
+  @@index([status])
+}
+
+model PriceCatalog {
+  id          String   @id @default(cuid())
+  planId      String
+  plan        Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  interval    String
+  currency    String   @default("AUD")
+  amountCents Int
+  status      String   @default("active")
+  lagoPriceId String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([planId])
+  @@index([planId, status])
+  @@index([planId, interval, currency])
+  @@index([status])
+}
+
+model PlanEntitlement {
+  id         String   @id @default(cuid())
+  planId     String
+  plan       Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  featureKey String
+  enabled    Boolean  @default(true)
+  limitValue Int?
+  unit       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([planId, featureKey])
+  @@index([planId])
+  @@index([planId, enabled])
+  @@index([featureKey])
+}
+
 model BillingCustomer {
   id                 String    @id @default(cuid())
   userId             String?   @unique

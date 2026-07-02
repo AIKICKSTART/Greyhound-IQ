@@ -64,7 +64,7 @@
 **Acceptance criteria:**
 - Auth uses WorkOS AuthKit via `@workos-inc/authkit-nextjs`
 - The app validates sessions with `withAuth()` and bridges them to the local `User` row
-- Supabase remains a data/storage/realtime backend only, not the identity provider
+- Google Cloud VPS private Postgres, storage, and realtime services are data backends only, not identity providers
 - Account lockout and credential policy are enforced by WorkOS configuration
 - All auth events written to `AuditLog` (`action: "auth.signin.success" | "auth.signin.fail"`)
 
@@ -156,8 +156,8 @@
 **Acceptance criteria:**
 - File picker accepts `image/jpeg`, `image/png`, `image/webm`; rejects others with clear error
 - Max file size: 10MB; max 4 images per message
-- Direct-to-storage upload via signed URL (browser → Supabase Storage, not through our server)
-- Server-side scan: ClamAV via Edge Function; `scanStatus` set to `clean` before `MediaAsset` can be attached
+- Direct-to-storage upload via signed URL (browser → Google Cloud VPS private storage, not through the app server)
+- Server-side scan: ClamAV via private upload worker; `scanStatus` set to `clean` before `MediaAsset` can be attached
 - EXIF stripped on processing (`sharp` with `withMetadata: false`)
 - Quota: 1GB free, 10GB Pro, 100GB Pro+ — checked at upload finalize
 - Content-addressed by SHA-256 for dedup
@@ -185,7 +185,7 @@
 - New `Conversation` row created if none exists (canonical A-B ordering: smaller id is A)
 - New `Message` row with `body`, `senderId`, `conversationId`
 - `Conversation.lastMessageAt` updated via DB trigger
-- Recipient sees the message within 2s via Supabase Realtime
+- Recipient sees the message within 2s via the Google Cloud VPS private realtime channel
 - Both sender and recipient are online-visible: 1:1 only, not group
 - Blocked users: sender sees "You can't message this user"
 
@@ -650,7 +650,7 @@
 
 ---
 
-## E15 · Per-user agent memory (Mem0 on Supabase pgvector)
+## E15 · Per-user agent memory (Mem0 on Google Cloud VPS private Postgres pgvector)
 
 *Added in architecture v2 — section 15.5. The corpus identified this as the single highest value-to-effort move.*
 
@@ -660,8 +660,8 @@
 **So that** future conversations pick up where they left off
 
 **Acceptance criteria:**
-- Mem0 runs as a service on the Hetzner VPS (or as a Supabase Edge Function)
-- Memory rows are stored in Supabase Postgres using the `vector(1536)` extension
+- Mem0 runs as a service on the Google Cloud VPS private agent network
+- Memory rows are stored in Google Cloud VPS private Postgres using the `vector(1536)` extension
 - Embeddings generated via local sentence-transformers (data-sovereignty — no PII leaves the VPS)
 - Schema uses `pgvector` for similarity search; the existing `MemoryEntry` table extends with an `embedding` column
 - Mem0's auto-extraction runs after every conversation turn
@@ -734,11 +734,11 @@
 **So that** a compromised agent can't escape to the host
 
 **Acceptance criteria:**
-- Every `hermes agent` subprocess runs in `--read-only --security-opt=no-new-privileges --network=none` (with explicit egress for Supabase + Resend only)
+- Every `hermes agent` subprocess runs in `--read-only --security-opt=no-new-privileges --network=none` (with explicit egress for Google Cloud VPS private Postgres/storage + Resend only)
 - Container has no access to: env vars, host filesystem, host network, other containers
 - Container is destroyed immediately after the run completes
 - Read-only data mount at `/data` (e.g. CSV exports, no DB credentials)
-- Network policy: only `db.supabase.co:5432`, `api.supabase.co`, `api.resend.com`
+- Network policy: only private Postgres on the Google Cloud VPS, private storage on the Google Cloud VPS, and `api.resend.com`
 - Default-deny: any new network destination requires code review
 - Logs streamed to host stdout for audit
 
@@ -803,7 +803,7 @@
 
 **Acceptance criteria:**
 - Cognee knowledge graph stores: dogs, sires, dams, offspring, kennels, recessive-carrier flags
-- Runs on the same Supabase Postgres (uses `vector` + `graph` extensions)
+- Runs on the same Google Cloud VPS private Postgres (uses `vector` + `graph` extensions)
 - Query: graph traversal over N degrees of separation, returning dogs matching the constraint
 - Response includes: confidence, path explanation, alternative matches
 - Cached for 24h per query (compute amortised)
@@ -837,7 +837,7 @@
 - Used for: memory embeddings, semantic search, breeding recommendations
 - Latency: <100ms per embedding
 - Rate limit: 100 req/sec (sufficient for our load)
-- Fallback: if LocalAI is down, agent falls back to direct Supabase pgvector query without semantic ranking (graceful degradation)
+- Fallback: if LocalAI is down, agent falls back to direct Google Cloud VPS private Postgres pgvector query without semantic ranking (graceful degradation)
 
 #### US-2.20 — Voice messages are transcribed locally
 **As a** user

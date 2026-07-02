@@ -2,7 +2,7 @@
 
 > Source: `docs/GreyhoundIQ-Architecture-Premium.html` (section 3) + existing `prisma/schema.prisma`
 > Status: Architecture spec. Prisma migration scripts in `prisma/migrations/` (to be generated in Phase 1).
-> Database: Supabase Postgres 15, ap-southeast-2 (Sydney), Pro plan.
+> Database: Google Cloud VPS-hosted Postgres 15, app-owned schema, service-layer authorization.
 
 ---
 
@@ -334,8 +334,8 @@ model ListingMedia {
 }
 ```
 
-**Storage buckets:**
-- `messages` (private, per-conversation RLS)
+**Current Supabase storage buckets:**
+- `messages` (private, app-authorized per conversation)
 - `listings` (public-read)
 - `avatars` (public-read)
 - `agent-outputs` (private)
@@ -846,13 +846,17 @@ model SourceRecord {
 # 2. Create initial migration
 npx prisma migrate dev --name add_community_messaging_auth_models
 
-# 3. Apply to Supabase
-npx prisma db push   # for prototyping; use migrate for prod
+# 3. Apply to Google Cloud VPS Postgres
+npx prisma migrate deploy
 ```
 
 ---
 
-## RLS strategy (Supabase)
+## Authorization strategy (application/service layer)
+
+Production Postgres is app-owned on Google Cloud VPS. Enforce access in Next.js route handlers, server actions,
+and backend services before Prisma reads or writes; keep database constraints for
+integrity and auditability.
 
 | Table | Read | Insert | Update | Delete |
 |-------|------|--------|--------|--------|
@@ -867,7 +871,7 @@ npx prisma db push   # for prototyping; use migrate for prod
 | `Report` | reporter OR moderator | reporter | moderator | — |
 | `AuditLog` | admin | system only | — | — |
 
-**Service role key** bypasses RLS for cron jobs, agents, admin tooling. Never exposed to the browser.
+Privileged service credentials are server-only for cron jobs, agents, and admin tooling. Never expose them to the browser.
 
 ---
 
@@ -889,7 +893,7 @@ Critical compound indexes:
 
 1. **Listing fees** — confirmed v1 has no platform fee. Stripe Connect for Pro+?
 2. **Public profile fields** — what's the default for `showOwnedDogs` for new profiles?
-3. **PhotoDNA** — required by AU law, hard gate before launch. Confirm Supabase region supports it.
+3. **PhotoDNA** — required by AU law, hard gate before launch. Confirm the current Supabase storage integration supports the required scanning workflow.
 4. **AI prediction tiering** — confirmed Pro+ gets full predictions, Pro gets teaser only?
 5. **Listing renewal limit** — confirmed unlimited?
 

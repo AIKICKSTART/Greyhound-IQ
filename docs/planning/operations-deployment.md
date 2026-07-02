@@ -1,10 +1,10 @@
 # GreyhoundIQ — Operations & Deployment Plan v1
 
 > Source: `docs/GreyhoundIQ-Architecture-Premium.html` (sections 11, 14, 16)
-> Status: Architecture spec. Operations runbooks to be written in Phase 4.
-> Hosting note: this document preserves the longer-term Hetzner architecture.
-> The current GitHub deployment path is Vercel + Supabase staging/prod; see
-> `docs/deployment-vercel.md` for the active CI/CD setup.
+> Status: Production operations baseline. Detailed runbooks continue in Phase 4.
+> Hosting note: production targets the AI Kick Start-owned Google Cloud VPS.
+> Vercel remains preview/temp infrastructure only; Supabase remains only for the
+> current storage integration.
 
 ---
 
@@ -12,15 +12,17 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Hetzner VPS (cx22 — 4 vCPU, 8GB RAM, ~$8/mo)                │
+│  AI Kick Start Google Cloud VPS                              │
 │                                                              │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │  Docker Compose stack                                │    │
 │  │                                                      │    │
 │  │  nextjs: Next.js 16 (standalone)                     │    │
-│  │  cron: node-cron, hits /api/internal/* endpoints     │    │
+│  │  postgres: GreyhoundIQ app database                  │    │
+│  │  workers: cron/import/usage/outbox jobs              │    │
 │  │  agents: spawned on-demand in Docker (sandboxed)     │    │
-│  │  n8n: workflow orchestration (added in v2)            │    │
+│  │  lago: billing API, UI, workers, clock, Redis, DB     │    │
+│  │  n8n: workflow orchestration (optional v2)            │    │
 │  │  localai: embeddings + LLM fallback (added in v2)    │    │
 │  │  whisper: voice transcription (added in v2)           │    │
 │  │  firecrawl: web scraping for data gaps (added in v2) │    │
@@ -29,22 +31,22 @@
 │  └─────────────────────────────────────────────────────┘    │
 │                                                              │
 │  Caddy reverse proxy (TLS, HSTS, mTLS for internal services)│
-│  Daily snapshots to Hetzner Storage Box                      │
+│  Daily VPS volume, Postgres, Lago, and config backups         │
 └──────────────────────────────┬───────────────────────────────┘
                                │ TLS
                                │
 ┌──────────────────────────────▼───────────────────────────────┐
-│  Supabase (managed, ap-southeast-2 Sydney)                   │
-│  - Postgres 15 (pgvector, citext, pg_trgm, graph ext)       │
-│  - Auth (email + Google OAuth)                                │
-│  - Storage (messages, listings, avatars, agent-outputs)      │
-│  - Realtime (messages, conversation updates)                  │
+│  Supabase Storage integration                                │
+│  - Storage buckets only: messages, listings, avatars,        │
+│    agent-outputs, site-assets                                │
+│  - Signed URLs and bucket policies remain until replaced     │
 └─────────────────────────────────────────────────────────────┘
                                │
 ┌──────────────────────────────▼───────────────────────────────┐
 │  External services                                            │
+│  - WorkOS AuthKit (identity and sessions)                    │
 │  - Resend (transactional email)                               │
-│  - Stripe (payments)                                          │
+│  - Stripe or payment provider via Lago                        │
 │  - Sentry (error tracking, free tier)                         │
 │  - Hermes MiniMax M3 (LLM, existing plan)                    │
 └─────────────────────────────────────────────────────────────┘
@@ -54,18 +56,20 @@
 
 | Service | Port | Purpose | Data flow |
 |---------|------|---------|-----------|
-| **nextjs** | 3000 | Web app + API | Reads/writes Supabase via service-role key (in container env) |
-| **cron** | — | Daily/hourly jobs | Calls `/api/internal/*` on nextjs with shared-secret header |
+| **nextjs** | 3000 | Web app + API | Reads/writes the local Postgres database via Prisma; uses Supabase Storage only for object storage |
+| **postgres** | 5432 (internal) | GreyhoundIQ application database | Private Docker/VPS network only; migrations run through Prisma |
+| **workers** | -- | Daily/hourly jobs, usage outbox, webhook processing | Calls `/api/internal/*` or worker entrypoints with scoped internal secrets |
 | **agents** | (spawn) | Hermes agent subprocesses | Docker with `--read-only --network=none`, destroyed after run |
-| **n8n** | 5678 | Workflow orchestration (Topaz, Betfair, Firecrawl) | Triggers via schedule; writes to Supabase via service-role |
+| **lago** | 3001/3002 (internal + restricted UI) | Billing, metering, invoices, entitlements, dunning | GreyhoundIQ sends usage/events; Lago webhooks update local billing snapshots |
+| **n8n** | 5678 | Workflow orchestration (Topaz, Betfair, Firecrawl) | Triggers via schedule; writes through app APIs/workers to local Postgres |
 | **localai** | 8080 | Embeddings (all-MiniLM-L6-v2 or text-embedding-3-small) + LLM fallback | Caddy mTLS reverse proxy; only `nextjs` and `agents` can reach it |
-| **whisper** | 9000 | Voice message transcription (distil-large-v3) | Triggered on voice upload; writes transcript to Supabase |
-| **piper** | 9001 | TTS for narrated form guides | Triggered by agent; writes audio MediaAsset to Supabase |
+| **whisper** | 9000 | Voice message transcription (distil-large-v3) | Triggered on voice upload; writes transcript metadata to Postgres and files to storage |
+| **piper** | 9001 | TTS for narrated form guides | Triggered by agent; writes `MediaAsset` metadata to Postgres and audio to storage |
 | **firecrawl** | 3002 | Self-hosted web scraping (GRNSW, GRV, Tasracing) | n8n-driven; quota 1000 pages/day per source |
 | **cognee** | 8000 | Knowledge graph for breeding (Postgres `graph` extension) | Event-driven sync from Prisma writes via middleware |
-| **mem0** | 8000 (shared with cognee) | Per-user memory extraction + storage | Embedding via localai, storage in Supabase |
+| **mem0** | 8000 (shared with cognee) | Per-user memory extraction + storage | Embedding via localai, storage in local Postgres |
 | **timesfm** | 9002 | Form trajectory forecasting (zero-shot) | Stateless inference; called by race-analyst agent |
-| **autotrain** | — | Monthly win-probability model retraining (cron) | Reads Supabase training data; writes model to Hetzner Storage Box |
+| **autotrain** | -- | Monthly win-probability model retraining (worker) | Reads local Postgres training data; writes model artifact to VPS/object backup storage |
 | **dify** | 5000 | Document Q&A (RAG over stewards' reports etc.) | pgvector-backed; tier-gated UI on /breeding and /statistics |
 | **aider** | — | Dev pair-programmer (Python venv, terminal) | Called via `scripts/aider.sh`; not a service |
 | **prometheus** | 9090 | Metrics scraping (every 15s) | Scrapes `/api/internal/metrics` from all services |
@@ -79,11 +83,13 @@
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| App server | Hetzner VPS | Existing, $8-30/mo, full control, fits tabular ML and image storage |
-| Database | Supabase Postgres 15 | Managed, RLS, backups, Sydney region |
-| File storage | Supabase Storage | Same project, signed URLs, RLS |
+| App server | AI Kick Start Google Cloud VPS | Owned production runtime, full control, fits app, workers, billing, and AI harnesses |
+| Database | Self-hosted Postgres 16 on the VPS | Local source of truth for app data, auth linkage, entitlements, jobs, and audit records |
+| File storage | Supabase Storage integration | Current signed upload/download and bucket policy implementation remains storage-only |
+| Auth | WorkOS AuthKit | Production identity and session provider; no Supabase identity provider |
+| Billing | Self-hosted Lago | Source of truth for plans, usage, subscriptions, invoices, entitlements, and dunning |
 | Email | Resend | Modern API, good deliverability, $0-20/mo |
-| Payments | Stripe | Industry standard, AU support, webhooks |
+| Payments | Stripe or another payment provider via Lago | Payment rail only; Lago owns billing state |
 | Error tracking | Sentry | Free tier, good Next.js integration, PII stripping |
 | LLM | Hermes on MiniMax M3 | Existing plan, no new API costs |
 
@@ -92,15 +98,17 @@
 ## Deployment topology
 
 ### Staging
-- Hetzner VPS, `staging.greyhoundiq.com.au`
+- Google Cloud VPS staging stack, `staging.greyhoundiq.com.au`
 - Auto-deploys on push to `main` branch (after CI passes)
-- Uses Supabase **staging** project (separate DB)
+- Uses separate staging Postgres database and Lago test-mode configuration
+- Uses separate Supabase Storage staging buckets/project for current media storage
 - Ingestion runs against staging sources (with rate limit overrides)
 
 ### Production
-- Hetzner VPS, `greyhoundiq.com.au` (apex) and `www.greyhoundiq.com.au`
+- AI Kick Start-owned Google Cloud VPS, `greyhoundiq.com.au` (apex) and `www.greyhoundiq.com.au`
 - Manual deploys via tag-based releases (no auto-deploy)
-- Uses Supabase **production** project
+- Uses self-hosted production Postgres and production Lago services on the VPS
+- Uses Supabase Storage production buckets only for current media/storage integration
 - Ingestion runs against licensed sources only
 
 ### Rollback strategy
@@ -164,7 +172,8 @@ jobs:
       - name: Trigger rolling deploy
         run: ./scripts/trigger-deploy.sh ${{ github.ref_name }}
         env:
-          HETZNER_API_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
+          VPS_DEPLOY_HOST: ${{ secrets.VPS_DEPLOY_HOST }}
+          VPS_DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
 ```
 
 ### Database migrations
@@ -193,13 +202,19 @@ Do not run `db:baseline` on an empty database; use `npm run bootstrap` there.
 ### Environment variables (production)
 
 ```bash
-# Supabase
-DATABASE_URL="postgresql://postgres:***@db.dtizyjcoeostnfstzsvx.supabase.co:5432/postgres"
-SUPABASE_URL="https://dtizyjcoeostnfstzsvx.supabase.co"
-SUPABASE_ANON_KEY="<anon-key>"
-SUPABASE_SERVICE_ROLE_KEY="<service-role-key>"
+# Database (self-hosted Postgres on the VPS private network)
+DATABASE_URL="postgresql://greyhoundiq_app:<password>@postgres:5432/greyhoundiq?schema=public"
+DATABASE_IMPORT_URL="postgresql://greyhoundiq_import:<password>@postgres:5432/greyhoundiq?schema=public"
+DIRECT_URL="postgresql://greyhoundiq_migrator:<password>@postgres:5432/greyhoundiq?schema=public"
 
-# Auth
+# Supabase Storage only
+SUPABASE_URL="https://<storage-project-ref>.supabase.co"
+SUPABASE_ANON_KEY="<storage-anon-key>"
+SUPABASE_SERVICE_ROLE_KEY="<storage-service-role-key>"
+NEXT_PUBLIC_SUPABASE_URL="https://<storage-project-ref>.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="<storage-anon-key>"
+
+# Auth (WorkOS only)
 NEXTAUTH_SECRET="<32-byte-base64>"
 NEXTAUTH_URL="https://greyhoundiq.com.au"
 AUTH_SECRET="<same class of secret; optional fallback for signed media URLs>"
@@ -208,13 +223,11 @@ WORKOS_API_KEY="sk_live_***"
 WORKOS_COOKIE_PASSWORD="<32-byte-minimum>"
 NEXT_PUBLIC_WORKOS_REDIRECT_URI="https://greyhoundiq.com.au/callback"
 
-# Stripe
-STRIPE_SECRET_KEY="sk_live_***"
-STRIPE_WEBHOOK_SECRET="whsec_***"
-STRIPE_PRICE_PRO_MONTHLY="price_***"
-STRIPE_PRICE_PRO_YEARLY="price_***"
-STRIPE_PRICE_PROPLUS_MONTHLY="price_***"
-STRIPE_PRICE_PROPLUS_YEARLY="price_***"
+# Billing (Lago is the billing source of truth)
+LAGO_API_URL="https://billing.greyhoundiq.com.au/api"
+LAGO_FRONT_URL="https://billing.greyhoundiq.com.au"
+LAGO_API_KEY="<lago-api-key>"
+LAGO_WEBHOOK_SECRET="<32-byte-base64>"
 
 # Email
 RESEND_API_KEY="re_***"
@@ -262,16 +275,17 @@ SMOKE_BASE_URL=http://localhost:3000 npm run test:smoke
 ### Environment variables (staging)
 
 Same structure, different values:
-- Staging Supabase project
-- Stripe test mode keys (`sk_test_*`)
+- Staging Postgres database on the VPS staging stack
+- Supabase Storage staging buckets/project
+- Lago test-mode configuration and payment-provider test keys inside Lago
 - `NEXTAUTH_URL=https://staging.greyhoundiq.com.au`
 - Test Resend API key
 - Sentry staging DSN
 
 ### Secrets management
 - All secrets in 1Password (team vault)
-- Production secrets in Hetzner Cloud env vars (encrypted at rest)
-- Service role key rotated quarterly
+- Production secrets in the Google Cloud VPS/runtime secret mechanism
+- Database, WorkOS, Lago, payment-provider, and storage service keys rotated quarterly
 - API keys reviewed monthly
 
 ---
@@ -291,8 +305,8 @@ System cron on VPS, no Redis/BullMQ at this scale.
 | `ingest:topaz:results` | Every 5 min on race days | Race results | Skip if race day off |
 | `ingest:topaz:live` | Every 2 min on race days | Live fields | Skip if race day off |
 | `ingest:ga_studbook` | Sun 03:00 AEST weekly | Pedigree refresh | Manual re-trigger if fails |
-| `backup:db` | 04:00 AEST daily | Supabase backup verification | Alert if missing |
-| `backup:media` | 05:00 AEST daily | Storage backup verification | Alert if missing |
+| `backup:db` | 04:00 AEST daily | Local Postgres backup verification | Alert if missing |
+| `backup:media` | 05:00 AEST daily | Supabase Storage backup verification | Alert if missing |
 | `metrics:export` | Hourly | Push metrics to monitoring | Skip silently if down |
 
 All cron jobs use the shared-secret header for internal auth. Set
@@ -339,23 +353,23 @@ Key metrics:
 | High | Error rate > 1% for 5 min | Telegram |
 | High | DB connection pool exhausted | Telegram |
 | Medium | Source ingestion failure 2x in a row | Telegram |
-| Medium | Stripe webhook failure | Telegram |
+| Medium | Lago or payment-provider webhook failure | Telegram |
 | Low | Cron job single failure | Email (daily digest) |
 
 ---
 
 ## Backups & disaster recovery
 
-### Database (Supabase)
-- **Daily** automated backups (Supabase Pro)
-- **7 days** retention, expandable
-- **Weekly** manual export to S3-compatible storage (Hetzner Storage Box)
+### Database (self-hosted Postgres)
+- **Daily** `pg_dump` plus VPS volume snapshot
+- **7 days** hot backup retention, expandable
+- **Weekly** manual export to off-host encrypted object storage
 - Recovery time objective (RTO): 1 hour
 - Recovery point objective (RPO): 24 hours
 
 ### Media (Supabase Storage)
 - Files versioned automatically
-- **Weekly** full export to Hetzner Storage Box
+- **Weekly** full export to off-host encrypted object storage
 - Recovery: re-import from export + re-link MediaAsset rows
 
 ### Restore procedure (runbook)
@@ -365,10 +379,10 @@ Key metrics:
 TARGET_TIME="2026-06-29 02:00 UTC"
 
 # 2. Find the closest backup
-supabase db backups list --project staging | grep $TARGET_TIME
+ls -lh /opt/aikickstart/backups/postgres
 
 # 3. Restore to staging first
-supabase db restore --project staging --backup-id $BACKUP_ID
+pg_restore --clean --if-exists --dbname "$STAGING_DATABASE_URL" "$BACKUP_FILE"
 
 # 4. Verify with smoke tests
 curl -s https://staging.greyhoundiq.com.au/api/health
@@ -403,19 +417,21 @@ curl -s https://staging.greyhoundiq.com.au/api/health
 
 | Service | Cost |
 |---------|------|
-| Supabase Pro | $25/mo |
+| Google Cloud VPS production stack | Existing AI Kick Start VPS allocation |
+| Self-hosted Postgres | $0 incremental |
+| Self-hosted Lago | $0 incremental compute |
+| Supabase Storage | Current storage-plan cost |
 | Resend (transactional email) | $20/mo |
 | Hermes MiniMax M3 (existing) | $0 |
-| Hetzner VPS (cx22) | $20/mo |
 | Sentry free tier | $0 |
-| **Total fixed (v1)** | **$65/mo** |
+| **Total fixed (v1)** | **VPS allocation + storage/email usage** |
 
 ### v2 additions (architecture v2)
 
 | Service | Cost | Notes |
 |---------|------|-------|
-| n8n (self-hosted) | $0 | Docker container on Hetzner VPS |
-| LocalAI + Whisper + Piper | $0 (compute) | +$0/mo but requires +$30/mo VPS upgrade (cx32 — 8 vCPU, 16GB RAM) |
+| n8n (self-hosted) | $0 | Docker container on Google Cloud VPS |
+| LocalAI + Whisper + Piper | $0 (compute) | May require larger VPS sizing for 8 vCPU / 16GB RAM class workloads |
 | Firecrawl (self-hosted) | $0 | Docker container |
 | Cognee (in-process) | $0 | Same Postgres + pgvector + graph extensions |
 | Mem0 (Apache-2.0) | $0 | Same Postgres |
@@ -426,17 +442,17 @@ curl -s https://staging.greyhoundiq.com.au/api/health
 |---------|------|-------|
 | TimesFM (Google pretrained, self-hosted) | $0 | Docker container; ~2GB RAM |
 | Hugging Face AutoTrain (monthly retraining) | $0 | Self-hosted cron job |
-| Dify (RAG pipeline) | $0 | Docker container on Hetzner |
+| Dify (RAG pipeline) | $0 | Docker container on Google Cloud VPS |
 | Aider (dev workflow) | $0 | Python venv; called via wrapper script |
 | Piper / Voicebox (TTS) | $0 | Already included in v2 |
 | Prometheus + Loki + Grafana stack | $0 (compute) | ~2GB RAM additional |
 | OpenTelemetry collector | $0 | Docker sidecar |
 | Open-weight fallback models (GLM-5.2, Kimi, Qwen) | ~$20/mo | OpenRouter metered; cached aggressively |
 | DeepSeek-V4-Flash (gated — AU data-sovereignty review needed) | ~$30-100/mo | Cache-aware prompts only |
-| **VPS upgrade** (cx22 → cx42 — 16 vCPU, 32GB) | **+$60/mo** | Required for v3 compute (TimesFM + AutoTrain + Grafana stack) |
-| **Total fixed (v3)** | **~$175/mo** |
+| **VPS upgrade** | TBD | Required for v3 compute (TimesFM + AutoTrain + Grafana stack) |
+| **Total fixed (v3)** | **VPS sizing + storage/email/model usage** |
 
-At 6,000 paying users × $99/yr avg = $49,500 ARR. Cost-to-revenue ratio: 175 × 12 / 49,500 = 4.2%. Still healthy, but trending toward needing a managed plan.
+At 6,000 paying users × $99/yr avg = $49,500 ARR. Keep VPS, storage, email, and model spend under monthly budget review as compute-heavy v3 services come online.
 
 ### v3 cost caps (per user)
 
@@ -449,27 +465,27 @@ At 6,000 paying users × $99/yr avg = $49,500 ARR. Cost-to-revenue ratio: 175 ×
 - Open-weight fallback: $20/mo baseline; cache-aware reduces further
 - DeepSeek (if gated cleared): capped at $200/mo
 
-**At 6,000 users avg 50 memory entries each = 300k memories. 50k voice msgs/month × 30s avg = 25k min/month. 1M forecasts/month = $100. All within Hetzner cx42 capacity (16 vCPU, 32GB).**
+**At 6,000 users avg 50 memory entries each = 300k memories. 50k voice msgs/month × 30s avg = 25k min/month. 1M forecasts/month = $100. Target a 16 vCPU / 32GB Google Cloud VPS class before enabling the full v3 compute stack.**
 
 ---
 
 ## Scaling plan
 
 ### Stage 1: 0 — 5,000 users
-- Single VPS, single Supabase project
+- Single Google Cloud VPS, single local Postgres database
 - Cron-based ingestion
 - Static assets served by Next.js
 
 ### Stage 2: 5,000 — 50,000 users
-- Upgrade to Hetzner VPS (8 vCPU, 16GB)
+- Upgrade the Google Cloud VPS to an 8 vCPU / 16GB class or split workers to a second VPS
 - Add Redis (Upstash free tier) for rate limiting
-- Move cron to dedicated cron container
+- Move cron/import workloads to dedicated worker containers
 - Add CDN (Cloudflare free tier)
 
 ### Stage 3: 50,000+ users
-- Migrate to Supabase Team plan ($599/mo)
-- Add read replicas for analytics
-- Move cron to dedicated scheduler (Cloudflare Workers + cron triggers)
+- Split app, Postgres, workers, and Lago onto separate VPS instances or a reviewed managed boundary
+- Add Postgres read replicas for analytics
+- Move cron/import workloads to a dedicated scheduler/worker host
 - Consider multi-region (Sydney primary, US-East-Edge for static)
 
 ---
@@ -477,10 +493,11 @@ At 6,000 paying users × $99/yr avg = $49,500 ARR. Cost-to-revenue ratio: 175 ×
 ## Cost monitoring
 
 Daily checks:
-- Supabase usage (DB size, storage, egress) — alert at 80% of plan
-- Hetzner VPS resource usage (CPU, RAM, disk) — alert at > 80%
+- Local Postgres usage (DB size, connections, backup freshness) — alert at 80% of plan
+- Supabase Storage usage (bucket size, object count, egress) — alert at 80% of plan
+- Google Cloud VPS resource usage (CPU, RAM, disk) — alert at > 80%
 - Resend email volume — alert at 80% of plan
-- Stripe processing volume — reconcile daily
+- Payment-provider processing volume — reconcile daily
 
 ---
 
@@ -491,8 +508,8 @@ Daily checks:
 | Incident response | Daniel | Phase 4 |
 | Database restore | Daniel | Phase 1 |
 | Adding a new ingestion source | Daniel | Phase 2 |
-| Scaling Hetzner VPS | Daniel | Stage 2 |
-| Stripe webhook replay | Daniel | Phase 4 |
+| Scaling Google Cloud VPS | Daniel | Stage 2 |
+| Billing webhook replay | Daniel | Phase 4 |
 | Agent memory reset (per user) | Daniel | Phase 2 |
 | Account deletion processing | Daniel | Phase 4 |
 | Moderator agent override | Daniel | Phase 3 |
@@ -516,9 +533,9 @@ Daily checks:
 | Privacy policy review | Quarterly | Daniel |
 | ToS review | Quarterly | Daniel |
 | Penetration test | Before launch, then yearly | Daniel (booked) |
-| Stripe account review | Monthly | Daniel |
-| Supabase plan review | Monthly | Daniel |
-| Service role key rotation | Quarterly | Daniel |
+| Payment-provider account review | Monthly | Daniel |
+| Supabase Storage integration review | Monthly | Daniel |
+| Storage service-role key rotation | Quarterly | Daniel |
 | Audit log review | Monthly | Daniel |
 | Backup verification | Weekly (automated) | Daniel (on alert) |
 | APP compliance review | Bi-annually | Daniel |

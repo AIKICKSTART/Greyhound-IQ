@@ -44,6 +44,18 @@ export default async function AdminPage() {
         </p>
 
         <div className="mt-5 flex flex-wrap gap-3">
+          <Link href="/admin/users" className="giq-outline-action">
+            Users
+          </Link>
+          <Link href="/admin/organizations" className="giq-outline-action">
+            Organizations
+          </Link>
+          <Link href="/admin/subscriptions" className="giq-outline-action">
+            Subscriptions
+          </Link>
+          <Link href="/admin/invoices" className="giq-outline-action">
+            Invoices
+          </Link>
           <Link href="/admin/webhooks" className="giq-outline-action">
             Webhook events
           </Link>

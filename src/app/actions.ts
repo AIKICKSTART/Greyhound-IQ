@@ -77,6 +77,11 @@ const agentFormSchema = z.object({
   input: agentRequestSchema.shape.input,
 });
 
+const supportTicketSchema = z.object({
+  category: z.enum(["general", "billing", "technical", "feedback"]),
+  body: z.string().trim().min(20).max(5_000),
+});
+
 function field(formData: FormData, name: string): string {
   const value = formData.get(name);
   return typeof value === "string" ? value : "";
@@ -323,6 +328,34 @@ export async function createAgentRun(formData: FormData) {
 
   revalidatePath("/agents");
   redirect("/agents");
+}
+
+export async function createSupportTicket(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const parsed = supportTicketSchema.parse({
+    category: field(formData, "category"),
+    body: field(formData, "body"),
+  });
+
+  await prisma.$transaction(async (tx) => {
+    const ticket = await tx.supportTicket.create({
+      data: {
+        userId: current.dbUserId,
+        category: parsed.category,
+      },
+    });
+
+    await tx.supportMessage.create({
+      data: {
+        ticketId: ticket.id,
+        userId: current.dbUserId,
+        body: cleanText(parsed.body),
+      },
+    });
+  });
+
+  revalidatePath("/contact");
+  redirect("/contact?ticket=created");
 }
 
 export async function updateProfile(formData: FormData) {

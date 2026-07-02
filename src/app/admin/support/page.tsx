@@ -18,6 +18,9 @@ type SupportTicketRow = {
   category: string;
   createdAt: Date;
   updatedAt: Date;
+  _count: {
+    messages: number;
+  };
 };
 
 export default async function AdminSupportPage() {
@@ -48,6 +51,7 @@ export default async function AdminSupportPage() {
                 <th className="px-4 py-3 text-left">Ticket ID</th>
                 <th className="px-4 py-3 text-left">User ID</th>
                 <th className="px-4 py-3 text-left">Category</th>
+                <th className="px-4 py-3 text-left">Messages</th>
                 <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">Priority</th>
                 <th className="px-4 py-3 text-left">Created</th>
@@ -58,7 +62,7 @@ export default async function AdminSupportPage() {
               {tickets.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No support tickets found.
@@ -75,6 +79,9 @@ export default async function AdminSupportPage() {
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
                       {ticket.category}
+                    </td>
+                    <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
+                      {ticket._count.messages}
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
                       {ticket.status}
@@ -113,6 +120,11 @@ function getSupportTickets() {
           category: true,
           createdAt: true,
           updatedAt: true,
+          _count: {
+            select: {
+              messages: true,
+            },
+          },
         },
       }),
     []

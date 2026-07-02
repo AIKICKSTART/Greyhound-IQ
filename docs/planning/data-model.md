@@ -8,7 +8,7 @@
 
 ## Conventions
 
-- **Primary keys:** `cuid()` for all internal models; mirror `auth.users.id` (uuid) for the `User` row
+- **Primary keys:** `cuid()` for all internal models; store the external WorkOS identity on `User.workosUserId`
 - **Timestamps:** `createdAt @default(now())` and `updatedAt @updatedAt` on every model
 - **Soft delete:** `deletedAt DateTime?` where the data is recoverable (messages, posts)
 - **Hard delete:** only via scheduled jobs after grace period
@@ -40,11 +40,11 @@ These already exist in `prisma/schema.prisma`. Listed here for context; not chan
 
 ### 3.1 Identity & profiles
 
-#### `User` (NEW, replaces `auth.users` mirror concept)
+#### `User` (NEW, WorkOS identity record)
 ```prisma
 model User {
   id                String   @id @default(cuid())
-  supabaseUserId    String   @unique       // mirror of auth.users.id (uuid)
+  workosUserId      String   @unique       // WorkOS user id
   email             String   @unique
   emailVerifiedAt   DateTime?
   displayName       String?
@@ -80,15 +80,15 @@ model User {
   watchlists        Watchlist[]
   alertRules        AlertRule[]
 
-  @@index([supabaseUserId])
+  @@index([workosUserId])
   @@index([subscriptionTier])
   @@index([isBanned])
 }
 ```
 
 **Notes:**
-- `supabaseUserId` is the canonical link to Supabase Auth; `id` (cuid) is used internally
-- `lastSeenAt` updated by Supabase Realtime presence on every websocket connect
+- `workosUserId` is the canonical link to WorkOS/AuthKit; `id` (cuid) is used internally
+- `lastSeenAt` updated by application presence on every websocket connect
 - `acceptedTermsAt` set on first signup (required for ToS compliance)
 
 #### `Profile`
@@ -766,9 +766,9 @@ model SourceRecord {
 
 ```
                     ┌──────────────┐
-                    │  auth.users  │ (Supabase)
+                    │ WorkOS/AuthKit│
                     └──────┬───────┘
-                           │ supabaseUserId
+                           │ workosUserId
                            ▼
                     ┌──────────────┐  1:1   ┌──────────┐
                     │     User     │◄──────►│ Profile  │

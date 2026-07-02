@@ -343,6 +343,9 @@ model User {
   subscriptions       Subscription[]
   entitlementSnapshots EntitlementSnapshot[]
   invoiceRecords      InvoiceRecord[]
+  paymentRecords      PaymentRecord[]
+  refundRecords       RefundRecord[]
+  creditNoteRecords   CreditNoteRecord[]
   billingEvents       BillingEvent[]
   usageEvents         UsageEvent[]
   usageOutboxItems    UsageOutbox[]
@@ -528,6 +531,9 @@ model BillingCustomer {
   subscriptions        Subscription[]
   entitlementSnapshots EntitlementSnapshot[]
   invoiceRecords       InvoiceRecord[]
+  paymentRecords       PaymentRecord[]
+  refundRecords        RefundRecord[]
+  creditNoteRecords    CreditNoteRecord[]
   billingEvents        BillingEvent[]
   usageEvents          UsageEvent[]
   usageOutboxItems     UsageOutbox[]
@@ -559,6 +565,9 @@ model Subscription {
 
   entitlementSnapshots EntitlementSnapshot[]
   invoiceRecords       InvoiceRecord[]
+  paymentRecords       PaymentRecord[]
+  refundRecords        RefundRecord[]
+  creditNoteRecords    CreditNoteRecord[]
   billingEvents        BillingEvent[]
   usageEvents          UsageEvent[]
   usageOutboxItems     UsageOutbox[]
@@ -646,6 +655,9 @@ model InvoiceRecord {
   updatedAt         DateTime  @updatedAt
 
   billingEvents BillingEvent[]
+  paymentRecords    PaymentRecord[]
+  refundRecords     RefundRecord[]
+  creditNoteRecords CreditNoteRecord[]
 
   @@index([userId, status])
   @@index([billingCustomerId, status])
@@ -655,6 +667,95 @@ model InvoiceRecord {
   @@index([status])
   @@index([issuedAt])
   @@index([dueAt])
+}
+
+model PaymentRecord {
+  id                String    @id @default(cuid())
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  invoiceRecordId   String?
+  invoiceRecord     InvoiceRecord? @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
+  lagoPaymentId     String?   @unique
+  pspPaymentId      String?   @unique
+  status            String
+  currency          String
+  amountCents       Int
+  occurredAt        DateTime  @default(now())
+  rawJson           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  refundRecords RefundRecord[]
+
+  @@index([userId, occurredAt])
+  @@index([billingCustomerId, occurredAt])
+  @@index([subscriptionId, occurredAt])
+  @@index([invoiceRecordId, occurredAt])
+  @@index([status, occurredAt])
+  @@index([occurredAt])
+}
+
+model RefundRecord {
+  id                String    @id @default(cuid())
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  invoiceRecordId   String?
+  invoiceRecord     InvoiceRecord? @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
+  paymentRecordId   String?
+  paymentRecord     PaymentRecord? @relation(fields: [paymentRecordId], references: [id], onDelete: SetNull)
+  lagoRefundId      String?   @unique
+  pspRefundId       String?   @unique
+  status            String
+  currency          String
+  amountCents       Int
+  occurredAt        DateTime  @default(now())
+  rawJson           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId, occurredAt])
+  @@index([billingCustomerId, occurredAt])
+  @@index([subscriptionId, occurredAt])
+  @@index([invoiceRecordId, occurredAt])
+  @@index([paymentRecordId, occurredAt])
+  @@index([status, occurredAt])
+  @@index([occurredAt])
+}
+
+model CreditNoteRecord {
+  id                String    @id @default(cuid())
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  invoiceRecordId   String?
+  invoiceRecord     InvoiceRecord? @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
+  lagoCreditNoteId  String?   @unique
+  pspCreditNoteId   String?   @unique
+  status            String
+  currency          String
+  amountCents       Int
+  occurredAt        DateTime  @default(now())
+  rawJson           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId, occurredAt])
+  @@index([billingCustomerId, occurredAt])
+  @@index([subscriptionId, occurredAt])
+  @@index([invoiceRecordId, occurredAt])
+  @@index([status, occurredAt])
+  @@index([occurredAt])
 }
 
 model BillingEvent {

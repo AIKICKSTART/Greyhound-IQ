@@ -9,6 +9,10 @@ import {
   startOrGetConversation,
 } from "@/lib/conversation-service";
 import { prisma } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+const MESSAGE_SEND_RATE_LIMIT = 10;
+const MESSAGE_SEND_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
 const sendMessageSchema = z.object({
   recipientProfileId: z.string().min(1),
@@ -47,6 +51,23 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
+    const rateLimit = checkRateLimit(
+      `message:send:${current.dbUserId}`,
+      MESSAGE_SEND_RATE_LIMIT,
+      MESSAGE_SEND_RATE_LIMIT_WINDOW_MS
+    );
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "rate_limit.exceeded",
+            message: "Too many requests",
+          },
+        },
+        { status: 429 }
+      );
+    }
+
     const parsed = sendMessageSchema.parse(await request.json());
     if (parsed.recipientProfileId === current.profileId) {
       throw new Error("message.cannot_send_to_self");

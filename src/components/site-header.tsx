@@ -201,7 +201,7 @@ export async function SiteHeader() {
                 <SheetContent side="right" showCloseButton={false} className="giq-mobile-menu-sheet">
                   <SheetTitle className="sr-only">Navigation</SheetTitle>
                   <SheetClose aria-label="Close navigation menu" className="giq-mobile-menu-close">
-                    <X className="h-5 w-5" aria-hidden="true" strokeWidth={2.4} />
+                    <X className="h-5 w-5" aria-hidden="true" />
                   </SheetClose>
                   <div className="giq-mobile-menu-brand" aria-hidden="true">
                     <span>GREYHOUNDS <strong>IQ</strong></span>

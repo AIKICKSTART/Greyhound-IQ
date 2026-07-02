@@ -90,7 +90,7 @@ export function DogSearch() {
             <Link
               key={dog.id}
               href={`/dogs/${dog.id}`}
-              className="giq-glass-panel block p-4 transition-all hover:-translate-y-0.5"
+              className="giq-glass-panel block p-4 transition-[translate,border-color,background-color,box-shadow] motion-safe:hover:-translate-y-0.5"
             >
               <div className="flex justify-between items-center">
                 <div>

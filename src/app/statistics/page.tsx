@@ -62,7 +62,7 @@ export default async function StatisticsPage() {
                   {b.winRate}%
                 </div>
                 <div
-                  className="w-full rounded-t-md transition-all hover:brightness-110"
+                  className="w-full rounded-t-md transition-[filter] hover:brightness-110"
                   style={{ height: `${b.winRate * 14}px`, background: b.style.background }}
                 />
                 <div

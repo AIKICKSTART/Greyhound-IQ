@@ -72,7 +72,7 @@ export function AgentDemoConsole() {
                 setSelectedId(agent.id);
                 setStatus("idle");
               }}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-[13px] font-semibold transition-all ${
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-[13px] font-semibold transition-[border-color,background-color,color,box-shadow] ${
                 active
                   ? "border-[hsl(var(--primary)/0.6)] bg-[hsl(var(--primary)/0.14)] text-[hsl(var(--foreground))] shadow-[0_0_18px_-12px_hsl(var(--primary-bright)/0.9)]"
                   : "border-[hsl(var(--metal-silver)/0.12)] bg-[hsl(0_0%_100%/0.02)] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(0_0%_100%/0.05)]"
@@ -98,7 +98,7 @@ export function AgentDemoConsole() {
         type="button"
         onClick={runDemo}
         disabled={status === "running"}
-        className="giq-liquid-purple-button mt-4 min-h-10 px-4 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+        className="giq-liquid-purple-button mt-4 min-h-10 px-4 text-[13px] font-semibold"
       >
         {status === "running" ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />

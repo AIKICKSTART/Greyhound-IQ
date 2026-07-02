@@ -1,0 +1,3 @@
+[submodule "external/lago"]
+	path = external/lago
+	url = https://github.com/getlago/lago.git

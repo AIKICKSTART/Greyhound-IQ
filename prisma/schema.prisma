@@ -348,6 +348,51 @@ model User {
   usageOutboxItems    UsageOutbox[]
   supportTickets      SupportTicket[]
   supportMessages     SupportMessage[]
+  termsAcceptances     TermsAcceptance[]
+  consentEvents        ConsentEvent[]
+  marketingPreferences MarketingPreference[]
+}
+
+model TermsAcceptance {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  termsVersion String
+  acceptedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, termsVersion])
+  @@index([userId, acceptedAt])
+  @@index([acceptedAt])
+}
+
+model ConsentEvent {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  consentType  String
+  action       String
+  version      String?
+  source       String?
+  occurredAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([userId, consentType, occurredAt])
+  @@index([occurredAt])
+}
+
+model MarketingPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   String   @default("email")
+  optedIn   Boolean  @default(false)
+  source    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, channel])
+  @@index([channel, optedIn])
 }
 
 model Organization {

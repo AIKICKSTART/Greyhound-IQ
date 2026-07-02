@@ -253,6 +253,13 @@ async function SignedInAccount({
             <Users className="h-3.5 w-3.5" />
             Team
           </Link>
+          <Link
+            href="/account/support"
+            className={ACTION_CLASS}
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            Support
+          </Link>
           {canAccessAdmin && (
             <Link
               href="/admin"

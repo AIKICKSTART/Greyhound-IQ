@@ -4,6 +4,7 @@ import { createHash, createHmac, timingSafeEqual } from "crypto";
 import { Prisma } from "@prisma/client";
 
 import { getLagoEnv } from "@/lib/billing/lago-env";
+import { reduceLagoWebhook } from "@/lib/billing/lago-reducer";
 import { prisma } from "@/lib/db";
 
 const LAGO_SIGNATURE_HEADER = "x-lago-signature";
@@ -63,6 +64,12 @@ export async function ingestLagoWebhook({
     const event = await prisma.webhookEvent.create({
       data,
       select: eventSelect,
+    });
+    await reduceLagoWebhook({
+      webhookEventId: event.id,
+      lagoEventId,
+      eventType,
+      payloadJson: rawBodyText,
     });
     return { event, duplicate: false };
   } catch (err) {

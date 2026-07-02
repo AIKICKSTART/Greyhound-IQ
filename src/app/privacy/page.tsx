@@ -14,7 +14,7 @@ export default function PrivacyPage() {
         Privacy Policy
       </h1>
       <p className="mb-8 text-[13px] text-[hsl(var(--subtle-foreground))]">
-        Last updated: 28 June 2026
+        Last updated: 3 July 2026
       </p>
 
       <div className="giq-legal-body space-y-6 text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
@@ -30,15 +30,23 @@ export default function PrivacyPage() {
         <ul className="list-disc pl-6 space-y-2">
           <li>
             <strong className="text-[hsl(var(--foreground))]">Account data:</strong>{" "}
-            email, name, subscription status (via Supabase Auth and Stripe).
+            email, name, organisation, and identity events handled through
+            WorkOS.
           </li>
           <li>
             <strong className="text-[hsl(var(--foreground))]">Usage data:</strong>{" "}
-            pages viewed, features used, search queries (anonymised analytics).
+            pages viewed, features used, saved preferences, searches, and
+            analytics used to operate and improve the service.
           </li>
           <li>
             <strong className="text-[hsl(var(--foreground))]">Payment data:</strong>{" "}
-            handled by Stripe — we never see or store card numbers.
+            subscription status, invoices, refunds, and billing history managed
+            in Lago. We do not store full card numbers.
+          </li>
+          <li>
+            <strong className="text-[hsl(var(--foreground))]">Racing data:</strong>{" "}
+            race cards, form, market, and results data from connected racing
+            data providers and public sources.
           </li>
         </ul>
 
@@ -46,16 +54,40 @@ export default function PrivacyPage() {
           How we use it
         </h2>
         <p>
-          To operate the service, send billing emails, improve features based on
-          usage, and comply with legal obligations. We do not sell your data.
+          We use data to run GreyhoundIQ, authenticate users through WorkOS,
+          manage subscriptions and payment workflows in Lago, send service and
+          billing notices, improve features, and comply with legal obligations.
+          We do not sell your personal data.
         </p>
 
         <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
-          Data storage
+          AI processing
         </h2>
         <p>
-          Data is stored on Supabase (Australia region) and Stripe (US, for
-          payments only). Backups run daily.
+          GreyhoundIQ uses AI to generate summaries, rankings, and statistical
+          predictions from racing data and user prompts. AI outputs are
+          informational only, may be wrong, and should not be treated as betting
+          advice or a guarantee of race outcomes.
+        </p>
+
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
+          Data storage and processors
+        </h2>
+        <p>
+          We use WorkOS for identity, Lago for billing records and payment
+          workflows, hosting and database providers for the application, and AI
+          processing providers for product features. We limit shared data to
+          what each processor needs to provide the service.
+        </p>
+
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
+          Data-source safety
+        </h2>
+        <p>
+          GreyhoundIQ connects to racing-data providers and public sources to
+          display race information, form, markets, and results. Provider data can
+          be delayed, corrected, restricted, or unavailable, and we preserve
+          provider attribution and access limits where required.
         </p>
 
         <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
@@ -77,11 +109,13 @@ export default function PrivacyPage() {
         <CookiePreferencePanel />
 
         <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
-          Responsible gambling
+          Responsible racing
         </h2>
         <p>
-          GreyhoundIQ is 18+ only. We display responsible gambling messaging
-          site-wide. If you or someone you know has a gambling problem, contact{" "}
+          GreyhoundIQ is 18+ only. We provide racing intelligence for
+          informational and entertainment purposes, not betting advice. Bet
+          responsibly and within your means. If you or someone you know has a
+          gambling problem, contact{" "}
           <a
             href="https://www.gamblinghelponline.org.au"
             target="_blank"
@@ -91,6 +125,16 @@ export default function PrivacyPage() {
             Gambling Help Online
           </a>{" "}
           on 1800 858 858.
+        </p>
+
+        <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">
+          Billing and refunds
+        </h2>
+        <p>
+          Lago is our billing source of truth for subscriptions, invoices,
+          payment status, and refunds. For billing help, refund requests, or
+          disputed charges, contact support through the billing or contact
+          channels in the app.
         </p>
 
         <h2 className="mb-3 mt-8 text-[20px] text-[hsl(var(--foreground))]">

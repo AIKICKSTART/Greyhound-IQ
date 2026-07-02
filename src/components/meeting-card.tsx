@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock, MapPin } from "lucide-react";
+import { MapPin, PlayCircle } from "lucide-react";
 
 type MeetingData = {
   id: string;
@@ -12,29 +12,44 @@ type MeetingData = {
     distance: number;
     grade: string | null;
     runners: { id: string }[];
+    videos?: {
+      id: string;
+      streamUrl: string | null;
+      sourceStatus: number | null;
+    }[];
   }[];
 };
 
 export function MeetingCard({ meeting }: { meeting: MeetingData }) {
   const track = meeting.track;
-  const nextRace = meeting.races.find((r) => r.raceTime > new Date());
+  const now = new Date();
+  const nextRace = meeting.races.find((r) => r.raceTime > now);
+  const replayCount = meeting.races.filter((race) =>
+    race.videos?.some((video) => video.streamUrl)
+  ).length;
+  const maxVisibleRaces = 7;
+  const overflow = meeting.races.length > maxVisibleRaces;
+  const visibleRaces = overflow
+    ? meeting.races.slice(0, maxVisibleRaces)
+    : meeting.races.slice(0, 8);
+  const hiddenRaceCount = meeting.races.length - visibleRaces.length;
+  const emptySlots = overflow ? 0 : Math.max(0, 8 - visibleRaces.length);
 
   return (
-    <div className="group rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all">
-      {/* Header */}
+    <div className="giq-carbon-surface giq-meeting-card group">
       <div className="flex items-start justify-between mb-4">
         <div>
           <Link
             href={`/tracks/${track.id}`}
           >
             <h3
-              className="text-[16px] font-semibold text-[hsl(210_13%_97%)] hover:text-[hsl(142_60%_48%)] transition-colors tracking-[-0.02em]"
+              className="text-[16px] font-semibold text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary-bright))] transition-colors tracking-[-0.02em]"
             >
               {track.name}
             </h3>
           </Link>
           <p
-            className="flex items-center gap-1 mt-0.5 text-[12px] text-[hsl(220_7%_42%)] tracking-[-0.013em]"
+            className="flex items-center gap-1 mt-0.5 text-[12px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]"
           >
             <MapPin className="h-3 w-3" />
             {track.state}
@@ -42,43 +57,61 @@ export function MeetingCard({ meeting }: { meeting: MeetingData }) {
         </div>
         <div className="flex gap-1.5">
           {track.hasIsolynx && (
-            <span className="rounded-full bg-[hsl(142_76%_36%/0.12)] px-2 py-0.5 text-[10px] font-semibold text-[hsl(142_60%_48%)] tracking-[0.02em]">
+            <span className="giq-pill giq-pill-purple">
               GPS
             </span>
           )}
-          <span className="rounded-full border border-white/[0.06] px-2 py-0.5 text-[10px] font-medium text-[hsl(215_14%_65%)] tracking-[0.02em]">
+          <span className="giq-pill giq-pill-muted">
             {meeting.races.length} races
           </span>
+          {replayCount > 0 && (
+            <span className="giq-pill giq-pill-gold">
+              <PlayCircle className="h-2.5 w-2.5" />
+              {replayCount}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Race pills */}
-      <div className="flex flex-wrap gap-1.5">
-        {meeting.races.slice(0, 10).map((race) => {
+      <div className="giq-race-grid">
+        {visibleRaces.map((race) => {
+          const isLive =
+            race.raceTime <= now &&
+            now.getTime() - race.raceTime.getTime() < 20 * 60 * 1000;
           const isNext = nextRace?.id === race.id;
           return (
             <Link
               key={race.id}
               href={`/races/${race.id}`}
-              className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[12px] font-medium tracking-[-0.013em] transition-all ${
-                isNext
-                  ? "bg-[hsl(142_76%_36%)] text-white shadow-lg shadow-[hsl(142_76%_36%/0.3)]"
-                  : "bg-white/[0.04] text-[hsl(215_14%_65%)] hover:bg-white/[0.08] hover:text-[hsl(210_13%_97%)]"
-              }`}
+              className={`giq-chip giq-race-slot ${isLive ? "giq-chip-live" : isNext ? "giq-chip-active" : ""}`}
             >
-              <Clock className="h-3 w-3" />
               <span>R{race.raceNumber}</span>
               <span className="text-[10px] opacity-70">
-                {race.raceTime.toLocaleTimeString("en-AU", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: false,
-                })}
+                {isLive ? "Live" : formatRaceTime(race.raceTime)}
               </span>
             </Link>
           );
         })}
+        {overflow && (
+          <Link
+            href={`/races?track=${track.id}`}
+            className="giq-chip giq-race-slot font-bold"
+          >
+            +{hiddenRaceCount} more
+          </Link>
+        )}
+        {Array.from({ length: emptySlots }).map((_, index) => (
+          <span key={index} className="giq-race-empty" aria-hidden="true" />
+        ))}
       </div>
     </div>
   );
+}
+
+function formatRaceTime(date: Date) {
+  return date.toLocaleTimeString("en-AU", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }

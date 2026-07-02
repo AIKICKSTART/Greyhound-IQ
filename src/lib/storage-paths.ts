@@ -17,19 +17,47 @@ const PUBLIC_BUCKETS = new Set<SupabaseStorageBucket>([
 
 const SITE_ASSET_SECTIONS: Record<string, string> = {
   "feature-advanced-stats.webp": "home",
+  "feature-advanced-stats-green.webp": "home",
+  "feature-advanced-stats-v2.webp": "home",
   "feature-ai-predictions.webp": "home",
+  "feature-ai-predictions-blue.webp": "home",
+  "feature-ai-predictions-v2.webp": "home",
   "feature-breeding-analytics.webp": "home",
+  "feature-breeding-analytics-gold.webp": "home",
+  "feature-breeding-analytics-v2.webp": "home",
+  "feature-career-form-purple.webp": "home",
+  "feature-full-career-form-v2.webp": "home",
   "feature-pricing-product.webp": "home",
+  "greyhoundiq-app-icon-dark.png": "brand",
+  "greyhoundiq-app-icon-light.png": "brand",
   "hero-breaking-from-boxes.webp": "brand",
   "hero-greyhoundiq-brand.webp": "brand",
+  "greyhoundiq-compact-ghiq-lockup.webp": "brand",
+  "greyhoundiq-icon-mark.png": "brand",
+  "greyhoundiq-iq-icon-dark.webp": "brand",
+  "greyhoundiq-iq-icon-light.webp": "brand",
+  "greyhoundiq-wordmark-compact-ghiq.png": "brand",
   "logo-main.webp": "brand",
-  "logo-mark-new.png": "brand",
+  "logo-main-purple-gold.webp": "brand",
   "logo-mark-new.webp": "brand",
+  "logo-mark-purple-gold.webp": "brand",
   "logo-wordmark.webp": "brand",
+  "logo-wordmark-purple-gold.webp": "brand",
   "og-image.webp": "social",
+  "site-footer-finish-line-cinematic.webp": "layout",
+  "site-footer-finish-line-cinematic-mobile.webp": "layout",
+  "site-footer-finish-line-bg.webp": "layout",
   "site-footer-racing-bg.webp": "layout",
   "site-header-banner-bg.webp": "layout",
+  "site-header-gate-burst-landscape.webp": "layout",
+  "site-header-gate-burst-portrait.webp": "layout",
   "site-header-racing-bg.webp": "layout",
+  "wentworth-gate-hero.webp": "brand",
+  "wentworth-track-banner-landscape.webp": "layout",
+  "wentworth-track-banner-mobile.webp": "layout",
+  "wentworth-track-banner-portrait.webp": "layout",
+  "wentworth-track-footer.webp": "layout",
+  "wentworth-track-hero.webp": "brand",
   "demo-listing-dog-for-sale.webp": "listings",
   "demo-listing-pup-for-sale.webp": "listings",
   "demo-listing-share.webp": "listings",
@@ -79,7 +107,16 @@ export function siteAssetObjectPath(localPath: string) {
 }
 
 export function siteAssetUrl(localPath: string) {
+  if (!shouldUseSupabaseSiteAssets()) return localPath;
+
   return publicStorageUrl(SITE_ASSETS_BUCKET, siteAssetObjectPath(localPath)) ?? localPath;
+}
+
+function shouldUseSupabaseSiteAssets() {
+  return (
+    process.env.NEXT_PUBLIC_USE_SUPABASE_SITE_ASSETS === "true" ||
+    process.env.USE_SUPABASE_SITE_ASSETS === "true"
+  );
 }
 
 function configuredSupabaseUrl() {

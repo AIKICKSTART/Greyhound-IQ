@@ -43,11 +43,11 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 const STATUS_STYLE: Record<string, string> = {
-  active: "bg-[hsl(142_76%_36%/0.12)] text-[hsl(142_60%_48%)]",
-  expired: "bg-white/[0.05] text-[hsl(215_14%_72%)]",
-  sold: "bg-[hsl(25_95%_53%/0.14)] text-[hsl(25_95%_70%)]",
-  withdrawn: "bg-white/[0.05] text-[hsl(220_7%_60%)]",
-  archived: "bg-white/[0.05] text-[hsl(220_7%_42%)]",
+  active: "giq-badge-purple",
+  expired: "giq-badge-neutral",
+  sold: "giq-badge-gold",
+  withdrawn: "giq-badge-neutral",
+  archived: "giq-badge-neutral",
 };
 
 export async function generateMetadata({
@@ -87,7 +87,7 @@ export default async function ListingDetailPage({
     <div className="fade-in mx-auto max-w-6xl px-6 py-10">
       <Link
         href="/listings"
-        className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(215_14%_65%)] transition-colors hover:text-[hsl(210_13%_97%)]"
+        className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         Listings
@@ -95,16 +95,16 @@ export default async function ListingDetailPage({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <main className="min-w-0">
-          <div className="race-panel p-6">
+          <div className="giq-panel p-6">
             <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="program-label">Marketplace listing</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="rounded-md bg-[hsl(142_76%_36%/0.12)] px-2.5 py-1 text-[11px] font-semibold text-[hsl(142_60%_48%)]">
+                  <span className="giq-badge giq-badge-purple">
                     {TYPE_LABEL[listing.type] ?? listing.type}
                   </span>
                   <span
-                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold ${
+                    className={`giq-badge ${
                       STATUS_STYLE[listing.status] ?? STATUS_STYLE.archived
                     }`}
                   >
@@ -114,16 +114,16 @@ export default async function ListingDetailPage({
               </div>
               <div className="min-w-[140px] text-right">
                 <p className="program-label">Asking price</p>
-                <p className="mt-2 text-2xl font-semibold text-[hsl(210_13%_97%)]">
+                <p className="mt-2 text-2xl font-semibold text-[hsl(var(--foreground))]">
                   {formatPrice(listing.price, listing.currency)}
                 </p>
               </div>
             </div>
 
-            <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-[hsl(210_13%_97%)]">
+            <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-[hsl(var(--foreground))]">
               {listing.title}
             </h1>
-            <p className="mt-5 whitespace-pre-wrap text-[15px] leading-relaxed text-[hsl(215_14%_72%)]">
+            <p className="mt-5 whitespace-pre-wrap text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
               {listing.description}
             </p>
 
@@ -143,13 +143,13 @@ export default async function ListingDetailPage({
                 ))}
               </div>
             ) : (
-              <div className="race-panel-muted mt-6 grid min-h-36 place-items-center p-6 text-center">
+              <div className="giq-dashed-panel mt-6 grid min-h-36 place-items-center p-6 text-center">
                 <div>
                   <div className="race-box-strip mx-auto mb-4 w-40" />
-                  <p className="text-[13px] font-semibold text-[hsl(210_13%_97%)]">
+                  <p className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
                     No media attached
                   </p>
-                  <p className="mt-1 text-[12px] text-[hsl(215_14%_65%)]">
+                  <p className="mt-1 text-[12px] text-[hsl(var(--muted-foreground))]">
                     Seller details and linked dog context are still available.
                   </p>
                 </div>
@@ -159,22 +159,22 @@ export default async function ListingDetailPage({
             {listing.dog && (
               <Link
                 href={`/dogs/${listing.dog.id}`}
-                className="race-panel-muted mt-6 block p-4 transition-colors hover:bg-white/[0.05]"
+                className="giq-subpanel mt-6 block p-4 transition-colors hover:bg-white/[0.04]"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[hsl(142_60%_48%)]">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[hsl(var(--primary-bright))]">
                       Linked greyhound
                     </p>
-                    <h2 className="mt-1 text-[18px] font-semibold text-[hsl(210_13%_97%)]">
+                    <h2 className="mt-1 text-[18px] font-semibold text-[hsl(var(--foreground))]">
                       {listing.dog.name}
                     </h2>
-                    <p className="mt-1 text-[12px] text-[hsl(220_7%_58%)]">
+                    <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
                       {listing.dog.sire?.name ?? "Unknown sire"} x{" "}
                       {listing.dog.dam?.name ?? "unknown dam"}
                     </p>
                   </div>
-                  <ShieldCheck className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+                  <ShieldCheck className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
                 </div>
               </Link>
             )}
@@ -182,14 +182,14 @@ export default async function ListingDetailPage({
         </main>
 
         <aside className="space-y-4">
-          <section className="race-panel p-5">
+          <section className="giq-panel p-5">
             <div className="mb-5 flex items-center gap-3">
-              <ShoppingBag className="h-5 w-5 text-[hsl(142_60%_48%)]" />
-              <h2 className="text-[18px] font-semibold text-[hsl(210_13%_97%)]">
+              <ShoppingBag className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+              <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
                 Listing details
               </h2>
             </div>
-            <div className="space-y-3 text-[13px] text-[hsl(215_14%_72%)]">
+            <div className="space-y-3 text-[13px] text-[hsl(var(--muted-foreground))]">
               <DetailRow
                 icon={<DollarSign className="h-4 w-4" />}
                 label="Price"
@@ -222,27 +222,27 @@ export default async function ListingDetailPage({
             </div>
           </section>
 
-          <section className="race-panel p-5">
+          <section className="giq-panel p-5">
             <div className="mb-4 flex items-center gap-3">
-              <BadgeCheck className="h-5 w-5 text-[hsl(142_60%_48%)]" />
-              <h2 className="text-[18px] font-semibold text-[hsl(210_13%_97%)]">
+              <BadgeCheck className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+              <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
                 Seller
               </h2>
             </div>
-            <p className="text-[15px] font-semibold text-[hsl(210_13%_97%)]">
+            <p className="text-[15px] font-semibold text-[hsl(var(--foreground))]">
               {listing.profile.displayName}
             </p>
-            <p className="mt-1 text-[13px] text-[hsl(215_14%_65%)]">
+            <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
               {listing.profile.kennelName ? `${listing.profile.kennelName} · ` : ""}
               {listing.profile.state ?? "Australia"}
             </p>
-            <p className="mt-3 text-[12px] font-semibold text-[hsl(142_60%_48%)]">
+            <p className="mt-3 text-[12px] font-semibold text-[hsl(var(--primary-bright))]">
               {listing.profile.verified ? "Verified seller" : "Community seller"}
             </p>
             {!isOwner && (
               <Link
                 href="/messages"
-                className="mt-5 inline-flex items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-[13px] font-semibold text-[hsl(210_13%_97%)] transition-colors hover:bg-white/[0.07]"
+                className="giq-outline-action mt-5"
               >
                 <MessageSquare className="h-3.5 w-3.5" />
                 Message seller
@@ -251,8 +251,8 @@ export default async function ListingDetailPage({
           </section>
 
           {isOwner && (
-            <section className="race-panel p-5">
-              <h2 className="text-[18px] font-semibold text-[hsl(210_13%_97%)]">
+            <section className="giq-panel p-5">
+              <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
                 Owner controls
               </h2>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -272,7 +272,7 @@ export default async function ListingDetailPage({
                     <form action={soldAction}>
                       <SubmitButton
                         pendingLabel="Marking..."
-                        className="giq-button giq-button-copper px-4 text-[13px] font-semibold disabled:cursor-not-allowed"
+                        className="giq-button giq-button-gold px-4 text-[13px] font-semibold disabled:cursor-not-allowed"
                       >
                         Mark sold
                       </SubmitButton>
@@ -307,11 +307,11 @@ function DetailRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className="inline-flex items-center gap-2 text-[hsl(220_7%_58%)]">
+      <span className="inline-flex items-center gap-2 text-[hsl(var(--subtle-foreground))]">
         {icon}
         {label}
       </span>
-      <span className="text-right font-semibold text-[hsl(210_13%_97%)]">
+      <span className="text-right font-semibold text-[hsl(var(--foreground))]">
         {value}
       </span>
     </div>
@@ -320,7 +320,7 @@ function DetailRow({
 
 function DemoListingAttachment({ image }: { image: DemoListingImage }) {
   return (
-    <div className="block overflow-hidden rounded-md border border-white/[0.08] bg-black/20">
+    <div className="giq-listing-media block rounded-md">
       <NextImage
         src={image.src}
         alt={image.alt}
@@ -354,14 +354,13 @@ function ListingAttachment({
         href={url}
         target="_blank"
         rel="noreferrer"
-        className="block overflow-hidden rounded-md border border-white/[0.08] bg-black/20"
+        className="giq-listing-media block rounded-md"
       >
         <NextImage
           src={url}
           alt={media.originalName ?? "Listing media"}
           width={media.widthPx ?? 640}
           height={media.heightPx ?? 420}
-          unoptimized
           sizes="(min-width: 1024px) 520px, (min-width: 640px) 50vw, 100vw"
           className="h-64 w-full object-cover"
         />
@@ -373,7 +372,7 @@ function ListingAttachment({
     return (
       <video
         controls
-        className="h-64 w-full rounded-md border border-white/[0.08] bg-black/30 object-cover"
+        className="giq-listing-media h-64 w-full rounded-md object-cover"
       >
         <source src={url} type={media.mimeType} />
       </video>
@@ -385,9 +384,9 @@ function ListingAttachment({
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="flex min-h-24 items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[12px] font-semibold text-[hsl(215_14%_80%)] transition-colors hover:bg-white/[0.06]"
+      className="giq-outline-action min-h-24 px-3 py-2 text-[12px]"
     >
-      <Paperclip className="h-4 w-4 text-[hsl(142_60%_48%)]" />
+      <Paperclip className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
       <span className="truncate">{media.originalName ?? media.mimeType}</span>
     </a>
   );

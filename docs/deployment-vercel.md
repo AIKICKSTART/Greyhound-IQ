@@ -50,23 +50,53 @@ Optional:
 - `TOPAZ_API_BASE`
 - `TOPAZ_OWNING_AUTHORITY_CODE`
 - `TOPAZ_TIME_ZONE`
+- `THEDOGS_PROVIDER_ENABLED`
+- `THEDOGS_BASE_URL`
+- `THEDOGS_MAX_MEETINGS`
+- `THEDOGS_CONCURRENCY`
+- `THEDOGS_TIME_ZONE`
+- `WATCHDOG_PROVIDER_ENABLED`
+- `WATCHDOG_BASE_URL`
+- `WATCHDOG_MAX_MEETINGS`
+- `WATCHDOG_CONCURRENCY`
+- `WATCHDOG_FETCH_TIMEOUT_MS`
 - `FASTTRACK_PROTOTYPE_ENABLED`
 - `FASTTRACK_BASE_URL`
 - `FASTTRACK_MAX_MEETINGS`
 - `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA`
+- `NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT`
 
-`NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=true` keeps the marketplace media-rich with mock listing images during pre-launch and local development. Set it to `false` when real listing uploads should be the only marketplace media.
+Public racing, listing, dog, track, statistics, and breeding pages read the live database/query layer. `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=true` keeps the marketplace media-rich with local WebP fallback images when real listing uploads are missing. `NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT=true` shows a signed-out account preview for demos without replacing real WorkOS account flows.
 
 After Supabase migrations run for an environment, run `npm run storage:upload-site-assets` with that environment's Supabase values to populate the `site-assets` bucket. Public site images, logos, Open Graph images, and demo listing placeholders are served from Supabase public object URLs when `NEXT_PUBLIC_SUPABASE_URL` is configured.
 
 ## Scheduled live data sync
 
-`Live Racing Sync` calls `/api/internal/live-sync?days=1` every 5 minutes from GitHub Actions. `vercel.json` also configures Vercel Cron to call the same route once daily as a backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. The route accepts either:
+`Live Racing Sync` calls `/api/internal/live-sync` from GitHub Actions. The fast job refreshes the current national racecards and posted results every 5 minutes with `days=1&scope=all`; the full job refreshes the 7-day national racecard horizon hourly with `days=7&scope=upcoming`. `vercel.json` also configures Vercel Cron to call the same route once daily as a backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. The route accepts either:
 
 - `Authorization: Bearer <CRON_SECRET>` from Vercel Cron.
 - `X-Internal-Secret: <INTERNAL_API_SECRET>` for manual operator runs.
 
-Without `TOPAZ_API_KEY`, the job can use the bounded FastTrack prototype fallback for pre-production demos. The fallback defaults to `FASTTRACK_MAX_MEETINGS=2` so the high-frequency Vercel function stays inside the 60-second runtime limit. Set `FASTTRACK_PROTOTYPE_ENABLED=false` to force a no-op until the licensed Topaz key is configured. Once the licensed Topaz key is present, each run refreshes meetings, races, runners, scratchings, prices, and recent results through the official provider.
+Scheduled sync uses `scope=all` for the 5-minute current-day job so national racecards and posted results stay current inside the 300-second Vercel runtime limit. The hourly 7-day job uses `scope=upcoming` because the result pages are current-day only and fetching them with the full horizon is unnecessary. `THEDOGS_PROVIDER_ENABLED=true` enables public all-Australia racecard and result ingestion; `THEDOGS_MAX_MEETINGS` and `THEDOGS_CONCURRENCY` bound the sync workload. `WATCHDOG_PROVIDER_ENABLED=true` adds Victoria/GRV racecards, results, Watchdog tips, and replay IDs; `WATCHDOG_MAX_MEETINGS` and `WATCHDOG_CONCURRENCY` bound that VIC enrichment workload. Without `TOPAZ_API_KEY`, the job still has national field and posted-result coverage from The Dogs plus Victoria enrichment from Watchdog. FastTrack remains a VIC-only prototype fallback if the public feeds are disabled.
+
+Historical backfills are operator jobs, not Vercel cron jobs:
+
+```bash
+npm run backfill:thedogs -- --from 2006-08-01 --to 2006-12-31 --full
+npm run backfill:thedogs -- --from 2006-08-01 --to 2026-06-30 --full --continue-on-error --max-errors 500
+npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 3
+npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 12 --provider-concurrency 1 --pause-ms 1000
+npm run backfill:thedogs:shards -- status
+npm run backfill:thedogs:shards -- stop
+npm run backfill:thedogs:dog-profiles -- --limit 25
+npm run backfill:thedogs:dog-profile-shards -- status
+npm run backfill:thedogs:dog-profile-shards -- start --workers 4 --concurrency 1
+npm run backfill:thedogs:dog-profile-shards -- stop
+```
+
+The command reads the public The Dogs archive endpoint (`/racing?date=YYYY-MM-DD`) and writes normalized meetings, races, runners, results, dog identities, and form entries. Progress is recorded in `.backfill/thedogs-history-progress.jsonl` so year/month chunks can resume safely. Use `--continue-on-error` for full archive runs so isolated malformed legacy pages are logged without stopping the whole job. For the full archive, use the shard launcher so ranges do not overlap. High shard counts must lower per-worker fetch concurrency with `--provider-concurrency 1` to avoid overloading Supabase or the public source site. The current Supabase session pool rejected 20 simultaneous workers with `EMAXCONNSESSION`; use 12 workers unless the database pool is increased. Dog profile enrichment is a separate operator job that stores sire/dam, DOB, career/prize stats, table snapshots, and rich dog-level form rows. Its shard launcher partitions dogs by stable source-ID hash so workers do not overlap; run it when the race archive is paused or when enough database connections are available. Do not run multi-year backfills inside Vercel functions.
+
+Run `npm run audit:live-race-coverage -- 7` after production sync to verify every expected all-Australia racecard in the live provider exists in the database with live provenance.
 
 Use `/api/health/feeds` on the deployed app to verify feed readiness. A `waiting_for_credentials` status means the endpoint, scheduler, and database checks are reachable, but all configured feed paths are blocked by missing credentials.
 

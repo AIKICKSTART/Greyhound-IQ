@@ -31,9 +31,9 @@ export default function ContactPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.webp"
+        image="/images/wentworth-gate-hero.webp"
         badge="CONTACT"
-        badgeColor="green"
+        badgeColor="primary"
         title={
           <>
             Talk to us.
@@ -51,23 +51,23 @@ export default function ContactPage() {
             return (
               <div
                 key={c.title}
-                className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 hover:bg-white/[0.04] hover:border-white/[0.12] transition-all text-center"
+                className="giq-panel giq-panel-hover p-6 text-center"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[hsl(142_76%_36%/0.1)] mx-auto mb-4">
-                  <Icon className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+                <div className="giq-icon-plate mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg">
+                  <Icon className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
                 </div>
                 <h3
-                  className="text-[15px] font-semibold text-[hsl(210_13%_97%)] mb-1 tracking-[-0.015em]"
+                  className="text-[15px] font-semibold text-[hsl(var(--foreground))] mb-1 tracking-[-0.015em]"
                 >
                   {c.title}
                 </h3>
                 <p
-                  className="text-[12px] font-mono text-[hsl(142_60%_48%)] mb-2"
+                  className="text-[12px] font-mono text-[hsl(var(--primary-bright))] mb-2"
                 >
                   {c.detail}
                 </p>
                 <p
-                  className="text-[12px] text-[hsl(220_7%_42%)] leading-relaxed tracking-[-0.013em]"
+                  className="text-[12px] text-[hsl(var(--subtle-foreground))] leading-relaxed tracking-[-0.013em]"
                 >
                   {c.description}
                 </p>
@@ -78,21 +78,21 @@ export default function ContactPage() {
       </section>
 
       <section className="mx-auto max-w-2xl px-6 pb-20 text-center">
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8">
+        <div className="giq-panel p-8">
           <h2
-            className="text-xl font-semibold text-[hsl(210_13%_97%)] mb-2 tracking-[-0.02em]"
+            className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2 tracking-[-0.02em]"
           >
             18+ only · Bet responsibly
           </h2>
           <p
-            className="text-[13px] text-[hsl(215_14%_65%)] leading-relaxed tracking-[-0.013em]"
+            className="text-[13px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.013em]"
           >
             GreyhoundIQ is a data platform, not a bookmaker. We don&apos;t take
             bets and we don&apos;t encourage gambling. If you or someone you know
             has a gambling problem, contact{" "}
             <a
               href="https://www.gamblinghelponline.org.au"
-              className="text-[hsl(142_60%_48%)] hover:underline"
+              className="text-[hsl(var(--primary-bright))] hover:underline"
               target="_blank"
               rel="noopener noreferrer"
             >

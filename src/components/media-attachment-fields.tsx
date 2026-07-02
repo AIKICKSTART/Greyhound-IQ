@@ -127,7 +127,7 @@ export function MediaAttachmentFields({
           type="button"
           disabled={busy || remaining <= 0}
           onClick={() => inputRef.current?.click()}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[12px] font-semibold text-[hsl(210_13%_97%)] transition-all hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+          className="giq-outline-action min-h-9 px-3 text-[12px] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -136,7 +136,7 @@ export function MediaAttachmentFields({
           )}
           Attach media
         </button>
-        <span className="text-[11px] text-[hsl(220_7%_42%)]">
+        <span className="text-[11px] text-[hsl(var(--subtle-foreground))]">
           {items.length}/{maxFiles}
         </span>
         <input
@@ -154,14 +154,14 @@ export function MediaAttachmentFields({
           {items.map((item) => (
             <span
               key={item.id}
-              className="inline-flex max-w-full items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-[hsl(215_14%_80%)]"
+              className="giq-status-pill max-w-full"
             >
-              <ImagePlus className="h-3.5 w-3.5 shrink-0 text-[hsl(142_60%_48%)]" />
+              <ImagePlus className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--primary-bright))]" />
               <span className="truncate">{item.filename}</span>
               <button
                 type="button"
                 onClick={() => removeItem(item.id)}
-                className="rounded p-0.5 text-[hsl(220_7%_42%)] transition-colors hover:text-red-200"
+                className="rounded p-0.5 text-[hsl(var(--subtle-foreground))] transition-colors hover:text-red-200"
                 aria-label={`Remove ${item.filename}`}
               >
                 <X className="h-3 w-3" />
@@ -172,7 +172,7 @@ export function MediaAttachmentFields({
       )}
 
       {status && (
-        <p className="text-[11px] text-[hsl(215_14%_65%)]">{status}</p>
+        <p className="text-[11px] text-[hsl(var(--muted-foreground))]">{status}</p>
       )}
       {error && <p className="text-[11px] text-red-200">{error}</p>}
     </div>

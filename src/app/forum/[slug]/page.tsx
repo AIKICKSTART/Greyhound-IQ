@@ -45,7 +45,7 @@ export default async function ForumCategoryPage({
     <div className="fade-in mx-auto max-w-6xl px-6 py-10">
       <Link
         href="/forum"
-        className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(215_14%_65%)] transition-colors hover:text-[hsl(210_13%_97%)]"
+        className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         Forum
@@ -55,23 +55,23 @@ export default async function ForumCategoryPage({
         <main>
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-semibold tracking-[-0.03em] text-[hsl(210_13%_97%)]">
+              <h1 className="text-4xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
                 {category.name}
               </h1>
-              <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-[hsl(215_14%_65%)]">
+              <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                 {category.description}
               </p>
             </div>
-            <span className="rounded-full border border-white/[0.06] px-3 py-1.5 text-[12px] font-semibold text-[hsl(215_14%_65%)]">
+            <span className="giq-badge giq-badge-neutral">
               {category.threads.length} threads
             </span>
           </div>
 
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02]">
+          <div className="giq-panel overflow-hidden">
             {category.threads.length === 0 ? (
               <div className="p-10 text-center">
-                <MessageSquare className="mx-auto mb-4 h-8 w-8 text-[hsl(142_60%_48%)]" />
-                <p className="text-[14px] text-[hsl(215_14%_65%)]">
+                <MessageSquare className="mx-auto mb-4 h-8 w-8 text-[hsl(var(--primary-bright))]" />
+                <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
                   No threads in this category yet.
                 </p>
               </div>
@@ -81,28 +81,28 @@ export default async function ForumCategoryPage({
                 return (
                   <article
                     key={thread.id}
-                    className="border-b border-white/[0.05] p-5 last:border-0"
+                    className="giq-table-row p-5"
                   >
                     <div className="flex items-start gap-3">
                       {thread.pinned ? (
-                        <Pin className="mt-0.5 h-4 w-4 text-[hsl(25_95%_53%)]" />
+                        <Pin className="mt-0.5 h-4 w-4 text-[hsl(var(--secondary))]" />
                       ) : (
-                        <MessageSquare className="mt-0.5 h-4 w-4 text-[hsl(142_60%_48%)]" />
+                        <MessageSquare className="mt-0.5 h-4 w-4 text-[hsl(var(--primary-bright))]" />
                       )}
                       <div className="min-w-0 flex-1">
                         <Link
                           href={`/forum/threads/${thread.id}`}
-                          className="text-[16px] font-semibold text-[hsl(210_13%_97%)] transition-colors hover:text-[hsl(142_60%_48%)]"
+                          className="text-[16px] font-semibold text-[hsl(var(--foreground))] transition-colors hover:text-[hsl(var(--primary-bright))]"
                         >
                           {thread.title}
                         </Link>
-                        <p className="mt-1 text-[12px] text-[hsl(220_7%_42%)]">
+                        <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
                           Started by {thread.author.displayName} -{" "}
                           {Math.max(thread._count.posts - 1, 0)} replies -{" "}
                           {thread.views} views
                         </p>
                         {lastPost && (
-                          <p className="mt-3 text-[13px] text-[hsl(215_14%_65%)]">
+                          <p className="mt-3 text-[13px] text-[hsl(var(--muted-foreground))]">
                             Latest by {lastPost.author.displayName}
                           </p>
                         )}
@@ -115,10 +115,10 @@ export default async function ForumCategoryPage({
           </div>
         </main>
 
-        <aside className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+        <aside className="giq-panel p-5">
           <div className="mb-5 flex items-center gap-3">
-            <PlusCircle className="h-5 w-5 text-[hsl(142_60%_48%)]" />
-            <h2 className="text-[18px] font-semibold text-[hsl(210_13%_97%)]">
+            <PlusCircle className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+            <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
               Start a thread
             </h2>
           </div>
@@ -126,7 +126,7 @@ export default async function ForumCategoryPage({
             <form action={createForumThread} className="space-y-4">
               <input type="hidden" name="categoryId" value={category.id} />
               <label className="block">
-                <span className="text-[12px] font-semibold uppercase text-[hsl(220_7%_42%)]">
+                <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                   Title
                 </span>
                 <input
@@ -134,12 +134,12 @@ export default async function ForumCategoryPage({
                   required
                   minLength={5}
                   maxLength={200}
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] text-[hsl(210_13%_97%)] outline-none transition-colors placeholder:text-[hsl(220_7%_42%)] focus:border-[hsl(142_76%_36%)]"
+                  className="giq-form-control mt-2 px-3 py-2"
                   placeholder="Best young sires for 2026?"
                 />
               </label>
               <label className="block">
-                <span className="text-[12px] font-semibold uppercase text-[hsl(220_7%_42%)]">
+                <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                   Body
                 </span>
                 <textarea
@@ -148,7 +148,7 @@ export default async function ForumCategoryPage({
                   minLength={20}
                   maxLength={20000}
                   rows={8}
-                  className="mt-2 w-full resize-y rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] leading-relaxed text-[hsl(210_13%_97%)] outline-none transition-colors placeholder:text-[hsl(220_7%_42%)] focus:border-[hsl(142_76%_36%)]"
+                  className="giq-form-control giq-textarea mt-2 px-3 py-2"
                   placeholder="Share the context, data, or question you want the community to discuss."
                 />
               </label>
@@ -156,12 +156,12 @@ export default async function ForumCategoryPage({
             </form>
           ) : (
             <div>
-              <p className="text-[14px] leading-relaxed text-[hsl(215_14%_65%)]">
+              <p className="text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                 Sign in to start a thread. Public browsing stays open.
               </p>
               <Link
                 href="/sign-in"
-                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-[hsl(142_76%_36%/0.2)] transition-all hover:brightness-110"
+                className="giq-liquid-purple-button mt-5 min-h-10 px-4 text-[13px] font-semibold"
               >
                 Sign in
               </Link>

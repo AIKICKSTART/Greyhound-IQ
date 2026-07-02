@@ -33,10 +33,10 @@ export default async function BreedingPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.webp"
+        image="/images/wentworth-gate-hero.webp"
         badge="BREEDING ANALYTICS"
-        badgeIcon={<Dna className="h-3 w-3 text-[hsl(142_60%_48%)]" />}
-        badgeColor="green"
+        badgeIcon={<Dna className="h-3 w-3 text-[hsl(var(--primary-bright))]" />}
+        badgeColor="primary"
         title={
           <>
             Bloodlines,
@@ -49,13 +49,13 @@ export default async function BreedingPage() {
         <div className="mt-8 flex gap-3">
           <Link
             href="/dogs"
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-5 py-2.5 text-[13px] font-semibold text-white shadow-xl shadow-[hsl(142_76%_36%/0.25)] hover:brightness-110 transition-all tracking-[-0.013em]"
+            className="giq-liquid-purple-button px-5 text-[13px] font-semibold"
           >
             Search Dogs
           </Link>
           <Link
             href="/pricing"
-            className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-[13px] font-medium text-[hsl(210_13%_97%)] hover:bg-white/[0.06] backdrop-blur-sm transition-all"
+            className="giq-button giq-button-glass px-5 text-[13px] font-medium"
           >
             See Pricing
           </Link>
@@ -63,10 +63,10 @@ export default async function BreedingPage() {
       </PageHero>
 
       <section className="mx-auto max-w-6xl px-6 py-16">
-        <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)] mb-2 tracking-[-0.03em]">
+        <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] mb-2 tracking-[-0.03em]">
           What ships in Phase 2
         </h2>
-        <p className="text-[14px] text-[hsl(215_14%_65%)] mb-8 tracking-[-0.013em]">
+        <p className="text-[14px] text-[hsl(var(--muted-foreground))] mb-8 tracking-[-0.013em]">
           Full breeding toolkit, launching after the MVP.
         </p>
         <div className="grid gap-4 md:grid-cols-2">
@@ -75,20 +75,20 @@ export default async function BreedingPage() {
             return (
               <div
                 key={f.title}
-                className="group rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 hover:bg-white/[0.04] hover:border-white/[0.12] transition-all"
+                className="giq-panel giq-panel-hover group p-6"
               >
                 <div className="flex items-start justify-between mb-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[hsl(142_76%_36%/0.1)]">
-                    <Icon className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+                  <div className="giq-icon-plate flex h-10 w-10 items-center justify-center rounded-lg">
+                    <Icon className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
                   </div>
-                  <span className="rounded-full bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 text-[10px] font-semibold text-[hsl(215_14%_65%)] tracking-[0.04em]">
+                  <span className="giq-badge giq-badge-neutral">
                     {f.phase}
                   </span>
                 </div>
-                <h3 className="text-[16px] font-semibold text-[hsl(210_13%_97%)] mb-2 tracking-[-0.02em]">
+                <h3 className="text-[16px] font-semibold text-[hsl(var(--foreground))] mb-2 tracking-[-0.02em]">
                   {f.title}
                 </h3>
-                <p className="text-[13px] text-[hsl(215_14%_65%)] leading-relaxed tracking-[-0.013em]">
+                <p className="text-[13px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.013em]">
                   {f.desc}
                 </p>
               </div>
@@ -102,20 +102,20 @@ export default async function BreedingPage() {
       <section className="px-0">
         <div className="flex items-end justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)] mb-1 tracking-[-0.03em]">
+            <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] mb-1 tracking-[-0.03em]">
               Top Active Sires
             </h2>
-            <p className="text-[13px] text-[hsl(215_14%_65%)] tracking-[-0.013em]">
+            <p className="text-[13px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
               Live from current data — ranked by progeny winners
             </p>
           </div>
-          <TrendingUp className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+          <TrendingUp className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
         </div>
 
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+        <div className="giq-table-shell">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[11px] uppercase tracking-wider text-[hsl(220_7%_42%)]">
+              <tr className="giq-table-head">
                 <th className="text-left p-4 tracking-[0.04em]">Sire</th>
                 <th className="text-right p-4 tracking-[0.04em]">Progeny</th>
                 <th className="text-right p-4 tracking-[0.04em]">Winners</th>
@@ -127,28 +127,28 @@ export default async function BreedingPage() {
               {SIRE_LEADERS.map((s, i) => (
                 <tr
                   key={s.name}
-                  className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors"
+                  className="giq-table-row"
                 >
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       <span
                         className="flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold"
                         style={{
-                          background: i === 0 ? "hsl(142 76% 36% / 0.2)" : "hsl(220 7% 16%)",
-                          color: i === 0 ? "hsl(142 60% 48%)" : "hsl(215 14% 65%)",
+                          background: i === 0 ? "hsl(var(--primary) / 0.20)" : "hsl(var(--surface-3))",
+                          color: i === 0 ? "hsl(var(--primary-bright))" : "hsl(var(--muted-foreground))",
                         }}
                       >
                         {i + 1}
                       </span>
-                      <span className="text-[14px] font-medium text-[hsl(210_13%_97%)] tracking-[-0.013em]">
+                      <span className="text-[14px] font-medium text-[hsl(var(--foreground))] tracking-[-0.013em]">
                         {s.name}
                       </span>
                     </div>
                   </td>
-                  <td className="p-4 text-right text-[13px] text-[hsl(215_14%_65%)] font-mono">{s.progeny}</td>
-                  <td className="p-4 text-right text-[13px] text-[hsl(215_14%_65%)] font-mono">{s.winners}</td>
-                  <td className="p-4 text-right text-[13px] font-mono font-semibold text-[hsl(142_60%_48%)]">{s.strike}%</td>
-                  <td className="p-4 text-right text-[13px] text-[hsl(210_13%_97%)] font-mono">{s.earnings}</td>
+                  <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{s.progeny}</td>
+                  <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{s.winners}</td>
+                  <td className="p-4 text-right text-[13px] font-mono font-semibold text-[hsl(var(--primary-bright))]">{s.strike}%</td>
+                  <td className="p-4 text-right text-[13px] text-[hsl(var(--foreground))] font-mono">{s.earnings}</td>
                 </tr>
               ))}
             </tbody>
@@ -159,11 +159,11 @@ export default async function BreedingPage() {
       </div>
 
       <section className="mx-auto max-w-3xl px-6 pb-20 text-center">
-        <Calendar className="h-5 w-5 text-[hsl(25_95%_53%)] mx-auto mb-3" />
-        <h2 className="text-xl font-semibold text-[hsl(210_13%_97%)] mb-2 tracking-[-0.02em]">
+        <Calendar className="h-5 w-5 text-[hsl(var(--secondary))] mx-auto mb-3" />
+        <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2 tracking-[-0.02em]">
           Shipping in 6-8 weeks
         </h2>
-        <p className="text-[14px] text-[hsl(215_14%_65%)] leading-relaxed max-w-xl mx-auto tracking-[-0.013em]">
+        <p className="text-[14px] text-[hsl(var(--muted-foreground))] leading-relaxed max-w-xl mx-auto tracking-[-0.013em]">
           MVP race cards and dog search ship in 2 weeks. Full breeding toolkit
           follows in Phase 2 (weeks 4-6). Free tier gets basic form; Pro unlocks
           full pedigrees, testmating, and sire statistics.

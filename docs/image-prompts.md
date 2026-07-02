@@ -438,8 +438,7 @@ CONSTRAINTS
 
 1. Upload the GreyhoundIQ logo files as reference images:
    - `logo-main.webp` or `logo-wordmark.webp` (full logo with wordmark)
-   - `logo-mark-new.png` (square icon only)
-   - `logo-mark-new.webp` (optimized square icon)
+   - `logo-mark-new.webp` (square icon only)
 
 2. Copy the prompt text into GPT Image 2 or Nano Banana 2.
 

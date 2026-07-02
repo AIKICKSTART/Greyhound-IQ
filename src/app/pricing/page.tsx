@@ -93,10 +93,10 @@ export default function PricingPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.webp"
+        image="/images/wentworth-gate-hero.webp"
         badge="PRICING"
-        badgeIcon={<CreditCard className="h-3 w-3 text-[hsl(142_60%_48%)]" />}
-        badgeColor="green"
+        badgeIcon={<CreditCard className="h-3 w-3 text-[hsl(var(--primary-bright))]" />}
+        badgeColor="primary"
         title={
           <>
             Simple, honest
@@ -108,39 +108,37 @@ export default function PricingPage() {
       />
 
       <section className="mx-auto max-w-6xl px-6 py-10">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {PLANS.map((plan) => {
             const Icon = plan.icon;
             return (
               <div
                 key={plan.name}
-                className={`relative rounded-2xl p-6 transition-all ${
-                  plan.highlighted
-                    ? "border-2 border-[hsl(142_76%_36%)] bg-[hsl(142_76%_36%/0.04)] shadow-2xl shadow-[hsl(142_76%_36%/0.1)] md:scale-[1.02]"
-                    : "border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.1]"
-                }`}
+                className={`giq-pricing-card ${plan.highlighted ? "giq-pricing-card-featured lg:scale-[1.02]" : ""}`}
               >
                 {plan.highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[hsl(142_76%_36%)] px-3 py-1 text-[11px] font-bold text-white shadow-lg">
+                  <div className="giq-badge giq-badge-purple giq-plan-popular">
                     MOST POPULAR
                   </div>
                 )}
                 <div className="flex items-center gap-2 mb-4">
-                  <Icon className={`h-5 w-5 ${plan.highlighted ? "text-[hsl(142_60%_48%)]" : "text-[hsl(215_14%_65%)]"}`} />
-                  <span className="text-[16px] font-semibold text-[hsl(210_13%_97%)] tracking-[-0.02em]">{plan.name}</span>
+                  <Icon className={`h-5 w-5 ${plan.highlighted ? "text-[hsl(var(--primary-bright))]" : "text-[hsl(var(--muted-foreground))]"}`} />
+                  <span className="text-[16px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.02em]">{plan.name}</span>
                 </div>
                 <div className="mb-1">
-                  <span className="text-4xl font-semibold text-[hsl(210_13%_97%)] tracking-[-0.03em]">{plan.price}</span>
-                  <span className="text-[13px] text-[hsl(215_14%_65%)] ml-1 tracking-[-0.013em]">{plan.period}</span>
+                  <span className="giq-plan-price">{plan.price}</span>
+                  <span className="text-[13px] text-[hsl(var(--muted-foreground))] ml-1 tracking-[-0.013em]">{plan.period}</span>
                 </div>
-                <p className="text-[13px] text-[hsl(215_14%_65%)] mb-5 mt-2 tracking-[-0.013em]">{plan.description}</p>
+                <p className="text-[13px] text-[hsl(var(--muted-foreground))] mb-5 mt-2 tracking-[-0.013em]">{plan.description}</p>
 
                 <Link
                   href={`/contact?plan=${plan.name.toLowerCase().replace("+", "plus")}`}
-                  className={`block text-center w-full rounded-lg py-2.5 text-[13px] font-semibold tracking-[-0.013em] transition-all mb-5 ${
+                  className={`mb-5 w-full text-center text-[13px] font-semibold ${
                     plan.highlighted
-                      ? "bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] text-white hover:brightness-110 shadow-lg shadow-[hsl(142_76%_36%/0.2)]"
-                      : "border border-white/[0.08] bg-white/[0.03] text-[hsl(210_13%_97%)] hover:bg-white/[0.06]"
+                      ? "giq-liquid-purple-button"
+                      : plan.name === "Pro+"
+                        ? "giq-button giq-button-gold"
+                        : "giq-button giq-button-carbon"
                   }`}
                 >
                   {plan.cta}
@@ -148,13 +146,13 @@ export default function PricingPage() {
 
                 <ul className="space-y-2">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-[13px] text-[hsl(210_13%_97%)] tracking-[-0.013em]">
-                      <Check className="h-3.5 w-3.5 text-[hsl(142_60%_48%)] flex-shrink-0 mt-0.5" />
+                    <li key={f} className="giq-plan-feature">
+                      <Check className="h-3.5 w-3.5 text-[hsl(var(--primary-bright))] flex-shrink-0 mt-0.5" />
                       <span>{f}</span>
                     </li>
                   ))}
                   {plan.notIncluded.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-[13px] text-[hsl(220_7%_42%)] tracking-[-0.013em]">
+                    <li key={f} className="giq-plan-feature giq-plan-feature-muted">
                       <X className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
                       <span>{f}</span>
                     </li>
@@ -166,33 +164,33 @@ export default function PricingPage() {
         </div>
 
         <div className="mt-10 text-center">
-          <p className="text-[13px] text-[hsl(220_7%_42%)] tracking-[-0.013em]">
+          <p className="text-[13px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]">
             greyhound-data.com Gold: ~$125 AUD/year. GreyhoundIQ Pro:{" "}
-            <span className="font-semibold text-[hsl(142_60%_48%)]">$99 AUD/year</span>. That&apos;s 21% cheaper.
+            <span className="font-semibold text-[hsl(var(--primary-bright))]">$99 AUD/year</span>. That&apos;s 21% cheaper.
           </p>
         </div>
       </section>
 
       {/* FAQ */}
       <section className="mx-auto max-w-3xl px-6 py-12">
-        <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)] mb-8 text-center tracking-[-0.03em]">
+        <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] mb-8 text-center tracking-[-0.03em]">
           Common questions
         </h2>
         <div className="space-y-3">
           {FAQ.map((item, i) => (
             <details
               key={i}
-              className="group rounded-xl border border-white/[0.06] bg-white/[0.02] open:bg-white/[0.04] transition-all"
+              className="giq-faq-item group"
             >
               <summary className="flex items-center justify-between p-5 cursor-pointer list-none">
-                <span className="text-[15px] font-medium text-[hsl(210_13%_97%)] tracking-[-0.013em]">
+                <span className="text-[15px] font-medium text-[hsl(var(--foreground))] tracking-[-0.013em]">
                   {item.q}
                 </span>
-                <span className="text-[hsl(215_14%_65%)] text-xl transition-transform group-open:rotate-45 select-none">
+                <span className="text-[hsl(var(--muted-foreground))] text-xl transition-transform group-open:rotate-45 select-none">
                   +
                 </span>
               </summary>
-              <div className="px-5 pb-5 text-[14px] text-[hsl(215_14%_65%)] leading-relaxed tracking-[-0.011em]">
+              <div className="px-5 pb-5 text-[14px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.011em]">
                 {item.a}
               </div>
             </details>
@@ -202,16 +200,16 @@ export default function PricingPage() {
 
       {/* Final CTA */}
       <section className="mx-auto max-w-3xl px-6 pb-20 text-center">
-        <div className="rounded-2xl border border-[hsl(142_76%_36%/0.3)] bg-gradient-to-br from-[hsl(142_76%_36%/0.08)] to-transparent p-10">
-          <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)] mb-3 tracking-[-0.03em]">
+        <div className="giq-final-cta p-10">
+          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] mb-3 tracking-[-0.03em]">
             Ready to start?
           </h2>
-          <p className="text-[15px] text-[hsl(215_14%_65%)] mb-6 tracking-[-0.013em]">
+          <p className="text-[15px] text-[hsl(var(--muted-foreground))] mb-6 tracking-[-0.013em]">
             Free forever. Upgrade when you&apos;re ready. Cancel anytime.
           </p>
           <Link
             href="/contact?plan=free"
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-6 py-3 text-[14px] font-semibold text-white shadow-xl shadow-[hsl(142_76%_36%/0.25)] hover:brightness-110 transition-all tracking-[-0.013em]"
+            className="giq-liquid-purple-button px-6 text-[14px] font-semibold"
           >
             Create free account
           </Link>

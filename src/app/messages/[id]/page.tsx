@@ -66,22 +66,22 @@ export default async function MessageThreadPage({
     <div className="fade-in mx-auto max-w-4xl px-6 py-10">
       <Link
         href="/messages"
-        className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(215_14%_65%)] transition-colors hover:text-[hsl(210_13%_97%)]"
+        className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         Inbox
       </Link>
 
-      <header className="mb-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+      <header className="giq-panel mb-6 p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[hsl(142_60%_48%)]">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[hsl(var(--primary-bright))]">
               Private 1:1 conversation
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[hsl(210_13%_97%)]">
+            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
               {other.displayName}
             </h1>
-            <p className="mt-2 text-[14px] text-[hsl(215_14%_65%)]">
+            <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">
               {other.kennelName ? `${other.kennelName} · ` : ""}
               {other.state ?? "Australia"}
             </p>
@@ -91,7 +91,7 @@ export default async function MessageThreadPage({
             <form action={readAction}>
               <SubmitButton
                 pendingLabel="Marking..."
-                className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-[hsl(210_13%_97%)] transition-all hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-60"
+                className="giq-outline-action disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <CheckCheck className="h-3.5 w-3.5" />
                 Mark read
@@ -101,7 +101,7 @@ export default async function MessageThreadPage({
               <form action={unblockAction}>
                 <SubmitButton
                   pendingLabel="Unblocking..."
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-[hsl(210_13%_97%)] transition-all hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="giq-outline-action disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Unlock className="h-3.5 w-3.5" />
                   Unblock
@@ -111,7 +111,7 @@ export default async function MessageThreadPage({
               <form action={blockAction}>
                 <SubmitButton
                   pendingLabel="Blocking..."
-                  className="inline-flex items-center gap-2 rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-2 text-[13px] font-semibold text-red-200 transition-all hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="giq-danger-action disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Ban className="h-3.5 w-3.5" />
                   Block
@@ -130,10 +130,10 @@ export default async function MessageThreadPage({
         )}
       </header>
 
-      <section className="rounded-xl border border-white/[0.06] bg-white/[0.02]">
+      <section className="giq-panel">
         <div className="space-y-4 p-5">
           {conversation.messages.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-white/[0.12] p-6 text-center text-[14px] text-[hsl(215_14%_65%)]">
+            <div className="giq-dashed-panel p-6 text-center text-[14px] text-[hsl(var(--muted-foreground))]">
               No visible messages in this conversation.
             </div>
           ) : (
@@ -150,15 +150,15 @@ export default async function MessageThreadPage({
                   key={message.id}
                   className={`rounded-lg border p-4 ${
                     isMine
-                      ? "ml-auto max-w-[82%] border-[hsl(142_76%_36%/0.22)] bg-[hsl(142_76%_36%/0.08)]"
+                      ? "ml-auto max-w-[82%] border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--primary)/0.08)]"
                       : "mr-auto max-w-[82%] border-white/[0.06] bg-white/[0.03]"
                   }`}
                 >
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-                    <span className="text-[12px] font-semibold text-[hsl(210_13%_97%)]">
+                    <span className="text-[12px] font-semibold text-[hsl(var(--foreground))]">
                       {isMine ? "You" : message.sender.displayName}
                     </span>
-                    <span className="text-[11px] text-[hsl(220_7%_42%)]">
+                    <span className="text-[11px] text-[hsl(var(--subtle-foreground))]">
                       {message.createdAt.toLocaleString("en-AU", {
                         day: "2-digit",
                         month: "short",
@@ -181,7 +181,7 @@ export default async function MessageThreadPage({
                     </div>
                   )}
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                    <span className="text-[11px] text-[hsl(220_7%_42%)]">
+                    <span className="text-[11px] text-[hsl(var(--subtle-foreground))]">
                       {isMine && message.readAt
                         ? `Read ${message.readAt.toLocaleString("en-AU", {
                             day: "2-digit",
@@ -196,7 +196,7 @@ export default async function MessageThreadPage({
                     <form action={deleteAction}>
                       <SubmitButton
                         pendingLabel="Deleting..."
-                        className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 text-[11px] font-semibold text-[hsl(215_14%_65%)] transition-all hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="giq-outline-action min-h-8 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <Trash2 className="h-3 w-3" />
                         Delete
@@ -214,7 +214,7 @@ export default async function MessageThreadPage({
           className="border-t border-white/[0.06] p-5"
         >
           <label className="block">
-            <span className="text-[12px] font-semibold uppercase text-[hsl(220_7%_42%)]">
+            <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
               Reply
             </span>
             <textarea
@@ -223,7 +223,7 @@ export default async function MessageThreadPage({
               disabled={Boolean(conversation.blockedAt)}
               maxLength={5000}
               rows={5}
-              className="mt-2 w-full resize-y rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] leading-relaxed text-[hsl(210_13%_97%)] outline-none transition-colors placeholder:text-[hsl(220_7%_42%)] focus:border-[hsl(142_76%_36%)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="giq-form-control giq-textarea mt-2 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder={
                 conversation.blockedAt
                   ? "Unblock this conversation before replying."
@@ -264,7 +264,7 @@ function MessageAttachment({
         href={url}
         target="_blank"
         rel="noreferrer"
-        className="block overflow-hidden rounded-lg border border-white/[0.08] bg-black/20"
+        className="giq-listing-media block"
       >
         <NextImage
           src={url}
@@ -283,9 +283,9 @@ function MessageAttachment({
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex min-h-14 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[12px] font-semibold text-[hsl(215_14%_80%)] transition-colors hover:bg-white/[0.06]"
+      className="giq-outline-action min-h-14 px-3 py-2 text-[12px]"
     >
-      <Paperclip className="h-4 w-4 text-[hsl(142_60%_48%)]" />
+      <Paperclip className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
       <span className="truncate">{media.originalName ?? media.mimeType}</span>
     </a>
   );
@@ -294,14 +294,14 @@ function MessageAttachment({
 function SignedOutThread() {
   return (
     <div className="fade-in mx-auto max-w-3xl px-6 py-16">
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8">
-        <Lock className="mb-4 h-7 w-7 text-[hsl(142_60%_48%)]" />
-        <h1 className="text-2xl font-semibold text-[hsl(210_13%_97%)]">
+      <div className="giq-panel p-8">
+        <Lock className="mb-4 h-7 w-7 text-[hsl(var(--primary-bright))]" />
+        <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
           Sign in to view this conversation
         </h1>
         <Link
           href="/sign-in"
-          className="mt-6 inline-flex rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:brightness-110"
+          className="giq-liquid-purple-button mt-6 px-5 text-[13px] font-semibold"
         >
           Sign in
         </Link>

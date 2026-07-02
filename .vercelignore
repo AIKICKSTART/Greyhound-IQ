@@ -10,7 +10,18 @@ node_modules
 
 .local-media
 .remember
+.backfill
+.hermes
+.next-dev-logs
 output
+
+*.jsonl
+*.ndjson
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.backup
 
 npm-debug.log*
 yarn-debug.log*

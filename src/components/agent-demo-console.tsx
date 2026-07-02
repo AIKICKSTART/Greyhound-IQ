@@ -47,17 +47,17 @@ export function AgentDemoConsole() {
   }
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+    <div className="giq-panel p-5">
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-[18px] font-semibold text-[hsl(210_13%_97%)]">
+          <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
             Agent console
           </h2>
-          <p className="mt-1 text-[13px] text-[hsl(215_14%_65%)]">
+          <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
             Quick preview of each agent output contract.
           </p>
         </div>
-        <Bot className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+        <Bot className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
       </div>
 
       <div className="grid gap-2 sm:grid-cols-3">
@@ -74,8 +74,8 @@ export function AgentDemoConsole() {
               }}
               className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-[13px] font-semibold transition-all ${
                 active
-                  ? "border-[hsl(142_76%_36%/0.6)] bg-[hsl(142_76%_36%/0.14)] text-[hsl(210_13%_97%)]"
-                  : "border-white/[0.06] bg-white/[0.02] text-[hsl(215_14%_65%)] hover:bg-white/[0.05]"
+                  ? "border-[hsl(var(--primary)/0.6)] bg-[hsl(var(--primary)/0.14)] text-[hsl(var(--foreground))] shadow-[0_0_18px_-12px_hsl(var(--primary-bright)/0.9)]"
+                  : "border-[hsl(var(--metal-silver)/0.12)] bg-[hsl(0_0%_100%/0.02)] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(0_0%_100%/0.05)]"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -85,11 +85,11 @@ export function AgentDemoConsole() {
         })}
       </div>
 
-      <div className="mt-5 rounded-lg border border-white/[0.06] bg-[hsl(150_30%_3%/0.55)] p-4">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(220_7%_42%)]">
+      <div className="giq-subpanel mt-5 p-4">
+        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
           Prompt
         </p>
-        <p className="mt-2 text-[14px] text-[hsl(210_13%_97%)]">
+        <p className="mt-2 text-[14px] text-[hsl(var(--foreground))]">
           {selected.prompt}
         </p>
       </div>
@@ -98,7 +98,7 @@ export function AgentDemoConsole() {
         type="button"
         onClick={runDemo}
         disabled={status === "running"}
-        className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-[hsl(142_76%_36%/0.2)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+        className="giq-liquid-purple-button mt-4 min-h-10 px-4 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
       >
         {status === "running" ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -109,11 +109,11 @@ export function AgentDemoConsole() {
       </button>
 
       {status !== "idle" && (
-        <div className="mt-4 rounded-lg border border-[hsl(142_76%_36%/0.25)] bg-[hsl(142_76%_36%/0.08)] p-4">
-          <p className="text-[12px] font-semibold uppercase text-[hsl(142_60%_48%)]">
+        <div className="giq-subpanel mt-4 border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)] p-4">
+          <p className="text-[12px] font-semibold uppercase text-[hsl(var(--primary-bright))]">
             {status === "running" ? "Running" : "Completed"}
           </p>
-          <p className="mt-2 text-[14px] leading-relaxed text-[hsl(210_13%_97%)]">
+          <p className="mt-2 text-[14px] leading-relaxed text-[hsl(var(--foreground))]">
             {status === "running"
               ? "Loading memory, assembling context, validating output schema..."
               : selected.output}

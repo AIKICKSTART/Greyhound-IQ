@@ -7,6 +7,7 @@
  *
  * Run with: npm run db:seed
  */
+import "../scripts/load-env";
 import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
 

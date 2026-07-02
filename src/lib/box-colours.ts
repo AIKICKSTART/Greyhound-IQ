@@ -45,7 +45,7 @@ export const AUSTRALIAN_BOX_COLOURS: Record<number, BoxColourStyle> = {
   },
   7: {
     background: "#111827",
-    borderColor: "rgba(255,255,255,0.22)",
+    borderColor: "rgba(250,204,21,0.30)",
     color: "#FACC15",
   },
   8: {

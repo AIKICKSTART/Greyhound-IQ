@@ -51,16 +51,16 @@ export default async function DogProfilePage({
   const bestTime = allTimes.length > 0 ? Math.min(...allTimes) : null;
 
   return (
-    <div className="fade-in mx-auto max-w-4xl px-6 py-10">
+    <div className="giq-dog-detail-page fade-in mx-auto max-w-4xl px-6 py-10">
       {/* Header */}
       <div className="mb-8">
         <h1
-          className="text-4xl font-semibold text-[hsl(210_13%_97%)] tracking-[-0.03em]"
+          className="text-4xl font-semibold text-[hsl(var(--foreground))] tracking-[-0.03em]"
         >
           {dog.name}
         </h1>
         <div
-          className="flex flex-wrap gap-3 mt-2 text-[13px] text-[hsl(215_14%_65%)] tracking-[-0.013em]"
+          className="flex flex-wrap gap-3 mt-2 text-[13px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]"
         >
           {dog.sex && <span>{dog.sex === "M" ? "Dog" : "Bitch"}</span>}
           {dog.colour && <span>· {dog.colour}</span>}
@@ -69,24 +69,24 @@ export default async function DogProfilePage({
             <span>· Whelped {dog.whelpDate.toLocaleDateString("en-AU")}</span>
           )}
           {dog.earBrand && (
-            <span className="font-mono text-[hsl(142_60%_48%)]">· {dog.earBrand}</span>
+            <span className="font-mono text-[hsl(var(--primary-bright))]">· {dog.earBrand}</span>
           )}
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+      <div className="giq-dog-stat-grid grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         {[
-          { label: "Starts", value: total, color: "text-[hsl(210_13%_97%)]" },
-          { label: `Wins (${winPct}%)`, value: wins, color: "text-[hsl(142_60%_48%)]" },
-          { label: "Placings", value: placings, color: "text-[hsl(210_13%_97%)]" },
-          { label: "Best Time", value: bestTime ? `${bestTime.toFixed(2)}s` : "—", color: "text-[hsl(25_95%_53%)]" },
+          { label: "Starts", value: total, color: "text-[hsl(var(--foreground))]" },
+          { label: `Wins (${winPct}%)`, value: wins, color: "text-[hsl(var(--primary-bright))]" },
+          { label: "Placings", value: placings, color: "text-[hsl(var(--foreground))]" },
+          { label: "Best Time", value: bestTime ? `${bestTime.toFixed(2)}s` : "—", color: "text-[hsl(var(--secondary))]" },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 text-center">
+          <div key={stat.label} className="giq-metric-card text-center">
             <div className={`text-3xl font-semibold tracking-[-0.02em] ${stat.color}`}>
               {stat.value}
             </div>
-            <div className="text-[12px] text-[hsl(220_7%_42%)] mt-1 tracking-[-0.013em]">
+            <div className="text-[12px] text-[hsl(var(--subtle-foreground))] mt-1 tracking-[-0.013em]">
               {stat.label}
             </div>
           </div>
@@ -94,10 +94,10 @@ export default async function DogProfilePage({
       </div>
 
       {/* Ownership */}
-      <section className="mb-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+      <section className="giq-panel mb-6 p-6">
         <div className="mb-5 flex items-center gap-3">
-          <ShieldCheck className="h-5 w-5 text-[hsl(142_60%_48%)]" />
-          <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-[hsl(210_13%_97%)]">
+          <ShieldCheck className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+          <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))]">
             Ownership
           </h2>
         </div>
@@ -108,13 +108,13 @@ export default async function DogProfilePage({
               verifiedOwnership.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4"
+                  className="giq-subpanel flex flex-wrap items-center justify-between gap-3 p-4"
                 >
                   <div>
-                    <p className="font-semibold text-[hsl(210_13%_97%)]">
+                    <p className="font-semibold text-[hsl(var(--foreground))]">
                       {entry.profile.displayName}
                     </p>
-                    <p className="mt-1 text-[13px] text-[hsl(215_14%_65%)]">
+                    <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
                       {formatRole(entry.role)}
                       {entry.profile.kennelName ? ` · ${entry.profile.kennelName}` : ""}
                       {entry.profile.state ? ` · ${entry.profile.state}` : ""}
@@ -124,20 +124,20 @@ export default async function DogProfilePage({
                 </div>
               ))
             ) : (
-              <div className="rounded-lg border border-dashed border-white/[0.12] p-4">
-                <p className="text-[14px] text-[hsl(215_14%_65%)]">
+              <div className="giq-dashed-panel p-4">
+                <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
                   No verified profile is linked to this dog yet.
                 </p>
               </div>
             )}
 
             {currentOwnership && !currentOwnership.verified && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[hsl(25_95%_53%/0.25)] bg-[hsl(25_95%_53%/0.08)] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[hsl(var(--secondary)/0.25)] bg-[hsl(var(--secondary)/0.08)] p-4">
                 <div>
-                  <p className="font-semibold text-[hsl(210_13%_97%)]">
+                  <p className="font-semibold text-[hsl(var(--foreground))]">
                     Your claim is pending
                   </p>
-                  <p className="mt-1 text-[13px] text-[hsl(215_14%_65%)]">
+                  <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
                     {formatRole(currentOwnership.role)} claim submitted for review.
                   </p>
                 </div>
@@ -146,18 +146,18 @@ export default async function DogProfilePage({
             )}
           </div>
 
-          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+          <div className="giq-subpanel p-4">
             {user ? (
               currentOwnership ? (
                 <div>
                   <OwnershipBadge verified={currentOwnership.verified} />
-                  <p className="mt-3 text-[14px] leading-relaxed text-[hsl(215_14%_65%)]">
+                  <p className="mt-3 text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                     This dog is linked to your GreyhoundIQ profile as{" "}
                     {formatRole(currentOwnership.role)}.
                   </p>
                   <Link
                     href="/account"
-                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-[hsl(210_13%_97%)] transition-all hover:bg-white/[0.06]"
+                    className="giq-outline-action mt-4"
                   >
                     Manage profile
                   </Link>
@@ -165,12 +165,12 @@ export default async function DogProfilePage({
               ) : (
                 <form action={claimAction} className="grid gap-4">
                   <label className="block">
-                    <span className="text-[12px] font-semibold uppercase text-[hsl(220_7%_42%)]">
+                    <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                       Claim role
                     </span>
                     <select
                       name="role"
-                      className="mt-2 w-full rounded-lg border border-white/[0.08] bg-[hsl(150_30%_3%)] px-3 py-2 text-[14px] text-[hsl(210_13%_97%)] outline-none transition-colors focus:border-[hsl(142_76%_36%)]"
+                      className="giq-form-control mt-2 px-3 py-2"
                       defaultValue="owner"
                     >
                       <option value="owner">Owner</option>
@@ -186,13 +186,13 @@ export default async function DogProfilePage({
               )
             ) : (
               <div>
-                <Lock className="mb-3 h-5 w-5 text-[hsl(142_60%_48%)]" />
-                <p className="text-[14px] leading-relaxed text-[hsl(215_14%_65%)]">
+                <Lock className="mb-3 h-5 w-5 text-[hsl(var(--primary-bright))]" />
+                <p className="text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                   Sign in to link this dog to your GreyhoundIQ profile.
                 </p>
                 <Link
                   href="/sign-in"
-                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-4 py-2 text-[13px] font-semibold text-white transition-all hover:brightness-110"
+                  className="giq-liquid-purple-button mt-4 min-h-10 px-4 text-[13px] font-semibold"
                 >
                   Sign in
                 </Link>
@@ -204,50 +204,50 @@ export default async function DogProfilePage({
 
       {/* Pedigree */}
       {(dog.sire || dog.dam) && (
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 mb-6">
+        <div className="giq-panel mb-6 p-6">
           <h3
-            className="text-[15px] font-semibold text-[hsl(210_13%_97%)] mb-4 tracking-[-0.02em]"
+            className="text-[15px] font-semibold text-[hsl(var(--foreground))] mb-4 tracking-[-0.02em]"
           >
             Pedigree
           </h3>
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-3">
               <div>
-                <p className="text-[11px] uppercase tracking-wider text-[hsl(220_7%_42%)] mb-1">Sire</p>
-                <p className="text-[14px] font-medium text-[hsl(210_13%_97%)]">
+                <p className="text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))] mb-1">Sire</p>
+                <p className="text-[14px] font-medium text-[hsl(var(--foreground))]">
                   {dog.sire?.name ?? "Unknown"}
                 </p>
               </div>
               {dog.sire?.sire && (
-                <div className="pl-4 border-l border-[hsl(142_76%_36%/0.3)]">
-                  <p className="text-[11px] text-[hsl(220_7%_42%)]">Grand Sire</p>
-                  <p className="text-[13px] text-[hsl(215_14%_65%)]">{dog.sire.sire.name}</p>
+                <div className="pl-4 border-l border-[hsl(var(--primary)/0.3)]">
+                  <p className="text-[11px] text-[hsl(var(--subtle-foreground))]">Grand Sire</p>
+                  <p className="text-[13px] text-[hsl(var(--muted-foreground))]">{dog.sire.sire.name}</p>
                 </div>
               )}
               {dog.sire?.dam && (
-                <div className="pl-4 border-l border-[hsl(142_76%_36%/0.3)]">
-                  <p className="text-[11px] text-[hsl(220_7%_42%)]">Grand Dam</p>
-                  <p className="text-[13px] text-[hsl(215_14%_65%)]">{dog.sire.dam.name}</p>
+                <div className="pl-4 border-l border-[hsl(var(--primary)/0.3)]">
+                  <p className="text-[11px] text-[hsl(var(--subtle-foreground))]">Grand Dam</p>
+                  <p className="text-[13px] text-[hsl(var(--muted-foreground))]">{dog.sire.dam.name}</p>
                 </div>
               )}
             </div>
             <div className="space-y-3">
               <div>
-                <p className="text-[11px] uppercase tracking-wider text-[hsl(220_7%_42%)] mb-1">Dam</p>
-                <p className="text-[14px] font-medium text-[hsl(210_13%_97%)]">
+                <p className="text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))] mb-1">Dam</p>
+                <p className="text-[14px] font-medium text-[hsl(var(--foreground))]">
                   {dog.dam?.name ?? "Unknown"}
                 </p>
               </div>
               {dog.dam?.sire && (
-                <div className="pl-4 border-l border-[hsl(25_95%_53%/0.3)]">
-                  <p className="text-[11px] text-[hsl(220_7%_42%)]">Grand Sire</p>
-                  <p className="text-[13px] text-[hsl(215_14%_65%)]">{dog.dam.sire.name}</p>
+                <div className="pl-4 border-l border-[hsl(var(--secondary)/0.3)]">
+                  <p className="text-[11px] text-[hsl(var(--subtle-foreground))]">Grand Sire</p>
+                  <p className="text-[13px] text-[hsl(var(--muted-foreground))]">{dog.dam.sire.name}</p>
                 </div>
               )}
               {dog.dam?.dam && (
-                <div className="pl-4 border-l border-[hsl(25_95%_53%/0.3)]">
-                  <p className="text-[11px] text-[hsl(220_7%_42%)]">Grand Dam</p>
-                  <p className="text-[13px] text-[hsl(215_14%_65%)]">{dog.dam.dam.name}</p>
+                <div className="pl-4 border-l border-[hsl(var(--secondary)/0.3)]">
+                  <p className="text-[11px] text-[hsl(var(--subtle-foreground))]">Grand Dam</p>
+                  <p className="text-[13px] text-[hsl(var(--muted-foreground))]">{dog.dam.dam.name}</p>
                 </div>
               )}
             </div>
@@ -256,18 +256,50 @@ export default async function DogProfilePage({
       )}
 
       {/* Form table */}
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-        <div className="p-5 border-b border-white/[0.06]">
+      <div className="giq-table-shell">
+        <div className="border-b border-white/[0.06] p-5">
           <h3
-            className="text-[15px] font-semibold text-[hsl(210_13%_97%)] tracking-[-0.02em]"
+            className="text-[15px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.02em]"
           >
             Recent Form
           </h3>
         </div>
-        <div className="overflow-x-auto">
+        <div className="grid gap-3 p-3 sm:hidden">
+          {dog.formEntries.slice(0, 20).map((entry, i) => (
+            <article key={i} className="giq-subpanel p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
+                    {entry.track?.name ?? "Unknown track"}
+                  </p>
+                  <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
+                    {entry.date.toLocaleDateString("en-AU", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "2-digit",
+                    })}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-mono text-[13px] font-semibold text-[hsl(var(--primary-bright))]">
+                    {entry.time ? `${entry.time.toFixed(2)}s` : "-"}
+                  </p>
+                  <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
+                    {entry.distance ? `${entry.distance}m` : "-"}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
+                <span>Box {entry.boxNumber ?? "-"}</span>
+                <span className="text-right">Finish {entry.finish ?? "-"}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[11px] uppercase tracking-wider text-[hsl(220_7%_42%)]">
+              <tr className="giq-table-head">
                 <th className="text-left p-3 tracking-[0.04em]">Date</th>
                 <th className="text-left p-3 tracking-[0.04em]">Track</th>
                 <th className="text-center p-3 tracking-[0.04em]">Dist</th>
@@ -278,25 +310,25 @@ export default async function DogProfilePage({
             </thead>
             <tbody>
               {dog.formEntries.slice(0, 20).map((entry, i) => (
-                <tr key={i} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
-                  <td className="p-3 text-[13px] text-[hsl(215_14%_65%)] tracking-[-0.013em]">
+                <tr key={i} className="giq-table-row">
+                  <td className="p-3 text-[13px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
                     {entry.date.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "2-digit" })}
                   </td>
-                  <td className="p-3 text-[13px] text-[hsl(210_13%_97%)] font-medium tracking-[-0.013em]">
+                  <td className="p-3 text-[13px] text-[hsl(var(--foreground))] font-medium tracking-[-0.013em]">
                     {entry.track?.name ?? "—"}
                   </td>
-                  <td className="p-3 text-[13px] text-center text-[hsl(215_14%_65%)] tracking-[-0.013em]">
+                  <td className="p-3 text-[13px] text-center text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
                     {entry.distance ? `${entry.distance}m` : "—"}
                   </td>
-                  <td className="p-3 text-[13px] text-center text-[hsl(215_14%_65%)]">{entry.boxNumber ?? "—"}</td>
+                  <td className="p-3 text-[13px] text-center text-[hsl(var(--muted-foreground))]">{entry.boxNumber ?? "—"}</td>
                   <td className="p-3 text-center">
                     {entry.finish === 1 ? (
-                      <span className="rounded bg-[#FCD34D] px-1.5 py-0.5 text-[11px] font-bold text-gray-900">1</span>
+                      <span className="rounded bg-[hsl(var(--secondary-light))] px-1.5 py-0.5 text-[11px] font-bold text-[hsl(var(--secondary-foreground))]">1</span>
                     ) : (
-                      <span className="text-[13px] text-[hsl(215_14%_65%)]">{entry.finish ?? "—"}</span>
+                      <span className="text-[13px] text-[hsl(var(--muted-foreground))]">{entry.finish ?? "—"}</span>
                     )}
                   </td>
-                  <td className="p-3 text-[13px] text-center text-[hsl(142_60%_48%)] font-mono">
+                  <td className="p-3 text-[13px] text-center text-[hsl(var(--primary-bright))] font-mono">
                     {entry.time ? `${entry.time.toFixed(2)}s` : "—"}
                   </td>
                 </tr>
@@ -312,10 +344,10 @@ export default async function DogProfilePage({
 function OwnershipBadge({ verified }: { verified: boolean }) {
   return (
     <span
-      className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-semibold ${
+      className={`giq-status-pill ${
         verified
-          ? "border-[hsl(142_76%_36%/0.35)] bg-[hsl(142_76%_36%/0.12)] text-[hsl(142_60%_48%)]"
-          : "border-[hsl(25_95%_53%/0.35)] bg-[hsl(25_95%_53%/0.1)] text-[hsl(25_95%_53%)]"
+          ? "giq-status-pill-purple"
+          : "giq-status-pill-gold"
       }`}
     >
       {verified ? (

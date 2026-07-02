@@ -45,21 +45,21 @@ export default async function ForumThreadPage({
     <div className="fade-in mx-auto max-w-4xl px-6 py-10">
       <Link
         href={`/forum/${thread.category.slug}`}
-        className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(215_14%_65%)] transition-colors hover:text-[hsl(210_13%_97%)]"
+        className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         {thread.category.name}
       </Link>
 
-      <header className="mb-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
-        <div className="mb-3 flex flex-wrap items-center gap-3 text-[12px] text-[hsl(220_7%_42%)]">
+      <header className="giq-panel mb-6 p-6">
+        <div className="mb-3 flex flex-wrap items-center gap-3 text-[12px] text-[hsl(var(--subtle-foreground))]">
           <span>{thread.category.name}</span>
           <span>-</span>
           <span>Started by {thread.author.displayName}</span>
           <span>-</span>
           <span>{thread.views} views</span>
         </div>
-        <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[hsl(210_13%_97%)]">
+        <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
           {thread.title}
         </h1>
       </header>
@@ -68,18 +68,18 @@ export default async function ForumThreadPage({
         {thread.posts.map((post, index) => (
           <article
             key={post.id}
-            className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5"
+            className="giq-panel p-5"
           >
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[14px] font-semibold text-[hsl(210_13%_97%)]">
+                <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
                   {post.author.displayName}
                 </p>
-                <p className="mt-0.5 text-[12px] text-[hsl(220_7%_42%)]">
+                <p className="mt-0.5 text-[12px] text-[hsl(var(--subtle-foreground))]">
                   {post.createdAt.toLocaleString("en-AU")}
                 </p>
               </div>
-              <span className="rounded-full border border-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-[hsl(215_14%_65%)]">
+              <span className="giq-badge giq-badge-neutral">
                 {index === 0 ? "Original post" : `Reply ${index}`}
               </span>
             </div>
@@ -90,20 +90,20 @@ export default async function ForumThreadPage({
         ))}
       </div>
 
-      <section className="mt-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+      <section className="giq-panel mt-6 p-5">
         <div className="mb-5 flex items-center gap-3">
           {thread.locked ? (
-            <Lock className="h-5 w-5 text-[hsl(25_95%_53%)]" />
+            <Lock className="h-5 w-5 text-[hsl(var(--secondary))]" />
           ) : (
-            <Reply className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+            <Reply className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
           )}
-          <h2 className="text-[18px] font-semibold text-[hsl(210_13%_97%)]">
+          <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
             Reply
           </h2>
         </div>
 
         {thread.locked ? (
-          <p className="text-[14px] text-[hsl(215_14%_65%)]">
+          <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
             This thread is locked.
           </p>
         ) : user ? (
@@ -114,19 +114,19 @@ export default async function ForumThreadPage({
               minLength={20}
               maxLength={20000}
               rows={6}
-              className="w-full resize-y rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[14px] leading-relaxed text-[hsl(210_13%_97%)] outline-none transition-colors placeholder:text-[hsl(220_7%_42%)] focus:border-[hsl(142_76%_36%)]"
+              className="giq-form-control giq-textarea px-3 py-2"
               placeholder="Add a useful reply with data, context, or practical experience."
             />
             <SubmitButton pendingLabel="Posting...">Post reply</SubmitButton>
           </form>
         ) : (
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-[14px] text-[hsl(215_14%_65%)]">
+            <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
               Sign in to reply to this thread.
             </p>
             <Link
               href="/sign-in"
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(142_76%_36%)] to-[hsl(142_60%_40%)] px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-[hsl(142_76%_36%/0.2)] transition-all hover:brightness-110"
+              className="giq-liquid-purple-button min-h-10 px-4 text-[13px] font-semibold"
             >
               <MessageSquare className="h-3.5 w-3.5" />
               Sign in

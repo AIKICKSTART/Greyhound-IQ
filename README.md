@@ -73,6 +73,13 @@ Supabase values are required for Supabase-backed runtime features:
 
 Supabase Storage uses `site-assets`, `public-user-media`, and `private-user-media` buckets. After migrations, run `npm run storage:upload-site-assets` to upload public website media into the `site-assets` bucket.
 
+Pre-launch demo boundary:
+
+- Racing, listings, dogs, tracks, statistics, and breeding pages read the live database/query layer.
+- `Live Racing Sync` keeps demo race data fresh from the configured provider.
+- `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=true` keeps listing cards and detail pages media-rich with local WebP fallbacks when real uploads are missing.
+- `NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT=true` shows a signed-out demo account preview without replacing real WorkOS account flows.
+
 ## CI/CD
 
 GitHub Actions:
@@ -83,11 +90,51 @@ GitHub Actions:
 - `Codex PR Review`: runs Codex as an automated reviewer.
 - `Supabase Migrate`: manual staging/production migration workflow.
 
-`Live Racing Sync` calls `/api/internal/live-sync?days=1` every 5 minutes from GitHub Actions. Vercel Cron is configured as a daily backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. Without `TOPAZ_API_KEY`, the app can use a bounded public FastTrack prototype fallback for pre-production demos; the fallback caps at `FASTTRACK_MAX_MEETINGS=2` by default so each scheduled run stays inside the Vercel function limit. Real production ingestion requires the licensed `TOPAZ_API_KEY` in Vercel.
+`Live Racing Sync` calls `/api/internal/live-sync` from GitHub Actions. The fast schedule refreshes the current national racecards and posted results every 5 minutes with `days=1&scope=all`; the full schedule refreshes the 7-day national racecard horizon hourly with `days=7&scope=upcoming`. Vercel Cron is configured as a daily full-horizon backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. Manual operator sync can run `npm run sync:live`. `THEDOGS_PROVIDER_ENABLED=true` enables the public all-Australia racecard and result feed for national field coverage. `WATCHDOG_PROVIDER_ENABLED=true` adds Victoria/GRV racecards, results, tips, and replay IDs from Watchdog; this enriches VIC rows while The Dogs remains the national baseline. Topaz remains the licensed production feed where available, and the bounded FastTrack prototype fallback can keep demo race data flowing if the public feeds are disabled.
 
 Feed readiness is exposed at `/api/health/feeds`. It reports configured providers, scheduler coverage, upcoming race counts, and missing feed credentials without exposing secret values.
 
-Marketplace listing cards use optimized demo WebP media while `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA` is enabled. Turn that flag off when real listing uploads should be the only displayed media.
+Run `npm run audit:live-race-coverage -- 7` after a sync to compare the database against the live all-Australia racecard feed. Run `npm run audit:live-result-coverage -- 1` to compare posted results against the national results feed. The audits exit non-zero while any expected live venue/date/racecard or result row is missing or stale.
+
+Historical archive backfill uses the public The Dogs racing archive (`/racing?date=YYYY-MM-DD`). Probing confirmed useful national meeting/race coverage from `2006-08-01`; older dates return partial legacy pages and are not the default floor. The shipped frontend bundle does not expose a public unauthenticated racing JSON API, so this backfill uses public HTML pages and stores normalized rows plus source metadata.
+
+```bash
+npm run backfill:thedogs -- --date 2025-06-30
+npm run backfill:thedogs -- --from 2025-01-01 --to 2025-01-31 --max-days 7
+npm run backfill:thedogs -- --from 2006-08-01 --to 2006-12-31 --full
+npm run backfill:thedogs -- --from 2006-08-01 --to 2026-06-30 --full --continue-on-error --max-errors 500
+npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 3
+npm run backfill:thedogs:shards -- start --from auto --to 2026-06-30 --workers 12 --provider-concurrency 1 --pause-ms 1000
+npm run backfill:thedogs:shards -- status
+npm run backfill:thedogs:shards -- stop
+npm run backfill:thedogs:dog-profiles -- --limit 25
+npm run backfill:thedogs:dog-profiles -- --source-id 60626 --no-resume
+npm run backfill:thedogs:dog-profile-shards -- status
+npm run backfill:thedogs:dog-profile-shards -- start --workers 4 --concurrency 1
+npm run backfill:thedogs:dog-profile-shards -- stop
+```
+
+Backfill progress is written to `.backfill/thedogs-history-progress.jsonl`, which is ignored by git. Successful dates are skipped on the next run unless `--no-resume` is passed. Use `--continue-on-error` for full archive runs so an isolated malformed legacy page is logged and the job continues. For the full multi-year archive, prefer the shard launcher: it splits the remaining date range across non-overlapping local workers, writes one progress file per shard, and keeps a `.backfill/thedogs-shards-manifest.json` status/stop manifest. When using high shard counts, set `--provider-concurrency 1` so each worker fetches politely. The current Supabase session pool rejected 20 simultaneous workers with `EMAXCONNSESSION`; use 12 workers unless the database pool is increased.
+
+Dog profile enrichment uses the public dog profile pages to store source dog IDs, owner/trainer, sire/dam, DOB, career summary, prize money, win/place rates, best-time/box/distance table snapshots, and rich per-dog form rows including weight, box, track, distance, grade, run time, winner time, best-of-night, first sectional, margin, winner, PIR, and starting price. Progress is written to `.backfill/thedogs-dog-profile-progress.jsonl`; the dog-profile shard launcher partitions dogs by stable source-ID hash so workers do not overlap. Run dog-profile shards when the race archive is paused or with enough database connection headroom.
+
+### Local-first historic import
+
+Use local Postgres for heavy historic replay. This avoids Supabase pooler limits while the raw harvest keeps running, then lets us push a checked dataset upstream later.
+
+```bash
+npm run db:local:up
+npm run db:local:migrate
+npm run db:local:import:race-archive
+npm run db:local:import:race-normalized
+npm run db:local:import:dog-archive
+npm run db:local:import:dog-normalized
+npm run db:local:status
+```
+
+The local database listens on `localhost:55432` via `docker-compose.local-db.yml`. Override with `LOCAL_DATABASE_URL` when needed. Local import progress uses separate `.backfill/thedogs-local-*.jsonl` files so remote Supabase import progress is not reused accidentally.
+
+Marketplace listing cards and details use optimized demo WebP media while `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA` is enabled. Turn that flag off when real listing uploads should be the only displayed media.
 
 Required GitHub secrets:
 

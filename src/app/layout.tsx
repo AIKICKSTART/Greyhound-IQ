@@ -5,6 +5,7 @@ import { withAuth } from "@workos-inc/authkit-nextjs";
 import "./globals.css";
 import { CookieConsentBanner } from "@/components/cookie-consent";
 import { MobileBottomDock } from "@/components/mobile-bottom-dock";
+import { ResponsibleUseAlert } from "@/components/responsible-use-alert";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { siteAssetUrl } from "@/lib/storage-paths";
@@ -15,7 +16,6 @@ const inter = Inter({
   weight: ["300", "400", "500", "600", "700"],
 });
 
-const LOGO_MARK = siteAssetUrl("/images/logo-mark-new.png");
 const OG_IMAGE = siteAssetUrl("/images/og-image.webp");
 
 export const metadata: Metadata = {
@@ -24,8 +24,12 @@ export const metadata: Metadata = {
   description:
     "The smartest greyhound racing data platform in Australia. Real-time race cards, AI predictions, breeding analytics, and community.",
   icons: {
-    icon: "/icon.png",
-    apple: LOGO_MARK,
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
   },
   openGraph: {
     title: "GreyhoundIQ — Australian Greyhound Racing Intelligence",
@@ -57,12 +61,13 @@ export default async function RootLayout({
         <AuthKitProvider initialAuth={initialAuth}>
           <a
             href="#main-content"
-            className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-md focus:bg-[hsl(142_76%_36%)] focus:text-white focus:text-sm focus:font-semibold"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-md focus:bg-[hsl(var(--primary))] focus:text-white focus:text-sm focus:font-semibold"
           >
             Skip to main content
           </a>
           <div className="flex min-h-screen flex-col">
             <SiteHeader />
+            <ResponsibleUseAlert />
             <main id="main-content" className="min-h-screen flex-1">{children}</main>
             <SiteFooter />
           </div>

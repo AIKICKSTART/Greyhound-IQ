@@ -64,8 +64,8 @@ export function DogSearch() {
         <label htmlFor="dog-search-input" className="sr-only">
           Search for a greyhound
         </label>
-        <div className="relative">
-          <Search aria-hidden="true" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(220_7%_42%)]" />
+        <div className="giq-input-panel relative">
+          <Search aria-hidden="true" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--subtle-foreground))]" />
           <Input
             id="dog-search-input"
             type="text"
@@ -73,13 +73,13 @@ export function DogSearch() {
             aria-label="Search for a greyhound by name"
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
-            className="pl-11 h-12 text-[15px] bg-white/[0.03] border-white/[0.08] text-[hsl(210_13%_97%)] placeholder:text-[hsl(220_7%_42%)] focus:border-[hsl(142_76%_36%)] rounded-xl tracking-[-0.013em]"
+            className="h-12 rounded-xl border-0 bg-transparent pl-11 text-[15px] text-[hsl(var(--foreground))] tracking-[-0.013em] placeholder:text-[hsl(var(--subtle-foreground))] focus-visible:ring-0"
             autoFocus
           />
         </div>
 
       {loading && (
-        <p className="mt-4 text-[14px] text-[hsl(215_14%_65%)] tracking-[-0.013em]">
+        <p className="mt-4 text-[14px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
           Searching...
         </p>
       )}
@@ -90,25 +90,25 @@ export function DogSearch() {
             <Link
               key={dog.id}
               href={`/dogs/${dog.id}`}
-              className="block rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all"
+              className="giq-glass-panel block p-4 transition-all hover:-translate-y-0.5"
             >
               <div className="flex justify-between items-center">
                 <div>
-                  <span className="text-[15px] font-semibold text-[hsl(210_13%_97%)] tracking-[-0.013em]">
+                  <span className="text-[15px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.013em]">
                     {dog.name}
                   </span>
                   {dog.sex && (
-                    <span className="ml-2 text-[12px] text-[hsl(220_7%_42%)]">
+                    <span className="ml-2 text-[12px] text-[hsl(var(--subtle-foreground))]">
                       {dog.sex === "M" ? "Dog" : "Bitch"}
                     </span>
                   )}
                 </div>
-                <span className="text-[12px] text-[hsl(220_7%_42%)] tracking-[-0.013em]">
+                <span className="text-[12px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]">
                   {dog._count.formEntries} starts
                 </span>
               </div>
               {(dog.sire || dog.dam) && (
-                <p className="text-[12px] text-[hsl(220_7%_42%)] mt-1">
+                <p className="text-[12px] text-[hsl(var(--subtle-foreground))] mt-1">
                   {dog.sire && `by ${dog.sire.name}`}
                   {dog.sire && dog.dam && " · "}
                   {dog.dam && `from ${dog.dam.name}`}
@@ -120,7 +120,7 @@ export function DogSearch() {
       )}
 
       {!loading && query.length >= 2 && results.length === 0 && (
-        <p className="mt-4 text-[14px] text-[hsl(215_14%_65%)] text-center">
+        <p className="mt-4 text-[14px] text-[hsl(var(--muted-foreground))] text-center">
           No dogs found matching &quot;{query}&quot;
         </p>
       )}

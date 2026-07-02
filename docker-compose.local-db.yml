@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: greyhoundiq-local-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: greyhoundiq
+    ports:
+      - "55432:5432"
+    volumes:
+      - greyhoundiq-local-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d greyhoundiq"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  greyhoundiq-local-postgres:

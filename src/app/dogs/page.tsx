@@ -11,10 +11,10 @@ export default function DogsPage() {
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.webp"
+        image="/images/wentworth-gate-hero.webp"
         badge="DOG SEARCH"
-        badgeIcon={<Search className="h-3 w-3 text-[hsl(142_60%_48%)]" />}
-        badgeColor="green"
+        badgeIcon={<Search className="h-3 w-3 text-[hsl(var(--primary-bright))]" />}
+        badgeColor="primary"
         title={
           <>
             Find any greyhound.

@@ -70,7 +70,7 @@ export default function ListingsPage({
   return (
     <div className="fade-in">
       <PageHero
-        image="/images/hero-greyhoundiq-brand.webp"
+        image="/images/wentworth-gate-hero.webp"
         title={
           <>
             Marketplace.
@@ -129,8 +129,8 @@ async function ListingsResults({
       <ListingsToolbar status={status} q={q} count={listings.length} />
 
       {listings.length === 0 ? (
-        <div className="race-panel p-12 text-center">
-          <p className="text-[14px] text-[hsl(215_14%_65%)]">
+        <div className="giq-empty-state p-12 text-center">
+          <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
             No listings loaded yet.
           </p>
         </div>
@@ -139,7 +139,7 @@ async function ListingsResults({
           {listings.map((listing) => (
             <article
               key={listing.id}
-              className="race-panel flex min-h-[360px] flex-col transition-all hover:-translate-y-0.5 hover:border-white/[0.13]"
+              className="giq-panel giq-panel-hover giq-listing-card flex min-h-[360px] flex-col"
             >
               {(() => {
                 const demoImage = getDemoListingImages(listing, 1)[0];
@@ -163,25 +163,25 @@ async function ListingsResults({
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div>
                     <p className="program-label">Marketplace</p>
-                    <span className="mt-2 inline-flex rounded-md bg-[hsl(142_76%_36%/0.12)] px-2.5 py-1 text-[11px] font-semibold text-[hsl(142_60%_48%)]">
+                    <span className="giq-badge giq-badge-purple mt-2">
                       {TYPE_LABEL[listing.type] ?? listing.type}
                     </span>
                   </div>
                   <span
-                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold ${
+                    className={`giq-badge ${
                       listing.status === "active"
-                        ? "bg-[hsl(142_76%_36%/0.12)] text-[hsl(142_60%_48%)]"
-                        : "bg-white/[0.05] text-[hsl(220_7%_58%)]"
+                        ? "giq-badge-purple"
+                        : "giq-badge-neutral"
                     }`}
                   >
                     {listing.status}
                   </span>
                 </div>
 
-                <h3 className="text-[18px] font-semibold leading-snug text-[hsl(210_13%_97%)]">
+                <h3 className="text-[18px] font-semibold leading-snug text-[hsl(var(--foreground))]">
                   <Link
                     href={`/listings/${listing.id}`}
-                    className="transition-colors hover:text-[hsl(142_60%_48%)]"
+                    className="transition-colors hover:text-[hsl(var(--primary-bright))]"
                   >
                     {listing.title}
                   </Link>
@@ -190,17 +190,17 @@ async function ListingsResults({
                   {listing.description}
                 </p>
 
-                <div className="mt-5 grid grid-cols-2 gap-3 text-[12px] text-[hsl(215_14%_65%)]">
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-[hsl(210_13%_97%)]">
-                    <DollarSign className="h-3.5 w-3.5 text-[hsl(25_95%_58%)]" />
+                <div className="mt-5 grid grid-cols-2 gap-3 text-[12px] text-[hsl(var(--muted-foreground))]">
+                  <span className="giq-listing-price inline-flex items-center gap-1.5">
+                    <DollarSign className="h-3.5 w-3.5 text-[hsl(var(--secondary))]" />
                     {formatPrice(listing.price)}
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5 text-[hsl(142_60%_48%)]" />
+                    <MapPin className="h-3.5 w-3.5 text-[hsl(var(--primary-bright))]" />
                     {listing.state ?? "Australia"}
                   </span>
                   <span className="col-span-2 inline-flex items-center gap-1.5">
-                    <Clock3 className="h-3.5 w-3.5 text-[hsl(215_14%_65%)]" />
+                    <Clock3 className="h-3.5 w-3.5 text-[hsl(var(--muted-foreground))]" />
                     {status === "sold"
                       ? `Sold ${formatDate(listing.soldAt)}`
                       : `Expires ${formatDate(listing.expiresAt)}`}
@@ -210,12 +210,12 @@ async function ListingsResults({
                 {listing.dog && (
                   <Link
                     href={`/dogs/${listing.dog.id}`}
-                    className="race-panel-muted mt-4 block p-3 transition-colors hover:bg-white/[0.05]"
+                    className="giq-subpanel mt-4 block p-3 transition-colors hover:bg-white/[0.04]"
                   >
-                    <p className="text-[12px] font-semibold text-[hsl(210_13%_97%)]">
+                    <p className="text-[12px] font-semibold text-[hsl(var(--foreground))]">
                       {listing.dog.name}
                     </p>
-                    <p className="mt-1 text-[11px] text-[hsl(220_7%_58%)]">
+                    <p className="mt-1 text-[11px] text-[hsl(var(--subtle-foreground))]">
                       {listing.dog.sire?.name ?? "Unknown sire"} x{" "}
                       {listing.dog.dam?.name ?? "unknown dam"}
                     </p>
@@ -224,17 +224,17 @@ async function ListingsResults({
 
                 <div className="mt-auto border-t border-white/[0.05] pt-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
-                    <span className="inline-flex items-center gap-1.5 text-[12px] text-[hsl(215_14%_65%)]">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-[hsl(142_60%_48%)]" />
+                    <span className="inline-flex items-center gap-1.5 text-[12px] text-[hsl(var(--muted-foreground))]">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-[hsl(var(--primary-bright))]" />
                       {listing.profile.verified ? "Verified seller" : "Community seller"}
                     </span>
-                    <span className="text-[12px] text-[hsl(220_7%_58%)]">
+                    <span className="text-[12px] text-[hsl(var(--subtle-foreground))]">
                       {listing.profile.displayName}
                     </span>
                   </div>
                   <Link
                     href={`/listings/${listing.id}`}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[12px] font-semibold text-[hsl(210_13%_97%)] transition-colors hover:bg-white/[0.07]"
+                    className="giq-outline-action w-full text-[12px]"
                   >
                     View listing
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -263,7 +263,7 @@ function ListingsFallback({
         {[1, 2, 3, 4, 5, 6].map((item) => (
           <div
             key={item}
-            className="race-panel min-h-[360px] animate-pulse bg-white/[0.02]"
+            className="giq-panel giq-listing-card min-h-[360px] animate-pulse"
           />
         ))}
       </div>
@@ -285,38 +285,38 @@ function ListingsToolbar({
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="race-box-strip mb-4 w-40" />
-          <h2 className="text-2xl font-semibold text-[hsl(210_13%_97%)]">
+          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
             {status === "sold" ? "Recently sold" : "Current listings"}
           </h2>
-          <p className="mt-1 text-[14px] text-[hsl(215_14%_65%)]">
+          <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
             {typeof count === "number"
               ? `${count} ${status === "sold" ? "sold" : "active"} listings${q ? ` matching "${q}".` : "."}`
               : "Loading marketplace listings."}
           </p>
         </div>
-        <div className="race-panel-muted flex h-10 w-10 items-center justify-center">
-          <ShoppingBag className="h-5 w-5 text-[hsl(142_60%_48%)]" />
+        <div className="giq-icon-plate flex h-10 w-10 items-center justify-center rounded-xl">
+          <ShoppingBag className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
         </div>
       </div>
 
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="race-panel-muted flex p-1">
+        <div className="giq-segmented">
           <Link
             href={listingHref({ q })}
-            className={`rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+            className={`giq-segment ${
               status === "active"
-                ? "bg-[hsl(142_76%_36%/0.16)] text-[hsl(142_60%_48%)]"
-                : "text-[hsl(215_14%_65%)] hover:text-[hsl(210_13%_97%)]"
+                ? "giq-segment-active"
+                : ""
             }`}
           >
             Available
           </Link>
           <Link
             href={listingHref({ status: "sold", q })}
-            className={`rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+            className={`giq-segment ${
               status === "sold"
-                ? "bg-[hsl(142_76%_36%/0.16)] text-[hsl(142_60%_48%)]"
-                : "text-[hsl(215_14%_65%)] hover:text-[hsl(210_13%_97%)]"
+                ? "giq-segment-active"
+                : ""
             }`}
           >
             Recently sold
@@ -332,7 +332,7 @@ function ListingsToolbar({
             name="q"
             defaultValue={q}
             placeholder="Search title or description"
-            className="min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[13px] text-[hsl(210_13%_97%)] outline-none transition-colors placeholder:text-[hsl(220_7%_42%)] focus:border-[hsl(142_76%_36%)]"
+            className="giq-form-control min-w-0 flex-1 px-3 py-2 text-[13px]"
           />
           <button
             type="submit"
@@ -349,7 +349,7 @@ function ListingsToolbar({
 
 function ListingDemoMediaPreview({ image }: { image: DemoListingImage }) {
   return (
-    <div className="block overflow-hidden rounded-md border border-white/[0.08] bg-black/20">
+    <div className="giq-listing-media block">
       <NextImage
         src={image.src}
         alt={image.alt}
@@ -383,9 +383,9 @@ function ListingMediaPreview({
         href={url}
         target="_blank"
         rel="noreferrer"
-        className="flex h-40 items-center justify-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.03] text-[12px] font-semibold text-[hsl(215_14%_80%)]"
+        className="giq-listing-media flex h-40 items-center justify-center gap-2 text-[12px] font-semibold text-[hsl(215_14%_80%)]"
       >
-        <Paperclip className="h-4 w-4 text-[hsl(142_60%_48%)]" />
+        <Paperclip className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
         {media.originalName ?? media.mimeType}
       </a>
     );
@@ -396,14 +396,13 @@ function ListingMediaPreview({
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="block overflow-hidden rounded-md border border-white/[0.08] bg-black/20"
+      className="giq-listing-media block"
     >
       <NextImage
         src={url}
         alt={media.originalName ?? "Listing media"}
         width={media.widthPx ?? 520}
         height={media.heightPx ?? 320}
-        unoptimized
         sizes="(min-width: 1024px) 30vw, (min-width: 768px) 50vw, 100vw"
         className="h-40 w-full object-cover"
       />

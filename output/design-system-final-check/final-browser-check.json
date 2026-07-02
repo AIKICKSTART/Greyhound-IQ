@@ -1,0 +1,68 @@
+[
+  {
+    "route": "/",
+    "status": 200,
+    "brokenImages": [],
+    "consoleErrors": [],
+    "legacyRefs": {
+      "oldHero": false,
+      "headerPerfect": false
+    },
+    "screenshot": "E:\\greyhoundiq\\output\\design-system-final-check\\home.png"
+  },
+  {
+    "route": "/listings",
+    "status": 200,
+    "brokenImages": [],
+    "consoleErrors": [],
+    "legacyRefs": {
+      "oldHero": false,
+      "headerPerfect": false
+    },
+    "screenshot": "E:\\greyhoundiq\\output\\design-system-final-check\\listings.png"
+  },
+  {
+    "route": "/agents",
+    "status": 200,
+    "brokenImages": [],
+    "consoleErrors": [],
+    "legacyRefs": {
+      "oldHero": false,
+      "headerPerfect": false
+    },
+    "screenshot": "E:\\greyhoundiq\\output\\design-system-final-check\\agents.png"
+  },
+  {
+    "route": "/races",
+    "status": 200,
+    "brokenImages": [],
+    "consoleErrors": [],
+    "legacyRefs": {
+      "oldHero": false,
+      "headerPerfect": false
+    },
+    "screenshot": "E:\\greyhoundiq\\output\\design-system-final-check\\races.png"
+  },
+  {
+    "route": "/forum",
+    "status": 200,
+    "brokenImages": [],
+    "consoleErrors": [],
+    "legacyRefs": {
+      "oldHero": false,
+      "headerPerfect": false
+    },
+    "screenshot": "E:\\greyhoundiq\\output\\design-system-final-check\\forum.png"
+  },
+  {
+    "route": "/pricing",
+    "status": 200,
+    "brokenImages": [],
+    "consoleErrors": [],
+    "legacyRefs": {
+      "oldHero": false,
+      "headerPerfect": false
+    },
+    "screenshot": "E:\\greyhoundiq\\output\\design-system-final-check\\pricing.png"
+  }
+]

@@ -153,6 +153,7 @@ export class TopazProvider implements LiveDataProvider {
 
 export function mapMeeting(meeting: TopazMeeting): LiveMeeting {
   return {
+    sourceId: String(meeting.meetingId),
     trackName: meeting.trackName,
     state: meeting.owningAuthorityCode ?? TOPAZ_AUTHORITY,
     meetingDate: startOfDayIso(meeting.meetingDate),
@@ -163,6 +164,7 @@ export function mapMeeting(meeting: TopazMeeting): LiveMeeting {
 
 export function mapRace(race: TopazRace): LiveRace {
   return {
+    sourceId: race.raceId != null ? String(race.raceId) : undefined,
     raceNumber: Math.trunc(numberOr(race.raceNumber, 0)),
     raceTime: isoDate(
       race.raceStart ?? race.raceTimeDateUTC ?? race.raceTime ?? new Date()

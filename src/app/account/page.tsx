@@ -31,9 +31,21 @@ const PANEL_CLASS = "giq-panel p-6";
 const INPUT_CLASS = "giq-form-control mt-2 px-3 py-2";
 const TEXTAREA_CLASS = "giq-form-control giq-textarea mt-2 px-3 py-2";
 const ACTION_CLASS = "giq-outline-action";
+const PENDING_PLAN_LABELS = {
+  free: "Free",
+  pro: "Pro",
+  pro_plus: "Pro+",
+} as const;
 
-export default async function AccountPage() {
+type PendingPlan = keyof typeof PENDING_PLAN_LABELS;
+
+type AccountPageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function AccountPage({ searchParams }: AccountPageProps) {
   const user = await getCurrentUser();
+  const pendingPlan = parsePendingPlan((await searchParams).plan);
 
   return (
     <div>
@@ -50,15 +62,21 @@ export default async function AccountPage() {
       />
 
       <section className="mx-auto max-w-5xl px-6 py-12">
-        {!user ? <SignedOutAccount /> : <SignedInAccount user={user} />}
+        {!user ? (
+          <SignedOutAccount />
+        ) : (
+          <SignedInAccount user={user} pendingPlan={pendingPlan} />
+        )}
       </section>
     </div>
   );
 }
 
 async function SignedInAccount({
+  pendingPlan,
   user,
 }: {
+  pendingPlan: PendingPlan | null;
   user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
 }) {
   const [summary, messages] = await Promise.all([
@@ -197,6 +215,7 @@ async function SignedInAccount({
           <Metric label="Listings" value={profile?._count.listings ?? 0} />
           <Metric label="Owned dogs" value={profile?._count.dogsOwned ?? 0} />
         </div>
+        {pendingPlan && <PendingPlanBanner plan={pendingPlan} />}
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
             href="/pricing"
@@ -314,6 +333,31 @@ async function SignedInAccount({
           />
         </div>
       </section>
+    </div>
+  );
+}
+
+function PendingPlanBanner({ plan }: { plan: PendingPlan }) {
+  return (
+    <div className="mt-4 rounded-lg border border-[hsl(var(--primary)/0.24)] bg-[hsl(var(--primary)/0.08)] p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[12px] font-semibold uppercase text-[hsl(var(--primary-bright))]">
+            Plan intent received
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+            You selected {PENDING_PLAN_LABELS[plan]} before sign-in. This query
+            flag is only intent; your active tier stays unchanged until a plan
+            change is completed.
+          </p>
+        </div>
+        <Link
+          href="/pricing"
+          className={`${ACTION_CLASS} shrink-0`}
+        >
+          Review plans
+        </Link>
+      </div>
     </div>
   );
 }
@@ -480,6 +524,11 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       </span>
     </div>
   );
+}
+
+function parsePendingPlan(value: string | string[] | undefined) {
+  if (typeof value !== "string") return null;
+  return value in PENDING_PLAN_LABELS ? (value as PendingPlan) : null;
 }
 
 function demoAccountEnabled() {

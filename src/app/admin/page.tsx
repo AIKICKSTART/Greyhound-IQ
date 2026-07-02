@@ -83,6 +83,12 @@ export default async function AdminPage() {
           <Link href="/admin/source-health" className="giq-outline-action">
             Source health
           </Link>
+          <Link href="/admin/account-deletion" className="giq-outline-action">
+            Account deletion
+          </Link>
+          <Link href="/admin/jobs" className="giq-outline-action">
+            Jobs
+          </Link>
         </div>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

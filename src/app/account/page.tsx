@@ -247,6 +247,13 @@ async function SignedInAccount({
             Usage
           </Link>
           <Link
+            href="/account/privacy"
+            className={ACTION_CLASS}
+          >
+            <Lock className="h-3.5 w-3.5" />
+            Privacy
+          </Link>
+          <Link
             href="/account/team"
             className={ACTION_CLASS}
           >

@@ -5,6 +5,7 @@ import { CreditCard } from "lucide-react";
 
 const PLANS = [
   {
+    id: "free",
     name: "Free",
     icon: Zap,
     price: "$0",
@@ -22,6 +23,7 @@ const PLANS = [
     highlighted: false,
   },
   {
+    id: "pro",
     name: "Pro",
     icon: Sparkles,
     price: "$12",
@@ -43,6 +45,7 @@ const PLANS = [
     highlighted: true,
   },
   {
+    id: "pro_plus",
     name: "Pro+",
     icon: Crown,
     price: "$29",
@@ -132,7 +135,7 @@ export default function PricingPage() {
                 <p className="text-[13px] text-[hsl(var(--muted-foreground))] mb-5 mt-2 tracking-[-0.013em]">{plan.description}</p>
 
                 <Link
-                  href={`/contact?plan=${plan.name.toLowerCase().replace("+", "plus")}`}
+                  href={`/sign-in?plan=${plan.id}`}
                   className={`mb-5 w-full text-center text-[13px] font-semibold ${
                     plan.highlighted
                       ? "giq-liquid-purple-button"
@@ -208,7 +211,7 @@ export default function PricingPage() {
             Free forever. Upgrade when you&apos;re ready. Cancel anytime.
           </p>
           <Link
-            href="/contact?plan=free"
+            href="/sign-in?plan=free"
             className="giq-liquid-purple-button px-6 text-[14px] font-semibold"
           >
             Create free account

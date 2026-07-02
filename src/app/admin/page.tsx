@@ -56,6 +56,12 @@ export default async function AdminPage() {
           <Link href="/admin/usage" className="giq-outline-action">
             Usage
           </Link>
+          <Link href="/admin/audit" className="giq-outline-action">
+            Audit
+          </Link>
+          <Link href="/admin/reports" className="giq-outline-action">
+            Reports
+          </Link>
           <Link href="/admin/source-health" className="giq-outline-action">
             Source health
           </Link>

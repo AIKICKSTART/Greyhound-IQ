@@ -3,10 +3,31 @@ import { createAuditLog } from "@/lib/account-service";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { prisma } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+const USER_EXPORT_RATE_LIMIT = 3;
+const USER_EXPORT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
 export async function GET(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
+    const rateLimit = checkRateLimit(
+      `user-export:${current.dbUserId}`,
+      USER_EXPORT_RATE_LIMIT,
+      USER_EXPORT_RATE_LIMIT_WINDOW_MS
+    );
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "rate_limit.exceeded",
+            message: "Too many requests",
+          },
+        },
+        { status: 429 }
+      );
+    }
+
     const [
       user,
       profile,

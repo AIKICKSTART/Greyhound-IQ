@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { siteAssetUrl } from "@/lib/storage-paths";
+import { Skeleton, SkeletonGroup, SkeletonPanel } from "@/components/skeleton";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -113,7 +114,7 @@ const COMPARISON = [
 
 export default function HomePage() {
   return (
-    <div className="giq-home-page fade-in">
+    <div className="giq-home-page">
       <HomeHero />
 
       <section className="giq-home-features-section relative mx-auto max-w-7xl px-6 py-16">
@@ -200,7 +201,7 @@ async function TodaysRacesSection() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div className="giq-stagger grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {meetings.map((m) => (
             <MeetingCard key={m.id} meeting={m} />
           ))}
@@ -221,14 +222,26 @@ function TodaysRacesFallback() {
           Loading race cards.
         </p>
       </div>
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3].map((item) => (
-          <div
-            key={item}
-            className="h-40 animate-pulse rounded-xl border border-white/[0.04] bg-white/[0.02]"
-          />
-        ))}
-      </div>
+      <SkeletonGroup label="Loading today's races">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((item) => (
+            <SkeletonPanel key={item} className="p-4">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((slot) => (
+                  <Skeleton key={slot} className="h-10" />
+                ))}
+              </div>
+            </SkeletonPanel>
+          ))}
+        </div>
+      </SkeletonGroup>
     </section>
   );
 }

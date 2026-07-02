@@ -82,7 +82,7 @@ export default async function RacePage({
   const raceTimeLabel = timeFormatter.format(race.raceTime);
 
   return (
-    <main className="fade-in mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-6 py-10">
       <div className="mb-6">
         <div className="mb-3 flex flex-wrap items-center gap-3 text-[12px] tracking-[-0.013em] text-[hsl(220_7%_52%)]">
           <span className="flex items-center gap-1.5">

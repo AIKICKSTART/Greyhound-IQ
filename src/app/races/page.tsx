@@ -56,7 +56,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
   const hasMeetings = data.meetings.length > 0;
 
   return (
-    <div className="fade-in">
+    <div>
       <PageHero
         image="/images/wentworth-gate-hero.webp"
         badge="RACE CONTROL"
@@ -281,7 +281,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
           </div>
 
           {hasMeetings ? (
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <div className="giq-stagger grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {data.meetings.map((meeting) => (
                 <MeetingCard key={meeting.id} meeting={meeting} />
               ))}

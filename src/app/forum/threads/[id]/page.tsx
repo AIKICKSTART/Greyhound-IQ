@@ -42,7 +42,7 @@ export default async function ForumThreadPage({
   const replyAction = replyToForumThread.bind(null, thread.id);
 
   return (
-    <div className="fade-in mx-auto max-w-4xl px-6 py-10">
+    <div className="mx-auto max-w-4xl px-6 py-10">
       <Link
         href={`/forum/${thread.category.slug}`}
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"

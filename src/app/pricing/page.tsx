@@ -91,7 +91,7 @@ export const metadata = {
 
 export default function PricingPage() {
   return (
-    <div className="fade-in">
+    <div>
       <PageHero
         image="/images/wentworth-gate-hero.webp"
         badge="PRICING"

@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="giq-legal-page fade-in mx-auto max-w-3xl px-6 py-16">
+    <div className="giq-legal-page mx-auto max-w-3xl px-6 py-16">
       <div className="race-box-strip mb-5 w-40" />
       <h1 className="mb-2 text-3xl text-[hsl(var(--foreground))]">
         Privacy Policy

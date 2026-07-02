@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="giq-legal-page fade-in mx-auto max-w-3xl px-6 py-16">
+    <div className="giq-legal-page mx-auto max-w-3xl px-6 py-16">
       <h1 className="text-3xl text-[hsl(var(--foreground))] mb-2 tracking-[-0.03em]">
         Terms of Service
       </h1>

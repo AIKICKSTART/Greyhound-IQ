@@ -31,7 +31,7 @@ export default async function BreedingPage() {
   }));
 
   return (
-    <div className="fade-in">
+    <div>
       <PageHero
         image="/images/wentworth-gate-hero.webp"
         badge="BREEDING ANALYTICS"

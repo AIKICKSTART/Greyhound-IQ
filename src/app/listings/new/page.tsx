@@ -31,7 +31,7 @@ export default async function NewListingPage() {
   ]);
 
   return (
-    <div className="giq-form-page fade-in mx-auto max-w-4xl px-6 py-10">
+    <div className="giq-form-page mx-auto max-w-4xl px-6 py-10">
       <Link
         href="/listings"
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"

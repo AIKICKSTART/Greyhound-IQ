@@ -51,7 +51,7 @@ export default async function DogProfilePage({
   const bestTime = allTimes.length > 0 ? Math.min(...allTimes) : null;
 
   return (
-    <div className="giq-dog-detail-page fade-in mx-auto max-w-4xl px-6 py-10">
+    <div className="giq-dog-detail-page mx-auto max-w-4xl px-6 py-10">
       {/* Header */}
       <div className="mb-8">
         <h1

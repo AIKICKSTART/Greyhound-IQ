@@ -36,7 +36,7 @@ export default async function AccountPage() {
   const user = await getCurrentUser();
 
   return (
-    <div className="fade-in">
+    <div>
       <PageHero
         image="/images/wentworth-gate-hero.webp"
         title={

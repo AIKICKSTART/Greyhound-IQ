@@ -42,7 +42,7 @@ export default async function ForumCategoryPage({
   if (!category) notFound();
 
   return (
-    <div className="fade-in mx-auto max-w-6xl px-6 py-10">
+    <div className="mx-auto max-w-6xl px-6 py-10">
       <Link
         href="/forum"
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"

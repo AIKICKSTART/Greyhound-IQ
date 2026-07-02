@@ -337,6 +337,179 @@ model User {
   mediaAssets    MediaAsset[]
   memoryEntries  MemoryEntry[]
   agentContexts  ConversationContext[]
+  billingCustomer     BillingCustomer?
+  subscriptions       Subscription[]
+  entitlementSnapshots EntitlementSnapshot[]
+  invoiceRecords      InvoiceRecord[]
+  billingEvents       BillingEvent[]
+}
+
+// === BILLING ===
+
+model BillingCustomer {
+  id                 String    @id @default(cuid())
+  userId             String?   @unique
+  user               User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  lagoCustomerId     String    @unique
+  lagoExternalId     String?   @unique
+  status             String    @default("active")
+  metadataJson       String?
+  rawJson            String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  subscriptions        Subscription[]
+  entitlementSnapshots EntitlementSnapshot[]
+  invoiceRecords       InvoiceRecord[]
+  billingEvents        BillingEvent[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Subscription {
+  id                 String    @id @default(cuid())
+  userId             String?
+  user               User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId  String?
+  billingCustomer    BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  lagoSubscriptionId String    @unique
+  lagoCustomerId     String?
+  lagoPlanId         String?
+  externalId         String?
+  planCode           String?
+  status             String
+  startedAt          DateTime?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  canceledAt         DateTime?
+  endedAt            DateTime?
+  rawJson            String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  entitlementSnapshots EntitlementSnapshot[]
+  invoiceRecords       InvoiceRecord[]
+  billingEvents        BillingEvent[]
+
+  @@index([userId, status])
+  @@index([billingCustomerId, status])
+  @@index([lagoCustomerId])
+  @@index([status])
+  @@index([currentPeriodEnd])
+}
+
+model EntitlementSnapshot {
+  id                String    @id @default(cuid())
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  lagoCustomerId    String?
+  lagoSubscriptionId String?
+  status            String    @default("active")
+  entitlementsJson  String
+  effectiveAt       DateTime  @default(now())
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId, effectiveAt])
+  @@index([billingCustomerId, effectiveAt])
+  @@index([subscriptionId, effectiveAt])
+  @@index([lagoCustomerId])
+  @@index([lagoSubscriptionId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  provider    String    @default("lago")
+  lagoEventId String?   @unique
+  eventType   String
+  status      String    @default("received")
+  payloadJson String
+  headersJson String?
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+  error       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  billingEvents BillingEvent[]
+
+  @@index([eventType, receivedAt])
+  @@index([status, receivedAt])
+  @@index([receivedAt])
+}
+
+model InvoiceRecord {
+  id                String    @id @default(cuid())
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  lagoInvoiceId     String    @unique
+  lagoCustomerId    String?
+  lagoSubscriptionId String?
+  invoiceNumber     String?
+  status            String
+  paymentStatus     String?
+  currency          String?
+  totalAmountCents  Int?
+  issuedAt          DateTime?
+  dueAt             DateTime?
+  paidAt            DateTime?
+  voidedAt          DateTime?
+  rawJson           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  billingEvents BillingEvent[]
+
+  @@index([userId, status])
+  @@index([billingCustomerId, status])
+  @@index([subscriptionId])
+  @@index([lagoCustomerId])
+  @@index([lagoSubscriptionId])
+  @@index([status])
+  @@index([issuedAt])
+  @@index([dueAt])
+}
+
+model BillingEvent {
+  id                String    @id @default(cuid())
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  invoiceRecordId   String?
+  invoiceRecord     InvoiceRecord? @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
+  webhookEventId    String?
+  webhookEvent      WebhookEvent? @relation(fields: [webhookEventId], references: [id], onDelete: SetNull)
+  lagoEventId       String?
+  eventType         String
+  status            String    @default("recorded")
+  occurredAt        DateTime  @default(now())
+  dataJson          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId, occurredAt])
+  @@index([billingCustomerId, occurredAt])
+  @@index([subscriptionId, occurredAt])
+  @@index([invoiceRecordId])
+  @@index([webhookEventId])
+  @@index([lagoEventId])
+  @@index([eventType, occurredAt])
+  @@index([status, occurredAt])
 }
 
 // === COMMUNITY ===

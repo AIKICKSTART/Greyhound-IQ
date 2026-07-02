@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import type { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/account-service";
 import { getEntitlementLimitsForCurrentUser } from "@/lib/billing/entitlement-service";
+import { recordUsageEvent } from "@/lib/billing/usage-service";
 import type { EntitlementLimits } from "@/lib/billing/entitlements";
 import {
   isModeratorRole,
@@ -196,6 +197,13 @@ export async function finalizeMediaUpload(
       scanCompletedAt: new Date(),
       expiresAt: null,
     },
+  });
+
+  await recordUsageEvent({
+    idempotencyKey: `media_upload_bytes:${finalized.id}`,
+    metricKey: "media_upload_bytes",
+    userId: current.dbUserId,
+    quantity: finalized.sizeBytes,
   });
 
   await createAuditLog({

@@ -63,6 +63,7 @@
     "maintain:agents": "tsx scripts/agent-cleanup.ts",
     "check:env": "tsx scripts/check-env.ts",
     "inspect:lago-webhook-replay": "tsx scripts/lago-webhook-replay.ts",
+    "inspect:usage-outbox": "tsx scripts/usage-outbox-delivery.ts",
     "storage:upload-site-assets": "tsx scripts/upload-site-assets.ts",
     "test:smoke": "tsx scripts/smoke-production.ts",
     "smoke:race-provider": "tsx scripts/race-provider-smoke-check.ts",

@@ -43,6 +43,15 @@ export default async function AdminPage() {
           Local account, billing, webhook, invoice, and usage outbox counts.
         </p>
 
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link href="/admin/webhooks" className="giq-outline-action">
+            Webhook events
+          </Link>
+          <Link href="/admin/support" className="giq-outline-action">
+            Support tickets
+          </Link>
+        </div>
+
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {COUNTS.map((item) => (
             <div key={item.key} className="giq-metric-card">

@@ -6,6 +6,7 @@ import {
   DEFAULT_TIER_ENTITLEMENT_LIMITS,
   type BillingTier,
 } from "@/lib/billing/entitlements";
+import { recordUsageEvent } from "@/lib/billing/usage-service";
 import { cleanText } from "@/lib/content";
 import { prisma } from "@/lib/db";
 
@@ -136,6 +137,18 @@ export async function runAgentForCurrentUser(
         durationMs: Date.now() - started,
         completedAt: new Date(),
       },
+    });
+
+    await recordUsageEvent({
+      idempotencyKey: `agent_run:${completed.id}`,
+      metricKey: "agent_run",
+      userId: current.dbUserId,
+      quantity: 1,
+      metadata: {
+        agentRunId: completed.id,
+        agentType,
+      },
+      occurredAt: completed.completedAt ?? new Date(),
     });
 
     await createAuditLog({

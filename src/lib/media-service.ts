@@ -1,6 +1,8 @@
 import { randomUUID } from "crypto";
 import type { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/account-service";
+import { getEntitlementLimitsForCurrentUser } from "@/lib/billing/entitlement-service";
+import type { EntitlementLimits } from "@/lib/billing/entitlements";
 import {
   isModeratorRole,
   type CurrentUser,
@@ -34,12 +36,6 @@ import {
 const UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
 const DOWNLOAD_URL_TTL_SECONDS = 15 * 60;
 
-const QUOTA_BYTES = {
-  free: 1 * 1024 * 1024 * 1024,
-  pro: 10 * 1024 * 1024 * 1024,
-  pro_plus: 100 * 1024 * 1024 * 1024,
-} as const;
-
 type Tx = Prisma.TransactionClient;
 
 export interface SignedUploadIntentInput {
@@ -69,9 +65,21 @@ export async function createSignedUploadIntent(
 
   const bucket = resolveMediaBucket(input);
   const mediaContext = resolveMediaContext(input);
+  const entitlementLimits = await getEntitlementLimitsForCurrentUser(current);
+  const mediaLimits = mediaEntitlementLimits(entitlementLimits);
   assertUploadAllowedForContext(bucket, mediaContext, current);
-  assertMediaSize(bucket, input.mimeType, input.sizeBytes);
-  await assertQuotaAvailable(current, input.sizeBytes);
+  assertMediaSize(
+    bucket,
+    input.mimeType,
+    input.sizeBytes,
+    mediaLimits.uploadFileSizeBytes
+  );
+  await assertMonthlyUploadsAvailable(current, mediaLimits.uploadsPerMonth);
+  await assertStorageQuotaAvailable(
+    current,
+    input.sizeBytes,
+    mediaLimits.storageBytes
+  );
 
   const objectPath = buildObjectPath({
     bucket,
@@ -160,8 +168,19 @@ export async function finalizeMediaUpload(
       ? objectInfo.size
       : media.sizeBytes;
 
-  assertMediaSize(bucket, media.mimeType as MediaMimeType, sizeBytes);
-  await assertQuotaAvailable(current, 0);
+  const entitlementLimits = await getEntitlementLimitsForCurrentUser(current);
+  const mediaLimits = mediaEntitlementLimits(entitlementLimits);
+  assertMediaSize(
+    bucket,
+    media.mimeType as MediaMimeType,
+    sizeBytes,
+    mediaLimits.uploadFileSizeBytes
+  );
+  await assertStorageQuotaAvailable(
+    current,
+    sizeBytes - media.sizeBytes,
+    mediaLimits.storageBytes
+  );
 
   const finalized = await prisma.mediaAsset.update({
     where: { id: media.id },
@@ -476,15 +495,34 @@ function assertUploadAllowedForContext(
 function assertMediaSize(
   bucket: SupabaseStorageBucket,
   mimeType: MediaMimeType,
-  sizeBytes: number
+  sizeBytes: number,
+  uploadFileSizeBytes: number
 ) {
   const maxBytes = mediaMaxBytes(bucket, mimeType);
-  if (sizeBytes > maxBytes) throw new Error("media.too_large");
+  if (sizeBytes > maxBytes || sizeBytes > uploadFileSizeBytes) {
+    throw new Error("media.too_large");
+  }
 }
 
-async function assertQuotaAvailable(
+async function assertMonthlyUploadsAvailable(
   current: CurrentUserProfile,
-  candidateBytes: number
+  uploadsPerMonth: number
+) {
+  const uploadsThisMonth = await prisma.mediaAsset.count({
+    where: {
+      uploaderId: current.dbUserId,
+      createdAt: { gte: startOfCurrentUtcMonth() },
+    },
+  });
+  if (uploadsThisMonth >= uploadsPerMonth) {
+    throw new Error("media.quota_exceeded");
+  }
+}
+
+async function assertStorageQuotaAvailable(
+  current: CurrentUserProfile,
+  candidateBytes: number,
+  storageBytes: number
 ) {
   const usage = await prisma.mediaAsset.aggregate({
     where: {
@@ -494,9 +532,31 @@ async function assertQuotaAvailable(
     _sum: { sizeBytes: true },
   });
   const usedBytes = usage._sum.sizeBytes ?? 0;
-  if (usedBytes + candidateBytes > QUOTA_BYTES[current.tier]) {
+  if (usedBytes + candidateBytes > storageBytes) {
     throw new Error("media.quota_exceeded");
   }
+}
+
+function mediaEntitlementLimits(limits: EntitlementLimits) {
+  return {
+    storageBytes: numberEntitlementLimit(limits, "storage_bytes"),
+    uploadFileSizeBytes: numberEntitlementLimit(limits, "upload_file_size_bytes"),
+    uploadsPerMonth: numberEntitlementLimit(limits, "uploads_per_month"),
+  };
+}
+
+function numberEntitlementLimit(
+  limits: EntitlementLimits,
+  key: "storage_bytes" | "upload_file_size_bytes" | "uploads_per_month"
+) {
+  const value = limits[key];
+  if (typeof value !== "number") throw new Error("media.quota_exceeded");
+  return value;
+}
+
+function startOfCurrentUtcMonth() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 }
 
 async function markMediaScanStatus(

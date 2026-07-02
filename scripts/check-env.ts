@@ -81,6 +81,30 @@ const specs: EnvSpec[] = [
     validate: validateUrl,
   },
   {
+    names: ["LAGO_API_URL"],
+    description: "Lago API base URL for billing and metering calls",
+    productionOnly: true,
+    validate: validateUrl,
+  },
+  {
+    names: ["LAGO_FRONT_URL"],
+    description: "Lago frontend URL for billing customer/admin flows",
+    productionOnly: true,
+    validate: validateUrl,
+  },
+  {
+    names: ["LAGO_API_KEY"],
+    description: "server-only Lago API key",
+    productionOnly: true,
+  },
+  {
+    names: ["LAGO_WEBHOOK_SECRET"],
+    description: "server-only Lago webhook signing secret",
+    productionOnly: true,
+    validate: (value) =>
+      value.length >= 32 ? null : "must be at least 32 characters",
+  },
+  {
     names: ["INTERNAL_API_SECRET", "INTERNAL_SECRET", "CRON_SECRET"],
     description: "shared secret for internal maintenance routes",
     productionOnly: true,
@@ -92,6 +116,10 @@ const specs: EnvSpec[] = [
 const optional = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "LAGO_API_URL",
+  "LAGO_FRONT_URL",
+  "LAGO_API_KEY",
+  "LAGO_WEBHOOK_SECRET",
   "TOPAZ_API_KEY",
   "TOPAZ_API_BASE",
   "TOPAZ_OWNING_AUTHORITY_CODE",

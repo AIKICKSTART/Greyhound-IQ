@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Bot, Dna, FileText, Gauge, Loader2, Play } from "lucide-react";
+import { m } from "motion/react";
+import { MotionIsland } from "@/components/motion/motion-island";
 
 const AGENTS = [
   {
@@ -30,7 +32,7 @@ const AGENTS = [
   },
 ] as const;
 
-export function AgentDemoConsole() {
+function AgentDemoConsoleInner() {
   const [selectedId, setSelectedId] = useState<(typeof AGENTS)[number]["id"]>(
     "race_analyst"
   );
@@ -65,9 +67,11 @@ export function AgentDemoConsole() {
           const Icon = agent.icon;
           const active = agent.id === selectedId;
           return (
-            <button
+            <m.button
               key={agent.id}
               type="button"
+              aria-pressed={active}
+              whileTap={{ scale: 0.97 }}
               onClick={() => {
                 setSelectedId(agent.id);
                 setStatus("idle");
@@ -80,7 +84,7 @@ export function AgentDemoConsole() {
             >
               <Icon className="h-4 w-4" />
               {agent.label}
-            </button>
+            </m.button>
           );
         })}
       </div>
@@ -109,7 +113,13 @@ export function AgentDemoConsole() {
       </button>
 
       {status !== "idle" && (
-        <div className="giq-subpanel mt-4 border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)] p-4">
+        <m.div
+          role="status"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="giq-subpanel mt-4 border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)] p-4"
+        >
           <p className="text-[12px] font-semibold uppercase text-[hsl(var(--primary-bright))]">
             {status === "running" ? "Running" : "Completed"}
           </p>
@@ -118,8 +128,16 @@ export function AgentDemoConsole() {
               ? "Loading memory, assembling context, validating output schema..."
               : selected.output}
           </p>
-        </div>
+        </m.div>
       )}
     </div>
+  );
+}
+
+export function AgentDemoConsole() {
+  return (
+    <MotionIsland>
+      <AgentDemoConsoleInner />
+    </MotionIsland>
   );
 }

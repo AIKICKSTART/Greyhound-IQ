@@ -7,6 +7,7 @@ import {
   BILLING_TIER_LABELS,
   formatUsageLimitDisplay,
 } from "@/lib/billing/usage-display";
+import { prisma, safeQuery } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,15 @@ export const metadata = {
 
 const PANEL_CLASS = "giq-panel p-6";
 const ACTION_CLASS = "giq-outline-action";
+
+type UsageEventRow = {
+  metricKey: string;
+  quantity: number;
+  status: string;
+  occurredAt: Date;
+  processedAt: Date | null;
+  failedAt: Date | null;
+};
 
 export default async function AccountUsagePage() {
   const user = await getCurrentUser();
@@ -52,7 +62,10 @@ async function SignedInUsage({
 }: {
   user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
 }) {
-  const entitlements = await getEntitlementLimitsForCurrentUser(user);
+  const [entitlements, usageEvents] = await Promise.all([
+    getEntitlementLimitsForCurrentUser(user),
+    getUsageEventsForUser(user.dbUserId),
+  ]);
   const limits = formatUsageLimitDisplay(entitlements);
 
   return (
@@ -106,8 +119,125 @@ async function SignedInUsage({
           ))}
         </div>
       </section>
+
+      <UsageEventsTable rows={usageEvents} />
     </div>
   );
+}
+
+function UsageEventsTable({ rows }: { rows: UsageEventRow[] }) {
+  return (
+    <section className={PANEL_CLASS}>
+      <div className="mb-5 flex items-center gap-3">
+        <BarChart3 className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+        <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+          Recent usage events
+        </h2>
+      </div>
+
+      <div className="giq-table-shell overflow-x-auto">
+        <table className="w-full min-w-[760px]">
+          <thead>
+            <tr className="giq-table-head">
+              <th className="px-4 py-3 text-left">Metric</th>
+              <th className="px-4 py-3 text-left">Quantity</th>
+              <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-left">Occurred</th>
+              <th className="px-4 py-3 text-left">Processed</th>
+              <th className="px-4 py-3 text-left">Failed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
+                >
+                  No usage events found.
+                </td>
+              </tr>
+            ) : (
+              rows.map((row, index) => (
+                <tr
+                  key={`${row.metricKey}-${row.occurredAt.toISOString()}-${index}`}
+                  className="border-t border-white/[0.06]"
+                >
+                  <MonoCell>{row.metricKey}</MonoCell>
+                  <td className="px-4 py-3 font-mono text-[13px] text-[hsl(var(--muted-foreground))]">
+                    {formatCount(row.quantity)}
+                  </td>
+                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
+                    {row.status}
+                  </td>
+                  <DateCell date={row.occurredAt} emptyLabel="Not recorded" />
+                  <DateCell date={row.processedAt} emptyLabel="Not processed" />
+                  <DateCell date={row.failedAt} emptyLabel="Not failed" />
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function MonoCell({ children }: { children: string }) {
+  return (
+    <td className="px-4 py-3 font-mono text-[12px] text-[hsl(var(--foreground))]">
+      {children}
+    </td>
+  );
+}
+
+function DateCell({
+  date,
+  emptyLabel,
+}: {
+  date: Date | null;
+  emptyLabel: string;
+}) {
+  return (
+    <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+      {formatDateTime(date, emptyLabel)}
+    </td>
+  );
+}
+
+function getUsageEventsForUser(userId: string | null) {
+  if (!userId) return Promise.resolve([]);
+
+  return safeQuery<UsageEventRow[]>(
+    () =>
+      prisma.usageEvent.findMany({
+        where: { userId },
+        orderBy: { occurredAt: "desc" },
+        take: 10,
+        select: {
+          metricKey: true,
+          quantity: true,
+          status: true,
+          occurredAt: true,
+          processedAt: true,
+          failedAt: true,
+        },
+      }),
+    []
+  );
+}
+
+function formatCount(value: number) {
+  return value.toLocaleString("en-AU");
+}
+
+function formatDateTime(date: Date | null, emptyLabel: string) {
+  if (!date) return emptyLabel;
+  return new Intl.DateTimeFormat("en-AU", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Australia/Sydney",
+  }).format(date);
 }
 
 function SignedOutUsage() {

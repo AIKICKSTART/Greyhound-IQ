@@ -20,20 +20,26 @@ Confirmed in the codebase:
 
 - WorkOS AuthKit is active through `src/proxy.ts`, `src/app/sign-in/route.ts`, `src/app/callback/route.ts`, and `AuthKitProvider`.
 - Local account state exists in Prisma `User` and `Profile`; `syncAuthUser` creates a free user after WorkOS callback.
+- WorkOS-only docs cleanup is complete for the production SaaS layer. Supabase Auth is no longer the documented account path.
+- Google Cloud VPS is now the documented production target for app runtime, database, workers, Lago, queues, reverse proxy/TLS, backups, logs, and future AI agent harness isolation.
+- Lago now has a local repo/proof-of-concept layer for billing architecture validation. It is not yet the production billing source of truth.
+- Read-only admin dashboards now exist for operator visibility. Admin mutation workflows still need reason-required actions, approvals, and audit enforcement.
+- Billing, usage, retention, and export foundations now exist for account-facing product surfaces. Full Lago-backed subscription, invoice, entitlement, webhook, and metering flows are still pending.
+- The account menu exists and gives users an account-aware navigation entry point. Billing, usage, export, support, and admin destinations still need production-state coverage where noted below.
 - `User.subscriptionTier` supports only `free`, `pro`, and `pro_plus`; `stripeCustomerId` and `stripeSubscriptionId` exist but are not wired to a billing system.
 - The account page supports profile editing, tier display, data export, and deletion request.
 - Pricing is static and CTAs route to contact, not checkout.
 - `ProGate`, agent-service tier checks, and media quotas provide partial enforcement.
 - Media upload has signed upload intents, quota checks, scan metadata, and audit logs.
-- Audit logs and reports exist, but there is no admin dashboard.
+- Audit logs and reports exist, but admin actions are not yet a full support/ops workflow.
 
 Production gaps:
 
 - No plan-aware WorkOS signup handoff, forgot/reset UX, email-verification state, change email/password handoff, account settings split, billing settings, team accounts, organisation roles, or admin UI.
-- No Lago, Stripe, checkout, billing portal, invoice, subscription webhook, webhook replay, usage ledger, or entitlement snapshot implementation.
+- No production Lago deployment, Stripe/payment-provider collection, checkout, billing portal, invoice, subscription webhook, webhook replay, usage ledger, or entitlement snapshot implementation.
 - No active app-level rate limiter.
-- No support ticketing, refund workflow, subscription override UI, job-status dashboard, provider health dashboard, or privacy-conscious analytics pipeline.
-- Stale docs and copy still mention legacy auth or hosting assumptions instead of WorkOS-only auth and Google Cloud VPS production operations.
+- No support ticketing, refund workflow, subscription override UI, admin write actions, job retry controls, provider health operations, or privacy-conscious analytics pipeline.
+- Remaining stale references may still exist in lower-priority copy or comments; do not reintroduce Supabase Auth or non-Google-Cloud production hosting assumptions.
 
 ## Target Architecture
 
@@ -121,10 +127,12 @@ Required account flows:
 - Demo accounts must be isolated seeded users/orgs, not production customer records.
 - Auth errors must use generic copy and never reveal whether an email exists.
 
-Immediate correction:
+Immediate remaining corrections:
 
 - Migrate stale `User.supabaseUid` naming to `workosUserId` or `externalSubject` with a forward-only migration and backfill.
-- Update docs/copy that mention Supabase Auth.
+- Wire the account menu destinations to production-ready billing, usage, export, support, and admin states.
+- Promote the Lago proof-of-concept into a signed-webhook, idempotent, production-ready billing layer.
+- Add mutation-capable admin/support workflows only after reason-required audit logging and least-privilege checks are in place.
 
 ## Subscription Tier Structure
 
@@ -363,14 +371,21 @@ Send analytics from server-side events where possible and attach only local user
 
 ### Must-have before demo
 
+Completed for the current demo baseline:
+
 - Correct public/product docs to WorkOS-only and Google Cloud VPS target.
+- Add account dropdown/menu and billing/usage/export/admin navigation foundations.
+- Add Lago repo/proof-of-concept layer in non-production.
+- Add admin read-only dashboards for user/account/operator visibility.
+- Add billing, usage, retention, and export foundations for account-facing surfaces.
+
+Remaining before demo:
+
 - Preserve and smoke-test race data-source connections.
 - Add plan-aware pricing CTA flow through WorkOS.
-- Add account dropdown and billing/usage placeholders with real states, even if payments are test-mode.
 - Add local schema for organisation/account, subscription snapshot, entitlement snapshot, usage event/outbox, webhook event, and admin action.
-- Add Lago self-host proof-of-concept in non-production.
 - Seed Free, Trial, Pro, Pro+, past_due, Business, and Admin demo accounts.
-- Admin read-only dashboard for user/org/subscription/job/source health.
+- Extend read-only admin coverage for user/org/subscription/job/source health where gaps remain.
 
 ### Must-have before production
 

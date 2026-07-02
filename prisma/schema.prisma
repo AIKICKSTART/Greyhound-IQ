@@ -349,6 +349,7 @@ model User {
   billingEvents       BillingEvent[]
   usageEvents         UsageEvent[]
   usageOutboxItems    UsageOutbox[]
+  usageAggregates     UsageAggregate[]
   supportTickets      SupportTicket[]
   supportMessages     SupportMessage[]
   feedback            Feedback[]
@@ -671,6 +672,7 @@ model BillingCustomer {
   billingEvents        BillingEvent[]
   usageEvents          UsageEvent[]
   usageOutboxItems     UsageOutbox[]
+  usageAggregates      UsageAggregate[]
 
   @@index([status])
   @@index([createdAt])
@@ -705,6 +707,7 @@ model Subscription {
   billingEvents        BillingEvent[]
   usageEvents          UsageEvent[]
   usageOutboxItems     UsageOutbox[]
+  usageAggregates      UsageAggregate[]
 
   @@index([userId, status])
   @@index([billingCustomerId, status])
@@ -987,6 +990,29 @@ model UsageOutbox {
   @@index([subscriptionId, occurredAt])
   @@index([status, nextRetryAt])
   @@index([occurredAt])
+}
+
+model UsageAggregate {
+  id                String    @id @default(cuid())
+  metricKey         String
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  quantity          Int       @default(0)
+  periodStart       DateTime
+  periodEnd         DateTime
+  status            String    @default("open")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([metricKey, periodStart])
+  @@index([userId, periodStart])
+  @@index([billingCustomerId, periodStart])
+  @@index([subscriptionId, periodStart])
+  @@index([status, periodEnd])
 }
 
 // === COMMUNITY ===

@@ -30,6 +30,7 @@ const COUNTS = [
   { key: "agentRunUsage", label: "Agent run usage" },
   { key: "adminActions", label: "Admin actions" },
   { key: "jobRuns", label: "Job runs" },
+  { key: "exportArtifacts", label: "Export artifacts" },
   { key: "dataSourceHealth", label: "Data source health" },
 ] as const;
 
@@ -122,6 +123,9 @@ export default async function AdminPage() {
           <Link href="/admin/reports" className="giq-outline-action">
             Reports
           </Link>
+          <Link href="/admin/exports" className="giq-outline-action">
+            Exports
+          </Link>
           <Link href="/admin/source-health" className="giq-outline-action">
             Source health
           </Link>
@@ -171,6 +175,7 @@ async function getAdminCounts(): Promise<AdminCounts> {
     agentRunUsage,
     adminActions,
     jobRuns,
+    exportArtifacts,
     dataSourceHealth,
   ] = await Promise.all([
     countRows(() => prisma.user.count()),
@@ -192,6 +197,7 @@ async function getAdminCounts(): Promise<AdminCounts> {
     countRows(() => prisma.agentRunUsage.count()),
     countRows(() => prisma.adminAction.count()),
     countRows(() => prisma.jobRun.count()),
+    countRows(() => prisma.exportArtifact.count()),
     countRows(() => prisma.dataSourceHealth.count()),
   ]);
 
@@ -215,6 +221,7 @@ async function getAdminCounts(): Promise<AdminCounts> {
     agentRunUsage,
     adminActions,
     jobRuns,
+    exportArtifacts,
     dataSourceHealth,
   };
 }

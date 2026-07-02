@@ -19,10 +19,13 @@ const COUNTS = [
   { key: "termsAcceptances", label: "Terms acceptances" },
   { key: "consentEvents", label: "Consent events" },
   { key: "marketingPreferences", label: "Marketing preferences" },
+  { key: "feedback", label: "Feedback" },
+  { key: "bugReports", label: "Bug reports" },
   { key: "webhookEvents", label: "Webhook events" },
   { key: "invoiceRecords", label: "Invoice records" },
   { key: "paymentRecords", label: "Payment records" },
   { key: "usageOutbox", label: "Usage outbox" },
+  { key: "agentRunUsage", label: "Agent run usage" },
   { key: "adminActions", label: "Admin actions" },
   { key: "jobRuns", label: "Job runs" },
   { key: "dataSourceHealth", label: "Data source health" },
@@ -49,7 +52,8 @@ export default async function AdminPage() {
           Read-only overview
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Local account, invitation, compliance, billing, webhook, job, source health, and usage counts.
+          Local account, invitation, compliance, billing, feedback, bug report,
+          webhook, job, source health, and usage counts.
         </p>
 
         <div className="mt-5 flex flex-wrap gap-3">
@@ -83,6 +87,12 @@ export default async function AdminPage() {
           <Link href="/admin/support" className="giq-outline-action">
             Support tickets
           </Link>
+          <Link href="/admin/feedback" className="giq-outline-action">
+            Feedback
+          </Link>
+          <Link href="/admin/bug-reports" className="giq-outline-action">
+            Bug reports
+          </Link>
           <Link href="/admin/billing" className="giq-outline-action">
             Billing
           </Link>
@@ -91,6 +101,9 @@ export default async function AdminPage() {
           </Link>
           <Link href="/admin/usage" className="giq-outline-action">
             Usage
+          </Link>
+          <Link href="/admin/jobs" className="giq-outline-action">
+            Agent run usage
           </Link>
           <Link href="/admin/audit" className="giq-outline-action">
             Audit
@@ -142,10 +155,13 @@ async function getAdminCounts(): Promise<AdminCounts> {
     termsAcceptances,
     consentEvents,
     marketingPreferences,
+    feedback,
+    bugReports,
     webhookEvents,
     invoiceRecords,
     paymentRecords,
     usageOutbox,
+    agentRunUsage,
     adminActions,
     jobRuns,
     dataSourceHealth,
@@ -158,10 +174,13 @@ async function getAdminCounts(): Promise<AdminCounts> {
     countRows(() => prisma.termsAcceptance.count()),
     countRows(() => prisma.consentEvent.count()),
     countRows(() => prisma.marketingPreference.count()),
+    countRows(() => prisma.feedback.count()),
+    countRows(() => prisma.bugReport.count()),
     countRows(() => prisma.webhookEvent.count()),
     countRows(() => prisma.invoiceRecord.count()),
     countRows(() => prisma.paymentRecord.count()),
     countRows(() => prisma.usageOutbox.count()),
+    countRows(() => prisma.agentRunUsage.count()),
     countRows(() => prisma.adminAction.count()),
     countRows(() => prisma.jobRun.count()),
     countRows(() => prisma.dataSourceHealth.count()),
@@ -176,10 +195,13 @@ async function getAdminCounts(): Promise<AdminCounts> {
     termsAcceptances,
     consentEvents,
     marketingPreferences,
+    feedback,
+    bugReports,
     webhookEvents,
     invoiceRecords,
     paymentRecords,
     usageOutbox,
+    agentRunUsage,
     adminActions,
     jobRuns,
     dataSourceHealth,

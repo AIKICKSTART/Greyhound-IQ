@@ -361,6 +361,9 @@ model User {
   affectedAdminActions AdminAction[] @relation("AdminActionAffectedUser")
   triggeredJobRuns    JobRun[]      @relation("JobRunAdmin")
   agentRunUsage       AgentRunUsage[]
+  createdRetentionPolicies RetentionPolicy[] @relation("RetentionPolicyCreatedBy")
+  requestedDeletionJobs    DeletionJob[]     @relation("DeletionJobRequestedBy")
+  targetDeletionJobs       DeletionJob[]     @relation("DeletionJobTargetUser")
 }
 
 model TermsAcceptance {
@@ -521,6 +524,47 @@ model BugReport {
   @@index([status, updatedAt])
   @@index([severity, status])
   @@index([createdAt])
+}
+
+model RetentionPolicy {
+  id              String        @id @default(cuid())
+  code            String        @unique
+  targetType      String
+  retentionDays   Int
+  enabled         Boolean       @default(true)
+  createdByUserId String?
+  createdByUser   User?         @relation("RetentionPolicyCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletionJobs    DeletionJob[]
+
+  @@index([targetType, enabled])
+  @@index([createdByUserId])
+}
+
+model DeletionJob {
+  id                String           @id @default(cuid())
+  policyId          String?
+  policy            RetentionPolicy? @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  targetType        String
+  targetUserId      String?
+  targetUser        User?            @relation("DeletionJobTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  storageBucket     String?
+  storagePath       String?
+  status            String           @default("pending")
+  scheduledFor      DateTime
+  completedAt       DateTime?
+  requestedByUserId String?
+  requestedByUser   User?            @relation("DeletionJobRequestedBy", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([policyId])
+  @@index([targetType, status])
+  @@index([status, scheduledFor])
+  @@index([targetUserId])
+  @@index([requestedByUserId])
+  @@index([storageBucket, storagePath])
 }
 
 // === BILLING ===

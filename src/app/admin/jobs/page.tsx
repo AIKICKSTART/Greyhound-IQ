@@ -26,6 +26,25 @@ type JobStatusSummary = {
   counts: StatusCountRow[];
 };
 
+type AgentRunUsageStatusCountRow = {
+  metricKey: string;
+  status: string;
+  count: number;
+};
+
+type AgentRunUsageRecentRow = {
+  metricKey: string;
+  quantity: number;
+  unit: string | null;
+  occurredAt: Date;
+  createdAt: Date;
+};
+
+type AgentRunUsageSummary = {
+  counts: AgentRunUsageStatusCountRow[];
+  recentRows: AgentRunUsageRecentRow[];
+};
+
 type OperationalJobRow = {
   source: string;
   category: string;
@@ -79,16 +98,15 @@ type AgentRunRow = {
   agentType: string;
   status: string;
   durationMs: number | null;
-  promptTokens: number | null;
-  completionTokens: number | null;
   createdAt: Date;
   completedAt: Date | null;
 };
 
 export default async function AdminJobsPage() {
   await requireModeratorProfile();
-  const [summaries, recentRows] = await Promise.all([
+  const [summaries, agentRunUsage, recentRows] = await Promise.all([
     getJobStatusSummaries(),
+    getAgentRunUsageSummary(),
     getRecentOperationalRows(),
   ]);
 
@@ -108,9 +126,10 @@ export default async function AdminJobsPage() {
           </h1>
           <p className="mt-3 max-w-3xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
             Read-only local operational status across usage outbox, usage
-            events, webhook events, job runs, and agent runs. Raw payloads, webhook
-            bodies, metadata, errors, user identifiers, provider identifiers,
-            emails, IP addresses, and user agents are not selected or displayed.
+            events, webhook events, job runs, agent runs, and agent run usage.
+            Raw payloads, webhook bodies, metadata, errors, user identifiers,
+            provider identifiers, tokens, emails, IP addresses, and user agents
+            are not selected or displayed.
           </p>
 
           <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -119,6 +138,8 @@ export default async function AdminJobsPage() {
             ))}
           </div>
         </section>
+
+        <AgentRunUsageSection usage={agentRunUsage} />
 
         <RecentOperationalTable rows={recentRows} />
       </div>
@@ -232,6 +253,106 @@ function RecentOperationalTable({ rows }: { rows: OperationalJobRow[] }) {
             )}
           </tbody>
         </table>
+      </div>
+    </section>
+  );
+}
+
+function AgentRunUsageSection({ usage }: { usage: AgentRunUsageSummary }) {
+  return (
+    <section className="giq-panel p-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+            Agent run usage
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-[hsl(var(--foreground))]">
+            Sanitized usage visibility
+          </h2>
+        </div>
+        <p className="text-[12px] text-[hsl(var(--muted-foreground))]">
+          Latest {RECENT_ROWS_LIMIT} sanitized records
+        </p>
+      </div>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="giq-table-shell overflow-x-auto">
+          <table className="w-full min-w-[560px]">
+            <thead>
+              <tr className="giq-table-head">
+                <th className="px-4 py-3 text-left">Metric</th>
+                <th className="px-4 py-3 text-left">Run status</th>
+                <th className="px-4 py-3 text-left">Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usage.counts.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
+                  >
+                    No agent run usage counts found.
+                  </td>
+                </tr>
+              ) : (
+                usage.counts.map((row) => (
+                  <tr
+                    key={`${row.metricKey}-${row.status}`}
+                    className="border-t border-white/[0.06]"
+                  >
+                    <MonoCell>{row.metricKey}</MonoCell>
+                    <TextCell>{formatStatus(row.status)}</TextCell>
+                    <td className="px-4 py-3 font-mono text-[13px] text-[hsl(var(--muted-foreground))]">
+                      {formatCount(row.count)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="giq-table-shell overflow-x-auto">
+          <table className="w-full min-w-[720px]">
+            <thead>
+              <tr className="giq-table-head">
+                <th className="px-4 py-3 text-left">Metric</th>
+                <th className="px-4 py-3 text-left">Quantity</th>
+                <th className="px-4 py-3 text-left">Unit</th>
+                <th className="px-4 py-3 text-left">Occurred</th>
+                <th className="px-4 py-3 text-left">Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usage.recentRows.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
+                  >
+                    No recent agent run usage rows found.
+                  </td>
+                </tr>
+              ) : (
+                usage.recentRows.map((row, index) => (
+                  <tr
+                    key={`${row.metricKey}-${row.occurredAt.toISOString()}-${row.createdAt.toISOString()}-${index}`}
+                    className="border-t border-white/[0.06]"
+                  >
+                    <MonoCell>{row.metricKey}</MonoCell>
+                    <td className="px-4 py-3 font-mono text-[13px] text-[hsl(var(--muted-foreground))]">
+                      {formatCount(row.quantity)}
+                    </td>
+                    <TextCell>{row.unit ?? "N/A"}</TextCell>
+                    <DateCell date={row.occurredAt} emptyLabel="Not recorded" />
+                    <DateCell date={row.createdAt} emptyLabel="Not recorded" />
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   );
@@ -383,6 +504,50 @@ function normalizeStatusCounts(rows: StatusCountRow[]): StatusCountRow[] {
   }));
 }
 
+async function getAgentRunUsageSummary(): Promise<AgentRunUsageSummary> {
+  const [counts, recentRows] = await Promise.all([
+    getAgentRunUsageStatusCounts(),
+    getRecentAgentRunUsageRows(),
+  ]);
+
+  return { counts, recentRows };
+}
+
+function getAgentRunUsageStatusCounts() {
+  return safeQuery<AgentRunUsageStatusCountRow[]>(
+    () =>
+      prisma.$queryRaw<AgentRunUsageStatusCountRow[]>`
+        SELECT
+          usage."metricKey",
+          COALESCE(run."status", 'unlinked') AS "status",
+          COUNT(*)::int AS "count"
+        FROM "AgentRunUsage" usage
+        LEFT JOIN "AgentRun" run ON run."id" = usage."agentRunId"
+        GROUP BY usage."metricKey", COALESCE(run."status", 'unlinked')
+        ORDER BY usage."metricKey" ASC, "status" ASC
+      `,
+    []
+  );
+}
+
+function getRecentAgentRunUsageRows() {
+  return safeQuery<AgentRunUsageRecentRow[]>(
+    () =>
+      prisma.agentRunUsage.findMany({
+        orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+        take: RECENT_ROWS_LIMIT,
+        select: {
+          metricKey: true,
+          quantity: true,
+          unit: true,
+          occurredAt: true,
+          createdAt: true,
+        },
+      }),
+    []
+  );
+}
+
 async function getRecentOperationalRows(): Promise<OperationalJobRow[]> {
   const [usageOutbox, usageEvents, webhookEvents, jobRuns, agentRuns] =
     await Promise.all([
@@ -492,8 +657,6 @@ function getRecentAgentRunRows() {
           agentType: true,
           status: true,
           durationMs: true,
-          promptTokens: true,
-          completionTokens: true,
           createdAt: true,
           completedAt: true,
         },
@@ -568,13 +731,8 @@ function toAgentRunJobRow(row: AgentRunRow): OperationalJobRow {
 }
 
 function formatAgentRunCategory(row: AgentRunRow) {
-  const tokens = row.promptTokens ?? row.completionTokens;
   const duration = row.durationMs == null ? null : formatDuration(row.durationMs);
-  const details = [duration, tokens == null ? null : `${formatCount(tokens)} tokens`]
-    .filter(Boolean)
-    .join(", ");
-
-  return details ? `${row.agentType} (${details})` : row.agentType;
+  return duration ? `${row.agentType} (${duration})` : row.agentType;
 }
 
 function formatStatus(value: string) {

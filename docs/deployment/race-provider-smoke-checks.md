@@ -42,6 +42,11 @@ precedence unless the release explicitly owns that migration.
 - Confirm no migration in the release drops, truncates, renames, or rewrites
   live/archive provenance fields such as `sourceProvider`, `sourceId`, or
   `sourceRawJson`.
+- Run the read-only local provider smoke checklist without network access:
+
+```bash
+npm run smoke:race-provider -- --no-network
+```
 
 ## After Deploy
 

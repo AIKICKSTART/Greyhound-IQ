@@ -28,6 +28,7 @@ Confirmed in the codebase:
 - The account menu exists and gives users an account-aware navigation entry point. Billing, usage, export, support, and admin destinations still need production-state coverage where noted below.
 - `User.subscriptionTier` supports only `free`, `pro`, and `pro_plus`; `stripeCustomerId` and `stripeSubscriptionId` exist but are not wired to a billing system.
 - The account page supports profile editing, tier display, data export, and deletion request.
+- Account security and notifications pages now exist as implemented account-settings foundations. WorkOS lifecycle handoffs still need production coverage for forgot/reset, verification state, and change email/password.
 - Pricing is static and CTAs route to contact, not checkout.
 - `ProGate`, agent-service tier checks, and media quotas provide partial enforcement.
 - Media upload has signed upload intents, quota checks, scan metadata, and audit logs.
@@ -35,7 +36,7 @@ Confirmed in the codebase:
 
 Production gaps:
 
-- No plan-aware WorkOS signup handoff, forgot/reset UX, email-verification state, change email/password handoff, account settings split, billing settings, team accounts, organisation roles, or admin UI.
+- No plan-aware WorkOS signup handoff, forgot/reset UX, email-verification state, change email/password handoff, billing settings, team accounts, organisation roles, or admin UI.
 - No production Lago deployment, Stripe/payment-provider collection, checkout, billing portal, invoice, subscription webhook, webhook replay, usage ledger, or entitlement snapshot implementation.
 - No active app-level rate limiter.
 - No support ticketing, refund workflow, subscription override UI, admin write actions, job retry controls, provider health operations, or privacy-conscious analytics pipeline.
@@ -119,7 +120,7 @@ Required account flows:
 - Account creation states: new, synced, onboarding, active, blocked, deletion_requested, deleted/anonymised.
 - Protected route matrix for public, signed-in, verified, paid-tier, business-member, admin, and internal jobs.
 - Session expiry UX for WorkOS expired sessions: redirect with return path and clear message.
-- Profile page and account settings split into profile, security, billing, usage, privacy, notifications, and data controls.
+- Profile, security, and notifications settings now exist as foundations; complete the split with billing, usage, privacy, and data controls.
 - Change email/password handoff to WorkOS with local audit event on completion.
 - Delete account flow with confirmation, grace period, cancellation option, storage deletion job, billing cancellation policy, and audit evidence.
 - Organisation/team accounts for Business and Enterprise: organisation, membership, roles, invitations, seat counts, owner transfer, member removal, and org deletion.
@@ -231,6 +232,7 @@ Add:
 - Confirmation dialogs for cancel subscription, downgrade, delete account, remove member, override plan, refund, and admin actions.
 - Upload and agent progress indicators with queue/running/complete/failed/cancelled states.
 - Mobile and tablet parity for account dropdown, billing actions, support, and usage views.
+- Preserve implemented account security and notifications pages as foundations while adding WorkOS forgot/reset, verification state, and change email/password handoff UX.
 - Accessibility checks for focus, keyboard flow, dialog labels, error announcements, and disabled states.
 
 ## Backend And Data Model Plan
@@ -375,6 +377,7 @@ Completed for the current demo baseline:
 
 - Correct public/product docs to WorkOS-only and Google Cloud VPS target.
 - Add account dropdown/menu and billing/usage/export/admin navigation foundations.
+- Add account security and notifications settings foundations.
 - Add Lago repo/proof-of-concept layer in non-production.
 - Add admin read-only dashboards for user/account/operator visibility.
 - Add billing, usage, retention, and export foundations for account-facing surfaces.

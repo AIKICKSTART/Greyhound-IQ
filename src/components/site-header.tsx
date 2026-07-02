@@ -65,6 +65,14 @@ function AccountMenuItems({ canAccessAdmin }: { canAccessAdmin: boolean }) {
         <User className="h-3.5 w-3.5" aria-hidden="true" />
         Account
       </Link>
+      <Link href="/account/security" className={ACCOUNT_MENU_ITEM_CLASS}>
+        <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+        Security
+      </Link>
+      <Link href="/account/notifications" className={ACCOUNT_MENU_ITEM_CLASS}>
+        <Bell className="h-3.5 w-3.5" aria-hidden="true" />
+        Notifications
+      </Link>
       <Link href="/account/billing" className={ACCOUNT_MENU_ITEM_CLASS}>
         <Crown className="h-3.5 w-3.5" aria-hidden="true" />
         Billing

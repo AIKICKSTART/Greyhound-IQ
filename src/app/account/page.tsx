@@ -254,6 +254,20 @@ async function SignedInAccount({
             Privacy
           </Link>
           <Link
+            href="/account/security"
+            className={ACTION_CLASS}
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Security
+          </Link>
+          <Link
+            href="/account/notifications"
+            className={ACTION_CLASS}
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            Notifications
+          </Link>
+          <Link
             href="/account/team"
             className={ACTION_CLASS}
           >

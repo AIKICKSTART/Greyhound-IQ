@@ -24,11 +24,13 @@ Confirmed in the codebase:
 - Google Cloud VPS is now the documented production target for app runtime, database, workers, Lago, queues, reverse proxy/TLS, backups, logs, and future AI agent harness isolation.
 - Lago now has a local repo/proof-of-concept layer for billing architecture validation. It is not yet the production billing source of truth.
 - Read-only admin dashboards now exist for operator visibility. Admin mutation workflows still need reason-required actions, approvals, and audit enforcement.
-- Billing, usage, retention, and export foundations now exist for account-facing product surfaces. Full Lago-backed subscription, invoice, entitlement, webhook, and metering flows are still pending.
+- Billing, usage, retention, and export foundations now exist for account-facing product surfaces, including a billing status banner foundation. Full Lago-backed subscription, invoice, entitlement, webhook, and metering flows are still pending.
 - The account menu exists and gives users an account-aware navigation entry point. Billing, usage, export, support, and admin destinations still need production-state coverage where noted below.
 - `User.subscriptionTier` supports only `free`, `pro`, and `pro_plus`; `stripeCustomerId` and `stripeSubscriptionId` exist but are not wired to a billing system.
 - The account page supports profile editing, tier display, data export, and deletion request.
 - Account security and notifications pages now exist as implemented account-settings foundations. WorkOS lifecycle handoffs still need production coverage for forgot/reset, verification state, and change email/password.
+- Public dog search now has a rate-limit foundation. Broader app-level limits across auth-adjacent, upload, export, billing, webhook, and agent workloads are still pending.
+- Operator visibility now includes webhook status counts and support ticket status/priority counts. Webhook replay, support mutations, refund handling, and audited admin actions are still pending.
 - Pricing is static and CTAs route to contact, not checkout.
 - `ProGate`, agent-service tier checks, and media quotas provide partial enforcement.
 - Media upload has signed upload intents, quota checks, scan metadata, and audit logs.
@@ -38,8 +40,8 @@ Production gaps:
 
 - No plan-aware WorkOS signup handoff, forgot/reset UX, email-verification state, change email/password handoff, billing settings, team accounts, organisation roles, or admin UI.
 - No production Lago deployment, Stripe/payment-provider collection, checkout, billing portal, invoice, subscription webhook, webhook replay, usage ledger, or entitlement snapshot implementation.
-- No active app-level rate limiter.
-- No support ticketing, refund workflow, subscription override UI, admin write actions, job retry controls, provider health operations, or privacy-conscious analytics pipeline.
+- No comprehensive app-level rate limiter beyond the public search foundation.
+- No mutation-capable support ticketing, refund workflow, subscription override UI, admin write actions, webhook replay tooling, job retry controls, provider health operations, or privacy-conscious analytics pipeline.
 - Remaining stale references may still exist in lower-priority copy or comments; do not reintroduce Supabase Auth or non-Google-Cloud production hosting assumptions.
 
 ## Target Architecture
@@ -226,6 +228,7 @@ Add:
 - Billing settings page with plan, renewal date, invoice link, payment method link, cancel/resume, upgrade/downgrade, and state banners.
 - Usage page or account tab with counters, reset dates, included allowance, overage policy, and upgrade actions.
 - Trial, grace-period, payment-failed, usage-limit, and locked-feature banners.
+- Preserve the billing status banner foundation while wiring it to real subscription, dunning, and entitlement states.
 - Checkout loading, checkout cancelled, checkout success, webhook pending, payment failed, and retry states.
 - Empty states for billing history, usage, support tickets, organisation members, and admin search.
 - Inline form validation and generic auth/billing errors.
@@ -320,8 +323,10 @@ Build `/admin` for admin users only:
 - Manual plan override with expiry, reason, approver, and audit.
 - Refund/credit workflow that links to Lago/PSP records.
 - Support ticket inbox and user feedback.
+- Support status and priority counts for operator triage.
 - Bug report capture with browser/app context but no secrets.
 - Job status for provider imports, billing webhooks, usage delivery, account deletion, storage deletion, and AI agent runs.
+- Webhook status counts for billing and integration visibility.
 - Data-source health for Topaz, TheDogs, Watchdog, FastTrack, and archives.
 - Failed job retry controls.
 - Internal audit log viewer with filters.
@@ -381,6 +386,9 @@ Completed for the current demo baseline:
 - Add Lago repo/proof-of-concept layer in non-production.
 - Add admin read-only dashboards for user/account/operator visibility.
 - Add billing, usage, retention, and export foundations for account-facing surfaces.
+- Add public search rate-limit foundation.
+- Add billing status banner foundation.
+- Add webhook status counts and support status/priority counts for operator visibility.
 
 Remaining before demo:
 
@@ -388,7 +396,7 @@ Remaining before demo:
 - Add plan-aware pricing CTA flow through WorkOS.
 - Add local schema for organisation/account, subscription snapshot, entitlement snapshot, usage event/outbox, webhook event, and admin action.
 - Seed Free, Trial, Pro, Pro+, past_due, Business, and Admin demo accounts.
-- Extend read-only admin coverage for user/org/subscription/job/source health where gaps remain.
+- Extend read-only admin coverage for user/org/subscription/job/source health where gaps remain, without mistaking status counts for mutation workflows.
 
 ### Must-have before production
 
@@ -400,7 +408,7 @@ Remaining before demo:
 - Usage metering for prediction runs, agent runs/tokens, API calls, exports, uploads/storage, and detailed views.
 - Billing settings page with plan state, invoices, payment method, cancel/resume, upgrade/downgrade.
 - Support/refund workflow.
-- Rate limiting and abuse prevention.
+- Complete rate limiting and abuse prevention beyond the public search foundation.
 - Admin override workflow with audit.
 - Privacy/Terms/refund/cookie/subprocessor/AI processing updates.
 - Google Cloud VPS deployment runbook, rollback plan, backup restore drill, and smoke tests.

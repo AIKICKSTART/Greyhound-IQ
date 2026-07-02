@@ -43,6 +43,12 @@ const ENTITLEMENT_SUMMARY: { key: EntitlementKey; label: string }[] = [
   { key: "retention_days", label: "Retention" },
   { key: "priority_jobs", label: "Priority jobs" },
 ];
+const STATUS_BANNER_TONE_CLASS = {
+  danger: "border-rose-400/30 bg-rose-400/[0.08]",
+  neutral: "border-white/[0.08] bg-white/[0.03]",
+  ok: "border-emerald-400/25 bg-emerald-400/[0.07]",
+  warning: "border-amber-300/30 bg-amber-300/[0.08]",
+} as const;
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-AU", {
   day: "2-digit",
@@ -97,6 +103,14 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
             Plan
           </h2>
         </div>
+
+        {overview.subscription ? (
+          <SubscriptionStatusBanner
+            currentPeriodEnd={overview.subscription.currentPeriodEnd}
+            status={overview.subscription.status}
+            updatedAt={overview.subscription.updatedAt}
+          />
+        ) : null}
 
         <div className="grid grid-cols-2 gap-3">
           <Metric label="Plan" value={formatPlanCode(planCode)} />
@@ -353,6 +367,36 @@ async function getLocalBillingOverview(user: BillingUser) {
   };
 }
 
+function SubscriptionStatusBanner({
+  currentPeriodEnd,
+  status,
+  updatedAt,
+}: {
+  currentPeriodEnd: Date | null;
+  status: string;
+  updatedAt: Date;
+}) {
+  const banner = getSubscriptionStatusBanner(status, currentPeriodEnd);
+
+  return (
+    <div
+      className={`mb-5 rounded-md border px-4 py-3 ${STATUS_BANNER_TONE_CLASS[banner.tone]}`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
+          {banner.label}
+        </span>
+        <span className="text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+          Read-only local snapshot
+        </span>
+      </div>
+      <p className="mt-1 text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+        {banner.body} Last updated {formatDate(updatedAt)}.
+      </p>
+    </div>
+  );
+}
+
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="giq-metric-card">
@@ -416,6 +460,95 @@ function formatSnapshotText(value: string | null | undefined) {
   const cleaned = text.replace(/[_-]+/g, " ").replace(/\s+/g, " ");
   const clipped = cleaned.length > 64 ? `${cleaned.slice(0, 61)}...` : cleaned;
   return clipped.charAt(0).toUpperCase() + clipped.slice(1);
+}
+
+function getSubscriptionStatusBanner(
+  status: string,
+  currentPeriodEnd: Date | null
+) {
+  const label = formatSnapshotText(status);
+  const periodEndText = currentPeriodEnd
+    ? ` Current period ends ${formatDate(currentPeriodEnd)}.`
+    : "";
+
+  switch (normalizeSnapshotKey(status)) {
+    case "trialing":
+      return {
+        body: `Trial access is recorded in the local snapshot.${periodEndText}`,
+        label,
+        tone: "ok",
+      } as const;
+    case "active":
+      return {
+        body: `Subscription access is active in the local snapshot.${periodEndText}`,
+        label,
+        tone: "ok",
+      } as const;
+    case "past_due":
+      return {
+        body: `The local snapshot marks this subscription as past due.${periodEndText}`,
+        label,
+        tone: "warning",
+      } as const;
+    case "grace_period":
+      return {
+        body: `Local access is in a grace period.${periodEndText}`,
+        label,
+        tone: "warning",
+      } as const;
+    case "cancel_at_period_end":
+      return {
+        body: `The local snapshot shows this subscription ending after the current period.${periodEndText}`,
+        label,
+        tone: "warning",
+      } as const;
+    case "cancelled":
+      return {
+        body: "The local snapshot marks this subscription as cancelled.",
+        label,
+        tone: "danger",
+      } as const;
+    case "expired":
+      return {
+        body: "The local snapshot marks this subscription as expired.",
+        label,
+        tone: "danger",
+      } as const;
+    case "incomplete":
+      return {
+        body: `The local snapshot marks this subscription setup as incomplete.${periodEndText}`,
+        label,
+        tone: "warning",
+      } as const;
+    case "payment_failed":
+      return {
+        body: `The local snapshot records a failed payment state.${periodEndText}`,
+        label,
+        tone: "warning",
+      } as const;
+    case "manual_override":
+      return {
+        body: `Access is controlled by a local manual override.${periodEndText}`,
+        label,
+        tone: "neutral",
+      } as const;
+    case "enterprise_contract":
+      return {
+        body: `Billing is covered by a local enterprise contract.${periodEndText}`,
+        label,
+        tone: "ok",
+      } as const;
+    default:
+      return {
+        body: `Local subscription status is ${label}.${periodEndText}`,
+        label,
+        tone: "neutral",
+      } as const;
+  }
+}
+
+function normalizeSnapshotKey(value: string) {
+  return value.trim().toLowerCase().replace(/[-\s]+/g, "_");
 }
 
 function formatDate(value: Date | null | undefined) {

@@ -19,9 +19,17 @@ type WebhookEventRow = {
   processedAt: Date | null;
 };
 
+type WebhookStatusCountRow = {
+  status: string;
+  _count: { _all: number };
+};
+
 export default async function AdminWebhooksPage() {
   await requireModeratorProfile();
-  const events = await getWebhookEvents();
+  const [events, statusCounts] = await Promise.all([
+    getWebhookEvents(),
+    getWebhookStatusCounts(),
+  ]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
@@ -39,6 +47,30 @@ export default async function AdminWebhooksPage() {
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
           Latest 10 stored webhook events from the local database.
         </p>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {statusCounts.length === 0 ? (
+            <div className="giq-metric-card">
+              <p className="text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                No statuses
+              </p>
+              <p className="mt-1 font-mono text-2xl font-semibold text-[hsl(var(--foreground))]">
+                0
+              </p>
+            </div>
+          ) : (
+            statusCounts.map((row) => (
+              <div key={row.status} className="giq-metric-card">
+                <p className="text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                  {row.status}
+                </p>
+                <p className="mt-1 font-mono text-2xl font-semibold text-[hsl(var(--foreground))]">
+                  {row._count._all.toLocaleString("en-AU")}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
 
         <div className="giq-table-shell mt-6 overflow-x-auto">
           <table className="w-full min-w-[820px]">
@@ -87,6 +119,20 @@ export default async function AdminWebhooksPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function getWebhookStatusCounts() {
+  return safeQuery<WebhookStatusCountRow[]>(
+    async () => {
+      const rows = await prisma.webhookEvent.groupBy({
+        by: ["status"],
+        _count: { _all: true },
+        orderBy: { status: "asc" },
+      });
+      return rows;
+    },
+    []
   );
 }
 

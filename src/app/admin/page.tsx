@@ -12,6 +12,7 @@ export const metadata = {
 
 const COUNTS = [
   { key: "users", label: "Users" },
+  { key: "invitations", label: "Invitations" },
   { key: "billingCustomers", label: "Billing customers" },
   { key: "plans", label: "Plans" },
   { key: "subscriptions", label: "Subscriptions" },
@@ -42,7 +43,7 @@ export default async function AdminPage() {
           Read-only overview
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Local account, billing, webhook, invoice, and usage outbox counts.
+          Local account, invitation, billing, webhook, invoice, and usage outbox counts.
         </p>
 
         <div className="mt-5 flex flex-wrap gap-3">
@@ -51,6 +52,9 @@ export default async function AdminPage() {
           </Link>
           <Link href="/admin/organizations" className="giq-outline-action">
             Organizations
+          </Link>
+          <Link href="/admin/invitations" className="giq-outline-action">
+            Invitations
           </Link>
           <Link href="/admin/plans" className="giq-outline-action">
             Plans
@@ -119,6 +123,7 @@ export default async function AdminPage() {
 async function getAdminCounts(): Promise<AdminCounts> {
   const [
     users,
+    invitations,
     billingCustomers,
     plans,
     subscriptions,
@@ -128,6 +133,7 @@ async function getAdminCounts(): Promise<AdminCounts> {
     usageOutbox,
   ] = await Promise.all([
     countRows(() => prisma.user.count()),
+    countRows(() => prisma.organizationInvitation.count()),
     countRows(() => prisma.billingCustomer.count()),
     countRows(() => prisma.plan.count()),
     countRows(() => prisma.subscription.count()),
@@ -139,6 +145,7 @@ async function getAdminCounts(): Promise<AdminCounts> {
 
   return {
     users,
+    invitations,
     billingCustomers,
     plans,
     subscriptions,

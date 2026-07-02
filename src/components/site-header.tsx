@@ -249,7 +249,7 @@ export async function SiteHeader() {
                 <>
                   <a
                     href="/sign-in"
-                    className="giq-button giq-button-glass giq-header-auth-action hidden px-4 text-[13px] font-semibold md:inline-flex"
+                    className="giq-button giq-button-glass giq-header-auth-action giq-header-login-action hidden px-4 text-[13px] font-semibold md:inline-flex"
                   >
                     <LogIn className="h-3.5 w-3.5" />
                     Log in

@@ -451,10 +451,10 @@ body {
   position: absolute;
   inset: auto 14% 7px;
   z-index: -1;
-  height: 12px;
+  height: 8px;
   border-radius: 999px;
-  background-color: hsl(var(--primary-bright) / 0.28);
-  filter: blur(8px);
+  background-color: hsl(var(--primary-bright) / 0.14);
+  filter: blur(5px);
   pointer-events: none;
 }
 
@@ -1104,9 +1104,9 @@ html {
 
 body {
   background:
-    radial-gradient(circle at 88% -6%, hsl(var(--primary) / 0.12), transparent 32%),
-    linear-gradient(180deg, hsl(var(--background)) 0%, hsl(270 22% 4%) 50%, hsl(var(--background)) 100%),
-    repeating-linear-gradient(112deg, transparent 0, transparent 46px, hsl(var(--metal-silver) / 0.025) 47px, transparent 48px);
+    radial-gradient(circle at 88% -6%, hsl(var(--primary) / 0.07), transparent 32%),
+    linear-gradient(180deg, hsl(var(--background)) 0%, hsl(270 24% 2%) 50%, hsl(var(--background)) 100%),
+    repeating-linear-gradient(112deg, transparent 0, transparent 46px, hsl(var(--metal-silver) / 0.014) 47px, transparent 48px);
   color: hsl(var(--foreground));
 }
 
@@ -1766,11 +1766,11 @@ h2,
   box-shadow:
     inset 0 2px 0 hsl(var(--metal-silver-bright) / 0.60),
     inset 0 -20px 28px hsl(272 80% 6% / 0.90),
-    inset 0 0 34px hsl(var(--primary-bright) / 0.35),
+    inset 0 0 28px hsl(var(--primary-bright) / 0.26),
     inset 1px 0 0 hsl(var(--metal-silver-bright) / 0.18),
     inset -1px 0 0 hsl(272 78% 5% / 0.45),
-    0 18px 38px hsl(var(--primary) / 0.50),
-    0 0 50px -8px hsl(var(--primary-bright) / 0.70);
+    0 12px 24px hsl(var(--primary) / 0.26),
+    0 0 22px -10px hsl(var(--primary-bright) / 0.36);
 }
 
 .giq-liquid-purple-button::before {
@@ -1786,9 +1786,9 @@ h2,
   box-shadow:
     inset 0 2px 0 hsl(var(--metal-silver-bright) / 0.65),
     inset 0 -20px 28px hsl(272 80% 6% / 0.85),
-    inset 0 0 40px hsl(var(--primary-bright) / 0.42),
-    0 20px 42px hsl(var(--primary) / 0.55),
-    0 0 34px -6px hsl(var(--secondary) / 0.60);
+    inset 0 0 32px hsl(var(--primary-bright) / 0.30),
+    0 14px 28px hsl(var(--primary) / 0.30),
+    0 0 20px -8px hsl(var(--secondary) / 0.36);
 }
 
 .giq-button:disabled,
@@ -2348,11 +2348,20 @@ h2,
 }
 
 .giq-search-shell:focus-within {
-  border-color: hsl(var(--secondary-light) / 0.72);
+  border-color: hsl(var(--primary-light) / 0.72);
   box-shadow:
     var(--edge-top),
-    inset 0 0 18px hsl(var(--secondary-light) / 0.12),
-    0 0 28px -8px hsl(var(--secondary) / 0.72);
+    inset 0 0 18px hsl(var(--primary-bright) / 0.12),
+    0 0 28px -8px hsl(var(--primary-bright) / 0.72);
+}
+
+.giq-search-shell:focus-within .giq-search-input {
+  color: hsl(var(--metal-silver-bright));
+  caret-color: hsl(var(--primary-light));
+}
+
+.giq-search-shell:focus-within > svg {
+  color: hsl(var(--primary-light));
 }
 
 .giq-alert-wrap {
@@ -3740,8 +3749,8 @@ select.giq-form-control option:checked {
     0 10px 22px hsl(0 0% 0% / 0.22);
 }
 
-.giq-button:not(.giq-button-primary):not(.giq-button-gold):not(.giq-liquid-purple-button):not(.giq-button-chrome):not(.is-active):not([aria-current="page"]):not([aria-selected="true"]):not([aria-pressed="true"]):hover,
-.giq-button:not(.giq-button-primary):not(.giq-button-gold):not(.giq-liquid-purple-button):not(.giq-button-chrome):not(.is-active):not([aria-current="page"]):not([aria-selected="true"]):not([aria-pressed="true"]):focus-visible,
+.giq-button:not(.giq-button-primary):not(.giq-button-gold):not(.giq-liquid-purple-button):not(.giq-button-chrome):not(.giq-header-login-action):not(.is-active):not([aria-current="page"]):not([aria-selected="true"]):not([aria-pressed="true"]):hover,
+.giq-button:not(.giq-button-primary):not(.giq-button-gold):not(.giq-liquid-purple-button):not(.giq-button-chrome):not(.giq-header-login-action):not(.is-active):not([aria-current="page"]):not([aria-selected="true"]):not([aria-pressed="true"]):focus-visible,
 .giq-header-nav-link:not(.is-active):hover,
 .giq-mobile-dock-link:not(.is-active):hover,
 .giq-mobile-dock-link:not(.is-active):focus-visible {
@@ -3759,6 +3768,30 @@ select.giq-form-control option:checked {
     0 14px 30px hsl(30 40% 4% / 0.42),
     0 0 30px -8px hsl(var(--secondary) / 0.60);
   text-shadow: 0 1px 0 hsl(var(--secondary-light) / 0.42);
+}
+
+.giq-button.giq-button-glass.giq-header-auth-action.giq-header-login-action:hover,
+.giq-button.giq-button-glass.giq-header-auth-action.giq-header-login-action:focus-visible {
+  border-color: hsl(var(--primary-light) / 0.72);
+  color: hsl(var(--metal-silver-bright));
+  background-color: hsl(281 68% 26%);
+  background-image:
+    radial-gradient(ellipse 75% 55% at 50% -8%, hsl(var(--primary-bright) / 0.72), transparent 60%),
+    linear-gradient(180deg, hsl(var(--primary-bright) / 0.28) 0%, transparent 42%, hsl(272 78% 6% / 0.58) 100%);
+  background-size: auto, auto;
+  box-shadow:
+    inset 0 1px 0 hsl(var(--metal-silver-bright) / 0.38),
+    inset 0 -12px 22px hsl(272 80% 6% / 0.72),
+    inset 0 0 22px hsl(var(--primary-bright) / 0.24),
+    0 10px 22px hsl(var(--primary) / 0.28),
+    0 0 22px -10px hsl(var(--primary-bright) / 0.40);
+  text-shadow: 0 1px 1px hsl(0 0% 0% / 0.50);
+}
+
+.giq-button.giq-button-glass.giq-header-auth-action.giq-header-login-action::after {
+  background:
+    radial-gradient(ellipse 120% 135% at 50% 130%, hsl(var(--primary-bright) / 0.46), transparent 60%),
+    linear-gradient(180deg, hsl(var(--primary-light) / 0.24) 0%, hsl(var(--primary) / 0.18) 42%, transparent 72%);
 }
 
 .giq-button.is-active,

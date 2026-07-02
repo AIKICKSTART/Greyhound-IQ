@@ -16,6 +16,9 @@ const COUNTS = [
   { key: "billingCustomers", label: "Billing customers" },
   { key: "plans", label: "Plans" },
   { key: "subscriptions", label: "Subscriptions" },
+  { key: "termsAcceptances", label: "Terms acceptances" },
+  { key: "consentEvents", label: "Consent events" },
+  { key: "marketingPreferences", label: "Marketing preferences" },
   { key: "webhookEvents", label: "Webhook events" },
   { key: "invoiceRecords", label: "Invoice records" },
   { key: "paymentRecords", label: "Payment records" },
@@ -43,7 +46,7 @@ export default async function AdminPage() {
           Read-only overview
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Local account, invitation, billing, webhook, invoice, and usage outbox counts.
+          Local account, invitation, compliance, billing, webhook, invoice, and usage outbox counts.
         </p>
 
         <div className="mt-5 flex flex-wrap gap-3">
@@ -89,6 +92,9 @@ export default async function AdminPage() {
           <Link href="/admin/audit" className="giq-outline-action">
             Audit
           </Link>
+          <Link href="/admin/compliance" className="giq-outline-action">
+            Compliance
+          </Link>
           <Link href="/admin/reports" className="giq-outline-action">
             Reports
           </Link>
@@ -127,6 +133,9 @@ async function getAdminCounts(): Promise<AdminCounts> {
     billingCustomers,
     plans,
     subscriptions,
+    termsAcceptances,
+    consentEvents,
+    marketingPreferences,
     webhookEvents,
     invoiceRecords,
     paymentRecords,
@@ -137,6 +146,9 @@ async function getAdminCounts(): Promise<AdminCounts> {
     countRows(() => prisma.billingCustomer.count()),
     countRows(() => prisma.plan.count()),
     countRows(() => prisma.subscription.count()),
+    countRows(() => prisma.termsAcceptance.count()),
+    countRows(() => prisma.consentEvent.count()),
+    countRows(() => prisma.marketingPreference.count()),
     countRows(() => prisma.webhookEvent.count()),
     countRows(() => prisma.invoiceRecord.count()),
     countRows(() => prisma.paymentRecord.count()),
@@ -149,6 +161,9 @@ async function getAdminCounts(): Promise<AdminCounts> {
     billingCustomers,
     plans,
     subscriptions,
+    termsAcceptances,
+    consentEvents,
+    marketingPreferences,
     webhookEvents,
     invoiceRecords,
     paymentRecords,

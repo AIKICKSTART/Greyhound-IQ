@@ -355,6 +355,9 @@ model User {
   consentEvents        ConsentEvent[]
   marketingPreferences MarketingPreference[]
   sentOrganizationInvitations OrganizationInvitation[] @relation("OrganizationInvitationsSent")
+  adminActions        AdminAction[] @relation("AdminActionAdmin")
+  affectedAdminActions AdminAction[] @relation("AdminActionAffectedUser")
+  triggeredJobRuns    JobRun[]      @relation("JobRunAdmin")
 }
 
 model TermsAcceptance {
@@ -1169,6 +1172,57 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([action, createdAt])
   @@index([targetType, targetId])
+}
+
+model AdminAction {
+  id             String   @id @default(cuid())
+  adminId        String?
+  admin          User?    @relation("AdminActionAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+  affectedUserId String?
+  affectedUser   User?    @relation("AdminActionAffectedUser", fields: [affectedUserId], references: [id], onDelete: SetNull)
+  action         String
+  targetType     String?
+  targetId       String?
+  reason         String
+  createdAt      DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([affectedUserId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, targetId])
+}
+
+model JobRun {
+  id                 String    @id @default(cuid())
+  name               String
+  status             String    @default("pending")
+  triggeredByAdminId String?
+  triggeredByAdmin   User?     @relation("JobRunAdmin", fields: [triggeredByAdminId], references: [id], onDelete: SetNull)
+  startedAt          DateTime?
+  completedAt        DateTime?
+  error              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([name, createdAt])
+  @@index([status, createdAt])
+  @@index([triggeredByAdminId, createdAt])
+}
+
+model DataSourceHealth {
+  id             String    @id @default(cuid())
+  sourceProvider String    @unique
+  status         String    @default("unknown")
+  lastCheckedAt  DateTime  @default(now())
+  lastSuccessAt  DateTime?
+  lastFailureAt  DateTime?
+  latencyMs      Int?
+  error          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status, lastCheckedAt])
+  @@index([lastSuccessAt])
 }
 
 model Report {

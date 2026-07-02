@@ -2662,8 +2662,9 @@ h2,
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 42% 42% at 8% 18%, hsl(var(--primary-bright) / 0.15), transparent 66%),
-    radial-gradient(ellipse 34% 28% at 78% 24%, hsl(var(--secondary-light) / 0.13), transparent 72%),
+    radial-gradient(ellipse 42% 42% at 8% 18%, hsl(197 96% 62% / 0.10), transparent 66%),
+    radial-gradient(ellipse 34% 28% at 78% 24%, hsl(var(--secondary-light) / 0.10), transparent 72%),
+    radial-gradient(ellipse 28% 30% at 92% 72%, hsl(142 70% 48% / 0.075), transparent 72%),
     linear-gradient(180deg, transparent, hsl(270 40% 2% / 0.36) 52%, transparent);
 }
 
@@ -2713,20 +2714,20 @@ h2,
   border-radius: 14px;
   background-color: hsl(var(--surface-1) / 0.84);
   background-image:
-    radial-gradient(ellipse 48% 50% at 17% -10%, hsl(var(--primary-bright) / 0.18), transparent 68%),
-    radial-gradient(ellipse 34% 42% at 88% 0%, hsl(var(--secondary-light) / 0.13), transparent 72%),
+    radial-gradient(ellipse 42% 46% at 12% -8%, hsl(197 96% 62% / 0.12), transparent 70%),
+    radial-gradient(ellipse 32% 38% at 88% 0%, hsl(var(--secondary-light) / 0.11), transparent 72%),
     linear-gradient(180deg, hsl(0 0% 100% / 0.12), hsl(0 0% 100% / 0.025) 24%, hsl(0 0% 0% / 0.48) 100%),
     repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.052) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.38) 5px 7px, transparent 7px 11px),
     repeating-linear-gradient(135deg, hsl(0 0% 100% / 0.04) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.42) 5px 7px, transparent 7px 11px),
     linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--surface-2)) 52%, hsl(var(--surface-1)) 100%);
-  background-size: auto, 12px 12px, 12px 12px, auto;
+  background-size: auto, auto, auto, 12px 12px, 12px 12px, auto;
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.18),
-    inset 0 24px 40px -26px hsl(var(--primary) / 0.58),
+    inset 0 24px 40px -26px hsl(197 96% 62% / 0.26),
     inset 0 0 0 1px hsl(0 0% 100% / 0.035),
     0 1px 0 hsl(0 0% 0% / 0.40),
     0 24px 54px hsl(0 0% 0% / 0.38),
-    0 0 46px -28px hsl(var(--primary-bright) / 0.70);
+    0 0 46px -28px hsl(197 96% 62% / 0.58);
   backdrop-filter: var(--blur-glass);
   -webkit-backdrop-filter: var(--blur-glass);
 }
@@ -2744,8 +2745,8 @@ h2,
   border-radius: inherit;
   background:
     linear-gradient(90deg, transparent 0%, hsl(var(--metal-silver-bright) / 0.12) 18%, transparent 34%),
-    linear-gradient(180deg, hsl(var(--primary-bright) / 0.16), transparent 22%),
-    radial-gradient(ellipse 40% 34% at 100% 0%, hsl(var(--secondary-light) / 0.18), transparent 70%);
+    linear-gradient(180deg, hsl(197 96% 62% / 0.12), transparent 22%),
+    radial-gradient(ellipse 40% 34% at 100% 0%, hsl(var(--secondary-light) / 0.16), transparent 70%);
 }
 
 .giq-comparison-board::after {
@@ -2766,8 +2767,9 @@ h2,
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 32% 40% at 74% 20%, hsl(var(--secondary-light) / 0.17), transparent 72%),
-    radial-gradient(ellipse 38% 46% at 16% 72%, hsl(var(--primary-bright) / 0.19), transparent 72%);
+    radial-gradient(ellipse 32% 40% at 74% 20%, hsl(var(--secondary-light) / 0.14), transparent 72%),
+    radial-gradient(ellipse 38% 46% at 16% 72%, hsl(197 96% 62% / 0.14), transparent 72%),
+    radial-gradient(ellipse 24% 30% at 86% 78%, hsl(142 70% 48% / 0.10), transparent 70%);
   filter: blur(8px);
   opacity: 0.68;
 }
@@ -2807,8 +2809,10 @@ h2,
 }
 
 .giq-comparison-column-header span:nth-child(3) {
-  color: hsl(var(--secondary-light));
-  text-shadow: 0 0 14px hsl(var(--secondary-light) / 0.22);
+  color: hsl(var(--metal-silver-bright));
+  text-shadow:
+    0 0 14px hsl(197 96% 62% / 0.18),
+    0 0 18px hsl(var(--secondary-light) / 0.14);
 }
 
 .giq-comparison-row-list {
@@ -2818,6 +2822,10 @@ h2,
 }
 
 .giq-comparison-row {
+  --giq-accent: var(--primary-bright);
+  --giq-accent-strong: var(--primary-light);
+  --giq-accent-secondary: var(--secondary-light);
+  --giq-cell-fg: hsl(var(--metal-silver-bright));
   position: relative;
   overflow: hidden;
   min-height: 60px;
@@ -2839,8 +2847,8 @@ h2,
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 36% 90% at 0% 50%, hsl(var(--primary-bright) / 0.18), transparent 72%),
-    linear-gradient(90deg, transparent 48%, hsl(var(--secondary-light) / 0.08));
+    radial-gradient(ellipse 36% 90% at 0% 50%, hsl(var(--giq-accent) / 0.18), transparent 72%),
+    linear-gradient(90deg, transparent 48%, hsl(var(--giq-accent-secondary) / 0.08));
   opacity: 0;
   transition: opacity 180ms ease;
 }
@@ -2860,11 +2868,60 @@ h2,
 }
 
 .giq-comparison-row.is-emphasis {
-  border-color: hsl(var(--secondary-light) / 0.26);
+  border-color: hsl(var(--giq-accent-strong) / 0.34);
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.11),
     0 12px 30px hsl(0 0% 0% / 0.22),
-    0 0 24px -18px hsl(var(--secondary-light) / 0.84);
+    0 0 24px -18px hsl(var(--giq-accent-strong) / 0.84);
+}
+
+.giq-comparison-row--official {
+  --giq-accent: 194 94% 58%;
+  --giq-accent-strong: 190 100% 76%;
+  --giq-accent-secondary: 42 92% 74%;
+  --giq-cell-fg: hsl(190 100% 86%);
+}
+
+.giq-comparison-row--currency {
+  --giq-accent: 42 82% 55%;
+  --giq-accent-strong: 44 92% 74%;
+  --giq-accent-secondary: 190 100% 76%;
+  --giq-cell-fg: hsl(47 100% 84%);
+}
+
+.giq-comparison-row--price {
+  --giq-accent: 41 86% 56%;
+  --giq-accent-strong: 44 96% 75%;
+  --giq-accent-secondary: 284 86% 70%;
+  --giq-cell-fg: hsl(36 60% 11%);
+}
+
+.giq-comparison-row--ai {
+  --giq-accent: 274 96% 66%;
+  --giq-accent-strong: 288 100% 72%;
+  --giq-accent-secondary: 204 96% 64%;
+  --giq-cell-fg: hsl(286 100% 90%);
+}
+
+.giq-comparison-row--mobile {
+  --giq-accent: 142 70% 45%;
+  --giq-accent-strong: 144 72% 62%;
+  --giq-accent-secondary: 42 92% 74%;
+  --giq-cell-fg: hsl(144 80% 86%);
+}
+
+.giq-comparison-row--clean {
+  --giq-accent: var(--metal-silver);
+  --giq-accent-strong: var(--metal-silver-bright);
+  --giq-accent-secondary: 194 94% 58%;
+  --giq-cell-fg: hsl(var(--metal-silver-bright));
+}
+
+.giq-comparison-row--api {
+  --giq-accent: 220 96% 62%;
+  --giq-accent-strong: 214 100% 75%;
+  --giq-accent-secondary: 274 96% 66%;
+  --giq-cell-fg: hsl(214 100% 88%);
 }
 
 .giq-comparison-feature,
@@ -2892,17 +2949,17 @@ h2,
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border: 1px solid hsl(var(--secondary-light) / 0.32);
+  border: 1px solid hsl(var(--giq-accent-strong) / 0.38);
   border-radius: 8px;
-  color: hsl(var(--secondary-light));
+  color: hsl(var(--giq-accent-strong));
   background:
-    radial-gradient(ellipse 72% 76% at 50% -12%, hsl(var(--primary-bright) / 0.34), transparent 64%),
+    radial-gradient(ellipse 72% 76% at 50% -12%, hsl(var(--giq-accent) / 0.28), transparent 64%),
     linear-gradient(180deg, hsl(0 0% 100% / 0.10), hsl(0 0% 100% / 0.02)),
     hsl(var(--surface-2) / 0.72);
   box-shadow:
     inset 0 1px 0 hsl(var(--metal-silver-bright) / 0.16),
     0 10px 22px hsl(0 0% 0% / 0.22),
-    0 0 22px -12px hsl(var(--primary-bright) / 0.85);
+    0 0 22px -12px hsl(var(--giq-accent-strong) / 0.85);
 }
 
 .giq-comparison-cell {
@@ -2965,18 +3022,19 @@ h2,
 
 .giq-comparison-cell--giq {
   overflow: hidden;
-  border: 1px solid hsl(var(--primary-light) / 0.62);
-  color: hsl(var(--metal-silver-bright));
+  border: 1px solid hsl(var(--giq-accent-strong) / 0.56);
+  color: var(--giq-cell-fg);
   background:
-    radial-gradient(ellipse 76% 58% at 50% -8%, hsl(var(--primary-bright) / 0.82), transparent 62%),
-    linear-gradient(180deg, hsl(var(--primary-bright) / 0.30) 0%, transparent 44%, hsl(272 78% 6% / 0.68) 100%),
-    hsl(281 68% 24% / 0.92);
+    radial-gradient(ellipse 76% 58% at 50% -8%, hsl(var(--giq-accent-strong) / 0.36), transparent 62%),
+    radial-gradient(ellipse 86% 78% at 102% 104%, hsl(var(--giq-accent-secondary) / 0.18), transparent 70%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.14), hsl(0 0% 100% / 0.025) 42%, hsl(0 0% 0% / 0.48) 100%),
+    hsl(270 16% 10% / 0.92);
   box-shadow:
-    inset 0 1.5px 0 hsl(var(--metal-silver-bright) / 0.46),
-    inset 0 -12px 20px hsl(272 80% 6% / 0.72),
-    inset 0 0 24px hsl(var(--primary-bright) / 0.22),
-    0 10px 24px hsl(var(--primary) / 0.28),
-    0 0 28px -10px hsl(var(--primary-bright) / 0.64);
+    inset 0 1.5px 0 hsl(var(--metal-silver-bright) / 0.34),
+    inset 0 -12px 20px hsl(0 0% 0% / 0.44),
+    inset 0 0 22px hsl(var(--giq-accent) / 0.16),
+    0 10px 24px hsl(0 0% 0% / 0.26),
+    0 0 28px -10px hsl(var(--giq-accent-strong) / 0.56);
   text-shadow: 0 1px 1px hsl(0 0% 0% / 0.50);
 }
 
@@ -2987,8 +3045,24 @@ h2,
   pointer-events: none;
   background:
     linear-gradient(110deg, transparent 18%, hsl(var(--metal-silver-bright) / 0.16) 48%, transparent 72%),
-    radial-gradient(ellipse 74% 82% at 100% 100%, hsl(var(--secondary-light) / 0.14), transparent 70%);
+    radial-gradient(ellipse 74% 82% at 100% 100%, hsl(var(--giq-accent-secondary) / 0.14), transparent 70%);
   opacity: 0.58;
+}
+
+.giq-comparison-row--ai .giq-comparison-cell--giq {
+  background:
+    radial-gradient(ellipse 72% 60% at 44% -8%, hsl(var(--giq-accent-strong) / 0.54), transparent 62%),
+    radial-gradient(ellipse 70% 70% at 100% 100%, hsl(var(--giq-accent-secondary) / 0.22), transparent 70%),
+    linear-gradient(180deg, hsl(288 100% 72% / 0.18), hsl(220 96% 8% / 0.55)),
+    hsl(266 48% 16% / 0.94);
+}
+
+.giq-comparison-row--clean .giq-comparison-cell--giq {
+  background:
+    radial-gradient(ellipse 78% 68% at 50% -10%, hsl(var(--metal-silver-bright) / 0.22), transparent 64%),
+    radial-gradient(ellipse 68% 74% at 100% 100%, hsl(194 94% 58% / 0.12), transparent 70%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.15), hsl(0 0% 100% / 0.024) 42%, hsl(0 0% 0% / 0.46) 100%),
+    hsl(260 8% 12% / 0.94);
 }
 
 .giq-comparison-cell--giq.is-highlight {
@@ -3127,7 +3201,11 @@ h2,
   }
 
   .giq-comparison-cell--giq .giq-comparison-mobile-label {
-    color: hsl(var(--secondary-light) / 0.82);
+    color: hsl(var(--giq-accent-strong) / 0.86);
+  }
+
+  .giq-comparison-cell--giq.is-highlight .giq-comparison-mobile-label {
+    color: hsl(36 60% 14% / 0.72);
   }
 
   .giq-comparison-value {
@@ -3294,6 +3372,18 @@ h2,
   border-color: hsl(var(--metal-silver) / 0.14);
   background-color: hsl(0 0% 100% / 0.05);
   color: hsl(var(--muted-foreground));
+}
+
+.giq-pill-sky {
+  border-color: hsl(194 94% 64% / 0.32);
+  background-color: hsl(194 94% 58% / 0.12);
+  color: hsl(190 100% 78%);
+}
+
+.giq-pill-green {
+  border-color: hsl(142 70% 52% / 0.32);
+  background-color: hsl(142 70% 44% / 0.13);
+  color: hsl(144 72% 68%);
 }
 
 .giq-pill-gold {

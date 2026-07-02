@@ -64,18 +64,21 @@ const COMPARISON = [
     them: "User-contributed",
     us: "Official feeds",
     Icon: DatabaseZap,
+    tone: "official",
   },
   {
     feature: "Currency",
     them: "GBP (£)",
     us: "AUD ($)",
     Icon: BadgeDollarSign,
+    tone: "currency",
   },
   {
     feature: "Pro price/year",
     them: "~$125 AUD",
     us: "$99 AUD",
     Icon: BadgeDollarSign,
+    tone: "price",
     emphasis: true,
   },
   {
@@ -83,25 +86,28 @@ const COMPARISON = [
     them: "Not available",
     us: "ML-powered",
     Icon: Sparkles,
-    emphasis: true,
+    tone: "ai",
   },
   {
     feature: "Mobile-first",
     them: "Not available",
     us: "Built mobile-first",
     Icon: Smartphone,
+    tone: "mobile",
   },
   {
     feature: "Ad-free",
     them: "Ad-heavy",
     us: "Zero ads",
     Icon: ShieldCheck,
+    tone: "clean",
   },
   {
     feature: "API access",
     them: "Not available",
     us: "Pro+ tier",
     Icon: Code2,
+    tone: "api",
   },
 ] as const;
 
@@ -240,9 +246,9 @@ function WhyGreyhoundIQSection() {
           </p>
         </div>
         <div className="giq-comparison-meta" aria-label="GreyhoundIQ advantages">
-          <span className="giq-pill giq-pill-purple">AI powered</span>
+          <span className="giq-pill giq-pill-sky">Official data</span>
           <span className="giq-pill giq-pill-gold">$99 AUD</span>
-          <span className="giq-pill giq-pill-muted">Zero ads</span>
+          <span className="giq-pill giq-pill-green">Mobile first</span>
         </div>
       </div>
 
@@ -265,7 +271,7 @@ function WhyGreyhoundIQSection() {
             return (
               <article
                 key={item.feature}
-                className={`giq-comparison-row${isEmphasis ? " is-emphasis" : ""}`}
+                className={`giq-comparison-row giq-comparison-row--${item.tone}${isEmphasis ? " is-emphasis" : ""}`}
               >
                 <div className="giq-comparison-feature">
                   <span className="giq-comparison-feature-icon">

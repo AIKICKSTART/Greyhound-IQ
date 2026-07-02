@@ -34,10 +34,23 @@ type AccountDeletionAuditRow = {
   createdAt: Date;
 };
 
+type DeletionJobRow = {
+  id: string;
+  policyId: string | null;
+  targetType: string;
+  targetUserId: string | null;
+  status: string;
+  scheduledFor: Date;
+  completedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export default async function AdminAccountDeletionPage() {
   await requireModeratorProfile();
-  const [pendingRequests, auditLogs] = await Promise.all([
+  const [pendingRequests, deletionJobs, auditLogs] = await Promise.all([
     getPendingDeletionRequests(),
+    getDeletionJobs(),
     getAccountDeletionAuditLogs(),
   ]);
 
@@ -143,6 +156,66 @@ export default async function AdminAccountDeletionPage() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+              Jobs
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold text-[hsl(var(--foreground))]">
+              Deletion jobs
+            </h2>
+          </div>
+          <p className="text-[12px] text-[hsl(var(--muted-foreground))]">
+            Latest {RECENT_LIMIT} by scheduled time
+          </p>
+        </div>
+
+        <div className="giq-table-shell mt-6 overflow-x-auto">
+          <table className="w-full min-w-[1180px]">
+            <thead>
+              <tr className="giq-table-head">
+                <th className="px-4 py-3 text-left">Job ID</th>
+                <th className="px-4 py-3 text-left">Policy ID</th>
+                <th className="px-4 py-3 text-left">Target type</th>
+                <th className="px-4 py-3 text-left">Target user ID</th>
+                <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Scheduled</th>
+                <th className="px-4 py-3 text-left">Completed</th>
+                <th className="px-4 py-3 text-left">Created</th>
+                <th className="px-4 py-3 text-left">Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deletionJobs.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={9}
+                    className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
+                  >
+                    No deletion jobs found.
+                  </td>
+                </tr>
+              ) : (
+                deletionJobs.map((job) => (
+                  <tr key={job.id} className="border-t border-white/[0.06]">
+                    <MonoCell>{job.id}</MonoCell>
+                    <MonoCell>{job.policyId ?? "No policy"}</MonoCell>
+                    <MonoCell>{job.targetType}</MonoCell>
+                    <MonoCell>{job.targetUserId ?? "No target user"}</MonoCell>
+                    <MonoCell>{job.status}</MonoCell>
+                    <DateCell date={job.scheduledFor} emptyLabel="Not scheduled" />
+                    <DateCell date={job.completedAt} emptyLabel="Not completed" />
+                    <DateCell date={job.createdAt} emptyLabel="Not recorded" />
+                    <DateCell date={job.updatedAt} emptyLabel="Not recorded" />
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="giq-panel mt-6 p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
               Audit
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-[hsl(var(--foreground))]">
@@ -215,6 +288,28 @@ function DateCell({
     <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
       {formatDateTime(date, emptyLabel)}
     </td>
+  );
+}
+
+function getDeletionJobs() {
+  return safeQuery<DeletionJobRow[]>(
+    () =>
+      prisma.deletionJob.findMany({
+        orderBy: { scheduledFor: "desc" },
+        take: RECENT_LIMIT,
+        select: {
+          id: true,
+          policyId: true,
+          targetType: true,
+          targetUserId: true,
+          status: true,
+          scheduledFor: true,
+          completedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+    []
   );
 }
 

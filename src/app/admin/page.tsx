@@ -19,6 +19,8 @@ const COUNTS = [
   { key: "termsAcceptances", label: "Terms acceptances" },
   { key: "consentEvents", label: "Consent events" },
   { key: "marketingPreferences", label: "Marketing preferences" },
+  { key: "retentionPolicies", label: "Retention policies" },
+  { key: "deletionJobs", label: "Deletion jobs" },
   { key: "feedback", label: "Feedback" },
   { key: "bugReports", label: "Bug reports" },
   { key: "webhookEvents", label: "Webhook events" },
@@ -114,6 +116,9 @@ export default async function AdminPage() {
           <Link href="/admin/compliance" className="giq-outline-action">
             Compliance
           </Link>
+          <Link href="/admin/retention" className="giq-outline-action">
+            Retention
+          </Link>
           <Link href="/admin/reports" className="giq-outline-action">
             Reports
           </Link>
@@ -155,6 +160,8 @@ async function getAdminCounts(): Promise<AdminCounts> {
     termsAcceptances,
     consentEvents,
     marketingPreferences,
+    retentionPolicies,
+    deletionJobs,
     feedback,
     bugReports,
     webhookEvents,
@@ -174,6 +181,8 @@ async function getAdminCounts(): Promise<AdminCounts> {
     countRows(() => prisma.termsAcceptance.count()),
     countRows(() => prisma.consentEvent.count()),
     countRows(() => prisma.marketingPreference.count()),
+    countRows(() => prisma.retentionPolicy.count()),
+    countRows(() => prisma.deletionJob.count()),
     countRows(() => prisma.feedback.count()),
     countRows(() => prisma.bugReport.count()),
     countRows(() => prisma.webhookEvent.count()),
@@ -195,6 +204,8 @@ async function getAdminCounts(): Promise<AdminCounts> {
     termsAcceptances,
     consentEvents,
     marketingPreferences,
+    retentionPolicies,
+    deletionJobs,
     feedback,
     bugReports,
     webhookEvents,

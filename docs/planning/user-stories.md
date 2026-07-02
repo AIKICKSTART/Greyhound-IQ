@@ -10,7 +10,7 @@
 ## Index
 
 - [Phase 1 — Foundation (Weeks 1–2)](#phase-1--foundation-weeks-12)
-  - [E1 · Supabase & Auth](#e1--supabase--auth)
+  - [E1 · WorkOS Auth & User Identity](#e1--workos-auth--user-identity)
   - [E2 · Data Ingestion Spine](#e2--data-ingestion-spine)
   - [E3 · Media Upload](#e3--media-upload)
   - [E4 · 1:1 Messaging](#e4--11-messaging)
@@ -36,65 +36,67 @@
 
 **Phase exit criterion:** Two users can sign up, message each other with text + image.
 
-### E1 · Supabase & Auth
+### E1 · WorkOS Auth & User Identity
 
-#### US-1.1 — Sign up with email + password
+#### US-1.1 — Sign up with WorkOS
 **As a** new visitor
-**I want to** create an account with email and password
+**I want to** create an account through WorkOS AuthKit
 **So that** I can use GreyhoundIQ's messaging, agents, and personalised features
 
 **Acceptance criteria:**
-- A user can submit email + password (min 12 chars, complexity check) on `/signup`
-- Email is verified via a Resend-sent magic link before the account is active
-- A `User` row is created in Prisma with `supabaseUserId = auth.users.id` mirror
+- `/sign-in` redirects to the WorkOS AuthKit hosted sign-up/sign-in flow
+- WorkOS owns credentials, verification, OAuth/passwordless provider config, and session cookies
+- The app does not create or depend on non-WorkOS identity records
+- On successful WorkOS callback, Prisma creates or links a local `User` with `User.workosUserId = WorkOS user id`
 - Rate limit: max 5 signups per IP per hour (CAPTCHA after 3)
 - Generic error message on auth failure (no account enumeration)
 - `isBanned` users see a generic "we can't create an account right now" message
 
-**Given** I am a new visitor on `/signup`
-**When** I enter a valid email + 12+ char password and click "Create account"
-**Then** I see a "Check your email" screen and receive a verification email within 60s
+**Given** I am a new visitor on `/sign-in`
+**When** I complete the WorkOS sign-up flow
+**Then** I return to GreyhoundIQ with a local `User` row linked by `User.workosUserId`
 
-#### US-1.2 — Sign in with email + password
+#### US-1.2 — Sign in with WorkOS
 **As a** registered user
-**I want to** sign in with my email and password
+**I want to** sign in through WorkOS AuthKit
 **So that** I can access my account
 
 **Acceptance criteria:**
-- Auth uses Supabase Auth directly (no NextAuth wrapper)
-- Session stored in HTTP-only cookies via `@supabase/ssr`
-- Access token TTL: 1 hour; refresh token rotates on every API call
-- After 10 failed attempts in 15 min, account is locked for 15 min
+- Auth uses WorkOS AuthKit via `@workos-inc/authkit-nextjs`
+- The app validates sessions with `withAuth()` and bridges them to the local `User` row
+- Supabase remains a data/storage/realtime backend only, not the identity provider
+- Account lockout and credential policy are enforced by WorkOS configuration
 - All auth events written to `AuditLog` (`action: "auth.signin.success" | "auth.signin.fail"`)
 
-**Given** I have a verified account and enter correct credentials
+**Given** I have a verified WorkOS account
 **When** I click "Sign in"
-**Then** I land on `/` with a sticky session, and `User.lastSeenAt` is updated
+**Then** I land on `/` with a sticky session, and the local `User` is available by `User.workosUserId`
 
-#### US-1.3 — Sign in with Google OAuth
+#### US-1.3 — Sign in with Google OAuth through WorkOS
 **As a** user who prefers Google
 **I want to** sign in with my Google account
 **So that** I don't need another password
 
 **Acceptance criteria:**
-- OAuth flow via Supabase, scoped to `email profile`
-- On success, User row created (or linked via email if existing)
-- OAuth callback URL whitelisted to `https://greyhoundiq.com.au/auth/callback` only
+- Google OAuth, if enabled, is configured in WorkOS and scoped to `email profile`
+- On success, `User` row created or linked by email, with `User.workosUserId` set
+- WorkOS callback URL is whitelisted to the production `/callback` route
 - Open redirect attempts → 400
 
-**Given** I click "Continue with Google" and authorize the app
-**When** Google redirects me to `/auth/callback`
+**Given** I click "Continue with Google" in the WorkOS AuthKit flow
+**When** WorkOS redirects me to `/callback`
 **Then** a session is established and I'm routed to `/`
 
-#### US-1.4 — Magic link sign-in (opt-in)
+#### US-1.4 — Passwordless sign-in (opt-in)
 **As a** user who doesn't want to remember a password
-**I want to** request a magic link by email
+**I want to** request a WorkOS passwordless sign-in
 **So that** I can sign in without a password
 
 **Acceptance criteria:**
-- Magic link is single-use, expires in 15 min
-- New account is auto-created on first magic-link sign-in (after email verification of the link itself)
-- Rate limit: max 5 magic-link requests per email per hour
+- Passwordless options are configured and sent by WorkOS only
+- The app never creates identity-provider users outside WorkOS
+- On success, the same WorkOS callback syncs `User.workosUserId`
+- Rate limit: max 5 passwordless requests per email per hour
 
 ---
 

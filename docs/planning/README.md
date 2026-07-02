@@ -8,7 +8,7 @@
 
 ## What's in this folder
 
-The architecture doc was reviewed and expanded into 6 production-grade planning documents. Each one is build-ready and self-contained.
+The architecture doc was reviewed and expanded into 7 production-grade planning documents. Each one is build-ready and self-contained.
 
 | # | Document | Purpose | Size |
 |---|----------|---------|------|
@@ -16,8 +16,9 @@ The architecture doc was reviewed and expanded into 6 production-grade planning 
 | 2 | **[api-architecture.md](api-architecture.md)** | REST route reference with auth, rate limits, data contracts, error codes, cron schedule | ~18 KB |
 | 3 | **[data-model.md](data-model.md)** | Prisma schema for 20+ new models, ERD, RLS policies, index strategy, migration plan | ~27 KB |
 | 4 | **[security-threat-model.md](security-threat-model.md)** | Threat catalog (13 categories), RLS examples, agent harness security, APPs compliance, pre-launch checklist | ~22 KB |
-| 5 | **[operations-deployment.md](operations-deployment.md)** | Hetzner VPS topology, CI/CD pipeline, 12 background jobs, monitoring, capacity plan, scaling stages | ~14 KB |
+| 5 | **[operations-deployment.md](operations-deployment.md)** | Operations baseline, CI/CD pipeline, background jobs, monitoring, capacity plan, and scaling stages; Google Cloud VPS production target is corrected in the SaaS layer plan | ~14 KB |
 | 6 | **[testing-strategy.md](testing-strategy.md)** | Test pyramid, Vitest/Playwright/k6 setup, per-layer coverage targets, manual checklist, pre-launch gate | ~13 KB |
+| 7 | **[production-saas-layer-plan.md](production-saas-layer-plan.md)** | Corrected production SaaS layer plan for WorkOS-only accounts, Lago billing/metering, Google Cloud VPS operations, admin/support, and race-provider-safe entitlements | ~30 KB |
 
 ---
 
@@ -43,8 +44,8 @@ ARCHITECTURE DOC (input)
 │      (validates          (secures the                   │
 │       everything)         everything)                   │
 │                                                          │
-│       OPERATIONS & DEPLOYMENT                            │
-│       (runs the everything)                              │
+│       PRODUCTION SAAS LAYER + OPERATIONS                 │
+│       (runs the account, billing, and runtime layer)      │
 └──────────────────────────────────────────────────────────┘
         │
         ▼
@@ -61,7 +62,8 @@ For Daniel (approving the plan):
 3. **data-model.md** — see the structure
 4. **security-threat-model.md** — see the risks
 5. **testing-strategy.md** — see the validation
-6. **operations-deployment.md** — see the runtime
+6. **production-saas-layer-plan.md** — see the WorkOS, Lago, Google Cloud VPS, and race-provider-safe production layer
+7. **operations-deployment.md** — see the legacy operations baseline
 
 For a new engineer joining mid-project:
 1. **data-model.md** — understand the data
@@ -69,7 +71,8 @@ For a new engineer joining mid-project:
 3. **user-stories.md** — understand the goals
 4. **testing-strategy.md** — understand the bar
 5. **security-threat-model.md** — understand the threats
-6. **operations-deployment.md** — understand the runtime
+6. **production-saas-layer-plan.md** — understand the WorkOS, Lago, Google Cloud VPS, and race-provider-safe production layer
+7. **operations-deployment.md** — understand the legacy operations baseline
 
 For an AI agent (me) implementing:
 1. `user-stories.md` — what user needs to do
@@ -77,7 +80,8 @@ For an AI agent (me) implementing:
 3. `api-architecture.md` — what endpoint to build
 4. `testing-strategy.md` — what tests to write
 5. `security-threat-model.md` — what RLS / auth to add
-6. `operations-deployment.md` — what to deploy + monitor
+6. `production-saas-layer-plan.md` — what account, billing, entitlement, and production hosting layer to build
+7. `operations-deployment.md` — what legacy runtime assumptions to reconcile
 
 ---
 
@@ -89,12 +93,12 @@ Mirrors the architecture doc's 4-phase build plan:
 
 **Exit criterion:** Two users can sign up, message each other with text + image.
 
-- E1 Supabase & Auth (4 stories)
+- E1 WorkOS Auth & Account Foundation (4 stories)
 - E2 Data Ingestion Spine (3 stories)
 - E3 Media Upload (2 stories)
 - E4 1:1 Messaging (4 stories)
 
-**Dependencies built first:** Postgres schema migration → Supabase project setup → Auth providers → RLS policies → Storage buckets → Realtime channels → message endpoints.
+**Dependencies built first:** Postgres schema migration → WorkOS AuthKit setup → local account sync → RLS policies → storage buckets → realtime channels → message endpoints.
 
 ### Phase 2 — Memory (Weeks 2–3)
 
@@ -131,12 +135,14 @@ Mirrors the architecture doc's 4-phase build plan:
 
 ## Key technical decisions (locked from architecture doc)
 
+> Newer production-layer correction: use **WorkOS only** for identity, plan production on an AI Kick Start-owned **Google Cloud VPS**, include **Lago** as the billing/metering layer, and preserve existing race data-source connections. See [production-saas-layer-plan.md](production-saas-layer-plan.md).
+
 1. **Prisma + Supabase client both** — one DB, two adapters. Prisma owns complex queries; Supabase owns realtime + storage.
 2. **Per-user agent memory** — flat rows (no graph DB). pgvector in Phase 2.
 3. **1:1 messaging only** — no group chats.
 4. **No E2E encryption** — server can read messages.
 5. **Single-region (Sydney)** — no multi-region for v1.
-6. **Hetzner VPS** for app; Supabase for DB; Stripe for payments; Resend for email; Sentry for errors.
+6. **Google Cloud VPS** for app, database layer, workers, Lago billing services, and AI agent harnesses; WorkOS for identity; Lago for billing/metering; Stripe or another payment provider for payment collection.
 7. **Hermes CLI on MiniMax M3** — no separate LLM API costs.
 
 ---
@@ -147,7 +153,7 @@ From architecture doc section 17, the 10 questions. Most have reasonable default
 
 | # | Question | Default in plans | Need answer? |
 |---|----------|------------------|--------------|
-| 1 | Hosting (Vercel vs Hetzner vs Supabase edge) | Hetzner VPS confirmed (Daniel has one) | ✅ Resolved |
+| 1 | Hosting target | Google Cloud VPS owned by AI Kick Start | ✅ Resolved |
 | 2 | Multi-region later? | No for v1 | Later decision |
 | 3 | MiniMax M3 token plan constraints? | None known | **Confirm** |
 | 4 | Breeder verification (manual vs auto) | Manual with fast-track | **Confirm** |
@@ -166,7 +172,7 @@ When implementation is complete and tests pass:
 
 - [ ] All 49 user stories implemented
 - [ ] All API endpoints documented + tested
-- [ ] Data model migrated to Supabase
+- [ ] Data model migrated to production Postgres
 - [ ] RLS policies in place + tested
 - [ ] Security scan: no Snyk high/critical
 - [ ] Penetration test: no critical/high findings
@@ -190,7 +196,7 @@ When implementation is complete and tests pass:
 - [x] api-architecture.md — ~80 REST routes, auth, rate limits, error codes
 - [x] data-model.md — Prisma schema for 24+ new models + ERD + RLS policies
 - [x] security-threat-model.md — 15 threat categories, RLS, agent sandbox, APPs
-- [x] operations-deployment.md — Hetzner + Supabase + 17 internal services
+- [x] operations-deployment.md — legacy operations baseline to reconcile with Google Cloud VPS production target
 - [x] testing-strategy.md — Test pyramid, mock all v3 services
 - [x] planning README (this file)
 
@@ -199,7 +205,7 @@ When implementation is complete and tests pass:
 - 2 new Prisma tables: `PromptEvalSet` / `PromptEvalResult`, `AgentApproval`
 - 5 new service components: n8n, localai, whisper, firecrawl, cognee, mem0
 - 3 new security mitigations: agent Docker sandbox, tier 3 approval gate, internal mTLS
-- VPS upgrade path: cx22 → cx32 (+$30/mo) to host new compute
+- Google Cloud VPS upgrade path to host new compute
 - Cost-to-revenue ratio: 1.6% → 2.3% (still healthy)
 
 **Technology Opportunities v3 deltas (2026-06-29):**
@@ -207,7 +213,7 @@ When implementation is complete and tests pass:
 - 2 new Prisma tables: `ModelRegistry`, `GeoAuditResult`
 - 8 new service components: timesfm, autotrain, dify, aider, prometheus, loki, grafana, otel-collector
 - New admin endpoints: `/api/admin/models/*`, `/api/admin/observability/*`, `/api/admin/geo/*`
-- VPS upgrade: cx32 → cx42 (+$60/mo) to host TimesFM + AutoTrain + Grafana stack
+- Google Cloud VPS upgrade to host TimesFM + AutoTrain + Grafana stack
 - Cost-to-revenue ratio: 2.3% → 4.2% (still healthy, monitor as we scale)
 - 3 documented open-source fallback model options (GLM-5.2, Kimi K2.7, Qwen 3) for resilience
 

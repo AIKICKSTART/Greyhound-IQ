@@ -56,7 +56,9 @@ If WorkOS is the active auth provider, configure Supabase Third-Party Auth for W
 }
 ```
 
-GreyhoundIQ maps the WorkOS subject to `User.supabaseUid`. Storage RLS policies resolve that app user id and allow users to write only under their own `users/{user_id}/...` object paths unless their GreyhoundIQ profile role or WorkOS `user_role` is `admin` or `moderator`.
+Supabase is storage infrastructure only; it is not the GreyhoundIQ application identity source. WorkOS remains the auth provider, and GreyhoundIQ links app users by storing the WorkOS subject in `User.workosUserId`.
+
+Storage RLS policies resolve that app user id from the WorkOS subject and allow users to write only under their own `users/{user_id}/...` object paths unless their GreyhoundIQ profile role or WorkOS `user_role` is `admin` or `moderator`.
 
 ## Environment
 

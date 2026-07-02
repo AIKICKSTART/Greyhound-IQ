@@ -326,8 +326,8 @@ model User {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  // Supabase auth links this table via supabase_auth_uid
-  supabaseUid String? @unique
+  // WorkOS auth links this table via the WorkOS user subject.
+  workosUserId String? @unique
 
   // ponytail: community relations are on Profile (1:1), not User.
   // Access via user.profile.posts etc — no redundant FKs here.

@@ -170,7 +170,7 @@ export async function runAccountDeletionMaintenance(
           subscriptionTier: "free",
           stripeCustomerId: null,
           stripeSubscriptionId: null,
-          supabaseUid: null,
+          workosUserId: null,
           isBanned: true,
           deletionRequestedAt: null,
         },

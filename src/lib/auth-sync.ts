@@ -16,7 +16,7 @@ export async function syncAuthUser(user: AuthIdentity) {
       data: {
         email: user.email,
         name: displayName,
-        supabaseUid: user.id,
+        workosUserId: user.id,
         subscriptionTier: "free",
       },
       include: { profile: true },
@@ -35,7 +35,7 @@ export async function syncAuthUser(user: AuthIdentity) {
     data: {
       email: user.email,
       name: displayName,
-      supabaseUid: user.id,
+      workosUserId: user.id,
       isBanned: wasDeletionPending ? false : existing.isBanned,
       deletionRequestedAt: wasDeletionPending ? null : existing.deletionRequestedAt,
     },
@@ -63,7 +63,7 @@ export async function syncAuthUser(user: AuthIdentity) {
 export function findUserForAuth(authId: string, email: string) {
   return prisma.user.findFirst({
     where: {
-      OR: [{ supabaseUid: authId }, { email }],
+      OR: [{ workosUserId: authId }, { email }],
     },
     orderBy: { createdAt: "asc" },
     include: { profile: true },

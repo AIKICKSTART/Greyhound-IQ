@@ -342,6 +342,8 @@ model User {
   entitlementSnapshots EntitlementSnapshot[]
   invoiceRecords      InvoiceRecord[]
   billingEvents       BillingEvent[]
+  usageEvents         UsageEvent[]
+  usageOutboxItems    UsageOutbox[]
 }
 
 // === BILLING ===
@@ -362,6 +364,8 @@ model BillingCustomer {
   entitlementSnapshots EntitlementSnapshot[]
   invoiceRecords       InvoiceRecord[]
   billingEvents        BillingEvent[]
+  usageEvents          UsageEvent[]
+  usageOutboxItems     UsageOutbox[]
 
   @@index([status])
   @@index([createdAt])
@@ -391,6 +395,8 @@ model Subscription {
   entitlementSnapshots EntitlementSnapshot[]
   invoiceRecords       InvoiceRecord[]
   billingEvents        BillingEvent[]
+  usageEvents          UsageEvent[]
+  usageOutboxItems     UsageOutbox[]
 
   @@index([userId, status])
   @@index([billingCustomerId, status])
@@ -514,6 +520,73 @@ model BillingEvent {
   @@index([lagoEventId])
   @@index([eventType, occurredAt])
   @@index([status, occurredAt])
+}
+
+model UsageEvent {
+  id                String    @id @default(cuid())
+  idempotencyKey    String    @unique
+  metricKey         String
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  quantity          Int       @default(1)
+  metadataJson      String?
+  occurredAt        DateTime
+  status            String    @default("received")
+  retryCount        Int       @default(0)
+  lastAttemptAt     DateTime?
+  nextRetryAt       DateTime?
+  processedAt       DateTime?
+  failedAt          DateTime?
+  error             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  outboxEntries UsageOutbox[]
+
+  @@index([metricKey, occurredAt])
+  @@index([userId, occurredAt])
+  @@index([billingCustomerId, occurredAt])
+  @@index([subscriptionId, occurredAt])
+  @@index([status, nextRetryAt])
+  @@index([occurredAt])
+}
+
+model UsageOutbox {
+  id                String    @id @default(cuid())
+  usageEventId      String?
+  usageEvent        UsageEvent? @relation(fields: [usageEventId], references: [id], onDelete: SetNull)
+  idempotencyKey    String    @unique
+  metricKey         String
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  quantity          Int       @default(1)
+  metadataJson      String?
+  occurredAt        DateTime
+  status            String    @default("pending")
+  retryCount        Int       @default(0)
+  lastAttemptAt     DateTime?
+  nextRetryAt       DateTime?
+  sentAt            DateTime?
+  failedAt          DateTime?
+  error             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([usageEventId])
+  @@index([metricKey, occurredAt])
+  @@index([userId, occurredAt])
+  @@index([billingCustomerId, occurredAt])
+  @@index([subscriptionId, occurredAt])
+  @@index([status, nextRetryAt])
+  @@index([occurredAt])
 }
 
 // === COMMUNITY ===

@@ -153,12 +153,13 @@ export async function finalizeMediaUpload(
   if (!media) throw new Error("media.not_found");
 
   const bucket = assertKnownBucket(media.storageBucket);
+  const trustClientScanStatus = process.env.NODE_ENV !== "production";
 
-  if (input.scanStatus === "infected") {
+  if (trustClientScanStatus && input.scanStatus === "infected") {
     await markMediaScanStatus(media.id, "infected");
     throw new Error("media.infected");
   }
-  if (input.scanStatus === "error") {
+  if (trustClientScanStatus && input.scanStatus === "error") {
     await markMediaScanStatus(media.id, "error");
     throw new Error("media.scan_failed");
   }
@@ -183,6 +184,8 @@ export async function finalizeMediaUpload(
     mediaLimits.storageBytes
   );
 
+  if (!trustClientScanStatus) assertMediaClean(media.scanStatus);
+
   const finalized = await prisma.mediaAsset.update({
     where: { id: media.id },
     data: {
@@ -193,11 +196,14 @@ export async function finalizeMediaUpload(
       durationSec: input.durationSec ?? null,
       mediaType: mediaTypeForMimeType(media.mimeType),
       publicUrl: publicUrlForMedia(bucket, media.storagePath),
-      scanStatus: "clean",
-      scanCompletedAt: new Date(),
+      ...(trustClientScanStatus
+        ? { scanStatus: "clean", scanCompletedAt: new Date() }
+        : {}),
       expiresAt: null,
     },
   });
+
+  assertMediaClean(finalized.scanStatus);
 
   await recordUsageEvent({
     idempotencyKey: `media_upload_bytes:${finalized.id}`,

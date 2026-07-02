@@ -1,7 +1,11 @@
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/account-service";
-import type { CurrentUserProfile, Tier } from "@/lib/auth";
+import type { CurrentUserProfile } from "@/lib/auth";
+import {
+  DEFAULT_TIER_ENTITLEMENT_LIMITS,
+  type BillingTier,
+} from "@/lib/billing/entitlements";
 import { cleanText } from "@/lib/content";
 import { prisma } from "@/lib/db";
 
@@ -16,13 +20,12 @@ export const AGENT_TYPES = {
 
 export type AgentType = (typeof AGENT_TYPES)[keyof typeof AGENT_TYPES];
 
-export const AGENT_TIER: Record<AgentType, Tier> = {
-  race_analyst: "pro_plus",
-  breeding_advisor: "pro",
-  form_reader: "free",
+export const AGENT_TIER: Record<AgentType, BillingTier> = {
+  race_analyst: "pro",
+  breeding_advisor: "pro_plus",
+  form_reader: "pro",
 };
 
-const TIER_RANK: Record<Tier, number> = { free: 0, pro: 1, pro_plus: 2 };
 const MEMORY_DECAY_DAYS = 30;
 const MEMORY_REINFORCE_DAYS = 14;
 const MEMORY_DECAY_STEP = 0.05;
@@ -58,7 +61,12 @@ export function normalizeAgentType(type: string) {
 }
 
 export function assertAgentTier(current: CurrentUserProfile, agentType: AgentType) {
-  if (TIER_RANK[current.tier] < TIER_RANK[AGENT_TIER[agentType]]) {
+  const currentAllowance =
+    DEFAULT_TIER_ENTITLEMENT_LIMITS[current.tier].agent_runs_per_month;
+  const requiredAllowance =
+    DEFAULT_TIER_ENTITLEMENT_LIMITS[AGENT_TIER[agentType]].agent_runs_per_month;
+
+  if (currentAllowance < requiredAllowance) {
     throw new Error("payment.required");
   }
 }
@@ -328,6 +336,8 @@ export async function getAgentContextForCurrentUser(
   current: CurrentUserProfile,
   agentType: AgentType
 ) {
+  assertAgentTier(current, agentType);
+
   const context = await getOrCreateConversationContext(current.dbUserId, agentType);
   const memory = await loadAgentMemory(current.dbUserId);
   return { context, memory };

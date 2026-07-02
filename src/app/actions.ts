@@ -365,8 +365,8 @@ export async function createSupportTicket(formData: FormData) {
     });
   });
 
-  revalidatePath("/contact");
-  redirect("/contact?ticket=created");
+  revalidatePath("/account/support");
+  redirect("/account/support?ticket=created");
 }
 
 export async function updateProfile(formData: FormData) {

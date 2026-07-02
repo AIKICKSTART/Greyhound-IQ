@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   Clock,
   Database,
+  Download,
   Lock,
   ShieldCheck,
 } from "lucide-react";
@@ -56,14 +57,25 @@ type MarketingPreferenceRecord = {
   updatedAt: Date;
 };
 
+type ExportArtifactRecord = {
+  exportType: string;
+  status: string;
+  sizeBytes: number | null;
+  completedAt: Date | null;
+  expiresAt: Date | null;
+  createdAt: Date;
+};
+
 type PrivacyRecords = {
   termsAcceptances: TermsAcceptanceRecord[];
   consentEvents: ConsentEventRecord[];
   marketingPreferences: MarketingPreferenceRecord[];
+  exportArtifacts: ExportArtifactRecord[];
 };
 
 const EMPTY_PRIVACY_RECORDS: PrivacyRecords = {
   consentEvents: [],
+  exportArtifacts: [],
   marketingPreferences: [],
   termsAcceptances: [],
 };
@@ -113,7 +125,23 @@ export default async function AccountPrivacyPage() {
                 label="Marketing channels"
                 value={records.marketingPreferences.length}
               />
+              <Metric
+                label="Recent exports"
+                value={records.exportArtifacts.length}
+              />
             </div>
+          </section>
+
+          <section className={PANEL_CLASS}>
+            <SectionHeader
+              icon={<Download className="h-5 w-5 text-[hsl(var(--secondary))]" />}
+              title="Export history"
+            />
+            {records.exportArtifacts.length > 0 ? (
+              <ExportArtifactTable records={records.exportArtifacts} />
+            ) : (
+              <EmptyState label="No export artifacts recorded." />
+            )}
           </section>
 
           <section className={PANEL_CLASS}>
@@ -173,7 +201,12 @@ async function requirePrivacyProfile() {
 async function getPrivacyRecords(userId: string): Promise<PrivacyRecords> {
   return safeQuery<PrivacyRecords>(
     async () => {
-      const [termsAcceptances, consentEvents, marketingPreferences] =
+      const [
+        termsAcceptances,
+        consentEvents,
+        marketingPreferences,
+        exportArtifacts,
+      ] =
         await Promise.all([
           prisma.termsAcceptance.findMany({
             orderBy: [{ acceptedAt: "desc" }],
@@ -207,15 +240,75 @@ async function getPrivacyRecords(userId: string): Promise<PrivacyRecords> {
             },
             where: { userId },
           }),
+          prisma.exportArtifact.findMany({
+            orderBy: [{ createdAt: "desc" }],
+            select: {
+              completedAt: true,
+              createdAt: true,
+              expiresAt: true,
+              exportType: true,
+              sizeBytes: true,
+              status: true,
+            },
+            take: 10,
+            where: {
+              OR: [{ targetUserId: userId }, { requestedByUserId: userId }],
+            },
+          }),
         ]);
 
       return {
         consentEvents,
+        exportArtifacts,
         marketingPreferences,
         termsAcceptances,
       };
     },
     EMPTY_PRIVACY_RECORDS
+  );
+}
+
+function ExportArtifactTable({ records }: { records: ExportArtifactRecord[] }) {
+  return (
+    <ResponsiveTable>
+      <thead>
+        <tr className="border-b border-white/[0.06] bg-white/[0.03] text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+          <th className="px-4 py-3">Type</th>
+          <th className="px-4 py-3">Status</th>
+          <th className="px-4 py-3">Size</th>
+          <th className="px-4 py-3">Completed</th>
+          <th className="px-4 py-3">Expires</th>
+          <th className="px-4 py-3">Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {records.map((record, index) => (
+          <tr
+            key={`${record.exportType}-${record.createdAt.toISOString()}-${index}`}
+            className="border-b border-white/[0.05] last:border-0"
+          >
+            <td className="px-4 py-4 font-semibold text-[hsl(var(--foreground))]">
+              {formatLabel(record.exportType)}
+            </td>
+            <td className="px-4 py-4 text-[hsl(var(--muted-foreground))]">
+              {formatLabel(record.status)}
+            </td>
+            <td className="px-4 py-4 text-[hsl(var(--muted-foreground))]">
+              {formatSizeBytes(record.sizeBytes)}
+            </td>
+            <td className="px-4 py-4 text-[hsl(var(--muted-foreground))]">
+              {formatOptionalDateTime(record.completedAt)}
+            </td>
+            <td className="px-4 py-4 text-[hsl(var(--muted-foreground))]">
+              {formatOptionalDateTime(record.expiresAt)}
+            </td>
+            <td className="px-4 py-4 text-[hsl(var(--muted-foreground))]">
+              {formatDateTime(record.createdAt)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </ResponsiveTable>
   );
 }
 
@@ -411,6 +504,14 @@ function PreferenceStatus({ optedIn }: { optedIn: boolean }) {
 
 function formatDateTime(value: Date) {
   return DATE_TIME_FORMATTER.format(value);
+}
+
+function formatOptionalDateTime(value: Date | null) {
+  return value ? formatDateTime(value) : "Not recorded";
+}
+
+function formatSizeBytes(value: number | null) {
+  return value === null ? "Not recorded" : `${value.toLocaleString("en-AU")} B`;
 }
 
 function formatLabel(value: string) {

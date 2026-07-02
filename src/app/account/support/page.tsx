@@ -1,4 +1,4 @@
-import { ArrowLeft, Clock, LifeBuoy, MessageSquare, Plus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, LifeBuoy, MessageSquare, Plus } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -33,8 +33,15 @@ type SupportTicketSummary = {
   };
 };
 
-export default async function AccountSupportPage() {
+type AccountSupportPageProps = {
+  searchParams: Promise<{ ticket?: string | string[] }>;
+};
+
+export default async function AccountSupportPage({
+  searchParams,
+}: AccountSupportPageProps) {
   const current = await requireSupportProfile();
+  const ticketCreated = (await searchParams).ticket === "created";
   const tickets = await getSupportTicketsForUser(current.dbUserId);
 
   return (
@@ -65,6 +72,13 @@ export default async function AccountSupportPage() {
             Create ticket
           </Link>
         </div>
+
+        {ticketCreated && (
+          <div className="mb-6 flex items-center gap-3 rounded-lg border border-[hsl(var(--primary)/0.28)] bg-[hsl(var(--primary)/0.08)] p-3 text-[13px] text-[hsl(var(--foreground))]">
+            <CheckCircle2 className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
+            Your support ticket has been created.
+          </div>
+        )}
 
         <section className={PANEL_CLASS}>
           <div className="mb-5 flex items-center gap-3">

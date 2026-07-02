@@ -35,11 +35,22 @@ type UsageOutboxRow = {
   createdAt: Date;
 };
 
+type UsageAggregateRow = {
+  metricKey: string;
+  quantity: number;
+  periodStart: Date;
+  periodEnd: Date;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export default async function AdminUsagePage() {
   await requireModeratorProfile();
-  const [events, outboxRows] = await Promise.all([
+  const [events, outboxRows, aggregateRows] = await Promise.all([
     getUsageEvents(),
     getUsageOutboxRows(),
+    getUsageAggregates(),
   ]);
 
   return (
@@ -57,16 +68,76 @@ export default async function AdminUsagePage() {
             Usage
           </h1>
           <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-            Latest local usage event and usage outbox rows. Sensitive metadata,
-            external billing identifiers, idempotency keys, user IDs, and error
-            payloads are not displayed.
+            Latest local usage aggregate, usage event, and usage outbox rows.
+            Aggregate rows are limited to approved operational fields.
           </p>
         </section>
 
+        <UsageAggregatesTable rows={aggregateRows} />
         <UsageEventsTable rows={events} />
         <UsageOutboxTable rows={outboxRows} />
       </div>
     </main>
+  );
+}
+
+function UsageAggregatesTable({ rows }: { rows: UsageAggregateRow[] }) {
+  return (
+    <section className="giq-panel p-6">
+      <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+        Usage aggregates
+      </h2>
+      <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">
+        Latest 10 rows from the local UsageAggregate table.
+      </p>
+
+      <div className="giq-table-shell mt-6 overflow-x-auto">
+        <table className="w-full min-w-[860px]">
+          <thead>
+            <tr className="giq-table-head">
+              <th className="px-4 py-3 text-left">Metric</th>
+              <th className="px-4 py-3 text-left">Quantity</th>
+              <th className="px-4 py-3 text-left">Period start</th>
+              <th className="px-4 py-3 text-left">Period end</th>
+              <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-left">Created</th>
+              <th className="px-4 py-3 text-left">Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
+                >
+                  No usage aggregates found.
+                </td>
+              </tr>
+            ) : (
+              rows.map((row, index) => (
+                <tr
+                  key={`${row.metricKey}-${row.periodStart.toISOString()}-${index}`}
+                  className="border-t border-white/[0.06]"
+                >
+                  <MonoCell>{row.metricKey}</MonoCell>
+                  <td className="px-4 py-3 font-mono text-[13px] text-[hsl(var(--muted-foreground))]">
+                    {formatCount(row.quantity)}
+                  </td>
+                  <DateCell date={row.periodStart} emptyLabel="Not recorded" />
+                  <DateCell date={row.periodEnd} emptyLabel="Not recorded" />
+                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
+                    {row.status}
+                  </td>
+                  <DateCell date={row.createdAt} emptyLabel="Not recorded" />
+                  <DateCell date={row.updatedAt} emptyLabel="Not recorded" />
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
@@ -259,6 +330,26 @@ function getUsageOutboxRows() {
           sentAt: true,
           failedAt: true,
           createdAt: true,
+        },
+      }),
+    []
+  );
+}
+
+function getUsageAggregates() {
+  return safeQuery<UsageAggregateRow[]>(
+    () =>
+      prisma.usageAggregate.findMany({
+        orderBy: { updatedAt: "desc" },
+        take: 10,
+        select: {
+          metricKey: true,
+          quantity: true,
+          periodStart: true,
+          periodEnd: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
         },
       }),
     []

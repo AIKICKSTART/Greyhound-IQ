@@ -7,6 +7,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 
 const USER_EXPORT_RATE_LIMIT = 3;
 const USER_EXPORT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const USER_EXPORT_ARTIFACT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export async function GET(request: Request) {
   try {
@@ -227,8 +228,23 @@ export async function GET(request: Request) {
       agentRuns,
     };
 
+    const responseBody = JSON.stringify(archive, null, 2);
+    const sizeBytes = new TextEncoder().encode(responseBody).byteLength;
+
+    await prisma.exportArtifact.create({
+      data: {
+        exportType: "user_data",
+        status: "completed",
+        targetUserId: current.dbUserId,
+        requestedByUserId: current.dbUserId,
+        sizeBytes,
+        completedAt: exportedAt,
+        expiresAt: new Date(exportedAt.getTime() + USER_EXPORT_ARTIFACT_TTL_MS),
+      },
+    });
+
     const date = exportedAt.toISOString().slice(0, 10);
-    return new NextResponse(JSON.stringify(archive, null, 2), {
+    return new NextResponse(responseBody, {
       headers: {
         "content-type": "application/json; charset=utf-8",
         "content-disposition": `attachment; filename="greyhoundiq-export-${date}.json"`,

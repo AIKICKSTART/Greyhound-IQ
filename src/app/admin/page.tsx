@@ -50,6 +50,15 @@ export default async function AdminPage() {
           <Link href="/admin/support" className="giq-outline-action">
             Support tickets
           </Link>
+          <Link href="/admin/billing" className="giq-outline-action">
+            Billing
+          </Link>
+          <Link href="/admin/usage" className="giq-outline-action">
+            Usage
+          </Link>
+          <Link href="/admin/source-health" className="giq-outline-action">
+            Source health
+          </Link>
         </div>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

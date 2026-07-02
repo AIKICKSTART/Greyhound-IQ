@@ -29,6 +29,7 @@ import {
   renewListingForCurrentUser,
   withdrawListingForCurrentUser,
 } from "@/lib/listing-service";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const forumThreadSchema = z.object({
   categoryId: z.string().min(1),
@@ -81,6 +82,9 @@ const supportTicketSchema = z.object({
   category: z.enum(["general", "billing", "technical", "feedback"]),
   body: z.string().trim().min(20).max(5_000),
 });
+
+const SUPPORT_TICKET_RATE_LIMIT = 3;
+const SUPPORT_TICKET_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
 function field(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -332,6 +336,13 @@ export async function createAgentRun(formData: FormData) {
 
 export async function createSupportTicket(formData: FormData) {
   const current = await requireCurrentUserProfile();
+  const rateLimit = checkRateLimit(
+    `support:${current.dbUserId}`,
+    SUPPORT_TICKET_RATE_LIMIT,
+    SUPPORT_TICKET_RATE_LIMIT_WINDOW_MS
+  );
+  if (!rateLimit.allowed) throw new Error("support.rate_limit");
+
   const parsed = supportTicketSchema.parse({
     category: field(formData, "category"),
     body: field(formData, "body"),

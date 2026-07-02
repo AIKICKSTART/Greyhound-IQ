@@ -299,12 +299,12 @@ function SignedOutThread() {
         <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
           Sign in to view this conversation
         </h1>
-        <Link
+        <a
           href="/sign-in"
           className="giq-liquid-purple-button mt-6 px-5 text-[13px] font-semibold"
         >
           Sign in
-        </Link>
+        </a>
       </div>
     </div>
   );

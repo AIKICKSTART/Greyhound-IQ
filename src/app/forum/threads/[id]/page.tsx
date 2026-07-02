@@ -124,13 +124,13 @@ export default async function ForumThreadPage({
             <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
               Sign in to reply to this thread.
             </p>
-            <Link
+            <a
               href="/sign-in"
               className="giq-liquid-purple-button min-h-10 px-4 text-[13px] font-semibold"
             >
               <MessageSquare className="h-3.5 w-3.5" />
               Sign in
-            </Link>
+            </a>
           </div>
         )}
       </section>

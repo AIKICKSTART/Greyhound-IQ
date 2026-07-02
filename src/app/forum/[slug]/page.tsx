@@ -159,12 +159,12 @@ export default async function ForumCategoryPage({
               <p className="text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                 Sign in to start a thread. Public browsing stays open.
               </p>
-              <Link
+              <a
                 href="/sign-in"
                 className="giq-liquid-purple-button mt-5 min-h-10 px-4 text-[13px] font-semibold"
               >
                 Sign in
-              </Link>
+              </a>
             </div>
           )}
         </aside>

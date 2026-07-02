@@ -55,12 +55,12 @@ export async function ProGate({ minTier, feature, children }: ProGateProps) {
           See {tierName} plans
         </Link>
         {!user && (
-          <Link
+          <a
             href="/sign-in"
             className="giq-button giq-button-glass px-4 text-[13px] font-medium"
           >
             Sign in
-          </Link>
+          </a>
         )}
       </div>
     </div>

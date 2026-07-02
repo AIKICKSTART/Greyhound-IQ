@@ -251,12 +251,12 @@ function SignedOutUsage() {
         Usage limits are tied to the active tier on your GreyhoundIQ account.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
-        <Link
+        <a
           href="/sign-in"
           className="giq-liquid-purple-button px-5 text-[13px] font-semibold"
         >
           Sign in
-        </Link>
+        </a>
         <Link href="/pricing" className={ACTION_CLASS}>
           <ShieldCheck className="h-3.5 w-3.5" />
           View plans

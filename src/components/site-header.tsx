@@ -247,14 +247,13 @@ export async function SiteHeader() {
                 </Sheet>
               ) : (
                 <>
-                  <Link
+                  <a
                     href="/sign-in"
-                    prefetch={false}
                     className="giq-button giq-button-glass giq-header-auth-action hidden px-4 text-[13px] font-semibold md:inline-flex"
                   >
                     <LogIn className="h-3.5 w-3.5" />
                     Log in
-                  </Link>
+                  </a>
                   <Link
                     href="/pricing"
                     className="giq-button giq-button-gold giq-header-auth-action hidden px-3.5 text-[13px] font-bold md:inline-flex md:px-5"

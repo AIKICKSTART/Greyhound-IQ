@@ -91,12 +91,12 @@ export default async function AccountSecurityPage() {
               internals on this page.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link
+              <a
                 href="/sign-in"
                 className="giq-liquid-purple-button min-h-10 px-4 text-[13px] font-semibold"
               >
                 Open sign-in
-              </Link>
+              </a>
               <Link href="/account/privacy" className={ACTION_CLASS}>
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Privacy records

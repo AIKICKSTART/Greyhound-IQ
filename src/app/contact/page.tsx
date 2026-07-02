@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { CheckCircle2, GitBranch, Lock, Mail, MessageSquare } from "lucide-react";
 import { createSupportTicket } from "@/app/actions";
 import { PageHero } from "@/components/page-hero";
@@ -165,12 +164,12 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
                   Support requests are connected to your account.
                 </p>
               </div>
-              <Link
+              <a
                 href="/sign-in"
                 className="giq-button giq-button-primary px-4 text-[13px] font-semibold"
               >
                 Sign in
-              </Link>
+              </a>
             </div>
           )}
         </div>

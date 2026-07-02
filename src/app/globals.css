@@ -963,6 +963,10 @@ body {
 }
 
 @media (min-width: 768px) {
+  .giq-button.md\:inline-flex {
+    display: inline-flex;
+  }
+
   .giq-mobile-menu-button,
   .giq-mobile-dock {
     display: none;

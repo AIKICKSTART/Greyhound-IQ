@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Check, X, Zap, Crown, Sparkles } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
 import { CreditCard } from "lucide-react";
@@ -134,7 +133,7 @@ export default function PricingPage() {
                 </div>
                 <p className="text-[13px] text-[hsl(var(--muted-foreground))] mb-5 mt-2 tracking-[-0.013em]">{plan.description}</p>
 
-                <Link
+                <a
                   href={`/sign-in?plan=${plan.id}`}
                   className={`mb-5 w-full text-center text-[13px] font-semibold ${
                     plan.highlighted
@@ -145,7 +144,7 @@ export default function PricingPage() {
                   }`}
                 >
                   {plan.cta}
-                </Link>
+                </a>
 
                 <ul className="space-y-2">
                   {plan.features.map((f) => (
@@ -210,12 +209,12 @@ export default function PricingPage() {
           <p className="text-[15px] text-[hsl(var(--muted-foreground))] mb-6 tracking-[-0.013em]">
             Free forever. Upgrade when you&apos;re ready. Cancel anytime.
           </p>
-          <Link
+          <a
             href="/sign-in?plan=free"
             className="giq-liquid-purple-button px-6 text-[14px] font-semibold"
           >
             Create free account
-          </Link>
+          </a>
         </div>
       </section>
     </div>

@@ -176,12 +176,12 @@ export default async function NewListingPage() {
                 Listing ownership is tied to your GreyhoundIQ profile.
               </p>
             </div>
-            <Link
+            <a
               href="/sign-in"
               className="giq-button giq-button-primary px-4 text-[13px] font-semibold"
             >
               Sign in
-            </Link>
+            </a>
           </div>
         )}
       </section>

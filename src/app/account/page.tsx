@@ -434,12 +434,12 @@ function SignedOutAccount() {
           Account state is backed by the local user row created after the WorkOS
           AuthKit callback.
         </p>
-        <Link
+        <a
           href="/sign-in"
           className="giq-liquid-purple-button mt-6 px-5 text-[13px] font-semibold"
         >
           Sign in
-        </Link>
+        </a>
       </div>
       {DEMO_ACCOUNT_ENABLED && <DemoAccountPreview />}
     </div>

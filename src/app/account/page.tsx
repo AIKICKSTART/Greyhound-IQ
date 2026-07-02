@@ -11,6 +11,7 @@ import {
   Pencil,
   ShieldCheck,
   User,
+  Users,
 } from "lucide-react";
 import { requestAccountDeletion, updateProfile } from "@/app/actions";
 import { PageHero } from "@/components/page-hero";
@@ -244,6 +245,13 @@ async function SignedInAccount({
           >
             <Database className="h-3.5 w-3.5" />
             Usage
+          </Link>
+          <Link
+            href="/account/team"
+            className={ACTION_CLASS}
+          >
+            <Users className="h-3.5 w-3.5" />
+            Team
           </Link>
           {canAccessAdmin && (
             <Link

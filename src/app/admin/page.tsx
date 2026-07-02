@@ -53,6 +53,9 @@ export default async function AdminPage() {
           <Link href="/admin/subscriptions" className="giq-outline-action">
             Subscriptions
           </Link>
+          <Link href="/admin/entitlements" className="giq-outline-action">
+            Entitlements
+          </Link>
           <Link href="/admin/invoices" className="giq-outline-action">
             Invoices
           </Link>
@@ -64,6 +67,9 @@ export default async function AdminPage() {
           </Link>
           <Link href="/admin/billing" className="giq-outline-action">
             Billing
+          </Link>
+          <Link href="/admin/billing-events" className="giq-outline-action">
+            Billing events
           </Link>
           <Link href="/admin/usage" className="giq-outline-action">
             Usage

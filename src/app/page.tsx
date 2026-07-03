@@ -337,7 +337,10 @@ function FeatureCard({
   tone: "primary" | "info" | "secondary" | "success";
 }) {
   return (
-    <article className={`giq-glass-panel giq-feature-card giq-feature-card--${tone} group overflow-hidden`}>
+    <Link
+      href={href}
+      className={`giq-glass-panel giq-feature-card giq-feature-card--${tone} group block overflow-hidden no-underline`}
+    >
       <div className="giq-feature-media giq-shine giq-shine-hover">
         <Image
           src={siteAssetUrl(image)}
@@ -354,11 +357,11 @@ function FeatureCard({
         <p className="min-h-[68px] text-[13px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.013em]">
           {description}
         </p>
-        <Link href={href} className="giq-feature-link mt-4">
+        <span className="giq-feature-link mt-4">
           {link}
           <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
+        </span>
       </div>
-    </article>
+    </Link>
   );
 }

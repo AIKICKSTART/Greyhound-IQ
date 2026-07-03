@@ -2,14 +2,14 @@
 
 > Source: `docs/GreyhoundIQ-Architecture-Premium.html`
 > Format: REST route reference + auth + rate limits + data contracts.
-> All routes JSON. All auth via Supabase session cookie (HTTP-only, SameSite=Lax, Secure in prod).
+> All routes JSON. All auth via WorkOS AuthKit session cookie (HTTP-only, SameSite=Lax, Secure in prod).
 
 ---
 
 ## Conventions
 
 - **Base path:** `/api` (Next.js Route Handlers)
-- **Auth header:** Session cookie `sb-access-token` (managed by `@supabase/ssr`)
+- **Auth session:** WorkOS AuthKit session cookie (managed by `@workos-inc/authkit-nextjs`); local app identity links through `User.workosUserId`
 - **Content-Type:** `application/json; charset=utf-8` for all responses
 - **Error shape:**
   ```json
@@ -28,19 +28,15 @@
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/api/auth/signup` | none | Email + password sign up, sends verification email |
-| POST | `/api/auth/signin` | none | Sign in, returns session cookie |
-| POST | `/api/auth/signout` | session | Revoke current session |
-| POST | `/api/auth/magic-link` | none | Request magic link by email |
-| GET | `/api/auth/callback` | oauth code | OAuth callback (Google) |
-| GET | `/api/auth/session` | session | Returns current session + user |
-| POST | `/api/auth/refresh` | refresh | Rotate refresh token |
+| GET | `/sign-in` | none | Redirect to the WorkOS AuthKit hosted sign-in/sign-up flow |
+| GET | `/callback` | WorkOS code | WorkOS AuthKit callback; syncs local `User.workosUserId` |
+| Action | `signOut()` | session | WorkOS AuthKit sign-out from authenticated UI |
+| GET | `/api/users/me` | session | Returns the current local user/profile linked from the WorkOS session |
 
 **Rate limits:**
-- Signup: 5/hr per IP
-- Sign-in: 10/min per IP, 10 fails/15min per email (lockout)
-- Magic link: 5/hr per email
-- OAuth callback: no limit (Google enforces)
+- WorkOS owns credential, verification, OAuth/passwordless, session refresh, and lockout controls.
+- The app must not expose local password, magic-link, OAuth callback, or refresh-token API routes.
+- Auth-adjacent app mutations use route-level rate limits and generic errors to avoid account enumeration.
 
 ---
 
@@ -58,7 +54,7 @@
 | POST | `/api/users/:id/unban` | admin | Unban user |
 
 **Schemas:**
-- `User`: `{ id, supabaseUserId, email, displayName, avatarUrl, subscriptionTier, isAdmin, isBanned, lastSeenAt, createdAt }`
+- `User`: `{ id, workosUserId, email, displayName, avatarUrl, subscriptionTier, isAdmin, isBanned, lastSeenAt, createdAt }`
 - `Profile`: `{ userId, bio, state, kennelName, kennelPrefix, role, verified, website, showEmail, showOwnedDogs }`
 
 **`GET /api/users/me` response:**
@@ -508,11 +504,10 @@ These endpoints back the public web UI and the AI agent tools. Most are public r
 Every route uses Zod schemas. Validation errors return `validation.required` or `validation.format` with `details` listing each invalid field.
 
 ### Authentication middleware
-Centralized in `src/lib/auth/middleware.ts`:
+Centralized in `src/lib/auth.ts` using WorkOS AuthKit and the local `User.workosUserId` link:
 ```ts
-export function requireAuth(): User;            // throws auth.unauthorized
-export function requireAdmin(): User;           // throws auth.forbidden
-export function requireOwnership<T>(getter): T; // throws auth.forbidden
+export async function getCurrentUser(): Promise<CurrentUser | null>;
+export async function requireCurrentUserProfile(): Promise<CurrentUserProfile>;
 ```
 
 ### Rate limiting
@@ -527,7 +522,7 @@ export function requireOwnership<T>(getter): T; // throws auth.forbidden
 
 ### Webhooks (outbound, future)
 - Stripe subscription events → `POST /api/webhooks/stripe`
-- Supabase auth events → `POST /api/webhooks/supabase`
+- WorkOS identity events → `POST /api/webhooks/workos`
 - All webhooks verify signature via shared secret
 
 ---

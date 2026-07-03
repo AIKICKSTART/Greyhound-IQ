@@ -9,7 +9,7 @@
 ## Security principles
 
 1. **Default deny.** No user gets access to anything without explicit policy granting it.
-2. **RLS on every table.** The database is the last line of defense. If the service layer has a bug, RLS stops the leak.
+2. **WorkOS is the identity source.** App authorization starts from the WorkOS AuthKit session and the linked local `User.workosUserId`.
 3. **Service role key is sacred.** Used only in cron jobs, agent harness subprocesses, admin tooling. Never in browser code, never logged, never in URL params.
 4. **Fail closed.** When in doubt, refuse. No "degraded" auth modes.
 5. **Audit everything sensitive.** `AuditLog` row for every user ban, content hide, memory read, role grant.
@@ -22,26 +22,29 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │  BROWSER (untrusted)                                                │
-│  - User session cookie only                                          │
-│  - Supabase anon key (low privilege)                                 │
-│  - All queries go through RLS                                        │
+│  - WorkOS AuthKit session cookie only                                │
+│  - No browser-readable app auth token                                │
+│  - Protected reads/writes go through Next.js authorization           │
 └────────────────────────────┬────────────────────────────────────────┘
                              │ HTTPS (TLS 1.3)
                              │
 ┌────────────────────────────▼────────────────────────────────────────┐
 │  NEXT.JS SERVER (trusted but vulnerable to app bugs)                │
 │  - Validates all input via Zod                                       │
+│  - Resolves WorkOS session through AuthKit                           │
+│  - Links to local User by User.workosUserId before authorization     │
 │  - Service layer enforces business logic                             │
-│  - Uses SUPABASE_SERVICE_ROLE_KEY only for admin/cron/agents        │
-│  - Prisma + Supabase JS client                                       │
+│  - Uses service-role keys only for admin/cron/agents                 │
+│  - Prisma + storage clients                                          │
 └────────────────────────────┬────────────────────────────────────────┘
                              │ TLS to Supabase
                              │
 ┌────────────────────────────▼────────────────────────────────────────┐
-│  SUPABASE (managed, Sydney region)                                  │
-│  - RLS enforced                                                      │
-│  - Service role bypasses RLS (audit all uses)                        │
-│  - Auth handles sign-in / OAuth / session refresh                    │
+│  POSTGRES + SUPABASE STORAGE (managed, Sydney region)                │
+│  - Stores app data and media                                         │
+│  - WorkOS remains the app identity provider                          │
+│  - Storage access is mediated by server checks or WorkOS subject     │
+│  - Service-role bypass is audited                                    │
 │  - Storage holds media; signed URLs for private buckets              │
 └────────────────────────────┬────────────────────────────────────────┘
                              │
@@ -62,36 +65,36 @@
 
 | Attack | Mitigation |
 |--------|-----------|
-| Brute force | Supabase rate limit: 30 req/IP/5min on auth endpoints; account lockout after 10 fails/15min |
-| Credential stuffing | CAPTCHA after 3 failed attempts; rate limit per IP (5/hr for signups) |
-| Password spraying | Account lockout; rate limit per email; generic error messages |
-| Email bombing (signup spam) | CAPTCHA on signup; Resend rate limit; Resend webhook to detect abuse |
+| Brute force | WorkOS AuthKit rate limits, lockout policy, and generic errors; app rate limits callback-adjacent routes |
+| Credential stuffing | WorkOS-managed credential checks; CAPTCHA where configured; per-IP app limits on auth-adjacent mutations |
+| Password spraying | WorkOS lockout/rate limits; generic app errors |
+| Email bombing (signup spam) | WorkOS/Resend rate limits; Resend webhook to detect abuse |
 | **2FA / TOTP** | **Out of scope v1 — Phase 2** |
 
 ### 2. Session hijacking
 
 | Attack | Mitigation |
 |--------|-----------|
-| XSS reading token | HTTP-only cookies; short access tokens (1h); refresh rotation |
+| XSS reading token | HTTP-only WorkOS AuthKit cookies; no browser-readable app auth tokens |
 | Token theft via CSRF | SameSite=Lax cookies; double-submit cookie for state-changing requests; Origin header check |
 | Man-in-the-middle | TLS 1.3 only; HSTS preload; certificate pinning in mobile (Phase 2) |
-| Session fixation | New session ID on login; old session invalidated |
+| Session fixation | WorkOS issues the authenticated session after login; sign-out/re-auth invalidates old sessions |
 
 ### 3. Authorization bypass (IDOR)
 
 | Attack | Mitigation |
 |--------|-----------|
-| Read others' messages | RLS on `Message` (`sender OR recipient`); service layer re-checks |
-| Edit others' posts | RLS + service guard; 15-min edit window; mod override |
-| View others' memory | RLS: only `userId = self`; service role never reads without audit log |
-| **Read others' DNA matches** | **RLS: only `sireId` or `damId` owner**; service layer filter |
+| Read others' messages | Service layer checks conversation participants against local `currentUser.id` |
+| Edit others' posts | Service guard checks author/moderator role; 15-min edit window; mod override |
+| View others' memory | Service guard requires `MemoryEntry.userId = currentUser.id`; service role never reads without audit log |
+| **Read others' DNA matches** | **Service layer filters to the linked local user's owned sire/dam records** |
 
 ### 4. Injection attacks
 
 | Attack | Mitigation |
 |--------|-----------|
 | SQL injection | Prisma parameterizes every query; no raw SQL except in adapters (with parameterization) |
-| NoSQL injection (Supabase) | Supabase client uses parameterized queries |
+| Query filter tampering | Server-owned Prisma/storage queries ignore browser-supplied owner IDs |
 | XSS | All user content sanitized server-side (DOMPurify-equivalent); CSP headers |
 | **Prompt injection** | **Agents use structured tool calls, not raw SQL or shell**; `User` content is untrusted input; tool output is wrapped in markers for the agent to distinguish |
 | Path traversal | All storage paths constructed from IDs only; no user input in paths |
@@ -101,7 +104,7 @@
 | Attack | Mitigation |
 |--------|-----------|
 | Forged state-changing requests | SameSite=Lax cookies; double-submit cookie pattern; `Origin` header check on POST/PATCH/DELETE |
-| Open redirect (OAuth) | Whitelist callback URLs to `https://greyhoundiq.com.au/auth/callback`; reject anything else |
+| Open redirect | WorkOS redirect/callback URLs restricted to `https://greyhoundiq.com.au/callback`; reject anything else |
 
 ### 6. Abuse
 
@@ -144,9 +147,9 @@
 | Attack | Mitigation |
 |--------|-----------|
 | Phishing | Email is from verified domain only; DKIM/DMARC enforced; user education |
-| SIM swap | Email change requires email confirmation; session revoke on email change |
-| Stolen session | Short access TTL (1h); refresh rotation; device fingerprinting (Phase 2) |
-| Credential stuffing (account-level) | Per-account lockout; CAPTCHA after fails |
+| SIM swap | Email change handled through WorkOS; session revoke on email change |
+| Stolen session | WorkOS session expiry/revocation; device fingerprinting (Phase 2) |
+| Credential stuffing (account-level) | WorkOS lockout/rate limits; CAPTCHA where configured |
 
 ### 11. Supply chain
 
@@ -176,61 +179,18 @@
 
 ---
 
-## RLS policies (canonical examples)
+## WorkOS identity and authorization contract
 
-### `User` — self + public fields
-
-```sql
-alter table "User" enable row level security;
-
-create policy "user_read_public" on "User" for select using (true);
--- Public fields only; sensitive fields (email) filtered server-side
-
-create policy "user_update_self" on "User" for update using (
-  auth.uid() = "User"."supabaseUserId"
-);
-
-create policy "user_admin_all" on "User" for all using (
-  exists (select 1 from "User" u where u."supabaseUserId" = auth.uid() and u."isAdmin" = true)
-);
-```
-
-### `Message` — only sender + recipient
-
-```sql
-create policy "message_read_participants" on "Message" for select using (
-  exists (
-    select 1 from "Conversation" c
-    where c.id = "Message"."conversationId"
-    and (c."participantAId" = (select id from "User" where "supabaseUserId" = auth.uid())
-         or c."participantBId" = (select id from "User" where "supabaseUserId" = auth.uid()))
-  )
-);
-
-create policy "message_insert_self" on "Message" for insert with check (
-  "senderId" = (select id from "User" where "supabaseUserId" = auth.uid())
-);
-
-create policy "message_update_own" on "Message" for update using (
-  "senderId" = (select id from "User" where "supabaseUserId" = auth.uid())
-);
-```
-
-### `MemoryEntry` — only owner (and service role for agents)
-
-```sql
-create policy "memory_read_self" on "MemoryEntry" for select using (
-  "userId" = (select id from "User" where "supabaseUserId" = auth.uid())
-);
-
-create policy "memory_write_self" on "MemoryEntry" for insert with check (
-  "userId" = (select id from "User" where "supabaseUserId" = auth.uid())
-);
-```
+- WorkOS AuthKit is the only production identity and session provider.
+- `/sign-in` starts the WorkOS hosted flow; `/callback` syncs or creates the local `User`.
+- Local app identity is `User.id`; external identity is `User.workosUserId`.
+- Protected routes must resolve the WorkOS session, load the linked local `User`, and authorize against local owner, participant, role, or tier fields.
+- Browser-supplied user IDs are never trusted for ownership checks.
+- Database or storage policy helpers that need identity resolve the WorkOS subject to local `User.id`.
 
 ---
 
-## Storage RLS
+## Storage access
 
 | Bucket | Read | Write |
 |--------|------|-------|
@@ -239,7 +199,7 @@ create policy "memory_write_self" on "MemoryEntry" for insert with check (
 | `avatars` | Public | Owner only |
 | `agent-outputs` | Owner only | Service role only |
 
-All private buckets serve content through `/api/media/:id/url` which generates a signed URL after a server-side RLS check.
+All private buckets serve content through `/api/media/:id/url` which generates a signed URL after a server-side owner/participant check.
 
 ---
 
@@ -247,23 +207,22 @@ All private buckets serve content through `/api/media/:id/url` which generates a
 
 | Threat | Mitigation |
 |--------|-----------|
-| Credential stuffing | Supabase rate limit + CAPTCHA after N failures |
-| Session theft via XSS | HTTP-only cookies, short access tokens (1h), refresh rotation |
+| Credential stuffing | WorkOS AuthKit anti-abuse controls + CAPTCHA where configured |
+| Session theft via XSS | HTTP-only WorkOS AuthKit cookies; no browser-readable app auth tokens |
 | CSRF | SameSite=Lax + double-submit cookie + Origin check |
-| Password spraying | Account lockout after 10 fails/15min |
-| Account enumeration | Generic error messages ("invalid credentials") on auth |
-| Open redirect (OAuth) | Whitelist callback URLs to our domains only |
-| Email bombing | CAPTCHA on signup; rate limit per IP; Resend abuse webhook |
-| Stolen session | Short tokens; device fingerprinting (Phase 2) |
+| Password spraying | WorkOS lockout/rate limits |
+| Account enumeration | Generic WorkOS/app errors; local account linking does not reveal existence |
+| Open redirect | WorkOS redirect/callback URLs restricted to GreyhoundIQ domains |
+| Email bombing | WorkOS/Resend rate limits; Resend abuse webhook |
+| Stolen session | WorkOS session expiry/revocation; device fingerprinting (Phase 2) |
 
 **Auth config:**
-- Argon2id password hashing (Supabase default)
-- Min 12 chars, complexity check
-- Magic links expire in 15 min, single-use
-- OAuth: Google (P1), Apple (P2)
-- Session storage: HTTP-only cookies via `@supabase/ssr`
-- Access token TTL: 1 hour
-- Refresh token: rotation on every API call
+- Provider: WorkOS AuthKit via `@workos-inc/authkit-nextjs`
+- Local identity link: `User.workosUserId = WorkOS user id`
+- Credential, passwordless, OAuth, verification, reset, lockout, and session lifecycle configured in WorkOS
+- Session storage: HTTP-only AuthKit cookies (`SameSite=Lax`, `Secure` in production)
+- No local password, magic-link, OAuth callback, or refresh-token API routes
+- OAuth providers, if enabled, are configured through WorkOS only
 
 ---
 
@@ -342,7 +301,7 @@ Internal:
 | Path traversal | Server constructs paths from IDs only |
 | Storage abuse | Per-user quota; signed URL expiry (1h) |
 | EXIF privacy leak | Strip EXIF on image processing (`sharp` withMetadata: false) |
-| Unauth reads | Private buckets require RLS-checked signed URLs |
+| Unauth reads | Private buckets require server-checked signed URLs |
 | Replay attacks | Signed URLs include nonce; idempotency key on finalize |
 
 ---
@@ -369,9 +328,9 @@ Internal:
 
 | Action | When |
 |--------|------|
-| `auth.signin.success` / `auth.signin.fail` | Every sign-in attempt |
-| `auth.signup` | New account created |
-| `auth.magic_link.send` | Magic link requested |
+| `auth.signin.success` / `auth.signin.fail` | WorkOS sign-in outcome when observable |
+| `auth.signup` | WorkOS account linked to local `User` |
+| `auth.identity.sync` | WorkOS identity synced to `User.workosUserId` |
 | `user.ban` / `user.unban` | Admin moderation |
 | `user.delete` | Account deletion requested |
 | `post.hide` / `post.delete` | Moderation actions |
@@ -404,9 +363,9 @@ Always log: actor (user/agent/system/admin), target (type + id), IP, user-agent,
 | 6 | Use/disclosure | Data only used for stated purposes; documented in privacy policy |
 | 7 | Direct marketing | No marketing emails without consent; unsubscribe one-click |
 | 8 | Cross-border | Supabase Sydney (ap-southeast-2); no transfer outside AU |
-| 9 | Adoption/use | Encryption at rest (Supabase default); TLS in transit |
+| 9 | Adoption/use | Provider-managed encryption at rest; TLS in transit |
 | 10 | Quality | Data validation at every input; quarantine bad rows in ingestion |
-| 11 | Security | RLS, encryption, audit logs, access controls |
+| 11 | Security | WorkOS AuthKit, service-layer authorization, encryption, audit logs |
 | 12 | Access | `/api/me/export` for data export (data download within 30 days) |
 | 13 | Correction | `/settings/profile` edit form; admin manual correction |
 | 14 | Accuracy | Always pull fresh from canonical source; ingest validation |
@@ -442,8 +401,9 @@ GreyhoundIQ is **18+ only**. Specific obligations:
 
 ## Pre-launch security checklist
 
-- [ ] RLS enabled on every table
-- [ ] All Supabase API keys rotated since dev
+- [ ] WorkOS production redirect URLs, allowed origins, and secrets verified
+- [ ] Storage/database service keys rotated since dev
+- [ ] Owner/participant/role authorization guards verified
 - [ ] Service role key only in env vars (never in code)
 - [ ] CORS, CSP, HSTS, X-Frame-Options configured
 - [ ] Rate limits on every endpoint
@@ -464,7 +424,7 @@ GreyhoundIQ is **18+ only**. Specific obligations:
 
 | Severity | Examples | Response time | Notification |
 |----------|----------|---------------|--------------|
-| Critical | Active data breach, RLS bypass, auth bypass | < 1 hour | OAIC (if APP 11), all users within 72h |
+| Critical | Active data breach, object-authorization bypass, auth bypass | < 1 hour | OAIC (if APP 11), all users within 72h |
 | High | Service outage > 1h, persistent XSS | < 4 hours | Status page; users if data affected |
 | Medium | Bug in payment flow, minor data leak | < 24 hours | Affected users |
 | Low | Cosmetic bug, typo | Next sprint | None |

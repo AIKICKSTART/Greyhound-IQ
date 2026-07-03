@@ -3,10 +3,32 @@ import { createAuditLog } from "@/lib/account-service";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { prisma } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+const USER_EXPORT_RATE_LIMIT = 3;
+const USER_EXPORT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const USER_EXPORT_ARTIFACT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export async function GET(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
+    const rateLimit = checkRateLimit(
+      `user-export:${current.dbUserId}`,
+      USER_EXPORT_RATE_LIMIT,
+      USER_EXPORT_RATE_LIMIT_WINDOW_MS
+    );
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "rate_limit.exceeded",
+            message: "Too many requests",
+          },
+        },
+        { status: 429 }
+      );
+    }
+
     const [
       user,
       profile,
@@ -206,8 +228,23 @@ export async function GET(request: Request) {
       agentRuns,
     };
 
+    const responseBody = JSON.stringify(archive, null, 2);
+    const sizeBytes = new TextEncoder().encode(responseBody).byteLength;
+
+    await prisma.exportArtifact.create({
+      data: {
+        exportType: "user_data",
+        status: "completed",
+        targetUserId: current.dbUserId,
+        requestedByUserId: current.dbUserId,
+        sizeBytes,
+        completedAt: exportedAt,
+        expiresAt: new Date(exportedAt.getTime() + USER_EXPORT_ARTIFACT_TTL_MS),
+      },
+    });
+
     const date = exportedAt.toISOString().slice(0, 10);
-    return new NextResponse(JSON.stringify(archive, null, 2), {
+    return new NextResponse(responseBody, {
       headers: {
         "content-type": "application/json; charset=utf-8",
         "content-disposition": `attachment; filename="greyhoundiq-export-${date}.json"`,

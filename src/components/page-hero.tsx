@@ -39,7 +39,7 @@ export function PageHero({
 
   return (
     <section className={`giq-page-hero relative overflow-hidden ${minH} flex items-center`}>
-      <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,hsl(var(--primary-bright)/0.18),transparent_34%),radial-gradient(circle_at_18%_88%,hsl(var(--secondary)/0.10),transparent_30%),linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--surface-1))_100%)]" />
+      <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,hsl(var(--primary-bright)/0.10),transparent_34%),radial-gradient(circle_at_18%_88%,hsl(var(--secondary)/0.05),transparent_30%),linear-gradient(180deg,hsl(var(--background))_0%,hsl(270_24%_3%)_100%)]" />
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-32 track-rail-overlay" />
       <div aria-hidden="true" className="race-box-strip absolute inset-x-6 bottom-8 mx-auto max-w-7xl opacity-70" />
 

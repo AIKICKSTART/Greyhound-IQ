@@ -47,7 +47,7 @@ function FooterBackgroundImage() {
   const common = {
     alt: "",
     className:
-      "pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-center opacity-[0.9] md:opacity-[0.6]",
+      "pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-center opacity-[0.9]",
     loading: "lazy" as const,
     sizes: "100vw",
   };
@@ -84,14 +84,10 @@ export function SiteFooter() {
     <footer className="giq-footer-shell relative isolate mt-14 overflow-hidden">
       <div className="race-box-strip giq-strip-flow relative z-20 h-[3px] rounded-none opacity-90" />
       <FooterBackgroundImage />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 z-10 bg-[radial-gradient(circle_at_82%_34%,hsl(38_90%_56%/0.12),transparent_42%),linear-gradient(180deg,hsl(var(--background)/0.60)_0%,hsl(var(--background)/0.22)_46%,hsl(var(--background)/0.84)_100%)] md:bg-[radial-gradient(circle_at_86%_8%,hsl(38_90%_56%/0.10),transparent_42%),linear-gradient(180deg,hsl(var(--background)/0.30)_0%,hsl(var(--background)/0.36)_58%,hsl(var(--background)/0.82)_100%)]"
-      />
 
       <div className="relative z-20">
         <div className="giq-footer-grid mx-auto max-w-[70rem] px-6 pb-8 pt-12">
-          <div className="giq-footer-brand-block max-w-80">
+          <div className="giq-footer-brand-block max-w-[15rem]">
             <Link
               href="/"
               aria-label="GreyhoundIQ home"
@@ -108,7 +104,7 @@ export function SiteFooter() {
             <p className="giq-mobile-footer-summary">
               Form, breeding and AI intelligence. Not a wagering service.
             </p>
-            <p className="giq-body-sm mt-[18px] max-w-[280px]">
+            <p className="giq-body-sm mt-[18px] max-w-[216px]">
               Australian greyhound racing intelligence platform -
               race cards, form, breeding, and AI predictions in one track-side view.
             </p>

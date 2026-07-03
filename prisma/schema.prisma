@@ -326,8 +326,8 @@ model User {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  // Supabase auth links this table via supabase_auth_uid
-  supabaseUid String? @unique
+  // WorkOS auth links this table via the WorkOS user subject.
+  workosUserId String? @unique
 
   // ponytail: community relations are on Profile (1:1), not User.
   // Access via user.profile.posts etc — no redundant FKs here.
@@ -337,6 +337,682 @@ model User {
   mediaAssets    MediaAsset[]
   memoryEntries  MemoryEntry[]
   agentContexts  ConversationContext[]
+  ownedOrganizations Organization[] @relation("OrganizationOwner")
+  memberships         Membership[]
+  billingCustomer     BillingCustomer?
+  subscriptions       Subscription[]
+  entitlementSnapshots EntitlementSnapshot[]
+  invoiceRecords      InvoiceRecord[]
+  paymentRecords      PaymentRecord[]
+  refundRecords       RefundRecord[]
+  creditNoteRecords   CreditNoteRecord[]
+  billingEvents       BillingEvent[]
+  usageEvents         UsageEvent[]
+  usageOutboxItems    UsageOutbox[]
+  usageAggregates     UsageAggregate[]
+  supportTickets      SupportTicket[]
+  supportMessages     SupportMessage[]
+  feedback            Feedback[]
+  bugReports          BugReport[]
+  termsAcceptances     TermsAcceptance[]
+  consentEvents        ConsentEvent[]
+  marketingPreferences MarketingPreference[]
+  sentOrganizationInvitations OrganizationInvitation[] @relation("OrganizationInvitationsSent")
+  adminActions        AdminAction[] @relation("AdminActionAdmin")
+  affectedAdminActions AdminAction[] @relation("AdminActionAffectedUser")
+  triggeredJobRuns    JobRun[]      @relation("JobRunAdmin")
+  agentRunUsage       AgentRunUsage[]
+  createdRetentionPolicies RetentionPolicy[] @relation("RetentionPolicyCreatedBy")
+  requestedDeletionJobs    DeletionJob[]     @relation("DeletionJobRequestedBy")
+  targetDeletionJobs       DeletionJob[]     @relation("DeletionJobTargetUser")
+  exportArtifacts          ExportArtifact[]  @relation("ExportArtifactTargetUser")
+  requestedExportArtifacts ExportArtifact[]  @relation("ExportArtifactRequestedBy")
+}
+
+model TermsAcceptance {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  termsVersion String
+  acceptedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, termsVersion])
+  @@index([userId, acceptedAt])
+  @@index([acceptedAt])
+}
+
+model ConsentEvent {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  consentType  String
+  action       String
+  version      String?
+  source       String?
+  occurredAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([userId, consentType, occurredAt])
+  @@index([occurredAt])
+}
+
+model MarketingPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   String   @default("email")
+  optedIn   Boolean  @default(false)
+  source    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, channel])
+  @@index([channel, optedIn])
+}
+
+model Organization {
+  id                     String       @id @default(cuid())
+  name                   String
+  workosOrganizationId   String       @unique
+  ownerId                String?
+  owner                  User?        @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  memberships            Membership[]
+  invitations            OrganizationInvitation[]
+  exportArtifacts         ExportArtifact[]
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  @@index([ownerId])
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String       @default("member")
+  status         String       @default("invited")
+  invitedAt      DateTime?
+  acceptedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId, status])
+}
+
+model OrganizationInvitation {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedByUserId String?
+  invitedByUser   User?        @relation("OrganizationInvitationsSent", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+  emailHash       String
+  role            String       @default("member")
+  status          String       @default("pending")
+  tokenHash       String       @unique
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId, status])
+  @@index([emailHash, status])
+  @@index([expiresAt])
+}
+
+model SupportTicket {
+  id        String           @id @default(cuid())
+  userId    String?
+  user      User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status    String           @default("open")
+  priority  String           @default("normal")
+  category  String           @default("general")
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  messages  SupportMessage[]
+
+  @@index([userId])
+  @@index([status, updatedAt])
+  @@index([priority, status])
+  @@index([category, status])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model SupportMessage {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  body      String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([ticketId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  body      String
+  status    String   @default("new")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status, updatedAt])
+  @@index([createdAt])
+}
+
+model BugReport {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  title       String
+  description String?
+  status      String   @default("open")
+  severity    String   @default("normal")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status, updatedAt])
+  @@index([severity, status])
+  @@index([createdAt])
+}
+
+model RetentionPolicy {
+  id              String        @id @default(cuid())
+  code            String        @unique
+  targetType      String
+  retentionDays   Int
+  enabled         Boolean       @default(true)
+  createdByUserId String?
+  createdByUser   User?         @relation("RetentionPolicyCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletionJobs    DeletionJob[]
+
+  @@index([targetType, enabled])
+  @@index([createdByUserId])
+}
+
+model DeletionJob {
+  id                String           @id @default(cuid())
+  policyId          String?
+  policy            RetentionPolicy? @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  targetType        String
+  targetUserId      String?
+  targetUser        User?            @relation("DeletionJobTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  storageBucket     String?
+  storagePath       String?
+  status            String           @default("pending")
+  scheduledFor      DateTime
+  completedAt       DateTime?
+  requestedByUserId String?
+  requestedByUser   User?            @relation("DeletionJobRequestedBy", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([policyId])
+  @@index([targetType, status])
+  @@index([status, scheduledFor])
+  @@index([targetUserId])
+  @@index([requestedByUserId])
+  @@index([storageBucket, storagePath])
+}
+
+model ExportArtifact {
+  id                String        @id @default(cuid())
+  exportType        String
+  status            String        @default("created")
+  targetUserId      String?
+  targetUser        User?         @relation("ExportArtifactTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  organizationId    String?
+  organization      Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  requestedByUserId String?
+  requestedByUser   User?         @relation("ExportArtifactRequestedBy", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  storageBucket     String?
+  storagePath       String?
+  sha256            String?
+  sizeBytes         Int?
+  completedAt       DateTime?
+  expiresAt         DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([exportType, createdAt])
+  @@index([status, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([requestedByUserId, createdAt])
+  @@index([storageBucket, storagePath])
+  @@index([expiresAt])
+}
+
+// === BILLING ===
+
+model Plan {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String
+  status     String   @default("active")
+  lagoPlanId String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  prices       PriceCatalog[]
+  entitlements PlanEntitlement[]
+
+  @@index([status])
+}
+
+model PriceCatalog {
+  id          String   @id @default(cuid())
+  planId      String
+  plan        Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  interval    String
+  currency    String   @default("AUD")
+  amountCents Int
+  status      String   @default("active")
+  lagoPriceId String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([planId])
+  @@index([planId, status])
+  @@index([planId, interval, currency])
+  @@index([status])
+}
+
+model PlanEntitlement {
+  id         String   @id @default(cuid())
+  planId     String
+  plan       Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  featureKey String
+  enabled    Boolean  @default(true)
+  limitValue Int?
+  unit       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([planId, featureKey])
+  @@index([planId])
+  @@index([planId, enabled])
+  @@index([featureKey])
+}
+
+model BillingCustomer {
+  id                 String    @id @default(cuid())
+  userId             String?   @unique
+  user               User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  lagoCustomerId     String    @unique
+  lagoExternalId     String?   @unique
+  status             String    @default("active")
+  metadataJson       String?
+  rawJson            String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  subscriptions        Subscription[]
+  entitlementSnapshots EntitlementSnapshot[]
+  invoiceRecords       InvoiceRecord[]
+  paymentRecords       PaymentRecord[]
+  refundRecords        RefundRecord[]
+  creditNoteRecords    CreditNoteRecord[]
+  billingEvents        BillingEvent[]
+  usageEvents          UsageEvent[]
+  usageOutboxItems     UsageOutbox[]
+  usageAggregates      UsageAggregate[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Subscription {
+  id                 String    @id @default(cuid())
+  userId             String?
+  user               User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId  String?
+  billingCustomer    BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  lagoSubscriptionId String    @unique
+  lagoCustomerId     String?
+  lagoPlanId         String?
+  externalId         String?
+  planCode           String?
+  status             String
+  startedAt          DateTime?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  canceledAt         DateTime?
+  endedAt            DateTime?
+  rawJson            String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  entitlementSnapshots EntitlementSnapshot[]
+  invoiceRecords       InvoiceRecord[]
+  paymentRecords       PaymentRecord[]
+  refundRecords        RefundRecord[]
+  creditNoteRecords    CreditNoteRecord[]
+  billingEvents        BillingEvent[]
+  usageEvents          UsageEvent[]
+  usageOutboxItems     UsageOutbox[]
+  usageAggregates      UsageAggregate[]
+
+  @@index([userId, status])
+  @@index([billingCustomerId, status])
+  @@index([lagoCustomerId])
+  @@index([status])
+  @@index([currentPeriodEnd])
+}
+
+model EntitlementSnapshot {
+  id                String    @id @default(cuid())
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  lagoCustomerId    String?
+  lagoSubscriptionId String?
+  status            String    @default("active")
+  entitlementsJson  String
+  effectiveAt       DateTime  @default(now())
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId, effectiveAt])
+  @@index([billingCustomerId, effectiveAt])
+  @@index([subscriptionId, effectiveAt])
+  @@index([lagoCustomerId])
+  @@index([lagoSubscriptionId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  provider    String    @default("lago")
+  lagoEventId String?   @unique
+  eventType   String
+  status      String    @default("received")
+  payloadHash String?
+  payloadJson String
+  headersJson String?
+  retryCount  Int       @default(0)
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+  error       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  billingEvents BillingEvent[]
+
+  @@unique([provider, payloadHash])
+  @@index([eventType, receivedAt])
+  @@index([provider, eventType, payloadHash])
+  @@index([status, receivedAt])
+  @@index([receivedAt])
+}
+
+model InvoiceRecord {
+  id                String    @id @default(cuid())
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  lagoInvoiceId     String    @unique
+  lagoCustomerId    String?
+  lagoSubscriptionId String?
+  invoiceNumber     String?
+  status            String
+  paymentStatus     String?
+  currency          String?
+  totalAmountCents  Int?
+  issuedAt          DateTime?
+  dueAt             DateTime?
+  paidAt            DateTime?
+  voidedAt          DateTime?
+  rawJson           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  billingEvents BillingEvent[]
+  paymentRecords    PaymentRecord[]
+  refundRecords     RefundRecord[]
+  creditNoteRecords CreditNoteRecord[]
+
+  @@index([userId, status])
+  @@index([billingCustomerId, status])
+  @@index([subscriptionId])
+  @@index([lagoCustomerId])
+  @@index([lagoSubscriptionId])
+  @@index([status])
+  @@index([issuedAt])
+  @@index([dueAt])
+}
+
+model PaymentRecord {
+  id                String    @id @default(cuid())
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  invoiceRecordId   String?
+  invoiceRecord     InvoiceRecord? @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
+  lagoPaymentId     String?   @unique
+  pspPaymentId      String?   @unique
+  status            String
+  currency          String
+  amountCents       Int
+  occurredAt        DateTime  @default(now())
+  rawJson           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  refundRecords RefundRecord[]
+
+  @@index([userId, occurredAt])
+  @@index([billingCustomerId, occurredAt])
+  @@index([subscriptionId, occurredAt])
+  @@index([invoiceRecordId, occurredAt])
+  @@index([status, occurredAt])
+  @@index([occurredAt])
+}
+
+model RefundRecord {
+  id                String    @id @default(cuid())
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  invoiceRecordId   String?
+  invoiceRecord     InvoiceRecord? @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
+  paymentRecordId   String?
+  paymentRecord     PaymentRecord? @relation(fields: [paymentRecordId], references: [id], onDelete: SetNull)
+  lagoRefundId      String?   @unique
+  pspRefundId       String?   @unique
+  status            String
+  currency          String
+  amountCents       Int
+  occurredAt        DateTime  @default(now())
+  rawJson           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId, occurredAt])
+  @@index([billingCustomerId, occurredAt])
+  @@index([subscriptionId, occurredAt])
+  @@index([invoiceRecordId, occurredAt])
+  @@index([paymentRecordId, occurredAt])
+  @@index([status, occurredAt])
+  @@index([occurredAt])
+}
+
+model CreditNoteRecord {
+  id                String    @id @default(cuid())
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  invoiceRecordId   String?
+  invoiceRecord     InvoiceRecord? @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
+  lagoCreditNoteId  String?   @unique
+  pspCreditNoteId   String?   @unique
+  status            String
+  currency          String
+  amountCents       Int
+  occurredAt        DateTime  @default(now())
+  rawJson           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId, occurredAt])
+  @@index([billingCustomerId, occurredAt])
+  @@index([subscriptionId, occurredAt])
+  @@index([invoiceRecordId, occurredAt])
+  @@index([status, occurredAt])
+  @@index([occurredAt])
+}
+
+model BillingEvent {
+  id                String    @id @default(cuid())
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  invoiceRecordId   String?
+  invoiceRecord     InvoiceRecord? @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
+  webhookEventId    String?
+  webhookEvent      WebhookEvent? @relation(fields: [webhookEventId], references: [id], onDelete: SetNull)
+  lagoEventId       String?
+  eventType         String
+  status            String    @default("recorded")
+  occurredAt        DateTime  @default(now())
+  dataJson          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId, occurredAt])
+  @@index([billingCustomerId, occurredAt])
+  @@index([subscriptionId, occurredAt])
+  @@index([invoiceRecordId])
+  @@index([webhookEventId])
+  @@index([lagoEventId])
+  @@index([eventType, occurredAt])
+  @@index([status, occurredAt])
+}
+
+model UsageEvent {
+  id                String    @id @default(cuid())
+  idempotencyKey    String    @unique
+  metricKey         String
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  quantity          Int       @default(1)
+  metadataJson      String?
+  occurredAt        DateTime
+  status            String    @default("received")
+  retryCount        Int       @default(0)
+  lastAttemptAt     DateTime?
+  nextRetryAt       DateTime?
+  processedAt       DateTime?
+  failedAt          DateTime?
+  error             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  outboxEntries UsageOutbox[]
+
+  @@index([metricKey, occurredAt])
+  @@index([userId, occurredAt])
+  @@index([billingCustomerId, occurredAt])
+  @@index([subscriptionId, occurredAt])
+  @@index([status, nextRetryAt])
+  @@index([occurredAt])
+}
+
+model UsageOutbox {
+  id                String    @id @default(cuid())
+  usageEventId      String?
+  usageEvent        UsageEvent? @relation(fields: [usageEventId], references: [id], onDelete: SetNull)
+  idempotencyKey    String    @unique
+  metricKey         String
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  quantity          Int       @default(1)
+  metadataJson      String?
+  occurredAt        DateTime
+  status            String    @default("pending")
+  retryCount        Int       @default(0)
+  lastAttemptAt     DateTime?
+  nextRetryAt       DateTime?
+  sentAt            DateTime?
+  failedAt          DateTime?
+  error             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([usageEventId])
+  @@index([metricKey, occurredAt])
+  @@index([userId, occurredAt])
+  @@index([billingCustomerId, occurredAt])
+  @@index([subscriptionId, occurredAt])
+  @@index([status, nextRetryAt])
+  @@index([occurredAt])
+}
+
+model UsageAggregate {
+  id                String    @id @default(cuid())
+  metricKey         String
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId String?
+  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  quantity          Int       @default(0)
+  periodStart       DateTime
+  periodEnd         DateTime
+  status            String    @default("open")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([metricKey, periodStart])
+  @@index([userId, periodStart])
+  @@index([billingCustomerId, periodStart])
+  @@index([subscriptionId, periodStart])
+  @@index([status, periodEnd])
 }
 
 // === COMMUNITY ===
@@ -570,11 +1246,30 @@ model AgentRun {
   harnessSessionId String?
   createdAt        DateTime  @default(now())
   completedAt      DateTime?
+  usageEntries     AgentRunUsage[]
 
   @@index([agentType])
   @@index([userId, createdAt])
   @@index([userId])
   @@index([status])
+}
+
+model AgentRunUsage {
+  id         String    @id @default(cuid())
+  agentRunId String?
+  agentRun   AgentRun? @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  metricKey  String
+  quantity   Int       @default(1)
+  unit       String?
+  occurredAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+
+  @@index([agentRunId])
+  @@index([userId, occurredAt])
+  @@index([metricKey, occurredAt])
+  @@index([occurredAt])
 }
 
 model MemoryEntry {
@@ -631,6 +1326,57 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([action, createdAt])
   @@index([targetType, targetId])
+}
+
+model AdminAction {
+  id             String   @id @default(cuid())
+  adminId        String?
+  admin          User?    @relation("AdminActionAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+  affectedUserId String?
+  affectedUser   User?    @relation("AdminActionAffectedUser", fields: [affectedUserId], references: [id], onDelete: SetNull)
+  action         String
+  targetType     String?
+  targetId       String?
+  reason         String
+  createdAt      DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([affectedUserId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, targetId])
+}
+
+model JobRun {
+  id                 String    @id @default(cuid())
+  name               String
+  status             String    @default("pending")
+  triggeredByAdminId String?
+  triggeredByAdmin   User?     @relation("JobRunAdmin", fields: [triggeredByAdminId], references: [id], onDelete: SetNull)
+  startedAt          DateTime?
+  completedAt        DateTime?
+  error              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([name, createdAt])
+  @@index([status, createdAt])
+  @@index([triggeredByAdminId, createdAt])
+}
+
+model DataSourceHealth {
+  id             String    @id @default(cuid())
+  sourceProvider String    @unique
+  status         String    @default("unknown")
+  lastCheckedAt  DateTime  @default(now())
+  lastSuccessAt  DateTime?
+  lastFailureAt  DateTime?
+  latencyMs      Int?
+  error          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status, lastCheckedAt])
+  @@index([lastSuccessAt])
 }
 
 model Report {

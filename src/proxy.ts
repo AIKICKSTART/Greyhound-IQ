@@ -3,10 +3,13 @@
 // adapter. authkitProxy provides WorkOS session management so withAuth() works.
 import type { NextRequest, NextFetchEvent } from "next/server";
 import { authkitProxy } from "@workos-inc/authkit-nextjs";
-
-const handler = authkitProxy({ redirectUri: resolveWorkosRedirectUri() });
+import { resolveWorkosRedirectUri } from "@/lib/workos-redirect";
 
 export function proxy(request: NextRequest, event: NextFetchEvent) {
+  const handler = authkitProxy({
+    redirectUri: resolveWorkosRedirectUri(request.url),
+  });
+
   return handler(request, event);
 }
 
@@ -15,24 +18,3 @@ export function proxy(request: NextRequest, event: NextFetchEvent) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.png|images/|.*\\.(?:png|jpg|jpeg|svg|webp|ico|webmanifest)).*)"],
 };
-
-function resolveWorkosRedirectUri() {
-  const explicit =
-    process.env.WORKOS_REDIRECT_URI ??
-    process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI;
-
-  if (explicit) return explicit;
-
-  const baseUrl =
-    process.env.NEXTAUTH_URL ??
-    process.env.AUTH_URL ??
-    vercelUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL) ??
-    vercelUrl(process.env.VERCEL_URL);
-
-  return baseUrl ? new URL("/callback", baseUrl).toString() : undefined;
-}
-
-function vercelUrl(host?: string) {
-  if (!host) return undefined;
-  return host.startsWith("http") ? host : `https://${host}`;
-}

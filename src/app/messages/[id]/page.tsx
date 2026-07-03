@@ -63,7 +63,7 @@ export default async function MessageThreadPage({
   const blockedByMe = conversation.blockedById === user.profileId;
 
   return (
-    <div className="fade-in mx-auto max-w-4xl px-6 py-10">
+    <div className="mx-auto max-w-4xl px-6 py-10">
       <Link
         href="/messages"
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
@@ -293,18 +293,18 @@ function MessageAttachment({
 
 function SignedOutThread() {
   return (
-    <div className="fade-in mx-auto max-w-3xl px-6 py-16">
+    <div className="mx-auto max-w-3xl px-6 py-16">
       <div className="giq-panel p-8">
         <Lock className="mb-4 h-7 w-7 text-[hsl(var(--primary-bright))]" />
         <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
           Sign in to view this conversation
         </h1>
-        <Link
+        <a
           href="/sign-in"
           className="giq-liquid-purple-button mt-6 px-5 text-[13px] font-semibold"
         >
           Sign in
-        </Link>
+        </a>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 # Vercel Deployments
 
-Vercel is the current frontend/API deployment platform.
+Vercel is a preview and temporary deployment platform for GreyhoundIQ. Production runs on the AI Kick Start Google Cloud VPS.
 
 ## Preview deployments
 
@@ -14,7 +14,14 @@ The preview workflow builds with Vercel CLI, deploys a prebuilt artifact, smoke 
 
 ## Main temp URL
 
-Merges to `main` deploy a stable Vercel URL after CI succeeds. During pre-launch this may use staging Supabase credentials.
+Merges to `main` may deploy a stable temporary Vercel URL after CI succeeds. This URL is for validation only and is not the production hosting target.
+
+Production language:
+
+- Auth: WorkOS only.
+- Billing: Lago is the source of truth.
+- Hosting: AI Kick Start Google Cloud VPS.
+- Vercel: PR previews and temporary validation URLs only.
 
 ## Local linking
 

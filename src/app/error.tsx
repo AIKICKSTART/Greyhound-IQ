@@ -16,7 +16,7 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="fade-in min-h-[60vh] flex items-center justify-center px-6">
+    <div className="min-h-[60vh] flex items-center justify-center px-6">
       <div className="max-w-md w-full text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--secondary)/0.3)] bg-[hsl(var(--secondary)/0.1)] px-3 py-1 mb-6">
           <AlertTriangle className="h-3 w-3 text-[hsl(var(--secondary))]" />

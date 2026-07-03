@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function DogsPage() {
   return (
-    <div className="fade-in">
+    <div>
       <PageHero
         image="/images/wentworth-gate-hero.webp"
         badge="DOG SEARCH"

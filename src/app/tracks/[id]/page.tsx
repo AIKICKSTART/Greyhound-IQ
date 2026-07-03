@@ -54,7 +54,7 @@ export default async function TrackDetailPage({
   const maxWins = Math.max(...boxWins.map((row) => row.wins), 1);
 
   return (
-    <div className="fade-in">
+    <div>
       <section className="relative overflow-hidden border-b border-white/[0.06] bg-[hsl(var(--background))]">
         <div className="absolute inset-0 grid-bg opacity-60" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_15%,hsl(var(--primary)/0.18),transparent_36%)]" />

@@ -42,7 +42,7 @@ export default async function ForumCategoryPage({
   if (!category) notFound();
 
   return (
-    <div className="fade-in mx-auto max-w-6xl px-6 py-10">
+    <div className="mx-auto max-w-6xl px-6 py-10">
       <Link
         href="/forum"
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
@@ -159,12 +159,12 @@ export default async function ForumCategoryPage({
               <p className="text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                 Sign in to start a thread. Public browsing stays open.
               </p>
-              <Link
+              <a
                 href="/sign-in"
                 className="giq-liquid-purple-button mt-5 min-h-10 px-4 text-[13px] font-semibold"
               >
                 Sign in
-              </Link>
+              </a>
             </div>
           )}
         </aside>

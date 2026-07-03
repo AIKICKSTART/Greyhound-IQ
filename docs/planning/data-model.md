@@ -2,13 +2,13 @@
 
 > Source: `docs/GreyhoundIQ-Architecture-Premium.html` (section 3) + existing `prisma/schema.prisma`
 > Status: Architecture spec. Prisma migration scripts in `prisma/migrations/` (to be generated in Phase 1).
-> Database: Supabase Postgres 15, ap-southeast-2 (Sydney), Pro plan.
+> Database: Google Cloud VPS-hosted Postgres 15, app-owned schema, service-layer authorization.
 
 ---
 
 ## Conventions
 
-- **Primary keys:** `cuid()` for all internal models; mirror `auth.users.id` (uuid) for the `User` row
+- **Primary keys:** `cuid()` for all internal models; store the external WorkOS identity on `User.workosUserId`
 - **Timestamps:** `createdAt @default(now())` and `updatedAt @updatedAt` on every model
 - **Soft delete:** `deletedAt DateTime?` where the data is recoverable (messages, posts)
 - **Hard delete:** only via scheduled jobs after grace period
@@ -40,11 +40,11 @@ These already exist in `prisma/schema.prisma`. Listed here for context; not chan
 
 ### 3.1 Identity & profiles
 
-#### `User` (NEW, replaces `auth.users` mirror concept)
+#### `User` (NEW, WorkOS identity record)
 ```prisma
 model User {
   id                String   @id @default(cuid())
-  supabaseUserId    String   @unique       // mirror of auth.users.id (uuid)
+  workosUserId      String   @unique       // WorkOS user id
   email             String   @unique
   emailVerifiedAt   DateTime?
   displayName       String?
@@ -80,15 +80,15 @@ model User {
   watchlists        Watchlist[]
   alertRules        AlertRule[]
 
-  @@index([supabaseUserId])
+  @@index([workosUserId])
   @@index([subscriptionTier])
   @@index([isBanned])
 }
 ```
 
 **Notes:**
-- `supabaseUserId` is the canonical link to Supabase Auth; `id` (cuid) is used internally
-- `lastSeenAt` updated by Supabase Realtime presence on every websocket connect
+- `workosUserId` is the canonical link to WorkOS/AuthKit; `id` (cuid) is used internally
+- `lastSeenAt` updated by application presence on every websocket connect
 - `acceptedTermsAt` set on first signup (required for ToS compliance)
 
 #### `Profile`
@@ -334,8 +334,8 @@ model ListingMedia {
 }
 ```
 
-**Storage buckets:**
-- `messages` (private, per-conversation RLS)
+**Current Supabase storage buckets:**
+- `messages` (private, app-authorized per conversation)
 - `listings` (public-read)
 - `avatars` (public-read)
 - `agent-outputs` (private)
@@ -766,9 +766,9 @@ model SourceRecord {
 
 ```
                     ┌──────────────┐
-                    │  auth.users  │ (Supabase)
+                    │ WorkOS/AuthKit│
                     └──────┬───────┘
-                           │ supabaseUserId
+                           │ workosUserId
                            ▼
                     ┌──────────────┐  1:1   ┌──────────┐
                     │     User     │◄──────►│ Profile  │
@@ -846,13 +846,17 @@ model SourceRecord {
 # 2. Create initial migration
 npx prisma migrate dev --name add_community_messaging_auth_models
 
-# 3. Apply to Supabase
-npx prisma db push   # for prototyping; use migrate for prod
+# 3. Apply to Google Cloud VPS Postgres
+npx prisma migrate deploy
 ```
 
 ---
 
-## RLS strategy (Supabase)
+## Authorization strategy (application/service layer)
+
+Production Postgres is app-owned on Google Cloud VPS. Enforce access in Next.js route handlers, server actions,
+and backend services before Prisma reads or writes; keep database constraints for
+integrity and auditability.
 
 | Table | Read | Insert | Update | Delete |
 |-------|------|--------|--------|--------|
@@ -867,7 +871,7 @@ npx prisma db push   # for prototyping; use migrate for prod
 | `Report` | reporter OR moderator | reporter | moderator | — |
 | `AuditLog` | admin | system only | — | — |
 
-**Service role key** bypasses RLS for cron jobs, agents, admin tooling. Never exposed to the browser.
+Privileged service credentials are server-only for cron jobs, agents, and admin tooling. Never expose them to the browser.
 
 ---
 
@@ -889,7 +893,7 @@ Critical compound indexes:
 
 1. **Listing fees** — confirmed v1 has no platform fee. Stripe Connect for Pro+?
 2. **Public profile fields** — what's the default for `showOwnedDogs` for new profiles?
-3. **PhotoDNA** — required by AU law, hard gate before launch. Confirm Supabase region supports it.
+3. **PhotoDNA** — required by AU law, hard gate before launch. Confirm the current Supabase storage integration supports the required scanning workflow.
 4. **AI prediction tiering** — confirmed Pro+ gets full predictions, Pro gets teaser only?
 5. **Listing renewal limit** — confirmed unlimited?
 

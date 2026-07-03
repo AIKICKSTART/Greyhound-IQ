@@ -3,6 +3,10 @@ import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { prisma } from "@/lib/db";
 import { memorySupersedeSchema } from "@/lib/memory-validation";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+const MEMORY_SUPERSEDE_RATE_LIMIT = 5;
+const MEMORY_SUPERSEDE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
 export async function POST(
   request: Request,
@@ -13,6 +17,23 @@ export async function POST(
       params,
       requireCurrentUserProfile(),
     ]);
+    const rateLimit = checkRateLimit(
+      `memory:supersede:${current.dbUserId}:${id}`,
+      MEMORY_SUPERSEDE_RATE_LIMIT,
+      MEMORY_SUPERSEDE_RATE_LIMIT_WINDOW_MS
+    );
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "rate_limit.exceeded",
+            message: "Too many requests",
+          },
+        },
+        { status: 429 }
+      );
+    }
+
     const parsed = memorySupersedeSchema.parse(await request.json());
     const existing = await prisma.memoryEntry.findFirst({
       where: { id, userId: current.dbUserId, deletedAt: null },

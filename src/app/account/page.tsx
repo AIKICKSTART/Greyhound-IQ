@@ -11,11 +11,12 @@ import {
   Pencil,
   ShieldCheck,
   User,
+  Users,
 } from "lucide-react";
 import { requestAccountDeletion, updateProfile } from "@/app/actions";
 import { PageHero } from "@/components/page-hero";
 import { SubmitButton } from "@/components/submit-button";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isModeratorRole } from "@/lib/auth";
 import { getAccountSummary, getMessagesForUserEmail } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -31,12 +32,24 @@ const PANEL_CLASS = "giq-panel p-6";
 const INPUT_CLASS = "giq-form-control mt-2 px-3 py-2";
 const TEXTAREA_CLASS = "giq-form-control giq-textarea mt-2 px-3 py-2";
 const ACTION_CLASS = "giq-outline-action";
+const PENDING_PLAN_LABELS = {
+  free: "Free",
+  pro: "Pro",
+  pro_plus: "Pro+",
+} as const;
 
-export default async function AccountPage() {
+type PendingPlan = keyof typeof PENDING_PLAN_LABELS;
+
+type AccountPageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function AccountPage({ searchParams }: AccountPageProps) {
   const user = await getCurrentUser();
+  const pendingPlan = parsePendingPlan((await searchParams).plan);
 
   return (
-    <div className="fade-in">
+    <div>
       <PageHero
         image="/images/wentworth-gate-hero.webp"
         title={
@@ -50,15 +63,21 @@ export default async function AccountPage() {
       />
 
       <section className="mx-auto max-w-5xl px-6 py-12">
-        {!user ? <SignedOutAccount /> : <SignedInAccount user={user} />}
+        {!user ? (
+          <SignedOutAccount />
+        ) : (
+          <SignedInAccount user={user} pendingPlan={pendingPlan} />
+        )}
       </section>
     </div>
   );
 }
 
 async function SignedInAccount({
+  pendingPlan,
   user,
 }: {
+  pendingPlan: PendingPlan | null;
   user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
 }) {
   const [summary, messages] = await Promise.all([
@@ -68,6 +87,7 @@ async function SignedInAccount({
   const profile = summary?.profile;
   const ownedDogs = profile?.dogsOwned ?? [];
   const deletionRequestedAt = user.deletionRequestedAt;
+  const canAccessAdmin = isModeratorRole(user.role);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -197,6 +217,7 @@ async function SignedInAccount({
           <Metric label="Listings" value={profile?._count.listings ?? 0} />
           <Metric label="Owned dogs" value={profile?._count.dogsOwned ?? 0} />
         </div>
+        {pendingPlan && <PendingPlanBanner plan={pendingPlan} />}
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
             href="/pricing"
@@ -211,6 +232,64 @@ async function SignedInAccount({
             <MessageSquare className="h-3.5 w-3.5" />
             Open messages
           </Link>
+          <Link
+            href="/account/billing"
+            className={ACTION_CLASS}
+          >
+            <Crown className="h-3.5 w-3.5" />
+            Billing
+          </Link>
+          <Link
+            href="/account/usage"
+            className={ACTION_CLASS}
+          >
+            <Database className="h-3.5 w-3.5" />
+            Usage
+          </Link>
+          <Link
+            href="/account/privacy"
+            className={ACTION_CLASS}
+          >
+            <Lock className="h-3.5 w-3.5" />
+            Privacy
+          </Link>
+          <Link
+            href="/account/security"
+            className={ACTION_CLASS}
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Security
+          </Link>
+          <Link
+            href="/account/notifications"
+            className={ACTION_CLASS}
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            Notifications
+          </Link>
+          <Link
+            href="/account/team"
+            className={ACTION_CLASS}
+          >
+            <Users className="h-3.5 w-3.5" />
+            Team
+          </Link>
+          <Link
+            href="/account/support"
+            className={ACTION_CLASS}
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            Support
+          </Link>
+          {canAccessAdmin && (
+            <Link
+              href="/admin"
+              className={ACTION_CLASS}
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Admin
+            </Link>
+          )}
         </div>
       </section>
 
@@ -318,6 +397,31 @@ async function SignedInAccount({
   );
 }
 
+function PendingPlanBanner({ plan }: { plan: PendingPlan }) {
+  return (
+    <div className="mt-4 rounded-lg border border-[hsl(var(--primary)/0.24)] bg-[hsl(var(--primary)/0.08)] p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[12px] font-semibold uppercase text-[hsl(var(--primary-bright))]">
+            Plan intent received
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+            You selected {PENDING_PLAN_LABELS[plan]} before sign-in. This query
+            flag is only intent; your active tier stays unchanged until a plan
+            change is completed.
+          </p>
+        </div>
+        <Link
+          href="/pricing"
+          className={`${ACTION_CLASS} shrink-0`}
+        >
+          Review plans
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function SignedOutAccount() {
   return (
     <div className="grid gap-6">
@@ -330,12 +434,12 @@ function SignedOutAccount() {
           Account state is backed by the local user row created after the WorkOS
           AuthKit callback.
         </p>
-        <Link
+        <a
           href="/sign-in"
           className="giq-liquid-purple-button mt-6 px-5 text-[13px] font-semibold"
         >
           Sign in
-        </Link>
+        </a>
       </div>
       {DEMO_ACCOUNT_ENABLED && <DemoAccountPreview />}
     </div>
@@ -480,6 +584,11 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       </span>
     </div>
   );
+}
+
+function parsePendingPlan(value: string | string[] | undefined) {
+  if (typeof value !== "string") return null;
+  return value in PENDING_PLAN_LABELS ? (value as PendingPlan) : null;
 }
 
 function demoAccountEnabled() {

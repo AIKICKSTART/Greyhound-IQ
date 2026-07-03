@@ -185,7 +185,7 @@ export default async function ResultsPage() {
   const settledCount = results.length > 0 ? results.length : 24;
 
   return (
-    <div className="giq-screen-enter">
+    <div>
       <WebsitePageHeader
         eyebrow="Settled & official"
         title="Race"
@@ -206,7 +206,7 @@ export default async function ResultsPage() {
         sub={`${displayResults.length} meetings - newest first`}
         right={<ResultsFilters />}
       >
-        <div className="flex flex-col gap-4">
+        <div className="giq-stagger flex flex-col gap-4">
           {displayResults.map((race) => (
             <ResultRaceCard key={race.id} race={race} />
           ))}

@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Bot, Dna, FileText, Gauge, Loader2, Play } from "lucide-react";
+import { m } from "motion/react";
+import { MotionIsland } from "@/components/motion/motion-island";
 
 const AGENTS = [
   {
@@ -30,7 +32,7 @@ const AGENTS = [
   },
 ] as const;
 
-export function AgentDemoConsole() {
+function AgentDemoConsoleInner() {
   const [selectedId, setSelectedId] = useState<(typeof AGENTS)[number]["id"]>(
     "race_analyst"
   );
@@ -65,14 +67,16 @@ export function AgentDemoConsole() {
           const Icon = agent.icon;
           const active = agent.id === selectedId;
           return (
-            <button
+            <m.button
               key={agent.id}
               type="button"
+              aria-pressed={active}
+              whileTap={{ scale: 0.97 }}
               onClick={() => {
                 setSelectedId(agent.id);
                 setStatus("idle");
               }}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-[13px] font-semibold transition-all ${
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-[13px] font-semibold transition-[border-color,background-color,color,box-shadow] ${
                 active
                   ? "border-[hsl(var(--primary)/0.6)] bg-[hsl(var(--primary)/0.14)] text-[hsl(var(--foreground))] shadow-[0_0_18px_-12px_hsl(var(--primary-bright)/0.9)]"
                   : "border-[hsl(var(--metal-silver)/0.12)] bg-[hsl(0_0%_100%/0.02)] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(0_0%_100%/0.05)]"
@@ -80,7 +84,7 @@ export function AgentDemoConsole() {
             >
               <Icon className="h-4 w-4" />
               {agent.label}
-            </button>
+            </m.button>
           );
         })}
       </div>
@@ -98,7 +102,7 @@ export function AgentDemoConsole() {
         type="button"
         onClick={runDemo}
         disabled={status === "running"}
-        className="giq-liquid-purple-button mt-4 min-h-10 px-4 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+        className="giq-liquid-purple-button mt-4 min-h-10 px-4 text-[13px] font-semibold"
       >
         {status === "running" ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -109,7 +113,13 @@ export function AgentDemoConsole() {
       </button>
 
       {status !== "idle" && (
-        <div className="giq-subpanel mt-4 border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)] p-4">
+        <m.div
+          role="status"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="giq-subpanel mt-4 border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)] p-4"
+        >
           <p className="text-[12px] font-semibold uppercase text-[hsl(var(--primary-bright))]">
             {status === "running" ? "Running" : "Completed"}
           </p>
@@ -118,8 +128,16 @@ export function AgentDemoConsole() {
               ? "Loading memory, assembling context, validating output schema..."
               : selected.output}
           </p>
-        </div>
+        </m.div>
       )}
     </div>
+  );
+}
+
+export function AgentDemoConsole() {
+  return (
+    <MotionIsland>
+      <AgentDemoConsoleInner />
+    </MotionIsland>
   );
 }

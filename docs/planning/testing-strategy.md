@@ -96,17 +96,22 @@ DB queries, RLS, API route handlers. Use a Supabase test project (separate from 
 **Example:**
 ```ts
 // tests/integration/api/messages.test.ts
-import { createTestUser, createTestConversation } from '@/tests/helpers';
+import {
+  createAuthKitSessionCookie,
+  createTestConversation,
+  createTestUser,
+} from '@/tests/helpers';
 
 describe('POST /api/conversations/:id/messages', () => {
   it('sends a message between two users', async () => {
     const alice = await createTestUser();
     const bob = await createTestUser();
     const conv = await createTestConversation(alice, bob);
+    const aliceSession = await createAuthKitSessionCookie(alice.workosUserId);
 
     const res = await fetch(`/api/conversations/${conv.id}/messages`, {
       method: 'POST',
-      headers: { 'cookie': `sb-access-token=${alice.sessionToken}` },
+      headers: { cookie: aliceSession },
       body: JSON.stringify({ body: 'hello' }),
     });
 
@@ -120,6 +125,7 @@ describe('POST /api/conversations/:id/messages', () => {
     const alice = await createTestUser();
     const bob = await createTestUser();
     const conv = await createTestConversation(alice, bob);
+    const aliceSession = await createAuthKitSessionCookie(alice.workosUserId);
     await prisma.conversation.update({
       where: { id: conv.id },
       data: { blockedById: bob.id, blockedAt: new Date() },
@@ -127,7 +133,7 @@ describe('POST /api/conversations/:id/messages', () => {
 
     const res = await fetch(`/api/conversations/${conv.id}/messages`, {
       method: 'POST',
-      headers: { 'cookie': `sb-access-token=${alice.sessionToken}` },
+      headers: { cookie: aliceSession },
       body: JSON.stringify({ body: 'hi' }),
     });
 
@@ -247,7 +253,7 @@ export async function resetDb() {
 export async function createTestUser(overrides?: Partial<User>): Promise<User> {
   return prisma.user.create({
     data: {
-      supabaseUserId: faker.string.uuid(),
+      workosUserId: `user_test_${faker.string.uuid()}`,
       email: faker.internet.email(),
       displayName: faker.person.fullName(),
       ...overrides,

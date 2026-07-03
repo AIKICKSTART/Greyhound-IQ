@@ -102,7 +102,7 @@ export default async function TracksPage() {
   const venueCount = Math.max(tracks.length, 38);
 
   return (
-    <div className="giq-screen-enter">
+    <div>
       <WebsitePageHeader
         eyebrow={`${venueCount} GPS-tracked venues`}
         title="Australian"
@@ -179,7 +179,7 @@ export default async function TracksPage() {
         title="All venues"
         sub={`${displayTracks.length} of ${venueCount} shown - today's meetings`}
       >
-        <div className="giq-grid-3">
+        <div className="giq-stagger giq-grid-3">
           {displayTracks.map((track) => (
             <TrackVenueCard key={track.id} track={track} />
           ))}

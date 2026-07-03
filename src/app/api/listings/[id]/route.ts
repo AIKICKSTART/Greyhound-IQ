@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { checkRateLimit } from "@/lib/rate-limit";
 import {
   getPublicListingById,
   updateListingForCurrentUser,
 } from "@/lib/listing-service";
 import { listingPatchSchema } from "@/lib/listing-validation";
+
+const LISTING_UPDATE_RATE_LIMIT = 10;
+const LISTING_UPDATE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
 export async function GET(
   _request: Request,
@@ -29,6 +33,23 @@ export async function PATCH(
       params,
       requireCurrentUserProfile(),
     ]);
+    const rateLimit = checkRateLimit(
+      `listing:update:${current.dbUserId}:${id}`,
+      LISTING_UPDATE_RATE_LIMIT,
+      LISTING_UPDATE_RATE_LIMIT_WINDOW_MS
+    );
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "rate_limit.exceeded",
+            message: "Too many requests",
+          },
+        },
+        { status: 429 }
+      );
+    }
+
     const parsed = listingPatchSchema.parse(await request.json());
     const listing = await updateListingForCurrentUser(current, id, parsed);
     return NextResponse.json({ item: listing });

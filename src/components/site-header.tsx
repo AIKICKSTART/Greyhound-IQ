@@ -1,5 +1,19 @@
 import Link from "next/link";
-import { Activity, Bell, Crown, LogIn, LogOut, Search, Sparkles, X } from "lucide-react";
+import {
+  Activity,
+  Bell,
+  ChevronDown,
+  Crown,
+  Download,
+  LifeBuoy,
+  LogIn,
+  LogOut,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  User,
+  X,
+} from "lucide-react";
 import Image, { getImageProps } from "next/image";
 import { signOut } from "@workos-inc/authkit-nextjs";
 import {
@@ -9,7 +23,7 @@ import {
   SheetTrigger,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isModeratorRole } from "@/lib/auth";
 import { HeaderNav } from "@/components/header-nav";
 import { siteAssetUrl } from "@/lib/storage-paths";
 
@@ -36,6 +50,68 @@ const HEADER_BANNER_LANDSCAPE = siteAssetUrl("/images/wentworth-track-banner-lan
 const HEADER_BANNER_MOBILE = siteAssetUrl("/images/wentworth-track-banner-mobile.webp");
 const LOGO_MAIN = "/images/logo-main-purple-gold.webp";
 const LOGO_MOBILE = "/images/logo-wordmark-purple-gold.webp";
+const ACCOUNT_MENU_ITEM_CLASS =
+  "giq-button giq-button-carbon min-h-10 w-full justify-start px-3 text-[13px] font-semibold";
+
+async function signOutAction() {
+  "use server";
+  await signOut();
+}
+
+function AccountMenuItems({ canAccessAdmin }: { canAccessAdmin: boolean }) {
+  return (
+    <>
+      <Link href="/account" className={ACCOUNT_MENU_ITEM_CLASS}>
+        <User className="h-3.5 w-3.5" aria-hidden="true" />
+        Account
+      </Link>
+      <Link href="/account/security" className={ACCOUNT_MENU_ITEM_CLASS}>
+        <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+        Security
+      </Link>
+      <Link href="/account/notifications" className={ACCOUNT_MENU_ITEM_CLASS}>
+        <Bell className="h-3.5 w-3.5" aria-hidden="true" />
+        Notifications
+      </Link>
+      <Link href="/account/billing" className={ACCOUNT_MENU_ITEM_CLASS}>
+        <Crown className="h-3.5 w-3.5" aria-hidden="true" />
+        Billing
+      </Link>
+      <Link href="/account/usage" className={ACCOUNT_MENU_ITEM_CLASS}>
+        <Activity className="h-3.5 w-3.5" aria-hidden="true" />
+        Usage
+      </Link>
+      <a href="/api/users/me/export" className={ACCOUNT_MENU_ITEM_CLASS}>
+        <Download className="h-3.5 w-3.5" aria-hidden="true" />
+        Data export
+      </a>
+      <Link href="/account/support" className={ACCOUNT_MENU_ITEM_CLASS}>
+        <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" />
+        Support
+      </Link>
+      {canAccessAdmin && (
+        <Link href="/admin" className={ACCOUNT_MENU_ITEM_CLASS}>
+          <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+          Admin
+        </Link>
+      )}
+    </>
+  );
+}
+
+function SignOutMenuButton() {
+  return (
+    <form action={signOutAction} className="mt-2">
+      <button
+        type="submit"
+        className="giq-button giq-button-glass min-h-10 w-full justify-start px-3 text-[13px] font-semibold"
+      >
+        <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
+        Sign out
+      </button>
+    </form>
+  );
+}
 
 function HeaderBannerImage() {
   const common = {
@@ -76,6 +152,7 @@ function HeaderBannerImage() {
 export async function SiteHeader() {
   const user = await getCurrentUser();
   const badge = user ? TIER_BADGE[user.tier] ?? TIER_BADGE.free : null;
+  const canAccessAdmin = user ? isModeratorRole(user.role) : false;
 
   return (
     <header className="giq-site-header sticky top-2 z-50 w-full px-3 md:px-5">
@@ -135,47 +212,48 @@ export async function SiteHeader() {
               </Link>
 
               {user ? (
-                <>
-                  <span className="giq-header-user-chip hidden items-center gap-2 text-[13px] text-[hsl(var(--muted-foreground))] md:flex">
-                    <span className="max-w-[140px] truncate font-medium text-[hsl(var(--foreground))]">
-                      <Link href="/account" className="hover:text-[hsl(var(--primary-bright))]">
-                        {user.firstName || user.name}
-                      </Link>
-                    </span>
+                <Sheet>
+                  <SheetTrigger
+                    aria-label={`Open account menu for ${user.name}`}
+                    className="giq-button giq-button-glass giq-header-auth-action hidden min-h-10 px-3 text-[13px] font-semibold md:inline-flex md:px-4"
+                  >
+                    <User className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="max-w-[100px] truncate">{user.firstName || user.name}</span>
                     {badge && (
                       <span
-                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        className="hidden rounded-full px-2 py-0.5 text-[10px] font-semibold lg:inline-flex"
                         style={{ background: `hsl(${badge.color} / 0.14)`, color: `hsl(${badge.color})` }}
                       >
                         {badge.label}
                       </span>
                     )}
-                  </span>
-                  <form
-                    action={async () => {
-                      "use server";
-                      await signOut();
-                    }}
-                  >
-                    <button
-                      type="submit"
-                      className="giq-button giq-button-glass giq-header-auth-action hidden px-3 text-[13px] font-semibold md:inline-flex md:px-4"
-                    >
-                      <LogOut className="h-3.5 w-3.5" />
-                      Sign out
-                    </button>
-                  </form>
-                </>
+                    <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                  </SheetTrigger>
+                  <SheetContent side="right" showCloseButton={false} className="giq-mobile-menu-sheet">
+                    <SheetTitle className="sr-only">Account menu</SheetTitle>
+                    <SheetClose aria-label="Close account menu" className="giq-mobile-menu-close">
+                      <X className="h-5 w-5" aria-hidden="true" />
+                    </SheetClose>
+                    <div className="giq-mobile-menu-brand">
+                      <span>{user.firstName || user.name}</span>
+                      <small>{user.email}</small>
+                    </div>
+                    <div className="race-box-strip mt-4" />
+                    <nav aria-label="Account" className="mt-6 flex flex-col gap-2">
+                      <AccountMenuItems canAccessAdmin={canAccessAdmin} />
+                    </nav>
+                    <SignOutMenuButton />
+                  </SheetContent>
+                </Sheet>
               ) : (
                 <>
-                  <Link
+                  <a
                     href="/sign-in"
-                    prefetch={false}
-                    className="giq-button giq-button-glass giq-header-auth-action hidden px-4 text-[13px] font-semibold md:inline-flex"
+                    className="giq-button giq-button-glass giq-header-auth-action giq-header-login-action hidden px-4 text-[13px] font-semibold md:inline-flex"
                   >
                     <LogIn className="h-3.5 w-3.5" />
                     Log in
-                  </Link>
+                  </a>
                   <Link
                     href="/pricing"
                     className="giq-button giq-button-gold giq-header-auth-action hidden px-3.5 text-[13px] font-bold md:inline-flex md:px-5"
@@ -201,7 +279,7 @@ export async function SiteHeader() {
                 <SheetContent side="right" showCloseButton={false} className="giq-mobile-menu-sheet">
                   <SheetTitle className="sr-only">Navigation</SheetTitle>
                   <SheetClose aria-label="Close navigation menu" className="giq-mobile-menu-close">
-                    <X className="h-5 w-5" aria-hidden="true" strokeWidth={2.4} />
+                    <X className="h-5 w-5" aria-hidden="true" />
                   </SheetClose>
                   <div className="giq-mobile-menu-brand" aria-hidden="true">
                     <span>GREYHOUNDS <strong>IQ</strong></span>
@@ -211,6 +289,15 @@ export async function SiteHeader() {
                   <nav className="mt-8 flex flex-col gap-3">
                     <HeaderNav links={NAV_LINKS} variant="mobile" />
                   </nav>
+                  {user && (
+                    <>
+                      <div className="race-box-strip mt-6" />
+                      <nav aria-label="Account" className="mt-6 flex flex-col gap-2">
+                        <AccountMenuItems canAccessAdmin={canAccessAdmin} />
+                      </nav>
+                      <SignOutMenuButton />
+                    </>
+                  )}
                 </SheetContent>
               </Sheet>
             </div>

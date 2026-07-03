@@ -4,11 +4,15 @@ import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { cleanText } from "@/lib/content";
 import { prisma } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const createThreadSchema = z.object({
   title: z.string().trim().min(5).max(200),
   body: z.string().trim().min(20).max(20_000),
 });
+
+const THREAD_CREATE_RATE_LIMIT = 3;
+const THREAD_CREATE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
 export async function GET(
   _request: Request,
@@ -45,6 +49,23 @@ export async function POST(
       params,
       requireCurrentUserProfile(),
     ]);
+    const rateLimit = checkRateLimit(
+      `forum:thread:create:${current.dbUserId}:${slug}`,
+      THREAD_CREATE_RATE_LIMIT,
+      THREAD_CREATE_RATE_LIMIT_WINDOW_MS
+    );
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "rate_limit.exceeded",
+            message: "Too many requests",
+          },
+        },
+        { status: 429 }
+      );
+    }
+
     const parsed = createThreadSchema.parse(await request.json());
     const category = await prisma.forumCategory.findUnique({ where: { slug } });
     if (!category) throw new Error("forum.category_not_found");

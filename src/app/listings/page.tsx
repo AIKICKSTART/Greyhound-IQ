@@ -17,6 +17,12 @@ import {
 } from "@/lib/demo-listing-media";
 import { mediaDeliveryUrl } from "@/lib/media-service";
 import { getMarketplaceListings } from "@/lib/queries";
+import {
+  Skeleton,
+  SkeletonGroup,
+  SkeletonPanel,
+  SkeletonText,
+} from "@/components/skeleton";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -68,7 +74,7 @@ export default function ListingsPage({
   searchParams: Promise<{ status?: string; q?: string }>;
 }) {
   return (
-    <div className="fade-in">
+    <div>
       <PageHero
         image="/images/wentworth-gate-hero.webp"
         title={
@@ -135,7 +141,7 @@ async function ListingsResults({
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="giq-stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => (
             <article
               key={listing.id}
@@ -259,14 +265,27 @@ function ListingsFallback({
   return (
     <section className="mx-auto max-w-6xl px-6 py-12">
       <ListingsToolbar status={status} q={q} />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3, 4, 5, 6].map((item) => (
-          <div
-            key={item}
-            className="giq-panel giq-listing-card min-h-[360px] animate-pulse"
-          />
-        ))}
-      </div>
+      <SkeletonGroup label="Loading listings">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((item) => (
+            <SkeletonPanel
+              key={item}
+              className="giq-listing-card flex min-h-[360px] flex-col"
+            >
+              <Skeleton className="h-40 w-full rounded-[10px]" />
+              <div className="mt-4 flex items-start justify-between gap-3">
+                <Skeleton className="h-5 w-24 rounded-full" />
+                <Skeleton className="h-5 w-14 rounded-full" />
+              </div>
+              <Skeleton className="mt-4 h-5 w-4/5" />
+              <SkeletonText lines={2} className="mt-3" />
+              <div className="mt-auto border-t border-white/[0.05] pt-4">
+                <Skeleton className="h-9 w-full rounded-[10px]" />
+              </div>
+            </SkeletonPanel>
+          ))}
+        </div>
+      </SkeletonGroup>
     </section>
   );
 }

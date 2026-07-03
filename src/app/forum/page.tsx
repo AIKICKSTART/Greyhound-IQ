@@ -18,7 +18,7 @@ export default async function ForumPage() {
   ]);
 
   return (
-    <div className="fade-in">
+    <div>
       <PageHero
         image="/images/wentworth-gate-hero.webp"
         title={
@@ -45,7 +45,7 @@ export default async function ForumPage() {
             <Users className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
           </div>
 
-          <div className="space-y-3">
+          <div className="giq-stagger space-y-3">
             {categories.map((category) => (
               <section
                 key={category.id}

@@ -51,7 +51,7 @@ export default async function DogProfilePage({
   const bestTime = allTimes.length > 0 ? Math.min(...allTimes) : null;
 
   return (
-    <div className="giq-dog-detail-page fade-in mx-auto max-w-4xl px-6 py-10">
+    <div className="giq-dog-detail-page mx-auto max-w-4xl px-6 py-10">
       {/* Header */}
       <div className="mb-8">
         <h1
@@ -190,12 +190,12 @@ export default async function DogProfilePage({
                 <p className="text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                   Sign in to link this dog to your GreyhoundIQ profile.
                 </p>
-                <Link
+                <a
                   href="/sign-in"
                   className="giq-liquid-purple-button mt-4 min-h-10 px-4 text-[13px] font-semibold"
                 >
                   Sign in
-                </Link>
+                </a>
               </div>
             )}
           </div>

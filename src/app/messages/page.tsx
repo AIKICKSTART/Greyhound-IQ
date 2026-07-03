@@ -33,7 +33,7 @@ export default async function MessagesPage() {
   ).length;
 
   return (
-    <div className="fade-in">
+    <div>
       <PageHero
         image="/images/wentworth-gate-hero.webp"
         title={
@@ -60,13 +60,13 @@ export default async function MessagesPage() {
                 Conversations are private 1:1 threads between GreyhoundIQ
                 profiles, with read receipts, soft delete, and block controls.
               </p>
-              <Link
+              <a
                 href="/sign-in"
                 className="giq-liquid-purple-button mt-6 px-5 text-[13px] font-semibold"
               >
                 Sign in
                 <Send className="h-3.5 w-3.5" />
-              </Link>
+              </a>
             </div>
 
             <MessagingWorkflow />

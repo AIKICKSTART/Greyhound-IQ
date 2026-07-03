@@ -42,7 +42,7 @@ export default async function ForumThreadPage({
   const replyAction = replyToForumThread.bind(null, thread.id);
 
   return (
-    <div className="fade-in mx-auto max-w-4xl px-6 py-10">
+    <div className="mx-auto max-w-4xl px-6 py-10">
       <Link
         href={`/forum/${thread.category.slug}`}
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
@@ -124,13 +124,13 @@ export default async function ForumThreadPage({
             <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
               Sign in to reply to this thread.
             </p>
-            <Link
+            <a
               href="/sign-in"
               className="giq-liquid-purple-button min-h-10 px-4 text-[13px] font-semibold"
             >
               <MessageSquare className="h-3.5 w-3.5" />
               Sign in
-            </Link>
+            </a>
           </div>
         )}
       </section>

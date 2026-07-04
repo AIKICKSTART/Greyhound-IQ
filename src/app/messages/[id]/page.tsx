@@ -8,7 +8,6 @@ import {
   Flag,
   Lock,
   Paperclip,
-  Send,
   ThumbsUp,
   Trash2,
   Unlock,
@@ -18,12 +17,11 @@ import {
   deleteConversationMessage,
   markConversationReadAction,
   reportConversationMessage,
-  replyToConversation,
   toggleMessageReaction,
   unblockConversation,
 } from "@/app/actions";
 import { ConversationCallPanel } from "@/components/conversation-call-panel";
-import { MediaAttachmentFields } from "@/components/media-attachment-fields";
+import { InstantMessageComposer } from "@/components/instant-message-composer";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
@@ -70,7 +68,6 @@ export default async function MessageThreadPage({
     conversation.participantAId === user.profileId
       ? conversation.participantB
       : conversation.participantA;
-  const replyAction = replyToConversation.bind(null, conversation.id);
   const readAction = markConversationReadAction.bind(null, conversation.id);
   const blockAction = blockConversation.bind(null, conversation.id);
   const unblockAction = unblockConversation.bind(null, conversation.id);
@@ -319,38 +316,10 @@ export default async function MessageThreadPage({
           )}
         </div>
 
-        <form
-          action={replyAction}
-          className="border-t border-white/[0.06] p-5"
-        >
-          <label className="block">
-            <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-              Reply
-            </span>
-            <textarea
-              name="body"
-              required
-              disabled={Boolean(conversation.blockedAt)}
-              maxLength={5000}
-              rows={5}
-              className="giq-form-control giq-textarea mt-2 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder={
-                conversation.blockedAt
-                  ? "Unblock this conversation before replying."
-                  : "Type a private reply."
-              }
-            />
-          </label>
-          <div className="mt-3">
-            <MediaAttachmentFields compact />
-          </div>
-          <div className="mt-4">
-            <SubmitButton pendingLabel="Sending...">
-              <Send className="h-3.5 w-3.5" />
-              Send reply
-            </SubmitButton>
-          </div>
-        </form>
+        <InstantMessageComposer
+          conversationId={conversation.id}
+          disabled={Boolean(conversation.blockedAt)}
+        />
       </section>
     </div>
   );

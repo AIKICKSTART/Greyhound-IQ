@@ -4,11 +4,17 @@ type SmokeCheck = {
   label: string;
   path: string;
   expected: ExpectedStatus;
+  baseUrl?: string;
   method?: "GET" | "POST";
   body?: unknown;
 };
 
 const baseUrl = process.env.SMOKE_BASE_URL ?? "http://localhost:3000";
+const liveKitBaseUrl =
+  process.env.SMOKE_LIVEKIT_BASE_URL ??
+  (baseUrl.includes("greyhoundsiq.com.au")
+    ? "https://livekit.greyhoundsiq.com.au"
+    : "");
 const requireReady = process.env.SMOKE_REQUIRE_READY !== "false";
 
 const checks: SmokeCheck[] = [
@@ -98,6 +104,16 @@ const checks: SmokeCheck[] = [
     method: "POST",
     expected: 401,
   },
+  ...(liveKitBaseUrl
+    ? [
+        {
+          label: "livekit validate requires auth",
+          baseUrl: liveKitBaseUrl,
+          path: "/rtc/validate",
+          expected: 401,
+        },
+      ]
+    : []),
   { label: "forum categories", path: "/api/forum/categories", expected: 200 },
   { label: "marketplace listings", path: "/api/listings", expected: 200 },
 ];
@@ -112,7 +128,7 @@ async function main() {
   const failures: string[] = [];
 
   for (const check of checks) {
-    const url = new URL(check.path, baseUrl);
+    const url = new URL(check.path, check.baseUrl ?? baseUrl);
     try {
       const response = await fetch(url, {
         method: check.method ?? "GET",

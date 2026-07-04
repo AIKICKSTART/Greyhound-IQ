@@ -4,6 +4,7 @@ import {
   findUserForAuth,
   syncAuthUser,
 } from "@/lib/auth-sync";
+import { isModeratorRole } from "@/lib/auth-roles";
 import { prisma, safeQuery } from "@/lib/db";
 
 // Subscription tiers, ordered. Pricing: Free / Pro ($12) / Pro+ ($29).
@@ -114,9 +115,7 @@ export async function requireCurrentUserProfile(): Promise<CurrentUserProfile> {
   };
 }
 
-export function isModeratorRole(role: string | null | undefined) {
-  return role === "admin" || role === "moderator";
-}
+export { isModeratorRole };
 
 export async function requireModeratorProfile(): Promise<CurrentUserProfile> {
   const current = await requireCurrentUserProfile();

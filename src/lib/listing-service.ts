@@ -1,4 +1,5 @@
-import { isModeratorRole, type CurrentUserProfile } from "@/lib/auth";
+import type { CurrentUserProfile } from "@/lib/auth";
+import { isModeratorRole } from "@/lib/auth-roles";
 import type { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/account-service";
 import {

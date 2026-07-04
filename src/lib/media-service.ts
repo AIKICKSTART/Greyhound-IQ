@@ -9,11 +9,8 @@ import { createAuditLog } from "@/lib/account-service";
 import { getEntitlementLimitsForCurrentUser } from "@/lib/billing/entitlement-service";
 import { recordUsageEvent } from "@/lib/billing/usage-service";
 import type { EntitlementLimits } from "@/lib/billing/entitlements";
-import {
-  isModeratorRole,
-  type CurrentUser,
-  type CurrentUserProfile,
-} from "@/lib/auth";
+import type { CurrentUser, CurrentUserProfile } from "@/lib/auth";
+import { isModeratorRole } from "@/lib/auth-roles";
 import { prisma } from "@/lib/db";
 import {
   mediaMaxBytes,

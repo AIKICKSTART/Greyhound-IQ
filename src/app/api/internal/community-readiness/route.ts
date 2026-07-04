@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createLiveKitCallToken } from "@/lib/call-token";
 import { jsonError } from "@/lib/api-errors";
+import { runCommunityFlowProbe } from "@/lib/community-flow-probe";
 import { prisma } from "@/lib/db";
 import { requireInternalRequest } from "@/lib/internal-auth";
 import { getSupabaseAdminClient } from "@/lib/supabase-storage";
@@ -8,6 +9,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase-storage";
 export async function POST(request: Request) {
   try {
     requireInternalRequest(request);
+    const runWriteProbe = new URL(request.url).searchParams.get("write") === "true";
 
     const [feedTopics, forumCategories, marketplaceCategories, activeListings] =
       await Promise.all([
@@ -24,6 +26,9 @@ export async function POST(request: Request) {
       activeListings,
       realtime: await checkRealtime(),
       livekit: checkLiveKit(),
+      writeFlow: runWriteProbe
+        ? await runCommunityFlowProbe({ liveKitMode: "configured" })
+        : "skipped",
     };
 
     const missing = [
@@ -32,6 +37,9 @@ export async function POST(request: Request) {
       marketplaceCategories < 1 ? "marketplace_categories" : null,
       checks.realtime !== "ok" ? "realtime" : null,
       checks.livekit !== "ok" ? "livekit" : null,
+      typeof checks.writeFlow !== "string" && !checks.writeFlow.ok
+        ? "write_flow"
+        : null,
     ].filter(Boolean);
 
     return NextResponse.json(

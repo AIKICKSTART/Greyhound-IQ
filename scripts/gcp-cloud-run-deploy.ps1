@@ -47,7 +47,8 @@ function Add-GcloudToPath {
 function Invoke-Gcloud {
   & $script:GcloudCmd @args
   if ($LASTEXITCODE -ne 0) {
-    throw "gcloud command failed: gcloud $($args -join ' ')"
+    $summary = ($args | Select-Object -First 3) -join " "
+    throw "gcloud command failed: gcloud $summary"
   }
 }
 
@@ -371,7 +372,9 @@ $requiredSecrets = @(
   "WORKOS_COOKIE_PASSWORD",
   "INTERNAL_API_SECRET",
   "SUPABASE_URL",
-  "SUPABASE_SERVICE_ROLE_KEY"
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY"
 )
 
 $optionalSecrets = @(
@@ -450,12 +453,6 @@ $plainEnvItems = @(
 )
 if ($WorkosCookieDomain) {
   $plainEnvItems += "WORKOS_COOKIE_DOMAIN=$WorkosCookieDomain"
-}
-if ($NextPublicSupabaseUrl) {
-  $plainEnvItems += "NEXT_PUBLIC_SUPABASE_URL=$NextPublicSupabaseUrl"
-}
-if ($NextPublicSupabaseAnonKey) {
-  $plainEnvItems += "NEXT_PUBLIC_SUPABASE_ANON_KEY=$NextPublicSupabaseAnonKey"
 }
 if ($LagoApiUrl) {
   $plainEnvItems += "LAGO_API_URL=$LagoApiUrl"

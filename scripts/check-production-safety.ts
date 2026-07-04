@@ -80,7 +80,7 @@ if (!cloudRunDeploy.includes("--concurrency 20")) {
 if (!cloudRunDeploy.includes("--cpu-boost")) {
   findings.push("cloud-run-deploy.yml: startup CPU boost must stay enabled");
 }
-if (!cloudRunDeploy.includes("for secret_name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY")) {
+if (!cloudRunDeploy.includes("for secret_name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY")) {
   findings.push("cloud-run-deploy.yml: missing scanner Supabase secret preflight");
 }
 for (const publicSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) {
@@ -94,6 +94,11 @@ for (const publicSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_AN
 for (const livekitSecret of ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"]) {
   if (!cloudRunDeploy.includes(`${livekitSecret}=greyhoundiq-$env_name-${livekitSecret}:latest`)) {
     findings.push(`cloud-run-deploy.yml: missing ${livekitSecret} secret mapping`);
+  }
+}
+for (const publicSupabaseSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) {
+  if (!cloudRunDeploy.includes(`${publicSupabaseSecret}=greyhoundiq-$env_name-${publicSupabaseSecret}:latest`)) {
+    findings.push(`cloud-run-deploy.yml: missing ${publicSupabaseSecret} runtime secret mapping`);
   }
 }
 
@@ -125,6 +130,17 @@ for (const supabaseSecret of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]) {
   if (!deployRequiredSecretsBlock.includes(`"${supabaseSecret}"`)) {
     findings.push(`gcp-cloud-run-deploy.ps1: ${supabaseSecret} must be a required web secret`);
   }
+}
+for (const publicSupabaseSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) {
+  if (!deployRequiredSecretsBlock.includes(`"${publicSupabaseSecret}"`)) {
+    findings.push(`gcp-cloud-run-deploy.ps1: ${publicSupabaseSecret} must be a required web secret`);
+  }
+}
+if (cloudRunDeployPs1.includes('$plainEnvItems += "NEXT_PUBLIC_SUPABASE_URL=$NextPublicSupabaseUrl"')) {
+  findings.push("gcp-cloud-run-deploy.ps1: NEXT_PUBLIC_SUPABASE_URL runtime value must use Secret Manager");
+}
+if (cloudRunDeployPs1.includes('$plainEnvItems += "NEXT_PUBLIC_SUPABASE_ANON_KEY=$NextPublicSupabaseAnonKey"')) {
+  findings.push("gcp-cloud-run-deploy.ps1: NEXT_PUBLIC_SUPABASE_ANON_KEY runtime value must use Secret Manager");
 }
 
 const cloudRunBootstrapPs1 = readFileSync(

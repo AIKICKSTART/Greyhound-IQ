@@ -24,6 +24,7 @@ const includeMutations = process.env.LOAD_INCLUDE_MUTATIONS === "true";
 const conversationId = process.env.LOAD_CONVERSATION_ID?.trim();
 const callRoomId = process.env.LOAD_CALL_ROOM_ID?.trim();
 const listingId = process.env.LOAD_LISTING_ID?.trim();
+const feedPostId = process.env.LOAD_FEED_POST_ID?.trim();
 const requestTimeoutMs = positiveInt(process.env.LOAD_REQUEST_TIMEOUT_MS, 60_000);
 
 const publicProbes: Probe[] = [
@@ -51,6 +52,60 @@ const authProbes: Probe[] = cookie
         : []),
       ...(includeMutations
         ? [
+            {
+              label: "feed post create",
+              method: "POST" as const,
+              path: "/api/feed",
+              expected: [201],
+              auth: true,
+              body: {
+                topicId: null,
+                body: "Authenticated staging load probe feed post.",
+                mediaIds: [],
+              },
+            },
+            ...(feedPostId
+              ? [
+                  {
+                    label: "feed comment",
+                    method: "POST" as const,
+                    path: `/api/feed/${feedPostId}/comments`,
+                    expected: [201],
+                    auth: true,
+                    body: { body: "Authenticated staging load probe comment." },
+                  },
+                  {
+                    label: "feed reaction",
+                    method: "POST" as const,
+                    path: `/api/feed/${feedPostId}/reaction`,
+                    expected: [200],
+                    auth: true,
+                  },
+                ]
+              : []),
+            ...(conversationId
+              ? [
+                  {
+                    label: "conversation message send",
+                    method: "POST" as const,
+                    path: `/api/conversations/${conversationId}/messages`,
+                    expected: [201],
+                    auth: true,
+                    body: {
+                      body: "Authenticated staging load probe message.",
+                      mediaIds: [],
+                    },
+                  },
+                  {
+                    label: "call room create",
+                    method: "POST" as const,
+                    path: "/api/calls/rooms",
+                    expected: [201],
+                    auth: true,
+                    body: { conversationId },
+                  },
+                ]
+              : []),
             {
               label: "media sign upload",
               method: "POST" as const,
@@ -128,7 +183,10 @@ async function main() {
     console.log("mutation probes skipped: set LOAD_INCLUDE_MUTATIONS=true");
   }
   if (cookie && !conversationId) {
-    console.log("conversation message probe skipped: set LOAD_CONVERSATION_ID");
+    console.log("conversation message/call room probes skipped: set LOAD_CONVERSATION_ID");
+  }
+  if (cookie && includeMutations && !feedPostId) {
+    console.log("feed comment/reaction probes skipped: set LOAD_FEED_POST_ID");
   }
   if (cookie && includeMutations && !callRoomId) {
     console.log("call token probe skipped: set LOAD_CALL_ROOM_ID");

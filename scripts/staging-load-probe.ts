@@ -16,6 +16,13 @@ type Result = {
   ok: boolean;
 };
 
+type ProbeTargets = {
+  conversationId: string | null;
+  callRoomId: string | null;
+  feedPostId: string | null;
+  listingId: string | null;
+};
+
 const baseUrl = process.env.LOAD_BASE_URL ?? "https://greyhoundsiq.com.au";
 const iterations = positiveInt(process.env.LOAD_ITERATIONS, 5);
 const concurrency = positiveInt(process.env.LOAD_CONCURRENCY, 4);
@@ -35,16 +42,25 @@ const publicProbes: Probe[] = [
   { label: "feed page", path: "/feed", expected: [200] },
 ];
 
-const authProbes: Probe[] = cookie
-  ? [
+// ponytail: auto-discovery uses existing read APIs; explicit env IDs still win.
+async function buildAuthProbes(): Promise<{
+  probes: Probe[];
+  targets: ProbeTargets;
+}> {
+  const targets = await resolveProbeTargets();
+  if (!cookie) return { probes: [], targets };
+
+  return {
+    targets,
+    probes: [
       { label: "current user", path: "/api/users/me", expected: [200], auth: true },
       { label: "conversations", path: "/api/conversations", expected: [200], auth: true },
       { label: "messages", path: "/api/messages", expected: [200], auth: true },
-      ...(conversationId
+      ...(targets.conversationId
         ? [
             {
               label: "conversation messages",
-              path: `/api/conversations/${conversationId}/messages`,
+              path: `/api/conversations/${targets.conversationId}/messages`,
               expected: [200],
               auth: true,
             },
@@ -64,12 +80,12 @@ const authProbes: Probe[] = cookie
                 mediaIds: [],
               },
             },
-            ...(feedPostId
+            ...(targets.feedPostId
               ? [
                   {
                     label: "feed comment",
                     method: "POST" as const,
-                    path: `/api/feed/${feedPostId}/comments`,
+                    path: `/api/feed/${targets.feedPostId}/comments`,
                     expected: [201],
                     auth: true,
                     body: { body: "Authenticated staging load probe comment." },
@@ -77,18 +93,18 @@ const authProbes: Probe[] = cookie
                   {
                     label: "feed reaction",
                     method: "POST" as const,
-                    path: `/api/feed/${feedPostId}/reaction`,
+                    path: `/api/feed/${targets.feedPostId}/reaction`,
                     expected: [200],
                     auth: true,
                   },
                 ]
               : []),
-            ...(conversationId
+            ...(targets.conversationId
               ? [
                   {
                     label: "conversation message send",
                     method: "POST" as const,
-                    path: `/api/conversations/${conversationId}/messages`,
+                    path: `/api/conversations/${targets.conversationId}/messages`,
                     expected: [201],
                     auth: true,
                     body: {
@@ -102,7 +118,7 @@ const authProbes: Probe[] = cookie
                     path: "/api/calls/rooms",
                     expected: [201],
                     auth: true,
-                    body: { conversationId },
+                    body: { conversationId: targets.conversationId },
                   },
                 ]
               : []),
@@ -122,12 +138,12 @@ const authProbes: Probe[] = cookie
                 linkedEntityId: "pending",
               },
             },
-            ...(listingId
+            ...(targets.listingId
               ? [
                   {
                     label: "listing enquiry",
                     method: "POST" as const,
-                    path: `/api/listings/${listingId}/enquiry`,
+                    path: `/api/listings/${targets.listingId}/enquiry`,
                     expected: [200],
                     auth: true,
                     body: { message: "Authenticated staging load probe enquiry." },
@@ -135,18 +151,18 @@ const authProbes: Probe[] = cookie
                   {
                     label: "listing save toggle",
                     method: "POST" as const,
-                    path: `/api/listings/${listingId}/save`,
+                    path: `/api/listings/${targets.listingId}/save`,
                     expected: [200],
                     auth: true,
                   },
                 ]
               : []),
-            ...(callRoomId
+            ...(targets.callRoomId
               ? [
                   {
                     label: "call token",
                     method: "POST" as const,
-                    path: `/api/calls/${callRoomId}/token`,
+                    path: `/api/calls/${targets.callRoomId}/token`,
                     expected: [200],
                     auth: true,
                   },
@@ -154,8 +170,9 @@ const authProbes: Probe[] = cookie
               : []),
           ]
         : []),
-    ]
-  : [];
+    ],
+  };
+}
 
 // ponytail: this is a bounded probe, not k6; add k6 when authenticated scenarios are stable.
 main().catch((err) => {
@@ -165,7 +182,8 @@ main().catch((err) => {
 });
 
 async function main() {
-  const probes = [...publicProbes, ...authProbes];
+  const auth = await buildAuthProbes();
+  const probes = [...publicProbes, ...auth.probes];
   const results = await runPool(probes.flatMap((probe) => repeat(probe, iterations)));
   const failures = results.filter((result) => !result.ok);
 
@@ -182,16 +200,16 @@ async function main() {
   } else if (!includeMutations) {
     console.log("mutation probes skipped: set LOAD_INCLUDE_MUTATIONS=true");
   }
-  if (cookie && !conversationId) {
+  if (cookie && !auth.targets.conversationId) {
     console.log("conversation message/call room probes skipped: set LOAD_CONVERSATION_ID");
   }
-  if (cookie && includeMutations && !feedPostId) {
+  if (cookie && includeMutations && !auth.targets.feedPostId) {
     console.log("feed comment/reaction probes skipped: set LOAD_FEED_POST_ID");
   }
-  if (cookie && includeMutations && !callRoomId) {
+  if (cookie && includeMutations && !auth.targets.callRoomId) {
     console.log("call token probe skipped: set LOAD_CALL_ROOM_ID");
   }
-  if (cookie && includeMutations && !listingId) {
+  if (cookie && includeMutations && !auth.targets.listingId) {
     console.log("listing enquiry probe skipped: set LOAD_LISTING_ID");
   }
 
@@ -200,6 +218,58 @@ async function main() {
       console.error(`${failure.label}: got ${failure.status} in ${failure.ms}ms`);
     }
     process.exit(1);
+  }
+}
+
+async function resolveProbeTargets(): Promise<ProbeTargets> {
+  const targets: ProbeTargets = {
+    conversationId: conversationId || null,
+    callRoomId: callRoomId || null,
+    feedPostId: feedPostId || null,
+    listingId: listingId || null,
+  };
+  if (!cookie) return targets;
+
+  const currentProfileId = await discoverCurrentProfileId();
+  targets.conversationId ??= await discoverFirstId("/api/conversations");
+  targets.feedPostId ??= await discoverFirstId("/api/feed?limit=1");
+  targets.listingId ??= await discoverListingId(currentProfileId);
+  return targets;
+}
+
+async function discoverCurrentProfileId() {
+  const data = await getJson("/api/users/me", true);
+  return stringValue(data?.user?.profileId) ?? stringValue(data?.profile?.id);
+}
+
+async function discoverFirstId(path: string) {
+  const data = await getJson(path, true);
+  return stringValue(data?.items?.[0]?.id);
+}
+
+async function discoverListingId(currentProfileId: string | null) {
+  const data = await getJson("/api/listings?limit=20", true);
+  const items: unknown[] = Array.isArray(data?.items) ? data.items : [];
+  const listing = items.find((item) => {
+    const record = recordValue(item);
+    const profile = recordValue(record?.profile);
+    const ownerId = stringValue(profile?.id) ?? stringValue(record?.profileId);
+    return !currentProfileId || ownerId !== currentProfileId;
+  });
+  return stringValue(recordValue(listing)?.id);
+}
+
+async function getJson(path: string, auth: boolean) {
+  try {
+    const response = await fetch(new URL(path, baseUrl), {
+      redirect: "manual",
+      signal: AbortSignal.timeout(requestTimeoutMs),
+      headers: auth && cookie ? { cookie } : undefined,
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
   }
 }
 
@@ -270,6 +340,16 @@ function percentile(values: number[], pct: number) {
 function positiveInt(value: string | undefined, fallback: number) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function recordValue(value: unknown) {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 export {};

@@ -12,7 +12,7 @@ export async function syncAuthUser(user: AuthIdentity) {
   const existing = await findUserForAuth(user.id, user.email);
 
   if (!existing) {
-    return prisma.user.create({
+    const created = await prisma.user.create({
       data: {
         email: user.email,
         name: displayName,
@@ -21,6 +21,7 @@ export async function syncAuthUser(user: AuthIdentity) {
       },
       include: { profile: true },
     });
+    return ensureProfile(created, displayName);
   }
 
   if (existing.isBanned && !existing.deletionRequestedAt) {
@@ -57,7 +58,7 @@ export async function syncAuthUser(user: AuthIdentity) {
     });
   }
 
-  return dbUser;
+  return ensureProfile(dbUser, displayName);
 }
 
 export function findUserForAuth(authId: string, email: string) {
@@ -72,4 +73,19 @@ export function findUserForAuth(authId: string, email: string) {
 
 export function displayNameForAuth(user: AuthIdentity) {
   return [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
+}
+
+async function ensureProfile(
+  dbUser: NonNullable<Awaited<ReturnType<typeof findUserForAuth>>>,
+  displayName: string
+) {
+  if (dbUser.profile) return dbUser;
+  const profile = await prisma.profile.create({
+    data: {
+      userId: dbUser.id,
+      displayName,
+      role: "member",
+    },
+  });
+  return { ...dbUser, profile };
 }

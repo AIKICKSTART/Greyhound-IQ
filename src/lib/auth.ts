@@ -49,10 +49,13 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const { user } = await withAuth();
   if (!user) return null;
 
-  const dbUser = await safeQuery(
+  let dbUser = await safeQuery(
     () => findUserForAuth(user.id, user.email),
     null
   );
+  if (!dbUser || (!dbUser.profile && !dbUser.isBanned)) {
+    dbUser = await safeQuery(() => syncAuthUser(user), dbUser);
+  }
 
   const name = displayNameForAuth(user);
 

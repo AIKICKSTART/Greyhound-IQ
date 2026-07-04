@@ -18,13 +18,13 @@ import {
   Tag,
 } from "lucide-react";
 import {
-  enquireAboutListing,
   markListingSold,
   reportListing,
   renewListing,
   toggleSavedListing,
   withdrawListing,
 } from "@/app/actions";
+import { InstantListingEnquiryForm } from "@/components/instant-listing-enquiry-form";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -96,7 +96,6 @@ export default async function ListingDetailPage({
   const renewAction = renewListing.bind(null, listing.id);
   const soldAction = markListingSold.bind(null, listing.id);
   const withdrawAction = withdrawListing.bind(null, listing.id);
-  const enquiryAction = enquireAboutListing.bind(null, listing.id);
   const reportAction = reportListing.bind(null, listing.id);
   const demoImages = getDemoListingImages(listing, 3);
   const canRenew =
@@ -313,29 +312,7 @@ export default async function ListingDetailPage({
               </form>
             )}
             {!isOwner && user && (
-              <form action={enquiryAction} className="mt-5 space-y-3">
-                <label className="block">
-                  <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-                    Enquiry
-                  </span>
-                  <textarea
-                    name="message"
-                    required
-                    minLength={5}
-                    maxLength={2000}
-                    rows={4}
-                    className="giq-form-control giq-textarea mt-2 px-3 py-2"
-                    placeholder="Ask the seller about this listing."
-                  />
-                </label>
-                <SubmitButton
-                  pendingLabel="Sending..."
-                  className="giq-outline-action w-full"
-                >
-                  <MessageSquare className="h-3.5 w-3.5" />
-                  Message seller
-                </SubmitButton>
-              </form>
+              <InstantListingEnquiryForm listingId={listing.id} />
             )}
             {!isOwner && !user && (
               <a href="/sign-in" className="giq-outline-action mt-5">

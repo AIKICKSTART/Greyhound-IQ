@@ -23,6 +23,7 @@ const cookie = process.env.LOAD_TEST_COOKIE?.trim();
 const includeMutations = process.env.LOAD_INCLUDE_MUTATIONS === "true";
 const conversationId = process.env.LOAD_CONVERSATION_ID?.trim();
 const callRoomId = process.env.LOAD_CALL_ROOM_ID?.trim();
+const listingId = process.env.LOAD_LISTING_ID?.trim();
 const requestTimeoutMs = positiveInt(process.env.LOAD_REQUEST_TIMEOUT_MS, 60_000);
 
 const publicProbes: Probe[] = [
@@ -66,6 +67,18 @@ const authProbes: Probe[] = cookie
                 linkedEntityId: "pending",
               },
             },
+            ...(listingId
+              ? [
+                  {
+                    label: "listing enquiry",
+                    method: "POST" as const,
+                    path: `/api/listings/${listingId}/enquiry`,
+                    expected: [200],
+                    auth: true,
+                    body: { message: "Authenticated staging load probe enquiry." },
+                  },
+                ]
+              : []),
             ...(callRoomId
               ? [
                   {
@@ -112,6 +125,9 @@ async function main() {
   }
   if (cookie && includeMutations && !callRoomId) {
     console.log("call token probe skipped: set LOAD_CALL_ROOM_ID");
+  }
+  if (cookie && includeMutations && !listingId) {
+    console.log("listing enquiry probe skipped: set LOAD_LISTING_ID");
   }
 
   if (failures.length > 0) {

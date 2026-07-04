@@ -16,11 +16,13 @@ export function InstantMessageComposer({
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
-  const [pending, startTransition] = useTransition();
+  const [submitting, setSubmitting] = useState(false);
+  const [refreshing, startTransition] = useTransition();
+  const busy = submitting || refreshing;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (disabled || pending) return;
+    if (disabled || busy) return;
 
     const form = event.currentTarget;
     const formData = new FormData(form);
@@ -32,6 +34,7 @@ export function InstantMessageComposer({
     if (!body) return;
 
     setError(null);
+    setSubmitting(true);
     try {
       const response = await fetch(`/api/conversations/${conversationId}/messages`, {
         method: "POST",
@@ -45,6 +48,8 @@ export function InstantMessageComposer({
       startTransition(() => router.refresh());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send message");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -57,7 +62,7 @@ export function InstantMessageComposer({
         <textarea
           name="body"
           required
-          disabled={disabled || pending}
+          disabled={disabled || busy}
           maxLength={5000}
           rows={5}
           className="giq-form-control giq-textarea mt-2 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -79,21 +84,21 @@ export function InstantMessageComposer({
       <div className="mt-4">
         <button
           type="submit"
-          disabled={disabled || pending}
+          disabled={disabled || busy}
           className="giq-button giq-button-primary giq-submit-stack px-4 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span
             className={`col-start-1 row-start-1 inline-flex items-center justify-center gap-2 ${
-              pending ? "invisible" : ""
+              busy ? "invisible" : ""
             }`}
           >
             <Send className="h-3.5 w-3.5" />
             Send reply
           </span>
           <span
-            aria-hidden={!pending}
+            aria-hidden={!busy}
             className={`col-start-1 row-start-1 inline-flex items-center justify-center gap-2 ${
-              pending ? "" : "invisible"
+              busy ? "" : "invisible"
             }`}
           >
             <Loader2 className="h-3.5 w-3.5 animate-spin" />

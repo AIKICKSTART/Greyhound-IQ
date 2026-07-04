@@ -37,6 +37,13 @@ const checks: SmokeCheck[] = [
     expected: 401,
   },
   {
+    label: "listing enquiry requires auth",
+    path: "/api/listings/listing_smoke/enquiry",
+    method: "POST",
+    body: { message: "Smoke marketplace enquiry" },
+    expected: 401,
+  },
+  {
     label: "feed post create requires auth",
     path: "/api/feed",
     method: "POST",

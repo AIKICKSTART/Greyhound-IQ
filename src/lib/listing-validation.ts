@@ -29,3 +29,7 @@ export const listingWriteSchema = z.object({
 export const listingPatchSchema = listingWriteSchema.partial().extend({
   mediaIds: z.array(z.string().trim().min(1)).max(11).optional(),
 });
+
+export const listingEnquirySchema = z.object({
+  message: z.string().trim().min(5).max(2_000).transform(cleanText),
+});

@@ -56,6 +56,7 @@ import {
   toggleSavedListingForCurrentUser,
   withdrawListingForCurrentUser,
 } from "@/lib/listing-service";
+import { listingEnquirySchema } from "@/lib/listing-validation";
 import {
   createBannedPhraseForModerator,
   resolveTrustSafetyFlagForModerator,
@@ -119,10 +120,6 @@ const listingSchema = z.object({
     )
     .max(8)
     .default([]),
-});
-
-const listingEnquirySchema = z.object({
-  message: z.string().trim().min(5).max(2_000).transform(cleanText),
 });
 
 const listingReportSchema = z.object({

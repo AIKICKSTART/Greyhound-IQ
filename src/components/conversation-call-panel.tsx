@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, PhoneCall, PhoneOff, Video, VideoOff } from "lucide-react";
+import {
+  Mic,
+  MicOff,
+  PhoneCall,
+  PhoneOff,
+  ScreenShare,
+  ScreenShareOff,
+  Video,
+  VideoOff,
+} from "lucide-react";
 import {
   Room,
   RoomEvent,
@@ -37,6 +46,7 @@ export function ConversationCallPanel({
   const [error, setError] = useState<string | null>(null);
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [screenShareEnabled, setScreenShareEnabled] = useState(false);
   const localVideoRef = useRef<HTMLDivElement>(null);
   const remoteMediaRef = useRef<HTMLDivElement>(null);
   const roomId =
@@ -63,8 +73,17 @@ export function ConversationCallPanel({
         clearMedia(localVideoRef.current);
         clearMedia(remoteMediaRef.current);
         setCameraEnabled(false);
+        setScreenShareEnabled(false);
         setRoom(null);
         setStatus("idle");
+      });
+      nextRoom.on(RoomEvent.LocalTrackUnpublished, (publication) => {
+        if (publication.source === Track.Source.Camera) {
+          setCameraEnabled(false);
+        }
+        if (publication.source === Track.Source.ScreenShare) {
+          setScreenShareEnabled(false);
+        }
       });
       await nextRoom.connect(token.url, token.token);
       await nextRoom.localParticipant.setMicrophoneEnabled(true);
@@ -80,17 +99,37 @@ export function ConversationCallPanel({
 
   async function toggleMic() {
     if (!room) return;
-    const next = !micEnabled;
-    await room.localParticipant.setMicrophoneEnabled(next);
-    setMicEnabled(next);
+    try {
+      const next = !micEnabled;
+      await room.localParticipant.setMicrophoneEnabled(next);
+      setMicEnabled(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update microphone");
+    }
   }
 
   async function toggleCamera() {
     if (!room) return;
-    const next = !cameraEnabled;
-    const publication = await room.localParticipant.setCameraEnabled(next);
-    renderLocalVideo(next ? publication : undefined, localVideoRef.current);
-    setCameraEnabled(next);
+    try {
+      const next = !cameraEnabled;
+      const publication = await room.localParticipant.setCameraEnabled(next);
+      renderLocalVideo(next ? publication : undefined, localVideoRef.current);
+      setCameraEnabled(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update camera");
+    }
+  }
+
+  async function toggleScreenShare() {
+    if (!room) return;
+    try {
+      const next = !screenShareEnabled;
+      const publication = await room.localParticipant.setScreenShareEnabled(next);
+      renderLocalVideo(next ? publication : undefined, localVideoRef.current);
+      setScreenShareEnabled(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update screen share");
+    }
   }
 
   function leave() {
@@ -101,6 +140,7 @@ export function ConversationCallPanel({
     if (activeRoomId) setDismissedRoomId(activeRoomId);
     setStatus("idle");
     setCameraEnabled(false);
+    setScreenShareEnabled(false);
     clearMedia(localVideoRef.current);
     clearMedia(remoteMediaRef.current);
     if (activeRoomId) void endRoom(activeRoomId);
@@ -155,6 +195,20 @@ export function ConversationCallPanel({
                 aria-label={cameraEnabled ? "Turn camera off" : "Turn camera on"}
               >
                 {cameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={toggleScreenShare}
+                className="giq-outline-action min-h-10 px-3"
+                aria-label={
+                  screenShareEnabled ? "Stop screen sharing" : "Share screen"
+                }
+              >
+                {screenShareEnabled ? (
+                  <ScreenShareOff className="h-4 w-4" />
+                ) : (
+                  <ScreenShare className="h-4 w-4" />
+                )}
               </button>
               <button
                 type="button"

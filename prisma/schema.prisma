@@ -331,42 +331,43 @@ model User {
 
   // ponytail: community relations are on Profile (1:1), not User.
   // Access via user.profile.posts etc — no redundant FKs here.
-  profile        Profile?
-  reportsFiled   Report[]              @relation("Reporter")
-  reportsAgainst Report[]              @relation("Reported")
-  mediaAssets    MediaAsset[]
-  memoryEntries  MemoryEntry[]
-  agentContexts  ConversationContext[]
-  ownedOrganizations Organization[] @relation("OrganizationOwner")
-  memberships         Membership[]
-  billingCustomer     BillingCustomer?
-  subscriptions       Subscription[]
-  entitlementSnapshots EntitlementSnapshot[]
-  invoiceRecords      InvoiceRecord[]
-  paymentRecords      PaymentRecord[]
-  refundRecords       RefundRecord[]
-  creditNoteRecords   CreditNoteRecord[]
-  billingEvents       BillingEvent[]
-  usageEvents         UsageEvent[]
-  usageOutboxItems    UsageOutbox[]
-  usageAggregates     UsageAggregate[]
-  supportTickets      SupportTicket[]
-  supportMessages     SupportMessage[]
-  feedback            Feedback[]
-  bugReports          BugReport[]
-  termsAcceptances     TermsAcceptance[]
-  consentEvents        ConsentEvent[]
-  marketingPreferences MarketingPreference[]
+  profile                     Profile?
+  reportsFiled                Report[]                 @relation("Reporter")
+  reportsAgainst              Report[]                 @relation("Reported")
+  mediaAssets                 MediaAsset[]
+  memoryEntries               MemoryEntry[]
+  agentContexts               ConversationContext[]
+  ownedOrganizations          Organization[]           @relation("OrganizationOwner")
+  memberships                 Membership[]
+  billingCustomer             BillingCustomer?
+  subscriptions               Subscription[]
+  entitlementSnapshots        EntitlementSnapshot[]
+  invoiceRecords              InvoiceRecord[]
+  paymentRecords              PaymentRecord[]
+  refundRecords               RefundRecord[]
+  creditNoteRecords           CreditNoteRecord[]
+  billingEvents               BillingEvent[]
+  usageEvents                 UsageEvent[]
+  usageOutboxItems            UsageOutbox[]
+  usageAggregates             UsageAggregate[]
+  supportTickets              SupportTicket[]
+  supportMessages             SupportMessage[]
+  feedback                    Feedback[]
+  bugReports                  BugReport[]
+  termsAcceptances            TermsAcceptance[]
+  consentEvents               ConsentEvent[]
+  marketingPreferences        MarketingPreference[]
+  notifications               Notification[]
   sentOrganizationInvitations OrganizationInvitation[] @relation("OrganizationInvitationsSent")
-  adminActions        AdminAction[] @relation("AdminActionAdmin")
-  affectedAdminActions AdminAction[] @relation("AdminActionAffectedUser")
-  triggeredJobRuns    JobRun[]      @relation("JobRunAdmin")
-  agentRunUsage       AgentRunUsage[]
-  createdRetentionPolicies RetentionPolicy[] @relation("RetentionPolicyCreatedBy")
-  requestedDeletionJobs    DeletionJob[]     @relation("DeletionJobRequestedBy")
-  targetDeletionJobs       DeletionJob[]     @relation("DeletionJobTargetUser")
-  exportArtifacts          ExportArtifact[]  @relation("ExportArtifactTargetUser")
-  requestedExportArtifacts ExportArtifact[]  @relation("ExportArtifactRequestedBy")
+  adminActions                AdminAction[]            @relation("AdminActionAdmin")
+  affectedAdminActions        AdminAction[]            @relation("AdminActionAffectedUser")
+  triggeredJobRuns            JobRun[]                 @relation("JobRunAdmin")
+  agentRunUsage               AgentRunUsage[]
+  createdRetentionPolicies    RetentionPolicy[]        @relation("RetentionPolicyCreatedBy")
+  requestedDeletionJobs       DeletionJob[]            @relation("DeletionJobRequestedBy")
+  targetDeletionJobs          DeletionJob[]            @relation("DeletionJobTargetUser")
+  exportArtifacts             ExportArtifact[]         @relation("ExportArtifactTargetUser")
+  requestedExportArtifacts    ExportArtifact[]         @relation("ExportArtifactRequestedBy")
 }
 
 model TermsAcceptance {
@@ -383,15 +384,15 @@ model TermsAcceptance {
 }
 
 model ConsentEvent {
-  id           String   @id @default(cuid())
-  userId       String?
-  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  consentType  String
-  action       String
-  version      String?
-  source       String?
-  occurredAt   DateTime @default(now())
-  createdAt    DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  consentType String
+  action      String
+  version     String?
+  source      String?
+  occurredAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
 
   @@index([userId, consentType, occurredAt])
   @@index([occurredAt])
@@ -411,17 +412,43 @@ model MarketingPreference {
   @@index([channel, optedIn])
 }
 
+model Notification {
+  id                    String    @id @default(cuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actorProfileId        String?
+  type                  String
+  title                 String
+  body                  String?
+  href                  String?
+  targetType            String?
+  targetId              String?
+  metadataJson          String?
+  deliveryStatus        String    @default("pending")
+  deliveryAttempts      Int       @default(0)
+  deliveredAt           DateTime?
+  lastDeliveryAttemptAt DateTime?
+  lastDeliveryError     String?
+  readAt                DateTime?
+  createdAt             DateTime  @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@index([userId, createdAt])
+  @@index([targetType, targetId])
+  @@index([deliveryStatus, deliveryAttempts, createdAt])
+}
+
 model Organization {
-  id                     String       @id @default(cuid())
-  name                   String
-  workosOrganizationId   String       @unique
-  ownerId                String?
-  owner                  User?        @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  memberships            Membership[]
-  invitations            OrganizationInvitation[]
-  exportArtifacts         ExportArtifact[]
-  createdAt              DateTime     @default(now())
-  updatedAt              DateTime     @updatedAt
+  id                   String                   @id @default(cuid())
+  name                 String
+  workosOrganizationId String                   @unique
+  ownerId              String?
+  owner                User?                    @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  memberships          Membership[]
+  invitations          OrganizationInvitation[]
+  exportArtifacts      ExportArtifact[]
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
 
   @@index([ownerId])
 }
@@ -652,16 +679,16 @@ model PlanEntitlement {
 }
 
 model BillingCustomer {
-  id                 String    @id @default(cuid())
-  userId             String?   @unique
-  user               User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  lagoCustomerId     String    @unique
-  lagoExternalId     String?   @unique
-  status             String    @default("active")
-  metadataJson       String?
-  rawJson            String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id             String   @id @default(cuid())
+  userId         String?  @unique
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  lagoCustomerId String   @unique
+  lagoExternalId String?  @unique
+  status         String   @default("active")
+  metadataJson   String?
+  rawJson        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   subscriptions        Subscription[]
   entitlementSnapshots EntitlementSnapshot[]
@@ -679,12 +706,12 @@ model BillingCustomer {
 }
 
 model Subscription {
-  id                 String    @id @default(cuid())
+  id                 String           @id @default(cuid())
   userId             String?
-  user               User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user               User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   billingCustomerId  String?
   billingCustomer    BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
-  lagoSubscriptionId String    @unique
+  lagoSubscriptionId String           @unique
   lagoCustomerId     String?
   lagoPlanId         String?
   externalId         String?
@@ -696,8 +723,8 @@ model Subscription {
   canceledAt         DateTime?
   endedAt            DateTime?
   rawJson            String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
   entitlementSnapshots EntitlementSnapshot[]
   invoiceRecords       InvoiceRecord[]
@@ -717,21 +744,21 @@ model Subscription {
 }
 
 model EntitlementSnapshot {
-  id                String    @id @default(cuid())
-  userId            String?
-  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  billingCustomerId String?
-  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
-  subscriptionId    String?
-  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  lagoCustomerId    String?
+  id                 String           @id @default(cuid())
+  userId             String?
+  user               User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId  String?
+  billingCustomer    BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId     String?
+  subscription       Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  lagoCustomerId     String?
   lagoSubscriptionId String?
-  status            String    @default("active")
-  entitlementsJson  String
-  effectiveAt       DateTime  @default(now())
-  expiresAt         DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  status             String           @default("active")
+  entitlementsJson   String
+  effectiveAt        DateTime         @default(now())
+  expiresAt          DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
   @@index([userId, effectiveAt])
   @@index([billingCustomerId, effectiveAt])
@@ -768,30 +795,30 @@ model WebhookEvent {
 }
 
 model InvoiceRecord {
-  id                String    @id @default(cuid())
-  userId            String?
-  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  billingCustomerId String?
-  billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
-  subscriptionId    String?
-  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  lagoInvoiceId     String    @unique
-  lagoCustomerId    String?
+  id                 String           @id @default(cuid())
+  userId             String?
+  user               User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  billingCustomerId  String?
+  billingCustomer    BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+  subscriptionId     String?
+  subscription       Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  lagoInvoiceId      String           @unique
+  lagoCustomerId     String?
   lagoSubscriptionId String?
-  invoiceNumber     String?
-  status            String
-  paymentStatus     String?
-  currency          String?
-  totalAmountCents  Int?
-  issuedAt          DateTime?
-  dueAt             DateTime?
-  paidAt            DateTime?
-  voidedAt          DateTime?
-  rawJson           String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  invoiceNumber      String?
+  status             String
+  paymentStatus      String?
+  currency           String?
+  totalAmountCents   Int?
+  issuedAt           DateTime?
+  dueAt              DateTime?
+  paidAt             DateTime?
+  voidedAt           DateTime?
+  rawJson            String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
-  billingEvents BillingEvent[]
+  billingEvents     BillingEvent[]
   paymentRecords    PaymentRecord[]
   refundRecords     RefundRecord[]
   creditNoteRecords CreditNoteRecord[]
@@ -807,24 +834,24 @@ model InvoiceRecord {
 }
 
 model PaymentRecord {
-  id                String    @id @default(cuid())
+  id                String           @id @default(cuid())
   userId            String?
-  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   billingCustomerId String?
   billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
   subscriptionId    String?
-  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  subscription      Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   invoiceRecordId   String?
-  invoiceRecord     InvoiceRecord? @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
-  lagoPaymentId     String?   @unique
-  pspPaymentId      String?   @unique
+  invoiceRecord     InvoiceRecord?   @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
+  lagoPaymentId     String?          @unique
+  pspPaymentId      String?          @unique
   status            String
   currency          String
   amountCents       Int
-  occurredAt        DateTime  @default(now())
+  occurredAt        DateTime         @default(now())
   rawJson           String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   refundRecords RefundRecord[]
 
@@ -837,26 +864,26 @@ model PaymentRecord {
 }
 
 model RefundRecord {
-  id                String    @id @default(cuid())
+  id                String           @id @default(cuid())
   userId            String?
-  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   billingCustomerId String?
   billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
   subscriptionId    String?
-  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  subscription      Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   invoiceRecordId   String?
-  invoiceRecord     InvoiceRecord? @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
+  invoiceRecord     InvoiceRecord?   @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
   paymentRecordId   String?
-  paymentRecord     PaymentRecord? @relation(fields: [paymentRecordId], references: [id], onDelete: SetNull)
-  lagoRefundId      String?   @unique
-  pspRefundId       String?   @unique
+  paymentRecord     PaymentRecord?   @relation(fields: [paymentRecordId], references: [id], onDelete: SetNull)
+  lagoRefundId      String?          @unique
+  pspRefundId       String?          @unique
   status            String
   currency          String
   amountCents       Int
-  occurredAt        DateTime  @default(now())
+  occurredAt        DateTime         @default(now())
   rawJson           String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([userId, occurredAt])
   @@index([billingCustomerId, occurredAt])
@@ -868,24 +895,24 @@ model RefundRecord {
 }
 
 model CreditNoteRecord {
-  id                String    @id @default(cuid())
+  id                String           @id @default(cuid())
   userId            String?
-  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   billingCustomerId String?
   billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
   subscriptionId    String?
-  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  subscription      Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   invoiceRecordId   String?
-  invoiceRecord     InvoiceRecord? @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
-  lagoCreditNoteId  String?   @unique
-  pspCreditNoteId   String?   @unique
+  invoiceRecord     InvoiceRecord?   @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
+  lagoCreditNoteId  String?          @unique
+  pspCreditNoteId   String?          @unique
   status            String
   currency          String
   amountCents       Int
-  occurredAt        DateTime  @default(now())
+  occurredAt        DateTime         @default(now())
   rawJson           String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([userId, occurredAt])
   @@index([billingCustomerId, occurredAt])
@@ -896,24 +923,24 @@ model CreditNoteRecord {
 }
 
 model BillingEvent {
-  id                String    @id @default(cuid())
+  id                String           @id @default(cuid())
   userId            String?
-  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   billingCustomerId String?
   billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
   subscriptionId    String?
-  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  subscription      Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   invoiceRecordId   String?
-  invoiceRecord     InvoiceRecord? @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
+  invoiceRecord     InvoiceRecord?   @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
   webhookEventId    String?
-  webhookEvent      WebhookEvent? @relation(fields: [webhookEventId], references: [id], onDelete: SetNull)
+  webhookEvent      WebhookEvent?    @relation(fields: [webhookEventId], references: [id], onDelete: SetNull)
   lagoEventId       String?
   eventType         String
-  status            String    @default("recorded")
-  occurredAt        DateTime  @default(now())
+  status            String           @default("recorded")
+  occurredAt        DateTime         @default(now())
   dataJson          String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([userId, occurredAt])
   @@index([billingCustomerId, occurredAt])
@@ -926,27 +953,27 @@ model BillingEvent {
 }
 
 model UsageEvent {
-  id                String    @id @default(cuid())
-  idempotencyKey    String    @unique
+  id                String           @id @default(cuid())
+  idempotencyKey    String           @unique
   metricKey         String
   userId            String?
-  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   billingCustomerId String?
   billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
   subscriptionId    String?
-  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  quantity          Int       @default(1)
+  subscription      Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  quantity          Int              @default(1)
   metadataJson      String?
   occurredAt        DateTime
-  status            String    @default("received")
-  retryCount        Int       @default(0)
+  status            String           @default("received")
+  retryCount        Int              @default(0)
   lastAttemptAt     DateTime?
   nextRetryAt       DateTime?
   processedAt       DateTime?
   failedAt          DateTime?
   error             String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   outboxEntries UsageOutbox[]
 
@@ -959,29 +986,29 @@ model UsageEvent {
 }
 
 model UsageOutbox {
-  id                String    @id @default(cuid())
+  id                String           @id @default(cuid())
   usageEventId      String?
-  usageEvent        UsageEvent? @relation(fields: [usageEventId], references: [id], onDelete: SetNull)
-  idempotencyKey    String    @unique
+  usageEvent        UsageEvent?      @relation(fields: [usageEventId], references: [id], onDelete: SetNull)
+  idempotencyKey    String           @unique
   metricKey         String
   userId            String?
-  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   billingCustomerId String?
   billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
   subscriptionId    String?
-  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  quantity          Int       @default(1)
+  subscription      Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  quantity          Int              @default(1)
   metadataJson      String?
   occurredAt        DateTime
-  status            String    @default("pending")
-  retryCount        Int       @default(0)
+  status            String           @default("pending")
+  retryCount        Int              @default(0)
   lastAttemptAt     DateTime?
   nextRetryAt       DateTime?
   sentAt            DateTime?
   failedAt          DateTime?
   error             String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([usageEventId])
   @@index([metricKey, occurredAt])
@@ -993,20 +1020,20 @@ model UsageOutbox {
 }
 
 model UsageAggregate {
-  id                String    @id @default(cuid())
+  id                String           @id @default(cuid())
   metricKey         String
   userId            String?
-  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   billingCustomerId String?
   billingCustomer   BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
   subscriptionId    String?
-  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  quantity          Int       @default(0)
+  subscription      Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  quantity          Int              @default(0)
   periodStart       DateTime
   periodEnd         DateTime
-  status            String    @default("open")
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  status            String           @default("open")
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([metricKey, periodStart])
   @@index([userId, periodStart])
@@ -1034,14 +1061,41 @@ model Profile {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  posts            Post[]
-  threads          Thread[]
-  listings         Listing[]
-  messagesSent     Message[]      @relation("SenderMessages")
-  messagesReceived Message[]      @relation("RecipientMessages")
-  conversationsA   Conversation[] @relation("ConversationA")
-  conversationsB   Conversation[] @relation("ConversationB")
-  dogsOwned        DogOwnership[]
+  posts                    Post[]
+  threads                  Thread[]
+  feedPosts                FeedPost[]
+  feedComments             FeedComment[]
+  feedReactions            FeedReaction[]
+  callRoomsCreated         CallRoom[]                @relation("CallRoomCreator")
+  callParticipants         CallParticipant[]
+  callInvitesSent          CallInvite[]              @relation("CallInviteFrom")
+  callInvitesReceived      CallInvite[]              @relation("CallInviteTo")
+  callEvents               CallEvent[]
+  callReports              CallReport[]
+  callPermissions          CallPermission[]
+  listings                 Listing[]                 @relation("ProfileListings")
+  reviewedListings         Listing[]                 @relation("ListingReviewedBy")
+  listingStatusHistory     ListingStatusHistory[]
+  savedListings            SavedListing[]
+  listingEnquiriesSent     ListingEnquiry[]          @relation("ListingEnquiryFrom")
+  listingEnquiriesReceived ListingEnquiry[]          @relation("ListingEnquiryTo")
+  listingReports           ListingReport[]           @relation("ListingReportReporter")
+  listingReportsResolved   ListingReport[]           @relation("ListingReportResolver")
+  listingModerationActions ListingModerationAction[]
+  listingViews             ListingView[]
+  messagesSent             Message[]                 @relation("SenderMessages")
+  messagesReceived         Message[]                 @relation("RecipientMessages")
+  conversationParticipants ConversationParticipant[]
+  messageDeliveryReceipts  MessageDeliveryReceipt[]
+  messageReadReceipts      MessageReadReceipt[]
+  messageReactions         MessageReaction[]
+  userPresence             UserPresence?
+  userBlocksInitiated      UserBlock[]               @relation("UserBlockBlocker")
+  userBlocksReceived       UserBlock[]               @relation("UserBlockBlocked")
+  messageModerationActions MessageModerationAction[]
+  conversationsA           Conversation[]            @relation("ConversationA")
+  conversationsB           Conversation[]            @relation("ConversationB")
+  dogsOwned                DogOwnership[]
 }
 
 model DogOwnership {
@@ -1097,50 +1151,274 @@ model Post {
 }
 
 model Listing {
-  id          String         @id @default(cuid())
-  profileId   String
-  profile     Profile        @relation(fields: [profileId], references: [id])
-  type        String // pup_for_sale | dog_for_sale | stud_service | wanted
-  title       String
-  description String
-  price       Float?
-  currency    String         @default("AUD")
-  state       String?
-  dogId       String?
-  dog         Dog?           @relation(fields: [dogId], references: [id])
-  imageUrl    String?
-  status      String         @default("active") // active | expired | sold | withdrawn | archived
-  expiresAt   DateTime?
-  soldAt      DateTime?
-  archivedAt  DateTime?
-  views       Int            @default(0)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @default(now()) @updatedAt
-  media       ListingMedia[]
+  id                     String                    @id @default(cuid())
+  profileId              String
+  profile                Profile                   @relation("ProfileListings", fields: [profileId], references: [id])
+  categoryId             String?
+  category               MarketplaceCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  type                   String // pup_for_sale | dog_for_sale | stud_service | wanted
+  listingType            String?
+  title                  String
+  description            String
+  price                  Float?
+  currency               String                    @default("AUD")
+  negotiable             Boolean                   @default(false)
+  condition              String?
+  contactPreference      String                    @default("message")
+  state                  String?
+  dogId                  String?
+  dog                    Dog?                      @relation(fields: [dogId], references: [id])
+  imageUrl               String?
+  status                 String                    @default("active") // active | expired | sold | withdrawn | archived
+  moderationStatus       String                    @default("pending_review")
+  moderationReason       String?
+  reportCount            Int                       @default(0)
+  reviewedById           String?
+  reviewedBy             Profile?                  @relation("ListingReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt             DateTime?
+  greyhoundName          String?
+  greyhoundEarbrand      String?
+  greyhoundMicrochip     String?
+  greyhoundWhelpedAt     DateTime?
+  greyhoundSex           String?
+  greyhoundColor         String?
+  welfareAcknowledgedAt  DateTime?
+  legalAcknowledgedAt    DateTime?
+  itemBrand              String?
+  itemModel              String?
+  itemCondition          String?
+  itemSerialOrIdentifier String?
+  expiresAt              DateTime?
+  soldAt                 DateTime?
+  archivedAt             DateTime?
+  views                  Int                       @default(0)
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @default(now()) @updatedAt
+  media                  ListingMedia[]
+  location               ListingLocation?
+  attributes             ListingAttribute[]
+  statusHistory          ListingStatusHistory[]
+  savedBy                SavedListing[]
+  enquiries              ListingEnquiry[]
+  listingReports         ListingReport[]
+  moderationActions      ListingModerationAction[]
+  viewEvents             ListingView[]
+  searchIndex            ListingSearchIndex?
 
   @@index([profileId])
+  @@index([categoryId])
   @@index([type])
+  @@index([listingType])
   @@index([status])
+  @@index([moderationStatus])
+  @@index([status, categoryId, state, createdAt])
+  @@index([profileId, status])
   @@index([expiresAt])
   @@index([soldAt])
+  @@index([reviewedById, reviewedAt])
+}
+
+model MarketplaceCategory {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  description String?
+  sortOrder   Int       @default(0)
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  listings    Listing[]
+
+  @@index([active, sortOrder])
+}
+
+model ListingLocation {
+  id        String   @id @default(cuid())
+  listingId String   @unique
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  state     String?
+  region    String?
+  suburb    String?
+  postcode  String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([state, region])
+  @@index([postcode])
+}
+
+model ListingAttribute {
+  id        String   @id @default(cuid())
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([listingId, key])
+  @@index([key, value])
+}
+
+model ListingStatusHistory {
+  id             String   @id @default(cuid())
+  listingId      String
+  listing        Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  fromStatus     String?
+  toStatus       String
+  actorProfileId String?
+  actorProfile   Profile? @relation(fields: [actorProfileId], references: [id], onDelete: SetNull)
+  reason         String?
+  createdAt      DateTime @default(now())
+
+  @@index([listingId, createdAt])
+  @@index([actorProfileId, createdAt])
+  @@index([toStatus, createdAt])
+}
+
+model SavedListing {
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([profileId, listingId])
+  @@index([listingId, createdAt])
+}
+
+model ListingEnquiry {
+  id             String        @id @default(cuid())
+  listingId      String
+  listing        Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  fromProfileId  String
+  fromProfile    Profile       @relation("ListingEnquiryFrom", fields: [fromProfileId], references: [id])
+  toProfileId    String
+  toProfile      Profile       @relation("ListingEnquiryTo", fields: [toProfileId], references: [id])
+  message        String
+  status         String        @default("open")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([listingId, createdAt])
+  @@index([conversationId])
+  @@index([fromProfileId, createdAt])
+  @@index([toProfileId, status, createdAt])
+}
+
+model ListingReport {
+  id                  String    @id @default(cuid())
+  listingId           String
+  listing             Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  reporterProfileId   String
+  reporterProfile     Profile   @relation("ListingReportReporter", fields: [reporterProfileId], references: [id])
+  reason              String
+  description         String?
+  status              String    @default("open")
+  resolvedByProfileId String?
+  resolvedByProfile   Profile?  @relation("ListingReportResolver", fields: [resolvedByProfileId], references: [id], onDelete: SetNull)
+  resolvedAt          DateTime?
+  createdAt           DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([listingId, createdAt])
+  @@index([reporterProfileId, createdAt])
+  @@index([resolvedByProfileId, resolvedAt])
+}
+
+model ListingModerationAction {
+  id             String   @id @default(cuid())
+  listingId      String
+  listing        Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  actorProfileId String?
+  actorProfile   Profile? @relation(fields: [actorProfileId], references: [id], onDelete: SetNull)
+  action         String
+  reason         String
+  metadataJson   String?
+  createdAt      DateTime @default(now())
+
+  @@index([listingId, createdAt])
+  @@index([actorProfileId, createdAt])
+  @@index([action, createdAt])
+}
+
+model ListingView {
+  id              String   @id @default(cuid())
+  listingId       String
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  viewerProfileId String?
+  viewerProfile   Profile? @relation(fields: [viewerProfileId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+
+  @@index([listingId, createdAt])
+  @@index([viewerProfileId, createdAt])
+}
+
+model ListingSearchIndex {
+  listingId  String   @id
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  searchText String
+  updatedAt  DateTime @updatedAt
+}
+
+model TrustSafetyFlag {
+  id                  String    @id @default(cuid())
+  profileId           String?
+  userId              String?
+  targetType          String
+  targetId            String
+  flagType            String
+  severity            String    @default("medium")
+  status              String    @default("open")
+  reason              String
+  resolvedByProfileId String?
+  resolvedAt          DateTime?
+  createdAt           DateTime  @default(now())
+
+  @@index([profileId, status, createdAt])
+  @@index([userId, status, createdAt])
+  @@index([targetType, targetId])
+  @@index([status, severity, createdAt])
+}
+
+model BannedPhrase {
+  id                 String   @id @default(cuid())
+  phrase             String   @unique
+  target             String   @default("all")
+  action             String   @default("review")
+  reason             String?
+  active             Boolean  @default(true)
+  createdByProfileId String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([active, target])
 }
 
 model Message {
-  id                   String         @id @default(cuid())
+  id                   String                    @id @default(cuid())
   conversationId       String?
-  conversation         Conversation?  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation         Conversation?             @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   senderId             String
-  sender               Profile        @relation("SenderMessages", fields: [senderId], references: [id])
+  sender               Profile                   @relation("SenderMessages", fields: [senderId], references: [id])
   recipientId          String
-  recipient            Profile        @relation("RecipientMessages", fields: [recipientId], references: [id])
+  recipient            Profile                   @relation("RecipientMessages", fields: [recipientId], references: [id])
   body                 String
   mediaIdsJson         String?
-  read                 Boolean        @default(false)
+  read                 Boolean                   @default(false)
   readAt               DateTime?
   deletedBySenderAt    DateTime?
   deletedByRecipientAt DateTime?
-  createdAt            DateTime       @default(now())
+  createdAt            DateTime                  @default(now())
   media                MessageMedia[]
+  deliveryReceipts     MessageDeliveryReceipt[]
+  readReceipts         MessageReadReceipt[]
+  reactions            MessageReaction[]
+  moderationActions    MessageModerationAction[]
 
   @@index([conversationId, createdAt])
   @@index([senderId])
@@ -1173,6 +1451,7 @@ model MediaAsset {
 
   messageAttachments MessageMedia[]
   listingAttachments ListingMedia[]
+  feedAttachments    FeedPostMedia[]
 
   @@unique([storageBucket, storagePath])
   @@index([uploaderId, createdAt])
@@ -1209,17 +1488,20 @@ model ListingMedia {
 }
 
 model Conversation {
-  id             String    @id @default(cuid())
-  participantAId String
-  participantA   Profile   @relation("ConversationA", fields: [participantAId], references: [id])
-  participantBId String
-  participantB   Profile   @relation("ConversationB", fields: [participantBId], references: [id])
-  lastMessageAt  DateTime?
-  blockedById    String?
-  blockedAt      DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  messages       Message[]
+  id               String                    @id @default(cuid())
+  participantAId   String
+  participantA     Profile                   @relation("ConversationA", fields: [participantAId], references: [id])
+  participantBId   String
+  participantB     Profile                   @relation("ConversationB", fields: [participantBId], references: [id])
+  lastMessageAt    DateTime?
+  blockedById      String?
+  blockedAt        DateTime?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  messages         Message[]
+  participants     ConversationParticipant[]
+  callRooms        CallRoom[]
+  listingEnquiries ListingEnquiry[]
 
   @@unique([participantAId, participantBId])
   @@index([participantAId])
@@ -1227,24 +1509,302 @@ model Conversation {
   @@index([lastMessageAt])
 }
 
+model ConversationParticipant {
+  id                String       @id @default(cuid())
+  conversationId    String
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  profileId         String
+  profile           Profile      @relation(fields: [profileId], references: [id])
+  role              String       @default("member")
+  joinedAt          DateTime     @default(now())
+  lastReadMessageId String?
+  mutedAt           DateTime?
+  archivedAt        DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@unique([conversationId, profileId])
+  @@index([profileId, archivedAt, updatedAt])
+  @@index([lastReadMessageId])
+}
+
+model MessageDeliveryReceipt {
+  messageId   String
+  message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id])
+  deliveredAt DateTime @default(now())
+
+  @@id([messageId, profileId])
+  @@index([profileId, deliveredAt])
+}
+
+model MessageReadReceipt {
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id])
+  readAt    DateTime @default(now())
+
+  @@id([messageId, profileId])
+  @@index([profileId, readAt])
+}
+
+model MessageReaction {
+  id           String   @id @default(cuid())
+  messageId    String
+  message      Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  profileId    String
+  profile      Profile  @relation(fields: [profileId], references: [id])
+  reactionType String   @default("like")
+  createdAt    DateTime @default(now())
+
+  @@unique([messageId, profileId, reactionType])
+  @@index([profileId, createdAt])
+}
+
+model UserPresence {
+  profileId  String   @id
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  status     String   @default("offline")
+  lastSeenAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([status, lastSeenAt])
+}
+
+model UserBlock {
+  id               String   @id @default(cuid())
+  blockerProfileId String
+  blockerProfile   Profile  @relation("UserBlockBlocker", fields: [blockerProfileId], references: [id], onDelete: Cascade)
+  blockedProfileId String
+  blockedProfile   Profile  @relation("UserBlockBlocked", fields: [blockedProfileId], references: [id], onDelete: Cascade)
+  reason           String?
+  createdAt        DateTime @default(now())
+
+  @@unique([blockerProfileId, blockedProfileId])
+  @@index([blockerProfileId, createdAt])
+  @@index([blockedProfileId, createdAt])
+}
+
+model MessageModerationAction {
+  id             String   @id @default(cuid())
+  messageId      String
+  message        Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  actorProfileId String?
+  actorProfile   Profile? @relation(fields: [actorProfileId], references: [id], onDelete: SetNull)
+  action         String
+  reason         String
+  metadataJson   String?
+  createdAt      DateTime @default(now())
+
+  @@index([messageId, createdAt])
+  @@index([actorProfileId, createdAt])
+  @@index([action, createdAt])
+}
+
+model FeedTopic {
+  id        String     @id @default(cuid())
+  slug      String     @unique
+  name      String
+  rules     String?
+  sortOrder Int        @default(0)
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  posts     FeedPost[]
+
+  @@index([active, sortOrder])
+}
+
+model FeedPost {
+  id              String          @id @default(cuid())
+  authorProfileId String
+  author          Profile         @relation(fields: [authorProfileId], references: [id])
+  topicId         String?
+  topic           FeedTopic?      @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  body            String
+  visibility      String          @default("public")
+  status          String          @default("active")
+  pinnedAt        DateTime?
+  reportCount     Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  media           FeedPostMedia[]
+  comments        FeedComment[]
+  reactions       FeedReaction[]
+
+  @@index([status, createdAt])
+  @@index([topicId, status, createdAt])
+  @@index([authorProfileId, createdAt])
+  @@index([pinnedAt])
+}
+
+model FeedPostMedia {
+  postId    String
+  post      FeedPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     MediaAsset @relation(fields: [mediaId], references: [id])
+  position  Int
+  createdAt DateTime   @default(now())
+
+  @@id([postId, mediaId])
+  @@unique([postId, position])
+  @@index([mediaId])
+}
+
+model FeedComment {
+  id              String         @id @default(cuid())
+  postId          String
+  post            FeedPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorProfileId String
+  author          Profile        @relation(fields: [authorProfileId], references: [id])
+  parentCommentId String?
+  parentComment   FeedComment?   @relation("FeedCommentReplies", fields: [parentCommentId], references: [id], onDelete: SetNull)
+  replies         FeedComment[]  @relation("FeedCommentReplies")
+  body            String
+  status          String         @default("active")
+  reportCount     Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  reactions       FeedReaction[]
+
+  @@index([postId, status, createdAt])
+  @@index([authorProfileId, createdAt])
+  @@index([parentCommentId])
+}
+
+model FeedReaction {
+  id           String       @id @default(cuid())
+  postId       String?
+  post         FeedPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId    String?
+  comment      FeedComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  profileId    String
+  profile      Profile      @relation(fields: [profileId], references: [id])
+  reactionType String       @default("like")
+  createdAt    DateTime     @default(now())
+
+  @@unique([postId, profileId, reactionType])
+  @@unique([commentId, profileId, reactionType])
+  @@index([profileId, createdAt])
+}
+
+model CallRoom {
+  id                 String            @id @default(cuid())
+  conversationId     String?
+  conversation       Conversation?     @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  createdByProfileId String
+  createdBy          Profile           @relation("CallRoomCreator", fields: [createdByProfileId], references: [id])
+  roomName           String            @unique
+  status             String            @default("active")
+  startsAt           DateTime?
+  endedAt            DateTime?
+  createdAt          DateTime          @default(now())
+  participants       CallParticipant[]
+  invites            CallInvite[]
+  events             CallEvent[]
+  reports            CallReport[]
+  permissions        CallPermission[]
+
+  @@index([conversationId, status, createdAt])
+  @@index([createdByProfileId, createdAt])
+  @@index([status, createdAt])
+}
+
+model CallParticipant {
+  id                String    @id @default(cuid())
+  callRoomId        String
+  callRoom          CallRoom  @relation(fields: [callRoomId], references: [id], onDelete: Cascade)
+  profileId         String
+  profile           Profile   @relation(fields: [profileId], references: [id])
+  role              String    @default("participant")
+  joinedAt          DateTime?
+  leftAt            DateTime?
+  lastTokenIssuedAt DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@unique([callRoomId, profileId])
+  @@index([profileId, createdAt])
+}
+
+model CallInvite {
+  id            String   @id @default(cuid())
+  callRoomId    String
+  callRoom      CallRoom @relation(fields: [callRoomId], references: [id], onDelete: Cascade)
+  fromProfileId String
+  fromProfile   Profile  @relation("CallInviteFrom", fields: [fromProfileId], references: [id])
+  toProfileId   String
+  toProfile     Profile  @relation("CallInviteTo", fields: [toProfileId], references: [id])
+  status        String   @default("pending")
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([toProfileId, status, expiresAt])
+  @@index([fromProfileId, createdAt])
+}
+
+model CallEvent {
+  id           String   @id @default(cuid())
+  callRoomId   String
+  callRoom     CallRoom @relation(fields: [callRoomId], references: [id], onDelete: Cascade)
+  profileId    String?
+  profile      Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  eventType    String
+  metadataJson String?
+  createdAt    DateTime @default(now())
+
+  @@index([callRoomId, createdAt])
+  @@index([profileId, createdAt])
+  @@index([eventType, createdAt])
+}
+
+model CallReport {
+  id                String   @id @default(cuid())
+  callRoomId        String
+  callRoom          CallRoom @relation(fields: [callRoomId], references: [id], onDelete: Cascade)
+  reporterProfileId String
+  reporterProfile   Profile  @relation(fields: [reporterProfileId], references: [id])
+  reason            String
+  status            String   @default("open")
+  createdAt         DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([callRoomId, createdAt])
+  @@index([reporterProfileId, createdAt])
+}
+
+model CallPermission {
+  callRoomId String
+  callRoom   CallRoom @relation(fields: [callRoomId], references: [id], onDelete: Cascade)
+  profileId  String
+  profile    Profile  @relation(fields: [profileId], references: [id])
+  canJoin    Boolean  @default(true)
+  canInvite  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@id([callRoomId, profileId])
+  @@index([profileId, canJoin])
+}
+
 // === AGENTS ===
 
 model AgentRun {
-  id               String    @id @default(cuid())
+  id               String          @id @default(cuid())
   agentType        String // race_analyst | breeding_advisor | form_reader | moderator
   userId           String? // null for cron-triggered
   inputJson        String // JSON: input params
   outputJson       String? // JSON: structured result
   toolInvocations  String?
   createdMemoryIds String?
-  status           String    @default("pending") // pending | running | completed | failed
+  status           String          @default("pending") // pending | running | completed | failed
   error            String?
   promptTokens     Int?
   completionTokens Int?
   durationMs       Int?
   harnessPid       Int?
   harnessSessionId String?
-  createdAt        DateTime  @default(now())
+  createdAt        DateTime        @default(now())
   completedAt      DateTime?
   usageEntries     AgentRunUsage[]
 

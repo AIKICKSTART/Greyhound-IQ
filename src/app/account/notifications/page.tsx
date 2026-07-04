@@ -1,16 +1,23 @@
 import {
   ArrowLeft,
   Bell,
+  CheckCheck,
   CheckCircle2,
   Clock,
+  ExternalLink,
   Lock,
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import {
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "@/app/actions";
 import { PageHero } from "@/components/page-hero";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
+import { listNotificationsForUser } from "@/lib/notification-service";
 
 export const dynamic = "force-dynamic";
 
@@ -39,9 +46,17 @@ type MarketingPreferenceRecord = {
   updatedAt: Date;
 };
 
+type NotificationRecord = Awaited<
+  ReturnType<typeof listNotificationsForUser>
+>[number];
+
 export default async function AccountNotificationsPage() {
   const current = await requireNotificationsProfile();
-  const preferences = await getMarketingPreferences(current.dbUserId);
+  const [notifications, preferences] = await Promise.all([
+    listNotificationsForUser(current.dbUserId),
+    getMarketingPreferences(current.dbUserId),
+  ]);
+  const unreadCount = notifications.filter((item) => !item.readAt).length;
 
   return (
     <div>
@@ -63,6 +78,31 @@ export default async function AccountNotificationsPage() {
           Back to account
         </Link>
 
+        <section className={`${PANEL_CLASS} mb-6`}>
+          <div className="mb-5 flex items-center gap-3">
+            <Bell className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+            <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+              In-app notifications
+            </h2>
+            <span className="giq-status-pill">{unreadCount} unread</span>
+          </div>
+
+          {unreadCount > 0 ? (
+            <form action={markAllNotificationsRead} className="mb-4">
+              <button className="giq-outline-action min-h-9 px-3 text-[12px]">
+                <CheckCheck className="h-3.5 w-3.5" />
+                Mark all read
+              </button>
+            </form>
+          ) : null}
+
+          {notifications.length > 0 ? (
+            <NotificationList records={notifications} />
+          ) : (
+            <EmptyState label="No in-app notifications recorded." />
+          )}
+        </section>
+
         <section className={PANEL_CLASS}>
           <div className="mb-5 flex items-center gap-3">
             <Bell className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
@@ -70,11 +110,10 @@ export default async function AccountNotificationsPage() {
               Marketing preferences
             </h2>
           </div>
-
           {preferences.length > 0 ? (
             <MarketingPreferenceTable records={preferences} />
           ) : (
-            <EmptyState />
+            <EmptyState label="No marketing preferences recorded." />
           )}
         </section>
       </section>
@@ -119,6 +158,66 @@ function getMarketingPreferences(
       }));
     },
     []
+  );
+}
+
+function NotificationList({ records }: { records: NotificationRecord[] }) {
+  return (
+    <div className="space-y-3">
+      {records.map((record) => {
+        const readAction = markNotificationRead.bind(null, record.id);
+        return (
+          <article key={record.id} className="giq-subpanel p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span
+                    className={`giq-status-pill ${
+                      record.readAt ? "" : "giq-status-pill-purple"
+                    }`}
+                  >
+                    {record.readAt ? "Read" : "Unread"}
+                  </span>
+                  <span className="text-[11px] uppercase text-[hsl(var(--subtle-foreground))]">
+                    {formatLabel(record.type)}
+                  </span>
+                </div>
+                <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))]">
+                  {record.title}
+                </h3>
+                {record.body ? (
+                  <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                    {record.body}
+                  </p>
+                ) : null}
+                <p className="mt-2 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                  {formatDateTime(record.createdAt)}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {record.href ? (
+                  <Link
+                    href={record.href}
+                    className="giq-outline-action min-h-9 px-3 text-[12px]"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Open
+                  </Link>
+                ) : null}
+                {!record.readAt ? (
+                  <form action={readAction}>
+                    <button className="giq-outline-action min-h-9 px-3 text-[12px]">
+                      <CheckCheck className="h-3.5 w-3.5" />
+                      Mark read
+                    </button>
+                  </form>
+                ) : null}
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
   );
 }
 
@@ -181,14 +280,14 @@ function PreferenceStatus({ optedIn }: { optedIn: boolean }) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ label }: { label: string }) {
   return (
     <div className="giq-dashed-panel p-5">
       <div className="giq-icon-plate mb-3 flex h-8 w-8 items-center justify-center rounded-md">
         <Lock className="h-4 w-4" />
       </div>
       <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
-        No marketing preferences recorded.
+        {label}
       </p>
     </div>
   );

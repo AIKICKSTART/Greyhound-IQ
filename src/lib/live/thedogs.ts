@@ -1,4 +1,5 @@
 import type { LiveDataProvider, LiveMeeting, LiveRace, LiveRunner } from "./provider";
+import { raceDateTimeToUtc } from "../race-time";
 
 const THEDOGS_BASE =
   process.env.THEDOGS_BASE_URL ?? "https://www.thedogs.com.au";
@@ -19,6 +20,12 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 type FetchLike = typeof fetch;
 type FeedKind = "upcoming" | "recent";
+type RaceTimeSource = "provider" | "fallback";
+
+type ParsedRaceTime = {
+  iso: string;
+  source: RaceTimeSource;
+};
 
 interface TheDogsMeetingLink {
   href: string;
@@ -70,7 +77,7 @@ export class TheDogsProvider implements LiveDataProvider {
       await mapLimit(links, THEDOGS_CONCURRENCY, async (link) => {
         try {
           const html = await this.getText(link.href);
-          return parseTheDogsMeeting(html, link);
+          return this.hydrateFallbackRaceTimes(parseTheDogsMeeting(html, link));
         } catch (err) {
           console.warn(
             `[thedogs] Skipping ${link.href}: ${
@@ -81,6 +88,49 @@ export class TheDogsProvider implements LiveDataProvider {
         }
       })
     ).filter((meeting): meeting is LiveMeeting => meeting != null);
+  }
+
+  private async hydrateFallbackRaceTimes(meeting: LiveMeeting) {
+    const fallbackRaces = meeting.races.filter(
+      (race) => race.raceTimeSource === "fallback" && race.sourceId
+    );
+    if (fallbackRaces.length === 0) return meeting;
+
+    const hydrated = await mapLimit(
+      fallbackRaces,
+      THEDOGS_CONCURRENCY,
+      async (race) => {
+        try {
+          const html = await this.getText(race.sourceId ?? "");
+          const raceTime = parseRaceTimestamp(html);
+          if (!raceTime) return race;
+          return {
+            ...race,
+            raceTime,
+            raceTimeSource: "provider" as const,
+            sourceRawJson: mergeRaceSourceRawJson(race.sourceRawJson, {
+              raceTimeSource: "provider",
+              raceTimeDetailHref: race.sourceId,
+            }),
+          };
+        } catch (err) {
+          console.warn(
+            `[thedogs] Could not hydrate race time for ${race.sourceId}: ${
+              err instanceof Error ? err.message : String(err)
+            }`
+          );
+          return race;
+        }
+      }
+    );
+
+    const byRaceNumber = new Map(
+      hydrated.map((race) => [race.raceNumber, race])
+    );
+    return {
+      ...meeting,
+      races: meeting.races.map((race) => byRaceNumber.get(race.raceNumber) ?? race),
+    };
   }
 
   private async fetchResultMeetings(
@@ -213,7 +263,11 @@ export function parseTheDogsRaceResult(
     )
   );
   const distance = Number(gradeAndDistance.match(/(\d{3,4})m\b/i)?.[1] ?? 0);
-  const raceTime = parseRaceTimestamp(html) ?? fallbackRaceTimeIso(date, link.raceNumber);
+  const raceTime = raceTimeWithSource(
+    parseRaceTimestamp(html),
+    date,
+    link.raceNumber
+  );
   const runners = parseRunners(html);
   const replayUrl = parseReplayUrl(html);
   const videoSourceId = parseReplayVideoSourceId(replayUrl);
@@ -233,6 +287,7 @@ export function parseTheDogsRaceResult(
       prizePlaces: parsePrizePlaces(html),
       resultSummary: parseActiveResultOrder(html),
       videoSourceId,
+      raceTimeSource: raceTime.source,
     }),
     raceNumber: link.raceNumber,
     name: cleanHtml(
@@ -241,7 +296,8 @@ export function parseTheDogsRaceResult(
         /<div class="race-header__info__name[^"]*">([\s\S]*?)<\/div>/i
       )
     ),
-    raceTime,
+    raceTime: raceTime.iso,
+    raceTimeSource: raceTime.source,
     distance,
     grade:
       gradeAndDistance.replace(/\s*\d{3,4}m\s*$/i, "").trim() || undefined,
@@ -317,14 +373,16 @@ function parseVenue(html: string) {
 }
 
 function parseRaceTimes(html: string) {
-  const times = new Map<number, string>();
+  const times = new Map<number, ParsedRaceTime>();
   for (const match of html.matchAll(/<a class="race-box[^"]*"([^>]*)>/gi)) {
     const attrs = match[1] ?? "";
     const href = firstMatch(attrs, /href="([^"]+)"/i);
     const raceNumber = extractRaceNumber(href);
     const raceTime = firstMatch(attrs, /data-race-box="([^"]+)"/i);
     const parsed = raceTime ? validIso(raceTime) : undefined;
-    if (raceNumber && parsed) times.set(raceNumber, parsed);
+    if (raceNumber && parsed) {
+      times.set(raceNumber, { iso: parsed, source: "provider" });
+    }
   }
   return times;
 }
@@ -345,7 +403,7 @@ function splitRaceSections(html: string) {
 
 function parseRace(
   section: { href: string; html: string },
-  raceTimes: Map<number, string>,
+  raceTimes: Map<number, ParsedRaceTime>,
   date: string
 ): LiveRace | null {
   const raceNumber = extractRaceNumber(section.href);
@@ -358,12 +416,14 @@ function parseRace(
     )
   );
   const distance = Number(gradeAndDistance.match(/(\d{3,4})m\b/i)?.[1] ?? 0);
+  const raceTime = raceTimeWithSource(raceTimes.get(raceNumber), date, raceNumber);
 
   return {
     sourceId: section.href,
     sourceRawJson: JSON.stringify({
       href: section.href,
       resultSummary: parseResultOrder(section.html),
+      raceTimeSource: raceTime.source,
     }),
     raceNumber,
     name: cleanHtml(
@@ -372,7 +432,8 @@ function parseRace(
         /<div class="race-header__info__name[^"]*">([\s\S]*?)<\/div>/i
       )
     ),
-    raceTime: raceTimes.get(raceNumber) ?? fallbackRaceTimeIso(date, raceNumber),
+    raceTime: raceTime.iso,
+    raceTimeSource: raceTime.source,
     distance,
     grade:
       gradeAndDistance.replace(/\s*\d{3,4}m\s*$/i, "").trim() || undefined,
@@ -385,6 +446,24 @@ function parseRace(
     resultStatus: section.html.includes("race-box--result") ? "posted" : "pending",
     runners: parseRunners(section.html),
   };
+}
+
+function mergeRaceSourceRawJson(
+  sourceRawJson: string | undefined,
+  patch: Record<string, unknown>
+) {
+  let base: Record<string, unknown> = {};
+  if (sourceRawJson) {
+    try {
+      const parsed = JSON.parse(sourceRawJson);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        base = parsed as Record<string, unknown>;
+      }
+    } catch {
+      base = {};
+    }
+  }
+  return JSON.stringify({ ...base, ...patch });
 }
 
 function parseRunners(section: string): LiveRunner[] {
@@ -528,11 +607,20 @@ function isMeetingInWindow(date: string, kind: FeedKind, days: number) {
   return meetingDay <= today && meetingDay >= today - span;
 }
 
+function raceTimeWithSource(
+  parsed: ParsedRaceTime | string | undefined,
+  date: string,
+  raceNumber: number
+): ParsedRaceTime {
+  if (typeof parsed === "string") return { iso: parsed, source: "provider" };
+  if (parsed) return parsed;
+
+  return { iso: fallbackRaceTimeIso(date, raceNumber), source: "fallback" };
+}
+
 function fallbackRaceTimeIso(date: string, raceNumber: number) {
   const minute = Math.min(Math.max(raceNumber, 1), 59);
-  return new Date(
-    `${date}T12:${minute.toString().padStart(2, "0")}:00+10:00`
-  ).toISOString();
+  return raceDateTimeToUtc(date, 12, minute).toISOString();
 }
 
 function extractRaceNumber(href: string) {

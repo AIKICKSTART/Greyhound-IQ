@@ -86,6 +86,43 @@ npm run supervise:thedogs:race-day-archive -- --check-once
 npm run supervise:thedogs:dog-profile-import -- --check-once
 ```
 
+## Staging Race And Dog Data Refresh
+
+Use staging credentials only. Inject secret values from GitHub environment
+secrets or Secret Manager; do not paste database URLs or internal secrets into
+committed files, issue comments, screenshots, or logs.
+
+Refresh the deployed staging app through the protected internal route:
+
+```bash
+curl -fsS -X POST \
+  -H "X-Internal-Secret: $STAGING_INTERNAL_API_SECRET" \
+  "https://staging.greyhoundsiq.com.au/api/internal/live-sync?days=1&scope=all"
+
+curl -fsS -X POST \
+  -H "X-Internal-Secret: $STAGING_INTERNAL_API_SECRET" \
+  "https://staging.greyhoundsiq.com.au/api/internal/live-sync?days=7&scope=upcoming"
+```
+
+Run bounded operator refreshes against the staging database:
+
+```bash
+DATABASE_URL="$STAGING_DATABASE_URL" npm run sync:live -- 1 all
+DATABASE_URL="$STAGING_DATABASE_URL" npm run sync:live -- 7 upcoming
+DATABASE_URL="$STAGING_DATABASE_URL" npm run audit:live-race-coverage -- 7
+DATABASE_URL="$STAGING_DATABASE_URL" npm run audit:live-result-coverage -- 1
+
+DATABASE_IMPORT_URL="$STAGING_DATABASE_URL" npm run audit:thedogs:race-videos -- --from YYYY-MM-DD --to YYYY-MM-DD
+DATABASE_IMPORT_URL="$STAGING_DATABASE_URL" npm run backfill:thedogs:race-videos -- --from YYYY-MM-DD --to YYYY-MM-DD --full --concurrency 4 --pause-ms 250 --continue-on-error
+DATABASE_IMPORT_URL="$STAGING_DATABASE_URL" npm run audit:thedogs:race-videos -- --from YYYY-MM-DD --to YYYY-MM-DD
+
+DATABASE_URL="$STAGING_DATABASE_URL" npm run backfill:thedogs:dog-profiles -- --limit 100 --continue-on-error
+DATABASE_IMPORT_URL="$STAGING_DATABASE_URL" npm run status:thedogs:harvest
+```
+
+The replay backfill treats `RaceVideo` rows with `streamUrl = null` as pending,
+so reruns keep retrying provider responses until a playable stream is stored.
+
 ## Provider Expectations
 
 - TheDogs remains enabled by default and provides the all-Australia public

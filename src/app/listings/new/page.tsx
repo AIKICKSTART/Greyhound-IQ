@@ -4,7 +4,10 @@ import { createListing } from "@/app/actions";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
-import { getDogsForListingSelect } from "@/lib/queries";
+import {
+  getDogsForListingSelect,
+  getMarketplaceCategories,
+} from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +28,10 @@ const LISTING_TYPES = [
 const STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"];
 
 export default async function NewListingPage() {
-  const [user, dogs] = await Promise.all([
+  const [user, dogs, categories] = await Promise.all([
     getCurrentUser(),
     getDogsForListingSelect(120),
+    getMarketplaceCategories(),
   ]);
 
   return (
@@ -46,8 +50,8 @@ export default async function NewListingPage() {
           Create a marketplace listing
         </h1>
         <p className="giq-form-page-subtitle mt-3 max-w-2xl text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Publish a listing connected to your GreyhoundIQ profile with clean,
-          scanned media attached to the record.
+          Submit a listing connected to your GreyhoundIQ profile with clean,
+          scanned media attached. It appears publicly after moderator approval.
         </p>
       </div>
 
@@ -71,6 +75,50 @@ export default async function NewListingPage() {
                     </option>
                   ))}
                 </select>
+              </label>
+
+              <label className="block">
+                <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                  Category
+                </span>
+                <select
+                  name="categoryId"
+                  className="giq-form-control mt-2 px-3 py-2"
+                  defaultValue=""
+                >
+                  <option value="">Auto-select from type</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <label className="block">
+                <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                  Region
+                </span>
+                <input
+                  name="region"
+                  maxLength={120}
+                  className="giq-form-control mt-2 px-3 py-2"
+                  placeholder="Illawarra"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                  Suburb
+                </span>
+                <input
+                  name="suburb"
+                  maxLength={120}
+                  className="giq-form-control mt-2 px-3 py-2"
+                  placeholder="Dapto"
+                />
               </label>
 
               <label className="block">
@@ -138,6 +186,25 @@ export default async function NewListingPage() {
 
               <label className="block">
                 <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                  Condition
+                </span>
+                <select
+                  name="condition"
+                  className="giq-form-control mt-2 px-3 py-2"
+                  defaultValue=""
+                >
+                  <option value="">Not specified</option>
+                  <option value="new">New</option>
+                  <option value="excellent">Excellent</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block">
+                <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                   Linked dog
                 </span>
                 <select
@@ -154,13 +221,96 @@ export default async function NewListingPage() {
                   ))}
                 </select>
               </label>
+
+              <label className="block">
+                <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                  Contact preference
+                </span>
+                <select
+                  name="contactPreference"
+                  className="giq-form-control mt-2 px-3 py-2"
+                  defaultValue="message"
+                >
+                  <option value="message">GreyhoundIQ message</option>
+                  <option value="email">Email after enquiry</option>
+                  <option value="phone">Phone after enquiry</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="grid gap-3 rounded-lg border border-white/[0.08] bg-white/[0.03] p-4">
+              <div>
+                <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                  Listing details
+                </p>
+                <p className="mt-1 text-[12px] text-[hsl(var(--muted-foreground))]">
+                  Add up to three searchable details, such as microchip, whelping
+                  date, brand, size, or inclusions.
+                </p>
+              </div>
+              {[0, 1, 2].map((index) => (
+                <div key={index} className="grid gap-3 md:grid-cols-2">
+                  <input
+                    name="attributeKey"
+                    maxLength={40}
+                    className="giq-form-control px-3 py-2"
+                    placeholder="Detail"
+                  />
+                  <input
+                    name="attributeValue"
+                    maxLength={120}
+                    className="giq-form-control px-3 py-2"
+                    placeholder="Value"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-3">
+              <label className="flex items-start gap-3 rounded-lg border border-white/[0.08] bg-white/[0.03] p-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                <input
+                  type="checkbox"
+                  name="negotiable"
+                  value="true"
+                  className="mt-1"
+                />
+                <span>Price is negotiable.</span>
+              </label>
+              <label className="flex items-start gap-3 rounded-lg border border-white/[0.08] bg-white/[0.03] p-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                <input
+                  type="checkbox"
+                  name="welfareAcknowledged"
+                  value="true"
+                  required
+                  className="mt-1"
+                />
+                <span>
+                  I acknowledge greyhound welfare, transfer, identity, and
+                  disclosure obligations may apply before this listing can go
+                  live.
+                </span>
+              </label>
+              <label className="flex items-start gap-3 rounded-lg border border-white/[0.08] bg-white/[0.03] p-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                <input
+                  type="checkbox"
+                  name="legalAcknowledged"
+                  value="true"
+                  required
+                  className="mt-1"
+                />
+                <span>
+                  I acknowledge this listing is subject to moderator review,
+                  marketplace rules, and Australian state or territory
+                  requirements.
+                </span>
+              </label>
             </div>
 
             <MediaAttachmentFields mediaContext="listings" maxFiles={11} />
 
-            <SubmitButton pendingLabel="Publishing...">
+            <SubmitButton pendingLabel="Submitting...">
               <PlusCircle className="h-3.5 w-3.5" />
-              Publish listing
+              Submit for review
             </SubmitButton>
           </form>
         ) : (

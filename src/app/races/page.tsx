@@ -14,6 +14,12 @@ import { getRaceExplorerData } from "@/lib/queries";
 import { getLiveFeedStatus } from "@/lib/live/status";
 import { MeetingCard } from "@/components/meeting-card";
 import { PageHero } from "@/components/page-hero";
+import {
+  formatRaceDateTime,
+  formatRaceDayLabel,
+  formatRaceTime,
+  formatShortRaceDayLabel,
+} from "@/lib/race-time";
 
 export const dynamic = "force-dynamic";
 
@@ -28,19 +34,6 @@ type RacesPageProps = {
 };
 
 const countFormatter = new Intl.NumberFormat("en-AU");
-const raceDateFormatter = new Intl.DateTimeFormat("en-AU", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "Australia/Sydney",
-});
-const raceTimeFormatter = new Intl.DateTimeFormat("en-AU", {
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-  timeZone: "Australia/Sydney",
-});
 
 export default async function RacesPage({ searchParams }: RacesPageProps) {
   const params = await searchParams;
@@ -48,6 +41,9 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
     getRaceExplorerData({
       date: firstParam(params.date),
       state: firstParam(params.state),
+      q: firstParam(params.q),
+      status: firstParam(params.status),
+      sort: firstParam(params.sort),
     }),
     getLiveFeedStatus(),
   ]);
@@ -77,7 +73,13 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
-            href={dateLink(data.selectedDate, selectedState)}
+            href={dateLink(
+              data.selectedDate,
+              selectedState,
+              data.searchQuery,
+              data.selectedStatus,
+              data.selectedSort
+            )}
             className="giq-button giq-button-primary px-5 text-[13px] font-semibold"
           >
             <Radio className="h-4 w-4" />
@@ -102,7 +104,9 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
               <div className="min-w-0">
                 <p className="program-label">Race day explorer</p>
                 <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
-                  {formatDate(data.selectedDate)}
+                  {data.isGlobalSearch
+                    ? "All race dates"
+                    : formatRaceDayLabel(data.selectedDate)}
                   {selectedState ? (
                     <span className="text-[hsl(var(--muted-foreground))]">
                       {" "}
@@ -111,15 +115,28 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                   ) : null}
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-[hsl(var(--muted-foreground))]">
-                  Browse real harvested racecards by date and state. Replay
-                  badges mark races with playable streams.
+                  {data.isGlobalSearch
+                    ? "Search spans every harvested race date until you choose a specific date."
+                    : "Search real harvested racecards by track, runner, race, distance, time, grade, state, and status."}
                 </p>
               </div>
 
               <form
                 action="/races"
-                className="grid w-full gap-3 sm:grid-cols-[minmax(160px,1fr)_minmax(150px,1fr)_132px] xl:w-[560px] xl:flex-none"
+                className="grid w-full gap-3 sm:grid-cols-2 xl:flex-none xl:grid-cols-[minmax(160px,1.2fr)_130px_110px_120px_120px_100px]"
               >
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--subtle-foreground))]">
+                    Search
+                  </span>
+                  <input
+                    type="search"
+                    name="q"
+                    defaultValue={data.searchQuery ?? ""}
+                    placeholder="Track, runner, R4, 520m, 19:42"
+                    className="giq-form-control min-h-11 px-3 text-sm"
+                  />
+                </label>
                 <label className="grid gap-1">
                   <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--subtle-foreground))]">
                     Date
@@ -127,7 +144,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                   <input
                     type="date"
                     name="date"
-                    defaultValue={data.selectedDate}
+                    defaultValue={data.dateInputValue}
                     className="giq-form-control min-h-11 px-3 text-sm"
                   />
                 </label>
@@ -148,6 +165,35 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                     ))}
                   </select>
                 </label>
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--subtle-foreground))]">
+                    Status
+                  </span>
+                  <select
+                    name="status"
+                    defaultValue={data.selectedStatus}
+                    className="giq-form-control min-h-11 px-3 text-sm"
+                  >
+                    <option value="all">All races</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="live">Live</option>
+                    <option value="resulted">Resulted</option>
+                    <option value="replay">Replay ready</option>
+                  </select>
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--subtle-foreground))]">
+                    Sort
+                  </span>
+                  <select
+                    name="sort"
+                    defaultValue={data.selectedSort}
+                    className="giq-form-control min-h-11 px-3 text-sm"
+                  >
+                    <option value="relevance">Relevance</option>
+                    <option value="time">Race time</option>
+                  </select>
+                </label>
                 <button
                   type="submit"
                   className="giq-button giq-button-primary min-h-11 w-full px-5 text-[13px] font-semibold whitespace-nowrap sm:mt-5 sm:w-auto"
@@ -159,12 +205,37 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
+              {data.searchQuery && (
+                <Link
+                  href={dateLink(
+                    null,
+                    selectedState,
+                    data.searchQuery,
+                    data.selectedStatus,
+                    data.selectedSort
+                  )}
+                  className={`giq-outline-action min-h-10 px-3 text-[12px] ${
+                    data.isGlobalSearch
+                      ? "border-[hsl(var(--primary-light)/0.46)] bg-[hsl(var(--primary)/0.26)] text-white"
+                      : ""
+                  }`}
+                >
+                  <Search className="h-3.5 w-3.5" />
+                  All dates
+                </Link>
+              )}
               {data.recentRaceDates.map((item) => {
-                const active = item.date === data.selectedDate;
+                const active = !data.isGlobalSearch && item.date === data.selectedDate;
                 return (
                   <Link
                     key={item.date}
-                    href={dateLink(item.date, selectedState)}
+                    href={dateLink(
+                      item.date,
+                      selectedState,
+                      data.searchQuery,
+                      data.selectedStatus,
+                      data.selectedSort
+                    )}
                     className={`giq-outline-action min-h-10 px-3 text-[12px] ${
                       active
                         ? "border-[hsl(var(--primary-light)/0.46)] bg-[hsl(var(--primary)/0.26)] text-white"
@@ -172,7 +243,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                     }`}
                   >
                     <CalendarDays className="h-3.5 w-3.5" />
-                    {shortDate(item.date)}
+                    {formatShortRaceDayLabel(item.date)}
                     <span className="rounded bg-black/25 px-1.5 py-0.5 font-mono text-[10px] text-[hsl(var(--muted-foreground))]">
                       {item.races}
                     </span>
@@ -237,7 +308,8 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                 <Link
                   key={race.id}
                   href={`/races/${race.id}`}
-                  className="giq-panel giq-panel-hover group p-4 hover:border-[hsl(var(--secondary)/0.34)]"
+                  className="giq-panel giq-panel-hover group block p-4 hover:border-[hsl(var(--secondary)/0.34)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[hsl(var(--secondary-light))] active:translate-y-[1px]"
+                  aria-label={`Open replay for race ${race.raceNumber} at ${race.meeting.track.name}`}
                 >
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div>
@@ -256,7 +328,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                     {race.meeting.track.name}, {race.meeting.track.state}
                   </p>
                   <p className="mt-1 text-[12px] text-[hsl(var(--muted-foreground))]">
-                    {formatTime(race.raceTime)}
+                    {formatRaceTime(race.raceTime)}
                     {race.grade ? ` / ${race.grade}` : ""}
                   </p>
                   <div className="race-box-strip mt-5 opacity-80" />
@@ -271,12 +343,17 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
             <div>
               <p className="program-label">Meetings</p>
               <h2 className="mt-1 text-2xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
-                {hasMeetings ? "Racecards by track" : "No racecards found"}
+                {hasMeetings
+                  ? data.searchQuery
+                    ? "Search results by track"
+                    : "Racecards by track"
+                  : "No racecards found"}
               </h2>
             </div>
             <p className="max-w-xl text-sm text-[hsl(var(--muted-foreground))]">
-              The card data below comes from the local Postgres/Supabase data
-              model, including runners and replay availability.
+              {data.searchQuery
+                ? `Showing ${data.selectedSort === "relevance" ? "ranked" : "time-sorted"} matches for "${data.searchQuery}" across ${data.isGlobalSearch ? "all harvested race dates" : formatRaceDayLabel(data.selectedDate)}.`
+                : "The card data below comes from the local Postgres/Supabase data model, including runners and replay availability."}
             </p>
           </div>
 
@@ -290,8 +367,8 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
             <div className="giq-empty-state p-12 text-center">
               <Database className="mx-auto h-8 w-8 text-[hsl(var(--primary-bright))]" />
               <p className="mt-4 text-[15px] text-[hsl(var(--muted-foreground))]">
-                No meetings match this date and state. Try one of the recent
-                dates above or clear the state filter.
+                No races match these filters. Try a broader search, one of the
+                recent dates above, or clear the state/status filter.
               </p>
             </div>
           )}
@@ -342,7 +419,7 @@ function LiveStatusPanel({
           label="Latest race"
           value={
             liveStatus.data.latestRaceTime
-              ? formatDateTime(new Date(liveStatus.data.latestRaceTime))
+              ? formatRaceDateTime(new Date(liveStatus.data.latestRaceTime))
               : "None"
           }
         />
@@ -405,32 +482,22 @@ function firstParam(value: string | string[] | undefined) {
   return value ?? null;
 }
 
-function dateLink(date: string, state: string | null) {
-  const params = new URLSearchParams({ date });
+function dateLink(
+  date: string | null,
+  state: string | null,
+  q: string | null,
+  status: string,
+  sort: string
+) {
+  const params = new URLSearchParams();
+  if (date) params.set("date", date);
   if (state) params.set("state", state);
+  if (q) params.set("q", q);
+  if (status !== "all") params.set("status", status);
+  if (sort !== "relevance") params.set("sort", sort);
   return `/races?${params.toString()}`;
 }
 
 function formatCount(value: number | null | undefined) {
   return countFormatter.format(value ?? 0);
-}
-
-function formatDate(date: string) {
-  return raceDateFormatter.format(new Date(`${date}T00:00:00.000Z`));
-}
-
-function shortDate(date: string) {
-  return new Intl.DateTimeFormat("en-AU", {
-    day: "numeric",
-    month: "short",
-    timeZone: "Australia/Sydney",
-  }).format(new Date(`${date}T00:00:00.000Z`));
-}
-
-function formatTime(date: Date) {
-  return raceTimeFormatter.format(date);
-}
-
-function formatDateTime(date: Date) {
-  return `${raceDateFormatter.format(date)} ${raceTimeFormatter.format(date)}`;
 }

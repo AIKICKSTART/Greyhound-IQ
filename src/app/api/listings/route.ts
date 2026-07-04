@@ -23,10 +23,12 @@ export async function GET(request: NextRequest) {
   const limit = boundedLimit(searchParams.get("limit"));
   const listings = await getMarketplaceListings(limit, {
     type: valueFromSet(searchParams.get("type"), TYPES),
+    categoryId: searchParams.get("categoryId"),
+    categorySlug: searchParams.get("category"),
     state: valueFromSet(searchParams.get("state"), STATES),
     dogId: searchParams.get("dog") || searchParams.get("dogId"),
     q: searchParams.get("q"),
-    status: searchParams.get("status") === "sold" ? "sold" : "active",
+    status: "active",
     sort: valueFromSet(searchParams.get("sort"), SORTS) as
       | "created_at"
       | "price"

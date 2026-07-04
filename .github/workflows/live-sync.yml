@@ -36,7 +36,7 @@ jobs:
         run: |
           test -n "$PROD_INTERNAL_API_SECRET" || (echo "Missing PROD_INTERNAL_API_SECRET secret" && exit 1)
 
-          base_url="${LIVE_SYNC_BASE_URL:-https://greyhound-iq-delta.vercel.app}"
+          base_url="${LIVE_SYNC_BASE_URL:-https://greyhoundsiq.com.au}"
           curl -fsS -X POST \
             -H "X-Internal-Secret: $PROD_INTERNAL_API_SECRET" \
             "$base_url/api/internal/live-sync?days=$DAYS&scope=$SCOPE"

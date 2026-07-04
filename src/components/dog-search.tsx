@@ -118,7 +118,6 @@ function DogSearchInner() {
           onChange={(e) => handleQueryChange(e.target.value)}
           onKeyDown={handleKeyDown}
           className="h-12 rounded-xl border-0 bg-transparent pl-11 pr-11 text-[15px] text-[hsl(var(--foreground))] tracking-[-0.013em] placeholder:text-[hsl(var(--subtle-foreground))] focus-visible:ring-0"
-          autoFocus
         />
         {loading && (
           <Loader2

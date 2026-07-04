@@ -3,12 +3,14 @@ import { Inbox, Lock, MessageSquare, Send } from "lucide-react";
 import { sendMessage } from "@/app/actions";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
 import { PageHero } from "@/components/page-hero";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
 import {
   getConversationsForUserEmail,
   getMessagingProfiles,
 } from "@/lib/queries";
+import { profileRealtimeChannel } from "@/lib/realtime-service";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,9 @@ export default async function MessagesPage() {
       conversation.messages[0]?.recipientId === user?.profileId &&
       !conversation.messages[0]?.readAt
   ).length;
+  const realtimeChannel = user?.profileId
+    ? profileRealtimeChannel(user.profileId)
+    : null;
 
   return (
     <div>
@@ -45,6 +50,16 @@ export default async function MessagesPage() {
         }
         subtitle="1:1 messaging for owner, breeder, trainer, and marketplace conversations. Message records are tied to verified GreyhoundIQ profiles."
       />
+      {realtimeChannel && (
+        <RealtimeRefresh
+          channels={[
+            {
+              name: realtimeChannel,
+              events: ["message_created", "conversation_updated"],
+            },
+          ]}
+        />
+      )}
 
       <section className="mx-auto max-w-5xl px-6 py-12">
         {!user ? (

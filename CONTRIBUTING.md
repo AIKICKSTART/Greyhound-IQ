@@ -1,6 +1,6 @@
 # Contributing to GreyhoundIQ
 
-GreyhoundIQ uses a PR-first workflow. Work locally on a branch, push to GitHub, wait for CI, Vercel preview, and Codex review, then request human review.
+GreyhoundIQ uses a PR-first workflow. Work locally on a branch, push to GitHub, wait for CI and Codex review, then request human review.
 
 ## Local workflow
 
@@ -46,4 +46,4 @@ Use Prisma migrations. Avoid destructive changes. If a migration drops data, cha
 
 ## Secrets
 
-Do not paste secrets into issues, PRs, commits, logs, screenshots, README, wiki, or docs. Store runtime secrets in Vercel env vars and CI secrets in GitHub Actions.
+Do not paste secrets into issues, PRs, commits, logs, screenshots, README, wiki, or docs. Store runtime secrets in Google Secret Manager and CI/CD secrets in GitHub Actions.

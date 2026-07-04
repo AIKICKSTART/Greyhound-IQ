@@ -19,7 +19,6 @@
 
 - CI passes.
 - Codex review runs.
-- Vercel preview deploys.
 - One human review approves.
 - Conversations are resolved.
 

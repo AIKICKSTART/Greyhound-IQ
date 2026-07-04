@@ -8,9 +8,9 @@ Report security issues privately to Daniel Fleuren via the AI Kick Start operato
 
 ## Secret handling
 
-- Never commit `.env`, API keys, database URLs, Supabase service-role keys, Vercel tokens, GitHub tokens, OpenAI keys, WorkOS keys, or local credential file paths.
+- Never commit `.env`, API keys, database URLs, Supabase service-role keys, Google Cloud credentials, GitHub tokens, OpenAI keys, WorkOS keys, or local credential file paths.
 - GitHub Actions secrets hold CI/CD credentials.
-- Vercel environment variables hold runtime credentials.
+- Google Secret Manager and Cloud Run runtime configuration hold runtime credentials.
 - Rotate any credential that was exposed in a terminal log, screenshot, issue, PR, or commit.
 
 ## Required gates

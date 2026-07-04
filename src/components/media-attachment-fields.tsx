@@ -22,6 +22,7 @@ type MediaContext =
   | "avatars"
   | "dogs"
   | "listings"
+  | "feed"
   | "forum"
   | "messages"
   | "verification"

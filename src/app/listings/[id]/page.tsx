@@ -4,9 +4,11 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   BadgeCheck,
+  Bookmark,
   Clock3,
   DollarSign,
   Eye,
+  Flag,
   MapPin,
   MessageSquare,
   Paperclip,
@@ -16,14 +18,18 @@ import {
   Tag,
 } from "lucide-react";
 import {
+  enquireAboutListing,
   markListingSold,
+  reportListing,
   renewListing,
+  toggleSavedListing,
   withdrawListing,
 } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
 import {
-  getPublicListingById,
+  getListingForViewerById,
+  getSavedListingIdsForProfile,
   listingIsExpired,
 } from "@/lib/listing-service";
 import {
@@ -44,8 +50,11 @@ const TYPE_LABEL: Record<string, string> = {
 
 const STATUS_STYLE: Record<string, string> = {
   active: "giq-badge-purple",
+  pending_review: "giq-badge-gold",
   expired: "giq-badge-neutral",
   sold: "giq-badge-gold",
+  rejected: "giq-badge-neutral",
+  removed: "giq-badge-neutral",
   withdrawn: "giq-badge-neutral",
   archived: "giq-badge-neutral",
 };
@@ -68,20 +77,39 @@ export default async function ListingDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const [{ id }, user] = await Promise.all([params, getCurrentUser()]);
-  let listing: Awaited<ReturnType<typeof getPublicListingById>>;
+  let listing: Awaited<ReturnType<typeof getListingForViewerById>>;
 
   try {
-    listing = await getPublicListingById(id);
+    listing = await getListingForViewerById(id, user);
   } catch {
     notFound();
   }
 
   const isOwner = user?.profileId === listing.profileId;
   const expired = listingIsExpired(listing);
+  const savedIds =
+    user?.profileId && !isOwner
+      ? await getSavedListingIdsForProfile(user.profileId, [listing.id])
+      : new Set<string>();
+  const isSaved = savedIds.has(listing.id);
+  const saveAction = toggleSavedListing.bind(null, listing.id);
   const renewAction = renewListing.bind(null, listing.id);
   const soldAction = markListingSold.bind(null, listing.id);
   const withdrawAction = withdrawListing.bind(null, listing.id);
+  const enquiryAction = enquireAboutListing.bind(null, listing.id);
+  const reportAction = reportListing.bind(null, listing.id);
   const demoImages = getDemoListingImages(listing, 3);
+  const canRenew =
+    expired || ["expired", "sold", "withdrawn"].includes(listing.status);
+  const canWithdraw = ["active", "pending_review"].includes(listing.status);
+  const locationLabel =
+    [
+      listing.location?.suburb,
+      listing.location?.region,
+      listing.state,
+    ]
+      .filter(Boolean)
+      .join(", ") || "Australia";
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
@@ -101,7 +129,7 @@ export default async function ListingDetailPage({
                 <p className="program-label">Marketplace listing</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <span className="giq-badge giq-badge-purple">
-                    {TYPE_LABEL[listing.type] ?? listing.type}
+                    {listing.category?.name ?? TYPE_LABEL[listing.type] ?? listing.type}
                   </span>
                   <span
                     className={`giq-badge ${
@@ -198,7 +226,22 @@ export default async function ListingDetailPage({
               <DetailRow
                 icon={<MapPin className="h-4 w-4" />}
                 label="Location"
-                value={listing.state ?? "Australia"}
+                value={locationLabel}
+              />
+              <DetailRow
+                icon={<ShoppingBag className="h-4 w-4" />}
+                label="Type"
+                value={TYPE_LABEL[listing.type] ?? listing.type}
+              />
+              <DetailRow
+                icon={<Tag className="h-4 w-4" />}
+                label="Condition"
+                value={listing.condition ?? listing.itemCondition ?? "Not set"}
+              />
+              <DetailRow
+                icon={<DollarSign className="h-4 w-4" />}
+                label="Negotiable"
+                value={listing.negotiable ? "Yes" : "No"}
               />
               <DetailRow
                 icon={<Clock3 className="h-4 w-4" />}
@@ -220,6 +263,23 @@ export default async function ListingDetailPage({
                 value={formatDate(listing.createdAt)}
               />
             </div>
+            {listing.attributes.length > 0 && (
+              <div className="mt-5 border-t border-white/[0.05] pt-4">
+                <p className="mb-3 text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                  Additional details
+                </p>
+                <div className="space-y-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                  {listing.attributes.map((attribute) => (
+                    <DetailRow
+                      key={attribute.id}
+                      icon={<Tag className="h-4 w-4" />}
+                      label={attribute.key}
+                      value={attribute.value}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
 
           <section className="giq-panel p-5">
@@ -239,24 +299,102 @@ export default async function ListingDetailPage({
             <p className="mt-3 text-[12px] font-semibold text-[hsl(var(--primary-bright))]">
               {listing.profile.verified ? "Verified seller" : "Community seller"}
             </p>
-            {!isOwner && (
-              <Link
-                href="/messages"
-                className="giq-outline-action mt-5"
-              >
+            {!isOwner && user && (
+              <form action={saveAction} className="mt-5">
+                <SubmitButton
+                  pendingLabel={isSaved ? "Removing..." : "Saving..."}
+                  className="giq-outline-action w-full"
+                >
+                  <Bookmark
+                    className={`h-3.5 w-3.5 ${isSaved ? "fill-current" : ""}`}
+                  />
+                  {isSaved ? "Saved listing" : "Save listing"}
+                </SubmitButton>
+              </form>
+            )}
+            {!isOwner && user && (
+              <form action={enquiryAction} className="mt-5 space-y-3">
+                <label className="block">
+                  <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                    Enquiry
+                  </span>
+                  <textarea
+                    name="message"
+                    required
+                    minLength={5}
+                    maxLength={2000}
+                    rows={4}
+                    className="giq-form-control giq-textarea mt-2 px-3 py-2"
+                    placeholder="Ask the seller about this listing."
+                  />
+                </label>
+                <SubmitButton
+                  pendingLabel="Sending..."
+                  className="giq-outline-action w-full"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Message seller
+                </SubmitButton>
+              </form>
+            )}
+            {!isOwner && !user && (
+              <a href="/sign-in" className="giq-outline-action mt-5">
                 <MessageSquare className="h-3.5 w-3.5" />
-                Message seller
-              </Link>
+                Sign in to enquire
+              </a>
             )}
           </section>
+
+          {!isOwner && user && (
+            <section className="giq-panel p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <Flag className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+                <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
+                  Report listing
+                </h2>
+              </div>
+              <form action={reportAction} className="space-y-3">
+                <select
+                  name="reason"
+                  required
+                  className="giq-form-control px-3 py-2 text-[13px]"
+                  defaultValue="spam"
+                >
+                  <option value="spam">Spam or scam</option>
+                  <option value="illegal">Legal or welfare concern</option>
+                  <option value="misinformation">Misleading information</option>
+                  <option value="harassment">Harassment</option>
+                  <option value="other">Other</option>
+                </select>
+                <textarea
+                  name="description"
+                  maxLength={500}
+                  rows={3}
+                  className="giq-form-control giq-textarea px-3 py-2 text-[13px]"
+                  placeholder="Optional context for moderators."
+                />
+                <SubmitButton
+                  pendingLabel="Reporting..."
+                  className="giq-outline-action w-full"
+                >
+                  Submit report
+                </SubmitButton>
+              </form>
+            </section>
+          )}
 
           {isOwner && (
             <section className="giq-panel p-5">
               <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
                 Owner controls
               </h2>
+              {listing.status === "pending_review" && (
+                <p className="mt-2 text-[12px] text-[hsl(var(--muted-foreground))]">
+                  Awaiting moderator review before this listing appears publicly.
+                </p>
+              )}
               <div className="mt-4 flex flex-wrap gap-2">
-                {(expired || listing.status !== "active") && (
+                {canRenew && (
                   <form action={renewAction}>
                     <SubmitButton
                       pendingLabel="Renewing..."
@@ -277,6 +415,10 @@ export default async function ListingDetailPage({
                         Mark sold
                       </SubmitButton>
                     </form>
+                  </>
+                )}
+                {canWithdraw && (
+                  <>
                     <form action={withdrawAction}>
                       <SubmitButton
                         pendingLabel="Withdrawing..."

@@ -9,7 +9,7 @@ Prioritize findings over summaries. Focus on:
 - security, auth, privacy, and cross-user data access regressions
 - database migration safety and Supabase/Prisma compatibility
 - missing or weakened environment validation
-- Vercel deployment, build, and runtime risks
+- Cloud Run deployment, build, and runtime risks
 - broken mobile/desktop UX in high-traffic flows
 - missing tests or smoke coverage for changed behavior
 - committed secrets, tokens, local paths, or sensitive data

@@ -1,13 +1,21 @@
 # Supabase Setup
 
-Use two Supabase projects:
+Use two self-hosted Supabase environments:
 
-- `greyhoundiq-staging` for PR previews and the temporary Vercel URL.
+- `greyhoundiq-staging` for Cloud Run staging and PR validation.
 - `greyhoundiq-prod` for launch.
+
+Do not point production `DATABASE_URL` at a managed Supabase database host. The
+application database source of truth is the self-hosted Supabase Postgres
+endpoint reached through Prisma. `SUPABASE_URL` and public anon/service-role
+keys are for Supabase API services such as Storage and Realtime, not for a
+competing application persistence layer.
 
 ## Database
 
-The app uses Prisma with PostgreSQL:
+The app uses Prisma with PostgreSQL. Use the pooled app role for runtime
+`DATABASE_URL` and a migration-scoped `DIRECT_URL` for Prisma CLI operations
+when available:
 
 ```bash
 npx prisma validate
@@ -62,7 +70,7 @@ Storage RLS policies resolve that app user id from the WorkOS subject and allow 
 
 ## Environment
 
-Set these in Vercel Preview and Production:
+Set these in Cloud Run staging/production and the matching GitHub environments:
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`

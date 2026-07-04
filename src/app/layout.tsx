@@ -19,7 +19,7 @@ const inter = Inter({
 const OG_IMAGE = siteAssetUrl("/images/og-image.webp");
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://greyhoundiq.com.au"),
+  metadataBase: new URL("https://greyhoundsiq.com.au"),
   title: "GreyhoundIQ — Australian Greyhound Racing Intelligence",
   description:
     "The smartest greyhound racing data platform in Australia. Real-time race cards, AI predictions, breeding analytics, and community.",

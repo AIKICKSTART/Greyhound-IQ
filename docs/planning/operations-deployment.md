@@ -2,9 +2,8 @@
 
 > Source: `docs/GreyhoundIQ-Architecture-Premium.html` (sections 11, 14, 16)
 > Status: Production operations baseline. Detailed runbooks continue in Phase 4.
-> Hosting note: production targets the AI Kick Start-owned Google Cloud VPS.
-> Vercel remains preview/temp infrastructure only; Supabase remains only for the
-> current storage integration.
+> Hosting note: production targets Google Cloud Run.
+> Supabase remains the current database and storage integration.
 
 ---
 

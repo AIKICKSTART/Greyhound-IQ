@@ -1,17 +1,18 @@
 import Link from "next/link";
-import { Download, MapPin, Trophy } from "lucide-react";
+import { Filter, MapPin, Trophy } from "lucide-react";
 import { RunnerRow } from "@/components/runner-row";
 import {
   WebsitePageHeader,
   WebsiteSection,
 } from "@/components/website-kit";
-import { getRecentResults } from "@/lib/queries";
+import { getRecentResults, getResultFilterOptions } from "@/lib/queries";
+import { formatRaceDateTime, formatShortRaceDayLabel } from "@/lib/race-time";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Recent Results - GreyhoundIQ",
   description:
-    "Race results from the past 48 hours across every Australian track. Tap a winner for full form and sectionals.",
+    "Latest race results across Australian tracks. Tap a winner for full form and sectionals.",
 };
 
 type ResultEntry = {
@@ -59,130 +60,31 @@ type DisplayRace = {
   runners: DisplayRunner[];
 };
 
-const SAMPLE_RESULTS = [
-  {
-    id: "sample-wentworth-cup",
-    track: "Wentworth Park",
-    state: "NSW",
-    raceNo: 5,
-    race: "The Wentworth Cup",
-    dist: 520,
-    grade: "Group 1",
-    time: "2026-07-12T19:42:00+10:00",
-    runners: [
-      {
-        boxNumber: 1,
-        name: "Zipping Garth",
-        trainer: "R. Britton",
-        weight: 33.5,
-        form: "11231",
-        result: { finishingPosition: 1, runningTime: 29.84 },
-      },
-      {
-        boxNumber: 4,
-        name: "Aston Rupee",
-        trainer: "J. Thompson",
-        weight: 34.1,
-        form: "21123",
-        result: { finishingPosition: 2, runningTime: 29.98 },
-      },
-      {
-        boxNumber: 6,
-        name: "Paua To Burn",
-        trainer: "R. Camilleri",
-        weight: 26.4,
-        form: "13221",
-        result: { finishingPosition: 3, runningTime: 30.05 },
-      },
-      {
-        boxNumber: 3,
-        name: "Wow Shes Fast",
-        trainer: "K. Gorman",
-        weight: 27.9,
-        form: "31514",
-        result: { finishingPosition: 4, runningTime: 30.19 },
-      },
-    ],
-  },
-  {
-    id: "sample-free-for-all",
-    track: "The Meadows",
-    state: "VIC",
-    raceNo: 8,
-    race: "Free For All",
-    dist: 525,
-    grade: "Grade 5",
-    time: "2026-07-12T20:07:00+10:00",
-    runners: [
-      {
-        boxNumber: 2,
-        name: "Sennachie",
-        trainer: "J. Formosa",
-        weight: 34.8,
-        form: "24312",
-        result: { finishingPosition: 1, runningTime: 30.11 },
-      },
-      {
-        boxNumber: 5,
-        name: "Tommy Shelby",
-        trainer: "A. Dailly",
-        weight: 35.2,
-        form: "51342",
-        result: { finishingPosition: 2, runningTime: 30.22 },
-      },
-      {
-        boxNumber: 7,
-        name: "Simon Told Me",
-        trainer: "G. Selkrig",
-        weight: 33.9,
-        form: "44536",
-        result: { finishingPosition: 3, runningTime: 30.4 },
-      },
-    ],
-  },
-  {
-    id: "sample-maiden-stake",
-    track: "Angle Park",
-    state: "SA",
-    raceNo: 3,
-    race: "Maiden Stake",
-    dist: 395,
-    grade: "Maiden",
-    time: "2026-07-12T20:31:00+10:00",
-    runners: [
-      {
-        boxNumber: 6,
-        name: "Midnight Zoom",
-        trainer: "T. Rasmussen",
-        weight: 28.7,
-        form: "42311",
-        result: { finishingPosition: 1, runningTime: 22.41 },
-      },
-      {
-        boxNumber: 1,
-        name: "Bandit's Boy",
-        trainer: "M. Delbridge",
-        weight: 33,
-        form: "23145",
-        result: { finishingPosition: 2, runningTime: 22.55 },
-      },
-      {
-        boxNumber: 8,
-        name: "Late Mail Judy",
-        trainer: "L. Cole",
-        weight: 26.4,
-        form: "55321",
-        result: { finishingPosition: 3, runningTime: 22.68 },
-      },
-    ],
-  },
-] as const;
+type ResultsPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-export default async function ResultsPage() {
-  const results = await getRecentResults(2);
-  const displayResults =
-    results.length > 0 ? results.map(toDisplayRace) : SAMPLE_RESULTS.map(toSampleRace);
-  const settledCount = results.length > 0 ? results.length : 24;
+export default async function ResultsPage({ searchParams }: ResultsPageProps) {
+  const params = await searchParams;
+  const dateParam = firstParam(params.date);
+  const trackParam = firstParam(params.trackId);
+  const filterOptions = await getResultFilterOptions();
+  const selectedDate = filterOptions.dates.some(
+    (row) => row.date === dateParam
+  )
+    ? dateParam ?? ""
+    : "";
+  const selectedTrackId = filterOptions.tracks.some(
+    (track) => track.id === trackParam
+  )
+    ? trackParam ?? ""
+    : "";
+  const results = await getRecentResults({
+    date: selectedDate,
+    trackId: selectedTrackId,
+  });
+  const displayResults = results.map(toDisplayRace);
+  const settledCount = results.length;
 
   return (
     <div>
@@ -190,7 +92,7 @@ export default async function ResultsPage() {
         eyebrow="Settled & official"
         title="Race"
         accent="Results"
-        subtitle="Every finish, split and sectional from today's national meetings - official within minutes of the last dog crossing the line."
+        subtitle="Latest settled races from the GreyhoundIQ database, newest first."
       >
         <span className="giq-status-pill giq-status-pill-purple min-h-9">
           <span
@@ -203,49 +105,90 @@ export default async function ResultsPage() {
 
       <WebsiteSection
         title="Latest results"
-        sub={`${displayResults.length} meetings - newest first`}
-        right={<ResultsFilters />}
+        sub={`${displayResults.length} races - newest first${selectedDate ? ` / ${formatShortRaceDayLabel(selectedDate)}` : ""}`}
+        right={
+          <ResultsFilters
+            dates={filterOptions.dates}
+            tracks={filterOptions.tracks}
+            selectedDate={selectedDate}
+            selectedTrackId={selectedTrackId}
+          />
+        }
       >
-        <div className="giq-stagger flex flex-col gap-4">
-          {displayResults.map((race) => (
-            <ResultRaceCard key={race.id} race={race} />
-          ))}
-        </div>
+        {displayResults.length > 0 ? (
+          <div className="giq-stagger flex flex-col gap-4">
+            {displayResults.map((race) => (
+              <ResultRaceCard key={race.id} race={race} />
+            ))}
+          </div>
+        ) : (
+          <div className="giq-empty-state p-10 text-center">
+            <p className="text-[15px] text-[hsl(var(--muted-foreground))]">
+              No settled race results are available yet. Run the live result sync
+              or import archive results, then refresh this page.
+            </p>
+          </div>
+        )}
       </WebsiteSection>
     </div>
   );
 }
 
-function ResultsFilters() {
+function ResultsFilters({
+  dates,
+  tracks,
+  selectedDate,
+  selectedTrackId,
+}: {
+  dates: { date: string; races: number }[];
+  tracks: { id: string; name: string; state: string }[];
+  selectedDate: string;
+  selectedTrackId: string;
+}) {
   return (
-    <div className="flex flex-wrap items-center gap-2.5">
+    <form action="/results" className="flex flex-wrap items-center gap-2.5">
       <select
         aria-label="Results date"
         className="giq-form-control min-h-11 min-w-[178px]"
-        defaultValue="Today"
+        name="date"
+        defaultValue={selectedDate}
       >
-        <option>Today</option>
-        <option>Yesterday</option>
-        <option>Past 48 hours</option>
+        <option value="">Latest results</option>
+        {dates.map((row) => (
+          <option key={row.date} value={row.date}>
+            {formatShortRaceDayLabel(row.date)} / {row.races}
+          </option>
+        ))}
       </select>
       <select
         aria-label="Results track"
         className="giq-form-control min-h-11 min-w-[168px]"
-        defaultValue="All tracks"
+        name="trackId"
+        defaultValue={selectedTrackId}
       >
-        <option>All tracks</option>
-        <option>Wentworth Park</option>
-        <option>The Meadows</option>
-        <option>Angle Park</option>
+        <option value="">All tracks</option>
+        {tracks.map((track) => (
+          <option key={track.id} value={track.id}>
+            {track.name}, {track.state}
+          </option>
+        ))}
       </select>
       <button
-        type="button"
+        type="submit"
         className="giq-button giq-button-carbon min-h-11 px-4 text-[13px] font-bold"
       >
-        <Download className="h-4 w-4" aria-hidden="true" />
-        Export
+        <Filter className="h-4 w-4" aria-hidden="true" />
+        Filter
       </button>
-    </div>
+      {(selectedDate || selectedTrackId) && (
+        <Link
+          href="/results"
+          className="giq-button giq-button-glass min-h-11 px-4 text-[13px] font-semibold"
+        >
+          Clear
+        </Link>
+      )}
+    </form>
   );
 }
 
@@ -253,7 +196,7 @@ function ResultRaceCard({ race }: { race: DisplayRace }) {
   const winner =
     race.runners.find((runner) => runner.result?.finishingPosition === 1) ??
     race.runners[0];
-  const raceHref = race.id.startsWith("sample-") ? "/races" : `/races/${race.id}`;
+  const raceHref = `/races/${race.id}`;
 
   return (
     <article className="giq-result-race-card">
@@ -279,7 +222,7 @@ function ResultRaceCard({ race }: { race: DisplayRace }) {
               <span aria-hidden="true">-</span>
               {race.distance}m
               <span aria-hidden="true">-</span>
-              {formatRaceTime(race.raceTime)}
+              {formatRaceDateTime(race.raceTime)}
             </p>
           </div>
         </div>
@@ -315,6 +258,10 @@ function ResultRaceCard({ race }: { race: DisplayRace }) {
   );
 }
 
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 function toDisplayRace(
   race: Awaited<ReturnType<typeof getRecentResults>>[number]
 ): DisplayRace {
@@ -336,61 +283,24 @@ function toDisplayRace(
       boxNumber: runner.boxNumber,
       weight: runner.weight,
       scratched: runner.scratched,
-      trainer: null,
-      startingPrice: null,
+      trainer: runner.trainer,
+      startingPrice: runner.startingPrice,
       result: runner.result,
       dog: {
         id: runner.dog.id,
         name: runner.dog.name,
         colour: runner.dog.colour,
         sex: runner.dog.sex,
-        trainer: null,
-        formEntries: [],
+        trainer: runner.dog.trainer,
+        formEntries: runner.dog.formEntries
+          .filter((entry) => entry.raceId !== race.id)
+          .slice(0, 6)
+          .map((entry) => ({
+            finish: entry.finish,
+            date: entry.date,
+            trackId: entry.trackId,
+          })),
       },
     })),
   };
-}
-
-function toSampleRace(sample: (typeof SAMPLE_RESULTS)[number]): DisplayRace {
-  return {
-    id: sample.id,
-    raceNumber: sample.raceNo,
-    title: sample.race,
-    grade: sample.grade,
-    distance: sample.dist,
-    raceTime: new Date(sample.time),
-    meeting: { track: { name: sample.track, state: sample.state } },
-    runners: sample.runners.map((runner, index) => ({
-      id: `${sample.id}-${runner.boxNumber}`,
-      boxNumber: runner.boxNumber,
-      weight: runner.weight,
-      scratched: false,
-      trainer: { name: runner.trainer },
-      startingPrice: null,
-      result: {
-        ...runner.result,
-        margin: null,
-        splitTime: null,
-      },
-      dog: {
-        id: `${sample.id}-dog-${index}`,
-        name: runner.name,
-        colour: "Black",
-        sex: null,
-        trainer: null,
-        formEntries: runner.form.split("").map((finish, formIndex) => ({
-          finish: Number(finish),
-          date: new Date(Date.UTC(2026, 6, 1 - formIndex)),
-          trackId: null,
-        })),
-      },
-    })),
-  };
-}
-
-function formatRaceTime(date: Date) {
-  return date.toLocaleTimeString("en-AU", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }

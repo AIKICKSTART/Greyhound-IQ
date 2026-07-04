@@ -4,6 +4,11 @@ type DatabaseUrlDefaults = {
   connectTimeout?: string;
 };
 
+type DatabaseUrlPolicy = {
+  production?: boolean;
+  required?: boolean;
+};
+
 export function runtimeDatabaseUrl(rawUrl: string, defaults: DatabaseUrlDefaults = {}) {
   try {
     const url = new URL(rawUrl);
@@ -44,6 +49,37 @@ export function normalizeDatabaseEnv(
   }
 }
 
+export function databaseUrlConfigurationError(
+  rawUrl: string | undefined,
+  policy: DatabaseUrlPolicy = {}
+) {
+  const value = rawUrl?.trim() ?? "";
+  if (!value) {
+    return policy.required ? "must be set" : null;
+  }
+  if (!value.startsWith("postgresql://") && !value.startsWith("postgres://")) {
+    return "must start with postgresql:// or postgres://";
+  }
+
+  try {
+    const host = new URL(value).hostname.toLowerCase();
+    if (policy.production && isManagedSupabaseDatabaseHost(host)) {
+      return "must point at the self-hosted Supabase/Postgres database, not a managed Supabase database host";
+    }
+    return null;
+  } catch {
+    return "must be a valid Postgres URL";
+  }
+}
+
 function isSupabasePoolerUrl(url: URL) {
   return /(^|\.)pooler\.supabase\.com$/i.test(url.hostname);
+}
+
+function isManagedSupabaseDatabaseHost(host: string) {
+  return (
+    host.endsWith(".supabase.co") ||
+    host.endsWith(".supabase.com") ||
+    host.endsWith(".pooler.supabase.com")
+  );
 }

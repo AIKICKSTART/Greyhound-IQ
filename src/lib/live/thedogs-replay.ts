@@ -41,7 +41,7 @@ export async function resolveTheDogsRaceReplay({
 
   const pageUrl = absoluteTheDogsUrl(providerReplayUrl);
   const source = await fetchVideoSource(videoSourceId, pageUrl);
-  const streamUrl = source.video?.src ?? null;
+  const streamUrl = source.video?.src ? absoluteTheDogsUrl(source.video.src) : null;
 
   return {
     pageUrl,
@@ -127,7 +127,7 @@ function extractVideoSourceId(replayUrl: string) {
 
 function streamContentType(value: string | null | undefined) {
   if (!value) return null;
-  const pathname = new URL(value).pathname.toLowerCase();
+  const pathname = new URL(value, THEDOGS_BASE).pathname.toLowerCase();
   if (pathname.endsWith(".m3u8")) return "application/vnd.apple.mpegurl";
   if (pathname.endsWith(".mp4")) return "video/mp4";
   return null;

@@ -38,6 +38,7 @@ export interface LiveRace {
   raceNumber: number;
   name?: string;
   raceTime: string; // ISO
+  raceTimeSource?: "provider" | "fallback";
   distance: number;
   grade?: string;
   prizeMoney?: number;

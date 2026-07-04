@@ -1,4 +1,9 @@
+import { execFile } from "node:child_process";
 import { randomUUID } from "crypto";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { promisify } from "node:util";
 import type { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/account-service";
 import { getEntitlementLimitsForCurrentUser } from "@/lib/billing/entitlement-service";
@@ -21,6 +26,7 @@ import {
   PRIVATE_USER_MEDIA_BUCKET,
   PUBLIC_USER_MEDIA_BUCKET,
   SITE_ASSETS_BUCKET,
+  isSupabaseStorageBucket,
   isPublicStorageBucket,
   mediaTypeForMimeType,
   publicStorageUrl,
@@ -36,6 +42,9 @@ import {
 
 const UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
 const DOWNLOAD_URL_TTL_SECONDS = 15 * 60;
+const MEDIA_MAINTENANCE_LIMIT = 100;
+const CLAMSCAN_TIMEOUT_MS = 2 * 60 * 1000;
+const execFileAsync = promisify(execFile);
 
 type Tx = Prisma.TransactionClient;
 
@@ -90,7 +99,8 @@ export async function createSignedUploadIntent(
     filename: input.filename,
   });
   const signedUpload = await createSignedStorageUploadUrl(bucket, objectPath);
-  const publicUrl = publicUrlForMedia(bucket, objectPath);
+  const publicUrl =
+    bucket === SITE_ASSETS_BUCKET ? publicUrlForMedia(bucket, objectPath) : null;
   const expiresAt = new Date(Date.now() + UPLOAD_URL_TTL_MS);
 
   const media = await prisma.mediaAsset.create({
@@ -321,6 +331,123 @@ export async function deleteMediaForCurrentUser(
   return deleted;
 }
 
+export async function runMediaMaintenance() {
+  const now = new Date();
+  const expired = await prisma.mediaAsset.findMany({
+    where: {
+      deletedAt: null,
+      expiresAt: { lt: now },
+    },
+    orderBy: { expiresAt: "asc" },
+    take: MEDIA_MAINTENANCE_LIMIT,
+  });
+
+  let expiredDeleted = 0;
+  let expiredDeleteErrors = 0;
+  for (const media of expired) {
+    if (!isSupabaseStorageBucket(media.storageBucket)) {
+      expiredDeleteErrors += 1;
+      continue;
+    }
+
+    try {
+      await removeStorageObject(media.storageBucket, media.storagePath);
+      await prisma.mediaAsset.update({
+        where: { id: media.id },
+        data: { deletedAt: now },
+      });
+      expiredDeleted += 1;
+    } catch {
+      expiredDeleteErrors += 1;
+    }
+  }
+
+  const scanMode = mediaScanMode();
+  const scanCandidates =
+    scanMode === "metadata" || scanMode === "clamav"
+      ? await prisma.mediaAsset.findMany({
+          where: {
+            deletedAt: null,
+            scanStatus: "pending",
+            OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
+          },
+          orderBy: { createdAt: "asc" },
+          take: MEDIA_MAINTENANCE_LIMIT,
+        })
+      : [];
+
+  let scanCleaned = 0;
+  let scanInfected = 0;
+  let scanErrors = 0;
+  let scanSkipped = 0;
+
+  for (const media of scanCandidates) {
+    if (!isSupabaseStorageBucket(media.storageBucket)) {
+      await markMediaScanStatus(media.id, "error");
+      scanErrors += 1;
+      continue;
+    }
+
+    try {
+      const sizeBytes = await verifyStorageObjectForScan(media);
+      if (scanMode === "clamav") {
+        const result = await scanStorageObjectWithClamAv(
+          media.storageBucket,
+          media.storagePath
+        );
+        if (result === "infected") {
+          await markMediaScanStatus(media.id, "infected");
+          scanInfected += 1;
+          continue;
+        }
+        if (result === "error") {
+          await markMediaScanStatus(media.id, "error");
+          scanErrors += 1;
+          continue;
+        }
+      }
+
+      await prisma.mediaAsset.update({
+        where: { id: media.id },
+        data: {
+          scanStatus: "clean",
+          scanCompletedAt: now,
+          sizeBytes,
+          publicUrl: publicUrlForMedia(media.storageBucket, media.storagePath),
+        },
+      });
+      scanCleaned += 1;
+    } catch {
+      if (scanMode === "clamav") {
+        await markMediaScanStatus(media.id, "error");
+        scanErrors += 1;
+      } else {
+        scanSkipped += 1;
+      }
+    }
+  }
+
+  const pendingScanCount = await prisma.mediaAsset.count({
+    where: {
+      deletedAt: null,
+      scanStatus: "pending",
+    },
+  });
+
+  return {
+    expiredFound: expired.length,
+    expiredDeleted,
+    expiredDeleteErrors,
+    scanMode,
+    scanCandidates: scanCandidates.length,
+    scanCleaned,
+    scanInfected,
+    scanErrors,
+    scanSkipped: scanMode === "disabled" ? pendingScanCount : scanSkipped,
+    pendingScanCount,
+  };
+}
+
 export async function getMediaBlob(
   mediaId: string,
   current: CurrentUser | null,
@@ -347,11 +474,22 @@ export async function getMediaBlob(
             { storageBucket: SITE_ASSETS_BUCKET },
             {
               storageBucket: PUBLIC_USER_MEDIA_BUCKET,
-              listingAttachments: {
-                some: {
-                  listing: publicListingMediaWhere(),
+              OR: [
+                {
+                  listingAttachments: {
+                    some: {
+                      listing: publicListingMediaWhere(),
+                    },
+                  },
                 },
-              },
+                {
+                  feedAttachments: {
+                    some: {
+                      post: publicFeedMediaWhere(),
+                    },
+                  },
+                },
+              ],
             },
           ],
         },
@@ -472,21 +610,32 @@ function mediaAccessWhere(
           },
         },
       },
+      {
+        feedAttachments: {
+          some: {
+            post: publicFeedMediaWhere(),
+          },
+        },
+      },
     ],
   };
 }
 
 function publicListingMediaWhere() {
-  const soldCutoff = new Date();
-  soldCutoff.setDate(soldCutoff.getDate() - 30);
+  const now = new Date();
 
   return {
+    status: "active",
+    moderationStatus: "approved",
     archivedAt: null,
-    OR: [
-      { status: "active" },
-      { status: "expired" },
-      { status: "sold", soldAt: { gte: soldCutoff } },
-    ],
+    OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
+  };
+}
+
+function publicFeedMediaWhere() {
+  return {
+    status: "active",
+    visibility: "public",
   };
 }
 
@@ -581,6 +730,86 @@ async function markMediaScanStatus(
     where: { id: mediaId },
     data: { scanStatus, scanCompletedAt: new Date() },
   });
+}
+
+async function verifyStorageObjectForScan(media: {
+  storageBucket: string;
+  storagePath: string;
+  mimeType: string;
+  sizeBytes: number;
+}) {
+  const bucket = assertKnownBucket(media.storageBucket);
+  const objectInfo = await getStorageObjectInfo(bucket, media.storagePath);
+  const sizeBytes =
+    typeof objectInfo.size === "number" && objectInfo.size > 0
+      ? objectInfo.size
+      : media.sizeBytes;
+  assertMediaSize(
+    bucket,
+    media.mimeType as MediaMimeType,
+    sizeBytes,
+    mediaMaxBytes(bucket, media.mimeType as MediaMimeType)
+  );
+  return sizeBytes;
+}
+
+async function scanStorageObjectWithClamAv(
+  bucket: SupabaseStorageBucket,
+  objectPath: string
+) {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "ghiq-media-scan-"));
+  const tempFile = path.join(tempDir, "upload.bin");
+
+  try {
+    const blob = await downloadStorageObject(bucket, objectPath);
+    const bytes = Buffer.from(await blob.arrayBuffer());
+    await writeFile(tempFile, bytes, { mode: 0o600 });
+
+    try {
+      await execFileAsync(clamScanBinary(), [...clamScanArgs(), tempFile], {
+        timeout: clamScanTimeoutMs(),
+        maxBuffer: 1024 * 1024,
+      });
+      return "clean" as const;
+    } catch (err) {
+      const exitCode =
+        typeof (err as { code?: unknown }).code === "number"
+          ? (err as { code: number }).code
+          : null;
+      if (exitCode === 1) return "infected" as const;
+      return "error" as const;
+    }
+  } finally {
+    await rm(tempDir, { force: true, recursive: true }).catch(() => null);
+  }
+}
+
+function clamScanBinary() {
+  return process.env.MEDIA_CLAMSCAN_BIN?.trim() || "clamscan";
+}
+
+function clamScanArgs() {
+  const database = process.env.MEDIA_CLAMAV_DATABASE?.trim();
+  return [
+    "--no-summary",
+    "--infected",
+    ...(database ? [`--database=${database}`] : []),
+  ];
+}
+
+function clamScanTimeoutMs() {
+  const configured = Number(process.env.MEDIA_CLAMSCAN_TIMEOUT_MS ?? "");
+  return Number.isFinite(configured) && configured > 0
+    ? Math.trunc(configured)
+    : CLAMSCAN_TIMEOUT_MS;
+}
+
+function mediaScanMode() {
+  const configured = process.env.MEDIA_SCAN_MODE?.trim().toLowerCase();
+  if (configured === "clamav") return "clamav";
+  if (configured === "metadata") return "metadata";
+  if (configured === "disabled") return "disabled";
+  return process.env.NODE_ENV === "production" ? "disabled" : "metadata";
 }
 
 function assertMediaClean(scanStatus: string) {

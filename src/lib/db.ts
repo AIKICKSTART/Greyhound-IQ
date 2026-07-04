@@ -1,25 +1,23 @@
 import { PrismaClient } from "@prisma/client";
 
-import { runtimeDatabaseUrl } from "@/lib/database-url";
+import {
+  databaseUrlConfigurationError,
+  runtimeDatabaseUrl,
+} from "@/lib/database-url";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// ponytail: only construct PrismaClient when the URL is a valid Postgres URL.
-// If the URL is wrong/missing/SQLite/etc, the app boots with a no-op stub so
-// pages render empty states instead of 500s. Real fix = correct DATABASE_URL
-// in .env. This keeps dev experience clean even before the DB is configured.
+const prismaConfigurationError = databaseConfigurationError();
+
 function makePrisma(): PrismaClient | null {
-  const url = process.env.DATABASE_URL ?? "";
-  if (!url.startsWith("postgresql://") && !url.startsWith("postgres://")) {
-    return null;
-  }
+  if (prismaConfigurationError) return null;
   try {
     return new PrismaClient({
       datasources: {
         db: {
-          url: runtimeDatabaseUrl(url),
+          url: runtimeDatabaseUrl(process.env.DATABASE_URL ?? ""),
         },
       },
     });
@@ -28,18 +26,36 @@ function makePrisma(): PrismaClient | null {
   }
 }
 
+export function databaseConfigurationError() {
+  const error = databaseUrlConfigurationError(process.env.DATABASE_URL, {
+    production: process.env.NODE_ENV === "production",
+    required: process.env.NODE_ENV === "production",
+  });
+
+  return error ? `DATABASE_URL ${error}.` : null;
+}
+
 const realPrisma = globalForPrisma.prisma ?? makePrisma();
 
 if (realPrisma && process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = realPrisma;
 }
 
-// Stub that returns empty results for every model call. Lets the app render
-// without a DB; queries will still surface in error logs.
+// ponytail: development-only no-op DB so local UI can render before env setup.
+// Production fails fast above; this must never be the live source of truth.
 const stub = new Proxy({} as PrismaClient, {
-  get: () => {
+  get: (_target, model) => {
+    if (typeof model === "string" && model.startsWith("$")) {
+      return () =>
+        prismaConfigurationError
+          ? Promise.reject(new Error(prismaConfigurationError))
+          : Promise.resolve(model === "$executeRaw" ? 0 : []);
+    }
     return new Proxy({}, {
       get: (_t, method) => {
+        if (prismaConfigurationError) {
+          return () => Promise.reject(new Error(prismaConfigurationError));
+        }
         // findUnique / findFirst → return null
         if (method === "findUnique" || method === "findFirst") {
           return () => Promise.resolve(null);
@@ -87,16 +103,20 @@ function summarizeDatabaseError(err: unknown) {
   return code ? `${name} ${code}: ${shortMessage}` : `${name}: ${shortMessage}`;
 }
 
-// ponytail: wraps a query so a DB connection failure renders an empty state
-// instead of a 500. Production logs keep connection issues visible; development
-// stays quiet so expected DB fallbacks do not trip the Next.js console overlay.
+// ponytail: development-only graceful query wrapper. Production must fail closed
+// so source-of-truth database problems cannot render as empty or stale states.
 export async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  if (process.env.NODE_ENV === "production" && prismaConfigurationError) {
+    throw new Error(prismaConfigurationError);
+  }
+
   try {
     return await fn();
   } catch (err) {
     if (process.env.NODE_ENV === "production") {
-      const message = `[safeQuery] DB error, returning fallback: ${summarizeDatabaseError(err)}`;
+      const message = `[safeQuery] DB error, failing closed: ${summarizeDatabaseError(err)}`;
       console.error(message);
+      throw err;
     }
     return fallback;
   }

@@ -1,12 +1,15 @@
-import { prisma, safeQuery } from "@/lib/db";
+import { databaseConfigurationError, prisma, safeQuery } from "@/lib/db";
 import { getApproximateTableCounts } from "@/lib/db-stats";
+import { formatRaceDateInput, raceDateWindow } from "@/lib/race-time";
 import { getLiveProviderConfig } from "./provider";
 
 export async function getLiveFeedStatus() {
   const now = new Date();
-  const today = startOfDay(now);
-  const nextWeek = new Date(today);
-  nextWeek.setDate(nextWeek.getDate() + 7);
+  const todayInput = formatRaceDateInput(now);
+  const today = raceDateWindow(todayInput).gte;
+  const nextWeekInput = new Date(`${todayInput}T00:00:00.000Z`);
+  nextWeekInput.setUTCDate(nextWeekInput.getUTCDate() + 7);
+  const nextWeek = raceDateWindow(nextWeekInput.toISOString().slice(0, 10)).gte;
 
   const databaseReady =
     isDatabaseConfigured() &&
@@ -24,10 +27,10 @@ export async function getLiveFeedStatus() {
     activeProvider: providerConfig.activeProvider,
     feeds: providerConfig.feeds,
     scheduler: {
-      primary: "github_actions",
+      primary: "cloud_scheduler",
       primarySchedule: "*/5 * * * *",
-      backup: "vercel_cron",
-      backupSchedule: "0 16 * * *",
+      backup: "github_actions",
+      backupSchedule: "manual_or_repository_schedule",
     },
     data: {
       database: databaseReady ? "ok" : "error",
@@ -153,13 +156,6 @@ function emptyFreshness() {
   };
 }
 
-function startOfDay(date: Date) {
-  const copy = new Date(date);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
-}
-
 function isDatabaseConfigured() {
-  const databaseUrl = process.env.DATABASE_URL ?? "";
-  return databaseUrl.startsWith("postgresql://") || databaseUrl.startsWith("postgres://");
+  return databaseConfigurationError() === null;
 }

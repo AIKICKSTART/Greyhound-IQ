@@ -184,6 +184,8 @@ body {
 .race-panel {
   position: relative;
   overflow: hidden;
+  width: 100%;
+  max-width: 100%;
   border: 1px solid hsl(0 0% 100% / 0.075);
   border-radius: 8px;
   background:
@@ -631,7 +633,17 @@ body {
 }
 
 .giq-mobile-menu-sheet {
+  top: max(8px, env(safe-area-inset-top, 0px)) !important;
+  right: max(8px, env(safe-area-inset-right, 0px)) !important;
+  bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
+  height: auto !important;
+  width: min(430px, calc(100vw - 16px)) !important;
+  max-width: calc(100vw - 16px);
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
   border-color: hsl(var(--metal-silver) / 0.18);
+  border-radius: 24px;
   background:
     radial-gradient(ellipse 90% 58% at 50% -10%, hsl(var(--primary) / 0.18), transparent 62%),
     radial-gradient(ellipse 72% 45% at 100% 0%, hsl(var(--secondary) / 0.12), transparent 64%),
@@ -644,8 +656,38 @@ body {
   -webkit-backdrop-filter: blur(22px) saturate(1.22);
 }
 
+.giq-mobile-menu-scroll {
+  display: flex;
+  min-height: 0;
+  max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 16px calc(var(--giq-mobile-dock-clearance) + 18px);
+  scrollbar-width: thin;
+}
+
+.giq-mobile-menu-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -18px -16px 0;
+  padding: 18px 16px 14px;
+  background:
+    linear-gradient(180deg, hsl(var(--surface-1) / 0.98), hsl(var(--surface-1) / 0.86));
+  border-bottom: 1px solid hsl(0 0% 100% / 0.07);
+  backdrop-filter: blur(18px) saturate(1.18);
+  -webkit-backdrop-filter: blur(18px) saturate(1.18);
+}
+
 .giq-mobile-menu-brand {
-  padding-right: 52px;
+  min-width: 0;
+  padding-right: 54px;
 }
 
 .giq-mobile-menu-brand span {
@@ -676,8 +718,8 @@ body {
 
 .giq-mobile-menu-close {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 12px;
+  right: 12px;
   z-index: 2;
   display: inline-flex;
   height: 44px;
@@ -700,6 +742,234 @@ body {
     border-color 160ms ease,
     color 160ms ease,
     box-shadow 160ms ease;
+}
+
+.giq-mobile-menu-search {
+  display: flex;
+  min-height: 50px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid hsl(var(--metal-silver) / 0.24);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.09), hsl(0 0% 100% / 0.025)),
+    hsl(var(--surface-2) / 0.84);
+  padding: 0 14px;
+  color: hsl(var(--metal-silver-bright));
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.13),
+    0 12px 24px hsl(0 0% 0% / 0.18);
+}
+
+.giq-mobile-menu-search input {
+  min-width: 0;
+  min-height: 44px;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: hsl(var(--foreground));
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 44px;
+}
+
+.giq-mobile-menu-search input::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.giq-mobile-menu-search button {
+  display: inline-grid;
+  height: 44px;
+  width: 44px;
+  min-width: 44px;
+  place-items: center;
+  border: 1px solid hsl(var(--secondary-light) / 0.26);
+  border-radius: 12px;
+  background: hsl(var(--secondary) / 0.14);
+  color: hsl(var(--secondary-light));
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+
+.giq-mobile-menu-search button:hover,
+.giq-mobile-menu-search button:focus-visible {
+  transform: translateY(var(--lift-1));
+  border-color: hsl(var(--secondary-light) / 0.52);
+  outline: 2px solid hsl(var(--primary-bright) / 0.22);
+  outline-offset: 2px;
+}
+
+.giq-mobile-menu-search button:active {
+  transform: translateY(1px);
+  transition-duration: var(--duration-fast);
+}
+
+.giq-mobile-menu-search:focus-within {
+  border-color: hsl(var(--secondary-light) / 0.62);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.16),
+    0 0 0 3px hsl(var(--primary-bright) / 0.20),
+    0 16px 30px hsl(0 0% 0% / 0.22);
+}
+
+.giq-mobile-menu-cta {
+  display: grid;
+  gap: 10px;
+}
+
+.giq-mobile-account-card {
+  display: grid;
+  min-height: 68px;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid hsl(var(--primary-light) / 0.24);
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse 70% 90% at 0% 0%, hsl(var(--primary-bright) / 0.18), transparent 62%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.10), hsl(0 0% 100% / 0.025)),
+    hsl(var(--surface-2) / 0.88);
+  padding: 10px;
+  color: hsl(var(--foreground));
+  text-decoration: none;
+}
+
+.giq-mobile-account-avatar {
+  display: grid;
+  height: 46px;
+  width: 46px;
+  place-items: center;
+  border-radius: 15px;
+  background: hsl(var(--primary) / 0.18);
+  color: hsl(var(--primary-light));
+}
+
+.giq-mobile-account-card strong,
+.giq-mobile-menu-link strong {
+  display: block;
+  overflow: hidden;
+  color: hsl(var(--foreground));
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.giq-mobile-account-card small,
+.giq-mobile-menu-link small {
+  display: block;
+  overflow: hidden;
+  margin-top: 3px;
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.giq-mobile-account-card em {
+  border-radius: 999px;
+  background: hsl(var(--secondary) / 0.16);
+  color: hsl(var(--secondary-light));
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  padding: 4px 8px;
+}
+
+.giq-mobile-menu-nav {
+  display: grid;
+  gap: 18px;
+}
+
+.giq-mobile-menu-section {
+  display: grid;
+  gap: 9px;
+}
+
+.giq-mobile-menu-section h2 {
+  color: hsl(var(--subtle-foreground));
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.giq-mobile-menu-link {
+  display: grid;
+  min-height: 62px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border: 1px solid hsl(var(--metal-silver) / 0.16);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.075), hsl(0 0% 100% / 0.018)),
+    hsl(var(--surface-2) / 0.72);
+  padding: 9px 11px;
+  text-decoration: none;
+  transition: var(--transition-control);
+}
+
+.giq-mobile-menu-link-icon {
+  display: grid;
+  height: 42px;
+  width: 42px;
+  place-items: center;
+  border-radius: 14px;
+  background: hsl(var(--primary) / 0.12);
+  color: hsl(var(--primary-light));
+}
+
+.giq-mobile-menu-link:hover,
+.giq-mobile-menu-link:focus-visible,
+.giq-mobile-account-card:hover,
+.giq-mobile-account-card:focus-visible {
+  transform: translateY(var(--lift-1));
+  border-color: hsl(var(--secondary-light) / 0.38);
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.11), hsl(0 0% 100% / 0.028)),
+    hsl(var(--surface-2) / 0.88);
+  outline: 2px solid hsl(var(--primary-bright) / 0.26);
+  outline-offset: 2px;
+}
+
+.giq-mobile-menu-link.is-active,
+.giq-mobile-menu-link[aria-current="page"],
+.giq-mobile-account-card.is-active,
+.giq-mobile-account-card[aria-current="page"] {
+  border-color: hsl(var(--primary-light) / 0.48);
+  background:
+    radial-gradient(ellipse 68% 95% at 0% 0%, hsl(var(--primary-bright) / 0.20), transparent 62%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.12), hsl(0 0% 100% / 0.03)),
+    hsl(var(--surface-2) / 0.92);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.16),
+    0 14px 28px hsl(0 0% 0% / 0.24),
+    0 0 24px -14px hsl(var(--primary-bright) / 0.80);
+}
+
+.giq-mobile-menu-link.is-active .giq-mobile-menu-link-icon,
+.giq-mobile-menu-link[aria-current="page"] .giq-mobile-menu-link-icon {
+  background: hsl(var(--primary) / 0.24);
+  color: hsl(var(--secondary-light));
+}
+
+.giq-mobile-menu-link:active,
+.giq-mobile-account-card:active {
+  transform: translateY(1px);
+  transition-duration: var(--duration-fast);
+}
+
+.giq-mobile-menu-section .giq-button {
+  min-height: 48px;
+  justify-content: flex-start;
+  border-radius: 14px;
 }
 
 .giq-mobile-menu-close:hover,
@@ -947,12 +1217,12 @@ body {
   }
 
   .giq-mobile-menu-sheet {
-    width: min(84vw, 324px) !important;
-    padding: 18px 14px 20px;
+    width: min(430px, calc(100vw - 16px)) !important;
+    padding: 0;
   }
 
   .giq-mobile-menu-sheet nav {
-    margin-top: 18px;
+    margin-top: 0;
   }
 
   body {
@@ -964,7 +1234,7 @@ body {
   }
 }
 
-@media (max-width: 767.98px) and (max-height: 899px) {
+@media (max-width: 767.98px) and (max-height: 620px) {
   :root {
     --giq-mobile-dock-clearance: 0px;
   }
@@ -1636,12 +1906,16 @@ h2,
 
 @media (max-width: 767.98px) {
   .giq-racecard-section {
-    margin-top: calc(var(--giq-mobile-dock-clearance) + 8px);
+    margin-top: 8px;
   }
 
   .giq-track-detail-content {
     padding-top: calc(var(--giq-mobile-dock-clearance) + 24px);
   }
+}
+
+.giq-home-races-section {
+  scroll-margin-top: 112px;
 }
 
 @media (max-width: 767.98px) {
@@ -1902,7 +2176,7 @@ h2,
 /* Compact app-shell footer for phones and tablets. */
 @media (max-width: 767.98px),
   (min-width: 768px) and (max-width: 1024px) and (orientation: portrait),
-  (min-width: 900px) and (max-width: 1366px) and (max-height: 1024px) and (orientation: landscape) {
+  (min-width: 900px) and (max-width: 1024px) and (max-height: 900px) and (orientation: landscape) {
   .giq-footer-shell {
     margin-top: 24px;
     border-top-color: hsl(var(--metal-silver) / 0.16);
@@ -1997,7 +2271,7 @@ h2,
   }
 }
 
-@media (min-width: 900px) and (max-width: 1366px) and (max-height: 1024px) and (orientation: landscape) {
+@media (min-width: 900px) and (max-width: 1024px) and (max-height: 900px) and (orientation: landscape) {
   .giq-footer-shell {
     margin-top: 18px;
     padding-bottom: calc(var(--giq-mobile-dock-clearance) + 8px);
@@ -2052,7 +2326,7 @@ h2,
 /* App-shell breakpoints: phones and tablets use a dock-first navigation model. */
 @media (max-width: 767.98px),
   (min-width: 768px) and (max-width: 1024px) and (orientation: portrait),
-  (min-width: 900px) and (max-width: 1366px) and (max-height: 1024px) and (orientation: landscape) {
+  (min-width: 900px) and (max-width: 1024px) and (max-height: 900px) and (orientation: landscape) {
   :root {
     --giq-mobile-dock-clearance: calc(96px + env(safe-area-inset-bottom, 0px));
   }
@@ -2117,7 +2391,7 @@ h2,
 }
 
 @media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait),
-  (min-width: 900px) and (max-width: 1366px) and (max-height: 1024px) and (orientation: landscape) {
+  (min-width: 900px) and (max-width: 1024px) and (max-height: 900px) and (orientation: landscape) {
   :root {
     --giq-mobile-dock-clearance: calc(106px + env(safe-area-inset-bottom, 0px));
   }
@@ -2191,7 +2465,7 @@ h2,
   }
 
   .giq-mobile-menu-sheet {
-    width: min(380px, 76vw) !important;
+    width: min(430px, calc(100vw - 24px)) !important;
   }
 
   .giq-mobile-dock {
@@ -2246,7 +2520,7 @@ h2,
   }
 }
 
-@media (min-width: 900px) and (max-width: 1366px) and (max-height: 1024px) and (orientation: landscape) {
+@media (min-width: 900px) and (max-width: 1024px) and (max-height: 900px) and (orientation: landscape) {
   :root {
     --giq-mobile-dock-clearance: calc(98px + env(safe-area-inset-bottom, 0px));
   }
@@ -3232,6 +3506,7 @@ h2,
   position: relative;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   overflow: hidden;
   border: 1px solid hsl(var(--metal-silver) / 0.22);
   border-radius: 14px;
@@ -3325,6 +3600,7 @@ h2,
   border-radius: 8px;
   background: hsl(0 0% 100% / 0.035);
   color: hsl(var(--muted-foreground));
+  cursor: pointer;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: var(--tracking-body);
@@ -3338,9 +3614,19 @@ h2,
 
 .giq-chip:hover,
 .giq-chip:focus-visible {
+  transform: translateY(var(--lift-1));
   border-color: hsl(var(--primary-light) / 0.36);
   background: hsl(var(--primary) / 0.08);
   color: hsl(var(--foreground));
+  outline: 2px solid hsl(var(--primary-light) / 0.34);
+  outline-offset: 2px;
+}
+
+.giq-chip:active {
+  transform: translateY(1px);
+  border-color: hsl(var(--secondary-light) / 0.45);
+  background: hsl(var(--secondary) / 0.10);
+  transition-duration: var(--duration-fast);
 }
 
 .giq-chip-active {
@@ -3358,11 +3644,28 @@ h2,
 
 .giq-race-slot {
   flex-direction: column;
-  gap: 1px;
-  min-height: 44px;
-  padding: 4px 6px;
+  gap: 3px;
+  min-height: 54px;
+  padding: 6px;
   line-height: 1;
   white-space: nowrap;
+}
+
+.giq-race-slot-status {
+  border-radius: 999px;
+  padding: 2px 6px;
+  background: hsl(142 70% 55% / 0.14);
+  color: hsl(142 70% 72%);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+@media (max-width: 640px) {
+  .giq-race-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 420px) {
@@ -4134,7 +4437,7 @@ select.giq-form-control option:checked {
 
 @media (max-width: 767.98px),
   (min-width: 768px) and (max-width: 1024px) and (orientation: portrait),
-  (min-width: 900px) and (max-width: 1366px) and (max-height: 1024px) and (orientation: landscape) {
+  (min-width: 900px) and (max-width: 1024px) and (max-height: 900px) and (orientation: landscape) {
   .giq-footer-shell .giq-mobile-footer-summary {
     display: block;
   }
@@ -4286,6 +4589,8 @@ select.giq-form-control option:checked {
   .giq-header-nav-link:hover,
   .giq-mobile-dock-link:active,
   .giq-panel-hover:hover,
+  .giq-chip:hover,
+  .giq-chip:active,
   .giq-feature-card:hover,
   .giq-pricing-card:hover,
   .giq-comparison-row:hover,

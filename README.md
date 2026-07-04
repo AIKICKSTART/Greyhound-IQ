@@ -13,8 +13,8 @@ Current delivery model:
 - **Auth:** WorkOS AuthKit only
 - **Billing:** Lago is the billing and subscription source of truth
 - **Storage/runtime integrations:** Supabase Storage, internal maintenance APIs
-- **Production hosting:** AI Kick Start Google Cloud VPS
-- **Preview/temp deployments:** Vercel PR previews and temporary URLs only
+- **Production hosting:** Google Cloud Run on Google Cloud
+- **Staging hosting:** Google Cloud Run staging service
 - **Review gates:** GitHub Actions, Codex PR review, human approval
 
 ## Quick start
@@ -60,6 +60,7 @@ Copy `.env.example` to `.env`. Required production-class values include:
 - `WORKOS_CLIENT_ID`
 - `WORKOS_API_KEY`
 - `WORKOS_COOKIE_PASSWORD`
+- `WORKOS_COOKIE_DOMAIN` for apex/www production cookies
 - `NEXT_PUBLIC_WORKOS_REDIRECT_URI`
 - Lago billing credentials and webhook secrets
 - `INTERNAL_API_SECRET`
@@ -87,12 +88,11 @@ Pre-launch demo boundary:
 GitHub Actions:
 
 - `CI`: docs, audit, env gate, Prisma validation/migration/seed on disposable Postgres, typecheck, lint, build, production server boot, smoke tests.
-- `Vercel Preview`: deploys PR previews and comments the URL.
-- `Vercel Main`: deploys a stable temporary Vercel URL after `main` passes CI; this is not the production hosting target.
+- `Cloud Run Deploy`: builds the container image and deploys the Google Cloud Run service.
 - `Codex PR Review`: runs Codex as an automated reviewer.
 - `Supabase Migrate`: manual staging/production migration workflow.
 
-`Live Racing Sync` calls `/api/internal/live-sync` from GitHub Actions. The fast schedule refreshes the current national racecards and posted results every 5 minutes with `days=1&scope=all`; the full schedule refreshes the 7-day national racecard horizon hourly with `days=7&scope=upcoming`. Vercel Cron is configured as a daily full-horizon backup because the current Vercel Hobby plan does not allow sub-daily cron schedules. Manual operator sync can run `npm run sync:live`. `THEDOGS_PROVIDER_ENABLED=true` enables the public all-Australia racecard and result feed for national field coverage. `WATCHDOG_PROVIDER_ENABLED=true` adds Victoria/GRV racecards, results, tips, and replay IDs from Watchdog; this enriches VIC rows while The Dogs remains the national baseline. Topaz remains the licensed production feed where available, and the bounded FastTrack prototype fallback can keep demo race data flowing if the public feeds are disabled.
+`Live Racing Sync` calls `/api/internal/live-sync` from Cloud Scheduler and the backup GitHub Actions workflow. The fast schedule refreshes the current national racecards and posted results every 5 minutes with `days=1&scope=all`; the full schedule refreshes the 7-day national racecard horizon hourly with `days=7&scope=upcoming`. Manual operator sync can run `npm run sync:live`. `THEDOGS_PROVIDER_ENABLED=true` enables the public all-Australia racecard and result feed for national field coverage. `WATCHDOG_PROVIDER_ENABLED=true` adds Victoria/GRV racecards, results, tips, and replay IDs from Watchdog; this enriches VIC rows while The Dogs remains the national baseline. Topaz remains the licensed production feed where available, and the bounded FastTrack prototype fallback can keep demo race data flowing if the public feeds are disabled.
 
 Feed readiness is exposed at `/api/health/feeds`. It reports configured providers, scheduler coverage, upcoming race counts, and missing feed credentials without exposing secret values.
 
@@ -140,25 +140,27 @@ Marketplace listing cards and details use optimized demo WebP media while `NEXT_
 
 Required GitHub secrets:
 
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
+- `GCP_PROJECT_ID`
+- `GCP_WIF_PROVIDER`
+- `GCP_BUILD_SERVICE_ACCOUNT`
+- `GCP_DEPLOY_SERVICE_ACCOUNT`
+- `GCP_RUNTIME_SERVICE_ACCOUNT`
 - `OPENAI_API_KEY`
 - `PROD_INTERNAL_API_SECRET`
 - `STAGING_DATABASE_URL`
 - `PROD_DATABASE_URL`
 
-## Production and previews
+## Production and staging
 
-The production deployment path is the AI Kick Start Google Cloud VPS:
+The production deployment path is Google Cloud Run:
 
-- Production runs on the AI Kick Start Google Cloud VPS.
+- Production runs on `greyhoundiq-web-prod` after manual approval.
+- Staging runs on `greyhoundiq-web-staging`.
 - WorkOS is the only production auth system.
 - Lago is the billing and subscription source of truth.
 - Supabase remains the database/storage provider.
-- Vercel remains available for PR previews and temporary validation URLs only.
 
-See [docs/deployment-vercel.md](docs/deployment-vercel.md).
+See [docs/gcp-cloud-run-migration-plan.md](docs/gcp-cloud-run-migration-plan.md).
 
 ## GitHub workflow
 
@@ -170,13 +172,13 @@ git pull
 git checkout -b feature/my-change
 ```
 
-Open a PR and wait for CI, Codex review, Vercel preview, and human approval.
+Open a PR and wait for CI, Codex review, and human approval.
 
 ## Documentation
 
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
-- [Vercel deployment](docs/deployment-vercel.md)
+- [Cloud Run deployment](docs/gcp-cloud-run-migration-plan.md)
 - [Wiki source mirror](docs/wiki/Home.md)
 - [Planning docs](docs/planning/README.md)
 

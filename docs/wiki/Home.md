@@ -7,7 +7,6 @@ GreyhoundIQ is an AI Kick Start platform for Australian greyhound racing intelli
 - [Local Development](Local-Development)
 - [Environment Variables](Environment-Variables)
 - [Supabase Setup](Supabase-Setup)
-- [Vercel Deployments](Vercel-Deployments)
 - [GitHub Workflow](GitHub-Workflow)
 - [CI/CD Gates](CICD-Gates)
 - [Codex Review Process](Codex-Review-Process)
@@ -17,8 +16,8 @@ GreyhoundIQ is an AI Kick Start platform for Australian greyhound racing intelli
 ## Current hosting model
 
 - GitHub repo: `AIKICKSTART/Greyhound-IQ`
-- Production frontend/API: AI Kick Start Google Cloud VPS
-- Preview/temp frontend/API: Vercel
+- Production frontend/API: Google Cloud Run
+- Staging frontend/API: Google Cloud Run staging service
 - Database/storage: Supabase
 - Auth: WorkOS only
 - Billing: Lago is the source of truth

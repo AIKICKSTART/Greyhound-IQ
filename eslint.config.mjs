@@ -10,7 +10,6 @@ const eslintConfig = defineConfig([
     // Default ignores of eslint-config-next:
     ".next/**",
     ".remember/**",
-    ".vercel/**",
     "out/**",
     "output/**",
     "external/**",

@@ -15,7 +15,10 @@ export default function Loading() {
             <Skeleton className="h-3 w-32" />
             <Skeleton className="mt-3 h-8 w-64" />
             <Skeleton className="mt-3 h-4 w-full max-w-2xl" />
-            <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(160px,1fr)_minmax(150px,1fr)_132px]">
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(160px,1.2fr)_130px_110px_120px_120px_100px]">
+              <Skeleton className="h-11" />
+              <Skeleton className="h-11" />
+              <Skeleton className="h-11" />
               <Skeleton className="h-11" />
               <Skeleton className="h-11" />
               <Skeleton className="h-11" />
@@ -55,7 +58,7 @@ export default function Loading() {
                 </div>
                 <div className="mt-4 grid grid-cols-4 gap-2">
                   {Array.from({ length: 8 }, (_, slot) => (
-                    <Skeleton key={slot} className="h-11 rounded-[6px]" />
+                    <Skeleton key={slot} className="h-14 rounded-[6px]" />
                   ))}
                 </div>
               </SkeletonPanel>

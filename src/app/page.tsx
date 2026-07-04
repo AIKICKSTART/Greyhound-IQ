@@ -1,6 +1,7 @@
 import { getTodaysMeetings } from "@/lib/queries";
 import { MeetingCard } from "@/components/meeting-card";
 import { PageHero } from "@/components/page-hero";
+import { formatLongRaceDayLabel } from "@/lib/race-time";
 import {
   ArrowRight,
   BadgeDollarSign,
@@ -174,17 +175,13 @@ async function TodaysRacesSection() {
 
   return (
     <section id="races" className="giq-home-races-section relative mx-auto max-w-7xl px-6 py-8">
-      <div className="flex items-end justify-between mb-6">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
             Today&apos;s Races
           </h2>
           <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
-            {new Date().toLocaleDateString("en-AU", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
+            {formatLongRaceDayLabel(new Date())}
           </p>
         </div>
         {meetings.length > 0 && (
@@ -197,8 +194,14 @@ async function TodaysRacesSection() {
       {meetings.length === 0 ? (
         <div className="giq-empty-state p-16 text-center">
           <p className="text-[hsl(var(--muted-foreground))] text-[15px] tracking-[-0.013em]">
-            No meetings in the database yet. The data pipeline connects in Phase 2.
+            No meetings are available for this race day yet. Try the race explorer for recent archived cards.
           </p>
+          <Link
+            href="/races"
+            className="giq-outline-action mx-auto mt-4 min-h-11 w-fit px-4 text-[13px] font-semibold"
+          >
+            Open race explorer
+          </Link>
         </div>
       ) : (
         <div className="giq-stagger grid gap-3 md:grid-cols-2 lg:grid-cols-3">

@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GreyhoundIQ — Google Cloud Migration &amp; Launch-Readiness Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#05140b; --navy2:#0c2415;
+  --green:#16a34a; --green2:#0a7a32; --green-light:#2fc46a; --green-dark:#0b6b2c;
+  --orange:#F97316; --orange-light:#F89838; --red:#EF4444; --blue:#38bdf8; --purple:#a78bfa;
+  --text:#e9f1ea; --muted:#9fb2a4; --dim:#7b8f82;
+  --panel:rgba(255,255,255,.045); --panel-2:rgba(255,255,255,.07); --line:rgba(255,255,255,.10);
+  --accent:linear-gradient(90deg,var(--green-light),var(--orange));
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--navy); color:var(--text); -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+.deck{height:100vh;width:100vw;position:relative}
+.slide{
+  position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+  padding:clamp(28px,5vw,72px) clamp(28px,7vw,110px);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(22,163,74,.16), transparent 42%),
+    radial-gradient(circle at 88% 92%, rgba(249,115,22,.10), transparent 45%),
+    linear-gradient(160deg,var(--navy) 0%, #071b0e 55%, var(--navy2) 100%);
+  overflow-y:auto;
+}
+.slide.active{display:flex;animation:fade .45s ease}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* Typography */
+.eyebrow{font-size:clamp(11px,1vw,13px);letter-spacing:3px;text-transform:uppercase;font-weight:700;color:var(--green-light);margin-bottom:16px}
+.eyebrow .dot{color:var(--orange);margin:0 8px}
+h1{font-size:clamp(30px,5.4vw,62px);font-weight:900;line-height:1.05;letter-spacing:-1.5px}
+h2{font-size:clamp(24px,3.4vw,40px);font-weight:800;line-height:1.12;letter-spacing:-.8px;margin-bottom:6px}
+.grad{background:var(--accent);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.lead{font-size:clamp(15px,1.55vw,20px);color:var(--muted);font-weight:400;line-height:1.55;max-width:60ch;margin-top:10px}
+h2 + .lead{margin-bottom:26px}
+p{line-height:1.6}
+strong{color:#fff;font-weight:600}
+code{font-family:'JetBrains Mono',monospace;font-size:.85em;background:rgba(255,255,255,.08);color:var(--green-light);padding:2px 6px;border-radius:5px}
+.slidehead{margin-bottom:20px}
+.slidehead .kicker{font-size:12px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700;color:var(--orange);margin-bottom:10px}
+
+/* Layout helpers */
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card.hl{border-left:3px solid var(--green)}
+.card.warn{border-left:3px solid var(--red);background:linear-gradient(135deg,rgba(239,68,68,.10),rgba(249,115,22,.05))}
+.card.ok{border-left:3px solid var(--green-light);background:linear-gradient(135deg,rgba(22,163,74,.10),transparent)}
+.card h3{font-size:15px;font-weight:700;color:#fff;margin-bottom:7px;display:flex;align-items:center;gap:9px}
+.card p,.card li{font-size:13.5px;color:var(--muted);line-height:1.5}
+.card .big{font-size:30px;font-weight:900;line-height:1;background:var(--accent);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+.ic{width:26px;height:26px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto;background:rgba(22,163,74,.16);box-shadow:inset 0 0 0 1px rgba(47,196,106,.28)}
+.ic.o{background:rgba(249,115,22,.16);box-shadow:inset 0 0 0 1px rgba(249,115,22,.32)}
+.ic.r{background:rgba(239,68,68,.16);box-shadow:inset 0 0 0 1px rgba(239,68,68,.32)}
+ul.clean{list-style:none} ul.clean li{padding-left:18px;position:relative;margin:5px 0}
+ul.clean li::before{content:'';position:absolute;left:0;top:8px;width:7px;height:7px;border-radius:2px;background:var(--accent)}
+
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:26px}
+.chip{font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);color:var(--text)}
+.chip.g{color:var(--green-light);border-color:rgba(47,196,106,.3)}
+.chip.o{color:var(--orange-light);border-color:rgba(249,115,22,.3)}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:12.8px;margin-top:6px}
+th{text-align:left;padding:10px 12px;background:rgba(22,163,74,.14);color:var(--green-light);font-weight:700;border-bottom:1px solid var(--line);font-size:11.5px;letter-spacing:.4px;text-transform:uppercase}
+td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.06);color:var(--muted);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td strong{color:var(--text)}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px}
+.tag.g{background:rgba(22,163,74,.18);color:var(--green-light)} .tag.o{background:rgba(249,115,22,.18);color:var(--orange-light)}
+.tag.r{background:rgba(239,68,68,.18);color:#fca5a5} .tag.b{background:rgba(56,189,248,.16);color:var(--blue)}
+
+/* Diagram */
+.arch{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.layer{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center}
+.layer .lname{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);text-align:right}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.node{flex:1;min-width:120px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:12.5px;font-weight:600;color:var(--text)}
+.node small{display:block;font-weight:400;color:var(--dim);font-size:10.8px;margin-top:2px}
+.node.g{border-left:3px solid var(--green)} .node.o{border-left:3px solid var(--orange)} .node.b{border-left:3px solid var(--blue)} .node.p{border-left:3px solid var(--purple)}
+.node.core{background:linear-gradient(135deg,rgba(22,163,74,.16),rgba(249,115,22,.06));border-color:rgba(47,196,106,.35)}
+
+/* Flow / steps */
+.flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin-top:8px}
+.step{flex:1;min-width:150px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;position:relative;margin-right:26px;margin-bottom:14px}
+.step:not(:last-child)::after{content:'→';position:absolute;right:-20px;top:50%;transform:translateY(-50%);color:var(--green-light);font-size:20px;font-weight:700}
+.step .n{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--orange);font-weight:600}
+.step h4{font-size:13.5px;font-weight:700;margin:3px 0 4px}
+.step p{font-size:12px;color:var(--muted)}
+.gate{background:linear-gradient(135deg,rgba(249,115,22,.14),transparent);border-color:rgba(249,115,22,.35)}
+
+/* Numbered list cards */
+.nlist{counter-reset:s;display:grid;gap:10px}
+.nlist .item{counter-increment:s;position:relative;padding:12px 16px 12px 50px;background:var(--panel);border:1px solid var(--line);border-radius:11px}
+.nlist .item::before{content:counter(s);position:absolute;left:14px;top:12px;width:24px;height:24px;border-radius:7px;background:var(--accent);color:#06140c;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center}
+.nlist .item h4{font-size:13.5px;font-weight:700} .nlist .item p{font-size:12px;color:var(--muted)}
+
+/* Timeline */
+.timeline{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:10px}
+@media(max-width:900px){.timeline{grid-template-columns:repeat(2,1fr)}}
+.ph{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px;border-top:3px solid var(--green)}
+.ph.o{border-top-color:var(--orange)} .ph .pn{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--dim)}
+.ph h4{font-size:12.8px;font-weight:700;margin:4px 0 5px} .ph p{font-size:11px;color:var(--muted);line-height:1.45}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+@media(max-width:900px){.two{grid-template-columns:1fr}}
+.callout{background:linear-gradient(135deg,rgba(22,163,74,.10),rgba(249,115,22,.05));border-left:4px solid var(--green);border-radius:10px;padding:14px 18px;margin-top:16px;font-size:13.5px}
+.callout.warn{background:linear-gradient(135deg,rgba(239,68,68,.10),rgba(249,115,22,.05));border-left-color:var(--red)}
+.callout .t{font-weight:700;color:#fff;margin-bottom:3px}
+
+/* Cover */
+.cover{justify-content:center}
+.cover .mark{font-weight:900;font-size:20px;letter-spacing:-.5px;margin-bottom:40px}
+.cover .mark .iq{background:var(--accent);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.cover h1{max-width:16ch}
+.cover .sub{font-size:clamp(16px,1.9vw,23px);color:var(--muted);margin-top:20px;max-width:44ch;line-height:1.5}
+.cover .meta{margin-top:38px;display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px}
+.cover .bar{width:90px;height:4px;border-radius:4px;background:var(--accent);margin:26px 0}
+.prepared{position:absolute;bottom:clamp(24px,5vw,60px);left:clamp(28px,7vw,110px);font-size:12.5px;color:var(--dim)}
+.prepared strong{color:var(--text)}
+
+/* Nav chrome */
+.progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);z-index:50;transition:width .35s ease}
+.nav{position:fixed;bottom:0;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(20px,4vw,44px);z-index:50;pointer-events:none}
+.nav .brand{font-size:13px;font-weight:800;letter-spacing:-.3px;pointer-events:auto}
+.nav .brand .iq{background:var(--accent);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.nav .ctrl{display:flex;align-items:center;gap:10px;pointer-events:auto}
+.nav button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);font-size:15px;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center}
+.nav button:hover{background:var(--green);border-color:var(--green);color:#06140c}
+.nav .count{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);min-width:52px;text-align:center}
+.hint{position:fixed;bottom:60px;right:20px;font-size:11px;color:var(--dim);z-index:40;opacity:.7}
+
+@media print{
+  html,body{overflow:visible;height:auto}
+  .slide{display:flex !important;position:relative;inset:auto;height:100vh;page-break-after:always;break-after:page}
+  .nav,.progress,.hint{display:none !important}
+}
+</style>
+</head>
+<body>
+<div class="progress" id="prog"></div>
+<div class="deck" id="deck">
+
+  <!-- 1 COVER -->
+  <section class="slide active cover">
+    <div class="mark">Greyhound<span class="iq">IQ</span></div>
+    <div class="eyebrow">AI Kick Start <span class="dot">◆</span> Production Readiness</div>
+    <h1>GreyhoundIQ on <span class="grad">Google Cloud</span></h1>
+    <div class="bar"></div>
+    <p class="sub">A data-safe migration to Cloud Run and a race-day launch plan for <strong>www.greyhoundsiq.com.au</strong>.</p>
+    <div class="meta chips">
+      <span class="chip g">Cloud Run · australia-southeast1</span>
+      <span class="chip">Next.js 16 · React 19</span>
+      <span class="chip o">Supabase Postgres</span>
+      <span class="chip">Zero-data-loss mandate</span>
+    </div>
+    <div class="prepared">Prepared for <strong>Daniel Fleuren</strong> · 3 July 2026 · Draft v1 — for review</div>
+  </section>
+
+  <!-- 2 EXEC SUMMARY -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">Executive summary</div>
+      <h2>From one VPS to <span class="grad">managed, autoscaling</span> Cloud Run</h2>
+      <p class="lead">Today the app is moving onto Google Cloud Run across every environment, without ever risking the production database.</p>
+    </div>
+    <div class="grid g3">
+      <div class="card hl"><div class="big">0→N</div><h3>Elastic race-day capacity</h3><p>Scale to near-zero when quiet, absorb a launch or big-meeting spike automatically. No more one-box ceiling.</p></div>
+      <div class="card hl"><div class="big">100%</div><h3>Zero-data-loss guarantee</h3><p>No pipeline, script, or migration can wipe, reset, or reseed production. Every destructive path is blocked by policy and code.</p></div>
+      <div class="card hl"><div class="big">&lt;60s</div><h3>Safe, reversible releases</h3><p>Build once, promote the exact image to prod, roll back to the previous revision in seconds — never touching the DB.</p></div>
+    </div>
+    <div class="callout"><div class="t">Positioning guardrail</div>GreyhoundIQ is a racing <strong>intelligence</strong> platform — race cards, form, breeding, community. It is explicitly <strong>not</strong> a wagering, odds, or gambling service, and the launch checklist verifies that wording everywhere.</div>
+  </section>
+
+  <!-- 3 AUDIT -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">A · Current app audit</div>
+      <h2>What we're moving</h2>
+      <p class="lead">A production-grade Next.js app with 60 data models already spanning racing, billing, marketplace, forum, messaging and agents.</p>
+    </div>
+    <div class="two">
+      <table>
+        <tr><th>Layer</th><th>Today</th></tr>
+        <tr><td><strong>Framework</strong></td><td>Next.js 16 App Router · React 19 · Node runtime routes <span class="tag g">Cloud Run-ready</span></td></tr>
+        <tr><td><strong>Database</strong></td><td>Supabase Postgres via Prisma 6 · pgBouncer pooler · 26 forward-only migrations</td></tr>
+        <tr><td><strong>Auth</strong></td><td>WorkOS AuthKit (sole identity provider)</td></tr>
+        <tr><td><strong>Billing</strong></td><td>Lago — self-hosted, source of truth <span class="tag o">own infra</span></td></tr>
+        <tr><td><strong>Storage</strong></td><td>Supabase Storage · signed upload + finalize flow</td></tr>
+        <tr><td><strong>Live data</strong></td><td>TheDogs / Watchdog / FastTrack (public) + Topaz GRV <span class="tag b">licensed</span></td></tr>
+        <tr><td><strong>Hosting now</strong></td><td>Google Cloud Run staging and production services</td></tr>
+        <tr><td><strong>Jobs</strong></td><td>GitHub Actions cron → <code>/api/internal/live-sync</code> every 5 min</td></tr>
+      </table>
+      <div>
+        <div class="card ok"><h3><span class="ic">✓</span> Already portable</h3><p>API routes declare <code>runtime = "nodejs"</code>, media uses signed URLs, secrets are env-driven, and a real <code>/api/health</code> endpoint exists. This containerises cleanly.</p></div>
+        <div class="card" style="margin-top:14px"><h3><span class="ic o">◐</span> Needs attention on Cloud Run</h3><ul class="clean"><li>Heavy backfill/import scripts → move to <strong>Cloud Run Jobs</strong></li><li>Scheduled sync → <strong>Cloud Scheduler</strong></li><li>Self-hosted <strong>Lago</strong> needs its own managed home</li><li>WebSocket/realtime paths need runtime verification</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 RISK -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">A · Top risk found</div>
+      <h2 style="color:#fff">The one thing we fix <span style="color:var(--red)">before anything else</span></h2>
+      <p class="lead">The single biggest threat to your data isn't traffic — it's an existing pipeline that can legally run a full wipe against production.</p>
+    </div>
+    <div class="two">
+      <div class="card warn">
+        <h3><span class="ic r">!</span> <code>prisma/seed.ts</code> is a wipe-and-reseed</h3>
+        <p>It opens with <code>deleteMany()</code> across ~25 tables — <strong>users, profiles, listings, messages, conversations, forum posts</strong> — then inserts sample data.</p>
+        <p style="margin-top:10px"><strong>And</strong> the <code>supabase-migrate</code> workflow lets an operator pick <code>environment: production</code> with <code>seed: true</code>. One dropdown from total data loss.</p>
+        <p style="margin-top:10px;color:var(--dim)">Footguns nearby: <code>db:reset</code> (<code>migrate reset --force</code>) and <code>db:push</code>.</p>
+      </div>
+      <div>
+        <div class="card"><h3><span class="ic">🛡</span> How this plan closes it</h3>
+        <ul class="clean">
+          <li>Seed refuses to run when the target looks like production (env + DB-host guard)</li>
+          <li>Remove the <em>production</em> option from any seed workflow entirely</li>
+          <li>CI grep-gate blocks <code>reset</code>, <code>db push</code>, <code>TRUNCATE</code>, and <code>DELETE</code> without <code>WHERE</code></li>
+          <li>Production uses <code>migrate deploy</code> only — forward-only, reviewed, approved</li>
+          <li>Point-in-time recovery + verified restore drill as the backstop</li>
+        </ul></div>
+        <div class="callout warn"><div class="t">Non-negotiable</div>No CI/CD job, deploy script, or preview workflow may wipe, overwrite, reset, or reseed production data. Data safety outranks every other goal in this plan.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 ARCHITECTURE -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">C · Target architecture</div>
+      <h2>Cloud Run at the core, Supabase as the system of record</h2>
+      <p class="lead">Cost-conscious on trial credits, with a clear path to production scale. Managed services do the heavy lifting so one small team can run it.</p>
+    </div>
+    <div class="arch">
+      <div class="layer"><div class="lname">Client</div><div class="row">
+        <div class="node b">Browser &amp; mobile web<small>Next.js SSR · mobile-first</small></div>
+        <div class="node b">www.greyhoundsiq.com.au<small>Cloud DNS · managed TLS</small></div>
+      </div></div>
+      <div class="layer"><div class="lname">Edge</div><div class="row">
+        <div class="node g">Global HTTPS Load Balancer<small>Cloud CDN · Cloud Armor (WAF/rate-limit)</small></div>
+      </div></div>
+      <div class="layer"><div class="lname">Compute</div><div class="row">
+        <div class="node core">Cloud Run — web / API<small>Next.js container · autoscaling · au-southeast1</small></div>
+        <div class="node g">Cloud Run Jobs<small>backfills · imports · exports</small></div>
+        <div class="node o">Cloud Scheduler<small>live-sync · maintenance crons</small></div>
+        <div class="node p">Pub/Sub · Cloud Tasks<small>async jobs · notifications</small></div>
+      </div></div>
+      <div class="layer"><div class="lname">Data &amp; identity</div><div class="row">
+        <div class="node o">Supabase<small>Postgres · Storage · Realtime</small></div>
+        <div class="node b">WorkOS AuthKit<small>authentication</small></div>
+        <div class="node p">Lago<small>billing · metering</small></div>
+        <div class="node g">Artifact Registry · Secret Manager<small>images · secrets</small></div>
+      </div></div>
+      <div class="layer"><div class="lname">Observe</div><div class="row">
+        <div class="node">Cloud Logging · Monitoring · Error Reporting · Uptime checks · Budget alerts</div>
+        <div class="node">Feeds: TheDogs · Watchdog · FastTrack · Topaz</div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 6 FLOWS -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">C · Request &amp; data flow</div>
+      <h2>How a page — and a race update — travels</h2>
+    </div>
+    <p style="font-size:13px;font-weight:700;color:var(--green-light);margin:4px 0 8px;letter-spacing:.5px">USER REQUEST</p>
+    <div class="flow">
+      <div class="step"><div class="n">01</div><h4>DNS → LB</h4><p>Cloud DNS resolves the apex/www; HTTPS LB terminates TLS, CDN serves static/ISR.</p></div>
+      <div class="step"><div class="n">02</div><h4>Cloud Run</h4><p>Next.js renders SSR / runs the API route on an autoscaled instance.</p></div>
+      <div class="step"><div class="n">03</div><h4>Supabase pooler</h4><p>Prisma queries Postgres over the transaction pooler (low connection limit).</p></div>
+      <div class="step"><div class="n">04</div><h4>Auth · billing · media</h4><p>WorkOS session, Lago entitlements, Supabase Storage signed URLs.</p></div>
+    </div>
+    <p style="font-size:13px;font-weight:700;color:var(--orange-light);margin:14px 0 8px;letter-spacing:.5px">LIVE RACING SYNC</p>
+    <div class="flow">
+      <div class="step"><div class="n">01</div><h4>Cloud Scheduler</h4><p>Fires every 5 min with an OIDC/secret-authed call.</p></div>
+      <div class="step"><div class="n">02</div><h4>/api/internal/live-sync</h4><p><code>X-Internal-Secret</code> verified; scope + days parsed.</p></div>
+      <div class="step"><div class="n">03</div><h4>Feed adapters</h4><p>TheDogs / Watchdog / Topaz pulled, normalised, deduped.</p></div>
+      <div class="step gate"><div class="n">04</div><h4>Upsert to Postgres</h4><p>Idempotent upserts on unique keys — never destructive. Big backfills run as Jobs.</p></div>
+    </div>
+  </section>
+
+  <!-- 7 ENVIRONMENTS -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">D · Environment strategy</div>
+      <h2>Four environments, strictly separated</h2>
+      <p class="lead">No shared write credentials between staging and production. Ever.</p>
+    </div>
+    <table>
+      <tr><th>Dimension</th><th>Local</th><th>Preview (PR)</th><th>Staging</th><th>Production</th></tr>
+      <tr><td><strong>Domain</strong></td><td>localhost:3000</td><td>*.run.app (tag)</td><td>staging.greyhoundsiq.com.au</td><td>www.greyhoundsiq.com.au</td></tr>
+      <tr><td><strong>Cloud Run</strong></td><td>—</td><td>giq-web-preview</td><td>giq-web-staging</td><td>giq-web-prod</td></tr>
+      <tr><td><strong>Supabase</strong></td><td>local Docker PG</td><td>staging project</td><td>staging project</td><td><strong>prod project</strong> (isolated)</td></tr>
+      <tr><td><strong>DB access</strong></td><td>full</td><td>read/write staging</td><td>read/write staging</td><td>app role only · no CLI wipe</td></tr>
+      <tr><td><strong>Buckets</strong></td><td>local</td><td>giq-staging-*</td><td>giq-staging-*</td><td>giq-prod-*</td></tr>
+      <tr><td><strong>Secrets</strong></td><td>.env (gitignored)</td><td>staging Secret Mgr</td><td>staging Secret Mgr</td><td>prod Secret Mgr <span class="tag r">prod-only</span></td></tr>
+      <tr><td><strong>Deploy trigger</strong></td><td>manual</td><td>PR open/sync</td><td>merge to main</td><td>manual approval gate</td></tr>
+      <tr><td><strong>Migrations</strong></td><td>dev</td><td>none</td><td>auto (staging DB)</td><td>approved, forward-only</td></tr>
+      <tr><td><strong>Who deploys</strong></td><td>dev</td><td>CI (bot)</td><td>CI (bot)</td><td>Daniel / release owner</td></tr>
+    </table>
+  </section>
+
+  <!-- 8 CI/CD -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">E · CI/CD design</div>
+      <h2>Build once, promote the <span class="grad">same image</span>, gate production</h2>
+      <p class="lead">GitHub Actions with Workload Identity Federation (keyless) into GCP. The exact artifact tested on staging is what ships to prod.</p>
+    </div>
+    <div class="flow">
+      <div class="step"><div class="n">PR</div><h4>Checks</h4><p>install · typecheck · lint · unit · build · <code>npm audit</code> · <strong>destructive-command gate</strong></p></div>
+      <div class="step"><div class="n">MAIN</div><h4>Staging</h4><p>build &amp; push image → deploy staging → <code>migrate deploy</code> (staging DB) → smoke tests</p></div>
+      <div class="step gate"><div class="n">GATE</div><h4>Manual approval</h4><p>release owner approves. Migrations approved separately.</p></div>
+      <div class="step"><div class="n">PROD</div><h4>Promote</h4><p>deploy <strong>same digest</strong> → smoke tests → auto-rollback revision on health fail</p></div>
+    </div>
+    <div class="grid g3" style="margin-top:18px">
+      <div class="card hl"><h3><span class="ic">🔑</span> Keyless</h3><p>WIF federation — no long-lived service-account keys in GitHub. Prod secrets bound to the prod environment only.</p></div>
+      <div class="card hl"><h3><span class="ic o">🧱</span> Guarded</h3><p>CI fails on <code>reset</code>, <code>db push</code>, <code>TRUNCATE</code>, or <code>DELETE</code>-without-<code>WHERE</code> in any migration or script diff.</p></div>
+      <div class="card hl"><h3><span class="ic">↩</span> Reversible</h3><p>Rollback = route traffic to the previous Cloud Run revision. Seconds, and the database is never touched.</p></div>
+    </div>
+  </section>
+
+  <!-- 9 DB PROTECTION -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">F · Database protection plan</div>
+      <h2>The rules that keep production data alive</h2>
+    </div>
+    <div class="grid g2">
+      <div class="card hl"><h3><span class="ic">🧬</span> Migrations</h3><p>Forward-only, <strong>expand-and-contract</strong>. No <code>DROP</code>/<code>TRUNCATE</code>/un-scoped <code>DELETE</code> without explicit human approval. <code>prisma migrate deploy</code> only in CI/prod — never <code>reset</code> or <code>db push</code>.</p></div>
+      <div class="card hl"><h3><span class="ic o">💾</span> Backups &amp; restore</h3><p>Supabase PITR + daily snapshots. <strong>Quarterly restore drill</strong> to a scratch project to prove recovery, with a documented RTO/RPO.</p></div>
+      <div class="card hl"><h3><span class="ic">🌱</span> Seed data</h3><p>Seed is dev/staging only, guarded to abort if the DB host looks like prod. The production seed path is <strong>deleted</strong>.</p></div>
+      <div class="card hl"><h3><span class="ic o">🔐</span> Keys &amp; access</h3><p>Service-role key server-only in Secret Manager, never shipped to the browser. RLS on client-reachable tables/buckets. Separate Supabase projects for staging vs prod.</p></div>
+    </div>
+    <div class="callout warn"><div class="t">Break-glass</div>Emergency prod DB access is a named, logged, time-boxed procedure — not a default credential sitting in anyone's <code>.env</code>.</div>
+  </section>
+
+  <!-- 10 AUTOSCALING -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">Reliability · Cloud Run tuning</div>
+      <h2>Ready for a launch spike, cheap when quiet</h2>
+    </div>
+    <div class="two">
+      <table>
+        <tr><th>Setting</th><th>Prod</th><th>Staging</th></tr>
+        <tr><td>Region</td><td>au-southeast1</td><td>au-southeast1</td></tr>
+        <tr><td>CPU / Memory</td><td>2 vCPU / 2 GiB</td><td>1 / 1 GiB</td></tr>
+        <tr><td>Concurrency</td><td>60–80</td><td>80</td></tr>
+        <tr><td>Min instances</td><td>1–2 (warm)</td><td>0</td></tr>
+        <tr><td>Max instances</td><td>30 (capped)</td><td>4</td></tr>
+        <tr><td>Startup CPU boost</td><td>on</td><td>on</td></tr>
+        <tr><td>Timeout</td><td>60s</td><td>60s</td></tr>
+        <tr><td>Health</td><td colspan="2"><code>/api/health</code> live · <code>/api/health/ready</code> ready</td></tr>
+      </table>
+      <div>
+        <div class="card"><h3><span class="ic o">📈</span> During a race-day spike</h3><p>Warm min-instances absorb the first hit; autoscaling adds instances up to the cap; CDN + ISR shield read-heavy race cards; max-instances protects both the budget and the Supabase pooler.</p></div>
+        <div class="card" style="margin-top:12px"><h3><span class="ic">🩹</span> If Supabase slows or rate-limits</h3><p>Low pooler connection limits + short timeouts fail fast; cached race cards keep serving; non-critical writes queue via Cloud Tasks and retry.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 FAILURE MODES -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">C · Failure-mode playbook</div>
+      <h2>What happens when something breaks</h2>
+    </div>
+    <table>
+      <tr><th>If this fails…</th><th>The system…</th></tr>
+      <tr><td><strong>A bad deployment</strong></td><td>Health checks fail → traffic stays on / returns to the previous revision automatically. Database untouched.</td></tr>
+      <tr><td><strong>Live race ingestion</strong></td><td>Job retries with backoff; last-good data stays served; <code>DataSourceHealth</code> flips and alerts fire. No partial overwrite.</td></tr>
+      <tr><td><strong>An external feed is down</strong></td><td>Adapter degrades to remaining providers (TheDogs national baseline); UI shows freshness, not a crash.</td></tr>
+      <tr><td><strong>A storage upload</strong></td><td>Signed-URL flow returns a clean error; the media row stays <em>pending</em> and can be retried; no orph­aned state.</td></tr>
+      <tr><td><strong>Supabase is throttling</strong></td><td>Fail-fast timeouts + cache; writes queue on Cloud Tasks; instances capped so we don't stampede the pooler.</td></tr>
+      <tr><td><strong>Traffic 10× overnight</strong></td><td>Autoscale to the max cap; CDN offloads reads; budget alert + max-instances prevent a runaway bill.</td></tr>
+    </table>
+  </section>
+
+  <!-- 12 SECRETS -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">E/G · Secrets &amp; identity</div>
+      <h2>Keyless deploys, least-privilege everywhere</h2>
+    </div>
+    <div class="grid g3">
+      <div class="card hl"><h3><span class="ic">🪪</span> Workload Identity Federation</h3><p>GitHub Actions authenticates to GCP via short-lived federated tokens. No downloadable service-account keys to leak or rotate.</p></div>
+      <div class="card hl"><h3><span class="ic o">🗝</span> Secret Manager</h3><p>All secrets — DB URLs, WorkOS, Lago, Topaz, internal secrets — live here. Staging and prod secrets are separate and env-scoped.</p></div>
+      <div class="card hl"><h3><span class="ic">👤</span> Per-service accounts</h3><p>Distinct least-privilege SAs for web, jobs, scheduler, and deploy. No shared write identity between staging and prod.</p></div>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card"><h3>Public vs private env</h3><p style="color:var(--muted)"><span class="tag g">public</span> <code>NEXT_PUBLIC_SUPABASE_*</code>, <code>NEXT_PUBLIC_WORKOS_REDIRECT_URI</code> &nbsp; · &nbsp; <span class="tag r">server-only</span> service-role key, <code>WORKOS_API_KEY</code>, Lago keys, <code>INTERNAL_API_SECRET</code>, DB URLs.</p></div>
+      <div class="card"><h3>Log hygiene</h3><p style="color:var(--muted)">Secrets never printed in CI logs; production DB URL never appears in <code>.env.example</code> or public logs; compromised secrets rotated on a documented runbook.</p></div>
+    </div>
+  </section>
+
+  <!-- 13 GCP CHECKLIST -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">G · GCP setup checklist</div>
+      <h2>Standing up the cloud, in order</h2>
+    </div>
+    <div class="grid g2">
+      <div class="nlist">
+        <div class="item"><h4>Project &amp; billing</h4><p>Create/select project, attach billing, apply trial credits, set a budget + alerts.</p></div>
+        <div class="item"><h4>Enable APIs</h4><p>Run, Build, Artifact Registry, Secret Manager, Scheduler, Storage, Pub/Sub, Monitoring, DNS, IAM.</p></div>
+        <div class="item"><h4>Identity &amp; IAM</h4><p>Per-service accounts, WIF pool for GitHub, least-privilege bindings.</p></div>
+        <div class="item"><h4>Artifact Registry</h4><p>Docker repo in au-southeast1 + image cleanup policy.</p></div>
+      </div>
+      <div class="nlist">
+        <div class="item"><h4>Cloud Run × 3</h4><p>preview / staging / prod services with the tuned settings + health probes.</p></div>
+        <div class="item"><h4>Secrets &amp; storage</h4><p>Load secrets; create prod/staging buckets with lifecycle + access rules.</p></div>
+        <div class="item"><h4>Observability</h4><p>Uptime checks, error reporting, alert policies to email/Slack, log-based metrics.</p></div>
+        <div class="item"><h4>Domain &amp; HTTPS</h4><p>LB + managed cert, Cloud DNS records, apex→www redirect, staging subdomain.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 SUPABASE CHECKLIST -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">H · Supabase hardening</div>
+      <h2>Two projects, locked down</h2>
+    </div>
+    <div class="grid g2">
+      <div class="card hl"><h3><span class="ic">🏗</span> Projects</h3><ul class="clean"><li>Separate <strong>production</strong> and <strong>staging</strong> projects (Sydney region)</li><li>No shared credentials or connection strings</li><li>PITR enabled on production</li></ul></div>
+      <div class="card hl"><h3><span class="ic o">🛡</span> Access &amp; RLS</h3><ul class="clean"><li>RLS on every client-reachable table &amp; storage bucket</li><li>Anon key for browser; service-role key server-only</li><li>Signed URLs for private media, short TTL</li></ul></div>
+      <div class="card hl"><h3><span class="ic">🔁</span> Migration promotion</h3><ul class="clean"><li>Prisma migrations validated in CI</li><li><code>migrate deploy</code> to staging → verify → approve → prod</li><li>Forward-only; no reset; no prod seed</li></ul></div>
+      <div class="card hl"><h3><span class="ic o">💽</span> Backups &amp; storage</h3><ul class="clean"><li>Daily snapshots + PITR window documented</li><li>Buckets: uploads, media, imports, exports, backups, tmp</li><li>Lifecycle &amp; retention per bucket</li></ul></div>
+    </div>
+  </section>
+
+  <!-- 15 LAUNCH READINESS -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">I · Launch-readiness checklist</div>
+      <h2>Green lights before we cut the domain over</h2>
+    </div>
+    <div class="grid g4">
+      <div class="card"><h3><span class="ic">⚡</span> Performance</h3><ul class="clean"><li>k6 load test</li><li>Race-day spike sim</li><li>CDN cache verified</li></ul></div>
+      <div class="card"><h3><span class="ic o">🧯</span> Resilience</h3><ul class="clean"><li>Backups verified</li><li>Restore drill passed</li><li>Rollback tested</li></ul></div>
+      <div class="card"><h3><span class="ic">🌐</span> Delivery</h3><ul class="clean"><li>DNS verified</li><li>SSL/HTTPS verified</li><li>apex→www redirect</li></ul></div>
+      <div class="card"><h3><span class="ic o">✅</span> Product</h3><ul class="clean"><li>Login (WorkOS)</li><li>Upload + media</li><li>Live race update</li></ul></div>
+      <div class="card"><h3><span class="ic">📱</span> Experience</h3><ul class="clean"><li>Mobile flows</li><li>Pricing pages</li><li>Core journeys</li></ul></div>
+      <div class="card"><h3><span class="ic o">⚖</span> Compliance</h3><ul class="clean"><li>"Not wagering" wording</li><li>Consent + retention</li><li>Privacy pages</li></ul></div>
+      <div class="card"><h3><span class="ic">📟</span> Monitoring</h3><ul class="clean"><li>Uptime checks</li><li>Error alerts</li><li>Budget alarms</li></ul></div>
+      <div class="card"><h3><span class="ic o">☎</span> Ops</h3><ul class="clean"><li>Incident contacts</li><li>Runbooks</li><li>On-call path</li></ul></div>
+    </div>
+  </section>
+
+  <!-- 16 ROADMAP -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">J · Implementation plan</div>
+      <h2>Ten phases, each with an exit gate</h2>
+      <p class="lead">Every phase has tasks, acceptance criteria, a rollback plan, and named risks. Nothing irreversible happens without a safer alternative on the table.</p>
+    </div>
+    <div class="timeline">
+      <div class="ph"><div class="pn">Phase 1</div><h4>Discovery &amp; audit</h4><p>Confirm stack, risks, secrets inventory.</p></div>
+      <div class="ph"><div class="pn">Phase 2</div><h4>Local Docker</h4><p>Container builds &amp; runs; health green.</p></div>
+      <div class="ph"><div class="pn">Phase 3</div><h4>Supabase hardening</h4><p>Split projects, RLS, backups, seed guard.</p></div>
+      <div class="ph o"><div class="pn">Phase 4</div><h4>GCP staging</h4><p>Cloud Run staging live + smoke tests.</p></div>
+      <div class="ph o"><div class="pn">Phase 5</div><h4>CI/CD pipeline</h4><p>Keyless deploy, gates, promote-image.</p></div>
+      <div class="ph o"><div class="pn">Phase 6</div><h4>Production infra</h4><p>Prod service, secrets, scheduler, jobs.</p></div>
+      <div class="ph o"><div class="pn">Phase 7</div><h4>Domain cutover</h4><p>DNS + TLS after staging verified.</p></div>
+      <div class="ph"><div class="pn">Phase 8</div><h4>Load testing</h4><p>Race-day simulation to the cap.</p></div>
+      <div class="ph"><div class="pn">Phase 9</div><h4>Launch</h4><p>Go-live checklist all green.</p></div>
+      <div class="ph"><div class="pn">Phase 10</div><h4>Post-launch</h4><p>Monitor, tune, restore drill.</p></div>
+    </div>
+    <div class="callout"><div class="t">Sequencing rule</div>No production traffic until staging passes; no DNS cutover until the staging domain is verified end-to-end.</div>
+  </section>
+
+  <!-- 17 COST -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">C · Cost on trial credits</div>
+      <h2>Lean now, scalable later</h2>
+    </div>
+    <div class="two">
+      <div class="card hl"><h3><span class="ic">🪙</span> Trial-credit posture</h3><ul class="clean"><li>Staging scales to <strong>zero</strong>; prod keeps 1–2 warm</li><li>Artifact Registry + Storage lifecycle rules prune junk</li><li>Batch AI/inference — no always-on GPUs</li><li>Budget alerts at 50 / 80 / 100% with hard max-instances</li></ul></div>
+      <div class="card"><h3><span class="ic o">🚀</span> Scale-up path</h3><ul class="clean"><li>Raise min/max instances &amp; CPU</li><li>Add Cloud CDN tuning / Cloudflare in front</li><li>Supabase read replicas &amp; larger compute</li><li>Multi-region Cloud Run if latency demands</li></ul></div>
+    </div>
+    <div class="callout"><div class="t">Principle</div>The same architecture serves a quiet Tuesday and a Group 1 race night — only the dials change, not the design.</div>
+  </section>
+
+  <!-- 18 FUTURE -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">Roadmap · Future services</div>
+      <h2>How the platform grows on this foundation</h2>
+      <p class="lead">The data models for each already exist. Here's how they map onto GCP once we're live.</p>
+    </div>
+    <div class="grid g4">
+      <div class="card hl"><h3><span class="ic">🤖</span> Prediction agents</h3><p>Feature pipeline from race/form data → Vertex AI models → cached predictions in race cards. Runs on Cloud Run + Jobs, queued via Pub/Sub. Framed as insight, not tips.</p></div>
+      <div class="card hl"><h3><span class="ic o">🧬</span> DNA breeding match</h3><p>Ingest lab genomics → Vertex AI matchmaking to score sire/dam pairings. Genetic data treated as sensitive: explicit consent, encryption, tight RLS.</p></div>
+      <div class="card hl"><h3><span class="ic">🛒</span> Marketplace + live A/V</h3><p>Cloud Storage + Transcoder for photo/video listings; managed WebRTC (LiveKit/Daily/Twilio) for voice &amp; video calls + TURN; content-safety scanning on upload.</p></div>
+      <div class="card hl"><h3><span class="ic o">💬</span> Community &amp; messaging</h3><p>Supabase Realtime for chat, presence &amp; forum live updates; Cloud Tasks for notifications; moderation + search over Postgres FTS / Vertex AI Search.</p></div>
+    </div>
+    <div class="callout"><div class="t">Design continuity</div>Instant messaging, calling, uploads and the forum all reuse the same Cloud Run + Supabase + managed-media spine — we add providers, not a new architecture.</div>
+  </section>
+
+  <!-- 19 NEXT -->
+  <section class="slide">
+    <div class="slidehead"><div class="kicker">Next steps</div>
+      <h2>What I need from you to move</h2>
+      <p class="lead">Decisions that unblock the build. Everything else I can proceed on with safe defaults.</p>
+    </div>
+    <div class="grid g2">
+      <div class="nlist">
+        <div class="item"><h4>Confirm a separate staging Supabase project</h4><p>So no staging job can ever reach prod data.</p></div>
+        <div class="item"><h4>GCP project + trial credits + billing owner</h4><p>Who holds billing and the budget alerts.</p></div>
+        <div class="item"><h4>Domain / registrar access</h4><p>For Cloud DNS + managed TLS on greyhoundsiq.com.au.</p></div>
+      </div>
+      <div class="nlist">
+        <div class="item"><h4>Sign-off to delete the prod-seed path</h4><p>Remove the wipe risk in <code>supabase-migrate</code>.</p></div>
+        <div class="item"><h4>Lago hosting decision</h4><p>Keep self-hosted on GCP, or move to managed.</p></div>
+        <div class="item"><h4>Future A/V + DNA vendor direction</h4><p>Managed calling provider &amp; genomics lab preference.</p></div>
+      </div>
+    </div>
+    <div class="callout"><div class="t">Say the word</div>I can turn this deck into the full written plan (sections A–J) and drop ready-to-commit starter files — Dockerfile, CI workflows, the migration/seed guard, and Terraform stubs — none of it applied to anything live.</div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="brand">Greyhound<span class="iq">IQ</span></div>
+  <div class="ctrl">
+    <button id="prev" aria-label="Previous">‹</button>
+    <span class="count" id="count">1 / 19</span>
+    <button id="next" aria-label="Next">›</button>
+  </div>
+</div>
+<div class="hint">← → to navigate · F fullscreen · P print/PDF</div>
+
+<script>
+(function(){
+  const slides=[...document.querySelectorAll('.slide')];
+  const prog=document.getElementById('prog');
+  const count=document.getElementById('count');
+  let i=0;
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,x)=>s.classList.toggle('active',x===i));
+    prog.style.width=((i+1)/slides.length*100)+'%';
+    count.textContent=(i+1)+' / '+slides.length;
+    const a=slides[i]; if(a) a.scrollTop=0;
+  }
+  document.getElementById('next').onclick=()=>show(i+1);
+  document.getElementById('prev').onclick=()=>show(i-1);
+  document.addEventListener('keydown',e=>{
+    if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(i+1);}
+    else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(i-1);}
+    else if(e.key==='Home'){show(0);} else if(e.key==='End'){show(slides.length-1);}
+    else if(e.key==='f'||e.key==='F'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+    else if(e.key==='p'||e.key==='P'){window.print();}
+  });
+  // click right/left third to navigate (ignore buttons/links)
+  document.getElementById('deck').addEventListener('click',e=>{
+    if(e.target.closest('button,a'))return;
+    const x=e.clientX/window.innerWidth;
+    if(x>0.72)show(i+1); else if(x<0.28)show(i-1);
+  });
+  show(0);
+})();
+</script>
+</body>
+</html>

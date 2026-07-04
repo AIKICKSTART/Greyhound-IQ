@@ -30,6 +30,12 @@ const COUNTS = [
   { key: "usageAggregates", label: "Usage aggregates" },
   { key: "agentRunUsage", label: "Agent run usage" },
   { key: "adminActions", label: "Admin actions" },
+  { key: "pendingListings", label: "Pending listings" },
+  { key: "openReports", label: "Open reports" },
+  { key: "openSafetyFlags", label: "Open safety flags" },
+  { key: "bannedPhrases", label: "Banned phrases" },
+  { key: "feedTopics", label: "Feed topics" },
+  { key: "feedPosts", label: "Feed posts" },
   { key: "jobRuns", label: "Job runs" },
   { key: "exportArtifacts", label: "Export artifacts" },
   { key: "dataSourceHealth", label: "Data source health" },
@@ -124,6 +130,15 @@ export default async function AdminPage() {
           <Link href="/admin/reports" className="giq-outline-action">
             Reports
           </Link>
+          <Link href="/admin/safety" className="giq-outline-action">
+            Trust and safety
+          </Link>
+          <Link href="/admin/listings" className="giq-outline-action">
+            Listing review
+          </Link>
+          <Link href="/admin/feed" className="giq-outline-action">
+            Feed moderation
+          </Link>
           <Link href="/admin/exports" className="giq-outline-action">
             Exports
           </Link>
@@ -176,6 +191,12 @@ async function getAdminCounts(): Promise<AdminCounts> {
     usageAggregates,
     agentRunUsage,
     adminActions,
+    pendingListings,
+    openReports,
+    openSafetyFlags,
+    bannedPhrases,
+    feedTopics,
+    feedPosts,
     jobRuns,
     exportArtifacts,
     dataSourceHealth,
@@ -199,6 +220,12 @@ async function getAdminCounts(): Promise<AdminCounts> {
     countRows(() => prisma.usageAggregate.count()),
     countRows(() => prisma.agentRunUsage.count()),
     countRows(() => prisma.adminAction.count()),
+    countRows(() => prisma.listing.count({ where: { status: "pending_review" } })),
+    countRows(() => prisma.report.count({ where: { status: "open" } })),
+    countRows(() => prisma.trustSafetyFlag.count({ where: { status: "open" } })),
+    countRows(() => prisma.bannedPhrase.count()),
+    countRows(() => prisma.feedTopic.count()),
+    countRows(() => prisma.feedPost.count()),
     countRows(() => prisma.jobRun.count()),
     countRows(() => prisma.exportArtifact.count()),
     countRows(() => prisma.dataSourceHealth.count()),
@@ -224,6 +251,12 @@ async function getAdminCounts(): Promise<AdminCounts> {
     usageAggregates,
     agentRunUsage,
     adminActions,
+    pendingListings,
+    openReports,
+    openSafetyFlags,
+    bannedPhrases,
+    feedTopics,
+    feedPosts,
     jobRuns,
     exportArtifacts,
     dataSourceHealth,

@@ -187,7 +187,7 @@ async function findVideoCandidates(options: Options): Promise<VideoCandidate[]> 
       ? Prisma.empty
       : Prisma.sql`LIMIT ${options.limit}`;
   const missingFilter = options.onlyMissing
-    ? Prisma.sql`AND v."id" IS NULL`
+    ? Prisma.sql`AND (v."id" IS NULL OR v."streamUrl" IS NULL)`
     : Prisma.empty;
   const races = await prisma.$queryRaw<RaceCandidate[]>`
     SELECT
@@ -351,7 +351,7 @@ async function upsertRaceVideo(
   options: Options
 ) {
   const now = new Date();
-  const streamUrl = source.video?.src ?? null;
+  const streamUrl = source.video?.src ? absoluteUrl(source.video.src) : null;
   const data = {
     raceId: candidate.id,
     pageUrl: candidate.pageUrl,
@@ -450,11 +450,14 @@ async function queryTotalStats(options: Options) {
       )::bigint AS "unsupportedReplayRows",
       COUNT(v."id")::bigint AS "videoRows",
       COUNT(v."id") FILTER (WHERE v."streamUrl" IS NOT NULL)::bigint AS "withStream",
-      COUNT(*) FILTER (WHERE r."replayUrl" IS NOT NULL AND v."id" IS NULL)::bigint
+      COUNT(*) FILTER (
+        WHERE r."replayUrl" IS NOT NULL
+          AND (v."id" IS NULL OR v."streamUrl" IS NULL)
+      )::bigint
         AS "missingVideoSourceRows",
       COUNT(*) FILTER (
         WHERE r."replayUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
-          AND v."id" IS NULL
+          AND (v."id" IS NULL OR v."streamUrl" IS NULL)
       )::bigint AS "missingSupportedVideoSourceRows"
     FROM "Race" r
     LEFT JOIN "RaceVideo" v
@@ -477,7 +480,7 @@ async function querySampleRaces(
       : sampleKind === "missing-video-source"
         ? Prisma.sql`
           AND r."replayUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
-          AND v."id" IS NULL
+          AND (v."id" IS NULL OR v."streamUrl" IS NULL)
         `
         : Prisma.sql`
           AND r."replayUrl" IS NOT NULL
@@ -540,7 +543,7 @@ async function queryYearlyStats(options: Options) {
       COUNT(v."id") FILTER (WHERE v."streamUrl" IS NOT NULL)::bigint AS "withStream",
       COUNT(*) FILTER (
         WHERE r."replayUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
-          AND v."id" IS NULL
+          AND (v."id" IS NULL OR v."streamUrl" IS NULL)
       )::bigint AS "missingSupportedVideoSourceRows"
     FROM "Race" r
     LEFT JOIN "RaceVideo" v
@@ -644,7 +647,7 @@ async function readCompletedVideoKeys(progressFile: string) {
     for (const line of body.split(/\r?\n/)) {
       if (!line.trim()) continue;
       const record = parseJson<ProgressRecord>(line);
-      if (record?.ok && record.raceId && record.videoSourceId) {
+      if (record?.ok && record.streamUrl && record.raceId && record.videoSourceId) {
         completed.add(`${record.raceId}:${record.videoSourceId}`);
       }
     }
@@ -728,7 +731,7 @@ function absoluteUrl(value: string) {
 
 function streamContentType(value: string | null | undefined) {
   if (!value) return null;
-  const pathname = new URL(value).pathname.toLowerCase();
+  const pathname = new URL(value, THEDOGS_BASE).pathname.toLowerCase();
   if (pathname.endsWith(".m3u8")) return "application/vnd.apple.mpegurl";
   if (pathname.endsWith(".mp4")) return "video/mp4";
   return null;

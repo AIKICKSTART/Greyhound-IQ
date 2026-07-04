@@ -12,6 +12,7 @@ export const MEDIA_CONTEXTS = [
   "avatars",
   "dogs",
   "listings",
+  "feed",
   "forum",
   "messages",
   "verification",

@@ -1123,7 +1123,7 @@ model RacePrediction {
   <li>Agent run cleanup (hourly, kill runs &gt; 24h)</li>
   <li>Soft-delete hard-delete (daily)</li>
 </ul>
-<p><strong>ponytail:</strong> No Redis/BullMQ. Use Vercel Cron or system cron on the VPS hitting HTTP endpoints with a shared-secret header.</p>
+<p><strong>ponytail:</strong> No Redis/BullMQ. Use Cloud Scheduler hitting HTTP endpoints with a shared-secret header.</p>
 
 <h3>12.2 Error tracking</h3>
 <p>Sentry. One project, three environments. User context attached via <code>Sentry.user.id</code>. PII stripped before sending.</p>
@@ -1351,7 +1351,7 @@ model RacePrediction {
 <h2 id="questions"><span class="num">17</span>10 questions for you</h2>
 <p>Before I write a single line of code:</p>
 <ol class="question-list">
-  <li><strong>Hosting.</strong> Vercel (great DX, expensive at scale) vs Hetzner VPS (cheap, you control it) vs Supabase edge runtime. You have a Hetzner VPS — confirm that's where the app lives?</li>
+  <li><strong>Hosting.</strong> Google Cloud Run for the app/API, with Supabase for the current database and storage boundary.</li>
   <li><strong>Multi-region later?</strong> Supabase Sydney works for AU/NZ. If UK later, regional project + replication. Affects data residency decisions now?</li>
   <li><strong>Agent model constraints.</strong> MiniMax M3 token plan — any constraints I should know? Max context window? Specific tool-calling format? Rate limits?</li>
   <li><strong>Breeder verification.</strong> Manual admin approval (builds trust) vs auto-claim (friendlier at launch)? I default to manual-with-fast-track for claimed dogs.</li>

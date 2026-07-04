@@ -5,9 +5,11 @@ import {
   ArrowLeft,
   Ban,
   CheckCheck,
+  Flag,
   Lock,
   Paperclip,
   Send,
+  ThumbsUp,
   Trash2,
   Unlock,
 } from "lucide-react";
@@ -15,13 +17,19 @@ import {
   blockConversation,
   deleteConversationMessage,
   markConversationReadAction,
+  reportConversationMessage,
   replyToConversation,
+  toggleMessageReaction,
   unblockConversation,
 } from "@/app/actions";
+import { ConversationCallPanel } from "@/components/conversation-call-panel";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveCallRoomForConversation } from "@/lib/call-service";
 import { getConversationForProfile } from "@/lib/conversation-service";
+import { conversationRealtimeChannel } from "@/lib/realtime-service";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +59,12 @@ export default async function MessageThreadPage({
   } catch {
     notFound();
   }
+  const activeCallRoom = conversation.blockedAt
+    ? null
+    : await getActiveCallRoomForConversation(
+        { profileId: user.profileId },
+        conversation.id
+      );
 
   const other =
     conversation.participantAId === user.profileId
@@ -61,6 +75,7 @@ export default async function MessageThreadPage({
   const blockAction = blockConversation.bind(null, conversation.id);
   const unblockAction = unblockConversation.bind(null, conversation.id);
   const blockedByMe = conversation.blockedById === user.profileId;
+  const realtimeChannel = conversationRealtimeChannel(conversation.id);
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
@@ -85,6 +100,27 @@ export default async function MessageThreadPage({
               {other.kennelName ? `${other.kennelName} · ` : ""}
               {other.state ?? "Australia"}
             </p>
+            {realtimeChannel && (
+              <RealtimeRefresh
+                channels={[
+                  {
+                    name: realtimeChannel,
+                    events: [
+                      "message_created",
+                      "conversation_updated",
+                      "call_room_created",
+                      "call_room_ended",
+                    ],
+                    presence: {
+                      selfProfileId: user.profileId,
+                      selfLabel: user.name,
+                      otherProfileId: other.id,
+                      otherLabel: other.displayName,
+                    },
+                  },
+                ]}
+              />
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -128,6 +164,12 @@ export default async function MessageThreadPage({
               : "This conversation is blocked by the other participant."}
           </div>
         )}
+        <ConversationCallPanel
+          conversationId={conversation.id}
+          initialRoomId={activeCallRoom?.id ?? null}
+          blocked={Boolean(conversation.blockedAt)}
+          otherName={other.displayName}
+        />
       </header>
 
       <section className="giq-panel">
@@ -144,6 +186,26 @@ export default async function MessageThreadPage({
                 conversation.id,
                 message.id
               );
+              const reactionAction = toggleMessageReaction.bind(
+                null,
+                conversation.id,
+                message.id
+              );
+              const reportAction = reportConversationMessage.bind(
+                null,
+                conversation.id,
+                message.id
+              );
+              const reactedByMe = message.reactions.some(
+                (reaction) => reaction.profileId === user.profileId
+              );
+              const readReceipt = message.readReceipts.find(
+                (receipt) => receipt.profileId === message.recipientId
+              );
+              const deliveryReceipt = message.deliveryReceipts.find(
+                (receipt) => receipt.profileId === message.recipientId
+              );
+              const readAt = readReceipt?.readAt ?? message.readAt;
 
               return (
                 <article
@@ -182,26 +244,74 @@ export default async function MessageThreadPage({
                   )}
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                     <span className="text-[11px] text-[hsl(var(--subtle-foreground))]">
-                      {isMine && message.readAt
-                        ? `Read ${message.readAt.toLocaleString("en-AU", {
+                      {isMine && readAt
+                        ? `Read ${readAt.toLocaleString("en-AU", {
                             day: "2-digit",
                             month: "short",
                             hour: "2-digit",
                             minute: "2-digit",
                           })}`
+                        : isMine && deliveryReceipt
+                          ? `Delivered ${deliveryReceipt.deliveredAt.toLocaleString(
+                              "en-AU",
+                              {
+                                day: "2-digit",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}`
                         : isMine
                           ? "Sent"
                           : ""}
                     </span>
-                    <form action={deleteAction}>
-                      <SubmitButton
-                        pendingLabel="Deleting..."
-                        className="giq-outline-action min-h-8 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        Delete
-                      </SubmitButton>
-                    </form>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <form action={reactionAction}>
+                        <SubmitButton
+                          pendingLabel="..."
+                          className={`giq-outline-action min-h-8 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60 ${
+                            reactedByMe
+                              ? "border-[hsl(var(--primary)/0.35)] bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary-bright))]"
+                              : ""
+                          }`}
+                        >
+                          <ThumbsUp className="h-3 w-3" />
+                          {message.reactions.length}
+                        </SubmitButton>
+                      </form>
+                      <form action={deleteAction}>
+                        <SubmitButton
+                          pendingLabel="Deleting..."
+                          className="giq-outline-action min-h-8 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Delete
+                        </SubmitButton>
+                      </form>
+                      {!isMine && (
+                        <form action={reportAction} className="flex gap-2">
+                          <select
+                            name="reason"
+                            defaultValue="other"
+                            aria-label="Report reason"
+                            className="giq-form-control h-8 w-32 px-2 py-1 text-[11px]"
+                          >
+                            <option value="spam">Spam</option>
+                            <option value="harassment">Harassment</option>
+                            <option value="misinformation">Misinformation</option>
+                            <option value="illegal">Illegal</option>
+                            <option value="other">Other</option>
+                          </select>
+                          <SubmitButton
+                            pendingLabel="..."
+                            className="giq-outline-action min-h-8 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <Flag className="h-3 w-3" />
+                            Report
+                          </SubmitButton>
+                        </form>
+                      )}
+                    </div>
                   </div>
                 </article>
               );

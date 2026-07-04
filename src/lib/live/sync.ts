@@ -9,6 +9,7 @@ import {
   type LiveRace,
   type LiveRunner,
 } from "./provider";
+import { canonicalTrackName } from "./track-name";
 
 export type SyncCounts = {
   meetings: number;
@@ -111,6 +112,7 @@ type RaceUpsertRow = {
   sourceProvider: string | null;
   sourceId: string | null;
   sourceRawJson: string | null;
+  raceTimeSource: "provider" | "fallback";
   lastSyncedAt: Date;
 };
 
@@ -345,9 +347,10 @@ function conflictAction(updateSql: Prisma.Sql) {
 async function ensureTracks(meetings: LiveMeeting[]) {
   const byName = new Map<string, { name: string; state?: string }>();
   for (const meeting of meetings) {
-    if (!byName.has(meeting.trackName)) {
-      byName.set(meeting.trackName, {
-        name: meeting.trackName,
+    const trackName = canonicalTrackName(meeting.trackName);
+    if (!byName.has(trackName)) {
+      byName.set(trackName, {
+        name: trackName,
         state: meeting.state,
       });
     }
@@ -378,7 +381,7 @@ async function ensureMeetings(
 ) {
   const trackIds = [...new Set([...tracks.values()].map((track) => track.id))];
   const rows = meetings.flatMap((meeting): MeetingUpsertRow[] => {
-    const track = tracks.get(meeting.trackName);
+    const track = tracks.get(canonicalTrackName(meeting.trackName));
     if (!track) return [];
     return [
       {
@@ -426,6 +429,7 @@ async function ensureRaces(items: RaceWithMeeting[], now: Date) {
     sourceProvider: item.race.sourceProvider ?? item.meeting.sourceProvider ?? null,
     sourceId: item.race.sourceId ?? null,
     sourceRawJson: item.race.sourceRawJson ?? null,
+    raceTimeSource: item.race.raceTimeSource ?? "provider",
     lastSyncedAt: now,
   }));
 
@@ -512,7 +516,7 @@ async function bulkUpsertRaceVideos(rows: RaceVideoUpsertRow[]) {
 }
 
 async function bulkUpsertMeetings(rows: MeetingUpsertRow[]) {
-  const uniqueRows = uniqueBy(rows, (row) =>
+  const uniqueRows = uniqueByPreferredSource(rows, (row) =>
     naturalMeetingKey(row.trackId, row.meetingDate)
   );
   for (let index = 0; index < uniqueRows.length; index += BULK_WRITE_CHUNK_SIZE) {
@@ -538,11 +542,22 @@ async function bulkUpsertMeetings(rows: MeetingUpsertRow[]) {
 }
 
 async function bulkUpsertRaces(rows: RaceUpsertRow[]) {
-  const uniqueRows = uniqueBy(rows, (row) =>
+  const uniqueRows = uniqueByPreferredSource(rows, (row) =>
     raceKey(row.meetingId, { raceNumber: row.raceNumber })
   );
-  for (let index = 0; index < uniqueRows.length; index += BULK_WRITE_CHUNK_SIZE) {
-    const chunk = uniqueRows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
+  const confirmedRows = uniqueRows.filter((row) => row.raceTimeSource !== "fallback");
+  const fallbackRows = uniqueRows.filter((row) => row.raceTimeSource === "fallback");
+
+  await bulkUpsertRaceChunkSet(confirmedRows, true);
+  await bulkUpsertRaceChunkSet(fallbackRows, false);
+}
+
+async function bulkUpsertRaceChunkSet(
+  rows: RaceUpsertRow[],
+  updateRaceTimeOnConflict: boolean
+) {
+  for (let index = 0; index < rows.length; index += BULK_WRITE_CHUNK_SIZE) {
+    const chunk = rows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
     if (chunk.length === 0) continue;
 
     await prisma.$executeRaw`
@@ -555,16 +570,16 @@ async function bulkUpsertRaces(rows: RaceUpsertRow[]) {
       )}
       ON CONFLICT ("meetingId", "raceNumber") ${conflictAction(Prisma.sql`DO UPDATE SET
         "name" = EXCLUDED."name",
-        "raceTime" = EXCLUDED."raceTime",
+        ${updateRaceTimeOnConflict ? Prisma.sql`"raceTime" = EXCLUDED."raceTime",` : Prisma.empty}
         "distance" = EXCLUDED."distance",
         "grade" = EXCLUDED."grade",
         "prizeMoney" = EXCLUDED."prizeMoney",
         "resultStatus" = EXCLUDED."resultStatus",
         "replayUrl" = EXCLUDED."replayUrl",
         "photoFinishUrl" = EXCLUDED."photoFinishUrl",
-        "sourceProvider" = EXCLUDED."sourceProvider",
-        "sourceId" = EXCLUDED."sourceId",
-        "sourceRawJson" = EXCLUDED."sourceRawJson",
+        "sourceProvider" = ${updateRaceTimeOnConflict ? Prisma.sql`EXCLUDED."sourceProvider"` : Prisma.sql`COALESCE("Race"."sourceProvider", EXCLUDED."sourceProvider")`},
+        "sourceId" = ${updateRaceTimeOnConflict ? Prisma.sql`EXCLUDED."sourceId"` : Prisma.sql`COALESCE("Race"."sourceId", EXCLUDED."sourceId")`},
+        "sourceRawJson" = ${updateRaceTimeOnConflict ? Prisma.sql`EXCLUDED."sourceRawJson"` : Prisma.sql`COALESCE("Race"."sourceRawJson", EXCLUDED."sourceRawJson")`},
         "lastSyncedAt" = EXCLUDED."lastSyncedAt"`)}
     `;
   }
@@ -898,7 +913,7 @@ function meetingDate(meeting: LiveMeeting) {
 }
 
 function meetingKey(meeting: LiveMeeting, tracks: Map<string, TrackRow>) {
-  const track = tracks.get(meeting.trackName);
+  const track = tracks.get(canonicalTrackName(meeting.trackName));
   return track ? naturalMeetingKey(track.id, meetingDate(meeting)) : "";
 }
 
@@ -934,4 +949,34 @@ function uniqueBy<T>(rows: T[], keyFor: (row: T) => string) {
   const byKey = new Map<string, T>();
   for (const row of rows) byKey.set(keyFor(row), row);
   return [...byKey.values()];
+}
+
+function uniqueByPreferredSource<T extends { sourceProvider: string | null }>(
+  rows: T[],
+  keyFor: (row: T) => string
+) {
+  const byKey = new Map<string, T>();
+  for (const row of rows) {
+    const key = keyFor(row);
+    const existing = byKey.get(key);
+    if (!existing || sourceProviderRank(row.sourceProvider) >= sourceProviderRank(existing.sourceProvider)) {
+      byKey.set(key, row);
+    }
+  }
+  return [...byKey.values()];
+}
+
+function sourceProviderRank(sourceProvider: string | null) {
+  switch ((sourceProvider ?? "").toLowerCase()) {
+    case "thedogs":
+      return 40;
+    case "topaz":
+      return 30;
+    case "watchdog":
+      return 20;
+    case "fasttrack-prototype":
+      return 10;
+    default:
+      return 0;
+  }
 }

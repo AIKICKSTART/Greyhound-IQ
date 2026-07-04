@@ -3,6 +3,11 @@ import { notFound } from "next/navigation";
 import { CalendarDays, Clock, MapPin, Route, Trophy } from "lucide-react";
 import { getBoxColourStyle } from "@/lib/box-colours";
 import { getTrackById } from "@/lib/queries";
+import {
+  formatRaceDateInput,
+  formatRaceDayLabel,
+  formatRaceTime,
+} from "@/lib/race-time";
 
 export const dynamic = "force-dynamic";
 
@@ -101,43 +106,42 @@ export default async function TrackDetailPage({
           </div>
 
           <div className="space-y-3">
-            {track.meetings.map((meeting) => (
-              <article
-                key={meeting.id}
-                className="giq-panel giq-panel-hover p-5"
-              >
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-[16px] font-semibold text-[hsl(var(--foreground))]">
-                      {meeting.meetingDate.toLocaleDateString("en-AU", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                      })}
-                    </h3>
-                    <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
-                      {meeting.meetingType ?? "Race meeting"}
-                    </p>
+            {track.meetings.map((meeting) => {
+              const firstRaceTime =
+                meeting.races[0]?.raceTime ?? meeting.meetingDate;
+              return (
+                <article key={meeting.id} className="giq-panel giq-panel-hover p-5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-[16px] font-semibold text-[hsl(var(--foreground))]">
+                        {formatRaceDayLabel(formatRaceDateInput(firstRaceTime))}
+                      </h3>
+                      <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
+                        {meeting.meetingType ?? "Race meeting"}
+                      </p>
+                    </div>
+                    <span className="giq-badge giq-badge-neutral">
+                      {meeting.races.length} races
+                    </span>
                   </div>
-                  <span className="giq-badge giq-badge-neutral">
-                    {meeting.races.length} races
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {meeting.races.slice(0, 10).map((race) => (
-                    <Link
-                      key={race.id}
-                      href={`/races/${race.id}`}
-                      className="giq-outline-action min-h-8 px-3 py-1.5 text-[12px] font-medium"
-                    >
-                      <Clock className="h-3 w-3" />
-                      R{race.raceNumber}
-                      <span>{race.distance}m</span>
-                    </Link>
-                  ))}
-                </div>
-              </article>
-            ))}
+                  <div className="flex flex-wrap gap-2">
+                    {meeting.races.slice(0, 10).map((race) => (
+                      <Link
+                        key={race.id}
+                        href={`/races/${race.id}`}
+                        className="giq-outline-action min-h-8 px-3 py-1.5 text-[12px] font-medium"
+                        aria-label={`Open ${track.name} race ${race.raceNumber} at ${formatRaceTime(race.raceTime)}`}
+                      >
+                        <Clock className="h-3 w-3" />
+                        R{race.raceNumber}
+                        <span>{formatRaceTime(race.raceTime)}</span>
+                        <span>{race.distance}m</span>
+                      </Link>
+                    ))}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </div>
 

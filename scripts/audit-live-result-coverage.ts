@@ -160,8 +160,8 @@ async function main() {
 function daysArg() {
   const raw = process.argv[2] ?? "1";
   const days = Number(raw);
-  if (!Number.isInteger(days) || days < 1 || days > 7) {
-    throw new Error("Usage: npm run audit:live-result-coverage -- [days:1-7]");
+  if (!Number.isInteger(days) || days < 1 || days > 31) {
+    throw new Error("Usage: npm run audit:live-result-coverage -- [days:1-31]");
   }
   return days;
 }

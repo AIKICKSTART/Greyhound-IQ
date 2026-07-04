@@ -18,10 +18,8 @@ export async function POST(request: NextRequest) {
 async function runLiveSync(request: NextRequest) {
   try {
     requireInternalRequest(request);
-    const result = await syncLiveData(
-      daysFromRequest(request),
-      scopeFromRequest(request)
-    );
+    const scope = scopeFromRequest(request);
+    const result = await syncLiveData(daysFromRequest(request, scope), scope);
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
     return jsonError(err, "Could not sync live racing data");
@@ -36,12 +34,12 @@ function scopeFromRequest(request: NextRequest): SyncScope {
   throw new Error("live.scope_invalid");
 }
 
-function daysFromRequest(request: NextRequest) {
+function daysFromRequest(request: NextRequest, scope: SyncScope) {
   const raw = request.nextUrl.searchParams.get("days");
-  if (!raw) return 7;
+  if (!raw) return scope === "results" ? 7 : 31;
 
   const days = Number(raw);
-  if (!Number.isInteger(days) || days < 1 || days > 7) {
+  if (!Number.isInteger(days) || days < 1 || days > 31) {
     throw new Error("live.days_invalid");
   }
 

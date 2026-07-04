@@ -1,16 +1,14 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { databaseConfigurationError, prisma } from "@/lib/db";
 
 export async function GET() {
-  const databaseUrl = process.env.DATABASE_URL ?? "";
-  const dbConfigured =
-    databaseUrl.startsWith("postgresql://") || databaseUrl.startsWith("postgres://");
+  const dbConfigurationError = databaseConfigurationError();
 
-  if (!dbConfigured) {
+  if (dbConfigurationError) {
     return NextResponse.json(
       {
         status: "not_ready",
-        checks: { database: "not_configured" },
+        checks: { database: dbConfigurationError },
         timestamp: new Date().toISOString(),
       },
       { status: 503 }

@@ -2,17 +2,28 @@ import Link from "next/link";
 import {
   Activity,
   Bell,
+  Bookmark,
+  Bot,
   ChevronDown,
   Crown,
+  CreditCard,
+  Dna,
   Download,
+  Home,
   LifeBuoy,
   LogIn,
   LogOut,
+  Map,
+  MessageSquare,
   Search,
   ShieldCheck,
+  ShoppingBag,
   Sparkles,
+  Trophy,
   User,
+  Users,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import Image, { getImageProps } from "next/image";
 import { signOut } from "@workos-inc/authkit-nextjs";
@@ -25,6 +36,11 @@ import {
 } from "@/components/ui/sheet";
 import { getCurrentUser, isModeratorRole } from "@/lib/auth";
 import { HeaderNav } from "@/components/header-nav";
+import {
+  MobileMenuAnchor,
+  MobileMenuLink,
+  MobileMenuSearchForm,
+} from "@/components/mobile-menu-close-link";
 import { siteAssetUrl } from "@/lib/storage-paths";
 
 const TIER_BADGE: Record<string, { label: string; color: string }> = {
@@ -33,18 +49,47 @@ const TIER_BADGE: Record<string, { label: string; color: string }> = {
   pro_plus: { label: "Pro+", color: "var(--secondary)" },
 };
 
-const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/races", label: "Races" },
-  { href: "/results", label: "Results" },
-  { href: "/dogs", label: "Dogs" },
-  { href: "/tracks", label: "Tracks" },
-  { href: "/breeding", label: "Breeding" },
-  { href: "/agents", label: "Agents" },
-  { href: "/forum", label: "Forum" },
-  { href: "/listings", label: "Listings" },
-  { href: "/pricing", label: "Pricing" },
+type HeaderUser = Awaited<ReturnType<typeof getCurrentUser>>;
+
+type NavLink = {
+  href: string;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+};
+
+const NAV_SECTIONS: { title: string; links: NavLink[] }[] = [
+  {
+    title: "Race control",
+    links: [
+      { href: "/", label: "Home", description: "Today, shortcuts, and platform overview", icon: Home },
+      { href: "/races", label: "Races", description: "Live cards, search, filters, and replays", icon: Activity },
+      { href: "/results", label: "Results", description: "Recent winners, times, and margins", icon: Trophy },
+      { href: "/tracks", label: "Tracks", description: "Australian tracks and meeting history", icon: Map },
+    ],
+  },
+  {
+    title: "Intelligence",
+    links: [
+      { href: "/dogs", label: "Dogs", description: "Profiles, form, trainers, and records", icon: Search },
+      { href: "/breeding", label: "Breeding", description: "Pedigree and breeding analysis", icon: Dna },
+      { href: "/agents", label: "Agents", description: "AI workflows and racing analysis", icon: Bot },
+    ],
+  },
+  {
+    title: "Community",
+    links: [
+      { href: "/feed", label: "Feed", description: "Updates from the racing community", icon: Users },
+      { href: "/forum", label: "Forum", description: "Threads, questions, and discussion", icon: MessageSquare },
+      { href: "/messages", label: "Messages", description: "Inbox, enquiries, and owner conversations", icon: Bell },
+      { href: "/listings", label: "Listings", description: "Marketplace listings and saved dogs", icon: ShoppingBag },
+      { href: "/pricing", label: "Pricing", description: "Plans, limits, and Pro access", icon: CreditCard },
+    ],
+  },
 ];
+const NAV_LINKS = NAV_SECTIONS.flatMap((section) =>
+  section.links.map(({ href, label }) => ({ href, label }))
+);
 
 const HEADER_BANNER_LANDSCAPE = siteAssetUrl("/images/wentworth-track-banner-landscape.webp");
 const HEADER_BANNER_MOBILE = siteAssetUrl("/images/wentworth-track-banner-mobile.webp");
@@ -58,42 +103,55 @@ async function signOutAction() {
   await signOut();
 }
 
-function AccountMenuItems({ canAccessAdmin }: { canAccessAdmin: boolean }) {
+function AccountMenuItems({
+  canAccessAdmin,
+  closeOnSelect = false,
+}: {
+  canAccessAdmin: boolean;
+  closeOnSelect?: boolean;
+}) {
+  const AccountLink = closeOnSelect ? MobileMenuLink : Link;
+  const AccountAnchor = closeOnSelect ? MobileMenuAnchor : "a";
+
   return (
     <>
-      <Link href="/account" className={ACCOUNT_MENU_ITEM_CLASS}>
+      <AccountLink href="/account" className={ACCOUNT_MENU_ITEM_CLASS}>
         <User className="h-3.5 w-3.5" aria-hidden="true" />
         Account
-      </Link>
-      <Link href="/account/security" className={ACCOUNT_MENU_ITEM_CLASS}>
+      </AccountLink>
+      <AccountLink href="/account/security" className={ACCOUNT_MENU_ITEM_CLASS}>
         <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
         Security
-      </Link>
-      <Link href="/account/notifications" className={ACCOUNT_MENU_ITEM_CLASS}>
+      </AccountLink>
+      <AccountLink href="/account/notifications" className={ACCOUNT_MENU_ITEM_CLASS}>
         <Bell className="h-3.5 w-3.5" aria-hidden="true" />
         Notifications
-      </Link>
-      <Link href="/account/billing" className={ACCOUNT_MENU_ITEM_CLASS}>
+      </AccountLink>
+      <AccountLink href="/account/saved-listings" className={ACCOUNT_MENU_ITEM_CLASS}>
+        <Bookmark className="h-3.5 w-3.5" aria-hidden="true" />
+        Saved listings
+      </AccountLink>
+      <AccountLink href="/account/billing" className={ACCOUNT_MENU_ITEM_CLASS}>
         <Crown className="h-3.5 w-3.5" aria-hidden="true" />
         Billing
-      </Link>
-      <Link href="/account/usage" className={ACCOUNT_MENU_ITEM_CLASS}>
+      </AccountLink>
+      <AccountLink href="/account/usage" className={ACCOUNT_MENU_ITEM_CLASS}>
         <Activity className="h-3.5 w-3.5" aria-hidden="true" />
         Usage
-      </Link>
-      <a href="/api/users/me/export" className={ACCOUNT_MENU_ITEM_CLASS}>
+      </AccountLink>
+      <AccountAnchor href="/api/users/me/export" className={ACCOUNT_MENU_ITEM_CLASS}>
         <Download className="h-3.5 w-3.5" aria-hidden="true" />
         Data export
-      </a>
-      <Link href="/account/support" className={ACCOUNT_MENU_ITEM_CLASS}>
+      </AccountAnchor>
+      <AccountLink href="/account/support" className={ACCOUNT_MENU_ITEM_CLASS}>
         <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" />
         Support
-      </Link>
+      </AccountLink>
       {canAccessAdmin && (
-        <Link href="/admin" className={ACCOUNT_MENU_ITEM_CLASS}>
+        <AccountLink href="/admin" className={ACCOUNT_MENU_ITEM_CLASS}>
           <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
           Admin
-        </Link>
+        </AccountLink>
       )}
     </>
   );
@@ -110,6 +168,153 @@ function SignOutMenuButton() {
         Sign out
       </button>
     </form>
+  );
+}
+
+function MobileNavigationMenu({
+  user,
+  badge,
+  canAccessAdmin,
+}: {
+  user: HeaderUser;
+  badge: { label: string; color: string } | null;
+  canAccessAdmin: boolean;
+}) {
+  return (
+    <SheetContent side="right" showCloseButton={false} className="giq-mobile-menu-sheet">
+      <SheetTitle className="sr-only">Navigation</SheetTitle>
+      <div className="giq-mobile-menu-scroll">
+        <div className="giq-mobile-menu-head">
+          <div className="giq-mobile-menu-brand" aria-hidden="true">
+            <span>
+              GREYHOUNDS <strong>IQ</strong>
+            </span>
+            <small>Premium racing intelligence</small>
+          </div>
+          <SheetClose aria-label="Close navigation menu" className="giq-mobile-menu-close">
+            <X className="h-5 w-5" aria-hidden="true" />
+          </SheetClose>
+        </div>
+
+        <MobileMenuSearchForm
+          action="/races"
+          role="search"
+          aria-label="Search races"
+          className="giq-mobile-menu-search"
+        >
+          <Search className="h-4 w-4" aria-hidden="true" />
+          <input
+            type="search"
+            name="q"
+            placeholder="Search races, tracks, runners"
+            aria-label="Search races, tracks, runners"
+          />
+          <input type="hidden" name="sort" value="relevance" />
+          <button type="submit" aria-label="Search races">
+            <Search className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </MobileMenuSearchForm>
+
+        <div className="giq-mobile-menu-cta">
+          {user ? (
+            <MobileMenuLink href="/account" className="giq-mobile-account-card">
+              <span className="giq-mobile-account-avatar" aria-hidden="true">
+                <User className="h-5 w-5" />
+              </span>
+              <span className="min-w-0">
+                <strong>{user.firstName || user.name}</strong>
+                <small>{user.email}</small>
+              </span>
+              {badge && <em>{badge.label}</em>}
+            </MobileMenuLink>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <MobileMenuAnchor
+                href="/sign-in"
+                className="giq-button giq-button-glass min-h-12 px-3 text-[13px] font-semibold"
+              >
+                <LogIn className="h-4 w-4" aria-hidden="true" />
+                Log in
+              </MobileMenuAnchor>
+              <MobileMenuLink
+                href="/pricing"
+                className="giq-button giq-button-gold min-h-12 px-3 text-[13px] font-bold"
+              >
+                <Crown className="h-4 w-4" aria-hidden="true" />
+                Go Pro
+              </MobileMenuLink>
+            </div>
+          )}
+        </div>
+
+        <nav aria-label="Primary navigation" className="giq-mobile-menu-nav">
+          {NAV_SECTIONS.map((section) => (
+            <section key={section.title} className="giq-mobile-menu-section">
+              <h2>{section.title}</h2>
+              <div className="grid gap-2">
+                {section.links.map((link) => {
+                  const Icon = link.icon;
+                  return (
+                    <MobileMenuLink key={link.href} href={link.href} className="giq-mobile-menu-link">
+                      <span className="giq-mobile-menu-link-icon" aria-hidden="true">
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <strong>{link.label}</strong>
+                        <small>{link.description}</small>
+                      </span>
+                    </MobileMenuLink>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </nav>
+
+        {user && (
+          <section className="giq-mobile-menu-section">
+            <h2>Account</h2>
+            <div className="grid gap-2">
+              <AccountMenuItems canAccessAdmin={canAccessAdmin} closeOnSelect />
+              <SignOutMenuButton />
+            </div>
+          </section>
+        )}
+      </div>
+    </SheetContent>
+  );
+}
+
+function AccountNavigationMenu({
+  user,
+  canAccessAdmin,
+}: {
+  user: NonNullable<HeaderUser>;
+  canAccessAdmin: boolean;
+}) {
+  return (
+    <SheetContent side="right" showCloseButton={false} className="giq-mobile-menu-sheet">
+      <SheetTitle className="sr-only">Account menu</SheetTitle>
+      <div className="giq-mobile-menu-scroll">
+        <div className="giq-mobile-menu-head">
+          <div className="giq-mobile-menu-brand">
+            <span>{user.firstName || user.name}</span>
+            <small>{user.email}</small>
+          </div>
+          <SheetClose aria-label="Close account menu" className="giq-mobile-menu-close">
+            <X className="h-5 w-5" aria-hidden="true" />
+          </SheetClose>
+        </div>
+
+        <section className="giq-mobile-menu-section">
+          <h2>Account</h2>
+          <div className="grid gap-2">
+            <AccountMenuItems canAccessAdmin={canAccessAdmin} closeOnSelect />
+            <SignOutMenuButton />
+          </div>
+        </section>
+      </div>
+    </SheetContent>
   );
 }
 
@@ -193,19 +398,25 @@ export async function SiteHeader() {
             </Link>
 
             <div className="giq-header-actions ml-auto flex shrink-0 items-center gap-2">
-              <form action="/dogs" className="giq-search-shell hidden lg:flex">
+              <form
+                action="/races"
+                role="search"
+                aria-label="Search races"
+                className="giq-search-shell hidden lg:flex"
+              >
                 <Search className="h-3.5 w-3.5" aria-hidden="true" />
                 <input
                   type="search"
                   name="q"
                   className="giq-search-input"
-                  placeholder="Search dogs, tracks, trainers"
-                  aria-label="Search dogs, tracks, trainers"
+                  placeholder="Search races, tracks, runners"
+                  aria-label="Search races, tracks, runners"
                 />
+                <input type="hidden" name="sort" value="relevance" />
               </form>
               <Link
                 href="/messages"
-                aria-label="Notifications"
+                aria-label="Messages"
                 className="giq-button giq-button-carbon giq-icon-button giq-header-notification hidden min-h-10 w-10 px-0 lg:inline-flex"
               >
                 <Bell className="h-4 w-4" />
@@ -229,21 +440,7 @@ export async function SiteHeader() {
                     )}
                     <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                   </SheetTrigger>
-                  <SheetContent side="right" showCloseButton={false} className="giq-mobile-menu-sheet">
-                    <SheetTitle className="sr-only">Account menu</SheetTitle>
-                    <SheetClose aria-label="Close account menu" className="giq-mobile-menu-close">
-                      <X className="h-5 w-5" aria-hidden="true" />
-                    </SheetClose>
-                    <div className="giq-mobile-menu-brand">
-                      <span>{user.firstName || user.name}</span>
-                      <small>{user.email}</small>
-                    </div>
-                    <div className="race-box-strip mt-4" />
-                    <nav aria-label="Account" className="mt-6 flex flex-col gap-2">
-                      <AccountMenuItems canAccessAdmin={canAccessAdmin} />
-                    </nav>
-                    <SignOutMenuButton />
-                  </SheetContent>
+                  <AccountNavigationMenu user={user} canAccessAdmin={canAccessAdmin} />
                 </Sheet>
               ) : (
                 <>
@@ -276,29 +473,11 @@ export async function SiteHeader() {
                     <span />
                   </span>
                 </SheetTrigger>
-                <SheetContent side="right" showCloseButton={false} className="giq-mobile-menu-sheet">
-                  <SheetTitle className="sr-only">Navigation</SheetTitle>
-                  <SheetClose aria-label="Close navigation menu" className="giq-mobile-menu-close">
-                    <X className="h-5 w-5" aria-hidden="true" />
-                  </SheetClose>
-                  <div className="giq-mobile-menu-brand" aria-hidden="true">
-                    <span>GREYHOUNDS <strong>IQ</strong></span>
-                    <small>Premium racing intelligence</small>
-                  </div>
-                  <div className="race-box-strip mt-4" />
-                  <nav className="mt-8 flex flex-col gap-3">
-                    <HeaderNav links={NAV_LINKS} variant="mobile" />
-                  </nav>
-                  {user && (
-                    <>
-                      <div className="race-box-strip mt-6" />
-                      <nav aria-label="Account" className="mt-6 flex flex-col gap-2">
-                        <AccountMenuItems canAccessAdmin={canAccessAdmin} />
-                      </nav>
-                      <SignOutMenuButton />
-                    </>
-                  )}
-                </SheetContent>
+                <MobileNavigationMenu
+                  user={user}
+                  badge={badge}
+                  canAccessAdmin={canAccessAdmin}
+                />
               </Sheet>
             </div>
           </div>

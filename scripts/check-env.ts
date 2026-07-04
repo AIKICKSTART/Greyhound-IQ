@@ -1,4 +1,5 @@
 import { loadEnvConfig } from "@next/env";
+import { databaseUrlConfigurationError } from "../src/lib/database-url";
 
 loadEnvConfig(process.cwd());
 
@@ -16,11 +17,8 @@ const ci = args.has("--ci");
 const specs: EnvSpec[] = [
   {
     names: ["DATABASE_URL"],
-    description: "Prisma Postgres connection string",
-    validate: (value) =>
-      value.startsWith("postgresql://") || value.startsWith("postgres://")
-        ? null
-        : "must start with postgresql:// or postgres://",
+    description: "Prisma Postgres connection string for the self-hosted Supabase database",
+    validate: validateDatabaseUrl,
   },
   {
     names: ["NEXTAUTH_URL"],
@@ -114,6 +112,8 @@ const specs: EnvSpec[] = [
 ];
 
 const optional = [
+  "DATABASE_IMPORT_URL",
+  "DIRECT_URL",
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "LAGO_API_URL",
@@ -138,6 +138,22 @@ const optional = [
   "FASTTRACK_BASE_URL",
   "FASTTRACK_MAX_MEETINGS",
   "NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA",
+  "NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT",
+  "REALTIME_CHANNEL_SECRET",
+  "MEDIA_SCAN_MODE",
+  "MEDIA_CLAMSCAN_BIN",
+  "MEDIA_CLAMAV_DATABASE",
+  "MEDIA_CLAMSCAN_TIMEOUT_MS",
+  "NOTIFICATION_WEBHOOK_URL",
+  "NOTIFICATION_WEBHOOK_SECRET",
+  "NOTIFICATION_DELIVERY_MAX_ATTEMPTS",
+];
+
+const optionalDatabaseUrlNames = ["DATABASE_IMPORT_URL", "DIRECT_URL"];
+const productionFalseFlags = [
+  "FASTTRACK_PROTOTYPE_ENABLED",
+  "NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA",
+  "NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT",
 ];
 
 const failures: string[] = [];
@@ -159,6 +175,26 @@ for (const spec of specs) {
   const validationError = spec.validate?.(value);
   if (validationError) {
     failures.push(`${spec.names.join(" or ")} ${validationError}`);
+  }
+}
+
+for (const name of optionalDatabaseUrlNames) {
+  const value = process.env[name]?.trim();
+  if (!value) continue;
+
+  const validationError = databaseUrlConfigurationError(value, {
+    production,
+  });
+  if (validationError) {
+    failures.push(`${name} ${validationError}`);
+  }
+}
+
+if (production) {
+  for (const name of productionFalseFlags) {
+    if (process.env[name]?.trim().toLowerCase() === "true") {
+      failures.push(`${name} must be false or unset in production`);
+    }
   }
 }
 
@@ -192,6 +228,10 @@ function validateUrl(value: string) {
   } catch {
     return "must be a valid URL";
   }
+}
+
+function validateDatabaseUrl(value: string) {
+  return databaseUrlConfigurationError(value, { production, required: true });
 }
 
 function looksLikePlaceholder(value: string) {

@@ -17,19 +17,13 @@ The `CI` workflow runs on PRs and `main`:
 - production server boot
 - smoke tests
 
-## Vercel Preview
+## Cloud Run Staging
 
-Runs on PRs after preview secrets are available. It deploys a prebuilt preview and smoke tests the URL.
-
-## Vercel Temporary Deployments
-
-Vercel is preview and temporary verification infrastructure only. A Vercel deployment must not be treated as GreyhoundIQ production.
-
-Temporary deployments are allowed for short-lived validation after successful CI. They must use preview or staging credentials and must not own the production domain.
+The `Cloud Run Deploy` workflow builds the container image and deploys the staging service from a `workflow_run` trigger after the `CI` workflow passes on `main`. Staging must use staging credentials and must not share production write credentials.
 
 ## Production Gate
 
-Production deploys to the AI Kick Start Google Cloud VPS. A production release is blocked unless:
+Production deploys to Google Cloud Run after manual approval. A production release is blocked unless:
 
 - CI is green
 - docs check is green
@@ -37,7 +31,7 @@ Production deploys to the AI Kick Start Google Cloud VPS. A production release i
 - WorkOS production configuration is verified as the only auth path
 - Lago products, plans, entitlements, and webhook settings are verified as the billing source of truth
 - production migrations are reviewed as forward-only
-- VPS environment variables are updated through the approved secret mechanism
+- Cloud Run environment variables and Secret Manager bindings are updated through the approved secret mechanism
 
 ## Lago Webhook Replay and Failure Handling
 
@@ -52,4 +46,4 @@ Unresolved Lago webhook failures block production promotion until reconciled or 
 
 ## Supabase Migrate
 
-Manual workflow for staging and reviewed production migrations. Production migration execution belongs to the approved VPS release window, not to a Vercel production rollout.
+Manual workflow for staging and reviewed production migrations. Production migration execution belongs to the approved Cloud Run release window.

@@ -30,9 +30,11 @@ type RunnerData = {
 
 export function RunnerRow({
   runner,
+  showStartingPrice = false,
   showResults = Boolean(runner.result),
 }: {
   runner: RunnerData;
+  showStartingPrice?: boolean;
   showResults?: boolean;
 }) {
   const dog = runner.dog;
@@ -86,6 +88,13 @@ export function RunnerRow({
           {form || "—"}
         </code>
       </td>
+      {showStartingPrice && (
+        <td className="p-3 text-center font-mono text-[13px] text-[hsl(var(--muted-foreground))]">
+          {runner.startingPrice !== null
+            ? `$${runner.startingPrice.toFixed(2)}`
+            : "—"}
+        </td>
+      )}
       {showResults && (
         <td className="p-3 text-center">
           {runner.result ? (

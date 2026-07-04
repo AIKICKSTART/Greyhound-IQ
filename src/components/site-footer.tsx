@@ -11,6 +11,8 @@ const FOOTER_SECTIONS = [
       { href: "/dogs", label: "Dogs" },
       { href: "/breeding", label: "Breeding" },
       { href: "/agents", label: "Agents" },
+      { href: "/feed", label: "Feed" },
+      { href: "/forum", label: "Forum" },
     ],
   },
   {
@@ -19,7 +21,6 @@ const FOOTER_SECTIONS = [
       { href: "/about", label: "About" },
       { href: "/pricing", label: "Pricing" },
       { href: "/contact", label: "Contact" },
-      { href: "/forum", label: "Careers" },
     ],
   },
   {

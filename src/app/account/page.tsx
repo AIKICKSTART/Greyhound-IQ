@@ -9,6 +9,7 @@ import {
   MessageSquare,
   PawPrint,
   Pencil,
+  Bookmark,
   ShieldCheck,
   User,
   Users,
@@ -215,6 +216,7 @@ async function SignedInAccount({
           />
           <Metric label="Messages" value={messages.length} />
           <Metric label="Listings" value={profile?._count.listings ?? 0} />
+          <Metric label="Saved" value={profile?._count.savedListings ?? 0} />
           <Metric label="Owned dogs" value={profile?._count.dogsOwned ?? 0} />
         </div>
         {pendingPlan && <PendingPlanBanner plan={pendingPlan} />}
@@ -231,6 +233,13 @@ async function SignedInAccount({
           >
             <MessageSquare className="h-3.5 w-3.5" />
             Open messages
+          </Link>
+          <Link
+            href="/account/saved-listings"
+            className={ACTION_CLASS}
+          >
+            <Bookmark className="h-3.5 w-3.5" />
+            Saved listings
           </Link>
           <Link
             href="/account/billing"

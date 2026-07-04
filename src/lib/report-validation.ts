@@ -3,6 +3,8 @@ import { cleanText } from "@/lib/content";
 
 export const reportTargetTypeSchema = z.enum([
   "post",
+  "feed_post",
+  "feed_comment",
   "thread",
   "listing",
   "message",

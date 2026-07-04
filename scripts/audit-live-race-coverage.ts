@@ -1,6 +1,7 @@
 import "./load-env";
 import { PrismaClient } from "@prisma/client";
 import { TheDogsProvider } from "../src/lib/live/thedogs";
+import { canonicalTrackName, trackNameAliasKey } from "../src/lib/live/track-name";
 
 const prisma = new PrismaClient();
 const days = positiveInt(process.argv[2], 7);
@@ -10,11 +11,7 @@ function dateKey(value: string | Date) {
 }
 
 function meetingKey(trackName: string, state: string | null | undefined, date: string) {
-  return `${normalize(trackName)}:${(state ?? "").toUpperCase()}:${date}`;
-}
-
-function normalize(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  return `${trackNameAliasKey(canonicalTrackName(trackName))}:${(state ?? "").toUpperCase()}:${date}`;
 }
 
 function positiveInt(value: string | undefined, fallback: number) {
@@ -45,6 +42,7 @@ async function main() {
         select: {
           id: true,
           raceNumber: true,
+          raceTime: true,
           sourceProvider: true,
           sourceId: true,
           lastSyncedAt: true,
@@ -78,6 +76,28 @@ async function main() {
     );
     const dbRunnerCount =
       dbMeeting?.races.reduce((sum, race) => sum + race._count.runners, 0) ?? 0;
+    const dbRacesByNumber = new Map(
+      dbMeeting?.races.map((race) => [race.raceNumber, race]) ?? []
+    );
+    const raceGaps = meeting.races
+      .map((race) => {
+        const dbRace = dbRacesByNumber.get(race.raceNumber);
+        const expectedRaceTime = new Date(race.raceTime).toISOString();
+        const dbRaceTime = dbRace?.raceTime.toISOString() ?? null;
+        return {
+          raceNumber: race.raceNumber,
+          expectedRaceTime,
+          dbRaceTime,
+          expectedRunners: race.runners.length,
+          dbRunners: dbRace?._count.runners ?? 0,
+          ok:
+            dbRace != null &&
+            dbRace.sourceProvider != null &&
+            dbRaceTime === expectedRaceTime &&
+            dbRace._count.runners >= race.runners.length,
+        };
+      })
+      .filter((race) => !race.ok);
 
     return {
       key,
@@ -90,10 +110,12 @@ async function main() {
       dbLastSyncedAt: dbMeeting?.lastSyncedAt?.toISOString() ?? null,
       dbRaces: dbMeeting?.races.length ?? 0,
       dbRunners: dbRunnerCount,
+      raceGaps,
       ok:
         dbMeeting != null &&
         dbMeeting.races.length >= meeting.races.length &&
         dbRunnerCount >= expectedRunnerCount &&
+        raceGaps.length === 0 &&
         dbMeeting.races.every((race) => race.sourceProvider != null),
     };
   });
@@ -127,6 +149,7 @@ async function main() {
       dbMeetings.map((meeting) => `${meeting.track.name}:${meeting.track.state}`)
     ).size,
     missingOrStale: missingOrStale.length,
+    raceGaps: missingOrStale.reduce((sum, row) => sum + row.raceGaps.length, 0),
     dbOnly: dbOnly.length,
   };
 

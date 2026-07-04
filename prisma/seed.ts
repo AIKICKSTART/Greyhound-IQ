@@ -15,6 +15,26 @@ const prisma = new PrismaClient();
 
 const id = () => randomUUID();
 
+function assertSeedTargetIsSafe() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (isLocalDatabaseUrl(databaseUrl)) return;
+  if (process.env.GREYHOUNDIQ_ALLOW_DESTRUCTIVE_SEED === "true") return;
+
+  throw new Error(
+    "seed.blocked_non_local_database: set GREYHOUNDIQ_ALLOW_DESTRUCTIVE_SEED=true only for reviewed staging/demo resets"
+  );
+}
+
+function isLocalDatabaseUrl(raw: string | undefined) {
+  if (!raw) return false;
+  try {
+    const url = new URL(raw);
+    return ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 async function createManyChunked<T>(
   create: (args: { data: T[] }) => Promise<unknown>,
   rows: T[],
@@ -127,6 +147,8 @@ function whelp(minYear: number, span: number): Date {
 }
 
 async function main() {
+  assertSeedTargetIsSafe();
+
   console.log("🌱 Seeding GreyhoundIQ database (batched)...\n");
 
   // Clear existing data (child -> parent to respect FKs)

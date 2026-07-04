@@ -16,7 +16,10 @@ import {
   type DemoListingImage,
 } from "@/lib/demo-listing-media";
 import { mediaDeliveryUrl } from "@/lib/media-service";
-import { getMarketplaceListings } from "@/lib/queries";
+import {
+  getMarketplaceCategories,
+  getMarketplaceListings,
+} from "@/lib/queries";
 import {
   Skeleton,
   SkeletonGroup,
@@ -59,19 +62,10 @@ function formatDate(date: Date | null): string {
   });
 }
 
-function listingHref(params: Record<string, string | undefined>) {
-  const searchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value) searchParams.set(key, value);
-  }
-  const query = searchParams.toString();
-  return query ? `/listings?${query}` : "/listings";
-}
-
 export default function ListingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; submitted?: string }>;
 }) {
   return (
     <div>
@@ -102,7 +96,7 @@ export default function ListingsPage({
         </div>
       </PageHero>
 
-      <Suspense fallback={<ListingsFallback status="active" q="" />}>
+      <Suspense fallback={<ListingsFallback q="" />}>
         <ListingsContent searchParams={searchParams} />
       </Suspense>
     </div>
@@ -112,27 +106,55 @@ export default function ListingsPage({
 async function ListingsContent({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; submitted?: string }>;
 }) {
   const params = await searchParams;
-  const status = params.status === "sold" ? "sold" : "active";
   const q = typeof params.q === "string" ? params.q.trim() : "";
+  const category =
+    typeof params.category === "string" ? params.category.trim() : "";
 
-  return <ListingsResults status={status} q={q} />;
+  return (
+    <ListingsResults
+      q={q}
+      category={category}
+      submitted={params.submitted === "review"}
+    />
+  );
 }
 
 async function ListingsResults({
-  status,
   q,
+  category,
+  submitted,
 }: {
-  status: "active" | "sold";
   q: string;
+  category: string;
+  submitted: boolean;
 }) {
-  const listings = await getMarketplaceListings(24, { status, q });
+  const [listings, categories] = await Promise.all([
+    getMarketplaceListings(24, { q, categorySlug: category || null }),
+    getMarketplaceCategories(),
+  ]);
 
   return (
     <section className="mx-auto max-w-6xl px-6 py-12">
-      <ListingsToolbar status={status} q={q} count={listings.length} />
+      {submitted && (
+        <div className="giq-panel mb-6 border border-[hsl(var(--primary-bright)/0.35)] p-4">
+          <p className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
+            Listing submitted for review.
+          </p>
+          <p className="mt-1 text-[12px] text-[hsl(var(--muted-foreground))]">
+            It will appear in the marketplace after moderator approval.
+          </p>
+        </div>
+      )}
+
+      <ListingsToolbar
+        q={q}
+        category={category}
+        categories={categories}
+        count={listings.length}
+      />
 
       {listings.length === 0 ? (
         <div className="giq-empty-state p-12 text-center">
@@ -207,9 +229,7 @@ async function ListingsResults({
                   </span>
                   <span className="col-span-2 inline-flex items-center gap-1.5">
                     <Clock3 className="h-3.5 w-3.5 text-[hsl(var(--muted-foreground))]" />
-                    {status === "sold"
-                      ? `Sold ${formatDate(listing.soldAt)}`
-                      : `Expires ${formatDate(listing.expiresAt)}`}
+                    Expires {formatDate(listing.expiresAt)}
                   </span>
                 </div>
 
@@ -256,15 +276,15 @@ async function ListingsResults({
 }
 
 function ListingsFallback({
-  status,
   q,
+  category = "",
 }: {
-  status: "active" | "sold";
   q: string;
+  category?: string;
 }) {
   return (
     <section className="mx-auto max-w-6xl px-6 py-12">
-      <ListingsToolbar status={status} q={q} />
+      <ListingsToolbar q={q} category={category} categories={[]} />
       <SkeletonGroup label="Loading listings">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((item) => (
@@ -291,12 +311,14 @@ function ListingsFallback({
 }
 
 function ListingsToolbar({
-  status,
   q,
+  category,
+  categories,
   count,
 }: {
-  status: "active" | "sold";
   q: string;
+  category: string;
+  categories: Array<{ slug: string; name: string }>;
   count?: number;
 }) {
   return (
@@ -305,11 +327,11 @@ function ListingsToolbar({
         <div>
           <div className="race-box-strip mb-4 w-40" />
           <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
-            {status === "sold" ? "Recently sold" : "Current listings"}
+            Current listings
           </h2>
           <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
             {typeof count === "number"
-              ? `${count} ${status === "sold" ? "sold" : "active"} listings${q ? ` matching "${q}".` : "."}`
+              ? `${count} active listings${q ? ` matching "${q}".` : "."}`
               : "Loading marketplace listings."}
           </p>
         </div>
@@ -319,40 +341,28 @@ function ListingsToolbar({
       </div>
 
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="giq-segmented">
-          <Link
-            href={listingHref({ q })}
-            className={`giq-segment ${
-              status === "active"
-                ? "giq-segment-active"
-                : ""
-            }`}
-          >
-            Available
-          </Link>
-          <Link
-            href={listingHref({ status: "sold", q })}
-            className={`giq-segment ${
-              status === "sold"
-                ? "giq-segment-active"
-                : ""
-            }`}
-          >
-            Recently sold
-          </Link>
-        </div>
-
         <form
           action="/listings"
           className="flex min-w-0 flex-1 gap-2 md:max-w-md"
         >
-          {status === "sold" && <input type="hidden" name="status" value="sold" />}
           <input
             name="q"
             defaultValue={q}
             placeholder="Search title or description"
             className="giq-form-control min-w-0 flex-1 px-3 py-2 text-[13px]"
           />
+          <select
+            name="category"
+            defaultValue={category}
+            className="giq-form-control w-36 px-3 py-2 text-[13px]"
+          >
+            <option value="">All</option>
+            {categories.map((item) => (
+              <option key={item.slug} value={item.slug}>
+                {item.name}
+              </option>
+            ))}
+          </select>
           <button
             type="submit"
             aria-label="Search listings"

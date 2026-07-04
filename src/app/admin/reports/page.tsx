@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { resolveReport } from "@/app/actions";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -13,10 +14,28 @@ export const metadata = {
 type ReportRow = {
   id: string;
   targetType: string;
+  targetId: string;
   reason: string;
+  description: string | null;
   status: string;
+  reporter: {
+    email: string;
+    name: string | null;
+  };
+  reported: {
+    email: string;
+    name: string | null;
+  } | null;
   createdAt: Date;
   resolvedAt: Date | null;
+  resolutionNotes: string | null;
+  messagePreview?: {
+    conversationId: string | null;
+    sender: string;
+    recipient: string;
+    body: string;
+    createdAt: Date;
+  } | null;
 };
 
 export default async function AdminReportsPage() {
@@ -37,28 +56,30 @@ export default async function AdminReportsPage() {
           Reports
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 20 local report records. Reporter details, reported user
-          details, target IDs, descriptions, and resolution notes are not
-          displayed.
+          Latest 50 local report records. Moderators can dismiss reports or
+          mark them resolved after taking the appropriate content or user
+          action.
         </p>
 
         <div className="giq-table-shell mt-6 overflow-x-auto">
-          <table className="w-full min-w-[900px]">
+          <table className="w-full min-w-[1180px]">
             <thead>
               <tr className="giq-table-head">
                 <th className="px-4 py-3 text-left">Report ID</th>
-                <th className="px-4 py-3 text-left">Target type</th>
+                <th className="px-4 py-3 text-left">Reporter</th>
+                <th className="px-4 py-3 text-left">Target</th>
                 <th className="px-4 py-3 text-left">Reason</th>
                 <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">Created</th>
                 <th className="px-4 py-3 text-left">Resolved</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {reports.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={8}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No reports found.
@@ -71,10 +92,41 @@ export default async function AdminReportsPage() {
                       {report.id}
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
+                      {report.reporter.name ?? "Unnamed"}
+                      <p className="mt-1 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                        {report.reporter.email}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
                       {report.targetType}
+                      <p className="mt-1 font-mono text-[11px] text-[hsl(var(--subtle-foreground))]">
+                        {report.targetId}
+                      </p>
+                      {report.reported ? (
+                        <p className="mt-1 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                          Reported: {report.reported.email}
+                        </p>
+                      ) : null}
+                      {report.messagePreview ? (
+                        <div className="mt-2 max-w-sm rounded-md border border-white/[0.08] bg-white/[0.03] p-2">
+                          <p className="text-[11px] text-[hsl(var(--subtle-foreground))]">
+                            {report.messagePreview.sender} to{" "}
+                            {report.messagePreview.recipient} ·{" "}
+                            {formatDateTime(report.messagePreview.createdAt)}
+                          </p>
+                          <p className="mt-1 line-clamp-3 text-[12px] text-[hsl(var(--muted-foreground))]">
+                            {report.messagePreview.body}
+                          </p>
+                        </div>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
                       {report.reason}
+                      {report.description ? (
+                        <p className="mt-1 max-w-xs text-[12px] text-[hsl(var(--muted-foreground))]">
+                          {report.description}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
                       {report.status}
@@ -84,6 +136,20 @@ export default async function AdminReportsPage() {
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
                       {formatDateTime(report.resolvedAt, "Not resolved")}
+                      {report.resolutionNotes ? (
+                        <p className="mt-1 max-w-xs text-[12px] text-[hsl(var(--muted-foreground))]">
+                          {report.resolutionNotes}
+                        </p>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3">
+                      {report.status === "open" ? (
+                        <ReportResolutionForm reportId={report.id} />
+                      ) : (
+                        <span className="text-[12px] text-[hsl(var(--muted-foreground))]">
+                          Closed
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -96,22 +162,105 @@ export default async function AdminReportsPage() {
   );
 }
 
-function getReports() {
-  return safeQuery<ReportRow[]>(
+function ReportResolutionForm({ reportId }: { reportId: string }) {
+  const action = resolveReport.bind(null, reportId);
+
+  return (
+    <form action={action} className="flex min-w-[320px] flex-wrap gap-2">
+      <select
+        name="action"
+        defaultValue="dismiss"
+        className="giq-form-control px-2 py-1 text-[12px]"
+      >
+        <option value="dismiss">Dismiss</option>
+        <option value="hide_content">Hide content</option>
+        <option value="warn_user">Warn user</option>
+        <option value="ban_user">Ban user</option>
+        <option value="delete_content">Delete content</option>
+      </select>
+      <input
+        name="notes"
+        maxLength={1000}
+        placeholder="Resolution notes"
+        className="giq-form-control w-40 px-2 py-1 text-[12px]"
+      />
+      <button className="giq-button giq-button-glass px-3 text-[12px]">
+        Resolve
+      </button>
+    </form>
+  );
+}
+
+async function getReports() {
+  const reports = await safeQuery<ReportRow[]>(
     () =>
       prisma.report.findMany({
         orderBy: { createdAt: "desc" },
-        take: 20,
+        take: 50,
         select: {
           id: true,
           targetType: true,
+          targetId: true,
           reason: true,
+          description: true,
           status: true,
+          reporter: {
+            select: {
+              email: true,
+              name: true,
+            },
+          },
+          reported: {
+            select: {
+              email: true,
+              name: true,
+            },
+          },
           createdAt: true,
           resolvedAt: true,
+          resolutionNotes: true,
         },
       }),
     []
+  );
+
+  const messageIds = reports
+    .filter((report) => report.targetType === "message")
+    .map((report) => report.targetId);
+  if (messageIds.length === 0) return reports;
+
+  const messages = await safeQuery(
+    () =>
+      prisma.message.findMany({
+        where: { id: { in: messageIds } },
+        select: {
+          id: true,
+          conversationId: true,
+          body: true,
+          createdAt: true,
+          sender: { select: { displayName: true } },
+          recipient: { select: { displayName: true } },
+        },
+      }),
+    []
+  );
+  const previews = new Map(
+    messages.map((message) => [
+      message.id,
+      {
+        conversationId: message.conversationId,
+        sender: message.sender.displayName,
+        recipient: message.recipient.displayName,
+        body: message.body,
+        createdAt: message.createdAt,
+      },
+    ])
+  );
+
+  return reports.map((report) =>
+    report.targetType === "message"
+      ? { ...report, messagePreview: previews.get(report.targetId) ?? null }
+      : report
   );
 }
 

@@ -33,6 +33,7 @@ function statusForErrorMessage(message: string) {
   if (message === "auth.unauthorized") return 401;
   if (
     message === "auth.forbidden" ||
+    message === "call.blocked" ||
     message === "conversation.blocked" ||
     message === "conversation.recipient_unavailable"
   ) {
@@ -49,6 +50,7 @@ function statusForErrorMessage(message: string) {
   }
   if (
     message === "internal.not_configured" ||
+    message === "call.not_configured" ||
     message === "media.secret_not_configured"
   ) {
     return 503;

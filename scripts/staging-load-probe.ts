@@ -112,14 +112,6 @@ async function buildAuthProbes(): Promise<{
                       mediaIds: [],
                     },
                   },
-                  {
-                    label: "call room create",
-                    method: "POST" as const,
-                    path: "/api/calls/rooms",
-                    expected: [201],
-                    auth: true,
-                    body: { conversationId: targets.conversationId },
-                  },
                 ]
               : []),
             {
@@ -185,6 +177,7 @@ async function main() {
   const auth = await buildAuthProbes();
   const probes = [...publicProbes, ...auth.probes];
   const results = await runPool(probes.flatMap((probe) => repeat(probe, iterations)));
+  results.push(...(await runDependentProbes(auth.targets)));
   const failures = results.filter((result) => !result.ok);
 
   for (const [label, group] of groupByLabel(results)) {
@@ -206,7 +199,12 @@ async function main() {
   if (cookie && includeMutations && !auth.targets.feedPostId) {
     console.log("feed comment/reaction probes skipped: set LOAD_FEED_POST_ID");
   }
-  if (cookie && includeMutations && !auth.targets.callRoomId) {
+  if (
+    cookie &&
+    includeMutations &&
+    !auth.targets.callRoomId &&
+    !auth.targets.conversationId
+  ) {
     console.log("call token probe skipped: set LOAD_CALL_ROOM_ID");
   }
   if (cookie && includeMutations && !auth.targets.listingId) {
@@ -219,6 +217,36 @@ async function main() {
     }
     process.exit(1);
   }
+}
+
+async function runDependentProbes(targets: ProbeTargets) {
+  if (!cookie || !includeMutations || !targets.conversationId || targets.callRoomId) {
+    return [];
+  }
+
+  const createRoom = await runProbeWithBody({
+    label: "call room create",
+    method: "POST",
+    path: "/api/calls/rooms",
+    expected: [201],
+    auth: true,
+    body: { conversationId: targets.conversationId },
+  });
+  const results = [createRoom.result];
+  const createRoomData = recordValue(createRoom.data);
+  const room = recordValue(createRoomData?.item);
+  const roomId = stringValue(room?.id);
+  if (!roomId) return results;
+
+  const token = await runProbeWithBody({
+    label: "call token",
+    method: "POST",
+    path: `/api/calls/${roomId}/token`,
+    expected: [200],
+    auth: true,
+  });
+  results.push(token.result);
+  return results;
 }
 
 async function resolveProbeTargets(): Promise<ProbeTargets> {
@@ -319,6 +347,46 @@ async function runProbe(probe: Probe): Promise<Result> {
   }
 }
 
+async function runProbeWithBody(probe: Probe): Promise<{
+  result: Result;
+  data: unknown;
+}> {
+  const started = Date.now();
+  try {
+    const response = await fetch(new URL(probe.path, baseUrl), {
+      method: probe.method ?? "GET",
+      redirect: "manual",
+      signal: AbortSignal.timeout(requestTimeoutMs),
+      headers: {
+        ...(probe.auth && cookie ? { cookie } : {}),
+        ...(probe.body ? { "content-type": "application/json" } : {}),
+      },
+      body: probe.body ? JSON.stringify(probe.body) : undefined,
+    });
+    const text = await response.text();
+    const ms = Date.now() - started;
+    return {
+      result: {
+        label: probe.label,
+        status: response.status,
+        ms,
+        ok: probe.expected.includes(response.status),
+      },
+      data: parseJson(text),
+    };
+  } catch {
+    return {
+      result: {
+        label: probe.label,
+        status: 0,
+        ms: Date.now() - started,
+        ok: false,
+      },
+      data: null,
+    };
+  }
+}
+
 function repeat<T>(value: T, count: number) {
   return Array.from({ length: count }, () => value);
 }
@@ -350,6 +418,14 @@ function recordValue(value: unknown) {
   return value && typeof value === "object"
     ? (value as Record<string, unknown>)
     : null;
+}
+
+function parseJson(value: string) {
+  try {
+    return value ? JSON.parse(value) : null;
+  } catch {
+    return null;
+  }
 }
 
 export {};

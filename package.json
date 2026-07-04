@@ -76,6 +76,7 @@
     "check:calls": "tsx scripts/check-call-token-permissions.ts",
     "check:auth-profile-sync": "tsx scripts/check-auth-profile-sync.ts",
     "check:community-flow": "tsx --conditions=react-server scripts/check-community-flow.ts",
+    "check:community-flow:realtime": "tsx --conditions=react-server scripts/check-community-flow.ts --strict-realtime",
     "check:marketplace-safety": "tsx scripts/check-marketplace-safety.ts",
     "check:visibility-policies": "tsx scripts/check-visibility-policies.ts",
     "smoke:race-provider": "tsx scripts/race-provider-smoke-check.ts",

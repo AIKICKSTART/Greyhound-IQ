@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
+import "./load-env";
 import {
   createCallRoomForConversation,
   createCallTokenForCurrentUser,
@@ -58,7 +59,9 @@ const liveKitEnv = {
   LIVEKIT_URL: process.env.LIVEKIT_URL,
   LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY,
   LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET,
+  REALTIME_BROADCAST_STRICT: process.env.REALTIME_BROADCAST_STRICT,
 };
+const strictRealtime = process.argv.includes("--strict-realtime");
 
 main().catch((err) => {
   console.error("Community flow check failed:");
@@ -67,7 +70,9 @@ main().catch((err) => {
 });
 
 async function main() {
+  let primaryError: unknown;
   try {
+    if (strictRealtime) process.env.REALTIME_BROADCAST_STRICT = "true";
     process.env.LIVEKIT_URL = "wss://livekit.community-flow.example.test";
     process.env.LIVEKIT_API_KEY = "community-flow-key";
     process.env.LIVEKIT_API_SECRET = "community-flow-secret";
@@ -141,10 +146,20 @@ async function main() {
     assert.equal(saved.saved, true);
 
     console.log("Community flow check passed");
+  } catch (err) {
+    primaryError = err;
+    throw err;
   } finally {
     restoreLiveKitEnv();
-    await cleanup();
-    await prisma.$disconnect();
+    try {
+      await cleanup();
+    } catch (err) {
+      console.error("Community flow cleanup failed:");
+      console.error(String(err));
+      if (!primaryError) throw err;
+    } finally {
+      await prisma.$disconnect();
+    }
   }
 }
 

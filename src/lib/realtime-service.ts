@@ -71,14 +71,18 @@ async function broadcastRealtimeEvent(
   try {
     const client = getSupabaseAdminClient();
     const channel = client.channel(channelName);
-    await channel.httpSend(event, payload);
-    client.removeChannel(channel);
+    try {
+      await channel.httpSend(event, payload);
+    } finally {
+      await client.removeChannel(channel);
+    }
   } catch (err) {
     console.warn("realtime.broadcast_failed", {
       channelName,
       event,
       message: err instanceof Error ? err.message : "unknown",
     });
+    if (process.env.REALTIME_BROADCAST_STRICT === "true") throw err;
   }
 }
 

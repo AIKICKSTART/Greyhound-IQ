@@ -28,6 +28,10 @@ const iterations = positiveInt(process.env.LOAD_ITERATIONS, 5);
 const concurrency = positiveInt(process.env.LOAD_CONCURRENCY, 4);
 const cookie = process.env.LOAD_TEST_COOKIE?.trim();
 const includeMutations = process.env.LOAD_INCLUDE_MUTATIONS === "true";
+const includeInternalWriteFlow =
+  process.env.LOAD_INCLUDE_INTERNAL_WRITE_FLOW === "true";
+const internalSecret =
+  process.env.LOAD_INTERNAL_SECRET?.trim() ?? process.env.INTERNAL_API_SECRET?.trim();
 const conversationId = process.env.LOAD_CONVERSATION_ID?.trim();
 const callRoomId = process.env.LOAD_CALL_ROOM_ID?.trim();
 const listingId = process.env.LOAD_LISTING_ID?.trim();
@@ -178,6 +182,14 @@ async function main() {
   const probes = [...publicProbes, ...auth.probes];
   const results = await runPool(probes.flatMap((probe) => repeat(probe, iterations)));
   results.push(...(await runDependentProbes(auth.targets)));
+  if (includeInternalWriteFlow) {
+    if (!internalSecret) {
+      throw new Error(
+        "LOAD_INTERNAL_SECRET or INTERNAL_API_SECRET is required for LOAD_INCLUDE_INTERNAL_WRITE_FLOW=true"
+      );
+    }
+    results.push(await runInternalWriteFlowProbe());
+  }
   const failures = results.filter((result) => !result.ok);
 
   for (const [label, group] of groupByLabel(results)) {
@@ -210,12 +222,54 @@ async function main() {
   if (cookie && includeMutations && !auth.targets.listingId) {
     console.log("listing enquiry probe skipped: set LOAD_LISTING_ID");
   }
+  if (!includeInternalWriteFlow) {
+    console.log(
+      "internal community write-flow probe skipped: set LOAD_INCLUDE_INTERNAL_WRITE_FLOW=true"
+    );
+  }
 
   if (failures.length > 0) {
     for (const failure of failures) {
       console.error(`${failure.label}: got ${failure.status} in ${failure.ms}ms`);
     }
     process.exit(1);
+  }
+}
+
+async function runInternalWriteFlowProbe(): Promise<Result> {
+  const started = Date.now();
+  try {
+    const response = await fetch(
+      new URL("/api/internal/community-readiness?write=true", baseUrl),
+      {
+        method: "POST",
+        redirect: "manual",
+        signal: AbortSignal.timeout(requestTimeoutMs),
+        headers: { "x-internal-secret": internalSecret ?? "" },
+      }
+    );
+    const data = parseJson(await response.text());
+    const record = recordValue(data);
+    const checks = recordValue(record?.checks);
+    const writeFlow = recordValue(checks?.writeFlow);
+    const writeChecks = recordValue(writeFlow?.checks);
+    return {
+      label: "internal community write flow",
+      status: response.status,
+      ms: Date.now() - started,
+      ok:
+        response.status === 200 &&
+        record?.ok === true &&
+        writeFlow?.ok === true &&
+        writeChecks?.cleanup === true,
+    };
+  } catch {
+    return {
+      label: "internal community write flow",
+      status: 0,
+      ms: Date.now() - started,
+      ok: false,
+    };
   }
 }
 

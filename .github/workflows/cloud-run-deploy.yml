@@ -48,15 +48,25 @@ jobs:
       - name: Build image
         id: build
         shell: bash
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_WORKOS_REDIRECT_URI: ${{ secrets.NEXT_PUBLIC_WORKOS_REDIRECT_URI }}
         run: |
           set -euo pipefail
+          for var_name in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY NEXT_PUBLIC_WORKOS_REDIRECT_URI; do
+            if [ -z "${!var_name}" ]; then
+              echo "::error::$var_name GitHub secret is required for Cloud Run deploys"
+              exit 1
+            fi
+          done
           env_name="${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'staging' }}"
           source_sha="${{ github.event.workflow_run.head_sha || github.sha }}"
           image="$REGION-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/$REPOSITORY/greyhoundiq-web:$source_sha"
           gcloud builds submit . \
             --config cloudbuild.yaml \
             --project "${{ secrets.GCP_PROJECT_ID }}" \
-            --substitutions "_IMAGE=$image,_NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }},_NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }},_NEXT_PUBLIC_WORKOS_REDIRECT_URI=${{ secrets.NEXT_PUBLIC_WORKOS_REDIRECT_URI }}"
+            --substitutions "_IMAGE=$image,_NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL,_NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY,_NEXT_PUBLIC_WORKOS_REDIRECT_URI=$NEXT_PUBLIC_WORKOS_REDIRECT_URI"
           echo "env_name=$env_name" >> "$GITHUB_OUTPUT"
           echo "image=$image" >> "$GITHUB_OUTPUT"
 

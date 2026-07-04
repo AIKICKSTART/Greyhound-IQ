@@ -346,6 +346,11 @@ if (-not $LagoFrontUrl) {
 }
 
 $NextAuthUrl = Required-Value $NextAuthUrl "NEXTAUTH_URL"
+$NextPublicSupabaseUrl = Required-Value $NextPublicSupabaseUrl "NEXT_PUBLIC_SUPABASE_URL"
+$NextPublicSupabaseAnonKey = Required-Value $NextPublicSupabaseAnonKey "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+if (Test-LocalUrl $NextPublicSupabaseUrl) {
+  throw "NEXT_PUBLIC_SUPABASE_URL must be a public Supabase URL for Cloud Run deploys."
+}
 $derivedWorkosRedirectUri = "$($NextAuthUrl.TrimEnd('/'))/callback"
 if (
   -not $NextPublicWorkosRedirectUri -or
@@ -364,12 +369,12 @@ $requiredSecrets = @(
   "WORKOS_CLIENT_ID",
   "WORKOS_API_KEY",
   "WORKOS_COOKIE_PASSWORD",
-  "INTERNAL_API_SECRET"
+  "INTERNAL_API_SECRET",
+  "SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY"
 )
 
 $optionalSecrets = @(
-  "SUPABASE_URL",
-  "SUPABASE_SERVICE_ROLE_KEY",
   "LAGO_API_KEY",
   "LAGO_WEBHOOK_SECRET",
   "CRON_SECRET",
@@ -402,8 +407,9 @@ foreach ($name in $optionalSecrets) {
 
 if (-not $SkipMediaScanner -and $MediaScannerMode -eq "clamav") {
   $scannerRequiredSecrets = @("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY")
+  $availableScannerSecrets = @($requiredSecrets + $enabledOptionalSecrets)
   $missingScannerSecrets = $scannerRequiredSecrets | Where-Object {
-    $enabledOptionalSecrets -notcontains $_
+    $availableScannerSecrets -notcontains $_
   } | ForEach-Object {
     "greyhoundiq-$Environment-$($_)"
   }

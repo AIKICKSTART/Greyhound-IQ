@@ -83,6 +83,14 @@ if (!cloudRunDeploy.includes("--cpu-boost")) {
 if (!cloudRunDeploy.includes("for secret_name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY")) {
   findings.push("cloud-run-deploy.yml: missing scanner Supabase secret preflight");
 }
+for (const publicSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) {
+  if (
+    !cloudRunDeploy.includes("for var_name in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY") ||
+    !cloudRunDeploy.includes("$var_name GitHub secret is required for Cloud Run deploys")
+  ) {
+    findings.push(`cloud-run-deploy.yml: missing ${publicSecret} public Supabase preflight`);
+  }
+}
 for (const livekitSecret of ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"]) {
   if (!cloudRunDeploy.includes(`${livekitSecret}=greyhoundiq-$env_name-${livekitSecret}:latest`)) {
     findings.push(`cloud-run-deploy.yml: missing ${livekitSecret} secret mapping`);
@@ -104,6 +112,19 @@ if (!cloudRunDeployPs1.includes('$minInstances = "3"')) {
 }
 if (!cloudRunDeployPs1.includes('$scannerRequiredSecrets = @("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY")')) {
   findings.push("gcp-cloud-run-deploy.ps1: missing scanner Supabase secret preflight");
+}
+if (!cloudRunDeployPs1.includes('$NextPublicSupabaseUrl = Required-Value $NextPublicSupabaseUrl "NEXT_PUBLIC_SUPABASE_URL"')) {
+  findings.push("gcp-cloud-run-deploy.ps1: NEXT_PUBLIC_SUPABASE_URL must be required");
+}
+if (!cloudRunDeployPs1.includes('$NextPublicSupabaseAnonKey = Required-Value $NextPublicSupabaseAnonKey "NEXT_PUBLIC_SUPABASE_ANON_KEY"')) {
+  findings.push("gcp-cloud-run-deploy.ps1: NEXT_PUBLIC_SUPABASE_ANON_KEY must be required");
+}
+const deployRequiredSecretsBlock =
+  cloudRunDeployPs1.match(/\$requiredSecrets = @\([\s\S]*?\)/)?.[0] ?? "";
+for (const supabaseSecret of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]) {
+  if (!deployRequiredSecretsBlock.includes(`"${supabaseSecret}"`)) {
+    findings.push(`gcp-cloud-run-deploy.ps1: ${supabaseSecret} must be a required web secret`);
+  }
 }
 
 const cloudRunBootstrapPs1 = readFileSync(

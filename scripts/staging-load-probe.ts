@@ -77,6 +77,13 @@ const authProbes: Probe[] = cookie
                     auth: true,
                     body: { message: "Authenticated staging load probe enquiry." },
                   },
+                  {
+                    label: "listing save toggle",
+                    method: "POST" as const,
+                    path: `/api/listings/${listingId}/save`,
+                    expected: [200],
+                    auth: true,
+                  },
                 ]
               : []),
             ...(callRoomId

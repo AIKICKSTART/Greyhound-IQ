@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   BadgeCheck,
-  Bookmark,
   Clock3,
   DollarSign,
   Eye,
@@ -21,10 +20,10 @@ import {
   markListingSold,
   reportListing,
   renewListing,
-  toggleSavedListing,
   withdrawListing,
 } from "@/app/actions";
 import { InstantListingEnquiryForm } from "@/components/instant-listing-enquiry-form";
+import { InstantSaveListingButton } from "@/components/instant-save-listing-button";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -92,7 +91,6 @@ export default async function ListingDetailPage({
       ? await getSavedListingIdsForProfile(user.profileId, [listing.id])
       : new Set<string>();
   const isSaved = savedIds.has(listing.id);
-  const saveAction = toggleSavedListing.bind(null, listing.id);
   const renewAction = renewListing.bind(null, listing.id);
   const soldAction = markListingSold.bind(null, listing.id);
   const withdrawAction = withdrawListing.bind(null, listing.id);
@@ -299,17 +297,10 @@ export default async function ListingDetailPage({
               {listing.profile.verified ? "Verified seller" : "Community seller"}
             </p>
             {!isOwner && user && (
-              <form action={saveAction} className="mt-5">
-                <SubmitButton
-                  pendingLabel={isSaved ? "Removing..." : "Saving..."}
-                  className="giq-outline-action w-full"
-                >
-                  <Bookmark
-                    className={`h-3.5 w-3.5 ${isSaved ? "fill-current" : ""}`}
-                  />
-                  {isSaved ? "Saved listing" : "Save listing"}
-                </SubmitButton>
-              </form>
+              <InstantSaveListingButton
+                listingId={listing.id}
+                initiallySaved={isSaved}
+              />
             )}
             {!isOwner && user && (
               <InstantListingEnquiryForm listingId={listing.id} />

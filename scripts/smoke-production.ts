@@ -44,6 +44,12 @@ const checks: SmokeCheck[] = [
     expected: 401,
   },
   {
+    label: "listing save requires auth",
+    path: "/api/listings/listing_smoke/save",
+    method: "POST",
+    expected: 401,
+  },
+  {
     label: "feed post create requires auth",
     path: "/api/feed",
     method: "POST",

@@ -17,6 +17,7 @@ const checks: SmokeCheck[] = [
   { label: "feed status", path: "/api/health/feeds", expected: 200 },
   { label: "current user requires auth", path: "/api/users/me", expected: 401 },
   { label: "conversations require auth", path: "/api/conversations", expected: 401 },
+  { label: "community feed api", path: "/api/feed?limit=1", expected: 200 },
   {
     label: "conversation create requires auth",
     path: "/api/conversations",
@@ -33,6 +34,30 @@ const checks: SmokeCheck[] = [
       title: "Smoke listing",
       description: "Smoke listing body long enough for validation.",
     },
+    expected: 401,
+  },
+  {
+    label: "feed post create requires auth",
+    path: "/api/feed",
+    method: "POST",
+    body: {
+      body: "Smoke feed post body long enough for validation.",
+      topicId: null,
+      mediaIds: [],
+    },
+    expected: 401,
+  },
+  {
+    label: "feed comment create requires auth",
+    path: "/api/feed/post_smoke/comments",
+    method: "POST",
+    body: { body: "Smoke feed comment" },
+    expected: 401,
+  },
+  {
+    label: "feed reaction requires auth",
+    path: "/api/feed/post_smoke/reaction",
+    method: "POST",
     expected: 401,
   },
   {

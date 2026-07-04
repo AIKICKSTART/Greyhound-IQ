@@ -7,13 +7,17 @@ export function requireInternalRequest(request: Request) {
     process.env.INTERNAL_API_SECRET,
     process.env.INTERNAL_SECRET,
     process.env.CRON_SECRET,
-  ].filter((value): value is string => Boolean(value?.trim()));
+  ]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
   if (expectedSecrets.length === 0) throw new Error("internal.not_configured");
 
   const receivedSecrets = [
     request.headers.get(INTERNAL_SECRET_HEADER),
     bearerToken(request.headers.get("authorization")),
-  ].filter((value): value is string => Boolean(value));
+  ]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
 
   const authorized = receivedSecrets.some((received) =>
     expectedSecrets.some((expected) => safeEqual(received, expected))

@@ -2,25 +2,23 @@ import Link from "next/link";
 import NextImage from "next/image";
 import {
   Flag,
-  Heart,
   ImageIcon,
   MessageSquare,
   Paperclip,
-  Send,
   ShieldAlert,
   UserX,
 } from "lucide-react";
 import {
   blockFeedPostAuthor,
-  createFeedPost,
-  replyToFeedPost,
   reportFeedPost,
-  toggleFeedPostReaction,
 } from "@/app/actions";
-import { MediaAttachmentFields } from "@/components/media-attachment-fields";
+import {
+  InstantFeedCommentForm,
+  InstantFeedPostComposer,
+  InstantFeedReactionButton,
+} from "@/components/instant-feed-controls";
 import { PageHero } from "@/components/page-hero";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
-import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
 import {
   feedPostMediaUrl,
@@ -98,36 +96,7 @@ export default async function FeedPage() {
                   Post to the feed
                 </h2>
               </div>
-              <form action={createFeedPost} className="space-y-4">
-                {topics.length > 0 && (
-                  <select
-                    name="topicId"
-                    className="giq-form-control px-3 py-2 text-[13px]"
-                    defaultValue=""
-                  >
-                    <option value="">General</option>
-                    {topics.map((topic) => (
-                      <option key={topic.id} value={topic.id}>
-                        {topic.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                <textarea
-                  name="body"
-                  required
-                  minLength={2}
-                  maxLength={5000}
-                  rows={5}
-                  className="giq-form-control giq-textarea px-3 py-2"
-                  placeholder="Share a race note, kennel update, question, or marketplace context."
-                />
-                <MediaAttachmentFields mediaContext="feed" maxFiles={4} compact />
-                <SubmitButton pendingLabel="Posting...">
-                  <Send className="h-3.5 w-3.5" />
-                  Post
-                </SubmitButton>
-              </form>
+              <InstantFeedPostComposer topics={topics} />
             </section>
           ) : (
             <section className="giq-panel p-5">
@@ -219,8 +188,6 @@ function FeedPostCard({
   currentProfileId: string | null;
   signedIn: boolean;
 }) {
-  const commentAction = replyToFeedPost.bind(null, post.id);
-  const reactionAction = toggleFeedPostReaction.bind(null, post.id);
   const reportAction = reportFeedPost.bind(null, post.id);
   const blockAction = blockFeedPostAuthor.bind(null, post.id);
   const liked = post.reactions.some(
@@ -255,17 +222,12 @@ function FeedPostCard({
       )}
 
       <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-4">
-        <form action={reactionAction}>
-          <button
-            disabled={!signedIn}
-            className="giq-outline-action min-h-9 px-3 text-[12px] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Heart
-              className={`h-3.5 w-3.5 ${liked ? "fill-current text-[hsl(var(--secondary))]" : ""}`}
-            />
-            {post._count.reactions}
-          </button>
-        </form>
+        <InstantFeedReactionButton
+          postId={post.id}
+          initialCount={post._count.reactions}
+          initiallyLiked={liked}
+          disabled={!signedIn}
+        />
         <span className="giq-status-pill">
           <MessageSquare className="h-3.5 w-3.5 text-[hsl(var(--primary-bright))]" />
           {post._count.comments}
@@ -289,19 +251,7 @@ function FeedPostCard({
 
       {signedIn && (
         <div className="mt-4 grid gap-3 md:grid-cols-[1fr_220px]">
-          <form action={commentAction} className="flex gap-2">
-            <input
-              name="body"
-              required
-              minLength={2}
-              maxLength={2000}
-              className="giq-form-control min-w-0 flex-1 px-3 py-2 text-[13px]"
-              placeholder="Add a comment"
-            />
-            <button className="giq-button giq-button-glass giq-icon-button">
-              <Send className="h-4 w-4" />
-            </button>
-          </form>
+          <InstantFeedCommentForm postId={post.id} />
           <form action={reportAction} className="flex gap-2">
             <select
               name="reason"

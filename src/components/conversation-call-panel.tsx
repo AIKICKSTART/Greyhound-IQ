@@ -44,7 +44,7 @@ export function ConversationCallPanel({
     "idle" | "starting" | "connecting" | "connected" | "error"
   >("idle");
   const [error, setError] = useState<string | null>(null);
-  const [micEnabled, setMicEnabled] = useState(true);
+  const [micEnabled, setMicEnabled] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [screenShareEnabled, setScreenShareEnabled] = useState(false);
   const localVideoRef = useRef<HTMLDivElement>(null);
@@ -72,6 +72,7 @@ export function ConversationCallPanel({
       nextRoom.on(RoomEvent.Disconnected, () => {
         clearMedia(localVideoRef.current);
         clearMedia(remoteMediaRef.current);
+        setMicEnabled(false);
         setCameraEnabled(false);
         setScreenShareEnabled(false);
         setRoom(null);
@@ -86,8 +87,8 @@ export function ConversationCallPanel({
         }
       });
       await nextRoom.connect(token.url, token.token);
-      await nextRoom.localParticipant.setMicrophoneEnabled(true);
-      setMicEnabled(true);
+      // ponytail: join muted; explicit mic/camera taps request browser permission.
+      setMicEnabled(false);
       setRoom(nextRoom);
       setStatus("connected");
     } catch (err) {
@@ -139,6 +140,7 @@ export function ConversationCallPanel({
     setLocalRoomId(null);
     if (activeRoomId) setDismissedRoomId(activeRoomId);
     setStatus("idle");
+    setMicEnabled(false);
     setCameraEnabled(false);
     setScreenShareEnabled(false);
     clearMedia(localVideoRef.current);

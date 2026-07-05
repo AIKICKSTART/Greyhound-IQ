@@ -16,7 +16,7 @@ export async function POST(
       params,
       requireCurrentUserProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `listing:save:${current.dbUserId}:${id}`,
       LISTING_SAVE_RATE_LIMIT,
       LISTING_SAVE_RATE_LIMIT_WINDOW_MS

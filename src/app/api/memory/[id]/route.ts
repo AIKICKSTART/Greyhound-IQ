@@ -41,7 +41,7 @@ export async function DELETE(
       params,
       requireCurrentUserProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `memory:delete:${current.dbUserId}:${id}`,
       MEMORY_DELETE_RATE_LIMIT,
       MEMORY_DELETE_RATE_LIMIT_WINDOW_MS

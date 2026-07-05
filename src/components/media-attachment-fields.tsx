@@ -32,6 +32,7 @@ interface UploadedItem {
   id: string;
   filename: string;
   mimeType: string;
+  scanStatus?: string;
 }
 
 interface MediaAttachmentFieldsProps {
@@ -90,7 +91,12 @@ export function MediaAttachmentFields({
         }
 
         const finalized = await postJson<{
-          item: { id: string; originalName: string | null; mimeType: string };
+          item: {
+            id: string;
+            originalName: string | null;
+            mimeType: string;
+            scanStatus?: string;
+          };
         }>(`/api/media/${signed.mediaId}/finalize`, {});
 
         setItems((current) => [
@@ -99,6 +105,7 @@ export function MediaAttachmentFields({
             id: finalized.item.id,
             filename: finalized.item.originalName ?? file.name,
             mimeType: finalized.item.mimeType,
+            scanStatus: finalized.item.scanStatus,
           },
         ]);
       }
@@ -158,7 +165,10 @@ export function MediaAttachmentFields({
               className="giq-status-pill max-w-full"
             >
               <ImagePlus className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--primary-bright))]" />
-              <span className="truncate">{item.filename}</span>
+              <span className="truncate">
+                {item.filename}
+                {item.scanStatus === "pending" ? " (scanning)" : ""}
+              </span>
               <button
                 type="button"
                 onClick={() => removeItem(item.id)}

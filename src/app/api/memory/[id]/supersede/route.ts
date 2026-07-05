@@ -17,7 +17,7 @@ export async function POST(
       params,
       requireCurrentUserProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `memory:supersede:${current.dbUserId}:${id}`,
       MEMORY_SUPERSEDE_RATE_LIMIT,
       MEMORY_SUPERSEDE_RATE_LIMIT_WINDOW_MS

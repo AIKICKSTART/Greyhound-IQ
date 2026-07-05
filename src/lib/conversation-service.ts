@@ -1,10 +1,11 @@
 import { createAuditLog } from "@/lib/account-service";
 import type { CurrentUserProfile } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { logWarn } from "@/lib/logger";
 import { assertMediaAttachable } from "@/lib/media-service";
 import { findBannedPhraseMatch } from "@/lib/moderation-service";
 import {
-  createInAppNotification,
+  createInAppNotificationDeduped,
   notificationBodySnippet,
 } from "@/lib/notification-service";
 import {
@@ -84,7 +85,8 @@ export async function listConversationsForProfile(profileId: string) {
 
 export async function getConversationForProfile(
   conversationId: string,
-  profileId: string
+  profileId: string,
+  opts?: { before?: string; limit?: number }
 ) {
   const conversation = await prisma.conversation.findFirst({
     where: {
@@ -95,18 +97,31 @@ export async function getConversationForProfile(
         { participants: { some: { profileId } } },
       ],
     },
-    include: {
-      ...CONVERSATION_INCLUDE,
-      messages: {
-        where: visibleMessageWhere(profileId),
-        orderBy: { createdAt: "asc" },
-        take: 50,
-        include: MESSAGE_INCLUDE,
-      },
-    },
+    include: CONVERSATION_INCLUDE,
   });
   if (!conversation) throw new Error("conversation.not_found");
-  return conversation;
+
+  const messageWhere: Prisma.MessageWhereInput = {
+    conversationId,
+    ...visibleMessageWhere(profileId),
+  };
+  if (opts?.before) {
+    const cursor = await prisma.message.findFirst({
+      where: { id: opts.before, conversationId },
+      select: { createdAt: true },
+    });
+    if (!cursor) throw new Error("message.not_found");
+    messageWhere.createdAt = { lt: cursor.createdAt };
+  }
+  const messages = await prisma.message.findMany({
+    where: messageWhere,
+    orderBy: { createdAt: "desc" },
+    take: Math.min(opts?.limit ?? 50, 50),
+    include: MESSAGE_INCLUDE,
+  });
+  messages.reverse();
+
+  return { ...conversation, messages };
 }
 
 export async function startOrGetConversation(
@@ -171,7 +186,9 @@ export async function sendConversationMessage(
   await assertProfilesCanInteract(current.profileId, recipientId);
   await assertProfileCanReceiveMessage(recipientId);
   const mediaIds = input.mediaIds ?? [];
-  const media = await assertMediaAttachable(current, mediaIds, 4);
+  const media = await assertMediaAttachable(current, mediaIds, 4, {
+    allowPending: true,
+  });
   if (media.some((item) => item.storageBucket !== PRIVATE_USER_MEDIA_BUCKET)) {
     throw new Error("message.media_must_be_private");
   }
@@ -188,7 +205,6 @@ export async function sendConversationMessage(
         recipientId,
         body: input.body,
         createdAt,
-        mediaIdsJson: mediaIds.length > 0 ? JSON.stringify(mediaIds) : null,
         media:
           mediaIds.length > 0
             ? {
@@ -198,12 +214,6 @@ export async function sendConversationMessage(
                 })),
               }
             : undefined,
-        deliveryReceipts: {
-          create: {
-            profileId: recipientId,
-            deliveredAt: createdAt,
-          },
-        },
       },
       include: MESSAGE_INCLUDE,
     });
@@ -235,6 +245,7 @@ export async function sendConversationMessage(
     }
     return created;
   });
+  void touchPresence(current.profileId);
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -254,7 +265,7 @@ export async function sendConversationMessage(
     senderProfileId: current.profileId,
     recipientProfileId: recipientId,
   });
-  await createInAppNotification({
+  await createInAppNotificationDeduped({
     userId: message.recipient.userId,
     actorProfileId: current.profileId,
     type: "message",
@@ -298,6 +309,15 @@ export async function markConversationRead(
         readAt: now,
       },
     });
+    // Read implies delivered.
+    await tx.messageDeliveryReceipt.createMany({
+      data: messageIds.map((messageId) => ({
+        messageId,
+        profileId: current.profileId,
+        deliveredAt: now,
+      })),
+      skipDuplicates: true,
+    });
     for (const messageId of messageIds) {
       await tx.messageReadReceipt.upsert({
         where: {
@@ -330,6 +350,7 @@ export async function markConversationRead(
     });
     return unread.length;
   });
+  void touchPresence(current.profileId);
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -346,6 +367,68 @@ export async function markConversationRead(
   });
 
   return result;
+}
+
+export async function markConversationDelivered(
+  current: CurrentUserProfile,
+  conversationId: string
+) {
+  await getConversationForProfile(conversationId, current.profileId, {
+    limit: 1,
+  });
+  const undelivered = await prisma.message.findMany({
+    where: {
+      conversationId,
+      recipientId: current.profileId,
+      deletedByRecipientAt: null,
+      deliveryReceipts: { none: { profileId: current.profileId } },
+    },
+    select: { id: true },
+  });
+  if (undelivered.length === 0) return { delivered: 0 };
+
+  const created = await prisma.messageDeliveryReceipt.createMany({
+    data: undelivered.map((message) => ({
+      messageId: message.id,
+      profileId: current.profileId,
+    })),
+    skipDuplicates: true,
+  });
+  if (created.count > 0) {
+    await broadcastConversationRealtimeEvent(
+      conversationId,
+      "conversation_updated",
+      { action: "message_delivered" }
+    );
+  }
+  return { delivered: created.count };
+}
+
+export async function countUnreadMessagesByConversation(profileId: string) {
+  const groups = await prisma.message.groupBy({
+    by: ["conversationId"],
+    where: {
+      recipientId: profileId,
+      readAt: null,
+      deletedByRecipientAt: null,
+    },
+    _count: { _all: true },
+  });
+  const counts = new Map<string, number>();
+  for (const group of groups) {
+    if (group.conversationId) counts.set(group.conversationId, group._count._all);
+  }
+  return counts;
+}
+
+export async function countUnreadMessagesTotal(profileId: string) {
+  return prisma.message.count({
+    where: {
+      recipientId: profileId,
+      readAt: null,
+      deletedByRecipientAt: null,
+    },
+  });
 }
 
 export async function softDeleteConversationMessage(
@@ -605,6 +688,20 @@ function visibleMessageWhere(profileId: string) {
 
 function assertNotBlocked(blockedById: string | null) {
   if (blockedById) throw new Error("conversation.blocked");
+}
+
+// Fire-and-forget: presence is best-effort and must never fail the caller.
+async function touchPresence(profileId: string) {
+  const now = new Date();
+  try {
+    await prisma.userPresence.upsert({
+      where: { profileId },
+      update: { lastSeenAt: now, status: "online" },
+      create: { profileId, lastSeenAt: now, status: "online" },
+    });
+  } catch (err) {
+    logWarn("presence.upsert_failed", { profileId }, err);
+  }
 }
 
 async function assertProfileCanReceiveMessage(profileId: string) {

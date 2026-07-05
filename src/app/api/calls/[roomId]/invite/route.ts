@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
-import { endCallRoomForCurrentUser } from "@/lib/call-service";
-import { callRoomIdSchema } from "@/lib/call-validation";
+import { respondToCallInviteForCurrentUser } from "@/lib/call-service";
+import { callInviteActionSchema, callRoomIdSchema } from "@/lib/call-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-const CALL_END_RATE_LIMIT = 20;
-const CALL_END_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const CALL_INVITE_RATE_LIMIT = 20;
+const CALL_INVITE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ roomId: string }> }
 ) {
   try {
@@ -19,9 +19,9 @@ export async function POST(
     ]);
     const parsedRoomId = callRoomIdSchema.parse(roomId);
     const rateLimit = await checkRateLimit(
-      `call:end:${current.dbUserId}:${parsedRoomId}`,
-      CALL_END_RATE_LIMIT,
-      CALL_END_RATE_LIMIT_WINDOW_MS
+      `call:invite:${current.dbUserId}:${parsedRoomId}`,
+      CALL_INVITE_RATE_LIMIT,
+      CALL_INVITE_RATE_LIMIT_WINDOW_MS
     );
     if (!rateLimit.allowed) {
       return NextResponse.json(
@@ -35,15 +35,19 @@ export async function POST(
       );
     }
 
-    const room = await endCallRoomForCurrentUser(current, parsedRoomId);
+    const parsed = callInviteActionSchema.parse(await request.json());
+    const invite = await respondToCallInviteForCurrentUser(
+      current,
+      parsedRoomId,
+      parsed.action
+    );
     return NextResponse.json({
       item: {
-        id: room.id,
-        status: room.status,
-        endedAt: room.endedAt?.toISOString() ?? null,
+        id: invite.id,
+        status: invite.status,
       },
     });
   } catch (err) {
-    return jsonError(err, "Could not end call room");
+    return jsonError(err, "Could not respond to call invite");
   }
 }

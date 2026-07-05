@@ -1,15 +1,13 @@
 import "server-only";
 
 import { createHmac } from "node:crypto";
+import { logError } from "@/lib/logger";
 import { getSupabaseAdminClient } from "@/lib/supabase-storage";
 
 const FEED_REALTIME_CHANNEL = "feed:public";
-const REALTIME_SECRET_ENV_KEYS = [
-  "REALTIME_CHANNEL_SECRET",
-  "INTERNAL_API_SECRET",
-  "AUTH_SECRET",
-  "NEXTAUTH_SECRET",
-];
+const REALTIME_SECRET_ENV_KEYS = ["REALTIME_CHANNEL_SECRET"];
+
+let loggedMissingSecret = false;
 
 type RealtimeEventPayload = Record<string, string | number | boolean | null>;
 
@@ -77,11 +75,7 @@ async function broadcastRealtimeEvent(
       await client.removeChannel(channel);
     }
   } catch (err) {
-    console.warn("realtime.broadcast_failed", {
-      channelName,
-      event,
-      message: err instanceof Error ? err.message : "unknown",
-    });
+    logError("realtime.broadcast_failed", { channelName, event }, err);
     if (process.env.REALTIME_BROADCAST_STRICT === "true") throw err;
   }
 }
@@ -90,6 +84,10 @@ function realtimeChannelSecret() {
   for (const key of REALTIME_SECRET_ENV_KEYS) {
     const value = process.env[key];
     if (value && value.trim() && !looksLikePlaceholder(value)) return value;
+  }
+  if (process.env.NODE_ENV === "production" && !loggedMissingSecret) {
+    loggedMissingSecret = true;
+    logError("realtime.secret_missing");
   }
   return null;
 }

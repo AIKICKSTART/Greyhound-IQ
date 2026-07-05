@@ -47,7 +47,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `marketing-preference:email:${current.dbUserId}`,
       MARKETING_PREFERENCE_RATE_LIMIT,
       MARKETING_PREFERENCE_RATE_LIMIT_WINDOW_MS

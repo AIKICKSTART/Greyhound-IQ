@@ -34,7 +34,8 @@ export default function Error({
         <p
           className="text-[14px] text-[hsl(var(--muted-foreground))] mb-2 leading-relaxed tracking-[-0.011em]"
         >
-          We hit an error rendering this page. The team has been notified.
+          Something went wrong rendering this page. Try again, or contact
+          support if it keeps happening.
         </p>
         {error.digest && (
           <p

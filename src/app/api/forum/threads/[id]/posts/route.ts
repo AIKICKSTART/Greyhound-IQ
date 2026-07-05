@@ -47,7 +47,7 @@ export async function POST(
       params,
       requireCurrentUserProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `forum:post:create:${current.dbUserId}:${id}`,
       POST_CREATE_RATE_LIMIT,
       POST_CREATE_RATE_LIMIT_WINDOW_MS

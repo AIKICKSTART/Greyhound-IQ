@@ -16,7 +16,7 @@ export async function POST(
       params,
       requireCurrentUserProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `listing:withdraw:${current.dbUserId}:${id}`,
       LISTING_WITHDRAW_RATE_LIMIT,
       LISTING_WITHDRAW_RATE_LIMIT_WINDOW_MS

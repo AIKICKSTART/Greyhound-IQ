@@ -17,6 +17,9 @@
 - Do not leak database internals, stack traces, secrets, service-role keys, or local paths to users or clients.
 - Keep modules side-effect-light. Avoid work at import time unless the existing pattern already requires it.
 - Prefer central fixes in shared services over patching every caller.
+- Realtime channel names are HMAC capabilities derived from `REALTIME_CHANNEL_SECRET`; treat the channel name itself as the access token.
+- Realtime broadcast payloads must stay content-free: ids and flags only, never message bodies or user data.
+- Supabase private channels with RLS authorization are the deferred upgrade for realtime access control.
 
 # Work Guidance
 

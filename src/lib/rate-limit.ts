@@ -1,15 +1,13 @@
-type RateLimitEntry = {
-  count: number;
-  resetAt: number;
-};
+import { prisma } from "@/lib/db";
+import { logError } from "@/lib/logger";
 
-const rateLimitEntries = new Map<string, RateLimitEntry>();
+type RateLimitResult = { allowed: boolean; remaining: number; resetAt: number };
 
-export function checkRateLimit(
+export async function checkRateLimit(
   key: string,
   limit: number,
   windowMs: number
-): { allowed: boolean; remaining: number; resetAt: number } {
+): Promise<RateLimitResult> {
   const normalizedKey = key.trim();
   if (!normalizedKey) throw new Error("rate_limit.key_required");
   if (!Number.isInteger(limit) || limit < 1) throw new Error("rate_limit.limit_invalid");
@@ -17,6 +15,48 @@ export function checkRateLimit(
     throw new Error("rate_limit.window_invalid");
   }
 
+  const windowSeconds = windowMs / 1000;
+
+  try {
+    const rows = await prisma.$queryRaw<Array<{ count: number; resetAt: Date }>>`
+      INSERT INTO "RateLimit" ("key","count","resetAt")
+      VALUES (${normalizedKey}, 1, now() + make_interval(secs => ${windowSeconds}))
+      ON CONFLICT ("key") DO UPDATE SET
+        "count" = CASE WHEN "RateLimit"."resetAt" <= now() THEN 1 ELSE "RateLimit"."count" + 1 END,
+        "resetAt" = CASE WHEN "RateLimit"."resetAt" <= now() THEN now() + make_interval(secs => ${windowSeconds}) ELSE "RateLimit"."resetAt" END
+      RETURNING "count", "resetAt"
+    `;
+
+    const row = rows[0];
+    if (!row) {
+      // Dev DB stub returns no rows; fall back to per-process memory.
+      return checkRateLimitInMemory(normalizedKey, limit, windowMs);
+    }
+
+    return {
+      allowed: row.count <= limit,
+      remaining: Math.max(0, limit - row.count),
+      resetAt: row.resetAt.getTime(),
+    };
+  } catch (err) {
+    // ponytail: fail open on DB error — the limiter must never become an outage mode.
+    logError("rate_limit.db_error", { key: normalizedKey }, err);
+    return { allowed: true, remaining: limit, resetAt: Date.now() + windowMs };
+  }
+}
+
+type RateLimitEntry = {
+  count: number;
+  resetAt: number;
+};
+
+const rateLimitEntries = new Map<string, RateLimitEntry>();
+
+function checkRateLimitInMemory(
+  normalizedKey: string,
+  limit: number,
+  windowMs: number
+): RateLimitResult {
   const now = Date.now();
   pruneExpiredEntries(now);
 

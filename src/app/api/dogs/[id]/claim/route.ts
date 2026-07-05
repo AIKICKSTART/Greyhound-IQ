@@ -17,7 +17,7 @@ export async function POST(
       params,
       requireCurrentUserProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `dog:claim:${current.dbUserId}:${id}`,
       DOG_CLAIM_RATE_LIMIT,
       DOG_CLAIM_RATE_LIMIT_WINDOW_MS

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { logError } from "@/lib/logger";
 
 export function jsonError(err: unknown, fallback = "Request failed") {
   if (err instanceof ZodError) {
@@ -17,6 +18,10 @@ export function jsonError(err: unknown, fallback = "Request failed") {
 
   const message = err instanceof Error ? err.message : fallback;
   const status = statusForErrorMessage(message);
+
+  if (status >= 500) {
+    logError("api.internal_error", { code: message }, err);
+  }
 
   return NextResponse.json(
     {

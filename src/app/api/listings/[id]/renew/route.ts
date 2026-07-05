@@ -16,7 +16,7 @@ export async function POST(
       params,
       requireCurrentUserProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `listing:renew:${current.dbUserId}:${id}`,
       LISTING_RENEW_RATE_LIMIT,
       LISTING_RENEW_RATE_LIMIT_WINDOW_MS

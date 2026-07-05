@@ -8,6 +8,8 @@ steps:
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${_NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - --build-arg
       - NEXT_PUBLIC_WORKOS_REDIRECT_URI=${_NEXT_PUBLIC_WORKOS_REDIRECT_URI}
+      - --build-arg
+      - NEXT_PUBLIC_LIVEKIT_URL=${_NEXT_PUBLIC_LIVEKIT_URL}
       - -t
       - ${_IMAGE}
       - .

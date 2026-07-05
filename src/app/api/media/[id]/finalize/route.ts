@@ -17,7 +17,7 @@ export async function POST(
       params,
       requireCurrentUserProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `media:finalize:${current.dbUserId}:${id}`,
       MEDIA_FINALIZE_RATE_LIMIT,
       MEDIA_FINALIZE_RATE_LIMIT_WINDOW_MS

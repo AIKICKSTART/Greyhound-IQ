@@ -17,7 +17,7 @@ export async function POST(
       params,
       requireModeratorProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `report:resolve:${current.dbUserId}`,
       REPORT_RESOLVE_RATE_LIMIT,
       REPORT_RESOLVE_RATE_LIMIT_WINDOW_MS

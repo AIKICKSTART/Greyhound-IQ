@@ -17,7 +17,7 @@ export async function POST(
       params,
       requireCurrentUserProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `feed:comment:${current.dbUserId}:${postId}`,
       FEED_COMMENT_RATE_LIMIT,
       FEED_COMMENT_RATE_LIMIT_WINDOW_MS

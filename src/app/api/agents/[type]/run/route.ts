@@ -20,7 +20,7 @@ export async function POST(
       params,
       requireCurrentUserProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `agent-run:${current.dbUserId}`,
       AGENT_RUN_RATE_LIMIT,
       AGENT_RUN_RATE_LIMIT_WINDOW_MS

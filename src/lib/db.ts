@@ -4,6 +4,7 @@ import {
   databaseUrlConfigurationError,
   runtimeDatabaseUrl,
 } from "@/lib/database-url";
+import { logError } from "@/lib/logger";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -114,8 +115,10 @@ export async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T
     return await fn();
   } catch (err) {
     if (process.env.NODE_ENV === "production") {
-      const message = `[safeQuery] DB error, failing closed: ${summarizeDatabaseError(err)}`;
-      console.error(message);
+      // Summarized only: raw Prisma errors can embed connection strings.
+      logError("db.safe_query_failed", {
+        summary: `DB error, failing closed: ${summarizeDatabaseError(err)}`,
+      });
       throw err;
     }
     return fallback;

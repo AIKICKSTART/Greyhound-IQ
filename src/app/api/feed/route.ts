@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `feed:post:${current.dbUserId}`,
       FEED_POST_RATE_LIMIT,
       FEED_POST_RATE_LIMIT_WINDOW_MS

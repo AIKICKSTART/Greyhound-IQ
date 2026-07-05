@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `memory:create:${current.dbUserId}`,
       MEMORY_CREATE_RATE_LIMIT,
       MEMORY_CREATE_RATE_LIMIT_WINDOW_MS

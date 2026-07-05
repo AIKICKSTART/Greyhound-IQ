@@ -109,6 +109,35 @@ const specs: EnvSpec[] = [
     validate: (value) =>
       value.length >= 32 ? null : "must be at least 32 characters",
   },
+  {
+    names: ["REALTIME_CHANNEL_SECRET"],
+    description: "server-only HMAC secret deriving realtime channel names",
+    productionOnly: true,
+    validate: (value) =>
+      value.length >= 32 ? null : "must be at least 32 characters",
+  },
+  {
+    names: ["LIVEKIT_URL"],
+    description: "LiveKit server URL for call token issuance",
+    productionOnly: true,
+    validate: validateUrl,
+  },
+  {
+    names: ["LIVEKIT_API_KEY"],
+    description: "LiveKit API key",
+    productionOnly: true,
+  },
+  {
+    names: ["LIVEKIT_API_SECRET"],
+    description: "server-only LiveKit API secret",
+    productionOnly: true,
+  },
+  {
+    names: ["NEXT_PUBLIC_LIVEKIT_URL"],
+    description: "browser-visible LiveKit URL for client call connections",
+    productionOnly: true,
+    validate: validateUrl,
+  },
 ];
 
 const optional = [
@@ -140,6 +169,10 @@ const optional = [
   "NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA",
   "NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT",
   "REALTIME_CHANNEL_SECRET",
+  "LIVEKIT_URL",
+  "LIVEKIT_API_KEY",
+  "LIVEKIT_API_SECRET",
+  "NEXT_PUBLIC_LIVEKIT_URL",
   "MEDIA_SCAN_MODE",
   "MEDIA_CLAMSCAN_BIN",
   "MEDIA_CLAMAV_DATABASE",
@@ -195,6 +228,15 @@ if (production) {
     if (process.env[name]?.trim().toLowerCase() === "true") {
       failures.push(`${name} must be false or unset in production`);
     }
+  }
+
+  if (
+    process.env.NOTIFICATION_WEBHOOK_URL?.trim() &&
+    !process.env.NOTIFICATION_WEBHOOK_SECRET?.trim()
+  ) {
+    failures.push(
+      "NOTIFICATION_WEBHOOK_SECRET missing (required when NOTIFICATION_WEBHOOK_URL is set)"
+    );
   }
 }
 

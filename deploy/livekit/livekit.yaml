@@ -1,0 +1,32 @@
+# Minimal self-hosted LiveKit server config for GreyhoundIQ calls.
+# Docs: https://docs.livekit.io/home/self-hosting/deployment/
+#
+# Placeholders like ${LIVEKIT_API_KEY} must be substituted at deploy time
+# (e.g. envsubst from Secret Manager values). Never commit real values.
+
+port: 7880
+
+# API key/secret pair. Must match LIVEKIT_API_KEY / LIVEKIT_API_SECRET in the
+# app environment: the app signs join tokens and verifies webhooks with it.
+keys:
+  ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
+
+# LiveKit signs webhook POSTs with the key named here; the app verifies them
+# at /api/livekit/webhook using the same pair.
+webhook:
+  api_key: ${LIVEKIT_API_KEY}
+  urls:
+    - "https://greyhoundsiq.com.au/api/livekit/webhook"
+
+rtc:
+  port_range_start: 50000
+  port_range_end: 60000
+  use_external_ip: true
+
+# TURN is required for clients behind restrictive NATs/firewalls (corporate
+# networks, some mobile carriers) — without it those calls never connect.
+# Needs a TLS cert for the TURN domain.
+turn:
+  enabled: true
+  domain: turn.greyhoundsiq.com.au
+  tls_port: 5349

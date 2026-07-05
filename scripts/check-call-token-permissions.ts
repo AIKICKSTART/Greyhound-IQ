@@ -56,7 +56,7 @@ assert.deepEqual(payload.video, {
   roomJoin: true,
   canPublish: true,
   canSubscribe: true,
-  canPublishData: true,
+  canPublishData: false,
 });
 assert.equal(signed.expiresAtSeconds, nowSeconds + 10 * 60);
 

@@ -16,7 +16,7 @@ export async function POST(
       params,
       requireCurrentUserProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `conversation:block:${current.dbUserId}:${id}`,
       CONVERSATION_BLOCK_RATE_LIMIT,
       CONVERSATION_BLOCK_RATE_LIMIT_WINDOW_MS
@@ -49,7 +49,7 @@ export async function DELETE(
       params,
       requireCurrentUserProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `conversation:unblock:${current.dbUserId}:${id}`,
       CONVERSATION_BLOCK_RATE_LIMIT,
       CONVERSATION_BLOCK_RATE_LIMIT_WINDOW_MS

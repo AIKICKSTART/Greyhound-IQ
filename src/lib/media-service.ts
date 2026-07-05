@@ -12,6 +12,7 @@ import type { EntitlementLimits } from "@/lib/billing/entitlements";
 import type { CurrentUser, CurrentUserProfile } from "@/lib/auth";
 import { isModeratorRole } from "@/lib/auth-roles";
 import { prisma } from "@/lib/db";
+import { logError } from "@/lib/logger";
 import {
   mediaMaxBytes,
   resolveMediaBucket,
@@ -19,6 +20,8 @@ import {
   type MediaContext,
   type MediaMimeType,
 } from "@/lib/media-validation";
+import { createInAppNotification } from "@/lib/notification-service";
+import { broadcastConversationRealtimeEvent } from "@/lib/realtime-service";
 import {
   PRIVATE_USER_MEDIA_BUCKET,
   PUBLIC_USER_MEDIA_BUCKET,
@@ -171,6 +174,11 @@ export async function finalizeMediaUpload(
     throw new Error("media.scan_failed");
   }
 
+  // Only terminal-bad scan verdicts block finalize; "pending" finalizes and
+  // waits for the async scanner to clear it for delivery.
+  if (media.scanStatus === "infected") throw new Error("media.infected");
+  if (media.scanStatus === "error") throw new Error("media.scan_failed");
+
   const objectInfo = await getStorageObjectInfo(bucket, media.storagePath);
   const sizeBytes =
     typeof objectInfo.size === "number" && objectInfo.size > 0
@@ -191,8 +199,6 @@ export async function finalizeMediaUpload(
     mediaLimits.storageBytes
   );
 
-  if (!trustClientScanStatus) assertMediaClean(media.scanStatus);
-
   const finalized = await prisma.mediaAsset.update({
     where: { id: media.id },
     data: {
@@ -202,15 +208,18 @@ export async function finalizeMediaUpload(
       heightPx: input.heightPx ?? null,
       durationSec: input.durationSec ?? null,
       mediaType: mediaTypeForMimeType(media.mimeType),
-      publicUrl: publicUrlForMedia(bucket, media.storagePath),
+      // publicUrl only when clean: the scanner sets it in runMediaMaintenance
+      // once the pending asset passes the scan.
       ...(trustClientScanStatus
-        ? { scanStatus: "clean", scanCompletedAt: new Date() }
+        ? {
+            scanStatus: "clean",
+            scanCompletedAt: new Date(),
+            publicUrl: publicUrlForMedia(bucket, media.storagePath),
+          }
         : {}),
       expiresAt: null,
     },
   });
-
-  assertMediaClean(finalized.scanStatus);
 
   await recordUsageEvent({
     idempotencyKey: `media_upload_bytes:${finalized.id}`,
@@ -390,10 +399,19 @@ export async function runMediaMaintenance() {
       if (scanMode === "clamav") {
         const result = await scanStorageObjectWithClamAv(
           media.storageBucket,
-          media.storagePath
+          media.storagePath,
+          media.id
         );
         if (result === "infected") {
           await markMediaScanStatus(media.id, "infected");
+          // Never keep malware at rest; the DB row stays as an infected tombstone.
+          await removeStorageObject(
+            media.storageBucket,
+            media.storagePath
+          ).catch((err) =>
+            logError("media.infected_purge_failed", { mediaId: media.id }, err)
+          );
+          await notifyMessageScanVerdict(media, "infected");
           scanInfected += 1;
           continue;
         }
@@ -413,9 +431,11 @@ export async function runMediaMaintenance() {
           publicUrl: publicUrlForMedia(media.storageBucket, media.storagePath),
         },
       });
+      await notifyMessageScanVerdict(media, "clean");
       scanCleaned += 1;
-    } catch {
+    } catch (err) {
       if (scanMode === "clamav") {
+        logError("media.scan_failed", { mediaId: media.id }, err);
         await markMediaScanStatus(media.id, "error");
         scanErrors += 1;
       } else {
@@ -507,7 +527,8 @@ export async function getMediaBlob(
 export async function assertMediaAttachable(
   current: CurrentUserProfile,
   mediaIds: string[],
-  max = 4
+  max = 4,
+  opts?: { allowPending?: boolean }
 ) {
   const uniqueIds = [...new Set(mediaIds)];
   if (uniqueIds.length > max) throw new Error("media.too_many");
@@ -524,7 +545,12 @@ export async function assertMediaAttachable(
 
   if (media.length !== uniqueIds.length) throw new Error("media.not_found");
   for (const item of media) {
-    assertMediaClean(item.scanStatus);
+    if (opts?.allowPending) {
+      if (item.scanStatus === "infected") throw new Error("media.infected");
+      if (item.scanStatus === "error") throw new Error("media.scan_failed");
+    } else {
+      assertMediaClean(item.scanStatus);
+    }
   }
 
   const byId = new Map(media.map((item) => [item.id, item]));
@@ -729,6 +755,43 @@ async function markMediaScanStatus(
   });
 }
 
+async function notifyMessageScanVerdict(
+  media: { id: string; uploaderId: string },
+  verdict: "clean" | "infected"
+) {
+  try {
+    // MessageMedia is the authoritative link; linkedEntityType is a
+    // denormalized copy that later attachments can overwrite.
+    const attachment = await prisma.messageMedia.findFirst({
+      where: { mediaId: media.id },
+      select: { message: { select: { conversationId: true } } },
+    });
+    if (!attachment) return;
+    const conversationId = attachment.message.conversationId;
+
+    if (verdict === "infected") {
+      await createInAppNotification({
+        userId: media.uploaderId,
+        type: "media",
+        title: "Attachment failed safety scan",
+        href: conversationId ? `/messages/${conversationId}` : null,
+        targetType: "media",
+        targetId: media.id,
+      });
+    }
+
+    if (conversationId) {
+      await broadcastConversationRealtimeEvent(
+        conversationId,
+        "conversation_updated",
+        { action: "media_scan_completed", mediaId: media.id }
+      );
+    }
+  } catch (err) {
+    logError("media.scan_notify_failed", { mediaId: media.id }, err);
+  }
+}
+
 async function verifyStorageObjectForScan(media: {
   storageBucket: string;
   storagePath: string;
@@ -752,7 +815,8 @@ async function verifyStorageObjectForScan(media: {
 
 async function scanStorageObjectWithClamAv(
   bucket: SupabaseStorageBucket,
-  objectPath: string
+  objectPath: string,
+  mediaId: string
 ) {
   const tempDir = await mkdtemp(path.join(tmpdir(), "ghiq-media-scan-"));
   const tempFile = path.join(tempDir, "upload.bin");
@@ -774,6 +838,7 @@ async function scanStorageObjectWithClamAv(
           ? (err as { code: number }).code
           : null;
       if (exitCode === 1) return "infected" as const;
+      logError("media.scan_failed", { mediaId }, err);
       return "error" as const;
     }
   } finally {

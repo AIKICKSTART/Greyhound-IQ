@@ -24,7 +24,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `conversation:start:${current.dbUserId}`,
       CONVERSATION_START_RATE_LIMIT,
       CONVERSATION_START_RATE_LIMIT_WINDOW_MS

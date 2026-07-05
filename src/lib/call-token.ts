@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 
 const LIVEKIT_TOKEN_TTL_SECONDS = 10 * 60;
-const CALL_ROOM_JOIN_TTL_MS = 2 * 60 * 60 * 1000;
+export const CALL_ROOM_JOIN_TTL_MS = 2 * 60 * 60 * 1000;
 
 export type LiveKitConfig = {
   url: string;
@@ -47,7 +47,7 @@ export function createLiveKitCallToken(
       roomJoin: true,
       canPublish: true,
       canSubscribe: true,
-      canPublishData: true,
+      canPublishData: false,
     },
   };
 

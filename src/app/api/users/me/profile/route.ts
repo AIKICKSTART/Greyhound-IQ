@@ -47,7 +47,7 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `profile:update:${current.dbUserId}`,
       PROFILE_UPDATE_RATE_LIMIT,
       PROFILE_UPDATE_RATE_LIMIT_WINDOW_MS

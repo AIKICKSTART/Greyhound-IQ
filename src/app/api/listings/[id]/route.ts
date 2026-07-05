@@ -33,7 +33,7 @@ export async function PATCH(
       params,
       requireCurrentUserProfile(),
     ]);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `listing:update:${current.dbUserId}:${id}`,
       LISTING_UPDATE_RATE_LIMIT,
       LISTING_UPDATE_RATE_LIMIT_WINDOW_MS

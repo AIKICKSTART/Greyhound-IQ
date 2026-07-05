@@ -15,7 +15,7 @@ const ACCOUNT_DELETE_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 export async function POST(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `account-delete:request:${current.dbUserId}`,
       ACCOUNT_DELETE_RATE_LIMIT,
       ACCOUNT_DELETE_RATE_LIMIT_WINDOW_MS

@@ -6,6 +6,7 @@ import { prisma, safeQuery } from "@/lib/db";
 const NOTIFICATION_DELIVERY_LIMIT = 50;
 const NOTIFICATION_DELIVERY_MAX_ATTEMPTS = 5;
 const NOTIFICATION_WEBHOOK_TIMEOUT_MS = 10_000;
+const NOTIFICATION_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
 
 type NotificationInput = {
   userId: string;
@@ -45,6 +46,36 @@ export async function createInAppNotification(input: NotificationInput) {
     }
     return null;
   }
+}
+
+export async function createInAppNotificationDeduped(
+  input: NotificationInput,
+  opts?: { windowMs?: number }
+) {
+  const windowMs = opts?.windowMs ?? NOTIFICATION_DEDUPE_WINDOW_MS;
+  try {
+    const existing = await prisma.notification.findFirst({
+      where: {
+        userId: input.userId,
+        type: input.type,
+        href: input.href ?? null,
+        readAt: null,
+        createdAt: { gte: new Date(Date.now() - windowMs) },
+      },
+      select: { id: true },
+    });
+    if (existing) return null;
+  } catch {
+    // Dedupe is best-effort; fall through to create.
+  }
+  return createInAppNotification(input);
+}
+
+export async function countUnreadNotificationsForUser(userId: string) {
+  return safeQuery(
+    () => prisma.notification.count({ where: { userId, readAt: null } }),
+    0
+  );
 }
 
 export async function listNotificationsForUser(userId: string, limit = 50) {

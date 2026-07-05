@@ -61,6 +61,11 @@ jobs:
       LAGO_FRONT_URL: https://billing.example.test
       LAGO_API_KEY: ci-lago-api-key
       LAGO_WEBHOOK_SECRET: ci-lago-webhook-secret-32-characters
+      REALTIME_CHANNEL_SECRET: ci-realtime-channel-secret-32-chars-min
+      LIVEKIT_URL: wss://livekit.ci.invalid
+      LIVEKIT_API_KEY: ci-livekit-key
+      LIVEKIT_API_SECRET: ci-livekit-api-secret-32-characters-min
+      NEXT_PUBLIC_LIVEKIT_URL: wss://livekit.ci.invalid
       SMOKE_BASE_URL: http://127.0.0.1:3000
 
     steps:

@@ -18,7 +18,7 @@ export async function POST(
       requireCurrentUserProfile(),
     ]);
     const parsedRoomId = callRoomIdSchema.parse(roomId);
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `call:token:${current.dbUserId}:${parsedRoomId}`,
       CALL_TOKEN_RATE_LIMIT,
       CALL_TOKEN_RATE_LIMIT_WINDOW_MS

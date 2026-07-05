@@ -45,7 +45,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `report:create:${current.dbUserId}`,
       REPORT_CREATE_RATE_LIMIT,
       REPORT_CREATE_RATE_LIMIT_WINDOW_MS

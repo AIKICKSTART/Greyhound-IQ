@@ -11,7 +11,7 @@ const CALL_ROOM_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 export async function POST(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `call:room:${current.dbUserId}`,
       CALL_ROOM_RATE_LIMIT,
       CALL_ROOM_RATE_LIMIT_WINDOW_MS
@@ -31,7 +31,8 @@ export async function POST(request: Request) {
     const parsed = callRoomCreateSchema.parse(await request.json());
     const room = await createCallRoomForConversation(
       current,
-      parsed.conversationId
+      parsed.conversationId,
+      parsed.callType
     );
 
     return NextResponse.json(
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
           id: room.id,
           roomName: room.roomName,
           status: room.status,
+          callType: room.callType,
           startsAt: room.startsAt?.toISOString() ?? null,
         },
       },

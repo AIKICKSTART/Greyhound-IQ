@@ -10,6 +10,10 @@ export async function POST(request: Request) {
   try {
     requireInternalRequest(request);
     const runWriteProbe = new URL(request.url).searchParams.get("write") === "true";
+    // The write probe creates real rows; require an explicit env opt-in.
+    if (runWriteProbe && process.env.ALLOW_COMMUNITY_WRITE_PROBE !== "true") {
+      throw new Error("auth.forbidden");
+    }
 
     const [feedTopics, forumCategories, marketplaceCategories, activeListings] =
       await Promise.all([

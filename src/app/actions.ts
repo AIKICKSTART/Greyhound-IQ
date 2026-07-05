@@ -306,7 +306,7 @@ export async function replyToForumThread(threadId: string, formData: FormData) {
 
 export async function createFeedPost(formData: FormData) {
   const current = await requireCurrentUserProfile();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `feed:post:${current.dbUserId}`,
     FEED_POST_RATE_LIMIT,
     FEED_POST_RATE_LIMIT_WINDOW_MS
@@ -326,7 +326,7 @@ export async function createFeedPost(formData: FormData) {
 
 export async function replyToFeedPost(postId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `feed:comment:${current.dbUserId}:${postId}`,
     FEED_COMMENT_RATE_LIMIT,
     FEED_COMMENT_RATE_LIMIT_WINDOW_MS
@@ -349,7 +349,7 @@ export async function toggleFeedPostReaction(
 ) {
   void _formData;
   const current = await requireCurrentUserProfile();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `feed:reaction:${current.dbUserId}:${postId}`,
     FEED_REACTION_RATE_LIMIT,
     FEED_REACTION_RATE_LIMIT_WINDOW_MS
@@ -381,7 +381,7 @@ export async function reportFeedPost(postId: string, formData: FormData) {
 export async function blockFeedPostAuthor(postId: string, _formData?: FormData) {
   void _formData;
   const current = await requireCurrentUserProfile();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `feed:block:${current.dbUserId}:${postId}`,
     FEED_BLOCK_RATE_LIMIT,
     FEED_BLOCK_RATE_LIMIT_WINDOW_MS
@@ -492,7 +492,7 @@ export async function enquireAboutListing(
   formData: FormData
 ) {
   const current = await requireCurrentUserProfile();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `listing:enquiry:${current.dbUserId}:${listingId}`,
     LISTING_ENQUIRY_RATE_LIMIT,
     LISTING_ENQUIRY_RATE_LIMIT_WINDOW_MS
@@ -516,7 +516,7 @@ export async function enquireAboutListing(
 
 export async function reportListing(listingId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `listing:report:${current.dbUserId}:${listingId}`,
     LISTING_REPORT_RATE_LIMIT,
     LISTING_REPORT_RATE_LIMIT_WINDOW_MS
@@ -543,7 +543,7 @@ export async function reportListing(listingId: string, formData: FormData) {
 export async function toggleSavedListing(listingId: string, _formData?: FormData) {
   void _formData;
   const current = await requireCurrentUserProfile();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `listing:save:${current.dbUserId}:${listingId}`,
     LISTING_SAVE_RATE_LIMIT,
     LISTING_SAVE_RATE_LIMIT_WINDOW_MS
@@ -661,7 +661,7 @@ export async function setMarketplaceCategoryActive(
 
 export async function resolveReport(reportId: string, formData: FormData) {
   const current = await requireModeratorProfile();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `report:resolve:${current.dbUserId}`,
     REPORT_RESOLVE_RATE_LIMIT,
     REPORT_RESOLVE_RATE_LIMIT_WINDOW_MS
@@ -722,7 +722,7 @@ export async function resolveTrustSafetyFlag(
 
 export async function sendMessage(formData: FormData) {
   const current = await requireCurrentUserProfile();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `message:send:${current.dbUserId}`,
     MESSAGE_SEND_RATE_LIMIT,
     MESSAGE_SEND_RATE_LIMIT_WINDOW_MS
@@ -753,7 +753,7 @@ export async function replyToConversation(
   formData: FormData
 ) {
   const current = await requireCurrentUserProfile();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `message:send:${current.dbUserId}`,
     MESSAGE_SEND_RATE_LIMIT,
     MESSAGE_SEND_RATE_LIMIT_WINDOW_MS
@@ -832,7 +832,7 @@ export async function toggleMessageReaction(
 ) {
   void _formData;
   const current = await requireCurrentUserProfile();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `message:reaction:${current.dbUserId}:${messageId}`,
     MESSAGE_REACTION_RATE_LIMIT,
     MESSAGE_REACTION_RATE_LIMIT_WINDOW_MS
@@ -856,7 +856,7 @@ export async function reportConversationMessage(
   formData: FormData
 ) {
   const current = await requireCurrentUserProfile();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `message:report:${current.dbUserId}:${messageId}`,
     MESSAGE_REPORT_RATE_LIMIT,
     MESSAGE_REPORT_RATE_LIMIT_WINDOW_MS
@@ -912,7 +912,7 @@ export async function createAgentRun(formData: FormData) {
 
 export async function createSupportTicket(formData: FormData) {
   const current = await requireCurrentUserProfile();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `support:${current.dbUserId}`,
     SUPPORT_TICKET_RATE_LIMIT,
     SUPPORT_TICKET_RATE_LIMIT_WINDOW_MS

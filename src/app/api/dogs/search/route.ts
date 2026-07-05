@@ -7,7 +7,7 @@ const DOG_SEARCH_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
 export async function GET(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const rateLimit = checkRateLimit(
+  const rateLimit = await checkRateLimit(
     `dog:search:${forwardedFor || "missing-forwarded-for"}`,
     DOG_SEARCH_RATE_LIMIT,
     DOG_SEARCH_RATE_LIMIT_WINDOW_MS

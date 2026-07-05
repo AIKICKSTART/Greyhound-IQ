@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `listing:create:${current.dbUserId}`,
       LISTING_CREATE_RATE_LIMIT,
       LISTING_CREATE_RATE_LIMIT_WINDOW_MS

@@ -11,7 +11,7 @@ const SIGN_UPLOAD_RATE_LIMIT_WINDOW_MS = 60_000;
 export async function POST(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `media:sign-upload:${current.dbUserId}`,
       SIGN_UPLOAD_RATE_LIMIT,
       SIGN_UPLOAD_RATE_LIMIT_WINDOW_MS

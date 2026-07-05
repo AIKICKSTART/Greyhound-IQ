@@ -262,12 +262,18 @@ function Ensure-SchedulerJobs {
     },
     @{
       Name = "greyhoundiq-$Environment-media-maintenance"
-      Schedule = "27 * * * *"
+      Schedule = "*/5 * * * *"
       Uri = "$mediaMaintenanceBaseUrl/api/internal/media-maintenance"
       Description = "GreyhoundIQ $Environment pending media cleanup maintenance"
       AttemptDeadline = "900s"
       OidcServiceAccount = $MediaMaintenanceOidcServiceAccount
       OidcAudience = $mediaMaintenanceBaseUrl
+    },
+    @{
+      Name = "greyhoundiq-$Environment-call-maintenance"
+      Schedule = "*/5 * * * *"
+      Uri = "$baseUrl/api/internal/call-maintenance"
+      Description = "GreyhoundIQ $Environment call room and invite maintenance"
     },
     @{
       Name = "greyhoundiq-$Environment-notification-delivery"

@@ -12,7 +12,7 @@ const USER_EXPORT_ARTIFACT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export async function GET(request: Request) {
   try {
     const current = await requireCurrentUserProfile();
-    const rateLimit = checkRateLimit(
+    const rateLimit = await checkRateLimit(
       `user-export:${current.dbUserId}`,
       USER_EXPORT_RATE_LIMIT,
       USER_EXPORT_RATE_LIMIT_WINDOW_MS

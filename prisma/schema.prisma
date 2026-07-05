@@ -1698,6 +1698,7 @@ model CallRoom {
   createdBy          Profile           @relation("CallRoomCreator", fields: [createdByProfileId], references: [id])
   roomName           String            @unique
   status             String            @default("active")
+  callType           String            @default("video")
   startsAt           DateTime?
   endedAt            DateTime?
   createdAt          DateTime          @default(now())
@@ -1958,4 +1959,13 @@ model Report {
   @@index([status, createdAt])
   @@index([targetType, targetId])
   @@index([reporterId, targetType, targetId, createdAt])
+}
+
+// ponytail: fixed-window counters shared across Cloud Run instances; UNLOGGED table, crash-loss acceptable
+model RateLimit {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+
+  @@index([resetAt])
 }

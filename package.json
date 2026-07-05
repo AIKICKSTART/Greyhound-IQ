@@ -101,6 +101,7 @@
     "date-fns": "^4.4.0",
     "hls.js": "^1.6.16",
     "livekit-client": "^2.20.0",
+    "livekit-server-sdk": "^2.16.0",
     "lucide-react": "^1.21.0",
     "motion": "^12.42.2",
     "next": "16.2.9",

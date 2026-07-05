@@ -1,0 +1,219 @@
+
+> greyhoundiq@0.1.0 dev
+> next dev --port 3127 --hostname 127.0.0.1
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://127.0.0.1:3127
+- Network:       http://127.0.0.1:3127
+- Environments: .env
+✓ Ready in 671ms
+
+○ Compiling / ...
+ GET / 200 in 6.9s (next.js: 8ms, proxy.ts: 693ms, application-code: 6.2s)
+ GET / 200 in 1687ms (next.js: 6ms, proxy.ts: 10ms, application-code: 1670ms)
+ GET / 200 in 1352ms (next.js: 7ms, proxy.ts: 13ms, application-code: 1332ms)
+ GET / 200 in 1219ms (next.js: 9ms, proxy.ts: 10ms, application-code: 1199ms)
+ GET /races?q=Taree%20300m%20Maiden 200 in 10.9s (next.js: 54ms, proxy.ts: 11ms, application-code: 10.9s)
+ GET /races?q=Taree%20300m%20Maiden 200 in 8.9s (next.js: 9ms, proxy.ts: 9ms, application-code: 8.9s)
+ GET /races?q=Taree%20300m%20Maiden 200 in 2.9s (next.js: 9ms, proxy.ts: 10ms, application-code: 2.8s)
+ GET /races/cmr0kdn25000nepls23448tvf 200 in 7.0s (next.js: 838ms, proxy.ts: 8ms, application-code: 6.2s)
+ GET / 200 in 1254ms (next.js: 6ms, proxy.ts: 5ms, application-code: 1242ms)
+ GET / 200 in 1088ms (next.js: 7ms, proxy.ts: 9ms, application-code: 1071ms)
+ GET /races?q=Taree%20300m%20Maiden 200 in 2.4s (next.js: 7ms, proxy.ts: 8ms, application-code: 2.4s)
+ GET /races/cmr0ffnjq007dephcr1304z4y 200 in 2.3s (next.js: 25ms, proxy.ts: 7ms, application-code: 2.3s)
+ GET /races?q=Taree%20300m%20Maiden 200 in 2.4s (next.js: 6ms, proxy.ts: 8ms, application-code: 2.4s)
+ GET /races/cmr0ffnjq007dephcr1304z4y 200 in 14.1s (next.js: 122ms, proxy.ts: 7ms, application-code: 14.0s)
+ GET /races?q=Taree%20300m%20Maiden 200 in 2.9s (next.js: 8ms, proxy.ts: 10ms, application-code: 2.9s)
+ GET /races/85db93b3-53e0-477d-b89d-7444232392fa 200 in 5.1s (next.js: 149ms, proxy.ts: 16ms, application-code: 4.9s)
+ GET /races/cmr0ffnjq007dephcr1304z4y 200 in 3.9s (next.js: 391ms, proxy.ts: 10ms, application-code: 3.5s)
+ GET /races?q=Taree%20300m%20Maiden 200 in 4.4s (next.js: 8ms, proxy.ts: 8ms, application-code: 4.3s)
+ GET /races/cmr0ffnjq007dephcr1304z4y 200 in 3.6s (next.js: 124ms, proxy.ts: 10ms, application-code: 3.5s)
+ GET / 200 in 1982ms (next.js: 6ms, proxy.ts: 7ms, application-code: 1968ms)
+✓ Compiled in 1045ms
+ GET / 200 in 1634ms (next.js: 161ms, proxy.ts: 107ms, application-code: 1365ms)
+ GET / 200 in 1911ms (next.js: 9ms, proxy.ts: 47ms, application-code: 1855ms)
+ GET / 200 in 2.5s (next.js: 7ms, proxy.ts: 29ms, application-code: 2.5s)
+✓ Compiled in 8.1s
+ GET / 200 in 4.0s (next.js: 149ms, proxy.ts: 92ms, application-code: 3.7s)
+ GET /races/cmr0ffnjq007dephcr1304z4y 200 in 7.4s (next.js: 225ms, proxy.ts: 12ms, application-code: 7.1s)
+ POST /races/cmr0ffnjq007dephcr1304z4y 200 in 67ms (next.js: 31ms, proxy.ts: 15ms, application-code: 21ms)
+  └─ ƒ checkSessionAction() in 1ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0ffnjq007dephcr1304z4y 200 in 198ms (next.js: 173ms, proxy.ts: 8ms, application-code: 17ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0ffnjq007dephcr1304z4y 200 in 289ms (next.js: 265ms, proxy.ts: 8ms, application-code: 16ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0ffnjq007dephcr1304z4y 200 in 70ms (next.js: 42ms, proxy.ts: 11ms, application-code: 18ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0ffnjq007dephcr1304z4y 200 in 38ms (next.js: 13ms, proxy.ts: 11ms, application-code: 13ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0ffnjq007dephcr1304z4y 200 in 153ms (next.js: 26ms, proxy.ts: 16ms, application-code: 110ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ GET /results 200 in 16.5s (next.js: 83ms, proxy.ts: 13ms, application-code: 16.4s)
+ POST /results 200 in 27ms (next.js: 7ms, proxy.ts: 8ms, application-code: 11ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ GET /races/cmr0fqmvi00m6epzs194yr8un 200 in 6.9s (next.js: 23ms, proxy.ts: 7ms, application-code: 6.9s)
+ POST /races/cmr0fqmvi00m6epzs194yr8un 200 in 201ms (next.js: 178ms, proxy.ts: 10ms, application-code: 13ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0fqmvi00m6epzs194yr8un 200 in 49ms (next.js: 24ms, proxy.ts: 7ms, application-code: 18ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0fqmvi00m6epzs194yr8un 200 in 269ms (next.js: 248ms, proxy.ts: 9ms, application-code: 13ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0fqmvi00m6epzs194yr8un 200 in 28ms (next.js: 9ms, proxy.ts: 9ms, application-code: 10ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0fqmvi00m6epzs194yr8un 200 in 49ms (next.js: 26ms, proxy.ts: 9ms, application-code: 14ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0fqmvi00m6epzs194yr8un 200 in 29ms (next.js: 10ms, proxy.ts: 9ms, application-code: 10ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0fqmvi00m6epzs194yr8un 200 in 196ms (next.js: 165ms, proxy.ts: 13ms, application-code: 17ms)
+  └─ ƒ checkSessionAction() in 2ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0fqmvi00m6epzs194yr8un 200 in 53ms (next.js: 29ms, proxy.ts: 9ms, application-code: 16ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0fqmvi00m6epzs194yr8un 200 in 30ms (next.js: 10ms, proxy.ts: 9ms, application-code: 12ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ GET /races/cmr0fqmvi00m6epzs194yr8un 200 in 9.4s (next.js: 286ms, proxy.ts: 12ms, application-code: 9.1s)
+ GET /races/cmr0fqmvi00m6epzs194yr8un 200 in 10.0s (next.js: 13ms, proxy.ts: 115ms, application-code: 9.8s)
+ POST /races/cmr0fqmvi00m6epzs194yr8un 200 in 46ms (next.js: 23ms, proxy.ts: 8ms, application-code: 15ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0fqmvi00m6epzs194yr8un 200 in 45ms (next.js: 24ms, proxy.ts: 10ms, application-code: 11ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0fqmvi00m6epzs194yr8un 200 in 30ms (next.js: 9ms, proxy.ts: 10ms, application-code: 10ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races/cmr0fqmvi00m6epzs194yr8un 200 in 133ms (next.js: 110ms, proxy.ts: 10ms, application-code: 13ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+✓ Compiled in 579ms
+ GET /races/cmr0fqmvi00m6epzs194yr8un 200 in 5.9s (next.js: 350ms, proxy.ts: 105ms, application-code: 5.4s)
+ GET /races/cmr0fqmvi00m6epzs194yr8un 200 in 6.3s (next.js: 10ms, proxy.ts: 28ms, application-code: 6.3s)
+✓ Compiled in 9.2s
+ GET / 200 in 3.0s (next.js: 30ms, proxy.ts: 9ms, application-code: 3.0s)
+ POST / 200 in 31ms (next.js: 7ms, proxy.ts: 11ms, application-code: 13ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ GET /races 200 in 11.0s (next.js: 31ms, proxy.ts: 8ms, application-code: 10.9s)
+ GET /races?q=&date=&state=NSW&status=all&sort=time 200 in 6.4s (next.js: 10ms, proxy.ts: 10ms, application-code: 6.4s)
+ GET /races?date=2026-07-02&state=NSW&sort=time 200 in 3.6s (next.js: 8ms, proxy.ts: 9ms, application-code: 3.6s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 6.9s (next.js: 8ms, proxy.ts: 8ms, application-code: 6.9s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 8.2s (next.js: 8ms, proxy.ts: 8ms, application-code: 8.2s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 9.6s (next.js: 7ms, proxy.ts: 11ms, application-code: 9.6s)
+ GET /races/cmr0lpvfz03txepug5qszw8y2 200 in 6.5s (next.js: 34ms, proxy.ts: 10ms, application-code: 6.4s)
+ POST /races?date=2023-03-22&state=NSW&sort=time 200 in 25ms (next.js: 6ms, proxy.ts: 8ms, application-code: 10ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+✓ Compiled in 921ms
+✓ Compiled in 810ms
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 14.6s (next.js: 214ms, proxy.ts: 138ms, application-code: 14.3s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 15.6s (next.js: 10ms, proxy.ts: 36ms, application-code: 15.6s)
+ POST /races?date=2023-03-22&state=NSW&sort=time 200 in 52ms (next.js: 14ms, proxy.ts: 17ms, application-code: 21ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races?date=2023-03-22&state=NSW&sort=time 200 in 43ms (next.js: 11ms, proxy.ts: 14ms, application-code: 18ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+ POST /races?date=2023-03-22&state=NSW&sort=time 200 in 33ms (next.js: 8ms, proxy.ts: 10ms, application-code: 14ms)
+  └─ ƒ checkSessionAction() in 0ms node_modules/@workos-inc/authkit-nextjs/dist/esm/actions.js
+✓ Compiled in 742ms
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 6.1s (next.js: 940ms, proxy.ts: 170ms, application-code: 5.0s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 5.6s (next.js: 251ms, proxy.ts: 178ms, application-code: 5.1s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 6.1s (next.js: 12ms, proxy.ts: 50ms, application-code: 6.0s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 7.2s (next.js: 120ms, proxy.ts: 50ms, application-code: 7.1s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 8.4s (next.js: 202ms, proxy.ts: 50ms, application-code: 8.1s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 9.5s (next.js: 288ms, proxy.ts: 50ms, application-code: 9.1s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 8.8s (next.js: 10ms, proxy.ts: 13ms, application-code: 8.8s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 9.2s (next.js: 7ms, proxy.ts: 9ms, application-code: 9.2s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 9.2s (next.js: 7ms, proxy.ts: 9ms, application-code: 9.1s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 9.2s (next.js: 8ms, proxy.ts: 11ms, application-code: 9.2s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 9.2s (next.js: 7ms, proxy.ts: 9ms, application-code: 9.2s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 9.1s (next.js: 8ms, proxy.ts: 10ms, application-code: 9.1s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 7.0s (next.js: 8ms, proxy.ts: 9ms, application-code: 7.0s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 6.6s (next.js: 8ms, proxy.ts: 9ms, application-code: 6.6s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 6.6s (next.js: 8ms, proxy.ts: 7ms, application-code: 6.6s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 6.4s (next.js: 7ms, proxy.ts: 8ms, application-code: 6.4s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 6.4s (next.js: 8ms, proxy.ts: 8ms, application-code: 6.4s)
+✓ Compiled in 724ms
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 22.2s (next.js: 930ms, proxy.ts: 112ms, application-code: 21.2s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 22.4s (next.js: 173ms, proxy.ts: 146ms, application-code: 22.0s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 23.4s (next.js: 29ms, proxy.ts: 55ms, application-code: 23.3s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 25.0s (next.js: 114ms, proxy.ts: 57ms, application-code: 24.8s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 26.6s (next.js: 296ms, proxy.ts: 58ms, application-code: 26.2s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 26.6s (next.js: 408ms, proxy.ts: 58ms, application-code: 26.1s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 19.1s (next.js: 7ms, proxy.ts: 10ms, application-code: 19.1s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 19.1s (next.js: 8ms, proxy.ts: 11ms, application-code: 19.1s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 19.1s (next.js: 8ms, proxy.ts: 10ms, application-code: 19.1s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 19.1s (next.js: 9ms, proxy.ts: 10ms, application-code: 19.1s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 19.0s (next.js: 9ms, proxy.ts: 16ms, application-code: 19.0s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 20.5s (next.js: 28ms, proxy.ts: 116ms, application-code: 20.4s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 18.6s (next.js: 8ms, proxy.ts: 13ms, application-code: 18.6s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 18.6s (next.js: 7ms, proxy.ts: 8ms, application-code: 18.6s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 18.6s (next.js: 8ms, proxy.ts: 8ms, application-code: 18.6s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 18.6s (next.js: 9ms, proxy.ts: 8ms, application-code: 18.6s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 18.8s (next.js: 7ms, proxy.ts: 9ms, application-code: 18.8s)
+✓ Compiled in 676ms
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 25.8s (next.js: 928ms, proxy.ts: 120ms, application-code: 24.8s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 26.0s (next.js: 238ms, proxy.ts: 157ms, application-code: 25.6s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 26.9s (next.js: 12ms, proxy.ts: 45ms, application-code: 26.9s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 28.5s (next.js: 77ms, proxy.ts: 45ms, application-code: 28.4s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 30.0s (next.js: 183ms, proxy.ts: 45ms, application-code: 29.7s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 30.7s (next.js: 252ms, proxy.ts: 45ms, application-code: 30.4s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 19.5s (next.js: 7ms, proxy.ts: 11ms, application-code: 19.5s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 19.6s (next.js: 7ms, proxy.ts: 9ms, application-code: 19.6s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 19.6s (next.js: 7ms, proxy.ts: 9ms, application-code: 19.6s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 19.7s (next.js: 7ms, proxy.ts: 9ms, application-code: 19.7s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 19.8s (next.js: 8ms, proxy.ts: 9ms, application-code: 19.8s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 20.6s (next.js: 8ms, proxy.ts: 9ms, application-code: 20.6s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 18.5s (next.js: 8ms, proxy.ts: 12ms, application-code: 18.5s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 18.7s (next.js: 7ms, proxy.ts: 9ms, application-code: 18.7s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 18.6s (next.js: 8ms, proxy.ts: 9ms, application-code: 18.6s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 18.5s (next.js: 7ms, proxy.ts: 8ms, application-code: 18.5s)
+ GET /races?date=2023-03-22&state=NSW&sort=time 200 in 18.5s (next.js: 9ms, proxy.ts: 8ms, application-code: 18.5s)
+✓ Compiled in 1183ms
+ GET /api/health 200 in 807ms (next.js: 605ms, proxy.ts: 172ms, application-code: 31ms)
+ GET /api/health/ready 200 in 1529ms (next.js: 50ms, proxy.ts: 14ms, application-code: 1465ms)
+ GET /api/health/feeds 200 in 4.4s (next.js: 372ms, proxy.ts: 14ms, application-code: 4.1s)
+ GET /api/users/me 401 in 705ms (next.js: 680ms, proxy.ts: 11ms, application-code: 14ms)
+ GET /api/conversations 401 in 803ms (next.js: 774ms, proxy.ts: 13ms, application-code: 16ms)
+ GET /api/feed?limit=1 200 in 1054ms (next.js: 573ms, proxy.ts: 65ms, application-code: 415ms)
+ POST /api/conversations 401 in 31ms (next.js: 6ms, proxy.ts: 12ms, application-code: 14ms)
+ POST /api/listings 401 in 592ms (next.js: 567ms, proxy.ts: 10ms, application-code: 15ms)
+ POST /api/listings/listing_smoke/enquiry 401 in 1628ms (next.js: 1599ms, proxy.ts: 11ms, application-code: 19ms)
+ POST /api/feed 401 in 31ms (next.js: 5ms, proxy.ts: 11ms, application-code: 15ms)
+ POST /api/feed/post_smoke/comments 401 in 1565ms (next.js: 1539ms, proxy.ts: 12ms, application-code: 13ms)
+ POST /api/feed/post_smoke/reaction 401 in 1423ms (next.js: 1400ms, proxy.ts: 10ms, application-code: 14ms)
+ POST /api/media/sign-upload 401 in 525ms (next.js: 492ms, proxy.ts: 9ms, application-code: 24ms)
+ POST /api/calls/rooms 401 in 510ms (next.js: 488ms, proxy.ts: 8ms, application-code: 14ms)
+ POST /api/calls/call_room_smoke/token 401 in 1472ms (next.js: 1450ms, proxy.ts: 9ms, application-code: 14ms)
+ GET /api/forum/categories 200 in 1434ms (next.js: 278ms, proxy.ts: 10ms, application-code: 1146ms)
+ GET /api/listings 200 in 2.4s (next.js: 7ms, proxy.ts: 10ms, application-code: 2.4s)
+ GET /api/health 200 in 27ms (next.js: 5ms, proxy.ts: 11ms, application-code: 11ms)
+ GET /api/health/ready 200 in 1448ms (next.js: 5ms, proxy.ts: 9ms, application-code: 1434ms)
+ GET /api/health/feeds 200 in 2.1s (next.js: 5ms, proxy.ts: 10ms, application-code: 2.1s)
+ GET /api/users/me 401 in 25ms (next.js: 5ms, proxy.ts: 9ms, application-code: 11ms)
+ GET /api/conversations 401 in 26ms (next.js: 6ms, proxy.ts: 9ms, application-code: 11ms)
+ GET /api/feed?limit=1 200 in 349ms (next.js: 5ms, proxy.ts: 9ms, application-code: 335ms)
+ POST /api/conversations 401 in 23ms (next.js: 6ms, proxy.ts: 7ms, application-code: 10ms)
+ POST /api/listings 401 in 24ms (next.js: 5ms, proxy.ts: 9ms, application-code: 10ms)
+ POST /api/listings/listing_smoke/enquiry 401 in 54ms (next.js: 29ms, proxy.ts: 11ms, application-code: 14ms)
+ POST /api/listings/listing_smoke/save 401 in 1696ms (next.js: 1673ms, proxy.ts: 10ms, application-code: 13ms)
+ POST /api/feed 401 in 27ms (next.js: 5ms, proxy.ts: 9ms, application-code: 12ms)
+ POST /api/feed/post_smoke/comments 401 in 45ms (next.js: 23ms, proxy.ts: 11ms, application-code: 11ms)
+ POST /api/feed/post_smoke/reaction 401 in 51ms (next.js: 26ms, proxy.ts: 14ms, application-code: 11ms)
+ POST /api/media/sign-upload 401 in 26ms (next.js: 5ms, proxy.ts: 9ms, application-code: 12ms)
+ POST /api/calls/rooms 401 in 22ms (next.js: 4ms, proxy.ts: 9ms, application-code: 8ms)
+ POST /api/calls/call_room_smoke/token 401 in 51ms (next.js: 23ms, proxy.ts: 15ms, application-code: 14ms)
+ GET /api/forum/categories 200 in 941ms (next.js: 5ms, proxy.ts: 8ms, application-code: 927ms)
+ GET /api/listings 200 in 2.3s (next.js: 4ms, proxy.ts: 9ms, application-code: 2.3s)
+ GET /api/health 200 in 29ms (next.js: 6ms, proxy.ts: 12ms, application-code: 11ms)
+ GET /api/health/ready 200 in 1455ms (next.js: 6ms, proxy.ts: 12ms, application-code: 1437ms)
+ GET /api/health/feeds 200 in 2.3s (next.js: 7ms, proxy.ts: 12ms, application-code: 2.3s)
+ GET /api/users/me 401 in 36ms (next.js: 6ms, proxy.ts: 15ms, application-code: 15ms)
+ GET /api/conversations 401 in 28ms (next.js: 6ms, proxy.ts: 10ms, application-code: 12ms)
+ GET /api/feed?limit=1 200 in 350ms (next.js: 7ms, proxy.ts: 11ms, application-code: 332ms)
+ POST /api/conversations 401 in 30ms (next.js: 6ms, proxy.ts: 11ms, application-code: 14ms)
+ POST /api/listings 401 in 26ms (next.js: 5ms, proxy.ts: 10ms, application-code: 11ms)
+ POST /api/listings/listing_smoke/enquiry 401 in 240ms (next.js: 214ms, proxy.ts: 10ms, application-code: 16ms)
+ POST /api/listings/listing_smoke/save 401 in 52ms (next.js: 28ms, proxy.ts: 10ms, application-code: 13ms)
+ POST /api/feed 401 in 29ms (next.js: 6ms, proxy.ts: 10ms, application-code: 14ms)
+ POST /api/feed/post_smoke/comments 401 in 394ms (next.js: 373ms, proxy.ts: 10ms, application-code: 10ms)
+ POST /api/feed/post_smoke/reaction 401 in 54ms (next.js: 33ms, proxy.ts: 11ms, application-code: 11ms)
+ POST /api/media/sign-upload 401 in 31ms (next.js: 6ms, proxy.ts: 11ms, application-code: 13ms)
+ POST /api/calls/rooms 401 in 31ms (next.js: 6ms, proxy.ts: 13ms, application-code: 13ms)
+ POST /api/calls/call_room_smoke/token 401 in 306ms (next.js: 280ms, proxy.ts: 13ms, application-code: 13ms)
+ GET /api/forum/categories 200 in 1018ms (next.js: 6ms, proxy.ts: 12ms, application-code: 1000ms)
+ GET /api/listings 200 in 2.4s (next.js: 6ms, proxy.ts: 10ms, application-code: 2.4s)
+✓ Compiled in 856ms
+✓ Compiled in 828ms
+✓ Compiled in 1095ms

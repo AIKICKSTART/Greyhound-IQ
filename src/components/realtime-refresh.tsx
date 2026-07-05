@@ -12,8 +12,17 @@ type RealtimeRefreshChannel = {
     selfLabel: string;
     otherProfileId: string;
     otherLabel: string;
+    offlineLabel?: string;
+  };
+  typing?: {
+    selfProfileId: string;
+    otherProfileId: string;
+    otherLabel: string;
   };
 };
+
+const TYPING_SEND_THROTTLE_MS = 2500;
+const TYPING_VISIBLE_MS = 4000;
 
 interface RealtimeRefreshProps {
   channels: RealtimeRefreshChannel[];
@@ -25,6 +34,7 @@ export function RealtimeRefresh({ channels }: RealtimeRefreshProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [onlineLabels, setOnlineLabels] = useState<string[]>([]);
+  const [typingLabel, setTypingLabel] = useState<string | null>(null);
   const stableChannels = useMemo(
     () =>
       channels
@@ -41,16 +51,51 @@ export function RealtimeRefresh({ channels }: RealtimeRefreshProps) {
     if (!client || stableChannels.length === 0) return;
 
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let typingHideTimer: ReturnType<typeof setTimeout> | null = null;
+    const windowCleanups: (() => void)[] = [];
     const subscribedChannels = stableChannels.map((config) => {
       const channel = client.channel(config.name);
 
       for (const event of config.events) {
+        // "typing" is ephemeral UI only; it must never trigger a refresh.
+        if (event === "typing") continue;
         channel.on("broadcast", { event }, () => {
           if (refreshTimer) clearTimeout(refreshTimer);
           refreshTimer = setTimeout(() => {
             startTransition(() => router.refresh());
           }, 150);
         });
+      }
+
+      if (config.typing) {
+        const typing = config.typing;
+        channel.on("broadcast", { event: "typing" }, (message) => {
+          const payload = (message as { payload?: { profileId?: string } })
+            .payload;
+          if (payload?.profileId !== typing.otherProfileId) return;
+          setTypingLabel(typing.otherLabel);
+          if (typingHideTimer) clearTimeout(typingHideTimer);
+          typingHideTimer = setTimeout(
+            () => setTypingLabel(null),
+            TYPING_VISIBLE_MS
+          );
+        });
+
+        let lastTypingSentAt = 0;
+        const handleLocalTyping = () => {
+          const now = Date.now();
+          if (now - lastTypingSentAt < TYPING_SEND_THROTTLE_MS) return;
+          lastTypingSentAt = now;
+          void channel.send({
+            type: "broadcast",
+            event: "typing",
+            payload: { profileId: typing.selfProfileId },
+          });
+        };
+        window.addEventListener("giq:typing", handleLocalTyping);
+        windowCleanups.push(() =>
+          window.removeEventListener("giq:typing", handleLocalTyping)
+        );
       }
 
       if (config.presence) {
@@ -99,19 +144,49 @@ export function RealtimeRefresh({ channels }: RealtimeRefreshProps) {
 
     return () => {
       if (refreshTimer) clearTimeout(refreshTimer);
+      if (typingHideTimer) clearTimeout(typingHideTimer);
+      for (const cleanup of windowCleanups) cleanup();
       for (const channel of subscribedChannels) {
         void channel.unsubscribe();
       }
     };
   }, [router, stableChannels, startTransition]);
 
-  if (onlineLabels.length === 0) return null;
+  const offlineLabel =
+    stableChannels.find((channel) => channel.presence?.offlineLabel)?.presence
+      ?.offlineLabel ?? null;
 
-  return (
-    <p className="mt-2 text-[12px] font-medium text-[hsl(var(--primary-bright))]">
-      {onlineLabels.join(", ")} online
-    </p>
-  );
+  if (typingLabel) {
+    return (
+      <p
+        role="status"
+        className="mt-2 text-[12px] font-medium text-[hsl(var(--primary-bright))]"
+      >
+        {typingLabel} is typing
+        <span aria-hidden="true" className="animate-pulse">
+          …
+        </span>
+      </p>
+    );
+  }
+
+  if (onlineLabels.length > 0) {
+    return (
+      <p className="mt-2 text-[12px] font-medium text-[hsl(var(--primary-bright))]">
+        {onlineLabels.join(", ")} online
+      </p>
+    );
+  }
+
+  if (offlineLabel) {
+    return (
+      <p className="mt-2 text-[12px] font-medium text-[hsl(var(--muted-foreground))]">
+        {offlineLabel}
+      </p>
+    );
+  }
+
+  return null;
 }
 
 function getBrowserRealtimeClient() {

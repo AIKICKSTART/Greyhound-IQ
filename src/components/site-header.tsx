@@ -41,6 +41,10 @@ import {
   MobileMenuLink,
   MobileMenuSearchForm,
 } from "@/components/mobile-menu-close-link";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
+import { countUnreadMessagesTotal } from "@/lib/conversation-service";
+import { countUnreadNotificationsForUser } from "@/lib/notification-service";
+import { profileRealtimeChannel } from "@/lib/realtime-service";
 import { siteAssetUrl } from "@/lib/storage-paths";
 
 const TIER_BADGE: Record<string, { label: string; color: string }> = {
@@ -318,6 +322,18 @@ function AccountNavigationMenu({
   );
 }
 
+function CountBadge({ count, label }: { count: number; label: string }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      aria-label={label}
+      className="pointer-events-none absolute -right-1.5 -top-1.5 z-10 inline-flex min-w-[18px] items-center justify-center rounded-full bg-[hsl(var(--primary-bright))] px-1 text-[10px] font-bold leading-[18px] tabular-nums text-[hsl(var(--primary-foreground))] shadow-[0_2px_10px_hsl(var(--primary-bright)/0.55)]"
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 function HeaderBannerImage() {
   const common = {
     alt: "",
@@ -358,9 +374,33 @@ export async function SiteHeader() {
   const user = await getCurrentUser();
   const badge = user ? TIER_BADGE[user.tier] ?? TIER_BADGE.free : null;
   const canAccessAdmin = user ? isModeratorRole(user.role) : false;
+  const [unreadMessages, unreadNotifications] =
+    user?.profileId && user.dbUserId
+      ? await Promise.all([
+          countUnreadMessagesTotal(user.profileId),
+          countUnreadNotificationsForUser(user.dbUserId),
+        ])
+      : [0, 0];
+  const profileChannel = user?.profileId
+    ? profileRealtimeChannel(user.profileId)
+    : null;
 
   return (
     <header className="giq-site-header sticky top-2 z-50 w-full px-3 md:px-5">
+      {profileChannel && (
+        <RealtimeRefresh
+          channels={[
+            {
+              name: profileChannel,
+              events: [
+                "message_created",
+                "conversation_updated",
+                "call_invite_created",
+              ],
+            },
+          ]}
+        />
+      )}
       <div className="giq-site-header-frame relative isolate mx-auto min-h-[150px] max-w-[70rem] overflow-hidden rounded-2xl border border-white/25 bg-[hsl(var(--surface-3)/0.68)] shadow-[0_22px_55px_hsl(0_0%_0%/0.34)] backdrop-blur-xl">
         <HeaderBannerImage />
         <div
@@ -414,32 +454,44 @@ export async function SiteHeader() {
                 />
                 <input type="hidden" name="sort" value="relevance" />
               </form>
-              <Link
-                href="/messages"
-                aria-label="Messages"
-                className="giq-button giq-button-carbon giq-icon-button giq-header-notification hidden min-h-10 w-10 px-0 lg:inline-flex"
-              >
-                <Bell className="h-4 w-4" />
-              </Link>
+              <span className="giq-header-notification relative hidden lg:inline-flex">
+                <Link
+                  href="/messages"
+                  aria-label="Messages"
+                  className="giq-button giq-button-carbon giq-icon-button min-h-10 w-10 px-0"
+                >
+                  <Bell className="h-4 w-4" />
+                </Link>
+                <CountBadge
+                  count={unreadMessages}
+                  label={`${unreadMessages} unread messages`}
+                />
+              </span>
 
               {user ? (
                 <Sheet>
-                  <SheetTrigger
-                    aria-label={`Open account menu for ${user.name}`}
-                    className="giq-button giq-button-glass giq-header-auth-action hidden min-h-10 px-3 text-[13px] font-semibold md:inline-flex md:px-4"
-                  >
-                    <User className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span className="max-w-[100px] truncate">{user.firstName || user.name}</span>
-                    {badge && (
-                      <span
-                        className="hidden rounded-full px-2 py-0.5 text-[10px] font-semibold lg:inline-flex"
-                        style={{ background: `hsl(${badge.color} / 0.14)`, color: `hsl(${badge.color})` }}
-                      >
-                        {badge.label}
-                      </span>
-                    )}
-                    <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-                  </SheetTrigger>
+                  <span className="giq-header-auth-action relative hidden md:inline-flex">
+                    <SheetTrigger
+                      aria-label={`Open account menu for ${user.name}`}
+                      className="giq-button giq-button-glass min-h-10 px-3 text-[13px] font-semibold md:px-4"
+                    >
+                      <User className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span className="max-w-[100px] truncate">{user.firstName || user.name}</span>
+                      {badge && (
+                        <span
+                          className="hidden rounded-full px-2 py-0.5 text-[10px] font-semibold lg:inline-flex"
+                          style={{ background: `hsl(${badge.color} / 0.14)`, color: `hsl(${badge.color})` }}
+                        >
+                          {badge.label}
+                        </span>
+                      )}
+                      <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                    </SheetTrigger>
+                    <CountBadge
+                      count={unreadNotifications}
+                      label={`${unreadNotifications} unread notifications`}
+                    />
+                  </span>
                   <AccountNavigationMenu user={user} canAccessAdmin={canAccessAdmin} />
                 </Sheet>
               ) : (

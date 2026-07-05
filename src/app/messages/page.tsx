@@ -3,14 +3,11 @@ import { Inbox, Lock, MessageSquare, Send } from "lucide-react";
 import { sendMessage } from "@/app/actions";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
 import { PageHero } from "@/components/page-hero";
-import { RealtimeRefresh } from "@/components/realtime-refresh";
+import { RecipientPicker } from "@/components/recipient-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  getConversationsForUserEmail,
-  getMessagingProfiles,
-} from "@/lib/queries";
-import { profileRealtimeChannel } from "@/lib/realtime-service";
+import { countUnreadMessagesByConversation } from "@/lib/conversation-service";
+import { getConversationsForUserEmail } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -22,20 +19,15 @@ export const metadata = {
 
 export default async function MessagesPage() {
   const user = await getCurrentUser();
-  const [conversations, profiles] = user
-    ? await Promise.all([
-        getConversationsForUserEmail(user.email),
-        getMessagingProfiles(user.email),
-      ])
-    : [[], []];
-  const unread = conversations.filter(
-    (conversation) =>
-      conversation.messages[0]?.recipientId === user?.profileId &&
-      !conversation.messages[0]?.readAt
-  ).length;
-  const realtimeChannel = user?.profileId
-    ? profileRealtimeChannel(user.profileId)
-    : null;
+  // Live refresh comes from the site header's profile-channel subscription;
+  // subscribing the same channel here would double-subscribe the singleton client.
+  const [conversations, unreadByConversation] = await Promise.all([
+    user ? getConversationsForUserEmail(user.email) : [],
+    user?.profileId
+      ? countUnreadMessagesByConversation(user.profileId)
+      : new Map<string, number>(),
+  ]);
+  const unread = unreadByConversation.size;
 
   return (
     <div>
@@ -50,17 +42,6 @@ export default async function MessagesPage() {
         }
         subtitle="1:1 messaging for owner, breeder, trainer, and marketplace conversations. Message records are tied to verified GreyhoundIQ profiles."
       />
-      {realtimeChannel && (
-        <RealtimeRefresh
-          channels={[
-            {
-              name: realtimeChannel,
-              events: ["message_created", "conversation_updated"],
-            },
-          ]}
-        />
-      )}
-
       <section className="mx-auto max-w-5xl px-6 py-12">
         {!user ? (
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -121,8 +102,8 @@ export default async function MessagesPage() {
                         : conversation.participantA;
                     const message = conversation.messages[0];
                     const isSent = message?.senderId === user.profileId;
-                    const isUnread =
-                      message?.recipientId === user.profileId && !message.readAt;
+                    const unreadCount =
+                      unreadByConversation.get(conversation.id) ?? 0;
 
                     return (
                       <Link
@@ -145,15 +126,15 @@ export default async function MessagesPage() {
                             className={`giq-status-pill ${
                               conversation.blockedAt
                                 ? "border-red-500/25 bg-red-500/10 text-red-200"
-                                : isUnread
+                                : unreadCount > 0
                                   ? "giq-status-pill-purple"
                                   : ""
                             }`}
                           >
                             {conversation.blockedAt
                               ? "Blocked"
-                              : isUnread
-                                ? "Unread"
+                              : unreadCount > 0
+                                ? `Unread (${unreadCount})`
                                 : message?.readAt
                                   ? "Read"
                                   : "Open"}
@@ -174,27 +155,7 @@ export default async function MessagesPage() {
                 </h2>
               </div>
               <form action={sendMessage} className="space-y-4">
-                <label className="block">
-                  <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-                    Recipient
-                  </span>
-                  <select
-                    name="recipientProfileId"
-                    required
-                    className="giq-form-control mt-2 px-3 py-2"
-                    defaultValue=""
-                  >
-                    <option value="" disabled>
-                      Select profile
-                    </option>
-                    {profiles.map((profile) => (
-                      <option key={profile.id} value={profile.id}>
-                        {profile.displayName}
-                        {profile.verified ? " - verified" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <RecipientPicker />
                 <label className="block">
                   <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                     Message

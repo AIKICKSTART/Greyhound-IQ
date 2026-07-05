@@ -9,6 +9,7 @@ param(
   [string]$NextPublicSupabaseUrl = "",
   [string]$NextPublicSupabaseAnonKey = "",
   [string]$NextPublicWorkosRedirectUri = "",
+  [string]$NextPublicLivekitUrl = "",
   [string]$WorkosCookieDomain = "",
   [string]$LagoApiUrl = "",
   [string]$LagoFrontUrl = "",
@@ -342,6 +343,9 @@ if (-not $NextPublicSupabaseAnonKey) {
 if (-not $NextPublicWorkosRedirectUri) {
   $NextPublicWorkosRedirectUri = DotEnv-Value "NEXT_PUBLIC_WORKOS_REDIRECT_URI"
 }
+if (-not $NextPublicLivekitUrl) {
+  $NextPublicLivekitUrl = DotEnv-Value "NEXT_PUBLIC_LIVEKIT_URL"
+}
 if (-not $WorkosCookieDomain) {
   $WorkosCookieDomain = DotEnv-Value "WORKOS_COOKIE_DOMAIN"
 }
@@ -377,6 +381,7 @@ $requiredSecrets = @(
   "WORKOS_API_KEY",
   "WORKOS_COOKIE_PASSWORD",
   "INTERNAL_API_SECRET",
+  "REALTIME_CHANNEL_SECRET",
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
   "NEXT_PUBLIC_SUPABASE_URL",
@@ -427,13 +432,18 @@ if (-not $SkipMediaScanner -and $MediaScannerMode -eq "clamav") {
   }
 }
 
+if (-not $NextPublicLivekitUrl -and $enabledOptionalSecrets -contains "LIVEKIT_URL") {
+  throw "NEXT_PUBLIC_LIVEKIT_URL is required when LiveKit secrets are enabled (CSP connect-src + browser connect origin). Set it in .env or pass -NextPublicLivekitUrl."
+}
+
 $timestamp = Get-Date -Format "yyyyMMddHHmmss"
 $image = "$Region-docker.pkg.dev/$ProjectId/$Repository/greyhoundiq-web:$Environment-$timestamp"
 $substitutions = @(
   "_IMAGE=$image",
   "_NEXT_PUBLIC_SUPABASE_URL=$NextPublicSupabaseUrl",
   "_NEXT_PUBLIC_SUPABASE_ANON_KEY=$NextPublicSupabaseAnonKey",
-  "_NEXT_PUBLIC_WORKOS_REDIRECT_URI=$NextPublicWorkosRedirectUri"
+  "_NEXT_PUBLIC_WORKOS_REDIRECT_URI=$NextPublicWorkosRedirectUri",
+  "_NEXT_PUBLIC_LIVEKIT_URL=$NextPublicLivekitUrl"
 ) -join ","
 
 Invoke-Gcloud builds submit . `

@@ -5,9 +5,13 @@ import {
   ArrowLeft,
   Ban,
   CheckCheck,
+  ChevronsDown,
+  ChevronsUp,
   Flag,
+  Loader2,
   Lock,
   Paperclip,
+  ShieldAlert,
   ThumbsUp,
   Trash2,
   Unlock,
@@ -24,12 +28,22 @@ import { ConversationCallPanel } from "@/components/conversation-call-panel";
 import { InstantMessageComposer } from "@/components/instant-message-composer";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
 import { SubmitButton } from "@/components/submit-button";
-import { getCurrentUser } from "@/lib/auth";
-import { getActiveCallRoomForConversation } from "@/lib/call-service";
-import { getConversationForProfile } from "@/lib/conversation-service";
+import { getCurrentUser, type CurrentUserProfile } from "@/lib/auth";
+import {
+  getActiveCallRoomForConversation,
+  getPendingCallInviteForConversation,
+  getRecentCallLogForConversation,
+} from "@/lib/call-service";
+import {
+  getConversationForProfile,
+  markConversationDelivered,
+} from "@/lib/conversation-service";
+import { prisma } from "@/lib/db";
 import { conversationRealtimeChannel } from "@/lib/realtime-service";
 
 export const dynamic = "force-dynamic";
+
+const MESSAGE_PAGE_SIZE = 50;
 
 export async function generateMetadata({
   params,
@@ -45,34 +59,77 @@ export async function generateMetadata({
 
 export default async function MessageThreadPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ before?: string | string[] }>;
 }) {
-  const [{ id }, user] = await Promise.all([params, getCurrentUser()]);
+  const [{ id }, query, user] = await Promise.all([
+    params,
+    searchParams,
+    getCurrentUser(),
+  ]);
   if (!user?.profileId) return <SignedOutThread />;
+  const before = typeof query.before === "string" ? query.before : undefined;
 
   let conversation: Awaited<ReturnType<typeof getConversationForProfile>>;
   try {
-    conversation = await getConversationForProfile(id, user.profileId);
+    conversation = await getConversationForProfile(
+      id,
+      user.profileId,
+      before ? { before } : undefined
+    );
   } catch {
     notFound();
   }
-  const activeCallRoom = conversation.blockedAt
-    ? null
-    : await getActiveCallRoomForConversation(
-        { profileId: user.profileId },
-        conversation.id
-      );
 
   const other =
     conversation.participantAId === user.profileId
       ? conversation.participantB
       : conversation.participantA;
+  const [activeCallRoom, pendingCallInvite, callLog, otherPresence] =
+    await Promise.all([
+      conversation.blockedAt
+        ? null
+        : getActiveCallRoomForConversation(
+            { profileId: user.profileId },
+            conversation.id
+          ),
+      conversation.blockedAt
+        ? null
+        : getPendingCallInviteForConversation(conversation.id),
+      getRecentCallLogForConversation(conversation.id),
+      prisma.userPresence.findUnique({
+        where: { profileId: other.id },
+        select: { lastSeenAt: true },
+      }),
+      // Recipient viewing the thread = messages delivered.
+      // ponytail: the function only reads profileId; the cast avoids a second auth fetch.
+      markConversationDelivered(
+        { profileId: user.profileId } as CurrentUserProfile,
+        conversation.id
+      ),
+    ]);
+
   const readAction = markConversationReadAction.bind(null, conversation.id);
   const blockAction = blockConversation.bind(null, conversation.id);
   const unblockAction = unblockConversation.bind(null, conversation.id);
   const blockedByMe = conversation.blockedById === user.profileId;
   const realtimeChannel = conversationRealtimeChannel(conversation.id);
+  const hasEarlierPage = conversation.messages.length === MESSAGE_PAGE_SIZE;
+  const oldestMessageId = conversation.messages[0]?.id ?? null;
+  const threadItems = [
+    ...conversation.messages.map((message) => ({
+      kind: "message" as const,
+      at: message.createdAt,
+      message,
+    })),
+    ...callLog.map((entry) => ({
+      kind: "call" as const,
+      at: entry.createdAt,
+      entry,
+    })),
+  ].sort((a, b) => a.at.getTime() - b.at.getTime());
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
@@ -111,6 +168,14 @@ export default async function MessageThreadPage({
                     presence: {
                       selfProfileId: user.profileId,
                       selfLabel: user.name,
+                      otherProfileId: other.id,
+                      otherLabel: other.displayName,
+                      offlineLabel: otherPresence
+                        ? lastSeenLabel(otherPresence.lastSeenAt)
+                        : undefined,
+                    },
+                    typing: {
+                      selfProfileId: user.profileId,
                       otherProfileId: other.id,
                       otherLabel: other.displayName,
                     },
@@ -163,7 +228,29 @@ export default async function MessageThreadPage({
         )}
         <ConversationCallPanel
           conversationId={conversation.id}
-          initialRoomId={activeCallRoom?.id ?? null}
+          activeRoom={
+            activeCallRoom
+              ? {
+                  id: activeCallRoom.id,
+                  callType: activeCallRoom.callType === "voice" ? "voice" : "video",
+                }
+              : null
+          }
+          pendingInvite={
+            pendingCallInvite
+              ? {
+                  id: pendingCallInvite.id,
+                  roomId: pendingCallInvite.callRoomId,
+                  callType:
+                    pendingCallInvite.callRoom.callType === "voice"
+                      ? "voice"
+                      : "video",
+                  fromName: pendingCallInvite.fromProfile.displayName,
+                  expiresAt: pendingCallInvite.expiresAt.toISOString(),
+                  forMe: pendingCallInvite.toProfileId === user.profileId,
+                }
+              : null
+          }
           blocked={Boolean(conversation.blockedAt)}
           otherName={other.displayName}
         />
@@ -171,12 +258,40 @@ export default async function MessageThreadPage({
 
       <section className="giq-panel">
         <div className="space-y-4 p-5">
-          {conversation.messages.length === 0 ? (
+          {(hasEarlierPage || before) && (
+            <div className="flex flex-wrap items-center justify-center gap-2 pb-1">
+              {hasEarlierPage && oldestMessageId && (
+                <Link
+                  href={`/messages/${conversation.id}?before=${oldestMessageId}`}
+                  className="giq-outline-action px-3 text-[12px]"
+                >
+                  <ChevronsUp className="h-3.5 w-3.5" />
+                  Load earlier messages
+                </Link>
+              )}
+              {before && (
+                <Link
+                  href={`/messages/${conversation.id}`}
+                  className="giq-outline-action px-3 text-[12px]"
+                >
+                  <ChevronsDown className="h-3.5 w-3.5" />
+                  Back to latest
+                </Link>
+              )}
+            </div>
+          )}
+          {threadItems.length === 0 ? (
             <div className="giq-dashed-panel p-6 text-center text-[14px] text-[hsl(var(--muted-foreground))]">
               No visible messages in this conversation.
             </div>
           ) : (
-            conversation.messages.map((message) => {
+            threadItems.map((item) => {
+              if (item.kind === "call") {
+                return (
+                  <CallLogLine key={`call-${item.entry.id}`} entry={item.entry} />
+                );
+              }
+              const { message } = item;
               const isMine = message.senderId === user.profileId;
               const deleteAction = deleteConversationMessage.bind(
                 null,
@@ -325,6 +440,69 @@ export default async function MessageThreadPage({
   );
 }
 
+function CallLogLine({
+  entry,
+}: {
+  entry: {
+    id: string;
+    eventType: string;
+    createdAt: Date;
+    callRoom: { callType: string; createdAt: Date; endedAt: Date | null };
+  };
+}) {
+  const time = entry.createdAt.toLocaleTimeString("en-AU", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const callType = entry.callRoom.callType === "voice" ? "voice" : "video";
+  const label =
+    entry.eventType === "invite_missed"
+      ? `Missed ${callType} call`
+      : entry.eventType === "room_expired"
+        ? "Call expired"
+        : "Call ended";
+  const durationSeconds =
+    entry.eventType !== "invite_missed" && entry.callRoom.endedAt
+      ? Math.floor(
+          (entry.callRoom.endedAt.getTime() - entry.callRoom.createdAt.getTime()) /
+            1000
+        )
+      : null;
+
+  return (
+    <div className="flex justify-center py-1">
+      <span className="text-[11px] text-[hsl(var(--subtle-foreground))]">
+        {label} · {time}
+        {durationSeconds !== null && durationSeconds > 0
+          ? ` · ${formatCallLogDuration(durationSeconds)}`
+          : ""}
+      </span>
+    </div>
+  );
+}
+
+function lastSeenLabel(lastSeenAt: Date) {
+  const minutes = Math.floor((Date.now() - lastSeenAt.getTime()) / 60_000);
+  if (minutes < 1) return "Last seen just now";
+  if (minutes < 60) return `Last seen ${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Last seen ${hours}h ago`;
+  return `Last seen ${lastSeenAt.toLocaleDateString("en-AU", {
+    day: "2-digit",
+    month: "short",
+  })}`;
+}
+
+function formatCallLogDuration(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
 function MessageAttachment({
   media,
 }: {
@@ -334,8 +512,30 @@ function MessageAttachment({
     mimeType: string;
     widthPx: number | null;
     heightPx: number | null;
+    scanStatus: string;
   };
 }) {
+  // Blob endpoints only serve clean media - never emit a link for non-clean.
+  if (media.scanStatus === "pending") {
+    return (
+      <span
+        role="status"
+        className="inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[12px] text-[hsl(var(--muted-foreground))]"
+      >
+        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+        Scanning attachment…
+      </span>
+    );
+  }
+  if (media.scanStatus !== "clean") {
+    return (
+      <span className="inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border border-white/[0.04] bg-white/[0.02] px-3 py-2 text-[12px] text-[hsl(var(--subtle-foreground))]">
+        <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />
+        Attachment removed (failed safety scan)
+      </span>
+    );
+  }
+
   const url = `/api/media/${media.id}/blob`;
   if (media.mimeType.startsWith("image/")) {
     return (

@@ -42,6 +42,48 @@ export async function getActiveCallRoomForConversation(
   return findActiveCallRoom(conversation.id, current.profileId);
 }
 
+// Read-only: newest pending invite for a conversation's active call room.
+// Callers must have already authorized access to the conversation.
+export function getPendingCallInviteForConversation(conversationId: string) {
+  return prisma.callInvite.findFirst({
+    where: {
+      status: "pending",
+      callRoom: { conversationId, status: "active" },
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      callRoomId: true,
+      toProfileId: true,
+      expiresAt: true,
+      fromProfile: { select: { displayName: true } },
+      callRoom: { select: { callType: true } },
+    },
+  });
+}
+
+// Read-only: recent terminal call events for the conversation thread log.
+// Callers must have already authorized access to the conversation.
+export function getRecentCallLogForConversation(
+  conversationId: string,
+  limit = 10
+) {
+  return prisma.callEvent.findMany({
+    where: {
+      eventType: { in: ["room_ended", "room_expired", "invite_missed"] },
+      callRoom: { conversationId },
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      eventType: true,
+      createdAt: true,
+      callRoom: { select: { callType: true, createdAt: true, endedAt: true } },
+    },
+  });
+}
+
 export async function createCallRoomForConversation(
   current: CurrentUserProfile,
   conversationId: string,

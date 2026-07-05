@@ -1030,8 +1030,13 @@ async function findRankedRaceSearchIds({
             ) AS has_results,
             EXISTS (
               SELECT 1 FROM "RaceVideo" rv
-              WHERE rv."raceId" = r.id AND rv."streamUrl" IS NOT NULL
-            ) AS has_stream
+              WHERE rv."raceId" = r.id
+                AND (
+                  rv."streamUrl" IS NOT NULL
+                  OR rv."pageUrl" IS NOT NULL
+                  OR rv."sourceId" IS NOT NULL
+                )
+            ) AS has_replay
           FROM "Race" r
           JOIN "Meeting" m ON m.id = r."meetingId"
           JOIN "Track" t ON t.id = m."trackId"
@@ -1046,7 +1051,7 @@ async function findRankedRaceSearchIds({
             OR (${selectedStatus} = 'upcoming' AND "raceTime" > ${now})
             OR (${selectedStatus} = 'live' AND "raceTime" >= ${liveGte} AND "raceTime" <= ${now})
             OR (${selectedStatus} = 'resulted' AND has_results)
-            OR (${selectedStatus} = 'replay' AND has_stream))
+            OR (${selectedStatus} = 'replay' AND has_replay))
           AND (${parsed.raceNumber}::int IS NULL OR race_number_match = 1)
           AND (${parsed.distance}::int IS NULL OR distance_match = 1)
           AND (NOT ${hasClockTime} OR time_match = 1)
@@ -1121,8 +1126,13 @@ async function findRankedRaceSearchIds({
             ) AS has_results,
             EXISTS (
               SELECT 1 FROM "RaceVideo" rv
-              WHERE rv."raceId" = r.id AND rv."streamUrl" IS NOT NULL
-            ) AS has_stream
+              WHERE rv."raceId" = r.id
+                AND (
+                  rv."streamUrl" IS NOT NULL
+                  OR rv."pageUrl" IS NOT NULL
+                  OR rv."sourceId" IS NOT NULL
+                )
+            ) AS has_replay
           FROM "Race" r
           JOIN "Meeting" m ON m.id = r."meetingId"
           JOIN "Track" t ON t.id = m."trackId"
@@ -1137,7 +1147,7 @@ async function findRankedRaceSearchIds({
             OR (${selectedStatus} = 'upcoming' AND "raceTime" > ${now})
             OR (${selectedStatus} = 'live' AND "raceTime" >= ${liveGte} AND "raceTime" <= ${now})
             OR (${selectedStatus} = 'resulted' AND has_results)
-            OR (${selectedStatus} = 'replay' AND has_stream))
+            OR (${selectedStatus} = 'replay' AND has_replay))
           AND (${parsed.raceNumber}::int IS NULL OR race_number_match = 1)
           AND (${parsed.distance}::int IS NULL OR distance_match = 1)
           AND (NOT ${hasClockTime} OR time_match = 1)
@@ -1221,8 +1231,13 @@ async function findRankedRaceSearchIds({
             ) AS has_results,
             EXISTS (
               SELECT 1 FROM "RaceVideo" rv
-              WHERE rv."raceId" = r.id AND rv."streamUrl" IS NOT NULL
-            ) AS has_stream
+              WHERE rv."raceId" = r.id
+                AND (
+                  rv."streamUrl" IS NOT NULL
+                  OR rv."pageUrl" IS NOT NULL
+                  OR rv."sourceId" IS NOT NULL
+                )
+            ) AS has_replay
           FROM "Race" r
           JOIN "Meeting" m ON m.id = r."meetingId"
           JOIN "Track" t ON t.id = m."trackId"
@@ -1252,7 +1267,7 @@ async function findRankedRaceSearchIds({
             OR (${selectedStatus} = 'upcoming' AND "raceTime" > ${now})
             OR (${selectedStatus} = 'live' AND "raceTime" >= ${liveGte} AND "raceTime" <= ${now})
             OR (${selectedStatus} = 'resulted' AND has_results)
-            OR (${selectedStatus} = 'replay' AND has_stream)
+            OR (${selectedStatus} = 'replay' AND has_replay)
         )
         SELECT id
         FROM scored
@@ -1972,24 +1987,30 @@ export async function getDogsForListingSelect(limit = 80) {
   );
 }
 
-export async function getMessagingProfiles(excludeEmail?: string, limit = 60) {
+export async function getMessagingProfiles(
+  excludeEmail?: string,
+  limit = 60,
+  search?: string
+) {
+  const trimmedSearch = search?.trim();
   return safeQuery(
     () =>
       prisma.profile.findMany({
-        where: excludeEmail
-          ? {
-              user: {
-                email: { not: excludeEmail },
-                isBanned: false,
-                deletionRequestedAt: null,
-              },
-            }
-          : {
-              user: {
-                isBanned: false,
-                deletionRequestedAt: null,
-              },
-            },
+        where: {
+          user: {
+            ...(excludeEmail ? { email: { not: excludeEmail } } : {}),
+            isBanned: false,
+            deletionRequestedAt: null,
+          },
+          ...(trimmedSearch
+            ? {
+                displayName: {
+                  contains: trimmedSearch,
+                  mode: "insensitive" as const,
+                },
+              }
+            : {}),
+        },
         orderBy: [{ verified: "desc" }, { displayName: "asc" }],
         take: limit,
         include: {

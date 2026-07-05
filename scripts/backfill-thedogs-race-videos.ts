@@ -65,6 +65,11 @@ type VideoCandidate = RaceCandidate & {
   pageUrl: string;
 };
 
+type VideoCandidateRow = RaceCandidate & {
+  videoSourceId: string | null;
+  pageUrl: string | null;
+};
+
 type VideoSourceResponse = {
   meta?: {
     status?: number;
@@ -189,7 +194,7 @@ async function findVideoCandidates(options: Options): Promise<VideoCandidate[]> 
   const missingFilter = options.onlyMissing
     ? Prisma.sql`AND (v."id" IS NULL OR v."streamUrl" IS NULL)`
     : Prisma.empty;
-  const races = await prisma.$queryRaw<RaceCandidate[]>`
+  const races = await prisma.$queryRaw<VideoCandidateRow[]>`
     SELECT
       r."id",
       r."sourceId",
@@ -198,7 +203,20 @@ async function findVideoCandidates(options: Options): Promise<VideoCandidate[]> 
       r."raceNumber",
       r."name",
       t."name" AS "trackName",
-      t."state"
+      t."state",
+      COALESCE(
+        v."sourceId",
+        substring(r."replayUrl" from '/videos/watch/races/([0-9]+)/replay')
+      ) AS "videoSourceId",
+      COALESCE(
+        v."pageUrl",
+        r."replayUrl",
+        CASE
+          WHEN v."sourceId" ~ '^[0-9]+$'
+          THEN '/videos/watch/races/' || v."sourceId" || '/replay'
+          ELSE NULL
+        END
+      ) AS "pageUrl"
     FROM "Race" r
     JOIN "Meeting" m ON m."id" = r."meetingId"
     JOIN "Track" t ON t."id" = m."trackId"
@@ -209,8 +227,11 @@ async function findVideoCandidates(options: Options): Promise<VideoCandidate[]> 
     WHERE r."sourceProvider" = ${options.sourceProvider}
       AND r."raceTime" >= ${startOfDay(options.from)}
       AND r."raceTime" <= ${endOfDay(options.to)}
-      AND r."replayUrl" IS NOT NULL
-      AND r."replayUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+      AND (
+        r."replayUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+        OR v."sourceId" ~ '^[0-9]+$'
+        OR v."pageUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+      )
       ${missingFilter}
     ORDER BY r."raceTime" ASC, r."raceNumber" ASC
     ${queryLimit}
@@ -219,12 +240,17 @@ async function findVideoCandidates(options: Options): Promise<VideoCandidate[]> 
   const candidates = races
     .filter((race) => belongsToShard(race.id, options))
     .map((race) => {
-      const videoSourceId = extractVideoSourceId(race.replayUrl ?? "");
+      const videoSourceId =
+        race.videoSourceId ?? extractVideoSourceId(race.pageUrl ?? race.replayUrl ?? "");
       if (!videoSourceId) return null;
       return {
         ...race,
         videoSourceId,
-        pageUrl: absoluteUrl(race.replayUrl ?? ""),
+        pageUrl: absoluteUrl(
+          race.pageUrl ??
+            race.replayUrl ??
+            `/videos/watch/races/${videoSourceId}/replay`
+        ),
       };
     })
     .filter((race): race is VideoCandidate => race != null);
@@ -440,9 +466,13 @@ async function queryTotalStats(options: Options) {
   >`
     SELECT
       COUNT(*)::bigint AS "races",
-      COUNT(*) FILTER (WHERE r."replayUrl" IS NOT NULL)::bigint AS "withReplay",
+      COUNT(*) FILTER (
+        WHERE r."replayUrl" IS NOT NULL OR v."id" IS NOT NULL
+      )::bigint AS "withReplay",
       COUNT(*) FILTER (
         WHERE r."replayUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+          OR v."sourceId" ~ '^[0-9]+$'
+          OR v."pageUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
       )::bigint AS "supportedRaceReplayRows",
       COUNT(*) FILTER (
         WHERE r."replayUrl" IS NOT NULL
@@ -451,12 +481,16 @@ async function queryTotalStats(options: Options) {
       COUNT(v."id")::bigint AS "videoRows",
       COUNT(v."id") FILTER (WHERE v."streamUrl" IS NOT NULL)::bigint AS "withStream",
       COUNT(*) FILTER (
-        WHERE r."replayUrl" IS NOT NULL
+        WHERE (r."replayUrl" IS NOT NULL OR v."id" IS NOT NULL)
           AND (v."id" IS NULL OR v."streamUrl" IS NULL)
       )::bigint
         AS "missingVideoSourceRows",
       COUNT(*) FILTER (
-        WHERE r."replayUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+        WHERE (
+            r."replayUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+            OR v."sourceId" ~ '^[0-9]+$'
+            OR v."pageUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+          )
           AND (v."id" IS NULL OR v."streamUrl" IS NULL)
       )::bigint AS "missingSupportedVideoSourceRows"
     FROM "Race" r
@@ -476,10 +510,14 @@ async function querySampleRaces(
 ) {
   const filter =
     sampleKind === "missing-replay"
-      ? Prisma.sql`AND r."replayUrl" IS NULL`
+      ? Prisma.sql`AND r."replayUrl" IS NULL AND v."id" IS NULL`
       : sampleKind === "missing-video-source"
         ? Prisma.sql`
-          AND r."replayUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+          AND (
+            r."replayUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+            OR v."sourceId" ~ '^[0-9]+$'
+            OR v."pageUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+          )
           AND (v."id" IS NULL OR v."streamUrl" IS NULL)
         `
         : Prisma.sql`
@@ -531,9 +569,13 @@ async function queryYearlyStats(options: Options) {
     SELECT
       EXTRACT(YEAR FROM r."raceTime")::int AS "year",
       COUNT(*)::bigint AS "races",
-      COUNT(*) FILTER (WHERE r."replayUrl" IS NOT NULL)::bigint AS "withReplay",
+      COUNT(*) FILTER (
+        WHERE r."replayUrl" IS NOT NULL OR v."id" IS NOT NULL
+      )::bigint AS "withReplay",
       COUNT(*) FILTER (
         WHERE r."replayUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+          OR v."sourceId" ~ '^[0-9]+$'
+          OR v."pageUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
       )::bigint AS "supportedRaceReplayRows",
       COUNT(*) FILTER (
         WHERE r."replayUrl" IS NOT NULL
@@ -542,7 +584,11 @@ async function queryYearlyStats(options: Options) {
       COUNT(v."id")::bigint AS "videoRows",
       COUNT(v."id") FILTER (WHERE v."streamUrl" IS NOT NULL)::bigint AS "withStream",
       COUNT(*) FILTER (
-        WHERE r."replayUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+        WHERE (
+            r."replayUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+            OR v."sourceId" ~ '^[0-9]+$'
+            OR v."pageUrl" ~ ${SUPPORTED_RACE_REPLAY_PATH_PATTERN}
+          )
           AND (v."id" IS NULL OR v."streamUrl" IS NULL)
       )::bigint AS "missingSupportedVideoSourceRows"
     FROM "Race" r

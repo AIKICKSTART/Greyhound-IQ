@@ -33,7 +33,11 @@ export async function resolveTheDogsRaceReplay({
   sourceId?: string | null;
   replayUrl?: string | null;
 }): Promise<ResolvedTheDogsReplay | null> {
-  const providerReplayUrl = replayUrl ?? (await fetchReplayUrlFromRacePage(sourceId));
+  const providerReplayUrl =
+    replayUrl ??
+    (isReplayVideoSourceId(sourceId)
+      ? `/videos/watch/races/${sourceId}/replay`
+      : await fetchReplayUrlFromRacePage(sourceId));
   if (!providerReplayUrl) return null;
 
   const videoSourceId = extractVideoSourceId(providerReplayUrl);
@@ -123,6 +127,10 @@ function parseReplayUrl(html: string) {
 
 function extractVideoSourceId(replayUrl: string) {
   return replayUrl.match(/\/videos\/watch\/races\/(\d+)\/replay\b/i)?.[1];
+}
+
+function isReplayVideoSourceId(value?: string | null) {
+  return Boolean(value?.match(/^\d+$/));
 }
 
 function streamContentType(value: string | null | undefined) {

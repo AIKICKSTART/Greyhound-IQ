@@ -13,10 +13,12 @@ import {
 import { getPreviousRaceVideoRunners, getRaceById } from "@/lib/queries";
 import { RaceReplayPlayer } from "@/components/race-replay-player";
 import { RunnerRow } from "@/components/runner-row";
+import type { ResolvedRaceReplay } from "@/lib/live/race-replay";
 import {
-  absoluteTheDogsUrl,
-  resolveTheDogsRaceReplay,
-} from "@/lib/live/thedogs-replay";
+  resolveProviderRaceReplay,
+  resolveRaceVideoReplay,
+} from "@/lib/live/race-replay";
+import { absoluteTheDogsUrl } from "@/lib/live/thedogs-replay";
 import { formatRaceDetailTime } from "@/lib/race-time";
 
 export const dynamic = "force-dynamic";
@@ -41,11 +43,12 @@ type PreviousRaceVideoCandidate = {
   finishText: string | null;
   runningTime: number | null;
   winnerTime: number | null;
-  localReplay: Awaited<ReturnType<typeof resolveTheDogsRaceReplay>>;
+  embedSourceType?: string | null;
+  localReplay: ResolvedRaceReplay | null;
 };
 
 type ResolvedPreviousRaceVideo = PreviousRaceVideoCandidate & {
-  replay: Awaited<ReturnType<typeof resolveTheDogsRaceReplay>>;
+  replay: ResolvedRaceReplay | null;
 };
 
 export async function generateMetadata({
@@ -78,29 +81,31 @@ export default async function RacePage({
   const track = race.meeting.track;
   const streamVideo = race.videos.find((video) => video.streamUrl);
   const primaryVideo = streamVideo ?? race.videos[0] ?? null;
-  const providerReplay = streamVideo
+  const storedReplay = primaryVideo ? await resolveRaceVideoReplay(primaryVideo) : null;
+  const providerReplay = storedReplay?.streamUrl || storedReplay?.embedUrl
     ? null
     : await resolveProviderReplay({
         sourceProvider: race.sourceProvider,
         sourceId: race.sourceId,
         replayUrl: race.replayUrl,
       });
-  const replayStreamUrl = streamVideo?.streamUrl ?? providerReplay?.streamUrl ?? null;
+  const replayStreamUrl = storedReplay?.streamUrl ?? providerReplay?.streamUrl ?? null;
   const replayStreamContentType =
-    streamVideo?.streamContentType ?? providerReplay?.streamContentType ?? null;
+    storedReplay?.streamContentType ?? providerReplay?.streamContentType ?? null;
+  const replayEmbedUrl = replayStreamUrl
+    ? null
+    : storedReplay?.embedUrl ?? providerReplay?.embedUrl ?? null;
   const replayPageUrl = normaliseReplayPageUrl(
-    primaryVideo?.pageUrl ?? race.replayUrl ?? providerReplay?.pageUrl ?? null,
+    storedReplay?.pageUrl ??
+      providerReplay?.pageUrl ??
+      primaryVideo?.pageUrl ??
+      race.replayUrl ??
+      null,
     race.sourceProvider
   );
-  const replayTitle = primaryVideo?.title ?? providerReplay?.title ?? race.name;
-  const youtubeEmbedUrl =
-    replayStreamUrl
-      ? null
-      : youtubeEmbedUrlFromPage(
-          race.videos.find(
-            (video) => video.embedSourceType === "youtube" && video.pageUrl
-          )?.pageUrl ?? null
-        );
+  const replayTitle =
+    storedReplay?.title ?? providerReplay?.title ?? primaryVideo?.title ?? race.name;
+  const hasPlayableReplay = Boolean(replayStreamUrl || replayEmbedUrl);
   const resultCount = race.runners.filter((runner) => runner.result).length;
   const activeRunnerCount = race.runners.filter((runner) => !runner.scratched).length;
   const expectedResultCount = activeRunnerCount || race.runners.length;
@@ -145,7 +150,7 @@ export default async function RacePage({
               </span>
             </>
           )}
-          {replayStreamUrl && (
+          {hasPlayableReplay && (
             <>
               <span className="text-white/[0.1]">/</span>
               <span className="flex items-center gap-1.5 text-[hsl(var(--secondary))]">
@@ -182,9 +187,9 @@ export default async function RacePage({
               raceLabel={`Race ${race.raceNumber} / ${race.distance}m`}
               raceTimeLabel={raceTimeLabel}
             />
-          ) : youtubeEmbedUrl ? (
-            <YoutubeReplayEmbed
-              embedUrl={youtubeEmbedUrl}
+          ) : replayEmbedUrl ? (
+            <ReplayEmbed
+              embedUrl={replayEmbedUrl}
               pageUrl={replayPageUrl}
               title={replayTitle ?? "Race replay"}
               trackName={track.name}
@@ -306,9 +311,9 @@ export default async function RacePage({
               />
               <SummaryTile
                 label="Replay"
-                value={replayStreamUrl ? "Playable stream" : "Not playable yet"}
+                value={hasPlayableReplay ? "Playable replay" : "Not playable yet"}
                 icon={<PlayCircle className="h-4 w-4" />}
-                tone={replayStreamUrl ? "gold" : "primary"}
+                tone={hasPlayableReplay ? "gold" : "primary"}
               />
               <SummaryTile
                 label="Results"
@@ -384,6 +389,7 @@ function collectPreviousRaceVideoCandidates(
       pageUrl,
       sourceProvider: video?.sourceProvider ?? pastRace.sourceProvider ?? "",
       sourceId: video?.sourceId ?? pastRace.sourceId ?? pageUrl,
+      embedSourceType: video?.embedSourceType,
       dogNames: [pastRunner.dog.name],
       date: pastRace.raceTime,
       trackName: pastRace.meeting.track.name,
@@ -444,8 +450,8 @@ function collectPreviousRaceVideoCandidates(
 
   return [...byPageUrl.values()].sort(
     (a, b) =>
-      Number(Boolean(b.localReplay?.streamUrl)) -
-        Number(Boolean(a.localReplay?.streamUrl)) ||
+      Number(Boolean(b.localReplay?.streamUrl || b.localReplay?.embedUrl)) -
+        Number(Boolean(a.localReplay?.streamUrl || a.localReplay?.embedUrl)) ||
       b.date.getTime() - a.date.getTime()
   );
 }
@@ -460,12 +466,12 @@ async function resolvePreviousRaceVideos(
         ...candidate,
         replay:
           candidate.localReplay ??
-          (candidate.sourceProvider === "thedogs"
-            ? await resolveTheDogsRaceReplay({
-                sourceId: candidate.sourceId,
-                replayUrl: null,
-              })
-            : null),
+          (await resolveRaceVideoReplay({
+            sourceProvider: candidate.sourceProvider,
+            sourceId: candidate.sourceId,
+            pageUrl: candidate.pageUrl,
+            embedSourceType: candidate.embedSourceType,
+          })),
       }))
   );
 }
@@ -540,6 +546,15 @@ function PreviousRaceVideoSection({
                 raceLabel={video.raceLabel}
                 raceTimeLabel={formatRaceDetailTime(video.date)}
               />
+            ) : video.replay?.embedUrl ? (
+              <ReplayEmbed
+                embedUrl={video.replay.embedUrl}
+                pageUrl={video.replay.pageUrl ?? video.pageUrl}
+                title={video.replay.title ?? video.raceName ?? "Race replay"}
+                trackName={video.trackName}
+                raceLabel={video.raceLabel}
+                raceTimeLabel={formatRaceDetailTime(video.date)}
+              />
             ) : (
               <PreviousReplayFallback video={video} />
             )}
@@ -594,8 +609,7 @@ async function resolveProviderReplay({
   sourceId?: string | null;
   replayUrl?: string | null;
 }) {
-  if (sourceProvider !== "thedogs") return null;
-  return resolveTheDogsRaceReplay({ sourceId, replayUrl });
+  return resolveProviderRaceReplay({ sourceProvider, sourceId, replayUrl });
 }
 
 function normaliseReplayPageUrl(value: string | null, sourceProvider?: string | null) {
@@ -670,7 +684,7 @@ function ReplayFallback({
   );
 }
 
-function YoutubeReplayEmbed({
+function ReplayEmbed({
   embedUrl,
   pageUrl,
   title,
@@ -756,27 +770,4 @@ function SummaryTile({
       </span>
     </div>
   );
-}
-
-function youtubeEmbedUrlFromPage(value: string | null) {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    const host = url.hostname.replace(/^www\./, "");
-    const id =
-      host === "youtu.be"
-        ? url.pathname.split("/").filter(Boolean)[0]
-        : host.endsWith("youtube.com")
-          ? url.searchParams.get("v") ?? youtubePathId(url.pathname)
-          : null;
-    if (!id || !/^[A-Za-z0-9_-]{6,}$/.test(id)) return null;
-    return `https://www.youtube-nocookie.com/embed/${id}`;
-  } catch {
-    return null;
-  }
-}
-
-function youtubePathId(pathname: string) {
-  const parts = pathname.split("/").filter(Boolean);
-  return parts[0] === "embed" || parts[0] === "shorts" ? parts[1] : null;
 }

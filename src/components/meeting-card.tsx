@@ -87,6 +87,7 @@ export function MeetingCard({ meeting }: { meeting: MeetingData }) {
             now.getTime() - race.raceTime.getTime() < 20 * 60 * 1000;
           const isNext = nextRace?.id === race.id;
           const timeLabel = formatRaceTime(race.raceTime);
+          const hasReplay = race.videos?.some((video) => video.streamUrl);
           return (
             <Link
               key={race.id}
@@ -94,9 +95,11 @@ export function MeetingCard({ meeting }: { meeting: MeetingData }) {
               className={`giq-chip giq-race-slot ${isLive ? "giq-chip-live" : isNext ? "giq-chip-active" : ""}`}
               aria-label={`Open ${track.name}, ${track.state} race ${race.raceNumber} at ${timeLabel}`}
             >
-              <span>R{race.raceNumber}</span>
-              <span className="text-[10px] opacity-70">
-                {timeLabel}
+              <span className="giq-race-slot-main">R{race.raceNumber}</span>
+              <span className="giq-race-slot-time">{timeLabel}</span>
+              <span className="giq-race-slot-footer">
+                <span>{race.distance}m</span>
+                {hasReplay && <PlayCircle className="h-3 w-3" aria-hidden="true" />}
               </span>
               {isLive && <span className="giq-race-slot-status">Live</span>}
             </Link>

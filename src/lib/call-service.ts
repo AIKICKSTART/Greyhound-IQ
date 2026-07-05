@@ -280,11 +280,11 @@ export async function endCallRoomForCurrentUser(
     action: "call.room.end",
     targetType: "call_room",
     targetId: room.id,
-    metadata: { endedAt: ended.endedAt?.toISOString() ?? null },
+    metadata: { endedAt: ended?.endedAt?.toISOString() ?? null },
   });
   await deleteLiveKitRoom(room.roomName);
 
-  return ended;
+  return ended ?? room;
 }
 
 export async function respondToCallInviteForCurrentUser(
@@ -456,13 +456,16 @@ async function endCallRoom(
 ) {
   const endedAt = new Date();
   const ended = await prisma.$transaction(async (tx) => {
-    const updated = await tx.callRoom.update({
-      where: { id: room.id },
-      data: {
-        status: "ended",
-        endedAt,
-      },
+    // Compare-and-set: only the first caller to flip active->ended proceeds.
+    // A concurrent user-end + room_finished webhook would otherwise both emit
+    // duplicate events and broadcasts.
+    const flip = await tx.callRoom.updateMany({
+      where: { id: room.id, status: "active" },
+      data: { status: "ended", endedAt },
     });
+    const current = await tx.callRoom.findUnique({ where: { id: room.id } });
+    if (flip.count === 0) return { room: current, transitioned: false };
+
     await tx.callParticipant.updateMany({
       where: event.leftAtProfileId
         ? { callRoomId: room.id, profileId: event.leftAtProfileId }
@@ -477,18 +480,18 @@ async function endCallRoom(
         metadataJson: event.metadata ? JSON.stringify(event.metadata) : null,
       },
     });
-    return updated;
+    return { room: current, transitioned: true };
   });
 
-  if (ended.conversationId) {
+  if (ended.transitioned && ended.room?.conversationId) {
     await broadcastConversationRealtimeEvent(
-      ended.conversationId,
+      ended.room.conversationId,
       "call_room_ended",
-      { roomId: ended.id }
+      { roomId: ended.room.id }
     );
   }
 
-  return ended;
+  return ended.room;
 }
 
 function findActiveCallRoom(conversationId: string, profileId: string) {

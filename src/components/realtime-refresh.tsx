@@ -147,7 +147,9 @@ export function RealtimeRefresh({ channels }: RealtimeRefreshProps) {
       if (typingHideTimer) clearTimeout(typingHideTimer);
       for (const cleanup of windowCleanups) cleanup();
       for (const channel of subscribedChannels) {
-        void channel.unsubscribe();
+        // removeChannel unsubscribes AND drops it from the singleton client's
+        // registry, avoiding stale-topic buildup across repeat navigation.
+        void client.removeChannel(channel);
       }
     };
   }, [router, stableChannels, startTransition]);

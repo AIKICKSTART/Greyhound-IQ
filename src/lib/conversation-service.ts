@@ -1,6 +1,6 @@
 import { createAuditLog } from "@/lib/account-service";
 import type { CurrentUserProfile } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { prisma, safeQuery } from "@/lib/db";
 import { logWarn } from "@/lib/logger";
 import { assertMediaAttachable } from "@/lib/media-service";
 import { findBannedPhraseMatch } from "@/lib/moderation-service";
@@ -404,31 +404,39 @@ export async function markConversationDelivered(
   return { delivered: created.count };
 }
 
+// Rendered in the global header/inbox — must survive a DB blip, so both wrap
+// safeQuery with an empty fallback rather than throwing up through the shell.
 export async function countUnreadMessagesByConversation(profileId: string) {
-  const groups = await prisma.message.groupBy({
-    by: ["conversationId"],
-    where: {
-      recipientId: profileId,
-      readAt: null,
-      deletedByRecipientAt: null,
-    },
-    _count: { _all: true },
-  });
-  const counts = new Map<string, number>();
-  for (const group of groups) {
-    if (group.conversationId) counts.set(group.conversationId, group._count._all);
-  }
-  return counts;
+  return safeQuery(async () => {
+    const groups = await prisma.message.groupBy({
+      by: ["conversationId"],
+      where: {
+        recipientId: profileId,
+        readAt: null,
+        deletedByRecipientAt: null,
+      },
+      _count: { _all: true },
+    });
+    const counts = new Map<string, number>();
+    for (const group of groups) {
+      if (group.conversationId) counts.set(group.conversationId, group._count._all);
+    }
+    return counts;
+  }, new Map<string, number>());
 }
 
 export async function countUnreadMessagesTotal(profileId: string) {
-  return prisma.message.count({
-    where: {
-      recipientId: profileId,
-      readAt: null,
-      deletedByRecipientAt: null,
-    },
-  });
+  return safeQuery(
+    () =>
+      prisma.message.count({
+        where: {
+          recipientId: profileId,
+          readAt: null,
+          deletedByRecipientAt: null,
+        },
+      }),
+    0
+  );
 }
 
 export async function softDeleteConversationMessage(

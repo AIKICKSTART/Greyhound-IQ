@@ -221,12 +221,19 @@ export async function finalizeMediaUpload(
     },
   });
 
-  await recordUsageEvent({
-    idempotencyKey: `media_upload_bytes:${finalized.id}`,
-    metricKey: "media_upload_bytes",
-    userId: current.dbUserId,
-    quantity: finalized.sizeBytes,
-  });
+  // Metering is idempotent (keyed on the asset id) and must not surface as a
+  // finalize failure after the asset is already finalized — a retry re-records
+  // safely, so log and move on.
+  try {
+    await recordUsageEvent({
+      idempotencyKey: `media_upload_bytes:${finalized.id}`,
+      metricKey: "media_upload_bytes",
+      userId: current.dbUserId,
+      quantity: finalized.sizeBytes,
+    });
+  } catch (err) {
+    logError("media.usage_record_failed", { mediaId: finalized.id }, err);
+  }
 
   await createAuditLog({
     actorId: current.dbUserId,

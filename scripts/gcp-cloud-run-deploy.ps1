@@ -569,3 +569,10 @@ Write-Host "Image: $image"
 if ($mediaMaintenanceBaseUrl) {
   Write-Host "Media scanner service: $MediaScannerServiceName"
 }
+
+# Post-deploy smoke test — must fail loudly per scripts/AGENTS.md
+$env:SMOKE_BASE_URL = $NextAuthUrl
+npm run test:smoke
+if ($LASTEXITCODE -ne 0) {
+  throw "Post-deploy smoke test failed against $NextAuthUrl"
+}

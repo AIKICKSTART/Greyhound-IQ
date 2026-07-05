@@ -84,11 +84,14 @@ jobs:
       - run: npm run check:migrations
       - run: npx prisma migrate deploy
       - run: npm run db:seed
+      - run: npm run check:internal-auth
       - run: npm run check:calls
       - run: npm run check:auth-profile-sync
       - run: npm run check:community-flow
       - run: npm run check:marketplace-safety
       - run: npm run check:visibility-policies
+      - run: npm run test:unit
+      - run: npm run check:comms-security
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build

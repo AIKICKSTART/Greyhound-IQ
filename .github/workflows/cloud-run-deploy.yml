@@ -159,3 +159,25 @@ jobs:
             --role roles/run.invoker \
             --project "${{ secrets.GCP_PROJECT_ID }}" \
             --quiet
+
+      - name: Post-deploy smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          SMOKE_BASE_URL="${{ secrets.NEXTAUTH_URL }}" npm run test:smoke
+
+      - name: Post-deploy LiveKit connectivity check (staging only)
+        if: steps.build.outputs.env_name == 'staging'
+        shell: bash
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${LIVEKIT_URL:-}" ] || [ -z "${LIVEKIT_API_KEY:-}" ] || [ -z "${LIVEKIT_API_SECRET:-}" ]; then
+            echo "::notice::LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET not set — skipping LiveKit connectivity check"
+            exit 0
+          fi
+          npm run check:livekit-connectivity

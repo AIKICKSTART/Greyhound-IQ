@@ -160,7 +160,61 @@ async function main() {
     process.exit(1);
   }
 
+  // ── Security headers check ─────────────────────────────────────────────────
+  await checkSecurityHeaders(failures);
+  if (failures.length > 0) {
+    console.error("Security headers check failed:");
+    for (const failure of failures) console.error(`- ${failure}`);
+    process.exit(1);
+  }
+  // ── End security headers check ─────────────────────────────────────────────
+
   console.log(`Smoke gate passed against ${baseUrl}`);
+}
+
+async function checkSecurityHeaders(failures: string[]) {
+  const url = new URL("/", baseUrl).toString();
+  let response: Response;
+  try {
+    response = await fetch(url, { method: "GET", redirect: "follow" });
+  } catch (err) {
+    failures.push(`security-headers: request to ${url} failed (${String(err)})`);
+    return;
+  }
+
+  const csp = response.headers.get("content-security-policy") ?? "";
+  if (!csp.includes("default-src")) {
+    failures.push(
+      `security-headers: content-security-policy missing "default-src" (got: ${csp.slice(0, 120) || "(none)"})`
+    );
+  } else {
+    console.log("security-headers: content-security-policy present");
+  }
+
+  const sts = response.headers.get("strict-transport-security") ?? "";
+  if (!sts) {
+    failures.push("security-headers: strict-transport-security header missing");
+  } else {
+    console.log("security-headers: strict-transport-security present");
+  }
+
+  const xcto = response.headers.get("x-content-type-options") ?? "";
+  if (xcto.toLowerCase() !== "nosniff") {
+    failures.push(
+      `security-headers: x-content-type-options expected "nosniff", got "${xcto}"`
+    );
+  } else {
+    console.log("security-headers: x-content-type-options = nosniff");
+  }
+
+  const pp = response.headers.get("permissions-policy") ?? "";
+  if (!pp.toLowerCase().includes("camera=")) {
+    failures.push(
+      `security-headers: permissions-policy missing camera directive (got: ${pp.slice(0, 120) || "(none)"})`
+    );
+  } else {
+    console.log("security-headers: permissions-policy camera directive present");
+  }
 }
 
 export {};

@@ -5,10 +5,17 @@ import {
   createCallRoomForConversation,
   createCallTokenForCurrentUser,
   endCallRoomForCurrentUser,
+  getPendingCallInviteForConversation,
+  handleLiveKitWebhookEvent,
+  respondToCallInviteForCurrentUser,
+  runCallMaintenance,
 } from "@/lib/call-service";
 import type { CurrentUserProfile } from "@/lib/auth";
 import { syncAuthUser } from "@/lib/auth-sync";
 import {
+  countUnreadMessagesByConversation,
+  getConversationForProfile,
+  markConversationDelivered,
   markConversationRead,
   sendConversationMessage,
   startOrGetConversation,
@@ -27,6 +34,9 @@ import {
   createMarketplaceCategoryForModerator,
   toggleSavedListingForCurrentUser,
 } from "@/lib/listing-service";
+import { createMediaDownloadUrl } from "@/lib/media-service";
+import { PRIVATE_USER_MEDIA_BUCKET } from "@/lib/storage-paths";
+import type { WebhookEvent } from "livekit-server-sdk";
 
 type ProbeCurrentUser = CurrentUserProfile & {
   isBanned: false;
@@ -41,6 +51,7 @@ type ProbeIds = {
   callRooms: Set<string>;
   listings: Set<string>;
   categories: Set<string>;
+  mediaAssets: Set<string>;
 };
 
 export type CommunityFlowProbeResult = {
@@ -83,6 +94,7 @@ export async function runCommunityFlowProbe({
     callRooms: new Set<string>(),
     listings: new Set<string>(),
     categories: new Set<string>(),
+    mediaAssets: new Set<string>(),
   };
   const env = captureProbeEnv();
   let primaryError: unknown;
@@ -128,8 +140,110 @@ export async function runCommunityFlowProbe({
       mediaIds: [],
     });
     assert.equal(message.conversationId, conversation.id);
+
+    // ── Delivered semantics ──────────────────────────────────────────────────
+    const receiptsBeforeDeliver = await prisma.messageDeliveryReceipt.count({
+      where: { messageId: message.id, profileId: buyer.profileId },
+    });
+    assert.equal(receiptsBeforeDeliver, 0, "no delivery receipt before markConversationDelivered");
+
+    const deliveredResult = await markConversationDelivered(buyer, conversation.id);
+    assert.equal(deliveredResult.delivered, 1, "markConversationDelivered delivers 1 message");
+
+    const deliveryReceipt = await prisma.messageDeliveryReceipt.findFirst({
+      where: { messageId: message.id, profileId: buyer.profileId },
+    });
+    assert.ok(deliveryReceipt, "delivery receipt row exists after markConversationDelivered");
+
+    const unreadMapBefore = await countUnreadMessagesByConversation(buyer.profileId);
+    assert.equal(
+      unreadMapBefore.get(conversation.id),
+      1,
+      "1 unread message in conversation before read",
+    );
+
+    // Presence: touchPresence is fire-and-forget in sendConversationMessage; the
+    // DB roundtrips above give it time to complete.
+    const presenceRow = await prisma.userPresence.findFirst({
+      where: { profileId: seller.profileId },
+    });
+    assert.ok(presenceRow, "UserPresence row exists for sender after send");
+    assert.ok(presenceRow.lastSeenAt, "lastSeenAt is populated");
+    // ── End delivered semantics ──────────────────────────────────────────────
+
     assert.equal(await markConversationRead(buyer, conversation.id), 1);
+
+    // ── Unread count + read receipt ──────────────────────────────────────────
+    const unreadMapAfterRead = await countUnreadMessagesByConversation(buyer.profileId);
+    assert.equal(
+      unreadMapAfterRead.get(conversation.id) ?? 0,
+      0,
+      "0 unread after markConversationRead",
+    );
+    const readReceiptRow = await prisma.messageReadReceipt.findFirst({
+      where: { messageId: message.id, profileId: buyer.profileId },
+    });
+    assert.ok(readReceiptRow, "read receipt row exists after markConversationRead");
+    // ── End unread/read receipt ──────────────────────────────────────────────
+
     await toggleConversationMessageReaction(buyer, conversation.id, message.id);
+
+    // ── Notification dedupe ──────────────────────────────────────────────────
+    const msg2 = await sendConversationMessage(seller, conversation.id, {
+      body: "Community flow check message 2.",
+      mediaIds: [],
+    });
+    assert.ok(msg2.id);
+    const notifCount = await prisma.notification.count({
+      where: {
+        userId: buyer.dbUserId,
+        type: "message",
+        href: `/messages/${conversation.id}`,
+        readAt: null,
+      },
+    });
+    assert.equal(notifCount, 1, "exactly 1 unread message notification (deduped)");
+    // ── End notification dedupe ──────────────────────────────────────────────
+
+    // ── Pagination ───────────────────────────────────────────────────────────
+    const bulkBase = Date.now();
+    for (let i = 0; i < 60; i++) {
+      await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          senderId: seller.profileId,
+          recipientId: buyer.profileId,
+          body: `pagination-test-msg-${i}`,
+          createdAt: new Date(bulkBase + i * 10),
+        },
+      });
+    }
+    const page1 = await getConversationForProfile(conversation.id, seller.profileId);
+    assert.equal(page1.messages.length, 50, "default returns 50 messages");
+    const newestInPage1 = page1.messages[page1.messages.length - 1];
+    assert.equal(
+      newestInPage1.body,
+      "pagination-test-msg-59",
+      "newest message is the last bulk message",
+    );
+    const oldestInPage1 = page1.messages[0];
+    const page2 = await getConversationForProfile(conversation.id, seller.profileId, {
+      before: oldestInPage1.id,
+    });
+    assert.ok(page2.messages.length > 0, "page2 has older messages");
+    // page2 messages must all be older than the oldest message in page1
+    const oldestCreatedAt = oldestInPage1.createdAt;
+    assert.ok(
+      page2.messages.every((m) => m.createdAt <= oldestCreatedAt),
+      "page2 messages are all older than page1's oldest message",
+    );
+    if (page2.messages.length > 1) {
+      assert.ok(
+        page2.messages[0].createdAt <= page2.messages[page2.messages.length - 1].createdAt,
+        "page2 messages are in ascending order",
+      );
+    }
+    // ── End pagination ───────────────────────────────────────────────────────
 
     const room = await createCallRoomForConversation(seller, conversation.id);
     ids.callRooms.add(room.id);
@@ -141,6 +255,136 @@ export async function runCommunityFlowProbe({
     assert.equal(buyerToken.token.split(".").length, 3);
     const ended = await endCallRoomForCurrentUser(seller, room.id);
     assert.equal(ended.status, "ended");
+
+    // ── Invite lifecycle ─────────────────────────────────────────────────────
+
+    // Decline: room ended + invite declined
+    const declineRoom = await createCallRoomForConversation(seller, conversation.id);
+    ids.callRooms.add(declineRoom.id);
+    const pendingInvite = await getPendingCallInviteForConversation(conversation.id);
+    assert.ok(pendingInvite, "pending invite exists after room creation");
+    assert.equal(pendingInvite.toProfileId, buyer.profileId, "invite targets buyer");
+
+    const declineResult = await respondToCallInviteForCurrentUser(
+      buyer,
+      declineRoom.id,
+      "decline",
+    );
+    assert.equal(declineResult.status, "declined");
+    const declineRoomRow = await prisma.callRoom.findUnique({ where: { id: declineRoom.id } });
+    assert.equal(declineRoomRow?.status, "ended", "room ended after decline");
+
+    // Accept: token issuance works
+    const acceptRoom = await createCallRoomForConversation(seller, conversation.id);
+    ids.callRooms.add(acceptRoom.id);
+    const acceptResult = await respondToCallInviteForCurrentUser(
+      buyer,
+      acceptRoom.id,
+      "accept",
+    );
+    assert.equal(acceptResult.status, "accepted");
+    const acceptToken = await createCallTokenForCurrentUser(buyer, acceptRoom.id);
+    assert.equal(acceptToken.roomId, acceptRoom.id);
+    assert.equal(acceptToken.token.split(".").length, 3, "accepted invite token is valid JWT");
+    await endCallRoomForCurrentUser(seller, acceptRoom.id);
+
+    // Missed: backdate invite, run maintenance, assert missed + notification
+    const missedRoom = await createCallRoomForConversation(seller, conversation.id);
+    ids.callRooms.add(missedRoom.id);
+    const pendingInvite3 = await prisma.callInvite.findFirst({
+      where: { callRoomId: missedRoom.id, status: "pending" },
+    });
+    assert.ok(pendingInvite3, "pending invite exists for missed-room test");
+    await prisma.callInvite.update({
+      where: { id: pendingInvite3.id },
+      data: { expiresAt: new Date(Date.now() - 5_000) },
+    });
+    await runCallMaintenance();
+    const invite3Updated = await prisma.callInvite.findUnique({
+      where: { id: pendingInvite3.id },
+    });
+    assert.equal(invite3Updated?.status, "missed", "invite marked missed by maintenance");
+    const missedNotif = await prisma.notification.findFirst({
+      where: { userId: buyer.dbUserId, type: "call_missed" },
+    });
+    assert.ok(missedNotif, "call_missed notification created for callee");
+    const missedRoomRow = await prisma.callRoom.findUnique({ where: { id: missedRoom.id } });
+    assert.equal(missedRoomRow?.status, "active", "room remains active after invite missed");
+    // ── End invite lifecycle ─────────────────────────────────────────────────
+
+    // ── Webhook reconciliation ───────────────────────────────────────────────
+    const webhookRoom = await createCallRoomForConversation(seller, conversation.id);
+    ids.callRooms.add(webhookRoom.id);
+
+    await handleLiveKitWebhookEvent({
+      event: "room_finished",
+      room: { name: webhookRoom.roomName },
+    } as unknown as WebhookEvent);
+
+    const webhookRoomRow = await prisma.callRoom.findUnique({ where: { id: webhookRoom.id } });
+    assert.equal(webhookRoomRow?.status, "ended", "webhook event ends room");
+
+    const webhookParticipants = await prisma.callParticipant.findMany({
+      where: { callRoomId: webhookRoom.id },
+    });
+    assert.ok(
+      webhookParticipants.every((p) => p.leftAt !== null),
+      "all participants have leftAt set after webhook",
+    );
+
+    // Idempotence: second call must not throw or add events
+    const eventsBefore = await prisma.callEvent.count({
+      where: { callRoomId: webhookRoom.id },
+    });
+    await handleLiveKitWebhookEvent({
+      event: "room_finished",
+      room: { name: webhookRoom.roomName },
+    } as unknown as WebhookEvent);
+    const eventsAfter = await prisma.callEvent.count({
+      where: { callRoomId: webhookRoom.id },
+    });
+    assert.equal(eventsAfter, eventsBefore, "webhook idempotent: no additional events on replay");
+    // ── End webhook reconciliation ───────────────────────────────────────────
+
+    // ── Media pending-attach ─────────────────────────────────────────────────
+    const probeMedia = await prisma.mediaAsset.create({
+      data: {
+        uploaderId: seller.dbUserId,
+        storageBucket: PRIVATE_USER_MEDIA_BUCKET,
+        storagePath: `users/${seller.dbUserId}/messages/pending/${marker}-probe.bin`,
+        publicUrl: null,
+        mediaType: "image",
+        originalName: "probe-media.jpg",
+        mimeType: "image/jpeg",
+        sizeBytes: 1024,
+        linkedEntityType: null,
+        linkedEntityId: null,
+        expiresAt: null,
+        scanStatus: "pending",
+      },
+    });
+    ids.mediaAssets.add(probeMedia.id);
+
+    const mediaMsg = await sendConversationMessage(seller, conversation.id, {
+      body: "Media attachment probe",
+      mediaIds: [probeMedia.id],
+    });
+    const mediaMsgRow = await prisma.messageMedia.findFirst({
+      where: { mediaId: probeMedia.id },
+    });
+    assert.ok(mediaMsgRow, "MessageMedia row exists after attaching pending media");
+    assert.equal(mediaMsgRow.messageId, mediaMsg.id);
+
+    await prisma.mediaAsset.update({
+      where: { id: probeMedia.id },
+      data: { scanStatus: "infected" },
+    });
+    await assert.rejects(
+      () => createMediaDownloadUrl(seller, probeMedia.id),
+      (err: Error) => err.message === "media.infected",
+      "createMediaDownloadUrl rejects infected media",
+    );
+    // ── End media pending-attach ─────────────────────────────────────────────
 
     const category = await createMarketplaceCategoryForModerator(admin, {
       name: "Community Flow Check",
@@ -279,6 +523,7 @@ async function cleanupCommunityFlowProbeRows({
   const trackedCallRoomIds = includeTrackedIds ? [...ids.callRooms] : [];
   const trackedListingIds = includeTrackedIds ? [...ids.listings] : [];
   const trackedCategoryIds = includeTrackedIds ? [...ids.categories] : [];
+  const trackedMediaAssetIds = includeTrackedIds ? [...ids.mediaAssets] : [];
 
   const users = await prisma.user.findMany({
     where: {
@@ -461,6 +706,13 @@ async function cleanupCommunityFlowProbeRows({
   });
   await prisma.callRoom.deleteMany({ where: { id: { in: callRoomIds } } });
 
+  // Delete probe media attachments before messages
+  if (trackedMediaAssetIds.length > 0) {
+    await prisma.messageMedia.deleteMany({
+      where: { mediaId: { in: trackedMediaAssetIds } },
+    });
+  }
+
   await prisma.messageReaction.deleteMany({
     where: { profileId: { in: profileIds } },
   });
@@ -487,6 +739,13 @@ async function cleanupCommunityFlowProbeRows({
       ],
     },
   });
+
+  // Delete probe media assets after message cleanup
+  if (trackedMediaAssetIds.length > 0) {
+    await prisma.mediaAsset.deleteMany({
+      where: { id: { in: trackedMediaAssetIds } },
+    });
+  }
 
   await prisma.savedListing.deleteMany({
     where: {
@@ -598,6 +857,9 @@ async function cleanupCommunityFlowProbeRows({
         { targetId: { in: targetIds } },
       ],
     },
+  });
+  await prisma.userPresence.deleteMany({
+    where: { profileId: { in: profileIds } },
   });
   await prisma.profile.deleteMany({ where: { id: { in: profileIds } } });
   await prisma.user.deleteMany({ where: { id: { in: userIds } } });

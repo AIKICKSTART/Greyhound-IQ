@@ -1,0 +1,180 @@
+name: Cloud Run Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - prod
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: cloud-run-${{ github.workflow }}-${{ github.ref }}-${{ inputs.environment || 'staging' }}
+  cancel-in-progress: false
+
+env:
+  REGION: australia-southeast1
+  REPOSITORY: greyhoundiq
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'staging' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_BUILD_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build image
+        id: build
+        shell: bash
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_WORKOS_REDIRECT_URI: ${{ secrets.NEXT_PUBLIC_WORKOS_REDIRECT_URI }}
+          NEXT_PUBLIC_LIVEKIT_URL: ${{ secrets.NEXT_PUBLIC_LIVEKIT_URL }}
+        run: |
+          set -euo pipefail
+          for var_name in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY NEXT_PUBLIC_WORKOS_REDIRECT_URI NEXT_PUBLIC_LIVEKIT_URL; do
+            if [ -z "${!var_name}" ]; then
+              echo "::error::$var_name GitHub secret is required for Cloud Run deploys"
+              exit 1
+            fi
+          done
+          env_name="${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'staging' }}"
+          source_sha="${{ github.event.workflow_run.head_sha || github.sha }}"
+          image="$REGION-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/$REPOSITORY/greyhoundiq-web:$source_sha"
+          gcloud builds submit . \
+            --config cloudbuild.yaml \
+            --project "${{ secrets.GCP_PROJECT_ID }}" \
+            --substitutions "_IMAGE=$image,_NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL,_NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY,_NEXT_PUBLIC_WORKOS_REDIRECT_URI=$NEXT_PUBLIC_WORKOS_REDIRECT_URI,_NEXT_PUBLIC_LIVEKIT_URL=$NEXT_PUBLIC_LIVEKIT_URL"
+          echo "env_name=$env_name" >> "$GITHUB_OUTPUT"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Deploy Cloud Run
+        shell: bash
+        run: |
+          set -euo pipefail
+          env_name="${{ steps.build.outputs.env_name }}"
+          service="greyhoundiq-web-$env_name"
+          runtime_sa="${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}"
+          if [ -z "$runtime_sa" ]; then
+            runtime_sa="giq-web-$env_name@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+          fi
+          min_instances="3"
+          max_instances="10"
+          nextauth_url="${{ secrets.NEXTAUTH_URL }}"
+          workos_cookie_domain="${{ vars.WORKOS_COOKIE_DOMAIN }}"
+          if [ -z "$workos_cookie_domain" ]; then
+            workos_cookie_domain="$(
+              node -e 'const raw=process.argv[1]; try { const url = new URL(raw); let host = url.hostname.toLowerCase(); if (url.protocol === "https:" && !host.endsWith(".run.app")) { if (host.startsWith("www.")) host = host.slice(4); process.stdout.write(host); } } catch {}' "$nextauth_url"
+            )"
+          fi
+          for secret_name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY REALTIME_CHANNEL_SECRET; do
+            if ! gcloud secrets versions list "greyhoundiq-$env_name-$secret_name" \
+              --project "${{ secrets.GCP_PROJECT_ID }}" \
+              --filter "state=ENABLED" \
+              --limit 1 \
+              --format "value(name)" | grep -q .; then
+              echo "::error::Missing enabled Secret Manager version for greyhoundiq-$env_name-$secret_name"
+              exit 1
+            fi
+          done
+          secrets="DATABASE_URL=greyhoundiq-$env_name-DATABASE_URL:latest,SUPABASE_URL=greyhoundiq-$env_name-SUPABASE_URL:latest,SUPABASE_SERVICE_ROLE_KEY=greyhoundiq-$env_name-SUPABASE_SERVICE_ROLE_KEY:latest,NEXT_PUBLIC_SUPABASE_URL=greyhoundiq-$env_name-NEXT_PUBLIC_SUPABASE_URL:latest,NEXT_PUBLIC_SUPABASE_ANON_KEY=greyhoundiq-$env_name-NEXT_PUBLIC_SUPABASE_ANON_KEY:latest,NEXTAUTH_SECRET=greyhoundiq-$env_name-NEXTAUTH_SECRET:latest,AUTH_SECRET=greyhoundiq-$env_name-AUTH_SECRET:latest,WORKOS_CLIENT_ID=greyhoundiq-$env_name-WORKOS_CLIENT_ID:latest,WORKOS_API_KEY=greyhoundiq-$env_name-WORKOS_API_KEY:latest,WORKOS_COOKIE_PASSWORD=greyhoundiq-$env_name-WORKOS_COOKIE_PASSWORD:latest,LAGO_API_KEY=greyhoundiq-$env_name-LAGO_API_KEY:latest,LAGO_WEBHOOK_SECRET=greyhoundiq-$env_name-LAGO_WEBHOOK_SECRET:latest,INTERNAL_API_SECRET=greyhoundiq-$env_name-INTERNAL_API_SECRET:latest,LIVEKIT_URL=greyhoundiq-$env_name-LIVEKIT_URL:latest,LIVEKIT_API_KEY=greyhoundiq-$env_name-LIVEKIT_API_KEY:latest,LIVEKIT_API_SECRET=greyhoundiq-$env_name-LIVEKIT_API_SECRET:latest,REALTIME_CHANNEL_SECRET=greyhoundiq-$env_name-REALTIME_CHANNEL_SECRET:latest"
+          env_vars="NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1,NEXTAUTH_URL=$nextauth_url,AUTH_URL=$nextauth_url,NEXT_PUBLIC_WORKOS_REDIRECT_URI=${{ secrets.NEXT_PUBLIC_WORKOS_REDIRECT_URI }},LAGO_API_URL=${{ secrets.LAGO_API_URL }},LAGO_FRONT_URL=${{ secrets.LAGO_FRONT_URL }},NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=false,NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT=false,MEDIA_SCAN_MODE=disabled"
+          if [ -n "$workos_cookie_domain" ]; then
+            env_vars="$env_vars,WORKOS_COOKIE_DOMAIN=$workos_cookie_domain"
+          fi
+          gcloud run deploy "$service" \
+            --image "${{ steps.build.outputs.image }}" \
+            --region "$REGION" \
+            --platform managed \
+            --service-account "$runtime_sa" \
+            --allow-unauthenticated \
+            --port 8080 \
+            --cpu 2 \
+            --cpu-boost \
+            --memory 4Gi \
+            --concurrency 20 \
+            --timeout 300 \
+            --min-instances "$min_instances" \
+            --max-instances "$max_instances" \
+            --set-env-vars "$env_vars" \
+            --update-secrets "$secrets" \
+            --project "${{ secrets.GCP_PROJECT_ID }}"
+          gcloud run services update-traffic "$service" \
+            --region "$REGION" \
+            --to-latest \
+            --project "${{ secrets.GCP_PROJECT_ID }}"
+          scanner_service="greyhoundiq-media-scanner-$env_name"
+          scanner_env_vars="${env_vars/MEDIA_SCAN_MODE=disabled/MEDIA_SCAN_MODE=clamav}"
+          gcloud run deploy "$scanner_service" \
+            --image "${{ steps.build.outputs.image }}" \
+            --region "$REGION" \
+            --platform managed \
+            --service-account "$runtime_sa" \
+            --no-allow-unauthenticated \
+            --port 8080 \
+            --cpu 1 \
+            --memory 4Gi \
+            --concurrency 1 \
+            --timeout 900 \
+            --min-instances 0 \
+            --max-instances 1 \
+            --set-env-vars "$scanner_env_vars" \
+            --update-secrets "$secrets" \
+            --project "${{ secrets.GCP_PROJECT_ID }}"
+          gcloud run services update-traffic "$scanner_service" \
+            --region "$REGION" \
+            --to-latest \
+            --project "${{ secrets.GCP_PROJECT_ID }}"
+          gcloud run services add-iam-policy-binding "$scanner_service" \
+            --region "$REGION" \
+            --member "serviceAccount:$runtime_sa" \
+            --role roles/run.invoker \
+            --project "${{ secrets.GCP_PROJECT_ID }}" \
+            --quiet
+
+      - name: Post-deploy smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          SMOKE_BASE_URL="${{ secrets.NEXTAUTH_URL }}" npm run test:smoke
+
+      - name: Post-deploy LiveKit connectivity check (staging only)
+        if: steps.build.outputs.env_name == 'staging'
+        shell: bash
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${LIVEKIT_URL:-}" ] || [ -z "${LIVEKIT_API_KEY:-}" ] || [ -z "${LIVEKIT_API_SECRET:-}" ]; then
+            echo "::notice::LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET not set — skipping LiveKit connectivity check"
+            exit 0
+          fi
+          npm run check:livekit-connectivity

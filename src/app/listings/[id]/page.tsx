@@ -458,13 +458,19 @@ function ListingAttachment({
   };
 }) {
   const url = mediaDeliveryUrl(media);
+  const isPortrait =
+    media.widthPx != null &&
+    media.heightPx != null &&
+    media.heightPx > media.widthPx;
   if (media.mimeType.startsWith("image/")) {
     return (
       <a
         href={url}
         target="_blank"
         rel="noreferrer"
-        className="giq-listing-media block rounded-md"
+        className={`giq-listing-media block rounded-md ${
+          isPortrait ? "bg-black/20" : ""
+        }`}
       >
         <NextImage
           src={url}
@@ -472,7 +478,11 @@ function ListingAttachment({
           width={media.widthPx ?? 640}
           height={media.heightPx ?? 420}
           sizes="(min-width: 1024px) 520px, (min-width: 640px) 50vw, 100vw"
-          className="h-64 w-full object-cover"
+          className={
+            isPortrait
+              ? "h-auto max-h-[78vh] w-full object-contain"
+              : "h-64 w-full object-cover"
+          }
         />
       </a>
     );

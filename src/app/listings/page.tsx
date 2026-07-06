@@ -174,7 +174,11 @@ async function ListingsResults({
                 if (listing.media[0]) {
                   return (
                     <div className="p-2 pb-0">
-                      <ListingMediaPreview media={listing.media[0].media} />
+                      <ListingMediaPreview
+                        listingId={listing.id}
+                        listingTitle={listing.title}
+                        media={listing.media[0].media}
+                      />
                     </div>
                   );
                 }
@@ -392,8 +396,12 @@ function ListingDemoMediaPreview({ image }: { image: DemoListingImage }) {
 }
 
 function ListingMediaPreview({
+  listingId,
+  listingTitle,
   media,
 }: {
+  listingId: string;
+  listingTitle: string;
   media: {
     id: string;
     storageBucket: string;
@@ -406,35 +414,40 @@ function ListingMediaPreview({
   };
 }) {
   const url = mediaDeliveryUrl(media);
+  const isPortrait =
+    media.widthPx != null &&
+    media.heightPx != null &&
+    media.heightPx > media.widthPx;
+  const listingHref = `/marketplace/${listingId}`;
   if (!media.mimeType.startsWith("image/")) {
     return (
-      <a
-        href={url}
-        target="_blank"
-        rel="noreferrer"
+      <Link
+        href={listingHref}
         className="giq-listing-media flex h-40 items-center justify-center gap-2 text-[12px] font-semibold text-[hsl(215_14%_80%)]"
       >
         <Paperclip className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
         {media.originalName ?? media.mimeType}
-      </a>
+      </Link>
     );
   }
 
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noreferrer"
-      className="giq-listing-media block"
+    <Link
+      href={listingHref}
+      className={`giq-listing-media block ${
+        isPortrait ? "aspect-[2/3] bg-black/20" : ""
+      }`}
     >
       <NextImage
         src={url}
-        alt={media.originalName ?? "Marketplace media"}
+        alt={media.originalName ?? listingTitle}
         width={media.widthPx ?? 520}
         height={media.heightPx ?? 320}
         sizes="(min-width: 1024px) 30vw, (min-width: 768px) 50vw, 100vw"
-        className="h-40 w-full object-cover"
+        className={
+          isPortrait ? "h-full w-full object-contain" : "h-40 w-full object-cover"
+        }
       />
-    </a>
+    </Link>
   );
 }

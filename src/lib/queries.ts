@@ -24,7 +24,6 @@ const marketplaceListingCardInclude = {
   },
   media: {
     orderBy: { position: "asc" },
-    take: 1,
     include: {
       media: {
         select: {

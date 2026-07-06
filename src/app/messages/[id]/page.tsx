@@ -87,8 +87,12 @@ export default async function MessageThreadPage({
     conversation.participantAId === user.profileId
       ? conversation.participantB
       : conversation.participantA;
-  const [activeCallRoom, pendingCallInvite, callLog, otherPresence] =
-    await Promise.all([
+  const [
+    activeCallRoomResult,
+    pendingCallInviteResult,
+    callLogResult,
+    otherPresenceResult,
+  ] = await Promise.allSettled([
       conversation.blockedAt
         ? null
         : getActiveCallRoomForConversation(
@@ -109,7 +113,21 @@ export default async function MessageThreadPage({
         { profileId: user.profileId } as CurrentUserProfile,
         conversation.id
       ),
-    ]);
+    ] as const);
+  const activeCallRoom =
+    activeCallRoomResult.status === "fulfilled"
+      ? activeCallRoomResult.value
+      : null;
+  const pendingCallInvite =
+    pendingCallInviteResult.status === "fulfilled"
+      ? pendingCallInviteResult.value
+      : null;
+  const callLog =
+    callLogResult.status === "fulfilled" ? callLogResult.value : [];
+  const otherPresence =
+    otherPresenceResult.status === "fulfilled"
+      ? otherPresenceResult.value
+      : null;
 
   const readAction = markConversationReadAction.bind(null, conversation.id);
   const blockAction = blockConversation.bind(null, conversation.id);

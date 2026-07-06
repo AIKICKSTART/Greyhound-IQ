@@ -34,7 +34,7 @@ const AGENT_CARDS = [
   {
     name: "Moderator",
     tier: "Admin",
-    body: "Scans posts, messages, and listings for spam, abuse, and marketplace risk before escalation.",
+    body: "Scans posts, Pulse messages, and marketplace items for spam, abuse, and risk before escalation.",
   },
 ];
 

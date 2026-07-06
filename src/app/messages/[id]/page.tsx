@@ -52,8 +52,8 @@ export async function generateMetadata({
 }) {
   const { id } = await params;
   return {
-    title: `Conversation ${id.slice(0, 8)} - GreyhoundIQ`,
-    description: "Private GreyhoundIQ 1:1 conversation.",
+    title: `Pulse ${id.slice(0, 8)} - GreyhoundIQ`,
+    description: "Private GreyhoundIQ Pulse conversation.",
   };
 }
 
@@ -152,18 +152,18 @@ export default async function MessageThreadPage({
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
       <Link
-        href="/messages"
+        href="/pulse"
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Inbox
+        Pulse inbox
       </Link>
 
       <header className="giq-panel mb-6 p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[hsl(var(--primary-bright))]">
-              Private 1:1 conversation
+              Private Pulse conversation
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
               {other.displayName}
@@ -280,7 +280,7 @@ export default async function MessageThreadPage({
             <div className="flex flex-wrap items-center justify-center gap-2 pb-1">
               {hasEarlierPage && oldestMessageId && (
                 <Link
-                  href={`/messages/${conversation.id}?before=${oldestMessageId}`}
+                  href={`/pulse/${conversation.id}?before=${oldestMessageId}`}
                   className="giq-outline-action px-3 text-[12px]"
                 >
                   <ChevronsUp className="h-3.5 w-3.5" />
@@ -289,7 +289,7 @@ export default async function MessageThreadPage({
               )}
               {before && (
                 <Link
-                  href={`/messages/${conversation.id}`}
+                  href={`/pulse/${conversation.id}`}
                   className="giq-outline-action px-3 text-[12px]"
                 >
                   <ChevronsDown className="h-3.5 w-3.5" />
@@ -594,7 +594,7 @@ function SignedOutThread() {
       <div className="giq-panel p-8">
         <Lock className="mb-4 h-7 w-7 text-[hsl(var(--primary-bright))]" />
         <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
-          Sign in to view this conversation
+          Sign in to view this Pulse conversation
         </h1>
         <a
           href="/sign-in"

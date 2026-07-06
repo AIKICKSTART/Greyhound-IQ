@@ -612,7 +612,7 @@ export async function createListingEnquiryForCurrentUser(
     type: "listing_enquiry",
     title: `New enquiry for ${listing.title}`,
     body: notificationBodySnippet(message),
-    href: `/messages/${conversation.id}`,
+    href: `/pulse/${conversation.id}`,
     targetType: "listing",
     targetId: listing.id,
     metadata: { enquiryId: enquiry.id },

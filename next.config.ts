@@ -42,6 +42,16 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      { source: "/listings", destination: "/marketplace", permanent: true },
+      { source: "/listings/:path*", destination: "/marketplace/:path*", permanent: true },
+      { source: "/forum", destination: "/groups", permanent: true },
+      { source: "/forum/:path*", destination: "/groups/:path*", permanent: true },
+      { source: "/messages", destination: "/pulse", permanent: true },
+      { source: "/messages/:path*", destination: "/pulse/:path*", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

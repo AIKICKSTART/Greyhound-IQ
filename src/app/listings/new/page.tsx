@@ -12,9 +12,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Create Listing - GreyhoundIQ",
+  title: "Create Marketplace Item - GreyhoundIQ",
   description:
-    "Create a GreyhoundIQ marketplace listing for pups, dogs, stud services, wanted ads, or ownership shares.",
+    "Create a GreyhoundIQ marketplace item for pups, dogs, stud services, wanted ads, or ownership shares.",
 };
 
 const LISTING_TYPES = [
@@ -37,17 +37,17 @@ export default async function NewListingPage() {
   return (
     <div className="giq-form-page mx-auto max-w-4xl px-6 py-10">
       <Link
-        href="/listings"
+        href="/marketplace"
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Listings
+        Marketplace
       </Link>
 
       <div className="giq-form-page-intro mb-8">
         <div className="race-box-strip mb-4 w-40" />
         <h1 className="text-4xl font-semibold text-[hsl(var(--foreground))]">
-          Create a marketplace listing
+          Create a marketplace item
         </h1>
         <p className="giq-form-page-subtitle mt-3 max-w-2xl text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
           Submit a listing connected to your GreyhoundIQ profile with clean,
@@ -61,7 +61,7 @@ export default async function NewListingPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block">
                 <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-                  Listing type
+                  Marketplace type
                 </span>
                 <select
                   name="type"
@@ -241,7 +241,7 @@ export default async function NewListingPage() {
             <div className="grid gap-3 rounded-lg border border-white/[0.08] bg-white/[0.03] p-4">
               <div>
                 <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-                  Listing details
+                  Marketplace details
                 </p>
                 <p className="mt-1 text-[12px] text-[hsl(var(--muted-foreground))]">
                   Add up to three searchable details, such as microchip, whelping
@@ -320,10 +320,10 @@ export default async function NewListingPage() {
             </div>
             <div>
               <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
-                Sign in to create listings
+                Sign in to create marketplace items
               </h2>
               <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
-                Listing ownership is tied to your GreyhoundIQ profile.
+                Marketplace ownership is tied to your GreyhoundIQ profile.
               </p>
             </div>
             <a

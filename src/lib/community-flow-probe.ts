@@ -198,7 +198,7 @@ export async function runCommunityFlowProbe({
       where: {
         userId: buyer.dbUserId,
         type: "message",
-        href: `/messages/${conversation.id}`,
+        href: `/pulse/${conversation.id}`,
         readAt: null,
       },
     });

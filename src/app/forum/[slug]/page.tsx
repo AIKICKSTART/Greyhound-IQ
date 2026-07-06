@@ -17,15 +17,15 @@ export async function generateMetadata({
   const category = await getForumCategoryBySlug(slug);
   if (!category) {
     return {
-      title: "Forum category not found - GreyhoundIQ",
-      description: "Forum category not found.",
+      title: "Group not found - GreyhoundIQ",
+      description: "Group not found.",
     };
   }
   return {
-    title: `${category.name} Forum - GreyhoundIQ`,
+    title: `${category.name} Group - GreyhoundIQ`,
     description:
       category.description ??
-      "GreyhoundIQ community discussion category for Australian greyhound racing.",
+      "GreyhoundIQ public group for Australian greyhound racing discussion.",
   };
 }
 
@@ -44,11 +44,11 @@ export default async function ForumCategoryPage({
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
       <Link
-        href="/forum"
+        href="/groups"
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Forum
+        Groups
       </Link>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
@@ -63,7 +63,7 @@ export default async function ForumCategoryPage({
               </p>
             </div>
             <span className="giq-badge giq-badge-neutral">
-              {category.threads.length} threads
+              {category.threads.length} group threads
             </span>
           </div>
 
@@ -72,7 +72,7 @@ export default async function ForumCategoryPage({
               <div className="p-10 text-center">
                 <MessageSquare className="mx-auto mb-4 h-8 w-8 text-[hsl(var(--primary-bright))]" />
                 <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
-                  No threads in this category yet.
+                  No group threads here yet.
                 </p>
               </div>
             ) : (
@@ -91,7 +91,7 @@ export default async function ForumCategoryPage({
                       )}
                       <div className="min-w-0 flex-1">
                         <Link
-                          href={`/forum/threads/${thread.id}`}
+                          href={`/groups/threads/${thread.id}`}
                           className="text-[16px] font-semibold text-[hsl(var(--foreground))] transition-colors hover:text-[hsl(var(--primary-bright))]"
                         >
                           {thread.title}
@@ -119,7 +119,7 @@ export default async function ForumCategoryPage({
           <div className="mb-5 flex items-center gap-3">
             <PlusCircle className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
             <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
-              Start a thread
+              Start a group thread
             </h2>
           </div>
           {user ? (
@@ -152,12 +152,12 @@ export default async function ForumCategoryPage({
                   placeholder="Share the context, data, or question you want the community to discuss."
                 />
               </label>
-              <SubmitButton pendingLabel="Creating...">Create thread</SubmitButton>
+              <SubmitButton pendingLabel="Creating...">Create group thread</SubmitButton>
             </form>
           ) : (
             <div>
               <p className="text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-                Sign in to start a thread. Public browsing stays open.
+                Sign in to start a group thread. Public browsing stays open.
               </p>
               <a
                 href="/sign-in"

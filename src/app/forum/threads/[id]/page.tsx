@@ -18,12 +18,12 @@ export async function generateMetadata({
   if (!thread) {
     return {
       title: "Thread not found - GreyhoundIQ",
-      description: "Forum thread not found.",
+      description: "Group thread not found.",
     };
   }
   return {
-    title: `${thread.title} - GreyhoundIQ Forum`,
-    description: `GreyhoundIQ forum thread in ${thread.category.name}.`,
+    title: `${thread.title} - GreyhoundIQ Groups`,
+    description: `GreyhoundIQ group thread in ${thread.category.name}.`,
   };
 }
 
@@ -44,7 +44,7 @@ export default async function ForumThreadPage({
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
       <Link
-        href={`/forum/${thread.category.slug}`}
+        href={`/groups/${thread.category.slug}`}
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
       >
         <ArrowLeft className="h-3.5 w-3.5" />

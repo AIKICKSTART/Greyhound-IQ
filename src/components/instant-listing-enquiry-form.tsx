@@ -32,9 +32,9 @@ export function InstantListingEnquiryForm({ listingId }: { listingId: string }) 
       const conversationId = data?.item?.conversationId;
       if (!conversationId) throw new Error("Could not open conversation");
       formRef.current?.reset();
-      router.push(`/messages/${conversationId}`);
+      router.push(`/pulse/${conversationId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not message seller");
+      setError(err instanceof Error ? err.message : "Could not message seller in Pulse");
       setSubmitting(false);
     }
   }
@@ -43,7 +43,7 @@ export function InstantListingEnquiryForm({ listingId }: { listingId: string }) 
     <form ref={formRef} onSubmit={onSubmit} className="mt-5 space-y-3">
       <label className="block">
         <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Enquiry
+          Pulse enquiry
         </span>
         <textarea
           name="message"
@@ -53,7 +53,7 @@ export function InstantListingEnquiryForm({ listingId }: { listingId: string }) 
           rows={4}
           disabled={submitting}
           className="giq-form-control giq-textarea mt-2 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
-          placeholder="Ask the seller about this listing."
+          placeholder="Ask the seller about this marketplace item."
         />
       </label>
       {error && (
@@ -72,7 +72,7 @@ export function InstantListingEnquiryForm({ listingId }: { listingId: string }) 
           }`}
         >
           <MessageSquare className="h-3.5 w-3.5" />
-          Message seller
+          Message seller in Pulse
         </span>
         <span
           aria-hidden={!submitting}

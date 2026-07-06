@@ -6,9 +6,9 @@ import { getForumOverview, getRecentThreads } from "@/lib/queries";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Forum - GreyhoundIQ",
+  title: "Groups - GreyhoundIQ",
   description:
-    "GreyhoundIQ community discussions for form, breeding, ownership, and Australian greyhound racing data.",
+    "GreyhoundIQ public community groups for form, breeding, ownership, and Australian greyhound racing data.",
 };
 
 export default async function ForumPage() {
@@ -23,12 +23,12 @@ export default async function ForumPage() {
         image="/images/wentworth-gate-hero.webp"
         title={
           <>
-            Community form room.
+            GreyhoundIQ Groups.
             <br />
             <span className="gradient-text">Signal over noise.</span>
           </>
         }
-        subtitle="Discuss races, breeding, ownership, and track intelligence with the same clean, data-first experience as the racing tools."
+        subtitle="Join public community groups for races, breeding, ownership, marketplace discussion, and track intelligence with the same clean, data-first experience as the racing tools."
       />
 
       <section className="mx-auto grid max-w-6xl gap-8 px-6 py-12 lg:grid-cols-[1.4fr_0.9fr]">
@@ -36,10 +36,10 @@ export default async function ForumPage() {
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
-                Categories
+                Groups
               </h2>
               <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
-                Seeded from the community epics in the build plan.
+                Public group spaces for GreyhoundIQ members.
               </p>
             </div>
             <Users className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
@@ -54,7 +54,7 @@ export default async function ForumPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <Link
-                      href={`/forum/${category.slug}`}
+                      href={`/groups/${category.slug}`}
                       className="text-[17px] font-semibold text-[hsl(var(--foreground))] transition-colors hover:text-[hsl(var(--primary-bright))]"
                     >
                       {category.name}
@@ -64,7 +64,7 @@ export default async function ForumPage() {
                     </p>
                   </div>
                   <span className="giq-badge giq-badge-neutral">
-                    {category._count.threads} threads
+                    {category._count.threads} group threads
                   </span>
                 </div>
 
@@ -72,7 +72,7 @@ export default async function ForumPage() {
                   {category.threads.map((thread) => (
                     <ThreadRow
                       key={thread.id}
-                      href={`/forum/threads/${thread.id}`}
+                      href={`/groups/threads/${thread.id}`}
                       title={thread.title}
                       author={thread.author.displayName}
                       replies={Math.max(thread._count.posts - 1, 0)}
@@ -90,10 +90,10 @@ export default async function ForumPage() {
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
-                Latest threads
+                Latest group threads
               </h2>
               <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
-                Live from the current seed data.
+                Latest public group activity.
               </p>
             </div>
             <MessageSquare className="h-5 w-5 text-[hsl(var(--secondary))]" />
@@ -129,7 +129,7 @@ export default async function ForumPage() {
           </div>
 
           <Link
-            href="/listings"
+            href="/marketplace"
             className="giq-outline-action mt-5"
           >
             Browse marketplace
@@ -137,10 +137,10 @@ export default async function ForumPage() {
           </Link>
           {categories[0] && (
             <Link
-              href={`/forum/${categories[0].slug}`}
+              href={`/groups/${categories[0].slug}`}
               className="giq-liquid-purple-button ml-3 mt-5 min-h-10 px-4 text-[13px] font-semibold"
             >
-              Start a thread
+              Start a group thread
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           )}

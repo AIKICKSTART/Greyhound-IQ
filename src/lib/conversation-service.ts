@@ -271,7 +271,7 @@ export async function sendConversationMessage(
     type: "message",
     title: `New message from ${current.displayName}`,
     body: notificationBodySnippet(input.body),
-    href: `/messages/${conversation.id}`,
+    href: `/pulse/${conversation.id}`,
     targetType: "message",
     targetId: message.id,
   });

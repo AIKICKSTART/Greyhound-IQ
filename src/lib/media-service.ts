@@ -781,7 +781,7 @@ async function notifyMessageScanVerdict(
         userId: media.uploaderId,
         type: "media",
         title: "Attachment failed safety scan",
-        href: conversationId ? `/messages/${conversationId}` : null,
+        href: conversationId ? `/pulse/${conversationId}` : null,
         targetType: "media",
         targetId: media.id,
       });

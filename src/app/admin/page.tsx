@@ -30,7 +30,7 @@ const COUNTS = [
   { key: "usageAggregates", label: "Usage aggregates" },
   { key: "agentRunUsage", label: "Agent run usage" },
   { key: "adminActions", label: "Admin actions" },
-  { key: "pendingListings", label: "Pending listings" },
+  { key: "pendingListings", label: "Pending marketplace" },
   { key: "openReports", label: "Open reports" },
   { key: "openSafetyFlags", label: "Open safety flags" },
   { key: "bannedPhrases", label: "Banned phrases" },
@@ -134,7 +134,7 @@ export default async function AdminPage() {
             Trust and safety
           </Link>
           <Link href="/admin/listings" className="giq-outline-action">
-            Listing review
+            Marketplace review
           </Link>
           <Link href="/admin/feed" className="giq-outline-action">
             Feed moderation

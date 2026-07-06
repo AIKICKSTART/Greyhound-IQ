@@ -214,8 +214,8 @@ async function SignedInAccount({
             label="Tier"
             value={user.tier === "pro_plus" ? "Pro+" : user.tier}
           />
-          <Metric label="Messages" value={messages.length} />
-          <Metric label="Listings" value={profile?._count.listings ?? 0} />
+          <Metric label="Pulse" value={messages.length} />
+          <Metric label="Marketplace" value={profile?._count.listings ?? 0} />
           <Metric label="Saved" value={profile?._count.savedListings ?? 0} />
           <Metric label="Owned dogs" value={profile?._count.dogsOwned ?? 0} />
         </div>
@@ -228,18 +228,18 @@ async function SignedInAccount({
             Manage tier
           </Link>
           <Link
-            href="/messages"
+            href="/pulse"
             className={ACTION_CLASS}
           >
             <MessageSquare className="h-3.5 w-3.5" />
-            Open messages
+            Open Pulse
           </Link>
           <Link
             href="/account/saved-listings"
             className={ACTION_CLASS}
           >
             <Bookmark className="h-3.5 w-3.5" />
-            Saved listings
+            Saved marketplace
           </Link>
           <Link
             href="/account/billing"
@@ -359,7 +359,7 @@ async function SignedInAccount({
           <ControlCard
             icon={<Database className="h-4 w-4" />}
             title="Data export"
-            body="Download a JSON archive of your profile, content, messages, listings, ownership links, and agent runs."
+            body="Download a JSON archive of your profile, content, Pulse messages, marketplace items, ownership links, and agent runs."
             action={
               <Link
                 href="/api/users/me/export"
@@ -482,8 +482,8 @@ function DemoAccountPreview() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Metric label="Tier" value="Pro+" />
-          <Metric label="Messages" value={8} />
-          <Metric label="Listings" value={5} />
+          <Metric label="Pulse" value={8} />
+          <Metric label="Marketplace" value={5} />
           <Metric label="Owned dogs" value={3} />
         </div>
       </section>

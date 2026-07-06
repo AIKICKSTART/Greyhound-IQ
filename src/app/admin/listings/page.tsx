@@ -14,8 +14,8 @@ import { getMarketplaceCategoriesForModerator } from "@/lib/listing-service";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Admin listings - GreyhoundIQ",
-  description: "GreyhoundIQ marketplace listing moderation queue.",
+  title: "Admin Marketplace - GreyhoundIQ",
+  description: "GreyhoundIQ marketplace item moderation queue.",
 };
 
 export default async function AdminListingsPage() {
@@ -37,10 +37,10 @@ export default async function AdminListingsPage() {
           Marketplace
         </p>
         <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Listing review queue
+          Marketplace review queue
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          New marketplace listings stay private until a moderator approves them.
+          New marketplace items stay private until a moderator approves them.
           Rejections and removals are written to admin actions and audit logs.
         </p>
 
@@ -49,7 +49,7 @@ export default async function AdminListingsPage() {
 
       <section className="giq-panel mt-6 p-6">
         <h2 className="text-xl font-semibold text-[hsl(var(--foreground))]">
-          Recent listings
+          Recent marketplace items
         </h2>
         <ListingTable listings={recent} mode="recent" />
       </section>
@@ -102,7 +102,7 @@ export default async function AdminListingsPage() {
                       {category.name}
                     </p>
                     <p className="mt-1 font-mono text-[11px] text-[hsl(var(--subtle-foreground))]">
-                      {category.slug} · {category._count.listings} listings
+                      {category.slug} · {category._count.listings} items
                     </p>
                   </div>
                   <span className="giq-badge giq-badge-neutral">
@@ -147,7 +147,7 @@ function ListingTable({
       <table className="w-full min-w-[980px]">
         <thead>
           <tr className="giq-table-head">
-            <th className="px-4 py-3 text-left">Listing</th>
+            <th className="px-4 py-3 text-left">Marketplace item</th>
             <th className="px-4 py-3 text-left">Seller</th>
             <th className="px-4 py-3 text-left">Type</th>
             <th className="px-4 py-3 text-left">Category</th>
@@ -164,7 +164,7 @@ function ListingTable({
                 colSpan={8}
                 className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
               >
-                No {mode === "pending" ? "pending" : "recent"} listings found.
+                No {mode === "pending" ? "pending" : "recent"} marketplace items found.
               </td>
             </tr>
           ) : (
@@ -172,7 +172,7 @@ function ListingTable({
               <tr key={listing.id} className="border-t border-white/[0.06]">
                 <td className="px-4 py-3">
                   <Link
-                    href={`/listings/${listing.id}`}
+                    href={`/marketplace/${listing.id}`}
                     className="text-[13px] font-semibold text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary-bright))]"
                   >
                     {listing.title}

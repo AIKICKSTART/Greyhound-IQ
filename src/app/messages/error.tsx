@@ -11,7 +11,7 @@ export default function MessagesError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Messages page error:", error);
+    console.error("Pulse page error:", error);
   }, [error]);
 
   return (
@@ -20,14 +20,14 @@ export default function MessagesError({
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[hsl(var(--secondary)/0.3)] bg-[hsl(var(--secondary)/0.1)] px-3 py-1">
           <AlertTriangle className="h-3 w-3 text-[hsl(var(--secondary))]" />
           <span className="text-[11px] font-medium tracking-[0.04em] text-[hsl(var(--secondary))]">
-            MESSAGES UNAVAILABLE
+            PULSE UNAVAILABLE
           </span>
         </div>
         <h1 className="mb-3 text-3xl font-semibold leading-[1.1] tracking-[-0.03em] text-[hsl(var(--foreground))]">
           Your inbox hit a hurdle.
         </h1>
         <p className="mb-2 text-[14px] leading-relaxed tracking-[-0.011em] text-[hsl(var(--muted-foreground))]">
-          Something went wrong loading your messages. Try again, or contact
+          Something went wrong loading Pulse. Try again, or contact
           support if it keeps happening.
         </p>
         {error.digest && (

@@ -269,9 +269,9 @@ export async function createForumThread(formData: FormData) {
     return created;
   });
 
-  revalidatePath("/forum");
-  revalidatePath(`/forum/${category.slug}`);
-  redirect(`/forum/threads/${thread.id}`);
+  revalidatePath("/groups");
+  revalidatePath(`/groups/${category.slug}`);
+  redirect(`/groups/threads/${thread.id}`);
 }
 
 export async function replyToForumThread(threadId: string, formData: FormData) {
@@ -298,10 +298,10 @@ export async function replyToForumThread(threadId: string, formData: FormData) {
     }),
   ]);
 
-  revalidatePath("/forum");
-  revalidatePath(`/forum/${thread.category.slug}`);
-  revalidatePath(`/forum/threads/${thread.id}`);
-  redirect(`/forum/threads/${thread.id}`);
+  revalidatePath("/groups");
+  revalidatePath(`/groups/${thread.category.slug}`);
+  revalidatePath(`/groups/threads/${thread.id}`);
+  redirect(`/groups/threads/${thread.id}`);
 }
 
 export async function createFeedPost(formData: FormData) {
@@ -483,8 +483,8 @@ export async function createListing(formData: FormData) {
     attributes: parsed.attributes,
   });
 
-  revalidatePath("/listings");
-  redirect("/listings?submitted=review");
+  revalidatePath("/marketplace");
+  redirect("/marketplace?submitted=review");
 }
 
 export async function enquireAboutListing(
@@ -508,10 +508,10 @@ export async function enquireAboutListing(
     parsed.message
   );
 
-  revalidatePath("/messages");
-  revalidatePath(`/messages/${result.conversationId}`);
-  revalidatePath(`/listings/${listingId}`);
-  redirect(`/messages/${result.conversationId}`);
+  revalidatePath("/pulse");
+  revalidatePath(`/pulse/${result.conversationId}`);
+  revalidatePath(`/marketplace/${listingId}`);
+  redirect(`/pulse/${result.conversationId}`);
 }
 
 export async function reportListing(listingId: string, formData: FormData) {
@@ -536,8 +536,8 @@ export async function reportListing(listingId: string, formData: FormData) {
 
   revalidatePath("/admin/reports");
   revalidatePath("/admin/listings");
-  revalidatePath(`/listings/${listingId}`);
-  redirect(`/listings/${listingId}`);
+  revalidatePath(`/marketplace/${listingId}`);
+  redirect(`/marketplace/${listingId}`);
 }
 
 export async function toggleSavedListing(listingId: string, _formData?: FormData) {
@@ -554,8 +554,8 @@ export async function toggleSavedListing(listingId: string, _formData?: FormData
 
   revalidatePath("/account");
   revalidatePath("/account/saved-listings");
-  revalidatePath(`/listings/${listingId}`);
-  redirect(`/listings/${listingId}`);
+  revalidatePath(`/marketplace/${listingId}`);
+  redirect(`/marketplace/${listingId}`);
 }
 
 export async function renewListing(listingId: string, _formData?: FormData) {
@@ -563,9 +563,9 @@ export async function renewListing(listingId: string, _formData?: FormData) {
   const current = await requireCurrentUserProfile();
   await renewListingForCurrentUser(current, listingId);
 
-  revalidatePath("/listings");
-  revalidatePath(`/listings/${listingId}`);
-  redirect(`/listings/${listingId}`);
+  revalidatePath("/marketplace");
+  revalidatePath(`/marketplace/${listingId}`);
+  redirect(`/marketplace/${listingId}`);
 }
 
 export async function markListingSold(listingId: string, _formData?: FormData) {
@@ -573,9 +573,9 @@ export async function markListingSold(listingId: string, _formData?: FormData) {
   const current = await requireCurrentUserProfile();
   await markListingSoldForCurrentUser(current, listingId);
 
-  revalidatePath("/listings");
-  revalidatePath(`/listings/${listingId}`);
-  redirect(`/listings/${listingId}`);
+  revalidatePath("/marketplace");
+  revalidatePath(`/marketplace/${listingId}`);
+  redirect(`/marketplace/${listingId}`);
 }
 
 export async function withdrawListing(listingId: string, _formData?: FormData) {
@@ -583,9 +583,9 @@ export async function withdrawListing(listingId: string, _formData?: FormData) {
   const current = await requireCurrentUserProfile();
   await withdrawListingForCurrentUser(current, listingId);
 
-  revalidatePath("/listings");
-  revalidatePath(`/listings/${listingId}`);
-  redirect(`/listings/${listingId}`);
+  revalidatePath("/marketplace");
+  revalidatePath(`/marketplace/${listingId}`);
+  redirect(`/marketplace/${listingId}`);
 }
 
 export async function approveListing(listingId: string, _formData?: FormData) {
@@ -595,8 +595,8 @@ export async function approveListing(listingId: string, _formData?: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/admin/listings");
-  revalidatePath("/listings");
-  revalidatePath(`/listings/${listingId}`);
+  revalidatePath("/marketplace");
+  revalidatePath(`/marketplace/${listingId}`);
   redirect("/admin/listings");
 }
 
@@ -605,12 +605,12 @@ export async function rejectListing(listingId: string, formData: FormData) {
   await rejectListingForModerator(
     current,
     listingId,
-    moderationReason(formData, "Rejected marketplace listing")
+    moderationReason(formData, "Rejected marketplace item")
   );
 
   revalidatePath("/admin");
   revalidatePath("/admin/listings");
-  revalidatePath(`/listings/${listingId}`);
+  revalidatePath(`/marketplace/${listingId}`);
   redirect("/admin/listings");
 }
 
@@ -619,13 +619,13 @@ export async function removeListing(listingId: string, formData: FormData) {
   await removeListingForModerator(
     current,
     listingId,
-    moderationReason(formData, "Removed marketplace listing")
+    moderationReason(formData, "Removed marketplace item")
   );
 
   revalidatePath("/admin");
   revalidatePath("/admin/listings");
-  revalidatePath("/listings");
-  revalidatePath(`/listings/${listingId}`);
+  revalidatePath("/marketplace");
+  revalidatePath(`/marketplace/${listingId}`);
   redirect("/admin/listings");
 }
 
@@ -641,7 +641,7 @@ export async function createMarketplaceCategory(formData: FormData) {
   await createMarketplaceCategoryForModerator(current, parsed);
   revalidatePath("/admin");
   revalidatePath("/admin/listings");
-  revalidatePath("/listings");
+  revalidatePath("/marketplace");
   redirect("/admin/listings");
 }
 
@@ -655,7 +655,7 @@ export async function setMarketplaceCategoryActive(
   await setMarketplaceCategoryActiveForModerator(current, categoryId, active);
   revalidatePath("/admin");
   revalidatePath("/admin/listings");
-  revalidatePath("/listings");
+  revalidatePath("/marketplace");
   redirect("/admin/listings");
 }
 
@@ -744,8 +744,8 @@ export async function sendMessage(formData: FormData) {
     mediaIds: parsed.mediaIds,
   });
 
-  revalidatePath("/messages");
-  redirect(`/messages/${conversation.id}`);
+  revalidatePath("/pulse");
+  redirect(`/pulse/${conversation.id}`);
 }
 
 export async function replyToConversation(
@@ -770,9 +770,9 @@ export async function replyToConversation(
     mediaIds: parsed.mediaIds,
   });
 
-  revalidatePath("/messages");
-  revalidatePath(`/messages/${conversationId}`);
-  redirect(`/messages/${conversationId}`);
+  revalidatePath("/pulse");
+  revalidatePath(`/pulse/${conversationId}`);
+  redirect(`/pulse/${conversationId}`);
 }
 
 export async function deleteConversationMessage(
@@ -784,9 +784,9 @@ export async function deleteConversationMessage(
   const current = await requireCurrentUserProfile();
   await softDeleteConversationMessage(current, conversationId, messageId);
 
-  revalidatePath("/messages");
-  revalidatePath(`/messages/${conversationId}`);
-  redirect(`/messages/${conversationId}`);
+  revalidatePath("/pulse");
+  revalidatePath(`/pulse/${conversationId}`);
+  redirect(`/pulse/${conversationId}`);
 }
 
 export async function markConversationReadAction(
@@ -797,9 +797,9 @@ export async function markConversationReadAction(
   const current = await requireCurrentUserProfile();
   await markConversationRead(current, conversationId);
 
-  revalidatePath("/messages");
-  revalidatePath(`/messages/${conversationId}`);
-  redirect(`/messages/${conversationId}`);
+  revalidatePath("/pulse");
+  revalidatePath(`/pulse/${conversationId}`);
+  redirect(`/pulse/${conversationId}`);
 }
 
 export async function blockConversation(conversationId: string, _formData?: FormData) {
@@ -807,9 +807,9 @@ export async function blockConversation(conversationId: string, _formData?: Form
   const current = await requireCurrentUserProfile();
   await setConversationBlock(current, conversationId, true);
 
-  revalidatePath("/messages");
-  revalidatePath(`/messages/${conversationId}`);
-  redirect(`/messages/${conversationId}`);
+  revalidatePath("/pulse");
+  revalidatePath(`/pulse/${conversationId}`);
+  redirect(`/pulse/${conversationId}`);
 }
 
 export async function unblockConversation(
@@ -820,9 +820,9 @@ export async function unblockConversation(
   const current = await requireCurrentUserProfile();
   await setConversationBlock(current, conversationId, false);
 
-  revalidatePath("/messages");
-  revalidatePath(`/messages/${conversationId}`);
-  redirect(`/messages/${conversationId}`);
+  revalidatePath("/pulse");
+  revalidatePath(`/pulse/${conversationId}`);
+  redirect(`/pulse/${conversationId}`);
 }
 
 export async function toggleMessageReaction(
@@ -845,9 +845,9 @@ export async function toggleMessageReaction(
     messageId
   );
 
-  revalidatePath("/messages");
-  revalidatePath(`/messages/${conversationId}`);
-  redirect(`/messages/${conversationId}`);
+  revalidatePath("/pulse");
+  revalidatePath(`/pulse/${conversationId}`);
+  redirect(`/pulse/${conversationId}`);
 }
 
 export async function reportConversationMessage(
@@ -888,9 +888,9 @@ export async function reportConversationMessage(
   await createReportForUser(current, parsed);
 
   revalidatePath("/admin/reports");
-  revalidatePath("/messages");
-  revalidatePath(`/messages/${conversationId}`);
-  redirect(`/messages/${conversationId}`);
+  revalidatePath("/pulse");
+  revalidatePath(`/pulse/${conversationId}`);
+  redirect(`/pulse/${conversationId}`);
 }
 
 export async function createAgentRun(formData: FormData) {

@@ -45,11 +45,11 @@ export default function ConversationError({
             Try again
           </button>
           <Link
-            href="/messages"
+            href="/pulse"
             className="giq-outline-action px-4 text-[13px] font-semibold"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back to inbox
+            Back to Pulse
           </Link>
         </div>
       </div>

@@ -426,7 +426,7 @@ export async function runCallMaintenance() {
       type: "call_missed",
       title: `Missed ${invite.callRoom.callType === "voice" ? "voice" : "video"} call`,
       href: invite.callRoom.conversationId
-        ? `/messages/${invite.callRoom.conversationId}`
+        ? `/pulse/${invite.callRoom.conversationId}`
         : null,
       targetType: "call_room",
       targetId: invite.callRoomId,

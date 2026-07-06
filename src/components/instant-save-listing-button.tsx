@@ -52,7 +52,7 @@ export function InstantSaveListingButton({
         ) : (
           <Bookmark className={`h-3.5 w-3.5 ${saved ? "fill-current" : ""}`} />
         )}
-        {saved ? "Saved listing" : "Save listing"}
+        {saved ? "Saved marketplace item" : "Save marketplace item"}
       </button>
       {error && <p className="mt-2 text-[11px] text-red-200">{error}</p>}
     </div>

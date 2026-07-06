@@ -2,7 +2,7 @@ import { Skeleton, SkeletonGroup, SkeletonHero, SkeletonPanel } from "@/componen
 
 export default function Loading() {
   return (
-    <SkeletonGroup label="Loading messages">
+    <SkeletonGroup label="Loading Pulse">
       <SkeletonHero />
 
       <section className="mx-auto max-w-5xl px-6 py-12">

@@ -11,8 +11,10 @@ const FOOTER_SECTIONS = [
       { href: "/dogs", label: "Dogs" },
       { href: "/breeding", label: "Breeding" },
       { href: "/agents", label: "Agents" },
+      { href: "/marketplace", label: "Marketplace" },
+      { href: "/groups", label: "Groups" },
       { href: "/feed", label: "Feed" },
-      { href: "/forum", label: "Forum" },
+      { href: "/pulse", label: "Pulse" },
     ],
   },
   {
@@ -35,7 +37,8 @@ const FOOTER_SECTIONS = [
 
 const MOBILE_FOOTER_LINKS = [
   { href: "/races", label: "Races" },
-  { href: "/pricing", label: "Pricing" },
+  { href: "/marketplace", label: "Marketplace" },
+  { href: "/pulse", label: "Pulse" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
 ];

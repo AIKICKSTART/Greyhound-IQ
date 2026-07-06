@@ -74,9 +74,9 @@ export default async function AdminSafetyPage() {
               className="giq-form-control w-full px-3 py-2 text-[13px]"
             >
               <option value="all">All UGC</option>
-              <option value="listing">Listings</option>
+              <option value="listing">Marketplace</option>
               <option value="feed">Feed</option>
-              <option value="message">Messages</option>
+              <option value="message">Pulse</option>
             </select>
             <select
               name="action"

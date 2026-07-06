@@ -5,8 +5,10 @@ const root = process.cwd();
 const findings: string[] = [];
 
 const messagesRoute = read("src/app/api/messages/route.ts");
-must(messagesRoute, "{ senderId: current.profileId, deletedBySenderAt: null }", "messages API must hide sender-deleted messages");
-must(messagesRoute, "{ recipientId: current.profileId, deletedByRecipientAt: null }", "messages API must hide recipient-deleted messages");
+const conversationService = read("src/lib/conversation-service.ts");
+must(messagesRoute, "listConversationsForProfile(current.profileId)", "messages API must delegate to conversation visibility service");
+must(conversationService, "{ senderId: profileId, deletedBySenderAt: null }", "messages API must hide sender-deleted messages");
+must(conversationService, "{ recipientId: profileId, deletedByRecipientAt: null }", "messages API must hide recipient-deleted messages");
 
 const mediaService = read("src/lib/media-service.ts");
 must(mediaService, 'moderationStatus: "approved"', "public listing media must require approved listings");

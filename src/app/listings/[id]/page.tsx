@@ -65,8 +65,8 @@ export async function generateMetadata({
 }) {
   const { id } = await params;
   return {
-    title: `Listing ${id.slice(0, 8)} - GreyhoundIQ`,
-    description: "GreyhoundIQ marketplace listing details.",
+    title: `Marketplace ${id.slice(0, 8)} - GreyhoundIQ`,
+    description: "GreyhoundIQ marketplace item details.",
   };
 }
 
@@ -111,11 +111,11 @@ export default async function ListingDetailPage({
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
       <Link
-        href="/listings"
+        href="/marketplace"
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Listings
+        Marketplace
       </Link>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
@@ -211,7 +211,7 @@ export default async function ListingDetailPage({
             <div className="mb-5 flex items-center gap-3">
               <ShoppingBag className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
               <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
-                Listing details
+                Marketplace details
               </h2>
             </div>
             <div className="space-y-3 text-[13px] text-[hsl(var(--muted-foreground))]">
@@ -308,7 +308,7 @@ export default async function ListingDetailPage({
             {!isOwner && !user && (
               <a href="/sign-in" className="giq-outline-action mt-5">
                 <MessageSquare className="h-3.5 w-3.5" />
-                Sign in to enquire
+                Sign in to message seller in Pulse
               </a>
             )}
           </section>
@@ -318,7 +318,7 @@ export default async function ListingDetailPage({
               <div className="mb-4 flex items-center gap-3">
                 <Flag className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
                 <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
-                  Report listing
+                  Report marketplace item
                 </h2>
               </div>
               <form action={reportAction} className="space-y-3">
@@ -468,7 +468,7 @@ function ListingAttachment({
       >
         <NextImage
           src={url}
-          alt={media.originalName ?? "Listing media"}
+          alt={media.originalName ?? "Marketplace media"}
           width={media.widthPx ?? 640}
           height={media.heightPx ?? 420}
           sizes="(min-width: 1024px) 520px, (min-width: 640px) 50vw, 100vw"

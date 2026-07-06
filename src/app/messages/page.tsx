@@ -12,9 +12,9 @@ import { getConversationsForUserEmail } from "@/lib/queries";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Messages - GreyhoundIQ",
+  title: "Pulse - GreyhoundIQ",
   description:
-    "Private 1:1 GreyhoundIQ messaging for owners, breeders, trainers, and marketplace conversations.",
+    "Pulse private 1:1 GreyhoundIQ messaging, media, calls, and marketplace conversations.",
 };
 
 export default async function MessagesPage() {
@@ -35,12 +35,12 @@ export default async function MessagesPage() {
         image="/images/wentworth-gate-hero.webp"
         title={
           <>
-            Private racing
+            Pulse.
             <br />
-            <span className="gradient-text">conversations.</span>
+            <span className="gradient-text">Private racing conversations.</span>
           </>
         }
-        subtitle="1:1 messaging for owner, breeder, trainer, and marketplace conversations. Message records are tied to verified GreyhoundIQ profiles."
+        subtitle="Private messaging, media, read receipts, and LiveKit-powered calls for owner, breeder, trainer, and marketplace conversations."
       />
       <section className="mx-auto max-w-5xl px-6 py-12">
         {!user ? (
@@ -50,10 +50,10 @@ export default async function MessagesPage() {
                 <Lock className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
               </div>
               <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
-                Sign in to open your inbox
+                Sign in to open Pulse
               </h2>
               <p className="mt-3 text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-                Conversations are private 1:1 threads between GreyhoundIQ
+                Pulse conversations are private 1:1 threads between GreyhoundIQ
                 profiles, with read receipts, soft delete, and block controls.
               </p>
               <a
@@ -73,7 +73,7 @@ export default async function MessagesPage() {
               <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
-                    Inbox
+                    Pulse inbox
                   </h2>
                   <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
                     {conversations.length} conversations - {unread} unread
@@ -108,7 +108,7 @@ export default async function MessagesPage() {
                     return (
                       <Link
                         key={conversation.id}
-                        href={`/messages/${conversation.id}`}
+                        href={`/pulse/${conversation.id}`}
                         className="giq-table-row block p-5"
                       >
                         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -151,7 +151,7 @@ export default async function MessagesPage() {
               <div className="mb-5 flex items-center gap-3">
                 <Send className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
                 <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
-                  New message
+                  New Pulse message
                 </h2>
               </div>
               <form action={sendMessage} className="space-y-4">
@@ -183,7 +183,7 @@ export default async function MessagesPage() {
 function MessagingWorkflow() {
   const steps = [
     "Find a verified owner or seller",
-    "Open a private 1:1 thread",
+    "Open a private Pulse thread",
     "Share form notes and listing context",
     "Keep audit-friendly records",
   ];
@@ -191,7 +191,7 @@ function MessagingWorkflow() {
   return (
     <div className="giq-panel p-8">
       <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
-        Messaging workflow
+        Pulse workflow
       </h2>
       <div className="mt-5 space-y-3">
         {steps.map((step, index) => (

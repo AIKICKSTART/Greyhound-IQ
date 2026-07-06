@@ -33,7 +33,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Marketplace - GreyhoundIQ",
   description:
-    "Browse Australian greyhound pups, dogs, stud services, wanted ads, and ownership listings on GreyhoundIQ.",
+    "Browse Australian greyhound pups, dogs, stud services, wanted ads, and ownership marketplace items on GreyhoundIQ.",
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -82,16 +82,16 @@ export default function ListingsPage({
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
-            href="/forum"
+            href="/groups"
             className="giq-button giq-button-glass px-5 text-[13px] font-semibold"
           >
-            Discuss listings
+            Discuss in Groups
           </Link>
           <Link
-            href="/listings/new"
+            href="/marketplace/new"
             className="giq-button giq-button-primary px-5 text-[13px] font-semibold"
           >
-            Create listing
+            Create marketplace item
           </Link>
         </div>
       </PageHero>
@@ -141,7 +141,7 @@ async function ListingsResults({
       {submitted && (
         <div className="giq-panel mb-6 border border-[hsl(var(--primary-bright)/0.35)] p-4">
           <p className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
-            Listing submitted for review.
+            Marketplace item submitted for review.
           </p>
           <p className="mt-1 text-[12px] text-[hsl(var(--muted-foreground))]">
             It will appear in the marketplace after moderator approval.
@@ -159,7 +159,7 @@ async function ListingsResults({
       {listings.length === 0 ? (
         <div className="giq-empty-state p-12 text-center">
           <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
-            No listings loaded yet.
+            No marketplace items loaded yet.
           </p>
         </div>
       ) : (
@@ -208,7 +208,7 @@ async function ListingsResults({
 
                 <h3 className="text-[18px] font-semibold leading-snug text-[hsl(var(--foreground))]">
                   <Link
-                    href={`/listings/${listing.id}`}
+                    href={`/marketplace/${listing.id}`}
                     className="transition-colors hover:text-[hsl(var(--primary-bright))]"
                   >
                     {listing.title}
@@ -259,10 +259,10 @@ async function ListingsResults({
                     </span>
                   </div>
                   <Link
-                    href={`/listings/${listing.id}`}
+                    href={`/marketplace/${listing.id}`}
                     className="giq-outline-action w-full text-[12px]"
                   >
-                    View listing
+                    View marketplace item
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
@@ -285,7 +285,7 @@ function ListingsFallback({
   return (
     <section className="mx-auto max-w-6xl px-6 py-12">
       <ListingsToolbar q={q} category={category} categories={[]} />
-      <SkeletonGroup label="Loading listings">
+      <SkeletonGroup label="Loading marketplace">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((item) => (
             <SkeletonPanel
@@ -327,12 +327,12 @@ function ListingsToolbar({
         <div>
           <div className="race-box-strip mb-4 w-40" />
           <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
-            Current listings
+            Current marketplace
           </h2>
           <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
             {typeof count === "number"
-              ? `${count} active listings${q ? ` matching "${q}".` : "."}`
-              : "Loading marketplace listings."}
+              ? `${count} active marketplace items${q ? ` matching "${q}".` : "."}`
+              : "Loading marketplace items."}
           </p>
         </div>
         <div className="giq-icon-plate flex h-10 w-10 items-center justify-center rounded-xl">
@@ -342,7 +342,7 @@ function ListingsToolbar({
 
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <form
-          action="/listings"
+          action="/marketplace"
           className="flex min-w-0 flex-1 gap-2 md:max-w-md"
         >
           <input
@@ -365,7 +365,7 @@ function ListingsToolbar({
           </select>
           <button
             type="submit"
-            aria-label="Search listings"
+            aria-label="Search marketplace"
             className="giq-button giq-button-glass giq-icon-button text-[hsl(215_14%_84%)]"
           >
             <Search className="h-4 w-4" />
@@ -429,7 +429,7 @@ function ListingMediaPreview({
     >
       <NextImage
         src={url}
-        alt={media.originalName ?? "Listing media"}
+        alt={media.originalName ?? "Marketplace media"}
         width={media.widthPx ?? 520}
         height={media.heightPx ?? 320}
         sizes="(min-width: 1024px) 30vw, (min-width: 768px) 50vw, 100vw"

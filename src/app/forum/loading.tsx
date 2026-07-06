@@ -2,7 +2,7 @@ import { Skeleton, SkeletonGroup, SkeletonHero, SkeletonPanel } from "@/componen
 
 export default function Loading() {
   return (
-    <SkeletonGroup label="Loading forum">
+    <SkeletonGroup label="Loading groups">
       <SkeletonHero />
 
       <section className="mx-auto grid max-w-6xl gap-8 px-6 py-12 lg:grid-cols-[1.4fr_0.9fr]">

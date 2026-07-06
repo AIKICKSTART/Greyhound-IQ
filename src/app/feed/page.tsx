@@ -32,7 +32,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Community Feed - GreyhoundIQ",
   description:
-    "GreyhoundIQ community feed for Australian greyhound racing posts, comments, reactions, and reports.",
+    "GreyhoundIQ community feed for Australian greyhound racing posts, marketplace notes, comments, reactions, and reports.",
 };
 
 export default async function FeedPage() {
@@ -54,17 +54,17 @@ export default async function FeedPage() {
             <span className="gradient-text">Trackside signal.</span>
           </>
         }
-        subtitle="Share greyhound racing context, kennel updates, marketplace notes, and practical community observations without turning the product into a generic social network."
+        subtitle="Share greyhound racing context, kennel updates, marketplace notes, and practical observations across the GreyhoundIQ community."
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
-            href="/forum"
+            href="/groups"
             className="giq-button giq-button-glass px-5 text-[13px] font-semibold"
           >
-            Forum
+            Groups
           </Link>
           <Link
-            href="/listings"
+            href="/marketplace"
             className="giq-button giq-button-primary px-5 text-[13px] font-semibold"
           >
             Marketplace
@@ -104,7 +104,7 @@ export default async function FeedPage() {
                 Sign in to post
               </h2>
               <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">
-                Public posts, comments, reactions, and reports are tied to your
+                Posts, comments, reactions, and reports are tied to your
                 GreyhoundIQ profile.
               </p>
               <a
@@ -144,7 +144,7 @@ export default async function FeedPage() {
             </div>
             <p className="text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
               Feed reports go into the existing admin reports queue. Marketplace,
-              private message, and call moderation stay separate from public
+              Pulse message, and call moderation stay separate from public
               feed visibility.
             </p>
           </section>

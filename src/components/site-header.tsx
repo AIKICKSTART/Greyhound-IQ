@@ -83,10 +83,10 @@ const NAV_SECTIONS: { title: string; links: NavLink[] }[] = [
   {
     title: "Community",
     links: [
-      { href: "/feed", label: "Feed", description: "Updates from the racing community", icon: Users },
-      { href: "/forum", label: "Forum", description: "Threads, questions, and discussion", icon: MessageSquare },
-      { href: "/messages", label: "Messages", description: "Inbox, enquiries, and owner conversations", icon: Bell },
-      { href: "/listings", label: "Listings", description: "Marketplace listings and saved dogs", icon: ShoppingBag },
+      { href: "/marketplace", label: "Marketplace", description: "Verified greyhound marketplace and saved dogs", icon: ShoppingBag },
+      { href: "/groups", label: "Groups", description: "Community groups, topics, and threads", icon: Users },
+      { href: "/feed", label: "Feed", description: "Personalised racing community updates", icon: MessageSquare },
+      { href: "/pulse", label: "Pulse", description: "Private conversations, enquiries, and calls", icon: Bell },
       { href: "/pricing", label: "Pricing", description: "Plans, limits, and Pro access", icon: CreditCard },
     ],
   },
@@ -133,7 +133,7 @@ function AccountMenuItems({
       </AccountLink>
       <AccountLink href="/account/saved-listings" className={ACCOUNT_MENU_ITEM_CLASS}>
         <Bookmark className="h-3.5 w-3.5" aria-hidden="true" />
-        Saved listings
+        Saved marketplace
       </AccountLink>
       <AccountLink href="/account/billing" className={ACCOUNT_MENU_ITEM_CLASS}>
         <Crown className="h-3.5 w-3.5" aria-hidden="true" />
@@ -456,15 +456,15 @@ export async function SiteHeader() {
               </form>
               <span className="giq-header-notification relative hidden lg:inline-flex">
                 <Link
-                  href="/messages"
-                  aria-label="Messages"
+                  href="/pulse"
+                  aria-label="Pulse"
                   className="giq-button giq-button-carbon giq-icon-button min-h-10 w-10 px-0"
                 >
                   <Bell className="h-4 w-4" />
                 </Link>
                 <CountBadge
                   count={unreadMessages}
-                  label={`${unreadMessages} unread messages`}
+                  label={`${unreadMessages} unread Pulse messages`}
                 />
               </span>
 

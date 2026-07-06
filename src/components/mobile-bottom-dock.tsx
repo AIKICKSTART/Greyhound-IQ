@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
-  Crown,
+  Bell,
   Dog,
   Flag,
-  Trophy,
+  ShoppingBag,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,9 +21,9 @@ type DockLink = {
 const DOCK_LINKS: DockLink[] = [
   { href: "/", label: "Home", icon: Activity },
   { href: "/races", label: "Races", icon: Flag },
-  { href: "/results", label: "Results", icon: Trophy },
   { href: "/dogs", label: "Dogs", icon: Dog },
-  { href: "/pricing", label: "Pro", icon: Crown, tone: "pro" },
+  { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
+  { href: "/pulse", label: "Pulse", icon: Bell },
 ];
 
 export function MobileBottomDock() {

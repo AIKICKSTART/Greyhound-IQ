@@ -10,8 +10,8 @@ import { getSavedListingsForCurrentUser } from "@/lib/listing-service";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Saved listings - GreyhoundIQ",
-  description: "Review marketplace listings saved to your GreyhoundIQ account.",
+  title: "Saved Marketplace - GreyhoundIQ",
+  description: "Review marketplace items saved to your GreyhoundIQ account.",
 };
 
 const ACTION_CLASS = "giq-outline-action";
@@ -28,10 +28,10 @@ export default async function SavedListingsPage() {
           <>
             Saved
             <br />
-            <span className="gradient-text">listings.</span>
+            <span className="gradient-text">marketplace.</span>
           </>
         }
-        subtitle="Marketplace listings you have saved for later review."
+        subtitle="Marketplace items you have saved for later review."
       />
 
       <section className="mx-auto max-w-5xl px-6 py-12">
@@ -46,7 +46,7 @@ export default async function SavedListingsPage() {
               <article key={item.listingId} className="giq-panel p-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="min-w-0">
-                    <p className="program-label">Saved listing</p>
+                    <p className="program-label">Saved marketplace item</p>
                     <h2 className="mt-2 text-xl font-semibold text-[hsl(var(--foreground))]">
                       {item.listing.title}
                     </h2>
@@ -55,10 +55,10 @@ export default async function SavedListingsPage() {
                     </p>
                   </div>
                   <Link
-                    href={`/listings/${item.listingId}`}
+                    href={`/marketplace/${item.listingId}`}
                     className={`${ACTION_CLASS} shrink-0`}
                   >
-                    View listing
+                    View marketplace item
                   </Link>
                 </div>
 
@@ -91,13 +91,13 @@ export default async function SavedListingsPage() {
           <div className="giq-empty-state p-10 text-center">
             <Bookmark className="mx-auto mb-4 h-8 w-8 text-[hsl(var(--primary-bright))]" />
             <h2 className="text-xl font-semibold text-[hsl(var(--foreground))]">
-              No saved listings yet
+              No saved marketplace items yet
             </h2>
             <p className="mx-auto mt-2 max-w-lg text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-              Save active marketplace listings from their detail page.
+              Save active marketplace items from their detail page.
             </p>
-            <Link href="/listings" className={`${ACTION_CLASS} mt-5`}>
-              Browse listings
+            <Link href="/marketplace" className={`${ACTION_CLASS} mt-5`}>
+              Browse marketplace
             </Link>
           </div>
         )}

@@ -1,20 +1,16 @@
 import Link from "next/link";
-import NextImage from "next/image";
 import {
   ArrowRight,
   CheckCircle2,
   Clock3,
   DollarSign,
   MapPin,
-  Paperclip,
   Search,
   ShoppingBag,
 } from "lucide-react";
+import { ListingCardMediaCarousel } from "@/components/listing-card-media-carousel";
 import { PageHero } from "@/components/page-hero";
-import {
-  getDemoListingImages,
-  type DemoListingImage,
-} from "@/lib/demo-listing-media";
+import { getDemoListingImages } from "@/lib/demo-listing-media";
 import { mediaDeliveryUrl } from "@/lib/media-service";
 import {
   getMarketplaceCategories,
@@ -171,25 +167,24 @@ async function ListingsResults({
             >
               {(() => {
                 const demoImage = getDemoListingImages(listing, 1)[0];
-                if (listing.media[0]) {
-                  return (
-                    <div className="p-2 pb-0">
-                      <ListingMediaPreview
-                        listingId={listing.id}
-                        listingTitle={listing.title}
-                        media={listing.media[0].media}
-                      />
-                    </div>
-                  );
-                }
-                if (demoImage) {
-                  return (
-                    <div className="p-2 pb-0">
-                      <ListingDemoMediaPreview image={demoImage} />
-                    </div>
-                  );
-                }
-                return null;
+                return (
+                  <div className="p-2 pb-0">
+                    <ListingCardMediaCarousel
+                      listingHref={`/marketplace/${listing.id}`}
+                      listingTitle={listing.title}
+                      media={listing.media.map(({ media }) => ({
+                        id: media.id,
+                        src: mediaDeliveryUrl(media),
+                        alt: media.originalName ?? listing.title,
+                        originalName: media.originalName,
+                        mimeType: media.mimeType,
+                        widthPx: media.widthPx,
+                        heightPx: media.heightPx,
+                      }))}
+                      fallbackImage={demoImage}
+                    />
+                  </div>
+                );
               })()}
               <div className="flex flex-1 flex-col p-5">
                 <div className="mb-4 flex items-start justify-between gap-3">
@@ -377,77 +372,5 @@ function ListingsToolbar({
         </form>
       </div>
     </>
-  );
-}
-
-function ListingDemoMediaPreview({ image }: { image: DemoListingImage }) {
-  return (
-    <div className="giq-listing-media block">
-      <NextImage
-        src={image.src}
-        alt={image.alt}
-        width={image.width}
-        height={image.height}
-        sizes="(min-width: 1024px) 30vw, (min-width: 768px) 50vw, 100vw"
-        className="h-40 w-full object-cover"
-      />
-    </div>
-  );
-}
-
-function ListingMediaPreview({
-  listingId,
-  listingTitle,
-  media,
-}: {
-  listingId: string;
-  listingTitle: string;
-  media: {
-    id: string;
-    storageBucket: string;
-    storagePath: string;
-    publicUrl: string | null;
-    originalName: string | null;
-    mimeType: string;
-    widthPx: number | null;
-    heightPx: number | null;
-  };
-}) {
-  const url = mediaDeliveryUrl(media);
-  const isPortrait =
-    media.widthPx != null &&
-    media.heightPx != null &&
-    media.heightPx > media.widthPx;
-  const listingHref = `/marketplace/${listingId}`;
-  if (!media.mimeType.startsWith("image/")) {
-    return (
-      <Link
-        href={listingHref}
-        className="giq-listing-media flex h-40 items-center justify-center gap-2 text-[12px] font-semibold text-[hsl(215_14%_80%)]"
-      >
-        <Paperclip className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
-        {media.originalName ?? media.mimeType}
-      </Link>
-    );
-  }
-
-  return (
-    <Link
-      href={listingHref}
-      className={`giq-listing-media block ${
-        isPortrait ? "aspect-[2/3] bg-black/20" : ""
-      }`}
-    >
-      <NextImage
-        src={url}
-        alt={media.originalName ?? listingTitle}
-        width={media.widthPx ?? 520}
-        height={media.heightPx ?? 320}
-        sizes="(min-width: 1024px) 30vw, (min-width: 768px) 50vw, 100vw"
-        className={
-          isPortrait ? "h-full w-full object-contain" : "h-40 w-full object-cover"
-        }
-      />
-    </Link>
   );
 }

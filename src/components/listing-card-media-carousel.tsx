@@ -150,9 +150,9 @@ export function ListingCardMediaCarousel({
               event.stopPropagation();
               showPreviousImage();
             }}
-            className="absolute left-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/65 text-white opacity-100 shadow-lg shadow-black/25 transition hover:bg-black/80 active:scale-95 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+            className="absolute left-3 top-1/2 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-black/75 text-white shadow-xl shadow-black/35 backdrop-blur transition hover:bg-black/90 active:scale-95"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-7 w-7" />
           </button>
           <button
             type="button"
@@ -162,9 +162,9 @@ export function ListingCardMediaCarousel({
               event.stopPropagation();
               showNextImage();
             }}
-            className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/65 text-white opacity-100 shadow-lg shadow-black/25 transition hover:bg-black/80 active:scale-95 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+            className="absolute right-3 top-1/2 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-black/75 text-white shadow-xl shadow-black/35 backdrop-blur transition hover:bg-black/90 active:scale-95"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-7 w-7" />
           </button>
           <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg shadow-black/25">
             <span aria-live="polite">

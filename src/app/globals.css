@@ -5559,6 +5559,7 @@ select.giq-form-control option:checked {
    button keeps the width of the wider label and never shifts layout. */
 .giq-submit-stack {
   display: inline-grid;
+  gap: 0;
   place-content: center;
   place-items: center;
   text-align: center;

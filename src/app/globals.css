@@ -274,6 +274,8 @@ body {
   color: var(--giq-btn-color);
   background-color: var(--giq-btn-bg);
   background-image: var(--metal-plate-fill);
+  line-height: 1;
+  text-align: center;
   box-shadow:
     var(--edge-top),
     var(--edge-bottom),

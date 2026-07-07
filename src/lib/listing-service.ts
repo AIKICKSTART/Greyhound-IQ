@@ -88,7 +88,7 @@ export async function createListingForCurrentUser(
     ? `Keyword flag: ${phraseMatch.reason ?? phraseMatch.phrase}`
     : null;
 
-  const listing = await prisma.$transaction(async (tx) => {
+  const listing = await withDbRequestContext(current, async (tx) => {
     const created = await tx.listing.create({
       data: {
         profileId: current.profileId,
@@ -168,7 +168,7 @@ export async function updateListingForCurrentUser(
       ? LISTING_STATUS_PENDING_REVIEW
       : existing.status;
 
-  const listing = await prisma.$transaction(async (tx) => {
+  const listing = await withDbRequestContext(current, async (tx) => {
     const updated = await tx.listing.update({
       where: { id: existing.id },
       data: {
@@ -329,7 +329,7 @@ export async function renewListingForCurrentUser(
   listingId: string
 ) {
   const existing = await getOwnedListing(current, listingId);
-  const listing = await prisma.$transaction(async (tx) => {
+  const listing = await withDbRequestContext(current, async (tx) => {
     const updated = await tx.listing.update({
       where: { id: existing.id },
       data: {
@@ -364,7 +364,7 @@ export async function markListingSoldForCurrentUser(
   listingId: string
 ) {
   const existing = await getOwnedListing(current, listingId);
-  const listing = await prisma.$transaction(async (tx) => {
+  const listing = await withDbRequestContext(current, async (tx) => {
     const updated = await tx.listing.update({
       where: { id: existing.id },
       data: {
@@ -394,7 +394,7 @@ export async function withdrawListingForCurrentUser(
   listingId: string
 ) {
   const existing = await getOwnedListing(current, listingId);
-  const listing = await prisma.$transaction(async (tx) => {
+  const listing = await withDbRequestContext(current, async (tx) => {
     const updated = await tx.listing.update({
       where: { id: existing.id },
       data: {
@@ -814,9 +814,11 @@ async function getOwnedListing(
   current: CurrentUserProfile,
   listingId: string
 ) {
-  const listing = await prisma.listing.findFirst({
-    where: { id: listingId, profileId: current.profileId },
-  });
+  const listing = await withDbRequestContext(current, (tx) =>
+    tx.listing.findFirst({
+      where: { id: listingId, profileId: current.profileId },
+    })
+  );
   if (!listing) throw new Error("listing.not_found");
   return listing;
 }

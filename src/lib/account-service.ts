@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import type { CurrentUserProfile } from "@/lib/auth";
+import { withDbSystemContext } from "@/lib/db-context";
 
 const ACCOUNT_DELETION_GRACE_DAYS = 30;
 const DELETED_EMAIL_DOMAIN = "deleted.greyhoundiq.local";
@@ -39,7 +40,7 @@ export interface AccountDeletionMaintenanceResult {
 }
 
 export async function createAuditLog(input: AuditInput) {
-  return prisma.auditLog.create({
+  return withDbSystemContext((tx) => tx.auditLog.create({
     data: {
       actorId: input.actorId ?? null,
       actorType: input.actorType,
@@ -50,7 +51,7 @@ export async function createAuditLog(input: AuditInput) {
       userAgent: input.userAgent ?? null,
       metadata: input.metadata ? JSON.stringify(input.metadata) : null,
     },
-  });
+  }));
 }
 
 export async function requestAccountDeletion(

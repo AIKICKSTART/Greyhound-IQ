@@ -6,7 +6,7 @@ import {
   WebsitePageHeader,
   WebsiteSection,
 } from "@/components/website-kit";
-import { getAllTracks } from "@/lib/queries";
+import { getActiveTracks } from "@/lib/queries";
 import {
   formatRaceDateInput,
   formatRaceDayLabel,
@@ -56,7 +56,7 @@ const TRACK_STATES = ["NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"] as const;
 export default async function TracksPage({ searchParams }: TracksPageProps) {
   const params = await searchParams;
   const selectedState = normaliseTrackState(firstParam(params.state));
-  const tracks = await getAllTracks();
+  const tracks = await getActiveTracks();
   const displayTracks = tracks
     .filter((track) => !selectedState || track.state === selectedState)
     .map((track) => toDisplayTrack(track, new Date()));
@@ -68,10 +68,10 @@ export default async function TracksPage({ searchParams }: TracksPageProps) {
   return (
     <div>
       <WebsitePageHeader
-        eyebrow={`${tracks.length} database venues`}
+        eyebrow={`${tracks.length} active venues`}
         title="Australian"
         accent="Tracks"
-        subtitle="Track bias, box statistics, records and live meetings from the GreyhoundIQ database."
+        subtitle="Track bias, box statistics, records and current meetings from the GreyhoundIQ database."
       >
         <form action="/tracks" className="flex flex-wrap gap-2">
           <select
@@ -176,7 +176,7 @@ export default async function TracksPage({ searchParams }: TracksPageProps) {
 
       <WebsiteSection
         title="All venues"
-        sub={`${displayTracks.length} of ${tracks.length} database venues shown`}
+        sub={`${displayTracks.length} of ${tracks.length} active venues shown`}
       >
         {displayTracks.length > 0 ? (
           <div className="giq-stagger giq-grid-3">
@@ -269,7 +269,7 @@ function TrackVenueCard({ track }: { track: DisplayTrack }) {
 }
 
 function toDisplayTrack(
-  track: Awaited<ReturnType<typeof getAllTracks>>[number],
+  track: Awaited<ReturnType<typeof getActiveTracks>>[number],
   now: Date
 ): DisplayTrack {
   const latestMeeting = track.meetings[0] ?? null;

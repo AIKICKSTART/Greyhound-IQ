@@ -848,6 +848,8 @@ type RaceStatusFilter = "all" | "upcoming" | "live" | "resulted" | "replay";
 type RaceSort = "relevance" | "time";
 
 const RACE_SEARCH_RESULT_LIMIT = 120;
+const RACE_SEARCH_DOG_MATCH_LIMIT = 80;
+const RACE_SEARCH_RUNNER_RESULT_LIMIT = 48;
 const RACE_SEARCH_TRIGRAM_THRESHOLD = 0.3;
 const ALL_RACE_DATES_WINDOW = {
   gte: new Date("1970-01-01T00:00:00.000Z"),
@@ -993,6 +995,22 @@ async function findRankedRaceSearchIds({
   const liveGte = new Date(Date.now() - 20 * 60 * 1000);
   const now = new Date();
 
+  const globalRunnerRows = selectedDate
+    ? null
+    : await findRunnerRaceSearchIds({
+        parsed,
+        textQuery,
+        selectedDate,
+        selectedState,
+        selectedStatus,
+        gte,
+        lt,
+      });
+
+  if (globalRunnerRows?.length) {
+    return globalRunnerRows;
+  }
+
   const fieldRows = await safeQuery(
     () =>
       prisma.$queryRaw<{ id: string }[]>`
@@ -1005,7 +1023,8 @@ async function findRankedRaceSearchIds({
             CASE WHEN t.state ILIKE ${likePattern} ESCAPE '\\' THEN 1 ELSE 0 END AS state_match,
             CASE WHEN COALESCE(r.grade, '') ILIKE ${likePattern} ESCAPE '\\' THEN 1 ELSE 0 END AS grade_match,
             CASE
-              WHEN to_tsvector(
+              WHEN ${selectedDate}::text IS NOT NULL
+                AND to_tsvector(
                 'simple',
                 concat_ws(' ', COALESCE(r.name, ''), COALESCE(r.grade, ''), t.name, t.state)
               ) @@ websearch_to_tsquery('simple', ${textQuery})
@@ -1022,20 +1041,28 @@ async function findRankedRaceSearchIds({
                 AND to_char(((r."raceTime" AT TIME ZONE 'UTC') AT TIME ZONE 'Australia/Sydney'), 'HH24:MI') = ${clockLabel}
               THEN 1 ELSE 0
             END AS time_match,
-            EXISTS (
-              SELECT 1 FROM "Runner" rr
-              JOIN "Result" res ON res."runnerId" = rr.id
-              WHERE rr."raceId" = r.id
-            ) AS has_results,
-            EXISTS (
-              SELECT 1 FROM "RaceVideo" rv
-              WHERE rv."raceId" = r.id
-                AND (
-                  rv."streamUrl" IS NOT NULL
-                  OR rv."pageUrl" IS NOT NULL
-                  OR rv."sourceId" IS NOT NULL
-                )
-            ) AS has_replay
+            CASE
+              WHEN ${selectedStatus} = 'resulted'
+              THEN EXISTS (
+                SELECT 1 FROM "Runner" rr
+                JOIN "Result" res ON res."runnerId" = rr.id
+                WHERE rr."raceId" = r.id
+              )
+              ELSE false
+            END AS has_results,
+            CASE
+              WHEN ${selectedStatus} = 'replay'
+              THEN EXISTS (
+                SELECT 1 FROM "RaceVideo" rv
+                WHERE rv."raceId" = r.id
+                  AND (
+                    rv."streamUrl" IS NOT NULL
+                    OR rv."pageUrl" IS NOT NULL
+                    OR rv."sourceId" IS NOT NULL
+                  )
+              )
+              ELSE false
+            END AS has_replay
           FROM "Race" r
           JOIN "Meeting" m ON m.id = r."meetingId"
           JOIN "Track" t ON t.id = m."trackId"
@@ -1080,6 +1107,26 @@ async function findRankedRaceSearchIds({
 
   if (fieldRows?.length) {
     return fieldRows.map((row) => row.id);
+  }
+
+  if (globalRunnerRows && globalRunnerRows.length === 0) {
+    return [];
+  }
+
+  const runnerRows = selectedDate
+    ? await findRunnerRaceSearchIds({
+        parsed,
+        textQuery,
+        selectedDate,
+        selectedState,
+        selectedStatus,
+        gte,
+        lt,
+      })
+    : null;
+
+  if (runnerRows?.length) {
+    return runnerRows;
   }
 
   const exactRows = await safeQuery(
@@ -1314,6 +1361,94 @@ async function findRankedRaceSearchIds({
   return rows?.map((row) => row.id) ?? null;
 }
 
+async function findRunnerRaceSearchIds({
+  parsed,
+  textQuery,
+  selectedDate,
+  selectedState,
+  selectedStatus,
+  gte,
+  lt,
+}: {
+  parsed: ReturnType<typeof parseRaceSearchQuery>;
+  textQuery: string;
+  selectedDate: string | null;
+  selectedState: string | null;
+  selectedStatus: RaceStatusFilter;
+  gte: Date;
+  lt: Date;
+}) {
+  if (!parsed.text) return null;
+  if (parsed.clockTime && !selectedDate) return null;
+
+  const insensitive = "insensitive" as const;
+  const dogRows = await safeQuery(
+    () =>
+      prisma.dog.findMany({
+        where: {
+          name: { contains: textQuery, mode: insensitive },
+        },
+        orderBy: { name: "asc" },
+        select: { id: true },
+        take: RACE_SEARCH_DOG_MATCH_LIMIT,
+      }),
+    []
+  );
+  if (dogRows.length === 0) return [];
+
+  const raceFilters: Prisma.RaceWhereInput[] = [
+    { raceTime: { gte, lt } },
+    raceStatusWhere(selectedStatus),
+  ];
+  if (selectedState) {
+    raceFilters.push({ meeting: { track: { state: selectedState } } });
+  }
+  if (parsed.raceNumber !== null) {
+    raceFilters.push({ raceNumber: parsed.raceNumber });
+  }
+  if (parsed.distance !== null) {
+    raceFilters.push({ distance: parsed.distance });
+  }
+  if (parsed.clockTime && selectedDate) {
+    raceFilters.push({
+      raceTime: raceClockTimeWindow(
+        selectedDate,
+        parsed.clockTime.hour,
+        parsed.clockTime.minute
+      ),
+    });
+  }
+
+  const rows = await safeQuery(
+    () =>
+      prisma.runner.findMany({
+        where: {
+          dogId: { in: dogRows.map((dog) => dog.id) },
+          race: { AND: raceFilters },
+        },
+        orderBy: {
+          race: {
+            raceTime: selectedDate ? "asc" : "desc",
+          },
+        },
+        select: { raceId: true },
+        take: RACE_SEARCH_RUNNER_RESULT_LIMIT * 2,
+      }),
+    []
+  );
+
+  const raceIds: string[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    if (seen.has(row.raceId)) continue;
+    seen.add(row.raceId);
+    raceIds.push(row.raceId);
+    if (raceIds.length >= RACE_SEARCH_RUNNER_RESULT_LIMIT) break;
+  }
+
+  return raceIds;
+}
+
 function orderRaceExplorerMeetings<
   T extends {
     track: { name: string; state: string | null };
@@ -1492,14 +1627,61 @@ function structuredSearchText(
   return trimmed.length >= 2 ? trimmed : null;
 }
 
-export async function getAllTracks() {
+const ACTIVE_TRACK_WINDOW_DAYS = 35;
+const TRACKS_PAGE_EXCLUDED_NAMES = [
+  "Albion Park",
+  "Ashburton",
+  "AUCKLAND",
+  "Broken Hill",
+  "Bundaberg",
+  "Cambridge",
+  "Christchurch",
+  "Dapto",
+  "Devonport",
+  "Ipswich",
+  "Manawatu",
+  "MANUKAU",
+  "Muswellbrook",
+  "OTAGO",
+  "Palmerston - North",
+  "Potts Park",
+  "Southland",
+  "Waikato",
+  "Wanganui",
+  "WELLINGTON",
+] as const;
+
+function activeTrackWindow(now = new Date()) {
+  const from = new Date(now);
+  from.setUTCDate(from.getUTCDate() - ACTIVE_TRACK_WINDOW_DAYS);
+  from.setUTCHours(0, 0, 0, 0);
+
+  const to = new Date(now);
+  to.setUTCDate(to.getUTCDate() + ACTIVE_TRACK_WINDOW_DAYS);
+  to.setUTCHours(23, 59, 59, 999);
+
+  return { from, to };
+}
+
+export async function getActiveTracks() {
+  const { from, to } = activeTrackWindow();
+  const activeMeetingWhere = {
+    meetingDate: { gte: from, lte: to },
+    races: { some: {} },
+  } satisfies Prisma.MeetingWhereInput;
+
   return safeQuery(
     () =>
       prisma.track.findMany({
+        where: {
+          name: { notIn: [...TRACKS_PAGE_EXCLUDED_NAMES] },
+          meetings: { some: activeMeetingWhere },
+        },
         orderBy: { name: "asc" },
         include: {
           _count: { select: { meetings: true } },
           meetings: {
+            where: activeMeetingWhere,
             orderBy: { meetingDate: "desc" },
             take: 1,
             include: {

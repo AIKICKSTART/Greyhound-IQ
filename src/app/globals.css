@@ -77,22 +77,22 @@
   --tracking-micro: 0.08em;
   --giq-mobile-dock-clearance: calc(104px + env(safe-area-inset-bottom, 0px));
 
-  /* Gate order: 8 pink, 7 black, 6 green, 5 yellow, 4 blue, 3 silver, 2 stripes, 1 red */
+  /* Gate order: 1 red, 2 stripes, 3 silver, 4 blue, 5 yellow, 6 green, 7 black, 8 pink */
   --race-box-order-gradient: linear-gradient(
     90deg,
-    #ec4899 0 12.5%,
-    #111827 12.5% 25%,
-    #16a34a 25% 37.5%,
-    #facc15 37.5% 50%,
-    #2563eb 50% 62.5%,
-    #f8fafc 62.5% 75%,
-    #111827 75% 77.08%,
-    #f8fafc 77.08% 79.16%,
-    #111827 79.16% 81.25%,
-    #f8fafc 81.25% 83.33%,
-    #111827 83.33% 85.41%,
-    #f8fafc 85.41% 87.5%,
-    #e3383f 87.5% 100%
+    #e3383f 0 12.5%,
+    #111827 12.5% 14.58%,
+    #f8fafc 14.58% 16.66%,
+    #111827 16.66% 18.75%,
+    #f8fafc 18.75% 20.83%,
+    #111827 20.83% 22.91%,
+    #f8fafc 22.91% 25%,
+    #f8fafc 25% 37.5%,
+    #2563eb 37.5% 50%,
+    #facc15 50% 62.5%,
+    #16a34a 62.5% 75%,
+    #111827 75% 87.5%,
+    #ec4899 87.5% 100%
   );
 }
 
@@ -2570,24 +2570,6 @@ h2,
   .giq-text-purple-glass {
     animation-delay: 0.5s;
   }
-}
-
-/* Full archive integration overrides */
-:root {
-  --race-box-order-gradient: linear-gradient(
-    90deg,
-    #ec4899 0 12.5%,
-    #111827 12.5% 25%,
-    #16a34a 25% 37.5%,
-    #facc15 37.5% 50%,
-    #2563eb 50% 62.5%,
-    #f8fafc 62.5% 75%,
-    #111827 75% 78.125%,
-    #f8fafc 78.125% 81.25%,
-    #111827 81.25% 84.375%,
-    #f8fafc 84.375% 87.5%,
-    #e3383f 87.5% 100%
-  );
 }
 
 @media (max-width: 767.98px) {

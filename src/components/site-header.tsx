@@ -371,7 +371,7 @@ function HeaderBannerImage() {
 }
 
 export async function SiteHeader() {
-  const user = await getCurrentUser();
+  const user = await getOptionalHeaderUser();
   const badge = user ? TIER_BADGE[user.tier] ?? TIER_BADGE.free : null;
   const canAccessAdmin = user ? isModeratorRole(user.role) : false;
   const [unreadMessages, unreadNotifications] =
@@ -560,4 +560,12 @@ export async function SiteHeader() {
       </div>
     </header>
   );
+}
+
+async function getOptionalHeaderUser() {
+  try {
+    return await getCurrentUser();
+  } catch {
+    return null;
+  }
 }

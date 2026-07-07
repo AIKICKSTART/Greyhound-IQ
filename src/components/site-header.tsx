@@ -26,6 +26,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Image, { getImageProps } from "next/image";
+import "@/lib/workos-env";
 import { signOut } from "@workos-inc/authkit-nextjs";
 import {
   Sheet,

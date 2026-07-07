@@ -59,6 +59,7 @@ const specs: EnvSpec[] = [
     names: ["WORKOS_CLIENT_ID"],
     description: "WorkOS AuthKit client id",
     productionOnly: true,
+    validate: validateWorkosClientId,
   },
   {
     names: ["WORKOS_API_KEY"],
@@ -194,9 +195,15 @@ const failures: string[] = [];
 for (const spec of specs) {
   if (spec.productionOnly && !production) continue;
 
-  const value = firstValue(spec.names);
-  if (!value) {
+  const rawValue = firstRawValue(spec.names);
+  if (!rawValue) {
     failures.push(`${spec.names.join(" or ")} missing (${spec.description})`);
+    continue;
+  }
+
+  const value = rawValue.trim();
+  if (rawValue !== value) {
+    failures.push(`${spec.names.join(" or ")} must not contain leading or trailing whitespace`);
     continue;
   }
 
@@ -255,9 +262,9 @@ console.log(
   ].join("\n")
 );
 
-function firstValue(names: string[]) {
+function firstRawValue(names: string[]) {
   for (const name of names) {
-    const value = process.env[name]?.trim();
+    const value = process.env[name];
     if (value) return value;
   }
   return null;
@@ -274,6 +281,12 @@ function validateUrl(value: string) {
 
 function validateDatabaseUrl(value: string) {
   return databaseUrlConfigurationError(value, { production, required: true });
+}
+
+function validateWorkosClientId(value: string) {
+  return value.startsWith("client_")
+    ? null
+    : "must be a WorkOS client id starting with client_";
 }
 
 function looksLikePlaceholder(value: string) {

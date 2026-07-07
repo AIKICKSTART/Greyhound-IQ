@@ -1,3 +1,4 @@
+import "@/lib/workos-env";
 import { handleAuth } from "@workos-inc/authkit-nextjs";
 import { syncAuthUser } from "@/lib/auth-sync";
 import { logError } from "@/lib/logger";

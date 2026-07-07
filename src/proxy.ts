@@ -2,6 +2,7 @@
 // level as src/app). Export a named `proxy` handler; Next wraps it with its
 // adapter. authkitProxy provides WorkOS session management so withAuth() works.
 import type { NextRequest, NextFetchEvent } from "next/server";
+import "@/lib/workos-env";
 import { authkitProxy } from "@workos-inc/authkit-nextjs";
 import { resolveWorkosRedirectUri } from "@/lib/workos-redirect";
 

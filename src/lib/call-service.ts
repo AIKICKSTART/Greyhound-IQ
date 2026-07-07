@@ -12,6 +12,11 @@ import {
   getConversationForProfile,
 } from "@/lib/conversation-service";
 import { prisma } from "@/lib/db";
+import {
+  withDbRequestContext,
+  type DbContextClient,
+  type DbContextUserInput,
+} from "@/lib/db-context";
 import { deleteLiveKitRoom, liveKitConfig } from "@/lib/livekit-admin";
 import { createInAppNotification } from "@/lib/notification-service";
 import {
@@ -20,12 +25,14 @@ import {
 } from "@/lib/realtime-service";
 
 export async function getActiveCallRoomForConversation(
-  current: { profileId: string },
+  current: DbContextUserInput & { profileId: string },
   conversationId: string
 ) {
   const conversation = await getConversationForProfile(
     conversationId,
-    current.profileId
+    current.profileId,
+    undefined,
+    current
   );
   if (conversation.blockedById) return null;
 
@@ -39,7 +46,7 @@ export async function getActiveCallRoomForConversation(
     "call.blocked"
   );
 
-  return findActiveCallRoom(conversation.id, current.profileId);
+  return findActiveCallRoom(conversation.id, current.profileId, current);
 }
 
 // Read-only: newest pending invite for a conversation's active call room.
@@ -91,7 +98,9 @@ export async function createCallRoomForConversation(
 ) {
   const conversation = await getConversationForProfile(
     conversationId,
-    current.profileId
+    current.profileId,
+    undefined,
+    current
   );
   if (conversation.blockedById) throw new Error("call.blocked");
 
@@ -107,14 +116,15 @@ export async function createCallRoomForConversation(
 
   const existingRoom = await findActiveCallRoom(
     conversation.id,
-    current.profileId
+    current.profileId,
+    current
   );
   if (existingRoom) return existingRoom;
 
   const roomName = `ghiq-${conversation.id}-${randomUUID()}`;
   const inviteExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-  const room = await prisma.$transaction(async (tx) => {
+  const room = await withDbRequestContext(current, async (tx) => {
     const created = await tx.callRoom.create({
       data: {
         conversationId: conversation.id,
@@ -180,12 +190,12 @@ export async function createCallTokenForCurrentUser(
   roomId: string
 ) {
   const config = liveKitConfig();
-  const room = await prisma.callRoom.findFirst({
+  const room = await withDbRequestContext(current, (tx) => tx.callRoom.findFirst({
     where: callRoomJoinWhere(roomId, current.profileId),
     include: {
       conversation: true,
     },
-  });
+  }));
   if (!room) throw new Error("call.room_not_found");
   if (room.conversation?.blockedById) throw new Error("call.blocked");
   if (room.conversation) {
@@ -203,33 +213,33 @@ export async function createCallTokenForCurrentUser(
   const signed = createLiveKitCallToken(current, room.roomName, config);
   const issuedAt = new Date();
 
-  await prisma.$transaction([
-    prisma.callParticipant.updateMany({
+  await withDbRequestContext(current, async (tx) => {
+    await tx.callParticipant.updateMany({
       where: { callRoomId: room.id, profileId: current.profileId },
       data: {
         joinedAt: issuedAt,
         lastTokenIssuedAt: issuedAt,
         leftAt: null,
       },
-    }),
+    });
     // Joining directly via token counts as accepting a pending invite.
-    prisma.callInvite.updateMany({
+    await tx.callInvite.updateMany({
       where: {
         callRoomId: room.id,
         toProfileId: current.profileId,
         status: "pending",
       },
       data: { status: "accepted" },
-    }),
-    prisma.callEvent.create({
+    });
+    await tx.callEvent.create({
       data: {
         callRoomId: room.id,
         profileId: current.profileId,
         eventType: "token_issued",
         metadataJson: JSON.stringify({ expiresAt: signed.expiresAtSeconds }),
       },
-    }),
-  ]);
+    });
+  });
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -253,7 +263,7 @@ export async function endCallRoomForCurrentUser(
   current: CurrentUserProfile,
   roomId: string
 ) {
-  const room = await prisma.callRoom.findFirst({
+  const room = await withDbRequestContext(current, (tx) => tx.callRoom.findFirst({
     where: {
       id: roomId,
       permissions: {
@@ -263,16 +273,20 @@ export async function endCallRoomForCurrentUser(
         },
       },
     },
-  });
+  }));
   if (!room) throw new Error("call.room_not_found");
   if (room.status !== "active") return room;
 
-  const ended = await endCallRoom(room, {
-    eventType: "room_ended",
-    profileId: current.profileId,
-    metadata: { endedByProfileId: current.profileId },
-    leftAtProfileId: current.profileId,
-  });
+  const ended = await endCallRoom(
+    room,
+    {
+      eventType: "room_ended",
+      profileId: current.profileId,
+      metadata: { endedByProfileId: current.profileId },
+      leftAtProfileId: current.profileId,
+    },
+    current
+  );
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -292,7 +306,7 @@ export async function respondToCallInviteForCurrentUser(
   roomId: string,
   action: "accept" | "decline"
 ) {
-  const invite = await prisma.callInvite.findFirst({
+  const invite = await withDbRequestContext(current, (tx) => tx.callInvite.findFirst({
     where: {
       callRoomId: roomId,
       toProfileId: current.profileId,
@@ -302,34 +316,38 @@ export async function respondToCallInviteForCurrentUser(
     },
     include: { callRoom: true },
     orderBy: { createdAt: "desc" },
-  });
+  }));
   if (!invite) throw new Error("call.invite_not_found");
 
   const status = action === "accept" ? "accepted" : "declined";
-  await prisma.$transaction([
-    prisma.callInvite.update({
+  await withDbRequestContext(current, async (tx) => {
+    await tx.callInvite.update({
       where: { id: invite.id },
       data: { status },
-    }),
-    prisma.callEvent.create({
+    });
+    await tx.callEvent.create({
       data: {
         callRoomId: invite.callRoomId,
         profileId: current.profileId,
         eventType: action === "accept" ? "invite_accepted" : "invite_declined",
       },
-    }),
-  ]);
+    });
+  });
 
   if (action === "decline") {
     // Callee declined: the call is over for everyone.
-    await endCallRoom(invite.callRoom, {
-      eventType: "room_ended",
-      profileId: current.profileId,
-      metadata: {
-        endedByProfileId: current.profileId,
-        reason: "invite_declined",
+    await endCallRoom(
+      invite.callRoom,
+      {
+        eventType: "room_ended",
+        profileId: current.profileId,
+        metadata: {
+          endedByProfileId: current.profileId,
+          reason: "invite_declined",
+        },
       },
-    });
+      current
+    );
     await deleteLiveKitRoom(invite.callRoom.roomName);
   }
 
@@ -452,10 +470,11 @@ async function endCallRoom(
     profileId?: string;
     metadata?: Record<string, unknown>;
     leftAtProfileId?: string;
-  }
+  },
+  current?: CurrentUserProfile
 ) {
   const endedAt = new Date();
-  const ended = await prisma.$transaction(async (tx) => {
+  const endRoom = async (tx: DbContextClient) => {
     // Compare-and-set: only the first caller to flip active->ended proceeds.
     // A concurrent user-end + room_finished webhook would otherwise both emit
     // duplicate events and broadcasts.
@@ -481,7 +500,10 @@ async function endCallRoom(
       },
     });
     return { room: current, transitioned: true };
-  });
+  };
+  const ended = current
+    ? await withDbRequestContext(current, endRoom)
+    : await prisma.$transaction(endRoom);
 
   if (ended.transitioned && ended.room?.conversationId) {
     await broadcastConversationRealtimeEvent(
@@ -494,8 +516,14 @@ async function endCallRoom(
   return ended.room;
 }
 
-function findActiveCallRoom(conversationId: string, profileId: string) {
-  return prisma.callRoom.findFirst({
+type CallDbClient = typeof prisma | DbContextClient;
+
+function findActiveCallRoom(
+  conversationId: string,
+  profileId: string,
+  current?: DbContextUserInput | null
+) {
+  const query = (db: CallDbClient) => db.callRoom.findFirst({
     where: {
       conversationId,
       status: "active",
@@ -508,6 +536,9 @@ function findActiveCallRoom(conversationId: string, profileId: string) {
     },
     orderBy: { createdAt: "desc" },
   });
+  return current?.dbUserId && current.profileId
+    ? withDbRequestContext(current, query)
+    : query(prisma);
 }
 
 function otherConversationProfileId(

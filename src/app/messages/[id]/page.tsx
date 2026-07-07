@@ -97,7 +97,7 @@ export default async function MessageThreadPage({
       conversation.blockedAt
         ? null
         : getActiveCallRoomForConversation(
-            { profileId: user.profileId },
+            user as CurrentUserProfile,
             conversation.id
           ),
       conversation.blockedAt

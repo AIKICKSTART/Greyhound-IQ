@@ -83,7 +83,7 @@ async function SignedInAccount({
 }) {
   const [summary, messages] = await Promise.all([
     getAccountSummary(user.email),
-    getMessagesForUserEmail(user.email),
+    getMessagesForUserEmail(user.email, user),
   ]);
   const profile = summary?.profile;
   const ownedDogs = profile?.dogsOwned ?? [];

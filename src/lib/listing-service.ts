@@ -8,6 +8,12 @@ import {
 } from "@/lib/conversation-service";
 import { prisma } from "@/lib/db";
 import {
+  resolveDbContextUser,
+  withDbRequestContext,
+  type DbContextClient,
+  type DbContextUserInput,
+} from "@/lib/db-context";
+import {
   assertListingAcknowledgements,
   assertListingMediaPolicy,
 } from "@/lib/listing-policy";
@@ -59,6 +65,8 @@ export interface ListingAttributeInput {
   key: string;
   value: string;
 }
+
+type ListingDbClient = typeof prisma | DbContextClient;
 
 export async function createListingForCurrentUser(
   current: CurrentUserProfile,
@@ -533,33 +541,28 @@ export async function getPublicListingById(listingId: string) {
     throw new Error("listing.not_found");
   }
 
-  return prisma.listing.update({
-    where: { id: listing.id },
-    data: { views: { increment: 1 } },
-    include: listingInclude(),
-  });
+  return listing;
 }
 
 export async function getListingForViewerById(
   listingId: string,
-  current?: { profileId: string | null; role: string | null } | null
+  current?: DbContextUserInput | null
 ) {
-  const listing = await prisma.listing.findUnique({
-    where: { id: listingId },
-    include: listingInclude(),
-  });
+  const context = resolveDbContextUser(current);
+  const listing = context
+    ? await withDbRequestContext(context, (tx) =>
+        findListingById(tx, listingId)
+      )
+    : await findListingById(prisma, listingId);
   if (!listing) throw new Error("listing.not_found");
 
   if (listingIsPublic(listing)) {
-    return prisma.listing.update({
-      where: { id: listing.id },
-      data: { views: { increment: 1 } },
-      include: listingInclude(),
-    });
+    return listing;
   }
 
   const canView =
-    current?.profileId === listing.profileId || isModeratorRole(current?.role);
+    context?.profileId === listing.profileId ||
+    isModeratorRole(context?.profileRole ?? current?.role);
   if (!canView) throw new Error("listing.not_found");
   return listing;
 }
@@ -775,7 +778,15 @@ export function soldSearchCutoffDate(date = new Date()) {
 
 export function listingInclude() {
   return {
-    profile: { include: { user: { select: { email: true } } } },
+    profile: {
+      select: {
+        id: true,
+        displayName: true,
+        kennelName: true,
+        state: true,
+        verified: true,
+      },
+    },
     category: true,
     location: true,
     attributes: { orderBy: { key: "asc" } },
@@ -790,6 +801,13 @@ export function listingInclude() {
       },
     },
   } as const;
+}
+
+function findListingById(db: ListingDbClient, listingId: string) {
+  return db.listing.findUnique({
+    where: { id: listingId },
+    include: listingInclude(),
+  });
 }
 
 async function getOwnedListing(

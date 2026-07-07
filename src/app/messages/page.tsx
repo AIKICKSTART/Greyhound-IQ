@@ -6,8 +6,10 @@ import { PageHero } from "@/components/page-hero";
 import { RecipientPicker } from "@/components/recipient-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
-import { countUnreadMessagesByConversation } from "@/lib/conversation-service";
-import { getConversationsForUserEmail } from "@/lib/queries";
+import {
+  countUnreadMessagesByConversation,
+  listConversationsForProfile,
+} from "@/lib/conversation-service";
 
 export const dynamic = "force-dynamic";
 
@@ -22,9 +24,9 @@ export default async function MessagesPage() {
   // Live refresh comes from the site header's profile-channel subscription;
   // subscribing the same channel here would double-subscribe the singleton client.
   const [conversations, unreadByConversation] = await Promise.all([
-    user ? getConversationsForUserEmail(user.email) : [],
+    user?.profileId ? listConversationsForProfile(user.profileId, user) : [],
     user?.profileId
-      ? countUnreadMessagesByConversation(user.profileId)
+      ? countUnreadMessagesByConversation(user.profileId, user)
       : new Map<string, number>(),
   ]);
   const unread = unreadByConversation.size;

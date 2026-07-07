@@ -77,7 +77,8 @@ export default async function MessageThreadPage({
     conversation = await getConversationForProfile(
       id,
       user.profileId,
-      before ? { before } : undefined
+      before ? { before } : undefined,
+      user
     );
   } catch {
     notFound();
@@ -108,11 +109,8 @@ export default async function MessageThreadPage({
         select: { lastSeenAt: true },
       }),
       // Recipient viewing the thread = messages delivered.
-      // ponytail: the function only reads profileId; the cast avoids a second auth fetch.
-      markConversationDelivered(
-        { profileId: user.profileId } as CurrentUserProfile,
-        conversation.id
-      ),
+      // getCurrentUser returns the same context fields the service needs for RLS.
+      markConversationDelivered(user as CurrentUserProfile, conversation.id),
     ] as const);
   const activeCallRoom =
     activeCallRoomResult.status === "fulfilled"

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 
-import { setDbSystemContext } from "@/lib/db-context";
+import {
+  resolveDbContextUser,
+  setDbRequestContext,
+  setDbSystemContext,
+} from "@/lib/db-context";
 
 async function main() {
   const calls: unknown[][] = [];
@@ -12,9 +16,30 @@ async function main() {
     },
   };
 
+  const requestContext = resolveDbContextUser({
+    dbUserId: "user-1",
+    profileId: "profile-1",
+    tier: "pro_plus",
+    role: "admin",
+  });
+
+  assert.deepEqual(requestContext, {
+    dbUserId: "user-1",
+    profileId: "profile-1",
+    tier: "pro_plus",
+    profileRole: "admin",
+  });
+  assert.equal(resolveDbContextUser({ dbUserId: "user-1" }), null);
+
+  await setDbRequestContext(tx as never, requestContext);
   await setDbSystemContext(tx as never);
 
   assert.deepEqual(calls, [
+    ["app.current_user_id", "user-1"],
+    ["app.current_profile_id", "profile-1"],
+    ["app.current_tier", "pro_plus"],
+    ["app.current_role", "admin"],
+    ["app.system", "false"],
     ["app.system", "true"],
     ["app.current_tier", "system"],
     ["app.current_role", "system"],

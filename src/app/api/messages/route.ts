@@ -21,7 +21,10 @@ const sendMessageSchema = conversationMessageSchema.extend({
 export async function GET() {
   try {
     const current = await requireCurrentUserProfile();
-    const conversations = await listConversationsForProfile(current.profileId);
+    const conversations = await listConversationsForProfile(
+      current.profileId,
+      current
+    );
     const items = conversations.flatMap(
       (conversation) => conversation.messages
     );

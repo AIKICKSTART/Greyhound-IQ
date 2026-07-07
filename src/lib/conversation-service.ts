@@ -1,6 +1,12 @@
 import { createAuditLog } from "@/lib/account-service";
 import type { CurrentUserProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
+import {
+  resolveDbContextUser,
+  withDbRequestContext,
+  type DbContextClient,
+  type DbContextUserInput,
+} from "@/lib/db-context";
 import { logWarn } from "@/lib/logger";
 import { assertMediaAttachable } from "@/lib/media-service";
 import { findBannedPhraseMatch } from "@/lib/moderation-service";
@@ -54,14 +60,31 @@ const MESSAGE_INCLUDE = {
   },
 } as const;
 
+type ConversationDbClient = typeof prisma | DbContextClient;
+
 export function canonicalProfilePair(profileAId: string, profileBId: string) {
   return profileAId < profileBId
     ? { participantAId: profileAId, participantBId: profileBId }
     : { participantAId: profileBId, participantBId: profileAId };
 }
 
-export async function listConversationsForProfile(profileId: string) {
-  return prisma.conversation.findMany({
+export async function listConversationsForProfile(
+  profileId: string,
+  current?: DbContextUserInput | null
+) {
+  const context = resolveDbContextUser(current);
+  return context
+    ? withDbRequestContext(context, (tx) =>
+        findConversationsForProfile(tx, profileId)
+      )
+    : findConversationsForProfile(prisma, profileId);
+}
+
+function findConversationsForProfile(
+  db: ConversationDbClient,
+  profileId: string
+) {
+  return db.conversation.findMany({
     where: {
       OR: [
         { participantAId: profileId },
@@ -86,9 +109,24 @@ export async function listConversationsForProfile(profileId: string) {
 export async function getConversationForProfile(
   conversationId: string,
   profileId: string,
+  opts?: { before?: string; limit?: number },
+  current?: DbContextUserInput | null
+) {
+  const context = resolveDbContextUser(current);
+  return context
+    ? withDbRequestContext(context, (tx) =>
+        findConversationForProfile(tx, conversationId, profileId, opts)
+      )
+    : findConversationForProfile(prisma, conversationId, profileId, opts);
+}
+
+async function findConversationForProfile(
+  db: ConversationDbClient,
+  conversationId: string,
+  profileId: string,
   opts?: { before?: string; limit?: number }
 ) {
-  const conversation = await prisma.conversation.findFirst({
+  const conversation = await db.conversation.findFirst({
     where: {
       id: conversationId,
       OR: [
@@ -106,14 +144,14 @@ export async function getConversationForProfile(
     ...visibleMessageWhere(profileId),
   };
   if (opts?.before) {
-    const cursor = await prisma.message.findFirst({
+    const cursor = await db.message.findFirst({
       where: { id: opts.before, conversationId },
       select: { createdAt: true },
     });
     if (!cursor) throw new Error("message.not_found");
     messageWhere.createdAt = { lt: cursor.createdAt };
   }
-  const messages = await prisma.message.findMany({
+  const messages = await db.message.findMany({
     where: messageWhere,
     orderBy: { createdAt: "desc" },
     take: Math.min(opts?.limit ?? 50, 50),
@@ -154,7 +192,7 @@ export async function startOrGetConversation(
   await assertProfilesCanInteract(current.profileId, recipient.id);
 
   const pair = canonicalProfilePair(current.profileId, recipient.id);
-  return prisma.$transaction(async (tx) => {
+  return withDbRequestContext(current, async (tx) => {
     const conversation = await tx.conversation.upsert({
       where: {
         participantAId_participantBId: pair,
@@ -175,7 +213,9 @@ export async function sendConversationMessage(
 ) {
   const conversation = await getConversationForProfile(
     conversationId,
-    current.profileId
+    current.profileId,
+    undefined,
+    current
   );
   assertNotBlocked(conversation.blockedById);
 
@@ -196,7 +236,7 @@ export async function sendConversationMessage(
   if (phraseMatch?.action === "block") throw new Error("message.blocked_phrase");
   const createdAt = new Date();
 
-  const message = await prisma.$transaction(async (tx) => {
+  const message = await withDbRequestContext(current, async (tx) => {
     await ensureConversationParticipants(tx, conversation);
     const created = await tx.message.create({
       data: {
@@ -286,9 +326,11 @@ export async function markConversationRead(
   const now = new Date();
   const conversation = await getConversationForProfile(
     conversationId,
-    current.profileId
+    current.profileId,
+    undefined,
+    current
   );
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await withDbRequestContext(current, async (tx) => {
     const unread = await tx.message.findMany({
       where: {
         conversationId,
@@ -373,50 +415,63 @@ export async function markConversationDelivered(
   current: CurrentUserProfile,
   conversationId: string
 ) {
-  await getConversationForProfile(conversationId, current.profileId, {
-    limit: 1,
-  });
-  const undelivered = await prisma.message.findMany({
-    where: {
-      conversationId,
-      recipientId: current.profileId,
-      deletedByRecipientAt: null,
-      deliveryReceipts: { none: { profileId: current.profileId } },
+  await getConversationForProfile(
+    conversationId,
+    current.profileId,
+    {
+      limit: 1,
     },
-    select: { id: true },
-  });
-  if (undelivered.length === 0) return { delivered: 0 };
+    current
+  );
+  const context = resolveDbContextUser(current);
+  const deliver = async (db: ConversationDbClient) => {
+    const undelivered = await db.message.findMany({
+      where: {
+        conversationId,
+        recipientId: current.profileId,
+        deletedByRecipientAt: null,
+        deliveryReceipts: { none: { profileId: current.profileId } },
+      },
+      select: { id: true },
+    });
+    if (undelivered.length === 0) return { delivered: 0 };
 
-  const created = await prisma.messageDeliveryReceipt.createMany({
-    data: undelivered.map((message) => ({
-      messageId: message.id,
-      profileId: current.profileId,
-    })),
-    skipDuplicates: true,
-  });
-  if (created.count > 0) {
+    const created = await db.messageDeliveryReceipt.createMany({
+      data: undelivered.map((message) => ({
+        messageId: message.id,
+        profileId: current.profileId,
+      })),
+      skipDuplicates: true,
+    });
+    return { delivered: created.count };
+  };
+
+  const result = context
+    ? await withDbRequestContext(context, deliver)
+    : await deliver(prisma);
+  if (result.delivered > 0) {
     await broadcastConversationRealtimeEvent(
       conversationId,
       "conversation_updated",
       { action: "message_delivered" }
     );
   }
-  return { delivered: created.count };
+  return result;
 }
 
 // Rendered in the global header/inbox — must survive a DB blip, so both wrap
 // safeQuery with an empty fallback rather than throwing up through the shell.
-export async function countUnreadMessagesByConversation(profileId: string) {
+export async function countUnreadMessagesByConversation(
+  profileId: string,
+  current?: DbContextUserInput | null
+) {
   return safeQuery(async () => {
-    const groups = await prisma.message.groupBy({
-      by: ["conversationId"],
-      where: {
-        recipientId: profileId,
-        readAt: null,
-        deletedByRecipientAt: null,
-      },
-      _count: { _all: true },
-    });
+    const context = resolveDbContextUser(current);
+    const groups = context
+      ? await withDbRequestContext(context, (tx) =>
+          groupUnreadMessagesByConversation(tx, profileId)
+        )
+      : await groupUnreadMessagesByConversation(prisma, profileId);
     const counts = new Map<string, number>();
     for (const group of groups) {
       if (group.conversationId) counts.set(group.conversationId, group._count._all);
@@ -425,18 +480,37 @@ export async function countUnreadMessagesByConversation(profileId: string) {
   }, new Map<string, number>());
 }
 
-export async function countUnreadMessagesTotal(profileId: string) {
-  return safeQuery(
-    () =>
-      prisma.message.count({
+function groupUnreadMessagesByConversation(
+  db: ConversationDbClient,
+  profileId: string
+) {
+  return db.message.groupBy({
+    by: ["conversationId"],
+    where: {
+      recipientId: profileId,
+      readAt: null,
+      deletedByRecipientAt: null,
+    },
+    _count: { _all: true },
+  });
+}
+
+export async function countUnreadMessagesTotal(
+  profileId: string,
+  current?: DbContextUserInput | null
+) {
+  return safeQuery(async () => {
+    const context = resolveDbContextUser(current);
+    const count = (db: ConversationDbClient) =>
+      db.message.count({
         where: {
           recipientId: profileId,
           readAt: null,
           deletedByRecipientAt: null,
         },
-      }),
-    0
-  );
+      });
+    return context ? withDbRequestContext(context, count) : count(prisma);
+  }, 0);
 }
 
 export async function softDeleteConversationMessage(
@@ -446,7 +520,9 @@ export async function softDeleteConversationMessage(
 ) {
   const conversation = await getConversationForProfile(
     conversationId,
-    current.profileId
+    current.profileId,
+    undefined,
+    current
   );
   const message = await prisma.message.findFirst({
     where: { id: messageId, conversationId },
@@ -494,7 +570,9 @@ export async function setConversationBlock(
 ) {
   const conversation = await getConversationForProfile(
     conversationId,
-    current.profileId
+    current.profileId,
+    undefined,
+    current
   );
 
   if (!blocked && conversation.blockedById !== current.profileId) {
@@ -558,7 +636,9 @@ export async function toggleConversationMessageReaction(
 ) {
   const conversation = await getConversationForProfile(
     conversationId,
-    current.profileId
+    current.profileId,
+    undefined,
+    current
   );
   const message = await prisma.message.findFirst({
     where: {

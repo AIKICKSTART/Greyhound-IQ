@@ -2,6 +2,12 @@ import { cache } from "react";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { safeQuery } from "@/lib/db";
+import {
+  resolveDbContextUser,
+  withDbRequestContext,
+  type DbContextClient,
+  type DbContextUserInput,
+} from "@/lib/db-context";
 import { getApproximateTableCounts } from "@/lib/db-stats";
 import {
   formatRaceDateInput,
@@ -62,6 +68,8 @@ const pendingMarketplaceListings = new Map<
   string,
   Promise<MarketplaceListingCard[]>
 >();
+
+type QueryDbClient = typeof prisma | DbContextClient;
 
 export async function getTodaysMeetings() {
   const { gte, lt } = raceDateWindow(formatRaceDateInput(new Date()));
@@ -2207,94 +2215,114 @@ export async function getMessagingProfiles(
   );
 }
 
-export async function getMessagesForUserEmail(email: string) {
-  const user = await safeQuery(
-    () =>
-      prisma.user.findUnique({
-        where: { email },
-        include: { profile: true },
-      }),
-    null
-  );
+export async function getMessagesForUserEmail(
+  email: string,
+  current?: DbContextUserInput | null
+) {
+  const context = resolveDbContextUser(current);
+  const user = context
+    ? null
+    : await safeQuery(
+        () =>
+          prisma.user.findUnique({
+            where: { email },
+            include: { profile: true },
+          }),
+        null
+      );
 
-  if (!user?.profile) return [];
+  const profileId = context?.profileId ?? user?.profile?.id;
+  if (!profileId) return [];
 
   return safeQuery(
-    () =>
-      prisma.message.findMany({
-        where: {
-          OR: [
-            { senderId: user.profile!.id },
-            { recipientId: user.profile!.id },
-          ],
-        },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-        include: {
-          sender: true,
-          recipient: true,
-          media: {
-            orderBy: { position: "asc" },
-            include: { media: true },
+    () => {
+      const query = (db: QueryDbClient) =>
+        db.message.findMany({
+          where: {
+            OR: [
+              { senderId: profileId },
+              { recipientId: profileId },
+            ],
           },
-        },
-      }),
+          orderBy: { createdAt: "desc" },
+          take: 50,
+          include: {
+            sender: true,
+            recipient: true,
+            media: {
+              orderBy: { position: "asc" },
+              include: { media: true },
+            },
+          },
+        });
+      return context ? withDbRequestContext(context, query) : query(prisma);
+    },
     []
   );
 }
 
-export async function getConversationsForUserEmail(email: string) {
-  const user = await safeQuery(
-    () =>
-      prisma.user.findUnique({
-        where: { email },
-        include: { profile: true },
-      }),
-    null
-  );
+export async function getConversationsForUserEmail(
+  email: string,
+  current?: DbContextUserInput | null
+) {
+  const context = resolveDbContextUser(current);
+  const user = context
+    ? null
+    : await safeQuery(
+        () =>
+          prisma.user.findUnique({
+            where: { email },
+            include: { profile: true },
+          }),
+        null
+      );
 
-  if (!user?.profile) return [];
+  const profileId = context?.profileId ?? user?.profile?.id;
+  if (!profileId) return [];
 
   return safeQuery(
-    () =>
-      prisma.conversation.findMany({
-        where: {
-          OR: [
-            { participantAId: user.profile!.id },
-            { participantBId: user.profile!.id },
-          ],
-        },
-        orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }],
-        take: 50,
-        include: {
-          participantA: true,
-          participantB: true,
-          messages: {
-            where: {
-              OR: [
-                {
-                  senderId: user.profile!.id,
-                  deletedBySenderAt: null,
+    () => {
+      const query = (db: QueryDbClient) =>
+        db.conversation.findMany({
+          where: {
+            OR: [
+              { participantAId: profileId },
+              { participantBId: profileId },
+            ],
+          },
+          orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }],
+          take: 50,
+          include: {
+            participantA: true,
+            participantB: true,
+            messages: {
+              where: {
+                OR: [
+                  {
+                    senderId: profileId,
+                    deletedBySenderAt: null,
+                  },
+                  {
+                    recipientId: profileId,
+                    deletedByRecipientAt: null,
+                  },
+                ],
+              },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              include: {
+                sender: true,
+                recipient: true,
+                media: {
+                  orderBy: { position: "asc" },
+                  include: { media: true },
                 },
-                {
-                  recipientId: user.profile!.id,
-                  deletedByRecipientAt: null,
-                },
-              ],
-            },
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            include: {
-              sender: true,
-              recipient: true,
-              media: {
-                orderBy: { position: "asc" },
-                include: { media: true },
               },
             },
           },
-        },
-      }),
+        });
+      return context ? withDbRequestContext(context, query) : query(prisma);
+    },
     []
   );
 }

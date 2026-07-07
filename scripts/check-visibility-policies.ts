@@ -6,7 +6,7 @@ const findings: string[] = [];
 
 const messagesRoute = read("src/app/api/messages/route.ts");
 const conversationService = read("src/lib/conversation-service.ts");
-must(messagesRoute, "listConversationsForProfile(current.profileId)", "messages API must delegate to conversation visibility service");
+must(messagesRoute, "listConversationsForProfile(\n      current.profileId,\n      current\n    )", "messages API must delegate to conversation visibility service with request context");
 must(conversationService, "{ senderId: profileId, deletedBySenderAt: null }", "messages API must hide sender-deleted messages");
 must(conversationService, "{ recipientId: profileId, deletedByRecipientAt: null }", "messages API must hide recipient-deleted messages");
 

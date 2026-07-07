@@ -36,7 +36,8 @@ export async function GET(
     const conversation = await getConversationForProfile(
       id,
       current.profileId,
-      query
+      query,
+      current
     );
     await markConversationDelivered(current, id);
     const pageSize = query.limit ?? MESSAGE_PAGE_SIZE;

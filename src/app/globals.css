@@ -5565,7 +5565,7 @@ select.giq-form-control option:checked {
 }
 
 .giq-submit-stack > span:not(.sr-only) {
-  grid-area: 1 / 1;
+  grid-area: 1 / 1 / 2 / 2;
 }
 
 @media (prefers-reduced-motion: no-preference) {

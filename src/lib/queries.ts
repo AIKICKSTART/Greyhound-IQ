@@ -235,6 +235,21 @@ export async function searchDogs(
   const trimmed = query?.trim().replace(/\s+/g, " ").slice(0, 80);
   if (!trimmed) return [];
 
+  // 1-2 char prefixes are the hottest autocomplete keystrokes and the slowest
+  // (widest match set). There are only ~a few thousand distinct short prefixes
+  // and the result is identical for every user, so cache them for a minute.
+  if (trimmed.length < 3) {
+    return cached(`dogsearch:${trimmed.toLowerCase()}:${limit}`, 60_000, () =>
+      runDogSearch(trimmed, limit)
+    );
+  }
+  return runDogSearch(trimmed, limit);
+}
+
+async function runDogSearch(
+  trimmed: string,
+  limit: number
+): Promise<DogSearchResult[]> {
   const prefixPattern = `${escapeLikePattern(trimmed)}%`;
 
   // pg_trgm needs 3+ chars to be index-useful; a 1-2 char "%x%" contains scan

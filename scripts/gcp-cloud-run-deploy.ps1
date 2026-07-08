@@ -281,6 +281,12 @@ function Ensure-SchedulerJobs {
       Schedule = "*/5 * * * *"
       Uri = "$baseUrl/api/internal/notification-delivery"
       Description = "GreyhoundIQ $Environment notification delivery maintenance"
+    },
+    @{
+      Name = "greyhoundiq-$Environment-dog-profile-sync"
+      Schedule = "*/2 * * * *"
+      Uri = "$baseUrl/api/internal/dog-profile-sync"
+      Description = "GreyhoundIQ $Environment raced-dog profile completeness sync"
     }
   )
 

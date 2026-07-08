@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, Ban, Clock, Lock, ShieldCheck } from "lucide-react";
+import { BadgeCheck, Ban, Clock, Lock, ShieldCheck, Trophy } from "lucide-react";
 import { claimDogOwnership } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
@@ -490,7 +490,9 @@ export default async function DogProfilePage({
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
                 <span>Box {entry.boxNumber ?? "-"}</span>
-                <span className="text-right">Finish {entry.finish ?? "-"}</span>
+                <span className="flex items-center justify-end gap-1.5">
+                  Finish <FinishBadge finish={entry.finish} />
+                </span>
               </div>
             </article>
           ))}
@@ -521,11 +523,7 @@ export default async function DogProfilePage({
                   </td>
                   <td className="p-3 text-[13px] text-center text-[hsl(var(--muted-foreground))]">{entry.boxNumber ?? "—"}</td>
                   <td className="p-3 text-center">
-                    {entry.finish === 1 ? (
-                      <span className="rounded bg-[hsl(var(--secondary-light))] px-1.5 py-0.5 text-[11px] font-bold text-[hsl(var(--secondary-foreground))]">1</span>
-                    ) : (
-                      <span className="text-[13px] text-[hsl(var(--muted-foreground))]">{entry.finish ?? "—"}</span>
-                    )}
+                    <FinishBadge finish={entry.finish} />
                   </td>
                   <td className="p-3 text-[13px] text-center text-[hsl(var(--primary-bright))] font-mono">
                     {entry.time ? `${entry.time.toFixed(2)}s` : "—"}
@@ -578,6 +576,30 @@ function ordinal(position: number) {
   if (position === 2) return "2nds";
   if (position === 3) return "3rds";
   return `${position}th`;
+}
+
+// Gold/Silver/Bronze trophy for podium finishes; plain number otherwise.
+// Mirrors the result badges used in RunnerRow across the site.
+function FinishBadge({ finish }: { finish: number | null | undefined }) {
+  if (finish === 1 || finish === 2 || finish === 3) {
+    const cls =
+      finish === 1
+        ? "giq-result-badge-gold"
+        : finish === 2
+          ? "giq-result-badge-silver"
+          : "giq-result-badge-bronze";
+    return (
+      <span className={`giq-result-badge ${cls}`}>
+        <Trophy className="h-3 w-3" aria-hidden="true" />
+        {finish === 1 ? "1st" : finish === 2 ? "2nd" : "3rd"}
+      </span>
+    );
+  }
+  return (
+    <span className="text-[13px] text-[hsl(var(--muted-foreground))]">
+      {finish ?? "—"}
+    </span>
+  );
 }
 
 function formatRole(role: string) {

@@ -43,6 +43,11 @@ export async function syncDogProfilesBatch(
       where: {
         earBrand: { startsWith: "thedogs:" },
         lastProfileSyncedAt: null,
+        // Skip scratching artifacts (e.g. "Foo (L/SCR)") — real greyhound names
+        // never contain parentheses. Their thedogs pages don't exist, so they
+        // fail every fetch and, being oldest by createdAt, permanently clog the
+        // fixed-size batch. Excluding them lets the queue reach real dogs.
+        NOT: { name: { contains: "(" } },
         ...(racedOnly ? { runners: { some: {} } } : {}),
       },
       select: {

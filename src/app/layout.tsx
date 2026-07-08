@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "@/lib/workos-env";
 import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components";
-import { withAuth } from "@workos-inc/authkit-nextjs";
 import "./globals.css";
 import { CookieConsentBanner } from "@/components/cookie-consent";
 import { MobileBottomDock } from "@/components/mobile-bottom-dock";
@@ -56,15 +55,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const auth = await withAuth();
-  const initialAuth = { ...auth };
-  delete (initialAuth as { accessToken?: unknown }).accessToken;
-
   return (
     <html lang="en" className={inter.variable}>
       <body
@@ -72,7 +67,7 @@ export default async function RootLayout({
         style={{ fontFeatureSettings: '"cv01", "ss03", "rlig" 1, "calt" 1' }}
       >
         <JsonLd data={[organizationSchema, websiteSchema]} />
-        <AuthKitProvider initialAuth={initialAuth}>
+        <AuthKitProvider>
           <a
             href="#main-content"
             className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-md focus:bg-[hsl(var(--primary))] focus:text-white focus:text-sm focus:font-semibold"

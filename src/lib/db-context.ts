@@ -2,15 +2,16 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 
-import type { CurrentUserProfile } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export type DbContextClient = Prisma.TransactionClient;
 
-export type DbContextUser = Pick<
-  CurrentUserProfile,
-  "dbUserId" | "profileId" | "profileRole" | "tier"
->;
+export type DbContextUser = {
+  dbUserId: string;
+  profileId: string;
+  profileRole: string;
+  tier: string;
+};
 
 const DB_CONTEXT_TRANSACTION_TIMEOUT_MS = 30_000;
 const DB_CONTEXT_TRANSACTION_MAX_WAIT_MS = 30_000;
@@ -31,6 +32,21 @@ export async function withDbRequestContext<T>(
   );
 }
 
+export async function withDbSystemContext<T>(
+  fn: (tx: DbContextClient) => Promise<T>,
+): Promise<T> {
+  return prisma.$transaction(
+    async (tx) => {
+      await setDbSystemContext(tx);
+      return fn(tx);
+    },
+    {
+      maxWait: DB_CONTEXT_TRANSACTION_MAX_WAIT_MS,
+      timeout: DB_CONTEXT_TRANSACTION_TIMEOUT_MS,
+    },
+  );
+}
+
 export async function setDbRequestContext(
   tx: DbContextClient,
   current: DbContextUser,
@@ -40,6 +56,12 @@ export async function setDbRequestContext(
   await setLocal(tx, "app.current_tier", current.tier);
   await setLocal(tx, "app.current_role", current.profileRole);
   await setLocal(tx, "app.system", "false");
+}
+
+export async function setDbSystemContext(tx: DbContextClient) {
+  await setLocal(tx, "app.system", "true");
+  await setLocal(tx, "app.current_tier", "system");
+  await setLocal(tx, "app.current_role", "system");
 }
 
 function setLocal(tx: DbContextClient, key: string, value: string) {

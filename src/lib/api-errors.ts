@@ -19,6 +19,17 @@ export function jsonError(err: unknown, fallback = "Request failed") {
   const message = err instanceof Error ? err.message : fallback;
   const status = statusForErrorMessage(message);
 
+  // Only surface the message when it matches a known `namespace.code` sentinel.
+  // Anything unrecognized (notably raw Prisma errors, which can embed DB
+  // host:port and SQL fragments) is logged server-side and returned generic.
+  if (status === null) {
+    logError("api.internal_error", { code: "unclassified" }, err);
+    return NextResponse.json(
+      { error: { code: "internal.error", message: fallback } },
+      { status: 500 }
+    );
+  }
+
   if (status >= 500) {
     logError("api.internal_error", { code: message }, err);
   }
@@ -34,7 +45,7 @@ export function jsonError(err: unknown, fallback = "Request failed") {
   );
 }
 
-function statusForErrorMessage(message: string) {
+function statusForErrorMessage(message: string): number | null {
   if (message === "auth.unauthorized") return 401;
   if (
     message === "auth.forbidden" ||
@@ -61,5 +72,8 @@ function statusForErrorMessage(message: string) {
   ) {
     return 503;
   }
-  return 400;
+  // Recognized app-level validation/business errors are safe to echo at 400.
+  // The message must look like a deliberate sentinel, not a raw error string.
+  if (/^[a-z][a-z0-9]*\.[a-z0-9_]+$/.test(message)) return 400;
+  return null;
 }

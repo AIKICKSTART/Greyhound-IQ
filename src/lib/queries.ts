@@ -267,6 +267,7 @@ async function runDogSearch(
               SELECT d.id
               FROM "Dog" d
               WHERE lower(d.name) LIKE lower(${prefixPattern}) ESCAPE '\\'
+                AND EXISTS (SELECT 1 FROM "Runner" r WHERE r."dogId" = d.id)
               ORDER BY d.name ASC
               LIMIT ${limit}
             `,
@@ -338,6 +339,7 @@ function searchDogsTrigram(
         SELECT d.id
         FROM "Dog" d
         WHERE ${wordConditions}
+          AND EXISTS (SELECT 1 FROM "Runner" r WHERE r."dogId" = d.id)
         ORDER BY
           CASE WHEN d.name ILIKE ${prefixPattern} ESCAPE '\\' THEN 1 ELSE 0 END DESC,
           similarity(d.name, ${trimmed}) DESC,

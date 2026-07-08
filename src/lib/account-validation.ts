@@ -59,6 +59,7 @@ export const dogOwnershipRoleSchema = z.enum([
 
 export const dogOwnershipClaimSchema = z.object({
   role: dogOwnershipRoleSchema,
+  evidence: optionalText(1000),
 });
 
 export type DogOwnershipRole = z.infer<typeof dogOwnershipRoleSchema>;

@@ -18,6 +18,7 @@ import {
   resolveRaceVideoReplay,
 } from "@/lib/live/race-replay";
 import { absoluteTheDogsUrl } from "@/lib/live/thedogs-replay";
+import { proxiedStreamPath } from "@/lib/live/replay-proxy";
 import { formatRaceDetailTime } from "@/lib/race-time";
 
 export const dynamic = "force-dynamic";
@@ -88,7 +89,11 @@ export default async function RacePage({
         sourceId: race.sourceId,
         replayUrl: race.replayUrl,
       });
-  const replayStreamUrl = storedReplay?.streamUrl ?? providerReplay?.streamUrl ?? null;
+  // Proxy the provider stream through our own origin so the browser never sees
+  // the source host. Unknown hosts return null and fall through to embed/none.
+  const replayStreamUrl = proxiedStreamPath(
+    storedReplay?.streamUrl ?? providerReplay?.streamUrl ?? null
+  );
   const replayStreamContentType =
     storedReplay?.streamContentType ?? providerReplay?.streamContentType ?? null;
   const replayEmbedUrl = replayStreamUrl
@@ -488,8 +493,10 @@ function PreviousRaceVideoSection({
         </span>
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
-        {videos.map((video) => (
-          <article key={video.pageUrl} className="min-w-0 space-y-3">
+        {videos.map((video) => {
+          const proxiedStream = proxiedStreamPath(video.replay?.streamUrl);
+          return (
+            <article key={video.pageUrl} className="min-w-0 space-y-3">
             <div className="flex flex-col gap-2 rounded-lg border border-white/[0.07] bg-white/[0.025] p-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))]">
@@ -511,10 +518,10 @@ function PreviousRaceVideoSection({
                 )}
               </div>
             </div>
-            {video.replay?.streamUrl ? (
+            {proxiedStream ? (
               <RaceReplayPlayer
-                streamUrl={video.replay.streamUrl}
-                streamContentType={video.replay.streamContentType}
+                streamUrl={proxiedStream}
+                streamContentType={video.replay?.streamContentType}
                 trackName={video.trackName}
                 raceLabel={video.raceLabel}
                 raceTimeLabel={formatRaceDetailTime(video.date)}
@@ -530,8 +537,9 @@ function PreviousRaceVideoSection({
             ) : (
               <PreviousReplayFallback />
             )}
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </section>
   );
@@ -573,7 +581,15 @@ async function resolveProviderReplay({
 
 function normaliseReplayPageUrl(value: string | null, sourceProvider?: string | null) {
   if (!value) return null;
-  if (sourceProvider === "thedogs") return absoluteTheDogsUrl(value);
+  // absoluteTheDogsUrl host-pins (SSRF guard) and throws on a foreign host;
+  // treat that as "no replay" rather than failing the whole page render.
+  if (sourceProvider === "thedogs") {
+    try {
+      return absoluteTheDogsUrl(value);
+    } catch {
+      return null;
+    }
+  }
   return value;
 }
 
@@ -581,8 +597,14 @@ function normaliseExternalProviderUrl(
   value: string | null,
   sourceProvider?: string | null
 ) {
-  const url =
-    sourceProvider === "thedogs" && value ? absoluteTheDogsUrl(value) : value;
+  let url = value;
+  if (sourceProvider === "thedogs" && value) {
+    try {
+      url = absoluteTheDogsUrl(value);
+    } catch {
+      return null;
+    }
+  }
   if (!url) return null;
   try {
     const parsed = new URL(url);

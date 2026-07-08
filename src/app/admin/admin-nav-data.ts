@@ -45,6 +45,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     title: "Trust & safety",
     items: [
       { href: "/admin/reports", label: "Reports", blurb: "User-submitted reports queue." },
+      { href: "/admin/dog-ownership", label: "Dog ownership", blurb: "Pending ownership verification claims." },
       { href: "/admin/safety", label: "Trust & safety", blurb: "Safety flags and banned phrases." },
       { href: "/admin/listings", label: "Marketplace review", blurb: "Pending marketplace listings." },
       { href: "/admin/feed", label: "Feed moderation", blurb: "Community feed moderation." },

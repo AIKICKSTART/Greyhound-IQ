@@ -7,6 +7,38 @@ import {
   parseTheDogsReplayCards,
   tasracingStreamUrl,
 } from "../src/lib/live/race-replay";
+import { absoluteTheDogsUrl } from "../src/lib/live/thedogs-replay";
+import { proxiedStreamPath, verifyStreamToken } from "../src/lib/live/replay-proxy";
+
+// Stream proxy: allowed hosts sign+round-trip; foreign hosts and tampered
+// signatures are rejected (prevents open-proxy / SSRF and hides source origin).
+process.env.INTERNAL_API_SECRET ||= "test-secret-for-replay-proxy-check";
+const signed = proxiedStreamPath(
+  "https://d2w8yyjcswa0zt.cloudfront.net/abc.m3u8"
+);
+assert.ok(signed && signed.startsWith("/api/replay/stream?u="));
+const proxyParams = new URLSearchParams(signed!.split("?")[1]);
+assert.equal(
+  verifyStreamToken(proxyParams.get("u")!, proxyParams.get("s")!),
+  "https://d2w8yyjcswa0zt.cloudfront.net/abc.m3u8"
+);
+assert.equal(verifyStreamToken(proxyParams.get("u")!, "tampered"), null);
+assert.equal(proxiedStreamPath("https://attacker.example/x.m3u8"), null);
+assert.equal(proxiedStreamPath("http://169.254.169.254/x"), null);
+
+// SSRF guard: absolute values must not escape the thedogs host before a fetch.
+assert.equal(
+  absoluteTheDogsUrl("/videos/watch/races/1/replay"),
+  "https://www.thedogs.com.au/videos/watch/races/1/replay"
+);
+for (const evil of [
+  "http://169.254.169.254/latest/meta-data/",
+  "https://attacker.example/x",
+  "//attacker.example/x",
+  "file:///etc/passwd",
+]) {
+  assert.throws(() => absoluteTheDogsUrl(evil), /url_host_not_allowed|Invalid/);
+}
 
 const theDogsCards = parseTheDogsReplayCards(`
   <a data-turbolinks-action="video" class="video-card" href="/videos/watch/races/1263755/replay">

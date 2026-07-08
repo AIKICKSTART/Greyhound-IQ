@@ -1096,7 +1096,8 @@ model Profile {
   messageModerationActions MessageModerationAction[]
   conversationsA           Conversation[]            @relation("ConversationA")
   conversationsB           Conversation[]            @relation("ConversationB")
-  dogsOwned                DogOwnership[]
+  dogsOwned                DogOwnership[]            @relation("DogOwnershipProfile")
+  dogOwnershipsReviewed    DogOwnership[]            @relation("DogOwnershipReviewer")
   friendshipsA             Friendship[]              @relation("FriendshipA")
   friendshipsB             Friendship[]              @relation("FriendshipB")
 }
@@ -1117,16 +1118,23 @@ model Friendship {
 }
 
 model DogOwnership {
-  id        String   @id @default(cuid())
-  dogId     String
-  dog       Dog      @relation(fields: [dogId], references: [id])
-  profileId String
-  profile   Profile  @relation(fields: [profileId], references: [id])
-  role      String // owner | breeder | trainer | co-owner
-  verified  Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id                  String    @id @default(cuid())
+  dogId               String
+  dog                 Dog       @relation(fields: [dogId], references: [id])
+  profileId           String
+  profile             Profile   @relation("DogOwnershipProfile", fields: [profileId], references: [id])
+  role                String // owner | breeder | trainer | co-owner
+  verified            Boolean   @default(false)
+  status              String    @default("pending") // pending | approved | rejected
+  evidence            String? // user-supplied justification for the claim
+  reviewedByProfileId String?
+  reviewedBy          Profile?  @relation("DogOwnershipReviewer", fields: [reviewedByProfileId], references: [id], onDelete: SetNull)
+  reviewedAt          DateTime?
+  rejectionReason     String?
+  createdAt           DateTime  @default(now())
 
   @@unique([dogId, profileId])
+  @@index([status])
 }
 
 model ForumCategory {

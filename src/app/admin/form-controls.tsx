@@ -6,6 +6,8 @@ import {
   createAdminUserAction,
   updateAdminBugReportAction,
   updateAdminStatus,
+  approveDogOwnershipAction,
+  rejectDogOwnershipAction,
   updateAdminSupportTicketAction,
   updateAdminUserAccessAction,
   upsertAdminEntitlementAction,
@@ -362,6 +364,30 @@ export function AdminSourceHealthForm({ path }: { path: string }) {
       <input name="latencyMs" type="number" min={0} placeholder="latency ms optional" className={CONTROL} />
       <ReasonField />
       <button className={SMALL_BUTTON}>Save source health</button>
+    </form>
+  );
+}
+
+export function AdminDogOwnershipForm({
+  ownershipId,
+  path,
+}: {
+  ownershipId: string;
+  path: string;
+}) {
+  return (
+    <form className="min-w-[240px] space-y-2">
+      <input type="hidden" name="ownershipId" value={ownershipId} />
+      <input type="hidden" name="path" value={path} />
+      <ReasonField placeholder="Reason (shown to claimant if rejected)" />
+      <div className="flex gap-2">
+        <button formAction={approveDogOwnershipAction} className={SMALL_BUTTON}>
+          Approve
+        </button>
+        <button formAction={rejectDogOwnershipAction} className={SMALL_BUTTON}>
+          Reject
+        </button>
+      </div>
     </form>
   );
 }

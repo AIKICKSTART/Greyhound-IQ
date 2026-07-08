@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireAdminProfile } from "@/lib/auth";
+import { requireAdminProfile, requireModeratorProfile } from "@/lib/auth";
 import {
+  approveDogOwnership,
   createAdminDeletionJob,
   createAdminExportArtifact,
   createAdminInvitation,
@@ -12,6 +13,7 @@ import {
   createAdminUser,
   updateAdminBugReport,
   updateAdminResourceStatus,
+  rejectDogOwnership,
   updateAdminSupportTicket,
   updateAdminUserAccess,
   upsertAdminEntitlement,
@@ -182,6 +184,12 @@ const bugReportSchema = z.object({
   bugReportId: idSchema,
   status: statusSchema,
   severity: z.string().trim().min(2).max(40),
+  reason: reasonSchema,
+  path: z.string().trim().optional(),
+});
+
+const dogOwnershipReviewSchema = z.object({
+  ownershipId: idSchema,
   reason: reasonSchema,
   path: z.string().trim().optional(),
 });
@@ -375,6 +383,28 @@ export async function updateAdminBugReportAction(formData: FormData) {
     path: optionalField(formData, "path"),
   });
   await updateAdminBugReport(current, parsed);
+  revalidateAdmin(parsed.path);
+}
+
+export async function approveDogOwnershipAction(formData: FormData) {
+  const current = await requireModeratorProfile();
+  const parsed = dogOwnershipReviewSchema.parse({
+    ownershipId: field(formData, "ownershipId"),
+    reason: field(formData, "reason"),
+    path: optionalField(formData, "path"),
+  });
+  await approveDogOwnership(current, parsed);
+  revalidateAdmin(parsed.path);
+}
+
+export async function rejectDogOwnershipAction(formData: FormData) {
+  const current = await requireModeratorProfile();
+  const parsed = dogOwnershipReviewSchema.parse({
+    ownershipId: field(formData, "ownershipId"),
+    reason: field(formData, "reason"),
+    path: optionalField(formData, "path"),
+  });
+  await rejectDogOwnership(current, parsed);
   revalidateAdmin(parsed.path);
 }
 

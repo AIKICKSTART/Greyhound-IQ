@@ -5315,6 +5315,12 @@ select.giq-form-control option:checked {
   color: hsl(var(--secondary-light));
 }
 
+.giq-status-pill-red {
+  border-color: hsl(var(--destructive) / 0.4);
+  background: hsl(var(--destructive) / 0.12);
+  color: hsl(var(--destructive));
+}
+
 .giq-outline-action {
   display: inline-flex;
   min-height: 44px;

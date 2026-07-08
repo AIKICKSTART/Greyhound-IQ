@@ -8,7 +8,10 @@ import {
   hasProfileMarketingFields,
   profileUpdateSchema,
 } from "@/lib/account-validation";
-import { requestAccountDeletion as requestAccountDeletionForUser } from "@/lib/account-service";
+import {
+  createAuditLog,
+  requestAccountDeletion as requestAccountDeletionForUser,
+} from "@/lib/account-service";
 import {
   agentRunSchema as agentRequestSchema,
   normalizeAgentType,
@@ -193,6 +196,8 @@ const SUPPORT_TICKET_RATE_LIMIT = 3;
 const SUPPORT_TICKET_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const FEED_POST_RATE_LIMIT = 5;
 const FEED_POST_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const DOG_CLAIM_RATE_LIMIT = 5;
+const DOG_CLAIM_RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const FEED_COMMENT_RATE_LIMIT = 20;
 const FEED_COMMENT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const FEED_REACTION_RATE_LIMIT = 60;
@@ -1009,32 +1014,56 @@ export async function claimDogOwnership(dogId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
   const parsed = dogOwnershipClaimSchema.parse({
     role: field(formData, "role"),
+    evidence: field(formData, "evidence"),
   });
 
-  const dog = await prisma.dog.findUnique({ where: { id: dogId } });
-  if (!dog) throw new Error("dog.not_found");
+  const rateLimit = await checkRateLimit(
+    `dog:claim:${current.dbUserId}`,
+    DOG_CLAIM_RATE_LIMIT,
+    DOG_CLAIM_RATE_LIMIT_WINDOW_MS
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
-  await prisma.dogOwnership.upsert({
-    where: {
-      dogId_profileId: {
+  await withDbRequestContext(current, async (tx) => {
+    const dog = await tx.dog.findUnique({
+      where: { id: dogId },
+      select: { id: true },
+    });
+    if (!dog) throw new Error("dog.not_found");
+
+    // One claim per (dog, profile). A re-claim must not silently reset an
+    // approved/rejected review, so reject the duplicate instead of upserting.
+    const existing = await tx.dogOwnership.findUnique({
+      where: { dogId_profileId: { dogId: dog.id, profileId: current.profileId } },
+      select: { id: true },
+    });
+    if (existing) throw new Error("dog.ownership.already_claimed");
+
+    const ownership = await tx.dogOwnership.create({
+      data: {
         dogId: dog.id,
         profileId: current.profileId,
+        role: parsed.role,
+        evidence: parsed.evidence,
+        status: "pending",
+        verified: false,
       },
-    },
-    update: {
-      role: parsed.role,
-    },
-    create: {
-      dogId: dog.id,
-      profileId: current.profileId,
-      role: parsed.role,
-      verified: false,
-    },
+      select: { id: true },
+    });
+
+    await createAuditLog({
+      actorId: current.dbUserId,
+      actorType: "user",
+      action: "dog.ownership.claim",
+      targetType: "dogOwnership",
+      targetId: ownership.id,
+      metadata: { dogId: dog.id, role: parsed.role },
+    });
   });
 
   revalidatePath("/account");
-  revalidatePath(`/dogs/${dog.id}`);
-  redirect(`/dogs/${dog.id}`);
+  revalidatePath(`/dogs/${dogId}`);
+  redirect(`/dogs/${dogId}`);
 }
 
 export async function requestAccountDeletion() {

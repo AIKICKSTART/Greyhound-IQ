@@ -3,7 +3,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 
 import type { CurrentUserProfile } from "@/lib/auth-types";
-import { isAdminRole } from "@/lib/auth-roles";
+import { isAdminRole, isModeratorRole } from "@/lib/auth-roles";
 import { withDbRequestContext, type DbContextClient } from "@/lib/db-context";
 
 export type AdminResource =
@@ -150,6 +150,10 @@ export type AdminBugReportInput = {
 
 export function assertAdmin(current: CurrentUserProfile) {
   if (!isAdminRole(current.profileRole)) throw new Error("auth.forbidden");
+}
+
+export function assertModerator(current: CurrentUserProfile) {
+  if (!isModeratorRole(current.profileRole)) throw new Error("auth.forbidden");
 }
 
 export function cleanAdminReason(reason: string | null | undefined) {
@@ -593,6 +597,71 @@ export async function updateAdminBugReport(
       metadata: { status: input.status, severity: input.severity },
     });
     return report;
+  });
+}
+
+export type AdminDogOwnershipReviewInput = {
+  ownershipId: string;
+  reason: string;
+};
+
+export async function approveDogOwnership(
+  current: CurrentUserProfile,
+  input: AdminDogOwnershipReviewInput
+) {
+  assertModerator(current);
+  const reason = cleanAdminReason(input.reason);
+  return withDbRequestContext(current, async (tx) => {
+    // updateMany avoids a RETURNING SELECT, so the review write does not depend
+    // on the row being visible under the SELECT policy.
+    const updated = await tx.dogOwnership.updateMany({
+      where: { id: input.ownershipId, status: "pending" },
+      data: {
+        status: "approved",
+        verified: true,
+        reviewedByProfileId: current.profileId,
+        reviewedAt: new Date(),
+        rejectionReason: null,
+      },
+    });
+    if (updated.count === 0) throw new Error("dog.ownership.not_pending");
+
+    await logAdminMutation(tx, current, {
+      action: "dog.ownership.approve",
+      targetType: "dogOwnership",
+      targetId: input.ownershipId,
+      reason,
+    });
+    return { ownershipId: input.ownershipId };
+  });
+}
+
+export async function rejectDogOwnership(
+  current: CurrentUserProfile,
+  input: AdminDogOwnershipReviewInput
+) {
+  assertModerator(current);
+  const reason = cleanAdminReason(input.reason);
+  return withDbRequestContext(current, async (tx) => {
+    const updated = await tx.dogOwnership.updateMany({
+      where: { id: input.ownershipId, status: "pending" },
+      data: {
+        status: "rejected",
+        verified: false,
+        reviewedByProfileId: current.profileId,
+        reviewedAt: new Date(),
+        rejectionReason: reason,
+      },
+    });
+    if (updated.count === 0) throw new Error("dog.ownership.not_pending");
+
+    await logAdminMutation(tx, current, {
+      action: "dog.ownership.reject",
+      targetType: "dogOwnership",
+      targetId: input.ownershipId,
+      reason,
+    });
+    return { ownershipId: input.ownershipId };
   });
 }
 

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, Clock, Lock, ShieldCheck } from "lucide-react";
+import { BadgeCheck, Ban, Clock, Lock, ShieldCheck } from "lucide-react";
 import { claimDogOwnership } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
-import { getDogById, getDogPrizeMoney } from "@/lib/queries";
+import { getDogById, getDogPrizeMoney, getMyDogOwnership } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -38,10 +38,23 @@ export default async function DogProfilePage({
   ]);
   if (!dog) notFound();
 
-  const verifiedOwnership = dog.ownership.filter((entry) => entry.verified);
-  const currentOwnership = user?.profileId
-    ? dog.ownership.find((entry) => entry.profileId === user.profileId)
-    : null;
+  const approvedOwnership = dog.ownership.filter(
+    (entry) => entry.status === "approved"
+  );
+  // getDogById runs without request context, so RLS hides the claimant's own
+  // pending/rejected row from dog.ownership. Fetch it under the user's context.
+  const currentOwnership =
+    user?.dbUserId && user.profileId && user.role
+      ? await getMyDogOwnership(
+          {
+            dbUserId: user.dbUserId,
+            profileId: user.profileId,
+            profileRole: user.role,
+            tier: user.tier,
+          },
+          dog.id
+        )
+      : null;
   const claimAction = claimDogOwnership.bind(null, dog.id);
 
   const wins = dog.formEntries.filter((e) => e.finish === 1).length;
@@ -119,8 +132,8 @@ export default async function DogProfilePage({
 
         <div className="grid gap-5 md:grid-cols-[1fr_280px]">
           <div className="space-y-3">
-            {verifiedOwnership.length > 0 ? (
-              verifiedOwnership.map((entry) => (
+            {approvedOwnership.length > 0 ? (
+              approvedOwnership.map((entry) => (
                 <div
                   key={entry.id}
                   className="giq-subpanel flex flex-wrap items-center justify-between gap-3 p-4"
@@ -135,7 +148,7 @@ export default async function DogProfilePage({
                       {entry.profile.state ? ` · ${entry.profile.state}` : ""}
                     </p>
                   </div>
-                  <OwnershipBadge verified />
+                  <OwnershipBadge status="approved" />
                 </div>
               ))
             ) : (
@@ -146,17 +159,33 @@ export default async function DogProfilePage({
               </div>
             )}
 
-            {currentOwnership && !currentOwnership.verified && (
+            {currentOwnership && currentOwnership.status === "pending" && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[hsl(var(--secondary)/0.25)] bg-[hsl(var(--secondary)/0.08)] p-4">
                 <div>
                   <p className="font-semibold text-[hsl(var(--foreground))]">
-                    Your claim is pending
+                    Claim pending review
                   </p>
                   <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
                     {formatRole(currentOwnership.role)} claim submitted for review.
                   </p>
                 </div>
-                <OwnershipBadge verified={false} />
+                <OwnershipBadge status="pending" />
+              </div>
+            )}
+
+            {currentOwnership && currentOwnership.status === "rejected" && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[hsl(var(--destructive)/0.3)] bg-[hsl(var(--destructive)/0.08)] p-4">
+                <div>
+                  <p className="font-semibold text-[hsl(var(--foreground))]">
+                    Claim not approved
+                  </p>
+                  <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+                    {currentOwnership.rejectionReason
+                      ? currentOwnership.rejectionReason
+                      : "A moderator declined this ownership claim."}
+                  </p>
+                </div>
+                <OwnershipBadge status="rejected" />
               </div>
             )}
           </div>
@@ -165,10 +194,13 @@ export default async function DogProfilePage({
             {user ? (
               currentOwnership ? (
                 <div>
-                  <OwnershipBadge verified={currentOwnership.verified} />
+                  <OwnershipBadge status={currentOwnership.status} />
                   <p className="mt-3 text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-                    This dog is linked to your GreyhoundIQ profile as{" "}
-                    {formatRole(currentOwnership.role)}.
+                    {currentOwnership.status === "approved"
+                      ? `This dog is linked to your GreyhoundIQ profile as ${formatRole(currentOwnership.role)}.`
+                      : currentOwnership.status === "rejected"
+                        ? `Your ${formatRole(currentOwnership.role)} claim was not approved.`
+                        : `Your ${formatRole(currentOwnership.role)} claim is awaiting moderator review.`}
                   </p>
                   <Link
                     href="/account"
@@ -194,8 +226,20 @@ export default async function DogProfilePage({
                       <option value="trainer">Trainer</option>
                     </select>
                   </label>
+                  <label className="block">
+                    <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                      Evidence (optional)
+                    </span>
+                    <textarea
+                      name="evidence"
+                      rows={3}
+                      maxLength={1000}
+                      placeholder="How can we verify this link? e.g. registration papers, kennel records."
+                      className="giq-form-control giq-textarea mt-2 px-3 py-2"
+                    />
+                  </label>
                   <SubmitButton pendingLabel="Submitting claim...">
-                    Claim dog
+                    Request ownership
                   </SubmitButton>
                 </form>
               )
@@ -461,21 +505,27 @@ export default async function DogProfilePage({
   );
 }
 
-function OwnershipBadge({ verified }: { verified: boolean }) {
-  return (
-    <span
-      className={`giq-status-pill ${
-        verified
-          ? "giq-status-pill-purple"
-          : "giq-status-pill-gold"
-      }`}
-    >
-      {verified ? (
+function OwnershipBadge({ status }: { status: string }) {
+  if (status === "approved") {
+    return (
+      <span className="giq-status-pill giq-status-pill-purple">
         <BadgeCheck className="h-3.5 w-3.5" />
-      ) : (
-        <Clock className="h-3.5 w-3.5" />
-      )}
-      {verified ? "Verified" : "Pending"}
+        Verified owner
+      </span>
+    );
+  }
+  if (status === "rejected") {
+    return (
+      <span className="giq-status-pill giq-status-pill-red">
+        <Ban className="h-3.5 w-3.5" />
+        Not approved
+      </span>
+    );
+  }
+  return (
+    <span className="giq-status-pill giq-status-pill-gold">
+      <Clock className="h-3.5 w-3.5" />
+      Pending
     </span>
   );
 }

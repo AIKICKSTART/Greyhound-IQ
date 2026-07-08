@@ -45,7 +45,10 @@ export async function resolveTheDogsRaceReplay({
 
   const pageUrl = absoluteTheDogsUrl(providerReplayUrl);
   const source = await fetchVideoSource(videoSourceId, pageUrl);
-  const streamUrl = source.video?.src ? absoluteTheDogsUrl(source.video.src) : null;
+  // The stream src is an external CDN (cloudfront/skyracing), so it is not
+  // host-pinned to thedogs; it is only returned for the browser to play under
+  // CSP, never fetched server-side. Validate it is plain http(s).
+  const streamUrl = publicHttpUrl(source.video?.src);
 
   return {
     pageUrl,
@@ -58,8 +61,26 @@ export async function resolveTheDogsRaceReplay({
   };
 }
 
+// SSRF guard: values fed here come from scraped/DB data. new URL(value, base)
+// lets an absolute value (e.g. http://169.254.169.254/) override the base host,
+// so every resolved URL is host-pinned to THEDOGS_BASE before it can be fetched.
 export function absoluteTheDogsUrl(value: string) {
-  return new URL(value, THEDOGS_BASE).toString();
+  const base = new URL(THEDOGS_BASE);
+  const url = new URL(value, THEDOGS_BASE);
+  if (url.hostname !== base.hostname || (url.protocol !== "https:" && url.protocol !== "http:")) {
+    throw new Error("thedogs.url_host_not_allowed");
+  }
+  return url.toString();
+}
+
+function publicHttpUrl(value?: string | null) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 async function fetchReplayUrlFromRacePage(sourceId?: string | null) {

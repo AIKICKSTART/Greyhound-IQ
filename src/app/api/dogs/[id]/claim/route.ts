@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { dogOwnershipClaimSchema } from "@/lib/account-validation";
+import { createAuditLog } from "@/lib/account-service";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { withDbRequestContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-const DOG_CLAIM_RATE_LIMIT = 3;
-const DOG_CLAIM_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const DOG_CLAIM_RATE_LIMIT = 5;
+const DOG_CLAIM_RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(
   request: Request,
@@ -18,7 +19,7 @@ export async function POST(
       requireCurrentUserProfile(),
     ]);
     const rateLimit = await checkRateLimit(
-      `dog:claim:${current.dbUserId}:${id}`,
+      `dog:claim:${current.dbUserId}`,
       DOG_CLAIM_RATE_LIMIT,
       DOG_CLAIM_RATE_LIMIT_WINDOW_MS
     );
@@ -37,35 +38,43 @@ export async function POST(
     const parsed = dogOwnershipClaimSchema.parse(await request.json());
 
     const ownership = await withDbRequestContext(current, async (tx) => {
-      const dog = await tx.dog.findUnique({ where: { id } });
+      const dog = await tx.dog.findUnique({
+        where: { id },
+        select: { id: true },
+      });
       if (!dog) throw new Error("dog.not_found");
 
-      return tx.dogOwnership.upsert({
+      // One claim per (dog, profile); a re-claim must not reset an existing
+      // review, so reject the duplicate rather than upserting.
+      const existing = await tx.dogOwnership.findUnique({
         where: {
-          dogId_profileId: {
-            dogId: dog.id,
-            profileId: current.profileId,
-          },
+          dogId_profileId: { dogId: dog.id, profileId: current.profileId },
         },
-        update: {
-          role: parsed.role,
-        },
-        create: {
+        select: { id: true },
+      });
+      if (existing) throw new Error("dog.ownership.already_claimed");
+
+      const created = await tx.dogOwnership.create({
+        data: {
           dogId: dog.id,
           profileId: current.profileId,
           role: parsed.role,
+          evidence: parsed.evidence,
+          status: "pending",
           verified: false,
         },
-        include: {
-          dog: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          profile: true,
-        },
       });
+
+      await createAuditLog({
+        actorId: current.dbUserId,
+        actorType: "user",
+        action: "dog.ownership.claim",
+        targetType: "dogOwnership",
+        targetId: created.id,
+        metadata: { dogId: dog.id, role: parsed.role },
+      });
+
+      return created;
     });
 
     return NextResponse.json({ item: ownership }, { status: 201 });

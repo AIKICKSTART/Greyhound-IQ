@@ -365,10 +365,11 @@ async function main() {
   console.log(`  ✓ ${userRows.length} users + profiles`);
 
   // 10. Dog ownership
-  const ownershipRows: { id: string; dogId: string; profileId: string; role: string; verified: boolean }[] = [];
+  const ownershipRows: { id: string; dogId: string; profileId: string; role: string; verified: boolean; status: string }[] = [];
   for (const profileId of profileIds) {
     for (const dogId of [...dogIds].sort(() => Math.random() - 0.5).slice(0, 4)) {
-      ownershipRows.push({ id: id(), dogId, profileId, role: randomChoice(["owner", "breeder", "trainer", "co-owner"]), verified: Math.random() < 0.6 });
+      const verified = Math.random() < 0.6;
+      ownershipRows.push({ id: id(), dogId, profileId, role: randomChoice(["owner", "breeder", "trainer", "co-owner"]), verified, status: verified ? "approved" : "pending" });
     }
   }
   await prisma.dogOwnership.createMany({ data: ownershipRows });

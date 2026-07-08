@@ -2,7 +2,7 @@ import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { safeQuery } from "@/lib/db";
-import { withDbSystemContext } from "@/lib/db-context";
+import { withDbRequestContext, withDbSystemContext } from "@/lib/db-context";
 import { cached } from "@/lib/ttl-cache";
 import { getApproximateTableCounts } from "@/lib/db-stats";
 import {
@@ -213,8 +213,7 @@ export async function getPreviousRaceVideoRunners(raceId: string) {
 }
 
 // Minimal payload: only the fields the search dropdown renders. Heavy relations
-// (form entries, runners, ownership) stay on the profile page. formEntries is a
-// _count, not a row fetch, so it's a cheap indexed subquery, not an unbounded include.
+// (form entries, runners, ownership) stay on the profile page.
 const dogSearchSelect = {
   id: true,
   name: true,
@@ -223,10 +222,11 @@ const dogSearchSelect = {
   trainer: { select: { name: true } },
   sire: { select: { name: true } },
   dam: { select: { name: true } },
-  _count: { select: { formEntries: true } },
 } as const satisfies Prisma.DogSelect;
 
-type DogSearchResult = Prisma.DogGetPayload<{ select: typeof dogSearchSelect }>;
+type DogSearchResult = Prisma.DogGetPayload<{ select: typeof dogSearchSelect }> & {
+  _count: { formEntries: number };
+};
 
 export async function searchDogs(
   query: string,
@@ -267,16 +267,39 @@ export async function searchDogs(
   if (ranked.length === 0) return [];
   const ids = ranked.map((row) => row.id);
 
-  const dogs = await safeQuery(
-    () =>
-      prisma.dog.findMany({
-        where: { id: { in: ids } },
-        select: dogSearchSelect,
-      }),
-    []
-  );
+  // Form counts fetched separately: Prisma's relation _count compiles to a
+  // GROUP BY over the whole 5.6M-row FormEntry table joined back in (the
+  // planner cannot push the id filter into the grouped subquery, ~5s). A
+  // groupBy restricted to the matched ids is an indexed millisecond query.
+  const [dogs, formCounts] = await Promise.all([
+    safeQuery(
+      () =>
+        prisma.dog.findMany({
+          where: { id: { in: ids } },
+          select: dogSearchSelect,
+        }),
+      []
+    ),
+    safeQuery(
+      () =>
+        prisma.formEntry.groupBy({
+          by: ["dogId"],
+          where: { dogId: { in: ids } },
+          _count: { _all: true },
+        }),
+      []
+    ),
+  ]);
 
-  const byId = new Map(dogs.map((dog) => [dog.id, dog]));
+  const countByDogId = new Map(
+    formCounts.map((row) => [row.dogId, row._count._all])
+  );
+  const byId = new Map(
+    dogs.map((dog) => [
+      dog.id,
+      { ...dog, _count: { formEntries: countByDogId.get(dog.id) ?? 0 } },
+    ])
+  );
   return ids
     .map((id) => byId.get(id))
     .filter((dog): dog is DogSearchResult => dog != null);
@@ -347,6 +370,31 @@ export const getDogById = cache(async (id: string) => {
     null
   );
 });
+
+// The claimant's own ownership row for a dog, at ANY status. getDogById runs on
+// the bare client (no request context), so RLS hides a claimant's pending/rejected
+// row from it — this fetches it under the user's context so the claim UI can show
+// pending/rejected state. Public/approved ownership still comes from getDogById.
+export async function getMyDogOwnership(
+  current: { dbUserId: string; profileId: string; profileRole: string; tier: string },
+  dogId: string
+) {
+  return safeQuery(
+    () =>
+      withDbRequestContext(current, (tx) =>
+        tx.dogOwnership.findUnique({
+          where: { dogId_profileId: { dogId, profileId: current.profileId } },
+          select: {
+            id: true,
+            role: true,
+            status: true,
+            rejectionReason: true,
+          },
+        })
+      ),
+    null
+  );
+}
 
 export type DogPrizeMoney = {
   careerWon: number;

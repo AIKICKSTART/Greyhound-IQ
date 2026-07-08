@@ -136,14 +136,16 @@ function ResultBadge({ position }: { position: number | null }) {
   }
   if (position === 2) {
     return (
-      <span className="giq-result-badge giq-result-badge-purple">
+      <span className="giq-result-badge giq-result-badge-silver">
+        <Trophy className="h-3 w-3" aria-hidden="true" />
         2nd
       </span>
     );
   }
   if (position === 3) {
     return (
-      <span className="giq-result-badge giq-result-badge-chrome">
+      <span className="giq-result-badge giq-result-badge-bronze">
+        <Trophy className="h-3 w-3" aria-hidden="true" />
         3rd
       </span>
     );

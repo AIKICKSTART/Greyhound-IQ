@@ -8,6 +8,7 @@ export interface AuthIdentity {
   email: string;
   firstName?: string | null;
   lastName?: string | null;
+  emailVerified?: boolean;
 }
 
 export async function syncAuthUser(user: AuthIdentity) {
@@ -19,7 +20,12 @@ async function syncAuthUserWithClient(
   user: AuthIdentity
 ) {
   const displayName = displayNameForAuth(user);
-  const existing = await findUserForAuthWithClient(db, user.id, user.email);
+  const existing = await findUserForAuthWithClient(
+    db,
+    user.id,
+    user.email,
+    user.emailVerified,
+  );
 
   if (!existing) {
     const created = await db.user.create({
@@ -71,21 +77,38 @@ async function syncAuthUserWithClient(
   return ensureProfile(db, dbUser, displayName);
 }
 
-export function findUserForAuth(authId: string, email: string) {
+export function findUserForAuth(
+  authId: string,
+  email: string,
+  emailVerified?: boolean,
+) {
   return withDbSystemContext((tx) =>
-    findUserForAuthWithClient(tx, authId, email)
+    findUserForAuthWithClient(tx, authId, email, emailVerified)
   );
+}
+
+// Match by WorkOS subject always. Fall back to email only when the identity
+// provider verified it — otherwise an unverified-email login could link into
+// (and take over) an existing account that owns that email. Unknown (undefined)
+// keeps the legacy email fallback for callers that don't supply the flag.
+export function authLookupWhere(
+  authId: string,
+  email: string,
+  emailVerified?: boolean,
+) {
+  return emailVerified === false
+    ? { workosUserId: authId }
+    : { OR: [{ workosUserId: authId }, { email }] };
 }
 
 function findUserForAuthWithClient(
   db: DbContextClient,
   authId: string,
-  email: string
+  email: string,
+  emailVerified?: boolean,
 ) {
   return db.user.findFirst({
-    where: {
-      OR: [{ workosUserId: authId }, { email }],
-    },
+    where: authLookupWhere(authId, email, emailVerified),
     orderBy: { createdAt: "asc" },
     include: { profile: true },
   });

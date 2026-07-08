@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/account-service";
+import { isModeratorRole } from "@/lib/auth-roles";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { assertProfilesCanInteract } from "@/lib/conversation-service";
 import { safeQuery } from "@/lib/db";
@@ -151,6 +152,10 @@ export async function createFeedPostForCurrentUser(
   return post;
 }
 
+function assertModerator(current: CurrentUserProfile) {
+  if (!isModeratorRole(current.profileRole)) throw new Error("auth.forbidden");
+}
+
 export async function createFeedTopicForModerator(
   current: CurrentUserProfile,
   input: {
@@ -160,6 +165,7 @@ export async function createFeedTopicForModerator(
     sortOrder: number;
   }
 ) {
+  assertModerator(current);
   const slug = normalizeTopicSlug(input.slug ?? input.name);
   const topic = await withDbRequestContext(current, (tx) => tx.feedTopic.create({
     data: {
@@ -189,6 +195,7 @@ export async function setFeedTopicActiveForModerator(
   topicId: string,
   active: boolean
 ) {
+  assertModerator(current);
   const topic = await withDbRequestContext(current, (tx) => tx.feedTopic.update({
     where: { id: topicId },
     data: { active },
@@ -215,6 +222,7 @@ export async function moderateFeedPostForModerator(
     reason?: string | null;
   }
 ) {
+  assertModerator(current);
   const data: Prisma.FeedPostUpdateInput =
     input.action === "pin"
       ? { pinnedAt: new Date() }

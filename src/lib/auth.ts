@@ -53,7 +53,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   if (!user) return null;
 
   let dbUser = await safeQuery(
-    () => findUserForAuth(user.id, user.email),
+    () => findUserForAuth(user.id, user.email, user.emailVerified),
     null
   );
   if (!dbUser || (!dbUser.profile && !dbUser.isBanned)) {

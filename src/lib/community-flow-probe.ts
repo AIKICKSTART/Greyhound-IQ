@@ -155,7 +155,7 @@ export async function runCommunityFlowProbe({
     });
     assert.ok(deliveryReceipt, "delivery receipt row exists after markConversationDelivered");
 
-    const unreadMapBefore = await countUnreadMessagesByConversation(buyer.profileId);
+    const unreadMapBefore = await countUnreadMessagesByConversation(buyer);
     assert.equal(
       unreadMapBefore.get(conversation.id),
       1,
@@ -174,7 +174,7 @@ export async function runCommunityFlowProbe({
     assert.equal(await markConversationRead(buyer, conversation.id), 1);
 
     // ── Unread count + read receipt ──────────────────────────────────────────
-    const unreadMapAfterRead = await countUnreadMessagesByConversation(buyer.profileId);
+    const unreadMapAfterRead = await countUnreadMessagesByConversation(buyer);
     assert.equal(
       unreadMapAfterRead.get(conversation.id) ?? 0,
       0,
@@ -218,7 +218,7 @@ export async function runCommunityFlowProbe({
         },
       });
     }
-    const page1 = await getConversationForProfile(conversation.id, seller.profileId);
+    const page1 = await getConversationForProfile(seller, conversation.id);
     assert.equal(page1.messages.length, 50, "default returns 50 messages");
     const newestInPage1 = page1.messages[page1.messages.length - 1];
     assert.equal(
@@ -227,7 +227,7 @@ export async function runCommunityFlowProbe({
       "newest message is the last bulk message",
     );
     const oldestInPage1 = page1.messages[0];
-    const page2 = await getConversationForProfile(conversation.id, seller.profileId, {
+    const page2 = await getConversationForProfile(seller, conversation.id, {
       before: oldestInPage1.id,
     });
     assert.ok(page2.messages.length > 0, "page2 has older messages");

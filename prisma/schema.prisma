@@ -1092,6 +1092,8 @@ model Profile {
   userPresence             UserPresence?
   userBlocksInitiated      UserBlock[]               @relation("UserBlockBlocker")
   userBlocksReceived       UserBlock[]               @relation("UserBlockBlocked")
+  friendshipsA             Friendship[]              @relation("FriendshipA")
+  friendshipsB             Friendship[]              @relation("FriendshipB")
   messageModerationActions MessageModerationAction[]
   conversationsA           Conversation[]            @relation("ConversationA")
   conversationsB           Conversation[]            @relation("ConversationB")
@@ -1585,6 +1587,21 @@ model UserBlock {
   @@unique([blockerProfileId, blockedProfileId])
   @@index([blockerProfileId, createdAt])
   @@index([blockedProfileId, createdAt])
+}
+
+model Friendship {
+  id         String   @id @default(cuid())
+  profileAId String
+  profileA   Profile  @relation("FriendshipA", fields: [profileAId], references: [id], onDelete: Cascade)
+  profileBId String
+  profileB   Profile  @relation("FriendshipB", fields: [profileBId], references: [id], onDelete: Cascade)
+  status     String   @default("accepted")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([profileAId, profileBId])
+  @@index([profileAId, status, updatedAt])
+  @@index([profileBId, status, updatedAt])
 }
 
 model MessageModerationAction {

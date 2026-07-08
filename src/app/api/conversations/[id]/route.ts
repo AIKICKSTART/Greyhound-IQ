@@ -12,7 +12,7 @@ export async function GET(
       params,
       requireCurrentUserProfile(),
     ]);
-    const conversation = await getConversationForProfile(id, current.profileId);
+    const conversation = await getConversationForProfile(current, id);
     return NextResponse.json({ item: conversation });
   } catch (err) {
     return jsonError(err, "Could not load conversation");

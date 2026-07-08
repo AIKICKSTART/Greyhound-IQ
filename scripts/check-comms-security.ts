@@ -74,7 +74,7 @@ async function main() {
 
     // ── Stranger cannot read A-B conversation ─────────────────────────────────
     await assert.rejects(
-      () => getConversationForProfile(abConv.id, c.profileId),
+      () => getConversationForProfile(c, abConv.id),
       (err: Error) => err.message === "conversation.not_found",
     );
     console.log("PASS: stranger cannot read conversation");

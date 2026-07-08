@@ -25,8 +25,8 @@ export async function getActiveCallRoomForConversation(
   conversationId: string
 ) {
   const conversation = await getConversationForProfile(
-    conversationId,
-    current.profileId
+    current,
+    conversationId
   );
   if (conversation.blockedById) return null;
 
@@ -95,8 +95,8 @@ export async function createCallRoomForConversation(
   callType: "voice" | "video" = "video"
 ) {
   const conversation = await getConversationForProfile(
-    conversationId,
-    current.profileId
+    current,
+    conversationId
   );
   if (conversation.blockedById) throw new Error("call.blocked");
 

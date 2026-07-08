@@ -14,7 +14,7 @@ const CONVERSATION_START_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 export async function GET() {
   try {
     const current = await requireCurrentUserProfile();
-    const conversations = await listConversationsForProfile(current.profileId);
+    const conversations = await listConversationsForProfile(current);
     return NextResponse.json({ items: conversations });
   } catch (err) {
     return jsonError(err, "Could not load conversations");

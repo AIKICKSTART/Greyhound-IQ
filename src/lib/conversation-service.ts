@@ -1,6 +1,11 @@
 import { createAuditLog } from "@/lib/account-service";
 import type { CurrentUserProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import {
+  withDbRequestContext,
+  withDbSystemContext,
+  type DbContextUser,
+} from "@/lib/db-context";
 import { logWarn } from "@/lib/logger";
 import { assertMediaAttachable } from "@/lib/media-service";
 import { findBannedPhraseMatch } from "@/lib/moderation-service";
@@ -60,90 +65,96 @@ export function canonicalProfilePair(profileAId: string, profileBId: string) {
     : { participantAId: profileBId, participantBId: profileAId };
 }
 
-export async function listConversationsForProfile(profileId: string) {
-  return prisma.conversation.findMany({
-    where: {
-      OR: [
-        { participantAId: profileId },
-        { participantBId: profileId },
-        { participants: { some: { profileId } } },
-      ],
-    },
-    orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }],
-    include: {
-      ...CONVERSATION_INCLUDE,
-      messages: {
-        where: visibleMessageWhere(profileId),
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        include: MESSAGE_INCLUDE,
+export async function listConversationsForProfile(current: DbContextUser) {
+  return withDbRequestContext(current, (tx) =>
+    tx.conversation.findMany({
+      where: {
+        OR: [
+          { participantAId: current.profileId },
+          { participantBId: current.profileId },
+          { participants: { some: { profileId: current.profileId } } },
+        ],
       },
-    },
-    take: 50,
-  });
+      orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }],
+      include: {
+        ...CONVERSATION_INCLUDE,
+        messages: {
+          where: visibleMessageWhere(current.profileId),
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: MESSAGE_INCLUDE,
+        },
+      },
+      take: 50,
+    })
+  );
 }
 
 export async function getConversationForProfile(
+  current: DbContextUser,
   conversationId: string,
-  profileId: string,
   opts?: { before?: string; limit?: number }
 ) {
-  const conversation = await prisma.conversation.findFirst({
-    where: {
-      id: conversationId,
-      OR: [
-        { participantAId: profileId },
-        { participantBId: profileId },
-        { participants: { some: { profileId } } },
-      ],
-    },
-    include: CONVERSATION_INCLUDE,
-  });
-  if (!conversation) throw new Error("conversation.not_found");
-
-  const messageWhere: Prisma.MessageWhereInput = {
-    conversationId,
-    ...visibleMessageWhere(profileId),
-  };
-  if (opts?.before) {
-    const cursor = await prisma.message.findFirst({
-      where: { id: opts.before, conversationId },
-      select: { createdAt: true },
+  return withDbRequestContext(current, async (tx) => {
+    const conversation = await tx.conversation.findFirst({
+      where: {
+        id: conversationId,
+        OR: [
+          { participantAId: current.profileId },
+          { participantBId: current.profileId },
+          { participants: { some: { profileId: current.profileId } } },
+        ],
+      },
+      include: CONVERSATION_INCLUDE,
     });
-    if (!cursor) throw new Error("message.not_found");
-    messageWhere.createdAt = { lt: cursor.createdAt };
-  }
-  const messages = await prisma.message.findMany({
-    where: messageWhere,
-    orderBy: { createdAt: "desc" },
-    take: Math.min(opts?.limit ?? 50, 50),
-    include: MESSAGE_INCLUDE,
-  });
-  messages.reverse();
+    if (!conversation) throw new Error("conversation.not_found");
 
-  return { ...conversation, messages };
+    const messageWhere: Prisma.MessageWhereInput = {
+      conversationId,
+      ...visibleMessageWhere(current.profileId),
+    };
+    if (opts?.before) {
+      const cursor = await tx.message.findFirst({
+        where: { id: opts.before, conversationId },
+        select: { createdAt: true },
+      });
+      if (!cursor) throw new Error("message.not_found");
+      messageWhere.createdAt = { lt: cursor.createdAt };
+    }
+    const messages = await tx.message.findMany({
+      where: messageWhere,
+      orderBy: { createdAt: "desc" },
+      take: Math.min(opts?.limit ?? 50, 50),
+      include: MESSAGE_INCLUDE,
+    });
+    messages.reverse();
+
+    return { ...conversation, messages };
+  });
 }
 
 export async function startOrGetConversation(
   current: CurrentUserProfile,
   recipientIdOrProfileId: string
 ) {
-  const recipient = await prisma.profile.findFirst({
-    where: {
-      OR: [
-        { id: recipientIdOrProfileId },
-        { userId: recipientIdOrProfileId },
-      ],
-    },
-    include: {
-      user: {
-        select: {
-          isBanned: true,
-          deletionRequestedAt: true,
+  const recipient = await withDbRequestContext(current, (tx) =>
+    tx.profile.findFirst({
+      where: {
+        OR: [
+          { id: recipientIdOrProfileId },
+          { userId: recipientIdOrProfileId },
+        ],
+      },
+      include: {
+        user: {
+          select: {
+            isBanned: true,
+            deletionRequestedAt: true,
+          },
         },
       },
-    },
-  });
+    })
+  );
   if (!recipient) throw new Error("conversation.recipient_not_found");
   if (recipient.user.isBanned || recipient.user.deletionRequestedAt) {
     throw new Error("conversation.recipient_unavailable");
@@ -154,7 +165,7 @@ export async function startOrGetConversation(
   await assertProfilesCanInteract(current.profileId, recipient.id);
 
   const pair = canonicalProfilePair(current.profileId, recipient.id);
-  return prisma.$transaction(async (tx) => {
+  return withDbRequestContext(current, async (tx) => {
     const conversation = await tx.conversation.upsert({
       where: {
         participantAId_participantBId: pair,
@@ -174,8 +185,8 @@ export async function sendConversationMessage(
   input: { body: string; mediaIds?: string[] }
 ) {
   const conversation = await getConversationForProfile(
+    current,
     conversationId,
-    current.profileId
   );
   assertNotBlocked(conversation.blockedById);
 
@@ -196,7 +207,7 @@ export async function sendConversationMessage(
   if (phraseMatch?.action === "block") throw new Error("message.blocked_phrase");
   const createdAt = new Date();
 
-  const message = await prisma.$transaction(async (tx) => {
+  const message = await withDbRequestContext(current, async (tx) => {
     await ensureConversationParticipants(tx, conversation);
     const created = await tx.message.create({
       data: {
@@ -285,10 +296,10 @@ export async function markConversationRead(
 ) {
   const now = new Date();
   const conversation = await getConversationForProfile(
+    current,
     conversationId,
-    current.profileId
   );
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await withDbRequestContext(current, async (tx) => {
     const unread = await tx.message.findMany({
       where: {
         conversationId,
@@ -370,30 +381,39 @@ export async function markConversationRead(
 }
 
 export async function markConversationDelivered(
-  current: CurrentUserProfile,
+  current: DbContextUser,
   conversationId: string
 ) {
-  await getConversationForProfile(conversationId, current.profileId, {
+  await getConversationForProfile(current, conversationId, {
     limit: 1,
   });
-  const undelivered = await prisma.message.findMany({
-    where: {
-      conversationId,
-      recipientId: current.profileId,
-      deletedByRecipientAt: null,
-      deliveryReceipts: { none: { profileId: current.profileId } },
-    },
-    select: { id: true },
-  });
-  if (undelivered.length === 0) return { delivered: 0 };
+  const { undelivered, created } = await withDbRequestContext(
+    current,
+    async (tx) => {
+      const undelivered = await tx.message.findMany({
+        where: {
+          conversationId,
+          recipientId: current.profileId,
+          deletedByRecipientAt: null,
+          deliveryReceipts: { none: { profileId: current.profileId } },
+        },
+        select: { id: true },
+      });
+      if (undelivered.length === 0) {
+        return { undelivered, created: { count: 0 } };
+      }
 
-  const created = await prisma.messageDeliveryReceipt.createMany({
-    data: undelivered.map((message) => ({
-      messageId: message.id,
-      profileId: current.profileId,
-    })),
-    skipDuplicates: true,
-  });
+      const created = await tx.messageDeliveryReceipt.createMany({
+        data: undelivered.map((message) => ({
+          messageId: message.id,
+          profileId: current.profileId,
+        })),
+        skipDuplicates: true,
+      });
+      return { undelivered, created };
+    }
+  );
+  if (undelivered.length === 0) return { delivered: 0 };
   if (created.count > 0) {
     await broadcastConversationRealtimeEvent(
       conversationId,
@@ -406,17 +426,19 @@ export async function markConversationDelivered(
 
 // Rendered in the global header/inbox — must survive a DB blip, so both wrap
 // safeQuery with an empty fallback rather than throwing up through the shell.
-export async function countUnreadMessagesByConversation(profileId: string) {
+export async function countUnreadMessagesByConversation(current: DbContextUser) {
   return safeQuery(async () => {
-    const groups = await prisma.message.groupBy({
-      by: ["conversationId"],
-      where: {
-        recipientId: profileId,
-        readAt: null,
-        deletedByRecipientAt: null,
-      },
-      _count: { _all: true },
-    });
+    const groups = await withDbRequestContext(current, (tx) =>
+      tx.message.groupBy({
+        by: ["conversationId"],
+        where: {
+          recipientId: current.profileId,
+          readAt: null,
+          deletedByRecipientAt: null,
+        },
+        _count: { _all: true },
+      })
+    );
     const counts = new Map<string, number>();
     for (const group of groups) {
       if (group.conversationId) counts.set(group.conversationId, group._count._all);
@@ -425,16 +447,18 @@ export async function countUnreadMessagesByConversation(profileId: string) {
   }, new Map<string, number>());
 }
 
-export async function countUnreadMessagesTotal(profileId: string) {
+export async function countUnreadMessagesTotal(current: DbContextUser) {
   return safeQuery(
     () =>
-      prisma.message.count({
-        where: {
-          recipientId: profileId,
-          readAt: null,
-          deletedByRecipientAt: null,
-        },
-      }),
+      withDbRequestContext(current, (tx) =>
+        tx.message.count({
+          where: {
+            recipientId: current.profileId,
+            readAt: null,
+            deletedByRecipientAt: null,
+          },
+        })
+      ),
     0
   );
 }
@@ -445,12 +469,14 @@ export async function softDeleteConversationMessage(
   messageId: string
 ) {
   const conversation = await getConversationForProfile(
+    current,
     conversationId,
-    current.profileId
   );
-  const message = await prisma.message.findFirst({
-    where: { id: messageId, conversationId },
-  });
+  const message = await withDbRequestContext(current, (tx) =>
+    tx.message.findFirst({
+      where: { id: messageId, conversationId },
+    })
+  );
   if (!message) throw new Error("message.not_found");
   if (
     message.senderId !== current.profileId &&
@@ -465,10 +491,12 @@ export async function softDeleteConversationMessage(
       ? { deletedBySenderAt: now }
       : { deletedByRecipientAt: now };
 
-  const updated = await prisma.message.update({
-    where: { id: message.id },
-    data,
-  });
+  const updated = await withDbRequestContext(current, (tx) =>
+    tx.message.update({
+      where: { id: message.id },
+      data,
+    })
+  );
 
   await refreshConversationLastMessageAt(conversationId);
   await createAuditLog({
@@ -493,8 +521,8 @@ export async function setConversationBlock(
   blocked: boolean
 ) {
   const conversation = await getConversationForProfile(
+    current,
     conversationId,
-    current.profileId
   );
 
   if (!blocked && conversation.blockedById !== current.profileId) {
@@ -502,7 +530,7 @@ export async function setConversationBlock(
   }
 
   const blockedProfileId = otherProfileId(conversation, current.profileId);
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await withDbRequestContext(current, async (tx) => {
     const nextConversation = await tx.conversation.update({
       where: { id: conversation.id },
       data: blocked
@@ -557,42 +585,50 @@ export async function toggleConversationMessageReaction(
   reactionType = "like"
 ) {
   const conversation = await getConversationForProfile(
+    current,
     conversationId,
-    current.profileId
   );
-  const message = await prisma.message.findFirst({
-    where: {
-      id: messageId,
-      conversationId: conversation.id,
-      OR: [
-        { senderId: current.profileId, deletedBySenderAt: null },
-        { recipientId: current.profileId, deletedByRecipientAt: null },
-      ],
-    },
-    select: { id: true },
-  });
+  const message = await withDbRequestContext(current, (tx) =>
+    tx.message.findFirst({
+      where: {
+        id: messageId,
+        conversationId: conversation.id,
+        OR: [
+          { senderId: current.profileId, deletedBySenderAt: null },
+          { recipientId: current.profileId, deletedByRecipientAt: null },
+        ],
+      },
+      select: { id: true },
+    })
+  );
   if (!message) throw new Error("message.not_found");
 
-  const existing = await prisma.messageReaction.findUnique({
-    where: {
-      messageId_profileId_reactionType: {
-        messageId,
-        profileId: current.profileId,
-        reactionType,
+  const existing = await withDbRequestContext(current, (tx) =>
+    tx.messageReaction.findUnique({
+      where: {
+        messageId_profileId_reactionType: {
+          messageId,
+          profileId: current.profileId,
+          reactionType,
+        },
       },
-    },
-  });
+    })
+  );
 
   if (existing) {
-    await prisma.messageReaction.delete({ where: { id: existing.id } });
+    await withDbRequestContext(current, (tx) =>
+      tx.messageReaction.delete({ where: { id: existing.id } })
+    );
   } else {
-    await prisma.messageReaction.create({
-      data: {
-        messageId,
-        profileId: current.profileId,
-        reactionType,
-      },
-    });
+    await withDbRequestContext(current, (tx) =>
+      tx.messageReaction.create({
+        data: {
+          messageId,
+          profileId: current.profileId,
+          reactionType,
+        },
+      })
+    );
   }
 
   await createAuditLog({
@@ -615,15 +651,17 @@ export async function assertProfilesCanInteract(
   errorCode = "conversation.blocked"
 ) {
   if (profileAId === profileBId) return;
-  const block = await prisma.userBlock.findFirst({
-    where: {
-      OR: [
-        { blockerProfileId: profileAId, blockedProfileId: profileBId },
-        { blockerProfileId: profileBId, blockedProfileId: profileAId },
-      ],
-    },
-    select: { id: true },
-  });
+  const block = await withDbSystemContext((tx) =>
+    tx.userBlock.findFirst({
+      where: {
+        OR: [
+          { blockerProfileId: profileAId, blockedProfileId: profileBId },
+          { blockerProfileId: profileBId, blockedProfileId: profileAId },
+        ],
+      },
+      select: { id: true },
+    })
+  );
   if (block) throw new Error(errorCode);
 }
 
@@ -702,46 +740,54 @@ function assertNotBlocked(blockedById: string | null) {
 async function touchPresence(profileId: string) {
   const now = new Date();
   try {
-    await prisma.userPresence.upsert({
-      where: { profileId },
-      update: { lastSeenAt: now, status: "online" },
-      create: { profileId, lastSeenAt: now, status: "online" },
-    });
+    await withDbSystemContext((tx) =>
+      tx.userPresence.upsert({
+        where: { profileId },
+        update: { lastSeenAt: now, status: "online" },
+        create: { profileId, lastSeenAt: now, status: "online" },
+      })
+    );
   } catch (err) {
     logWarn("presence.upsert_failed", { profileId }, err);
   }
 }
 
 async function assertProfileCanReceiveMessage(profileId: string) {
-  const profile = await prisma.profile.findFirst({
-    where: {
-      id: profileId,
-      user: {
-        isBanned: false,
-        deletionRequestedAt: null,
+  const profile = await withDbSystemContext((tx) =>
+    tx.profile.findFirst({
+      where: {
+        id: profileId,
+        user: {
+          isBanned: false,
+          deletionRequestedAt: null,
+        },
       },
-    },
-    select: { id: true },
-  });
+      select: { id: true },
+    })
+  );
   if (!profile) throw new Error("conversation.recipient_unavailable");
 }
 
 async function refreshConversationLastMessageAt(conversationId: string) {
-  const lastVisibleToEitherParticipant = await prisma.message.findFirst({
-    where: {
-      conversationId,
-      NOT: {
-        AND: [
-          { deletedBySenderAt: { not: null } },
-          { deletedByRecipientAt: { not: null } },
-        ],
+  const lastVisibleToEitherParticipant = await withDbSystemContext((tx) =>
+    tx.message.findFirst({
+      where: {
+        conversationId,
+        NOT: {
+          AND: [
+            { deletedBySenderAt: { not: null } },
+            { deletedByRecipientAt: { not: null } },
+          ],
+        },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    })
+  );
 
-  await prisma.conversation.update({
-    where: { id: conversationId },
-    data: { lastMessageAt: lastVisibleToEitherParticipant?.createdAt ?? null },
-  });
+  await withDbSystemContext((tx) =>
+    tx.conversation.update({
+      where: { id: conversationId },
+      data: { lastMessageAt: lastVisibleToEitherParticipant?.createdAt ?? null },
+    })
+  );
 }

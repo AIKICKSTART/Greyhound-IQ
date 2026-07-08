@@ -261,7 +261,10 @@ export async function runCommunityFlowProbe({
     // Decline: room ended + invite declined
     const declineRoom = await createCallRoomForConversation(seller, conversation.id);
     ids.callRooms.add(declineRoom.id);
-    const pendingInvite = await getPendingCallInviteForConversation(conversation.id);
+    const pendingInvite = await getPendingCallInviteForConversation(
+      seller,
+      conversation.id
+    );
     assert.ok(pendingInvite, "pending invite exists after room creation");
     assert.equal(pendingInvite.toProfileId, buyer.profileId, "invite targets buyer");
 

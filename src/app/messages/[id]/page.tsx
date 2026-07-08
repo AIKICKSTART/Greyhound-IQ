@@ -69,7 +69,13 @@ export default async function MessageThreadPage({
     searchParams,
     getCurrentUser(),
   ]);
-  if (!user?.profileId) return <SignedOutThread />;
+  if (!user?.profileId || !user.dbUserId) return <SignedOutThread />;
+  const callContext = {
+    dbUserId: user.dbUserId,
+    profileId: user.profileId,
+    profileRole: user.role ?? "member",
+    tier: user.tier,
+  };
   const before = typeof query.before === "string" ? query.before : undefined;
 
   let conversation: Awaited<ReturnType<typeof getConversationForProfile>>;
@@ -95,14 +101,11 @@ export default async function MessageThreadPage({
   ] = await Promise.allSettled([
       conversation.blockedAt
         ? null
-        : getActiveCallRoomForConversation(
-            { profileId: user.profileId },
-            conversation.id
-          ),
+        : getActiveCallRoomForConversation(callContext, conversation.id),
       conversation.blockedAt
         ? null
-        : getPendingCallInviteForConversation(conversation.id),
-      getRecentCallLogForConversation(conversation.id),
+        : getPendingCallInviteForConversation(callContext, conversation.id),
+      getRecentCallLogForConversation(callContext, conversation.id),
       prisma.userPresence.findUnique({
         where: { profileId: other.id },
         select: { lastSeenAt: true },

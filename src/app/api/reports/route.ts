@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireCurrentUserProfile, requireModeratorProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
-import { prisma } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { reportCreateSchema } from "@/lib/report-validation";
 import { createReportForUser } from "@/lib/report-service";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -11,30 +11,32 @@ const REPORT_CREATE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
 export async function GET(request: Request) {
   try {
-    await requireModeratorProfile();
+    const current = await requireModeratorProfile();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "open";
-    const reports = await prisma.report.findMany({
-      where: { status },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      include: {
-        reporter: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
+    const reports = await withDbRequestContext(current, (tx) =>
+      tx.report.findMany({
+        where: { status },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        include: {
+          reporter: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+            },
+          },
+          reported: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+            },
           },
         },
-        reported: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-          },
-        },
-      },
-    });
+      })
+    );
 
     return NextResponse.json({ items: reports });
   } catch (err) {

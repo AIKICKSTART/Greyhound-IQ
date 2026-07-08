@@ -581,6 +581,20 @@ export interface RaceExplorerFilters {
 }
 
 export async function getRaceExplorerData(filters: RaceExplorerFilters = {}) {
+  // Default, unfiltered view is identical for every visitor — cache it for a
+  // minute so the shared 8-race list + dataset stats aren't recomputed per
+  // request. Any filter/search/date/state/sort bypasses the cache.
+  const isDefaultView =
+    !filters.date && !filters.state && !filters.q && !filters.status && !filters.sort;
+  if (isDefaultView) {
+    return cached("races:explorer:default", 60_000, () =>
+      fetchRaceExplorerData(filters)
+    );
+  }
+  return fetchRaceExplorerData(filters);
+}
+
+async function fetchRaceExplorerData(filters: RaceExplorerFilters = {}) {
   const [latestRace, states, datasetStats, recentRaceDates] = await Promise.all([
     safeQuery(
       () =>

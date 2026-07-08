@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { jsonError } from "@/lib/api-errors";
 import { requireCurrentUserProfile } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const EMAIL_CHANNEL = "email";
@@ -24,17 +24,19 @@ function toMarketingPreferenceResponse(preference: { optedIn: boolean } | null) 
 export async function GET() {
   try {
     const current = await requireCurrentUserProfile();
-    const preference = await prisma.marketingPreference.findUnique({
-      where: {
-        userId_channel: {
-          userId: current.dbUserId,
-          channel: EMAIL_CHANNEL,
+    const preference = await withDbRequestContext(current, (tx) =>
+      tx.marketingPreference.findUnique({
+        where: {
+          userId_channel: {
+            userId: current.dbUserId,
+            channel: EMAIL_CHANNEL,
+          },
         },
-      },
-      select: {
-        optedIn: true,
-      },
-    });
+        select: {
+          optedIn: true,
+        },
+      })
+    );
 
     return NextResponse.json({
       item: toMarketingPreferenceResponse(preference),
@@ -65,25 +67,27 @@ export async function POST(request: Request) {
     }
 
     const parsed = marketingPreferenceSchema.parse(await request.json());
-    const preference = await prisma.marketingPreference.upsert({
-      where: {
-        userId_channel: {
+    const preference = await withDbRequestContext(current, (tx) =>
+      tx.marketingPreference.upsert({
+        where: {
+          userId_channel: {
+            userId: current.dbUserId,
+            channel: EMAIL_CHANNEL,
+          },
+        },
+        create: {
           userId: current.dbUserId,
           channel: EMAIL_CHANNEL,
+          optedIn: parsed.optedIn,
         },
-      },
-      create: {
-        userId: current.dbUserId,
-        channel: EMAIL_CHANNEL,
-        optedIn: parsed.optedIn,
-      },
-      update: {
-        optedIn: parsed.optedIn,
-      },
-      select: {
-        optedIn: true,
-      },
-    });
+        update: {
+          optedIn: parsed.optedIn,
+        },
+        select: {
+          optedIn: true,
+        },
+      })
+    );
 
     return NextResponse.json({
       item: toMarketingPreferenceResponse(preference),

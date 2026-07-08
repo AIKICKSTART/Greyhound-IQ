@@ -1,13 +1,24 @@
 import Link from "next/link";
-import { Inbox, Lock, MessageSquare, Send } from "lucide-react";
+import {
+  Inbox,
+  Lock,
+  MessageSquare,
+  Phone,
+  Send,
+  Users,
+  Video,
+} from "lucide-react";
 import { sendMessage } from "@/app/actions";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
 import { PageHero } from "@/components/page-hero";
 import { RecipientPicker } from "@/components/recipient-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
-import { countUnreadMessagesByConversation } from "@/lib/conversation-service";
-import { getConversationsForUserEmail } from "@/lib/queries";
+import {
+  countUnreadMessagesByConversation,
+  listConversationsForProfile,
+} from "@/lib/conversation-service";
+import { listFriendsForProfile } from "@/lib/friend-service";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +30,23 @@ export const metadata = {
 
 export default async function MessagesPage() {
   const user = await getCurrentUser();
+  const dbContext =
+    user?.dbUserId && user.profileId
+      ? {
+          dbUserId: user.dbUserId,
+          profileId: user.profileId,
+          profileRole: user.role ?? "member",
+          tier: user.tier,
+        }
+      : null;
   // Live refresh comes from the site header's profile-channel subscription;
   // subscribing the same channel here would double-subscribe the singleton client.
-  const [conversations, unreadByConversation] = await Promise.all([
-    user ? getConversationsForUserEmail(user.email) : [],
-    user?.profileId
-      ? countUnreadMessagesByConversation(user.profileId)
+  const [conversations, unreadByConversation, friends] = await Promise.all([
+    dbContext ? listConversationsForProfile(dbContext) : [],
+    dbContext
+      ? countUnreadMessagesByConversation(dbContext)
       : new Map<string, number>(),
+    dbContext ? listFriendsForProfile(dbContext) : [],
   ]);
   const unread = unreadByConversation.size;
 
@@ -147,31 +168,107 @@ export default async function MessagesPage() {
               )}
             </div>
 
-            <aside className="giq-panel p-5">
-              <div className="mb-5 flex items-center gap-3">
-                <Send className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-                <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
-                  New Pulse message
-                </h2>
+            <aside className="space-y-5">
+              <div className="giq-panel p-5">
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <Users className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+                    <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
+                      Friends
+                    </h2>
+                  </div>
+                  <Link
+                    href="/pulse/friends"
+                    className="giq-outline-action min-h-8 px-2.5 text-[11px]"
+                  >
+                    View all
+                  </Link>
+                </div>
+                {friends.length === 0 ? (
+                  <p className="text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                    No friends added yet.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {friends.slice(0, 4).map((friend) => (
+                      <div
+                        key={friend.friendshipId}
+                        className="rounded-lg border border-white/[0.06] bg-white/[0.025] p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-[13px] font-semibold text-[hsl(var(--foreground))]">
+                              {friend.displayName}
+                            </p>
+                            <p className="truncate text-[12px] text-[hsl(var(--muted-foreground))]">
+                              {friend.email ?? friend.state ?? "GreyhoundIQ profile"}
+                            </p>
+                          </div>
+                          {friend.verified && (
+                            <span className="giq-status-pill giq-status-pill-purple">
+                              Verified
+                            </span>
+                          )}
+                        </div>
+                        {friend.conversationId && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Link
+                              href={`/pulse/${friend.conversationId}`}
+                              className="giq-outline-action min-h-8 px-2.5 text-[11px]"
+                            >
+                              <MessageSquare className="h-3 w-3" />
+                              Message
+                            </Link>
+                            <Link
+                              href={`/pulse/${friend.conversationId}`}
+                              className="giq-outline-action min-h-8 px-2.5 text-[11px]"
+                            >
+                              <Phone className="h-3 w-3" />
+                              Voice
+                            </Link>
+                            <Link
+                              href={`/pulse/${friend.conversationId}`}
+                              className="giq-outline-action min-h-8 px-2.5 text-[11px]"
+                            >
+                              <Video className="h-3 w-3" />
+                              Video
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <form action={sendMessage} className="space-y-4">
-                <RecipientPicker />
-                <label className="block">
-                  <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-                    Message
-                  </span>
-                  <textarea
-                    name="body"
-                    required
-                    maxLength={5000}
-                    rows={6}
-                    className="giq-form-control giq-textarea mt-2 px-3 py-2"
-                    placeholder="Ask about a listing, dog record, or race note."
-                  />
-                </label>
-                <MediaAttachmentFields compact />
-                <SubmitButton pendingLabel="Sending...">Send message</SubmitButton>
-              </form>
+
+              <div className="giq-panel p-5">
+                <div className="mb-5 flex items-center gap-3">
+                  <Send className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+                  <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
+                    New Pulse message
+                  </h2>
+                </div>
+                <form action={sendMessage} className="space-y-4">
+                  <RecipientPicker />
+                  <label className="block">
+                    <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                      Message
+                    </span>
+                    <textarea
+                      name="body"
+                      required
+                      maxLength={5000}
+                      rows={6}
+                      className="giq-form-control giq-textarea mt-2 px-3 py-2"
+                      placeholder="Ask about a listing, dog record, or race note."
+                    />
+                  </label>
+                  <MediaAttachmentFields compact />
+                  <SubmitButton pendingLabel="Sending...">
+                    Send message
+                  </SubmitButton>
+                </form>
+              </div>
             </aside>
           </div>
         )}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminBugReportForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -32,11 +33,12 @@ export default async function AdminBugReportsPage() {
           Bug reports
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 20 stored bug report records with only status fields shown.
+          Latest 20 stored bug report records with status controls. Report
+          descriptions stay out of this overview.
         </p>
 
         <div className="giq-table-shell mt-6 overflow-x-auto">
-          <table className="w-full min-w-[920px]">
+          <table className="w-full min-w-[1180px]">
             <thead>
               <tr className="giq-table-head">
                 <th className="px-4 py-3 text-left">Bug report ID</th>
@@ -45,13 +47,14 @@ export default async function AdminBugReportsPage() {
                 <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">Created</th>
                 <th className="px-4 py-3 text-left">Updated</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {bugReports.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No bug reports found.
@@ -73,6 +76,12 @@ export default async function AdminBugReportsPage() {
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
                       {formatDateTime(bugReport.updatedAt)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <AdminBugReportForm
+                        bugReport={bugReport}
+                        path="/admin/bug-reports"
+                      />
                     </td>
                   </tr>
                 ))

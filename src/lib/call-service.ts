@@ -12,6 +12,8 @@ import {
   getConversationForProfile,
 } from "@/lib/conversation-service";
 import { prisma } from "@/lib/db";
+import { withDbRequestContext, type DbContextUser } from "@/lib/db-context";
+import { assertPaidFeatureAccess } from "@/lib/tier-access";
 import { deleteLiveKitRoom, liveKitConfig } from "@/lib/livekit-admin";
 import { createInAppNotification } from "@/lib/notification-service";
 import {
@@ -20,12 +22,12 @@ import {
 } from "@/lib/realtime-service";
 
 export async function getActiveCallRoomForConversation(
-  current: { profileId: string },
+  current: DbContextUser,
   conversationId: string
 ) {
   const conversation = await getConversationForProfile(
-    conversationId,
-    current.profileId
+    current,
+    conversationId
   );
   if (conversation.blockedById) return null;
 
@@ -39,13 +41,16 @@ export async function getActiveCallRoomForConversation(
     "call.blocked"
   );
 
-  return findActiveCallRoom(conversation.id, current.profileId);
+  return findActiveCallRoom(conversation.id, current);
 }
 
 // Read-only: newest pending invite for a conversation's active call room.
 // Callers must have already authorized access to the conversation.
-export function getPendingCallInviteForConversation(conversationId: string) {
-  return prisma.callInvite.findFirst({
+export function getPendingCallInviteForConversation(
+  current: DbContextUser,
+  conversationId: string
+) {
+  return withDbRequestContext(current, (tx) => tx.callInvite.findFirst({
     where: {
       status: "pending",
       callRoom: { conversationId, status: "active" },
@@ -59,16 +64,17 @@ export function getPendingCallInviteForConversation(conversationId: string) {
       fromProfile: { select: { displayName: true } },
       callRoom: { select: { callType: true } },
     },
-  });
+  }));
 }
 
 // Read-only: recent terminal call events for the conversation thread log.
 // Callers must have already authorized access to the conversation.
 export function getRecentCallLogForConversation(
+  current: DbContextUser,
   conversationId: string,
   limit = 10
 ) {
-  return prisma.callEvent.findMany({
+  return withDbRequestContext(current, (tx) => tx.callEvent.findMany({
     where: {
       eventType: { in: ["room_ended", "room_expired", "invite_missed"] },
       callRoom: { conversationId },
@@ -81,7 +87,7 @@ export function getRecentCallLogForConversation(
       createdAt: true,
       callRoom: { select: { callType: true, createdAt: true, endedAt: true } },
     },
-  });
+  }));
 }
 
 export async function createCallRoomForConversation(
@@ -89,9 +95,10 @@ export async function createCallRoomForConversation(
   conversationId: string,
   callType: "voice" | "video" = "video"
 ) {
+  assertPaidFeatureAccess(current);
   const conversation = await getConversationForProfile(
-    conversationId,
-    current.profileId
+    current,
+    conversationId
   );
   if (conversation.blockedById) throw new Error("call.blocked");
 
@@ -105,16 +112,13 @@ export async function createCallRoomForConversation(
     "call.blocked"
   );
 
-  const existingRoom = await findActiveCallRoom(
-    conversation.id,
-    current.profileId
-  );
+  const existingRoom = await findActiveCallRoom(conversation.id, current);
   if (existingRoom) return existingRoom;
 
   const roomName = `ghiq-${conversation.id}-${randomUUID()}`;
   const inviteExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-  const room = await prisma.$transaction(async (tx) => {
+  const room = await withDbRequestContext(current, async (tx) => {
     const created = await tx.callRoom.create({
       data: {
         conversationId: conversation.id,
@@ -179,13 +183,14 @@ export async function createCallTokenForCurrentUser(
   current: CurrentUserProfile,
   roomId: string
 ) {
+  assertPaidFeatureAccess(current);
   const config = liveKitConfig();
-  const room = await prisma.callRoom.findFirst({
+  const room = await withDbRequestContext(current, (tx) => tx.callRoom.findFirst({
     where: callRoomJoinWhere(roomId, current.profileId),
     include: {
       conversation: true,
     },
-  });
+  }));
   if (!room) throw new Error("call.room_not_found");
   if (room.conversation?.blockedById) throw new Error("call.blocked");
   if (room.conversation) {
@@ -203,33 +208,33 @@ export async function createCallTokenForCurrentUser(
   const signed = createLiveKitCallToken(current, room.roomName, config);
   const issuedAt = new Date();
 
-  await prisma.$transaction([
-    prisma.callParticipant.updateMany({
+  await withDbRequestContext(current, async (tx) => {
+    await tx.callParticipant.updateMany({
       where: { callRoomId: room.id, profileId: current.profileId },
       data: {
         joinedAt: issuedAt,
         lastTokenIssuedAt: issuedAt,
         leftAt: null,
       },
-    }),
+    });
     // Joining directly via token counts as accepting a pending invite.
-    prisma.callInvite.updateMany({
+    await tx.callInvite.updateMany({
       where: {
         callRoomId: room.id,
         toProfileId: current.profileId,
         status: "pending",
       },
       data: { status: "accepted" },
-    }),
-    prisma.callEvent.create({
+    });
+    await tx.callEvent.create({
       data: {
         callRoomId: room.id,
         profileId: current.profileId,
         eventType: "token_issued",
         metadataJson: JSON.stringify({ expiresAt: signed.expiresAtSeconds }),
       },
-    }),
-  ]);
+    });
+  });
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -253,7 +258,7 @@ export async function endCallRoomForCurrentUser(
   current: CurrentUserProfile,
   roomId: string
 ) {
-  const room = await prisma.callRoom.findFirst({
+  const room = await withDbRequestContext(current, (tx) => tx.callRoom.findFirst({
     where: {
       id: roomId,
       permissions: {
@@ -263,7 +268,7 @@ export async function endCallRoomForCurrentUser(
         },
       },
     },
-  });
+  }));
   if (!room) throw new Error("call.room_not_found");
   if (room.status !== "active") return room;
 
@@ -292,7 +297,7 @@ export async function respondToCallInviteForCurrentUser(
   roomId: string,
   action: "accept" | "decline"
 ) {
-  const invite = await prisma.callInvite.findFirst({
+  const invite = await withDbRequestContext(current, (tx) => tx.callInvite.findFirst({
     where: {
       callRoomId: roomId,
       toProfileId: current.profileId,
@@ -302,23 +307,23 @@ export async function respondToCallInviteForCurrentUser(
     },
     include: { callRoom: true },
     orderBy: { createdAt: "desc" },
-  });
+  }));
   if (!invite) throw new Error("call.invite_not_found");
 
   const status = action === "accept" ? "accepted" : "declined";
-  await prisma.$transaction([
-    prisma.callInvite.update({
+  await withDbRequestContext(current, async (tx) => {
+    await tx.callInvite.update({
       where: { id: invite.id },
       data: { status },
-    }),
-    prisma.callEvent.create({
+    });
+    await tx.callEvent.create({
       data: {
         callRoomId: invite.callRoomId,
         profileId: current.profileId,
         eventType: action === "accept" ? "invite_accepted" : "invite_declined",
       },
-    }),
-  ]);
+    });
+  });
 
   if (action === "decline") {
     // Callee declined: the call is over for everyone.
@@ -494,20 +499,20 @@ async function endCallRoom(
   return ended.room;
 }
 
-function findActiveCallRoom(conversationId: string, profileId: string) {
-  return prisma.callRoom.findFirst({
+function findActiveCallRoom(conversationId: string, current: DbContextUser) {
+  return withDbRequestContext(current, (tx) => tx.callRoom.findFirst({
     where: {
       conversationId,
       status: "active",
       permissions: {
         some: {
-          profileId,
+          profileId: current.profileId,
           canJoin: true,
         },
       },
     },
     orderBy: { createdAt: "desc" },
-  });
+  }));
 }
 
 function otherConversationProfileId(

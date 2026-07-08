@@ -17,7 +17,7 @@ import {
 import { requestAccountDeletion, updateProfile } from "@/app/actions";
 import { PageHero } from "@/components/page-hero";
 import { SubmitButton } from "@/components/submit-button";
-import { getCurrentUser, isModeratorRole } from "@/lib/auth";
+import { getCurrentUser, hasTier, isModeratorRole } from "@/lib/auth";
 import { getAccountSummary, getMessagesForUserEmail } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -89,6 +89,7 @@ async function SignedInAccount({
   const ownedDogs = profile?.dogsOwned ?? [];
   const deletionRequestedAt = user.deletionRequestedAt;
   const canAccessAdmin = isModeratorRole(user.role);
+  const canEditMarketingProfile = hasTier(user.tier, "pro");
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -114,70 +115,91 @@ async function SignedInAccount({
             />
           </label>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-                State
-              </span>
-              <input
-                name="state"
-                maxLength={8}
-                defaultValue={profile?.state ?? ""}
-                className={INPUT_CLASS}
-                placeholder="NSW"
-              />
-            </label>
-            <label className="block">
-              <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-                Phone
-              </span>
-              <input
-                name="phone"
-                maxLength={40}
-                defaultValue={profile?.phone ?? ""}
-                className={INPUT_CLASS}
-              />
-            </label>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-                Kennel
-              </span>
-              <input
-                name="kennelName"
-                maxLength={120}
-                defaultValue={profile?.kennelName ?? ""}
-                className={INPUT_CLASS}
-              />
-            </label>
-            <label className="block">
-              <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-                Prefix
-              </span>
-              <input
-                name="kennelPrefix"
-                maxLength={40}
-                defaultValue={profile?.kennelPrefix ?? ""}
-                className={INPUT_CLASS}
-              />
-            </label>
-          </div>
-
           <label className="block">
             <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-              Website
+              State
             </span>
             <input
-              name="website"
-              type="url"
-              maxLength={200}
-              defaultValue={profile?.website ?? ""}
+              name="state"
+              maxLength={8}
+              defaultValue={profile?.state ?? ""}
               className={INPUT_CLASS}
-              placeholder="https://example.com"
+              placeholder="NSW"
             />
           </label>
+
+          {canEditMarketingProfile ? (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                    Phone
+                  </span>
+                  <input
+                    name="phone"
+                    maxLength={40}
+                    defaultValue={profile?.phone ?? ""}
+                    className={INPUT_CLASS}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                    Website
+                  </span>
+                  <input
+                    name="website"
+                    type="url"
+                    maxLength={200}
+                    defaultValue={profile?.website ?? ""}
+                    className={INPUT_CLASS}
+                    placeholder="https://example.com"
+                  />
+                </label>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                    Kennel
+                  </span>
+                  <input
+                    name="kennelName"
+                    maxLength={120}
+                    defaultValue={profile?.kennelName ?? ""}
+                    className={INPUT_CLASS}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                    Prefix
+                  </span>
+                  <input
+                    name="kennelPrefix"
+                    maxLength={40}
+                    defaultValue={profile?.kennelPrefix ?? ""}
+                    className={INPUT_CLASS}
+                  />
+                </label>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-lg border border-[hsl(var(--primary)/0.24)] bg-[hsl(var(--primary)/0.08)] p-4">
+              <div className="flex items-center gap-2 text-[13px] font-semibold text-[hsl(var(--foreground))]">
+                <Lock className="h-3.5 w-3.5 text-[hsl(var(--primary-bright))]" />
+                Pro profile tools
+              </div>
+              <p className="mt-2 text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                Custom trainer, punter, business, and dog marketing profile
+                tools are included with Pro.
+              </p>
+              <Link
+                href="/pricing"
+                className="giq-outline-action mt-3 w-fit text-[12px]"
+              >
+                View Pro
+              </Link>
+            </div>
+          )}
 
           <label className="block">
             <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">

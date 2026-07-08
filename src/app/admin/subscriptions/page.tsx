@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -59,13 +60,14 @@ export default async function AdminSubscriptionsPage() {
                 <th className="px-4 py-3 text-left">Ended</th>
                 <th className="px-4 py-3 text-left">Created</th>
                 <th className="px-4 py-3 text-left">Updated</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {subscriptions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={11}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No subscriptions found.
@@ -105,6 +107,15 @@ export default async function AdminSubscriptionsPage() {
                       date={subscription.updatedAt}
                       emptyLabel="Not recorded"
                     />
+                    <td className="px-4 py-3">
+                      <AdminStatusForm
+                        resource="subscription"
+                        id={subscription.id}
+                        currentStatus={subscription.status}
+                        statuses={["active", "past_due", "paused", "canceled", "ended"]}
+                        path="/admin/subscriptions"
+                      />
+                    </td>
                   </tr>
                 ))
               )}

@@ -1,0 +1,1 @@
+ALTER TABLE "Result" ADD COLUMN "prizeMoneyWon" DOUBLE PRECISION;

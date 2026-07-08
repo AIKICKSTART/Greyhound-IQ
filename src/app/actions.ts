@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
   dogOwnershipClaimSchema,
+  hasProfileMarketingFields,
   profileUpdateSchema,
 } from "@/lib/account-validation";
 import { requestAccountDeletion as requestAccountDeletionForUser } from "@/lib/account-service";
@@ -14,6 +15,8 @@ import {
   runAgentForCurrentUser,
 } from "@/lib/agent-service";
 import {
+  assertPaidFeatureAccess,
+  hasTier,
   requireCurrentUserProfile,
   requireModeratorProfile,
 } from "@/lib/auth";
@@ -27,6 +30,7 @@ import {
   toggleConversationMessageReaction as toggleConversationMessageReactionForCurrentUser,
 } from "@/lib/conversation-service";
 import { prisma } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import {
   blockFeedPostAuthorForCurrentUser,
   createFeedTopicForModerator,
@@ -240,6 +244,7 @@ function moderationReason(formData: FormData, fallback: string) {
 
 export async function createForumThread(formData: FormData) {
   const current = await requireCurrentUserProfile();
+  assertPaidFeatureAccess(current);
   const parsed = forumThreadSchema.parse({
     categoryId: field(formData, "categoryId"),
     title: field(formData, "title"),
@@ -251,7 +256,7 @@ export async function createForumThread(formData: FormData) {
   });
   if (!category) throw new Error("forum.category_not_found");
 
-  const thread = await prisma.$transaction(async (tx) => {
+  const thread = await withDbRequestContext(current, async (tx) => {
     const created = await tx.thread.create({
       data: {
         categoryId: category.id,
@@ -276,6 +281,7 @@ export async function createForumThread(formData: FormData) {
 
 export async function replyToForumThread(threadId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
+  assertPaidFeatureAccess(current);
   const parsed = forumReplySchema.parse({ body: field(formData, "body") });
 
   const thread = await prisma.thread.findUnique({
@@ -284,19 +290,19 @@ export async function replyToForumThread(threadId: string, formData: FormData) {
   });
   if (!thread || thread.locked) throw new Error("forum.thread_unavailable");
 
-  await prisma.$transaction([
-    prisma.post.create({
+  await withDbRequestContext(current, async (tx) => {
+    await tx.post.create({
       data: {
         threadId: thread.id,
         authorId: current.profileId,
         body: cleanText(parsed.body),
       },
-    }),
-    prisma.thread.update({
+    });
+    await tx.thread.update({
       where: { id: thread.id },
       data: { updatedAt: new Date() },
-    }),
-  ]);
+    });
+  });
 
   revalidatePath("/groups");
   revalidatePath(`/groups/${thread.category.slug}`);
@@ -979,11 +985,19 @@ export async function updateProfile(formData: FormData) {
     website: field(formData, "website"),
     phone: field(formData, "phone"),
   });
+  if (hasProfileMarketingFields(parsed)) assertPaidFeatureAccess(current);
+  const data = hasTier(current.tier, "pro")
+    ? parsed
+    : {
+        displayName: parsed.displayName,
+        bio: parsed.bio,
+        state: parsed.state,
+      };
 
-  await prisma.profile.update({
+  await withDbRequestContext(current, (tx) => tx.profile.update({
     where: { id: current.profileId },
-    data: parsed,
-  });
+    data,
+  }));
 
   revalidatePath("/account");
   redirect("/account");

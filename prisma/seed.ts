@@ -142,6 +142,11 @@ function generateDogName(): string {
   return `${randomChoice(NAME_PREFIXES)} ${randomChoice(NAME_SUFFIXES)}`;
 }
 
+function demoPrizeMoneyWon(total: number, finish: number): number {
+  const share = [0.6, 0.2, 0.1, 0.05, 0.03, 0.01, 0.005, 0.005][finish - 1] ?? 0;
+  return parseFloat((total * share).toFixed(2));
+}
+
 function whelp(minYear: number, span: number): Date {
   return new Date(minYear + Math.floor(Math.random() * span), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
 }
@@ -264,7 +269,7 @@ async function main() {
   const meetingRows: { id: string; trackId: string; meetingDate: Date; meetingType: string }[] = [];
   const raceRows: { id: string; meetingId: string; raceNumber: number; raceTime: Date; distance: number; grade: string; prizeMoney: number }[] = [];
   const runnerRows: { id: string; raceId: string; dogId: string; boxNumber: number; weight: number; trainerId: string; startingPrice: number; scratched: boolean }[] = [];
-  const resultRows: { id: string; runnerId: string; raceId: string; finishingPosition: number; runningTime: number; margin: number; splitTime: number }[] = [];
+  const resultRows: { id: string; runnerId: string; raceId: string; finishingPosition: number; runningTime: number; margin: number; prizeMoneyWon: number; splitTime: number }[] = [];
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -277,9 +282,10 @@ async function main() {
       const raceTime = new Date(date);
       raceTime.setHours(17 + Math.floor(r / 4), (r % 4) * 15, 0, 0);
       const distance = randomChoice(RACE_DISTANCES);
+      const prizeMoney = parseFloat((2000 + Math.random() * 8000).toFixed(0));
       raceRows.push({
         id: raceId, meetingId, raceNumber: r + 1, raceTime, distance,
-        grade: randomChoice(GRADES), prizeMoney: parseFloat((2000 + Math.random() * 8000).toFixed(0)),
+        grade: randomChoice(GRADES), prizeMoney,
       });
       const raceDogs = [...dogIds].sort(() => Math.random() - 0.5).slice(0, 8);
       const finishOrder = [1, 2, 3, 4, 5, 6, 7, 8].sort(() => Math.random() - 0.5);
@@ -297,6 +303,7 @@ async function main() {
             id: id(), runnerId, raceId, finishingPosition: finishOrder[box],
             runningTime: parseFloat((distance / 10 + Math.random() * 2).toFixed(2)),
             margin: finishOrder[box] === 1 ? 0 : parseFloat((Math.random() * 5).toFixed(2)),
+            prizeMoneyWon: demoPrizeMoneyWon(prizeMoney, finishOrder[box]),
             splitTime: parseFloat((distance / 10 + Math.random()).toFixed(2)),
           });
         }

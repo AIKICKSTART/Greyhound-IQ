@@ -24,6 +24,7 @@ type RunnerData = {
     finishingPosition: number | null;
     runningTime: number | null;
     margin: number | null;
+    prizeMoneyWon: number | null;
     splitTime: number | null;
   } | null;
 };
@@ -105,6 +106,11 @@ export function RunnerRow({
                   {runner.result.runningTime.toFixed(2)}s
                 </span>
               )}
+              {runner.result.prizeMoneyWon !== null && (
+                <span className="font-mono text-[11px] font-semibold text-[hsl(var(--secondary-light))]">
+                  {formatPrizeMoney(runner.result.prizeMoneyWon)} won
+                </span>
+              )}
             </div>
           ) : (
             <span className="text-[13px] text-[hsl(var(--subtle-foreground))]">—</span>
@@ -113,6 +119,10 @@ export function RunnerRow({
       )}
     </tr>
   );
+}
+
+function formatPrizeMoney(value: number) {
+  return `$${value.toLocaleString("en-AU", { maximumFractionDigits: 2 })}`;
 }
 
 function ResultBadge({ position }: { position: number | null }) {

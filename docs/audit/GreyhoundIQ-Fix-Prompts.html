@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GreyhoundIQ — Production Fix Prompts</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --ink:#e7ebf2; --muted:#9aa4b2;
+    --line:#2a2f3a; --accent:#5db0ff; --ok:#4ade80; --warn:#fbbf24; --crit:#f87171;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header{padding:28px 20px 8px;max-width:960px;margin:0 auto;}
+  h1{margin:0 0 6px;font-size:24px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 6px}
+  .bar{max-width:960px;margin:10px auto 0;padding:0 20px;display:flex;gap:8px;flex-wrap:wrap}
+  .bar input{flex:1;min-width:220px;background:var(--panel2);border:1px solid var(--line);
+    color:var(--ink);border-radius:8px;padding:9px 12px;font-size:14px}
+  .bar button{background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    border-radius:8px;padding:9px 12px;cursor:pointer;font-size:13px}
+  .bar button:hover{color:var(--ink);border-color:var(--accent)}
+  main{max-width:960px;margin:0 auto;padding:16px 20px 80px}
+  .phase{margin:26px 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:12px 0;overflow:hidden}
+  .card .top{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .t-crit{background:rgba(248,113,113,.15);color:var(--crit)}
+  .t-high{background:rgba(251,191,36,.15);color:var(--warn)}
+  .t-med{background:rgba(93,176,255,.15);color:var(--accent)}
+  .t-low{background:rgba(154,164,178,.15);color:var(--muted)}
+  .id{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .title{font-weight:600;flex:1}
+  .copy{background:var(--accent);color:#08131f;border:0;border-radius:8px;padding:7px 14px;
+    cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap}
+  .copy:hover{filter:brightness(1.08)}
+  .copy.done{background:var(--ok)}
+  pre{margin:0;padding:14px 16px;white-space:pre-wrap;word-break:break-word;
+    font-family:var(--mono);font-size:13px;line-height:1.5;color:#d6deea;background:transparent}
+  .foot{max-width:960px;margin:0 auto;padding:0 20px 40px;color:var(--muted);font-size:13px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>GreyhoundIQ — Production Fix Prompts</h1>
+  <p class="sub">One prompt per issue, ordered by phase. Click <b>Copy</b>, paste into your coding agent, fix one at a time. Every prompt asks for surgical changes, the relevant <code>check:*</code> gate, and a rollback note.</p>
+  <p class="sub">Resolve <b>P1-A first</b> — it verifies whether <code>greyhoundiq_app</code> actually bypasses RLS and makes RLS authoritative via <code>FORCE ROW LEVEL SECURITY</code>. Compute is over-provisioned; the real ceilings are DB connections/pooler and the RLS enforcement gap.</p>
+</header>
+
+<div class="bar">
+  <input id="q" type="text" placeholder="Filter prompts (e.g. rls, index, livekit, cron)…" oninput="filter()" />
+  <button onclick="copyAll()">Copy all prompts</button>
+  <button onclick="toggleSev()"><span id="sevlabel">Show critical+high only</span></button>
+</div>
+
+<main id="list">
+
+<div class="phase">Phase 1 — Critical security / RLS</div>
+
+<div class="card" data-sev="crit">
+  <div class="top"><span class="tag t-crit">CRITICAL</span><span class="id">P1-A</span><span class="title">Verify RLS role + enforce it at the DB layer</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Verify and harden RLS enforcement for GreyhoundIQ's Prisma-to-Postgres path. Do NOT change app logic yet.
+1. From inside the VPC (or via a one-off admin task using DB_ADMIN_URL), confirm for the runtime role
+   `greyhoundiq_app`: `rolbypassrls=false`, `rolsuper=false`, and that it is NOT the owner of the public
+   tables (owner should be greyhoundiq_migrator/postgres). Record results.
+2. Add a forward-only migration that runs `ALTER TABLE "&lt;t&gt;" FORCE ROW LEVEL SECURITY;` for every table
+   that already has RLS enabled (the ~65 in 20260706223000). This closes the owner-bypass gap and makes
+   RLS authoritative regardless of connecting role.
+3. Extend scripts/check-rls-policies.ts to assert (a) rolbypassrls=false for the runtime role and
+   (b) relforcerowsecurity=true for every RLS table, so CI fails if this regresses.
+Do NOT touch policy predicates. Test: npm run check:rls-policies, typecheck, lint, build.
+Rollback: the migration only sets FORCE RLS; a follow-up migration can NO FORCE if it breaks a path.</pre>
+</div>
+
+<div class="card" data-sev="crit">
+  <div class="top"><span class="tag t-crit">CRITICAL</span><span class="id">P1-B</span><span class="title">Make DB request/system context mandatory on every Prisma access</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Audit every Prisma call site in src/ for missing RLS context. Any request-scoped data access must go
+through withDbRequestContext(current, ...); any cron/system/maintenance/webhook path must go through
+withDbSystemContext(...). Specifically fix src/lib/listing-service.ts runListingMaintenance (currently
+raw prisma.$transaction with no context - under FORCE RLS it will no-op/deny) to use withDbSystemContext,
+and sweep for other direct prisma.* usages in services/routes (memory, reports, maintenance jobs). Prefer
+one shared wrapper over per-callsite fixes. Add a lint/check script (extend an existing check:* script)
+that greps for direct `prisma.` usage outside db.ts/db-context.ts and flags un-wrapped access.
+Test: run each affected cron endpoint locally against a FORCE-RLS DB; npm run check:community-flow,
+check:comms-security, typecheck, lint, build. Rollback: revert wrappers per file.</pre>
+</div>
+
+<div class="card" data-sev="high">
+  <div class="top"><span class="tag t-high">HIGH</span><span class="id">P1-C</span><span class="title">Restrict AuditLog + RateLimit RLS</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Forward-only migration: replace AuditLog INSERT policy `WITH CHECK (true)` so inserts require system or
+moderator context (app.system='true' OR giq_is_moderator()), matching how the app writes audit rows via
+system/mod paths. Replace the fully-open RateLimit policy with system-context-only writes (the limiter
+runs under system context). Verify the app's audit-write and rate-limit code paths set the right context
+first (update them if they don't). Test: check:rls-policies, check:comms-security, unit tests, build.
+Rollback: single follow-up migration restoring prior policies.</pre>
+</div>
+
+<div class="card" data-sev="high">
+  <div class="top"><span class="tag t-high">HIGH</span><span class="id">P1-D</span><span class="title">Add RLS to the 28 unprotected tables (defense-in-depth)</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Add RLS + policies to the 28 tables currently without it, prioritizing sensitive ones first: Report,
+DeletionJob, ExportArtifact, Organization, Membership, MemoryEntry, TrustSafetyFlag, OrganizationInvitation,
+SupportTicket, SupportMessage, then the rest. Mirror the existing ownership/moderator/system pattern from
+20260706223000 (owner via app.current_profile_id/current_user_id; moderator via giq_is_moderator; system
+via app.system). Include FORCE ROW LEVEL SECURITY. Grant privileges to greyhoundiq_runtime consistent with
+the existing migration. Verify each table's read/write app paths already set context (they must, post P1-B).
+Do this in small batches with a check:rls-policies assertion per table. Test after each batch. Rollback:
+per-table drop-policy migration.</pre>
+</div>
+
+<div class="phase">Phase 2 — API hardening</div>
+
+<div class="card" data-sev="med">
+  <div class="top"><span class="tag t-med">MEDIUM</span><span class="id">P2-A</span><span class="title">Fix spoofable client-IP for rate limiting/webhooks</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Replace leftmost x-forwarded-for parsing with a trusted client-IP derivation for Cloud Run behind the
+external proxy fronting greyhoundsiq.com.au. Determine the real hop count (Cloud Run appends the direct
+client IP as the rightmost trusted entry; if Cloudflare/LB is in front, use its trusted client-IP header
+e.g. cf-connecting-ip or a fixed rightmost-N index). Centralize in one helper (src/lib/*request-ip*) and
+use it in rate-limit.ts callers, dogs/search, and lago+stripe webhook rate-limit keys. Confirm from the
+edge layer which header is trustworthy before choosing. Test: unit test the parser with spoofed XFF chains;
+build. Rollback: revert helper.</pre>
+</div>
+
+<div class="card" data-sev="med">
+  <div class="top"><span class="tag t-med">MEDIUM</span><span class="id">P2-B</span><span class="title">Nonce-based CSP (remove script-src 'unsafe-inline')</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Replace 'unsafe-inline' in script-src with a per-request nonce CSP in next.config.ts / middleware, wiring
+the nonce into Next's script tags. Keep style-src as-is if inline styles are still required. Verify no
+inline scripts break (test all interactive pages: calls, messaging, marketplace). Test: build, smoke the
+security headers via scripts/smoke-production.ts, manual page checks. Rollback: restore prior CSP string.</pre>
+</div>
+
+<div class="card" data-sev="med">
+  <div class="top"><span class="tag t-med">MEDIUM</span><span class="id">P2-C</span><span class="title">Server-side MIME sniffing on media finalize + drop dev scanStatus trust</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>In media finalize (src/lib/media-service.ts), read the stored object's magic bytes server-side and verify
+they match the client-claimed mimeType against the existing allowlist; reject on mismatch. Remove the
+NODE_ENV!=='production' trustClientScanStatus branch entirely (never trust client scanStatus). Keep the
+clean-only delivery gate. Test: unit test with a mislabeled file (png bytes as image/jpeg, exe as jpeg);
+check:comms-security; build. Rollback: revert finalize changes.</pre>
+</div>
+
+<div class="phase">Phase 3 — DB indexing & query performance</div>
+
+<div class="card" data-sev="high">
+  <div class="top"><span class="tag t-high">HIGH</span><span class="id">P3-A</span><span class="title">Cap over-fetching in marketplace + feed includes</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>In src/lib/queries.ts marketplaceListingCardInclude, cap listing media to take:1-3 and use select for
+only the fields the card renders. In src/lib/feed-service.ts feedPostInclude, cap reactions (take or use
+_count only), and narrow comment author include to id+displayName+avatarUrl. Preserve rendered output.
+Test: load /marketplace and /feed, diff rendered data; benchmark:marketplace-search; build.
+Rollback: revert include shapes.</pre>
+</div>
+
+<div class="card" data-sev="med">
+  <div class="top"><span class="tag t-med">MEDIUM</span><span class="id">P3-B</span><span class="title">Add missing indexes (trigram + composite)</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Forward-only migration: CREATE EXTENSION IF NOT EXISTS pg_trgm; add GIN trigram index on Dog.name; add
+Listing composite index [status, moderationStatus, expiresAt, createdAt]; add FeedPost composite
+[status, visibility, pinnedAt, createdAt] if the feed query needs it. For Race search, prefer a dedicated
+Race search-index table mirroring ListingSearchIndex (FTS + trigram GIN, maintained by trigger) rather
+than multi-column ILIKE. Keep Prisma schema in sync (raw index via migration; @@index where expressible).
+Test: check:migrations, EXPLAIN the dog/race/listing search queries against seeded data, build.
+Rollback: drop-index migration.</pre>
+</div>
+
+<div class="card" data-sev="med">
+  <div class="top"><span class="tag t-med">MEDIUM</span><span class="id">P3-C</span><span class="title">Cache hot aggregates (admin counts + unread badges)</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Add short-TTL caching (in-memory per-instance with TTL, or React cache() for RSC) for: admin dashboard
+counts (src/app/admin/page.tsx, ~28 count() calls) and notification unread badge count. Do NOT add Redis
+unless measurably needed (start with in-process TTL). Ensure counts still reflect within a few minutes.
+Test: load admin + any authed page, verify counts; build. Rollback: remove cache wrapper.</pre>
+</div>
+
+<div class="card" data-sev="med">
+  <div class="top"><span class="tag t-med">MEDIUM</span><span class="id">P3-D</span><span class="title">Batch the read-receipt N+1 and slim conversation-list include</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>In src/lib/conversation-service.ts: replace the per-messageId messageReadReceipt upsert loop in
+markConversationRead with a single set-based createMany(skipDuplicates)+updateMany (or one bulk upsert).
+In listConversationsForProfile, replace full MESSAGE_INCLUDE on the last message with a narrow select
+(id, body, createdAt, senderId, read). Test: check:community-flow, unit tests, mark-read + list flows; build.
+Rollback: revert both functions.</pre>
+</div>
+
+<div class="phase">Phase 4 — Scaling / infra</div>
+
+<div class="card" data-sev="high">
+  <div class="top"><span class="tag t-high">HIGH</span><span class="id">P4-A</span><span class="title">Add a Postgres connection pooler (before raising maxScale)</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Introduce a transaction-mode pooler (pgBouncer/PgCat/Supavisor) between Cloud Run and the self-hosted
+Postgres at 10.152.0.4, or verify a pooler port already exists. Point runtime DATABASE_URL at the pooler
+(add pgbouncer=true for transaction mode) and keep per-instance connection_limit low (2-3). Confirm
+Prisma transaction/interactive-transaction usage is compatible with transaction pooling (db-context.ts
+uses $transaction - ensure prepared-statement/session pitfalls handled, pgbouncer=true disables prepared
+statements). Verify max_connections headroom. This is prerequisite to raising web maxScale above 10.
+Test: staging-load-probe under concurrency, watch pg_stat_activity; build.
+Rollback: point DATABASE_URL back at 5432 direct.</pre>
+</div>
+
+<div class="card" data-sev="low">
+  <div class="top"><span class="tag t-low">LOW</span><span class="id">P4-B</span><span class="title">Set sslmode on prod DB URLs</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Add sslmode=require (or verify TLS termination) to prod DATABASE_URL/DIRECT_URL secrets so the app-to-DB
+hop to 10.152.0.4 is encrypted, unless the VPC link already guarantees it. Verify the self-hosted Postgres
+accepts TLS. Update Secret Manager versions only; no code change. Test: deploy to staging first, confirm
+connectivity via /api/health/ready. Rollback: restore prior secret version.</pre>
+</div>
+
+<div class="phase">Phase 5 — Realtime / storage defense-in-depth</div>
+
+<div class="card" data-sev="med">
+  <div class="top"><span class="tag t-med">MEDIUM</span><span class="id">P5-A</span><span class="title">Supabase Realtime authorization + server-validated presence</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Move messaging/presence/call realtime from broadcast-by-secret-channel-name to Supabase Realtime
+Authorization (private channels gated by RLS on realtime.messages using the user's Supabase JWT), OR
+document and accept channel-name-secrecy as the model. Validate presence server-side (do not trust
+client-supplied profileId in channel.track). Keep REALTIME_CHANNEL_SECRET server-only. Test:
+check:community-flow --strict-realtime, check:comms-security, manual two-user messaging/presence; build.
+Rollback: revert to broadcast channels.</pre>
+</div>
+
+<div class="card" data-sev="med">
+  <div class="top"><span class="tag t-med">MEDIUM</span><span class="id">P5-B</span><span class="title">Storage bucket RLS for private-user-media</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Add Supabase Storage bucket policies so private-user-media objects require an authenticated, authorized
+principal at the storage layer (defense-in-depth beyond signed-URL secrecy). Keep signed-URL TTL short
+(15 min). Ensure server media access (mediaAccessWhere) still governs URL issuance. Test: attempt direct
+object fetch without a signed URL (should 403), authorized signed fetch (should 200); build.
+Rollback: remove bucket policy.</pre>
+</div>
+
+<div class="phase">Phase 6 — Observability & ops</div>
+
+<div class="card" data-sev="med">
+  <div class="top"><span class="tag t-med">MEDIUM</span><span class="id">P6-A</span><span class="title">Request IDs + latency/DB metrics</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Inject an X-Request-ID per request (middleware) and include it in all structured logs; add lightweight
+request-duration and DB-query-duration logging (Prisma $extends). Keep it cheap (log, not a metrics
+backend) unless OTel is explicitly wanted. Test: hit a route, confirm correlated logs; build.</pre>
+</div>
+
+<div class="card" data-sev="med">
+  <div class="top"><span class="tag t-med">MEDIUM</span><span class="id">P6-B</span><span class="title">Cloud Monitoring alerts + uptime check</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Create (via gcloud/IaC, documented in scripts) an uptime check on /api/health/ready and alert policies for:
+5xx error-rate spike, db.safe_query_failed / Prisma P2024 pool-timeout log frequency, p95 latency, and
+instance-count near maxScale. No app code change. Test: trigger a synthetic error, confirm alert fires.</pre>
+</div>
+
+<div class="card" data-sev="med">
+  <div class="top"><span class="tag t-med">MEDIUM</span><span class="id">P6-C</span><span class="title">Rationalize Cloud Scheduler jobs per environment</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Rename/duplicate the six `greyhoundiq-staging-*` scheduler jobs into clearly env-scoped sets. Confirm each
+job targets the correct env's domain AND carries that env's INTERNAL_API_SECRET/CRON_SECRET (the ones
+hitting greyhoundsiq.com.au must use the PROD secret). Add missing prod-scoped jobs if prod currently has
+none of its own. Verify via a signed test invocation. No app code change (config/IaC only).</pre>
+</div>
+
+<div class="card" data-sev="med">
+  <div class="top"><span class="tag t-med">MEDIUM</span><span class="id">P6-D</span><span class="title">Extend load tests to untested surfaces</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Extend scripts/staging-load-probe.ts to cover: realtime subscribe/presence, media sign+upload+finalize,
+LiveKit token issuance under concurrency, and a DB-pool-saturation scenario that verifies graceful 429/503
+rather than cascading P2024. Report p50/p95/max per surface. Test: run against staging. Rollback: n/a (test-only).</pre>
+</div>
+
+<div class="phase">Phase 7 — Deployment readiness (pre-launch, not bugs)</div>
+
+<div class="card" data-sev="med">
+  <div class="top"><span class="tag t-med">MEDIUM</span><span class="id">P7-A</span><span class="title">Wire LiveKit + billing secrets into prod</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>If calling and billing ship at launch: create prod Secret Manager entries for LIVEKIT_URL/API_KEY/API_SECRET,
+NEXT_PUBLIC_LIVEKIT_URL, STRIPE_* and LAGO_* (currently staging-only), inject into greyhoundiq-web-prod,
+and add startup validation so a missing LIVEKIT_* fails fast (not at first token request). Self-hosted
+LiveKit webhook + TURN must be reachable from Cloud Run (egress is private-ranges-only - confirm routing).
+Test: check:livekit-connectivity against prod, a real 2-user call, a Stripe/Lago webhook round-trip.</pre>
+</div>
+
+<div class="card" data-sev="low">
+  <div class="top"><span class="tag t-low">LOW</span><span class="id">P7-B</span><span class="title">Separate media-scanner service account</span><button class="copy" onclick="cp(this)">Copy</button></div>
+<pre>Give greyhoundiq-media-scanner-prod its own least-privilege service account instead of sharing giq-web-prod.
+Grant only the secrets + run.invoker it needs. Config/IaC only. Test: redeploy scanner, confirm media-
+maintenance cron still succeeds. Rollback: revert SA binding.</pre>
+</div>
+
+</main>
+
+<p class="foot">Generated from the GreyhoundIQ production audit (codebase + live GCP). 18 prompts across 7 phases. Full evidence report lives in the plan file. Fix top-to-bottom; P1-A is the gating item.</p>
+
+<script>
+function cp(btn){
+  const pre = btn.closest('.card').querySelector('pre');
+  const text = pre.innerText;
+  const done = () => { const o = btn.textContent; btn.textContent='Copied ✓'; btn.classList.add('done');
+    setTimeout(()=>{btn.textContent=o; btn.classList.remove('done');},1400); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallback(text,done));
+  } else { fallback(text,done); }
+}
+function fallback(text,done){
+  const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); done(); }catch(e){ alert('Copy failed — select the text manually.'); }
+  document.body.removeChild(ta);
+}
+function copyAll(){
+  const parts=[...document.querySelectorAll('.card:not(.hidden)')].map(c=>{
+    const id=c.querySelector('.id').textContent, t=c.querySelector('.title').textContent;
+    return '### '+id+' — '+t+'\n'+c.querySelector('pre').innerText;
+  });
+  fallback(parts.join('\n\n'), ()=>{ const b=event.target; const o=b.textContent; b.textContent='Copied all ✓';
+    setTimeout(()=>b.textContent=o,1400); });
+}
+let sevOnly=false;
+function toggleSev(){
+  sevOnly=!sevOnly;
+  document.getElementById('sevlabel').textContent = sevOnly ? 'Show all' : 'Show critical+high only';
+  apply();
+}
+function filter(){ apply(); }
+function apply(){
+  const q=document.getElementById('q').value.toLowerCase();
+  document.querySelectorAll('.card').forEach(c=>{
+    const sev=c.dataset.sev;
+    const sevOk = !sevOnly || sev==='crit' || sev==='high';
+    const textOk = !q || c.innerText.toLowerCase().includes(q);
+    c.classList.toggle('hidden', !(sevOk && textOk));
+  });
+  document.querySelectorAll('.phase').forEach(ph=>{
+    let n=ph.nextElementSibling, any=false;
+    while(n && !n.classList.contains('phase')){ if(n.classList.contains('card') && !n.classList.contains('hidden')) any=true; n=n.nextElementSibling; }
+    ph.style.display = any ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

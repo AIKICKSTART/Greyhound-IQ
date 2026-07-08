@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminExportForm, AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -37,12 +38,16 @@ export default async function AdminExportsPage() {
           Export artifacts
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 20 export artifact records with identifiers, status, size, and
-          lifecycle timestamps.
+          Create local export artifact records and update their lifecycle
+          status. Storage paths and object contents are not displayed here.
         </p>
 
+        <div className="mt-6">
+          <AdminExportForm path="/admin/exports" />
+        </div>
+
         <div className="giq-table-shell mt-6 overflow-x-auto">
-          <table className="w-full min-w-[1680px]">
+          <table className="w-full min-w-[1880px]">
             <thead>
               <tr className="giq-table-head">
                 <th className="px-4 py-3 text-left">Artifact ID</th>
@@ -56,13 +61,14 @@ export default async function AdminExportsPage() {
                 <th className="px-4 py-3 text-left">Expires</th>
                 <th className="px-4 py-3 text-left">Created</th>
                 <th className="px-4 py-3 text-left">Updated</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {artifacts.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={11}
+                    colSpan={12}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No export artifacts found.
@@ -88,6 +94,15 @@ export default async function AdminExportsPage() {
                     <DateCell date={artifact.expiresAt} emptyLabel="No expiry" />
                     <DateCell date={artifact.createdAt} emptyLabel="Not recorded" />
                     <DateCell date={artifact.updatedAt} emptyLabel="Not recorded" />
+                    <td className="px-4 py-3">
+                      <AdminStatusForm
+                        resource="exportArtifact"
+                        id={artifact.id}
+                        currentStatus={artifact.status}
+                        statuses={["created", "processing", "completed", "failed", "expired"]}
+                        path="/admin/exports"
+                      />
+                    </td>
                   </tr>
                 ))
               )}

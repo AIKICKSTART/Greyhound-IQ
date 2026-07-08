@@ -42,7 +42,7 @@ const publicProbes: Probe[] = [
   { label: "ready", path: "/api/health/ready", expected: [200] },
   { label: "feed health", path: "/api/health/feeds", expected: [200] },
   { label: "browse listings api", path: "/api/listings?limit=20", expected: [200] },
-  { label: "browse listings page", path: "/listings", expected: [200] },
+  { label: "browse marketplace page", path: "/marketplace", expected: [200] },
   { label: "feed page", path: "/feed", expected: [200] },
 ];
 

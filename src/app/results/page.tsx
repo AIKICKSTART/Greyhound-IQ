@@ -19,6 +19,7 @@ type ResultEntry = {
   finishingPosition: number | null;
   runningTime: number | null;
   margin: number | null;
+  prizeMoneyWon: number | null;
   splitTime: number | null;
 };
 

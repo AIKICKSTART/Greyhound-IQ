@@ -44,6 +44,12 @@ role.
 - `LAGO_FRONT_URL`
 - `LAGO_API_KEY`
 - `LAGO_WEBHOOK_SECRET`
+- `STRIPE_SECRET_KEY`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_APP_URL`
+- `STRIPE_PRICE_PRO_MONTHLY`
+- `STRIPE_PRICE_PRO_YEARLY`
 - `INTERNAL_API_SECRET`
 - `CRON_SECRET`
 
@@ -108,7 +114,18 @@ conveniences only and are not production persistence or feed layers.
 - `LAGO_API_KEY` is server-only and must be stored in the VPS/runtime secret store or GitHub Actions secrets.
 - `LAGO_WEBHOOK_SECRET` is server-only and must be at least 32 characters in production.
 
-`npm run check:env -- --production` requires all four Lago variables for production. Do not add payment-provider variables here unless the app integration actually requires them.
+`npm run check:env -- --production` requires all four Lago variables for production.
+
+## Stripe app integration
+
+- `STRIPE_SECRET_KEY` is server-only and must use the live-mode key in production.
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` must match the same Stripe mode as the server key.
+- `STRIPE_WEBHOOK_SECRET` must come from the Stripe Dashboard webhook for `https://greyhoundsiq.com.au/api/webhooks/stripe`.
+- `STRIPE_APP_URL` must be `https://greyhoundsiq.com.au` in production.
+- `STRIPE_PRICE_PRO_MONTHLY` must be the live-mode recurring price ID for the `$29/month` Pro plan.
+- `STRIPE_PRICE_PRO_YEARLY` must be the live-mode recurring price ID for the `$278.40/year` Pro plan.
+
+`npm run check:env -- --production` requires the Stripe variables above for production. Store production values in Google Secret Manager, not repo files.
 
 Supabase Storage browser uploads require `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Server-side signed upload/download operations require `SUPABASE_SERVICE_ROLE_KEY`; keep it server-only in the VPS/runtime environment and GitHub secrets.
 

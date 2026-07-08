@@ -1,5 +1,10 @@
 import Link from "next/link";
 
+import {
+  AdminEnabledForm,
+  AdminPlanForms,
+  AdminStatusForm,
+} from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -11,6 +16,7 @@ export const metadata = {
 };
 
 type PriceCatalogRow = {
+  id: string;
   interval: string;
   currency: string;
   amountCents: number;
@@ -18,6 +24,7 @@ type PriceCatalogRow = {
 };
 
 type PlanEntitlementRow = {
+  id: string;
   featureKey: string;
   enabled: boolean;
   limitValue: number | null;
@@ -25,6 +32,7 @@ type PlanEntitlementRow = {
 };
 
 type PlanCatalogRow = {
+  id: string;
   code: string;
   name: string;
   status: string;
@@ -50,12 +58,16 @@ export default async function AdminPlansPage() {
           Plans
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Local plan catalog with prices and entitlement limits. Only catalog,
-          price, and entitlement display fields are shown.
+          Create and update local plan catalog rows, prices, and entitlement
+          limits. Provider IDs stay read-only and are not edited here.
         </p>
 
+        <div className="mt-6">
+          <AdminPlanForms plans={plans.map((plan) => ({ id: plan.id, code: plan.code }))} path="/admin/plans" />
+        </div>
+
         <div className="giq-table-shell mt-6 overflow-x-auto">
-          <table className="w-full min-w-[1320px]">
+          <table className="w-full min-w-[1520px]">
             <thead>
               <tr className="giq-table-head">
                 <th className="px-4 py-3 text-left">Plan code</th>
@@ -63,13 +75,14 @@ export default async function AdminPlansPage() {
                 <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">Prices</th>
                 <th className="px-4 py-3 text-left">Entitlements</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {plans.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No plans found.
@@ -81,14 +94,17 @@ export default async function AdminPlansPage() {
                     <MonoCell>{plan.code}</MonoCell>
                     <TextCell>{plan.name}</TextCell>
                     <TextCell>{plan.status}</TextCell>
-                    <ListCell
-                      emptyLabel="No prices"
-                      items={plan.prices.map(formatPrice)}
-                    />
-                    <ListCell
-                      emptyLabel="No entitlements"
-                      items={plan.entitlements.map(formatEntitlement)}
-                    />
+                    <PriceListCell prices={plan.prices} />
+                    <EntitlementListCell entitlements={plan.entitlements} />
+                    <td className="px-4 py-3 align-top">
+                      <AdminStatusForm
+                        resource="plan"
+                        id={plan.id}
+                        currentStatus={plan.status}
+                        statuses={["active", "inactive", "archived"]}
+                        path="/admin/plans"
+                      />
+                    </td>
                   </tr>
                 ))
               )}
@@ -107,11 +123,13 @@ function getPlans() {
         orderBy: { code: "asc" },
         select: {
           code: true,
+          id: true,
           name: true,
           status: true,
           prices: {
             orderBy: [{ interval: "asc" }, { currency: "asc" }],
             select: {
+              id: true,
               interval: true,
               currency: true,
               amountCents: true,
@@ -121,6 +139,7 @@ function getPlans() {
           entitlements: {
             orderBy: { featureKey: "asc" },
             select: {
+              id: true,
               featureKey: true,
               enabled: true,
               limitValue: true,
@@ -149,27 +168,59 @@ function TextCell({ children }: { children: string }) {
   );
 }
 
-function ListCell({
-  emptyLabel,
-  items,
-}: {
-  emptyLabel: string;
-  items: string[];
-}) {
+function PriceListCell({ prices }: { prices: PriceCatalogRow[] }) {
   return (
     <td className="px-4 py-3 align-top">
-      {items.length === 0 ? (
+      {prices.length === 0 ? (
         <span className="text-[13px] text-[hsl(var(--muted-foreground))]">
-          {emptyLabel}
+          No prices
         </span>
       ) : (
         <ul className="space-y-2">
-          {items.map((item) => (
-            <li
-              key={item}
-              className="font-mono text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]"
-            >
-              {item}
+          {prices.map((price) => (
+            <li key={price.id} className="space-y-2">
+              <p className="font-mono text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                {formatPrice(price)}
+              </p>
+              <AdminStatusForm
+                resource="priceCatalog"
+                id={price.id}
+                currentStatus={price.status}
+                statuses={["active", "inactive", "archived"]}
+                path="/admin/plans"
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </td>
+  );
+}
+
+function EntitlementListCell({
+  entitlements,
+}: {
+  entitlements: PlanEntitlementRow[];
+}) {
+  return (
+    <td className="px-4 py-3 align-top">
+      {entitlements.length === 0 ? (
+        <span className="text-[13px] text-[hsl(var(--muted-foreground))]">
+          No entitlements
+        </span>
+      ) : (
+        <ul className="space-y-2">
+          {entitlements.map((entitlement) => (
+            <li key={entitlement.id} className="space-y-2">
+              <p className="font-mono text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                {formatEntitlement(entitlement)}
+              </p>
+              <AdminEnabledForm
+                resource="planEntitlement"
+                id={entitlement.id}
+                enabled={entitlement.enabled}
+                path="/admin/plans"
+              />
             </li>
           ))}
         </ul>

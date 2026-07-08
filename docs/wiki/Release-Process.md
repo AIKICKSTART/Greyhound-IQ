@@ -5,7 +5,7 @@
 - Production runs on Google Cloud Run.
 - Staging runs on the Google Cloud Run staging service.
 - WorkOS is the only production authentication provider.
-- Lago is the billing source of truth for plans, entitlements, invoices, and subscription state.
+- Stripe handles production payments, Checkout, subscriptions, and customer billing portal access.
 
 ## Pre-release gates
 
@@ -17,7 +17,7 @@ Before a production release:
 4. Smoke test the Cloud Run staging deployment.
 5. Confirm WorkOS production redirect URLs, allowed origins, and secrets for the production domain.
 6. Confirm no fallback auth provider is enabled for production users.
-7. Confirm Lago products, plans, entitlements, and webhook settings before exposing paid access.
+7. Confirm Stripe live Pro monthly/yearly prices, Checkout, billing portal, and webhook settings before exposing paid access.
 8. Review the forward-only production migration plan and get Daniel's sign-off.
 
 ## Production launch
@@ -28,7 +28,7 @@ Before a production release:
 4. Point the production domain at Cloud Run when the smoke checks pass.
 5. Verify `/api/health` and `/api/health/ready`.
 6. Verify WorkOS sign-in, sign-out, and protected-route access.
-7. Verify Lago billing and entitlement state for free and paid accounts.
+7. Verify Stripe Checkout, signed webhook delivery, customer portal access, and paid account tier updates.
 
 ## Rollback
 

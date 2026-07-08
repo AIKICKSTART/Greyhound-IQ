@@ -42,7 +42,7 @@ assert.deepEqual(waVideos, [
   {
     raceNumber: 1,
     videoId: "1206963174",
-    pageUrl: "https://vimeo.com/1206963174",
+    pageUrl: "https://player.vimeo.com/video/1206963174?h=abc",
   },
 ]);
 
@@ -54,5 +54,12 @@ assert.deepEqual(embedUrlFromReplayPage("https://vimeo.com/1206963174"), {
   type: "vimeo",
   embedUrl: "https://player.vimeo.com/video/1206963174",
 });
+assert.deepEqual(
+  embedUrlFromReplayPage("https://player.vimeo.com/video/1206963174?h=abc"),
+  {
+    type: "vimeo",
+    embedUrl: "https://player.vimeo.com/video/1206963174?h=abc",
+  }
+);
 
 console.log("race replay parser checks passed");

@@ -41,7 +41,6 @@ const ENTITLEMENT_SUMMARY: { key: EntitlementKey; label: string }[] = [
   { key: "agent_runs_per_month", label: "Agent runs" },
   { key: "storage_bytes", label: "Storage" },
   { key: "retention_days", label: "Retention" },
-  { key: "priority_jobs", label: "Priority jobs" },
 ];
 const STATUS_BANNER_TONE_CLASS = {
   danger: "border-rose-400/30 bg-rose-400/[0.08]",
@@ -90,9 +89,12 @@ export default async function BillingPage() {
 async function SignedInBilling({ user }: { user: BillingUser }) {
   const overview = await getLocalBillingOverview(user);
   const planCode = overview.subscription?.planCode ?? user.tier;
+  const hasPaidTier = user.tier !== "free";
   const status = overview.subscription
     ? formatSnapshotText(overview.subscription.status)
-    : "No snapshot";
+    : hasPaidTier
+      ? "Active"
+      : "No subscription";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -117,6 +119,18 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
           <Metric label="Status" value={status} />
         </div>
 
+        <div className="mt-5 flex flex-wrap gap-3">
+          <form action="/api/billing/portal" method="post">
+            <button className={ACTION_CLASS} type="submit">
+              <CreditCard className="h-3.5 w-3.5" />
+              Manage billing
+            </button>
+          </form>
+          <Link href="/pricing" className={ACTION_CLASS}>
+            Change plan
+          </Link>
+        </div>
+
         {overview.subscription ? (
           <div className="giq-subpanel mt-5 grid gap-3 p-4 text-[13px]">
             <InfoRow
@@ -137,8 +151,12 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
         ) : (
           <EmptyState
             icon={<CalendarClock className="h-4 w-4" />}
-            title="No local subscription snapshot"
-            body="Your account is using the current tier defaults until a local billing snapshot is recorded."
+            title={hasPaidTier ? "Stripe billing active" : "No subscription snapshot"}
+            body={
+              hasPaidTier
+                ? "Your paid tier is active. Use Manage billing for subscription details, invoices, and cancellation."
+                : "Your account is using the free tier defaults until a paid subscription is started."
+            }
           />
         )}
       </section>
@@ -581,6 +599,7 @@ function formatEntitlementValue(
 ) {
   const value = entitlements[key];
   if (typeof value === "boolean") return value ? "Included" : "Not included";
+  if (value < 0) return "Unlimited";
   if (key.endsWith("_bytes")) return formatBytes(value);
   if (key.endsWith("_days")) return `${value.toLocaleString("en-AU")} days`;
   return value.toLocaleString("en-AU");

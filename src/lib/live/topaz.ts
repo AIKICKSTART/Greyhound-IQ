@@ -163,6 +163,7 @@ export function mapMeeting(meeting: TopazMeeting): LiveMeeting {
 }
 
 export function mapRace(race: TopazRace): LiveRace {
+  const prizeMoneyByPosition = placePrizeMoney(race);
   return {
     sourceId: race.raceId != null ? String(race.raceId) : undefined,
     raceNumber: Math.trunc(numberOr(race.raceNumber, 0)),
@@ -172,7 +173,9 @@ export function mapRace(race: TopazRace): LiveRace {
     distance: Math.trunc(numberOr(race.distance, 0)),
     grade: race.raceType ?? race.raceTypeName ?? race.raceTypeCode ?? undefined,
     prizeMoney: totalPrizeMoney(race),
-    runners: ensureArray(race.runs).map(mapRun),
+    runners: ensureArray(race.runs).map((run) =>
+      applyPrizeMoneyWon(mapRun(run), prizeMoneyByPosition)
+    ),
   };
 }
 
@@ -242,7 +245,14 @@ function totalPrizeMoney(race: TopazRace) {
   const explicit = numberOrNull(race.prizeMoneyTotal);
   if (explicit != null) return explicit;
 
-  const parts = [
+  const parts = placePrizeMoney(race)
+    .filter((value): value is number => value != null);
+
+  return parts.length > 0 ? parts.reduce((sum, value) => sum + value, 0) : undefined;
+}
+
+function placePrizeMoney(race: TopazRace) {
+  return [
     race.prizeMoney1,
     race.prizeMoney2,
     race.prizeMoney3,
@@ -251,11 +261,22 @@ function totalPrizeMoney(race: TopazRace) {
     race.prizeMoney6,
     race.prizeMoney7,
     race.prizeMoney8,
-  ]
-    .map(numberOrNull)
-    .filter((value): value is number => value != null);
+  ].map(numberOrNull);
+}
 
-  return parts.length > 0 ? parts.reduce((sum, value) => sum + value, 0) : undefined;
+function applyPrizeMoneyWon(
+  runner: LiveRunner,
+  prizeMoneyByPosition: Array<number | null>
+) {
+  if (
+    runner.finishingPosition == null ||
+    !prizeMoneyByPosition.some((value) => value != null)
+  ) {
+    return runner;
+  }
+
+  const prizeMoneyWon = prizeMoneyByPosition[runner.finishingPosition - 1] ?? 0;
+  return { ...runner, prizeMoneyWon };
 }
 
 function ensureArray<T>(value: T[] | null | undefined): T[] {

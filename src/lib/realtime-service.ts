@@ -66,6 +66,8 @@ async function broadcastRealtimeEvent(
   event: string,
   payload: RealtimeEventPayload
 ) {
+  if (process.env.REALTIME_BROADCAST_DISABLED === "true") return;
+
   try {
     const client = getSupabaseAdminClient();
     const channel = client.channel(channelName);

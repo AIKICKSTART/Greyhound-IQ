@@ -5,7 +5,6 @@ import {
   Activity,
   Clock,
   DollarSign,
-  ExternalLink,
   MapPin,
   PlayCircle,
   Trophy,
@@ -95,14 +94,6 @@ export default async function RacePage({
   const replayEmbedUrl = replayStreamUrl
     ? null
     : storedReplay?.embedUrl ?? providerReplay?.embedUrl ?? null;
-  const replayPageUrl = normaliseReplayPageUrl(
-    storedReplay?.pageUrl ??
-      providerReplay?.pageUrl ??
-      primaryVideo?.pageUrl ??
-      race.replayUrl ??
-      null,
-    race.sourceProvider
-  );
   const replayTitle =
     storedReplay?.title ?? providerReplay?.title ?? primaryVideo?.title ?? race.name;
   const hasPlayableReplay = Boolean(replayStreamUrl || replayEmbedUrl);
@@ -181,8 +172,6 @@ export default async function RacePage({
             <RaceReplayPlayer
               streamUrl={replayStreamUrl}
               streamContentType={replayStreamContentType}
-              pageUrl={replayPageUrl}
-              title={replayTitle}
               trackName={track.name}
               raceLabel={`Race ${race.raceNumber} / ${race.distance}m`}
               raceTimeLabel={raceTimeLabel}
@@ -190,7 +179,6 @@ export default async function RacePage({
           ) : replayEmbedUrl ? (
             <ReplayEmbed
               embedUrl={replayEmbedUrl}
-              pageUrl={replayPageUrl}
               title={replayTitle ?? "Race replay"}
               trackName={track.name}
               raceLabel={`Race ${race.raceNumber} / ${race.distance}m`}
@@ -198,7 +186,6 @@ export default async function RacePage({
             />
           ) : (
             <ReplayFallback
-              replayPageUrl={replayPageUrl}
               hasVideoRecord={Boolean(primaryVideo || race.replayUrl || providerReplay)}
             />
           )}
@@ -349,18 +336,6 @@ export default async function RacePage({
                 </div>
               </div>
             </section>
-          )}
-
-          {replayPageUrl && (
-            <Link
-              href={replayPageUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="giq-button giq-button-glass w-full px-4 text-[13px] font-semibold"
-            >
-              Open source replay page
-              <ExternalLink className="h-4 w-4" />
-            </Link>
           )}
         </aside>
       </div>
@@ -540,8 +515,6 @@ function PreviousRaceVideoSection({
               <RaceReplayPlayer
                 streamUrl={video.replay.streamUrl}
                 streamContentType={video.replay.streamContentType}
-                pageUrl={video.replay.pageUrl ?? video.pageUrl}
-                title={video.replay.title ?? video.raceName}
                 trackName={video.trackName}
                 raceLabel={video.raceLabel}
                 raceTimeLabel={formatRaceDetailTime(video.date)}
@@ -549,14 +522,13 @@ function PreviousRaceVideoSection({
             ) : video.replay?.embedUrl ? (
               <ReplayEmbed
                 embedUrl={video.replay.embedUrl}
-                pageUrl={video.replay.pageUrl ?? video.pageUrl}
                 title={video.replay.title ?? video.raceName ?? "Race replay"}
                 trackName={video.trackName}
                 raceLabel={video.raceLabel}
                 raceTimeLabel={formatRaceDetailTime(video.date)}
               />
             ) : (
-              <PreviousReplayFallback video={video} />
+              <PreviousReplayFallback />
             )}
           </article>
         ))}
@@ -565,11 +537,7 @@ function PreviousRaceVideoSection({
   );
 }
 
-function PreviousReplayFallback({
-  video,
-}: {
-  video: ResolvedPreviousRaceVideo;
-}) {
+function PreviousReplayFallback() {
   return (
     <div className="race-panel p-5">
       <div className="flex items-start gap-3">
@@ -585,15 +553,6 @@ function PreviousReplayFallback({
             The provider marks this previous run as having video, but a playable
             stream could not be resolved during this page load.
           </p>
-          <a
-            href={video.pageUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="giq-button giq-button-glass mt-4 min-h-10 px-4 text-[12px] font-semibold"
-          >
-            Open source page
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
         </div>
       </div>
     </div>
@@ -645,10 +604,8 @@ function resultFinishText(position: number | null | undefined) {
 }
 
 function ReplayFallback({
-  replayPageUrl,
   hasVideoRecord,
 }: {
-  replayPageUrl: string | null;
   hasVideoRecord: boolean;
 }) {
   return (
@@ -667,17 +624,6 @@ function ReplayFallback({
               ? "A replay record exists, but a playable stream URL is not attached yet."
               : "This race does not have a replay record in the local archive yet."}
           </p>
-          {replayPageUrl && (
-            <a
-              href={replayPageUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="giq-button giq-button-glass mt-5 px-4 text-[13px] font-semibold"
-            >
-              Open source page
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          )}
         </div>
       </div>
     </section>
@@ -686,14 +632,12 @@ function ReplayFallback({
 
 function ReplayEmbed({
   embedUrl,
-  pageUrl,
   title,
   trackName,
   raceLabel,
   raceTimeLabel,
 }: {
   embedUrl: string;
-  pageUrl: string | null;
   title: string;
   trackName: string;
   raceLabel: string;
@@ -712,7 +656,7 @@ function ReplayEmbed({
           allowFullScreen
         />
       </div>
-      <div className="flex flex-col gap-3 border-t border-white/[0.07] bg-white/[0.025] p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="border-t border-white/[0.07] bg-white/[0.025] p-4">
         <div className="min-w-0">
           <p className="program-label">Race replay</p>
           <h2 className="mt-1 text-[16px] font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))]">
@@ -722,17 +666,6 @@ function ReplayEmbed({
             {raceTimeLabel}
           </p>
         </div>
-        {pageUrl && (
-          <a
-            href={pageUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="giq-button giq-button-glass min-h-10 w-full px-4 text-[12px] font-semibold sm:w-auto"
-          >
-            Source page
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        )}
       </div>
     </section>
   );

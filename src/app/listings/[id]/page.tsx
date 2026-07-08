@@ -8,6 +8,7 @@ import {
   DollarSign,
   Eye,
   Flag,
+  Lock,
   MapPin,
   MessageSquare,
   Paperclip,
@@ -25,7 +26,7 @@ import {
 import { InstantListingEnquiryForm } from "@/components/instant-listing-enquiry-form";
 import { InstantSaveListingButton } from "@/components/instant-save-listing-button";
 import { SubmitButton } from "@/components/submit-button";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, hasTier } from "@/lib/auth";
 import {
   getListingForViewerById,
   getSavedListingIdsForProfile,
@@ -75,7 +76,7 @@ export default async function ListingDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const [{ id }, user] = await Promise.all([params, getCurrentUser()]);
+  const [{ id }, user] = await Promise.all([params, getOptionalCurrentUser()]);
   let listing: Awaited<ReturnType<typeof getListingForViewerById>>;
 
   try {
@@ -85,6 +86,7 @@ export default async function ListingDetailPage({
   }
 
   const isOwner = user?.profileId === listing.profileId;
+  const canMessageSeller = Boolean(user && hasTier(user.tier, "pro"));
   const expired = listingIsExpired(listing);
   const savedIds =
     user?.profileId && !isOwner
@@ -302,8 +304,26 @@ export default async function ListingDetailPage({
                 initiallySaved={isSaved}
               />
             )}
-            {!isOwner && user && (
+            {!isOwner && canMessageSeller && (
               <InstantListingEnquiryForm listingId={listing.id} />
+            )}
+            {!isOwner && user && !canMessageSeller && (
+              <div className="mt-5 rounded-lg border border-[hsl(var(--primary)/0.24)] bg-[hsl(var(--primary)/0.08)] p-3">
+                <div className="flex items-center gap-2 text-[13px] font-semibold text-[hsl(var(--foreground))]">
+                  <Lock className="h-3.5 w-3.5 text-[hsl(var(--primary-bright))]" />
+                  Upgrade to message seller
+                </div>
+                <p className="mt-2 text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                  Free accounts can browse and save listings. Seller enquiries
+                  are included with Pro.
+                </p>
+                <Link
+                  href="/pricing"
+                  className="giq-outline-action mt-3 w-fit text-[12px]"
+                >
+                  View Pro
+                </Link>
+              </div>
             )}
             {!isOwner && !user && (
               <a href="/sign-in" className="giq-outline-action mt-5">
@@ -441,6 +461,14 @@ function DemoListingAttachment({ image }: { image: DemoListingImage }) {
       />
     </div>
   );
+}
+
+async function getOptionalCurrentUser() {
+  try {
+    return await getCurrentUser();
+  } catch {
+    return null;
+  }
 }
 
 function ListingAttachment({

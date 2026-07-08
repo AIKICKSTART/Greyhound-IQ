@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
 const REPLAY_POSTER_IMAGE = "/images/greyhoundiq-replay-ready-cover.webp";
 
 interface RaceReplayPlayerProps {
   streamUrl: string;
   streamContentType?: string | null;
-  pageUrl?: string | null;
-  title?: string | null;
   trackName: string;
   raceLabel: string;
   raceTimeLabel: string;
@@ -18,7 +16,6 @@ interface RaceReplayPlayerProps {
 export function RaceReplayPlayer({
   streamUrl,
   streamContentType,
-  pageUrl,
   trackName,
   raceLabel,
   raceTimeLabel,
@@ -85,13 +82,13 @@ export function RaceReplayPlayer({
         });
         nextHls.on(Hls.Events.ERROR, (_event, data) => {
           if (isFatalHlsError(data)) {
-            setError("Replay stream could not be loaded. Try the source page.");
+            setError("Replay stream could not be loaded. Try again later.");
             finishLoading();
           }
         });
       } catch {
         if (!cancelled) {
-          setError("Replay stream could not be started. Try the source page.");
+          setError("Replay stream could not be started. Try again later.");
           finishLoading();
         }
       }
@@ -152,7 +149,7 @@ export function RaceReplayPlayer({
         )}
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-white/[0.07] bg-white/[0.025] p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="border-t border-white/[0.07] bg-white/[0.025] p-4">
         <div className="min-w-0">
           <p className="program-label">Race replay</p>
           <h2 className="mt-1 text-[16px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.02em]">
@@ -162,17 +159,6 @@ export function RaceReplayPlayer({
             {raceTimeLabel}
           </p>
         </div>
-        {pageUrl && (
-          <a
-            href={pageUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="giq-button giq-button-glass min-h-10 w-full px-4 text-[12px] font-semibold sm:w-auto"
-          >
-            Source page
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        )}
       </div>
 
       {error && (

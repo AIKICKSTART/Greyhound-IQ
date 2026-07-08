@@ -1,210 +1,139 @@
-[browser] Image with src "/images/feature-career-form-purple.webp" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] Image with src "/images/logo-main-purple-gold.webp" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
 Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
 [browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
 [browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
 [browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] Image with src "/images/logo-wordmark-purple-gold.webp" has "fill" and a height value of 0. This is likely because the parent element of the image has not been styled to have a set height.
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
 [browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
-⨯ ReferenceError: getRaceExplorerMeetings is not defined
-    at getRaceExplorerData (src\lib\queries.ts:496:23)
-    at async RacesPage (src\app\races\page.tsx:40:30)
-  494 |   };
-  495 |
-> 496 |   const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
-      |                       ^
-  497 |   const [dateSummary, replayRaces] = searchQuery
-  498 |     ? await Promise.all([
-  499 |         summarizeRaceExplorerMeetings(rawMeetings), {
-  digest: '1443786219'
-}
+[browser] eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.
+React will never use eval() in production mode 
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior

@@ -1,5 +1,9 @@
-import { prisma } from "@/lib/db";
-import type { CurrentUserProfile } from "@/lib/auth";
+import {
+  withDbRequestContext,
+  withDbSystemContext,
+  type DbContextClient,
+} from "@/lib/db-context";
+import type { CurrentUserProfile } from "@/lib/auth-types";
 
 const ACCOUNT_DELETION_GRACE_DAYS = 30;
 const DELETED_EMAIL_DOMAIN = "deleted.greyhoundiq.local";
@@ -39,7 +43,9 @@ export interface AccountDeletionMaintenanceResult {
 }
 
 export async function createAuditLog(input: AuditInput) {
-  return prisma.auditLog.create({
+  // createMany emits no RETURNING clause, so the insert never depends on the
+  // AuditLog SELECT policy — audit writes succeed regardless of RLS context.
+  return withDbSystemContext((tx) => tx.auditLog.createMany({
     data: {
       actorId: input.actorId ?? null,
       actorType: input.actorType,
@@ -50,7 +56,7 @@ export async function createAuditLog(input: AuditInput) {
       userAgent: input.userAgent ?? null,
       metadata: input.metadata ? JSON.stringify(input.metadata) : null,
     },
-  });
+  }));
 }
 
 export async function requestAccountDeletion(
@@ -59,16 +65,16 @@ export async function requestAccountDeletion(
 ) {
   const requestedAt = new Date();
 
-  await prisma.$transaction([
-    prisma.user.update({
+  await withDbRequestContext(current, async (tx) => {
+    await tx.user.update({
       where: { id: current.dbUserId },
       data: {
         email: deletionRequestEmailForUser(current.dbUserId),
         isBanned: true,
         deletionRequestedAt: requestedAt,
       },
-    }),
-    prisma.auditLog.create({
+    });
+    await tx.auditLog.create({
       data: {
         actorId: current.dbUserId,
         actorType: "user",
@@ -83,8 +89,8 @@ export async function requestAccountDeletion(
           requestedAt: requestedAt.toISOString(),
         }),
       },
-    }),
-  ]);
+    });
+  });
 
   return requestedAt;
 }
@@ -93,18 +99,20 @@ export async function runAccountDeletionMaintenance(
   now = new Date()
 ): Promise<AccountDeletionMaintenanceResult> {
   const cutoff = accountDeletionCutoffDate(now);
-  const pendingUsers = await prisma.user.findMany({
-    where: {
-      isBanned: true,
-      deletionRequestedAt: { lte: cutoff },
-    },
-    select: {
-      id: true,
-      email: true,
-      deletionRequestedAt: true,
-      profile: { select: { id: true } },
-    },
-  });
+  const pendingUsers = await withDbSystemContext((tx) =>
+    tx.user.findMany({
+      where: {
+        isBanned: true,
+        deletionRequestedAt: { lte: cutoff },
+      },
+      select: {
+        id: true,
+        email: true,
+        deletionRequestedAt: true,
+        profile: { select: { id: true } },
+      },
+    })
+  );
 
   const result: AccountDeletionMaintenanceResult = {
     finalizedCount: 0,
@@ -122,7 +130,7 @@ export async function runAccountDeletionMaintenance(
 
   for (const user of pendingUsers) {
     const profileId = user.profile?.id ?? null;
-    const counts = await prisma.$transaction(async (tx) => {
+    const counts = await withDbSystemContext(async (tx) => {
       const profileCounts = profileId
         ? await scrubProfileOwnedContent(tx, profileId, now)
         : emptyProfileCounts();
@@ -241,9 +249,7 @@ function deletionRequestEmailForUser(userId: string) {
   return `${DELETION_REQUEST_EMAIL_PREFIX}-${userId}@${DELETED_EMAIL_DOMAIN}`;
 }
 
-type AccountTransactionClient = Parameters<
-  Parameters<typeof prisma.$transaction>[0]
->[0];
+type AccountTransactionClient = DbContextClient;
 
 type ProfileContentCounts = Pick<
   AccountDeletionMaintenanceResult,

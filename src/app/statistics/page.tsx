@@ -1,7 +1,6 @@
 import { BarChart3, Award, MapPin, Users, Target } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
 import { getBoxBias, getTrainerLeaderboard, getTrackRecords } from "@/lib/queries";
-import { ProGate } from "@/components/pro-gate";
 import { getBoxColourStyle } from "@/lib/box-colours";
 
 export const dynamic = "force-dynamic";
@@ -81,104 +80,102 @@ export default async function StatisticsPage() {
       </section>
 
       <div className="mx-auto max-w-6xl px-6 pb-20">
-        <ProGate minTier="pro" feature="Advanced statistics">
-      <section className="px-0 pb-16">
-        <div className="flex items-center gap-3 mb-6">
-          <Users className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] tracking-[-0.03em]">
-            Trainer Leaderboard
-          </h2>
-        </div>
-        <p className="text-[14px] text-[hsl(var(--muted-foreground))] mb-6 tracking-[-0.013em]">
-          Top performers by wins over the last 12 months.
-        </p>
+        <section className="px-0 pb-16">
+          <div className="flex items-center gap-3 mb-6">
+            <Users className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+            <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] tracking-[-0.03em]">
+              Trainer Leaderboard
+            </h2>
+          </div>
+          <p className="text-[14px] text-[hsl(var(--muted-foreground))] mb-6 tracking-[-0.013em]">
+            Top performers by wins over the last 12 months.
+          </p>
 
-        <div className="giq-table-shell">
-          <table className="w-full">
-            <thead>
-              <tr className="giq-table-head">
-                <th className="text-left p-4 tracking-[0.04em]">Rank</th>
-                <th className="text-left p-4 tracking-[0.04em]">Trainer</th>
-                <th className="text-right p-4 tracking-[0.04em]">Wins</th>
-                <th className="text-right p-4 tracking-[0.04em]">Starters</th>
-                <th className="text-right p-4 tracking-[0.04em]">Strike %</th>
-                <th className="text-right p-4 tracking-[0.04em]">ROI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {TRAINER_LEADERS.map((t, i) => {
-                const strike = ((t.wins / t.starters) * 100).toFixed(1);
-                const rankBg = i === 0 ? "hsl(var(--secondary) / 0.20)" : "hsl(var(--surface-3))";
-                const rankColor = i === 0 ? "hsl(var(--secondary))" : "hsl(var(--muted-foreground))";
-                return (
-                  <tr
-                    key={t.name}
-                    className="giq-table-row"
-                  >
-                    <td className="p-4">
-                      <span
-                        className="flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold"
-                        style={{ background: rankBg, color: rankColor }}
-                      >
-                        {i + 1}
-                      </span>
-                    </td>
-                    <td className="p-4 text-[14px] font-medium text-[hsl(var(--foreground))] tracking-[-0.013em]">
-                      {t.name}
-                    </td>
-                    <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.wins}</td>
-                    <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.starters}</td>
-                    <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{strike}%</td>
-                    <td className="p-4 text-right text-[13px] font-mono font-semibold text-[hsl(var(--primary-bright))]">
-                      +{t.roi}%
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
+          <div className="giq-table-shell">
+            <table className="w-full">
+              <thead>
+                <tr className="giq-table-head">
+                  <th className="text-left p-4 tracking-[0.04em]">Rank</th>
+                  <th className="text-left p-4 tracking-[0.04em]">Trainer</th>
+                  <th className="text-right p-4 tracking-[0.04em]">Wins</th>
+                  <th className="text-right p-4 tracking-[0.04em]">Starters</th>
+                  <th className="text-right p-4 tracking-[0.04em]">Strike %</th>
+                  <th className="text-right p-4 tracking-[0.04em]">ROI</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TRAINER_LEADERS.map((t, i) => {
+                  const strike = ((t.wins / t.starters) * 100).toFixed(1);
+                  const rankBg = i === 0 ? "hsl(var(--secondary) / 0.20)" : "hsl(var(--surface-3))";
+                  const rankColor = i === 0 ? "hsl(var(--secondary))" : "hsl(var(--muted-foreground))";
+                  return (
+                    <tr
+                      key={t.name}
+                      className="giq-table-row"
+                    >
+                      <td className="p-4">
+                        <span
+                          className="flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold"
+                          style={{ background: rankBg, color: rankColor }}
+                        >
+                          {i + 1}
+                        </span>
+                      </td>
+                      <td className="p-4 text-[14px] font-medium text-[hsl(var(--foreground))] tracking-[-0.013em]">
+                        {t.name}
+                      </td>
+                      <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.wins}</td>
+                      <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.starters}</td>
+                      <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{strike}%</td>
+                      <td className="p-4 text-right text-[13px] font-mono font-semibold text-[hsl(var(--primary-bright))]">
+                        +{t.roi}%
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-      <section className="px-0 pb-0">
-        <div className="flex items-center gap-3 mb-6">
-          <Award className="h-5 w-5 text-[hsl(var(--secondary))]" />
-          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] tracking-[-0.03em]">
-            Current Track Records
-          </h2>
-        </div>
+        <section className="px-0 pb-0">
+          <div className="flex items-center gap-3 mb-6">
+            <Award className="h-5 w-5 text-[hsl(var(--secondary))]" />
+            <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] tracking-[-0.03em]">
+              Current Track Records
+            </h2>
+          </div>
 
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {TRACK_RECORDS.map((r) => (
-            <div
-              key={r.track}
-              className="giq-panel giq-panel-hover p-5"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.02em]">
-                    {r.track}
-                  </h3>
-                  <p className="flex items-center gap-1 mt-0.5 text-[11px] text-[hsl(var(--subtle-foreground))]">
-                    <MapPin className="h-3 w-3" />
-                    {r.dist}m
-                  </p>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {TRACK_RECORDS.map((r) => (
+              <div
+                key={r.track}
+                className="giq-panel giq-panel-hover p-5"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.02em]">
+                      {r.track}
+                    </h3>
+                    <p className="flex items-center gap-1 mt-0.5 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                      <MapPin className="h-3 w-3" />
+                      {r.dist}m
+                    </p>
+                  </div>
+                  <span className="giq-badge giq-badge-gold">
+                    {r.year}
+                  </span>
                 </div>
-                <span className="giq-badge giq-badge-gold">
-                  {r.year}
-                </span>
+                <div className="text-2xl font-mono font-semibold text-[hsl(var(--secondary))]">
+                  {r.time}s
+                </div>
+                <p className="text-[12px] text-[hsl(var(--subtle-foreground))] mt-1">
+                  by <span className="text-[hsl(var(--muted-foreground))]">{r.dog}</span>
+                </p>
               </div>
-              <div className="text-2xl font-mono font-semibold text-[hsl(var(--secondary))]">
-                {r.time}s
-              </div>
-              <p className="text-[12px] text-[hsl(var(--subtle-foreground))] mt-1">
-                by <span className="text-[hsl(var(--muted-foreground))]">{r.dog}</span>
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-        </ProGate>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );

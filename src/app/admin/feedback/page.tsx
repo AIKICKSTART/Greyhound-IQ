@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -37,11 +38,11 @@ export default async function AdminFeedbackPage() {
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
           Latest 20 stored feedback records from the local database. Only
-          identifiers, status, and timestamps are shown.
+          identifiers, status, timestamps, and audited status controls are shown.
         </p>
 
         <div className="giq-table-shell mt-6 overflow-x-auto">
-          <table className="w-full min-w-[880px]">
+          <table className="w-full min-w-[1080px]">
             <thead>
               <tr className="giq-table-head">
                 <th className="px-4 py-3 text-left">Feedback ID</th>
@@ -49,13 +50,14 @@ export default async function AdminFeedbackPage() {
                 <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">Created</th>
                 <th className="px-4 py-3 text-left">Updated</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {feedback.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No feedback found.
@@ -78,6 +80,15 @@ export default async function AdminFeedbackPage() {
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
                       {formatDateTime(item.updatedAt)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <AdminStatusForm
+                        resource="feedback"
+                        id={item.id}
+                        currentStatus={item.status}
+                        statuses={["new", "reviewing", "planned", "closed"]}
+                        path="/admin/feedback"
+                      />
                     </td>
                   </tr>
                 ))

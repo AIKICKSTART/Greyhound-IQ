@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -46,6 +47,8 @@ type AgentRunUsageSummary = {
 };
 
 type OperationalJobRow = {
+  id: string | null;
+  resource: "usageOutbox" | "usageEvent" | "webhookEvent" | "jobRun" | null;
   source: string;
   category: string;
   status: string;
@@ -57,6 +60,7 @@ type OperationalJobRow = {
 };
 
 type UsageOutboxRow = {
+  id: string;
   metricKey: string;
   status: string;
   retryCount: number;
@@ -68,6 +72,7 @@ type UsageOutboxRow = {
 };
 
 type UsageEventRow = {
+  id: string;
   metricKey: string;
   status: string;
   retryCount: number;
@@ -79,6 +84,7 @@ type UsageEventRow = {
 };
 
 type WebhookEventRow = {
+  id: string;
   eventType: string;
   status: string;
   retryCount: number;
@@ -87,6 +93,7 @@ type WebhookEventRow = {
 };
 
 type JobRunRow = {
+  id: string;
   name: string;
   status: string;
   startedAt: Date | null;
@@ -209,7 +216,7 @@ function RecentOperationalTable({ rows }: { rows: OperationalJobRow[] }) {
       </div>
 
       <div className="giq-table-shell mt-6 overflow-x-auto">
-        <table className="w-full min-w-[1180px]">
+        <table className="w-full min-w-[1440px]">
           <thead>
             <tr className="giq-table-head">
               <th className="px-4 py-3 text-left">Source</th>
@@ -220,13 +227,14 @@ function RecentOperationalTable({ rows }: { rows: OperationalJobRow[] }) {
               <th className="px-4 py-3 text-left">Last attempt</th>
               <th className="px-4 py-3 text-left">Next action</th>
               <th className="px-4 py-3 text-left">Finished</th>
+              <th className="px-4 py-3 text-left">Action</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                 >
                   No local operational rows found.
@@ -248,6 +256,21 @@ function RecentOperationalTable({ rows }: { rows: OperationalJobRow[] }) {
                   <DateCell date={row.lastAttemptAt} emptyLabel="Not attempted" />
                   <DateCell date={row.nextActionAt} emptyLabel="Not scheduled" />
                   <DateCell date={row.finishedAt} emptyLabel="Not finished" />
+                  <td className="px-4 py-3">
+                    {row.id && row.resource ? (
+                      <AdminStatusForm
+                        resource={row.resource}
+                        id={row.id}
+                        currentStatus={row.status}
+                        statuses={statusesForOperationalRow(row.resource)}
+                        path="/admin/jobs"
+                      />
+                    ) : (
+                      <span className="text-[12px] text-[hsl(var(--muted-foreground))]">
+                        Display only
+                      </span>
+                    )}
+                  </td>
                 </tr>
               ))
             )}
@@ -576,6 +599,7 @@ function getRecentUsageOutboxRows() {
         orderBy: [{ createdAt: "desc" }],
         take: RECENT_PER_SOURCE,
         select: {
+          id: true,
           metricKey: true,
           status: true,
           retryCount: true,
@@ -597,6 +621,7 @@ function getRecentUsageEventRows() {
         orderBy: [{ createdAt: "desc" }],
         take: RECENT_PER_SOURCE,
         select: {
+          id: true,
           metricKey: true,
           status: true,
           retryCount: true,
@@ -618,6 +643,7 @@ function getRecentWebhookEventRows() {
         orderBy: [{ receivedAt: "desc" }],
         take: RECENT_PER_SOURCE,
         select: {
+          id: true,
           eventType: true,
           status: true,
           retryCount: true,
@@ -636,6 +662,7 @@ function getRecentJobRunRows() {
         orderBy: [{ createdAt: "desc" }],
         take: RECENT_PER_SOURCE,
         select: {
+          id: true,
           name: true,
           status: true,
           startedAt: true,
@@ -667,6 +694,8 @@ function getRecentAgentRunRows() {
 
 function toUsageOutboxJobRow(row: UsageOutboxRow): OperationalJobRow {
   return {
+    id: row.id,
+    resource: "usageOutbox",
     source: "Usage outbox",
     category: row.metricKey,
     status: row.status,
@@ -680,6 +709,8 @@ function toUsageOutboxJobRow(row: UsageOutboxRow): OperationalJobRow {
 
 function toUsageEventJobRow(row: UsageEventRow): OperationalJobRow {
   return {
+    id: row.id,
+    resource: "usageEvent",
     source: "Usage event",
     category: row.metricKey,
     status: row.status,
@@ -693,6 +724,8 @@ function toUsageEventJobRow(row: UsageEventRow): OperationalJobRow {
 
 function toWebhookEventJobRow(row: WebhookEventRow): OperationalJobRow {
   return {
+    id: row.id,
+    resource: "webhookEvent",
     source: "Webhook event",
     category: row.eventType,
     status: row.status,
@@ -706,6 +739,8 @@ function toWebhookEventJobRow(row: WebhookEventRow): OperationalJobRow {
 
 function toJobRunJobRow(row: JobRunRow): OperationalJobRow {
   return {
+    id: row.id,
+    resource: "jobRun",
     source: "Job run",
     category: row.name,
     status: row.status,
@@ -719,6 +754,8 @@ function toJobRunJobRow(row: JobRunRow): OperationalJobRow {
 
 function toAgentRunJobRow(row: AgentRunRow): OperationalJobRow {
   return {
+    id: null,
+    resource: null,
     source: "Agent run",
     category: formatAgentRunCategory(row),
     status: row.status,
@@ -733,6 +770,19 @@ function toAgentRunJobRow(row: AgentRunRow): OperationalJobRow {
 function formatAgentRunCategory(row: AgentRunRow) {
   const duration = row.durationMs == null ? null : formatDuration(row.durationMs);
   return duration ? `${row.agentType} (${duration})` : row.agentType;
+}
+
+function statusesForOperationalRow(resource: NonNullable<OperationalJobRow["resource"]>) {
+  switch (resource) {
+    case "usageOutbox":
+      return ["pending", "sent", "failed", "ignored"];
+    case "usageEvent":
+      return ["received", "processed", "failed", "ignored"];
+    case "webhookEvent":
+      return ["received", "processed", "failed", "ignored"];
+    case "jobRun":
+      return ["pending", "running", "completed", "failed", "cancelled"];
+  }
 }
 
 function formatStatus(value: string) {

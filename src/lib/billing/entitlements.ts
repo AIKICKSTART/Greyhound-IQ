@@ -29,7 +29,7 @@ const GIB = 1024 ** 3;
 // Launch defaults based on the SaaS plan's limited/moderate/higher tier bands.
 export const DEFAULT_TIER_ENTITLEMENT_LIMITS = {
   free: {
-    race_detail_views_per_month: 25,
+    race_detail_views_per_month: -1,
     prediction_runs_per_month: 0,
     agent_runs_per_month: 0,
     agent_token_budget_per_month: 0,
@@ -63,14 +63,14 @@ export const DEFAULT_TIER_ENTITLEMENT_LIMITS = {
     prediction_runs_per_month: 500,
     agent_runs_per_month: 500,
     agent_token_budget_per_month: 5_000_000,
-    api_calls_per_month: 10_000,
-    api_keys: 3,
+    api_calls_per_month: 0,
+    api_keys: 0,
     exports_per_month: 1_000,
     uploads_per_month: 1_000,
     upload_file_size_bytes: GIB,
     storage_bytes: 100 * GIB,
     retention_days: 730,
-    priority_jobs: true,
+    priority_jobs: false,
     advanced_prediction_agents: true,
   },
 } as const satisfies TierEntitlementLimits;

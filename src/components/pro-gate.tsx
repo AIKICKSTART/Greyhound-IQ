@@ -25,6 +25,7 @@ export async function ProGate({ minTier, feature, children }: ProGateProps) {
 
   const Icon = minTier === "pro_plus" ? Crown : Sparkles;
   const tierName = TIER_LABEL[minTier];
+  const isComingSoon = minTier === "pro_plus";
   return (
     <div className="giq-panel p-8 text-center">
       <div className="giq-icon-plate mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl">
@@ -40,9 +41,11 @@ export async function ProGate({ minTier, feature, children }: ProGateProps) {
         {feature ?? "This feature"} is a {tierName} feature
       </h3>
       <p className="mx-auto mt-2 max-w-md text-[13px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.013em]">
-        {user
-          ? `Upgrade to ${tierName} to unlock this.`
-          : `Sign in and upgrade to ${tierName} to unlock this.`}
+        {isComingSoon
+          ? `${tierName} is coming soon.`
+          : user
+            ? `Upgrade to ${tierName} to unlock this.`
+            : `Sign in and upgrade to ${tierName} to unlock this.`}
       </p>
       <div className="mt-5 flex items-center justify-center gap-3">
         <Link
@@ -52,7 +55,7 @@ export async function ProGate({ minTier, feature, children }: ProGateProps) {
           }`}
         >
           <Icon className="h-3.5 w-3.5" />
-          See {tierName} plans
+          {isComingSoon ? "View coming soon" : `See ${tierName} plans`}
         </Link>
         {!user && (
           <a

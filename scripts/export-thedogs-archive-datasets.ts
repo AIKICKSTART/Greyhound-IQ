@@ -381,6 +381,7 @@ async function exportRaces(
               finishingPosition: runner.finishingPosition,
               runningTime: runner.runningTime,
               margin: runner.margin,
+              prizeMoneyWon: runner.prizeMoneyWon,
               splitTime: runner.splitTime,
               sectionals: runner.sectionals,
               sourceProvider: runner.sourceProvider ?? race.sourceProvider ?? meeting.sourceProvider ?? "thedogs",

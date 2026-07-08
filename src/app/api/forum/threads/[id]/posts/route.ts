@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireCurrentUserProfile } from "@/lib/auth";
+import { assertPaidFeatureAccess, requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { cleanText } from "@/lib/content";
 import { prisma } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const createPostSchema = z.object({
@@ -47,6 +48,7 @@ export async function POST(
       params,
       requireCurrentUserProfile(),
     ]);
+    assertPaidFeatureAccess(current);
     const rateLimit = await checkRateLimit(
       `forum:post:create:${current.dbUserId}:${id}`,
       POST_CREATE_RATE_LIMIT,
@@ -68,7 +70,7 @@ export async function POST(
     const thread = await prisma.thread.findUnique({ where: { id } });
     if (!thread || thread.locked) throw new Error("forum.thread_not_found");
 
-    const post = await prisma.$transaction(async (tx) => {
+    const post = await withDbRequestContext(current, async (tx) => {
       const created = await tx.post.create({
         data: {
           threadId: thread.id,

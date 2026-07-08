@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminOrganizationForms } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -39,9 +40,13 @@ export default async function AdminOrganizationsPage() {
           Organizations
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 20 local organization rows with owner linkage and membership
-          counts.
+          Create or update local organization rows and generate organization
+          invitations. Token hashes and provider secrets are not displayed.
         </p>
+
+        <div className="mt-6">
+          <AdminOrganizationForms path="/admin/organizations" />
+        </div>
 
         <div className="giq-table-shell mt-6 overflow-x-auto">
           <table className="w-full min-w-[1040px]">

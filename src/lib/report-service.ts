@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import { createAuditLog } from "@/lib/account-service";
-import type { CurrentUserProfile } from "@/lib/auth";
+import type { CurrentUserProfile } from "@/lib/auth-types";
 import { prisma } from "@/lib/db";
 import { createInAppNotification } from "@/lib/notification-service";
 import {

@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/account-service";
-import type { CurrentUserProfile } from "@/lib/auth";
+import type { CurrentUserProfile } from "@/lib/auth-types";
 import {
   DEFAULT_TIER_ENTITLEMENT_LIMITS,
   type BillingTier,

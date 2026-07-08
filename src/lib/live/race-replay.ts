@@ -75,6 +75,10 @@ export async function resolveRaceVideoReplay(
       : storedReplay(video);
   }
 
+  if (provider === "greyhoundswa" || embedSourceType === "vimeo") {
+    return resolveVimeoReplay(video);
+  }
+
   const embed = embedUrlFromReplayPage(pageUrl);
   if (embed) {
     return {
@@ -178,15 +182,16 @@ export function tasracingStreamUrl(stream: string) {
 export function parseGreyhoundsWaVimeoVideos(html: string) {
   const videos = new Map<number, { raceNumber: number; videoId: string; pageUrl: string }>();
   const pattern =
-    /"name":"\d{8}R(\d{2})"[\s\S]*?"embedUrl":"https:\/\/player\.vimeo\.com\/video\/(\d+)/g;
+    /"name":"\d{8}R(\d{2})"[\s\S]*?"embedUrl":"(https:\/\/player\.vimeo\.com\/video\/(\d+)(?:\?h=[A-Za-z0-9]+)?)/g;
   for (const match of html.matchAll(pattern)) {
     const raceNumber = Number.parseInt(match[1] ?? "", 10);
-    const videoId = match[2];
-    if (!Number.isFinite(raceNumber) || !videoId) continue;
+    const embedUrl = decodeEntities(match[2] ?? "");
+    const videoId = match[3];
+    if (!Number.isFinite(raceNumber) || !videoId || !embedUrl) continue;
     videos.set(raceNumber, {
       raceNumber,
       videoId,
-      pageUrl: `https://vimeo.com/${videoId}`,
+      pageUrl: embedUrl,
     });
   }
   return [...videos.values()].sort((a, b) => a.raceNumber - b.raceNumber);
@@ -254,6 +259,7 @@ export function vimeoEmbedUrlFromPage(value: string | null | undefined) {
   try {
     const url = new URL(value);
     const host = url.hostname.replace(/^www\./, "");
+    const hash = url.searchParams.get("h");
     const id =
       host === "vimeo.com"
         ? url.pathname.split("/").filter(Boolean)[0]
@@ -261,7 +267,9 @@ export function vimeoEmbedUrlFromPage(value: string | null | undefined) {
           ? url.pathname.split("/").filter(Boolean)[1]
           : null;
     if (!id || !/^\d{6,}$/.test(id)) return null;
-    return `https://player.vimeo.com/video/${id}`;
+    const embed = new URL(`https://player.vimeo.com/video/${id}`);
+    if (hash && /^[A-Za-z0-9]+$/.test(hash)) embed.searchParams.set("h", hash);
+    return embed.toString();
   } catch {
     return null;
   }
@@ -295,6 +303,59 @@ function storedReplay(video: RaceVideoReplayRecord): ResolvedRaceReplay | null {
     embedUrl: embed?.embedUrl ?? null,
     embedType: embed?.type ?? null,
   };
+}
+
+async function resolveVimeoReplay(
+  video: RaceVideoReplayRecord
+): Promise<ResolvedRaceReplay | null> {
+  const pageUrl = normalisePublicUrl(video.pageUrl);
+  const sourcePageUrl =
+    pageUrl ??
+    (video.sourceId && /^\d{6,}$/.test(video.sourceId)
+      ? `https://vimeo.com/${video.sourceId}`
+      : null);
+  const storedEmbed = embedUrlFromReplayPage(pageUrl)?.embedUrl ?? null;
+  const fetchedEmbed =
+    storedEmbed?.includes("?h=") || !sourcePageUrl
+      ? null
+      : await fetchVimeoEmbedUrl(sourcePageUrl);
+  const embed = storedEmbed?.includes("?h=")
+    ? storedEmbed
+    : fetchedEmbed ?? storedEmbed;
+  if (!sourcePageUrl && !embed) return null;
+  return {
+    pageUrl: sourcePageUrl ?? embed ?? "",
+    streamUrl: null,
+    streamContentType: null,
+    title: video.title ?? null,
+    description: video.description ?? null,
+    sourceStatus: video.sourceStatus ?? (embed ? 200 : null),
+    sourceCode: video.sourceCode ?? "vimeo",
+    embedUrl: embed,
+    embedType: embed ? "vimeo" : null,
+  };
+}
+
+async function fetchVimeoEmbedUrl(pageUrl: string) {
+  try {
+    const response = await fetch(pageUrl, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(REPLAY_FETCH_TIMEOUT_MS),
+      headers: {
+        accept: "text/html,application/xhtml+xml",
+        "accept-language": "en-US,en;q=0.9",
+        "user-agent": USER_AGENT,
+      },
+    });
+    if (!response.ok) return null;
+    const html = (await response.text()).replaceAll("\\/", "/");
+    return (
+      html.match(/https:\/\/player\.vimeo\.com\/video\/\d+\?h=[A-Za-z0-9]+/i)?.[0] ??
+      null
+    );
+  } catch {
+    return null;
+  }
 }
 
 function racingQueenslandPageUrl(value: string | null | undefined) {

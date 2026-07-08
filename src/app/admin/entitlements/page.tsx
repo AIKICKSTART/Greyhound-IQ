@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -69,13 +70,14 @@ export default async function AdminEntitlementsPage() {
                 <th className="px-4 py-3 text-left">Effective</th>
                 <th className="px-4 py-3 text-left">Expires</th>
                 <th className="px-4 py-3 text-left">Created</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {snapshots.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={11}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No entitlement snapshots found.
@@ -109,6 +111,15 @@ export default async function AdminEntitlementsPage() {
                       date={snapshot.createdAt}
                       emptyLabel="Not recorded"
                     />
+                    <td className="px-4 py-3">
+                      <AdminStatusForm
+                        resource="entitlementSnapshot"
+                        id={snapshot.id}
+                        currentStatus={snapshot.status}
+                        statuses={["active", "expired", "replaced", "ignored", "inactive"]}
+                        path="/admin/entitlements"
+                      />
+                    </td>
                   </tr>
                 ))
               )}

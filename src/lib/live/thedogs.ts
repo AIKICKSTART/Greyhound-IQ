@@ -268,7 +268,8 @@ export function parseTheDogsRaceResult(
     date,
     link.raceNumber
   );
-  const runners = parseRunners(html);
+  const prizePlaces = parsePrizePlaces(html);
+  const runners = applyPrizeMoneyWon(parseRunners(html), prizePlaces?.amounts);
   const replayUrl = parseReplayUrl(html);
   const videoSourceId = parseReplayVideoSourceId(replayUrl);
   const photoFinishUrl = parsePhotoFinishUrl(html);
@@ -284,7 +285,7 @@ export function parseTheDogsRaceResult(
       photoFinishUrl,
       weather: parseWeatherIcon(html),
       trackRecord: parseTrackRecord(html),
-      prizePlaces: parsePrizePlaces(html),
+      prizePlaces,
       resultSummary: parseActiveResultOrder(html),
       videoSourceId,
       raceTimeSource: raceTime.source,
@@ -417,12 +418,14 @@ function parseRace(
   );
   const distance = Number(gradeAndDistance.match(/(\d{3,4})m\b/i)?.[1] ?? 0);
   const raceTime = raceTimeWithSource(raceTimes.get(raceNumber), date, raceNumber);
+  const prizePlaces = parsePrizePlaces(section.html);
 
   return {
     sourceId: section.href,
     sourceRawJson: JSON.stringify({
       href: section.href,
       resultSummary: parseResultOrder(section.html),
+      prizePlaces,
       raceTimeSource: raceTime.source,
     }),
     raceNumber,
@@ -444,7 +447,7 @@ function parseRace(
       )
     ),
     resultStatus: section.html.includes("race-box--result") ? "posted" : "pending",
-    runners: parseRunners(section.html),
+    runners: applyPrizeMoneyWon(parseRunners(section.html), prizePlaces?.amounts),
   };
 }
 
@@ -692,6 +695,15 @@ function parsePrizePlaces(html: string) {
     text: raw,
     amounts: amounts.length > 0 ? amounts : undefined,
   };
+}
+
+function applyPrizeMoneyWon(runners: LiveRunner[], amounts?: number[]) {
+  if (!amounts?.length) return runners;
+  return runners.map((runner) => {
+    if (runner.finishingPosition == null) return runner;
+    const prizeMoneyWon = amounts[runner.finishingPosition - 1] ?? 0;
+    return { ...runner, prizeMoneyWon };
+  });
 }
 
 function parseActiveResultOrder(html: string) {

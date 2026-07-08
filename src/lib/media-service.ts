@@ -9,9 +9,10 @@ import { createAuditLog } from "@/lib/account-service";
 import { getEntitlementLimitsForCurrentUser } from "@/lib/billing/entitlement-service";
 import { recordUsageEvent } from "@/lib/billing/usage-service";
 import type { EntitlementLimits } from "@/lib/billing/entitlements";
-import type { CurrentUser, CurrentUserProfile } from "@/lib/auth";
+import type { CurrentUser, CurrentUserProfile } from "@/lib/auth-types";
 import { isModeratorRole } from "@/lib/auth-roles";
 import { prisma } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { logError } from "@/lib/logger";
 import {
   mediaMaxBytes,
@@ -103,7 +104,7 @@ export async function createSignedUploadIntent(
     bucket === SITE_ASSETS_BUCKET ? publicUrlForMedia(bucket, objectPath) : null;
   const expiresAt = new Date(Date.now() + UPLOAD_URL_TTL_MS);
 
-  const media = await prisma.mediaAsset.create({
+  const media = await withDbRequestContext(current, (tx) => tx.mediaAsset.create({
     data: {
       uploaderId: current.dbUserId,
       storageBucket: bucket,
@@ -118,7 +119,7 @@ export async function createSignedUploadIntent(
       expiresAt,
       scanStatus: "pending",
     },
-  });
+  }));
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -199,7 +200,7 @@ export async function finalizeMediaUpload(
     mediaLimits.storageBytes
   );
 
-  const finalized = await prisma.mediaAsset.update({
+  const finalized = await withDbRequestContext(current, (tx) => tx.mediaAsset.update({
     where: { id: media.id },
     data: {
       sha256: input.sha256?.toLowerCase() ?? media.sha256,
@@ -219,7 +220,7 @@ export async function finalizeMediaUpload(
         : {}),
       expiresAt: null,
     },
-  });
+  }));
 
   // Metering is idempotent (keyed on the asset id) and must not surface as a
   // finalize failure after the asset is already finalized — a retry re-records
@@ -324,10 +325,10 @@ export async function deleteMediaForCurrentUser(
   const bucket = assertKnownBucket(media.storageBucket);
   await removeStorageObject(bucket, media.storagePath);
 
-  const deleted = await prisma.mediaAsset.update({
+  const deleted = await withDbRequestContext(current, (tx) => tx.mediaAsset.update({
     where: { id: media.id },
     data: { deletedAt: new Date() },
-  });
+  }));
 
   await createAuditLog({
     actorId: current.dbUserId,

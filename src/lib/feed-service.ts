@@ -1,8 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/account-service";
-import type { CurrentUserProfile } from "@/lib/auth";
+import type { CurrentUserProfile } from "@/lib/auth-types";
 import { assertProfilesCanInteract } from "@/lib/conversation-service";
 import { prisma, safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
+import { assertPaidFeatureAccess } from "@/lib/tier-access";
 import { assertMediaAttachable, mediaDeliveryUrl } from "@/lib/media-service";
 import {
   createInAppNotification,
@@ -100,6 +102,7 @@ export async function createFeedPostForCurrentUser(
   current: CurrentUserProfile,
   input: { topicId?: string | null; body: string; mediaIds?: string[] }
 ) {
+  assertPaidFeatureAccess(current);
   const topicId = input.topicId || null;
   if (topicId) await assertActiveTopic(topicId);
   const mediaIds = input.mediaIds ?? [];
@@ -108,7 +111,7 @@ export async function createFeedPostForCurrentUser(
   if (phraseMatch?.action === "block") throw new Error("feed.blocked_phrase");
   const status = phraseMatch ? "hidden" : "active";
 
-  const post = await prisma.$transaction(async (tx) => {
+  const post = await withDbRequestContext(current, async (tx) => {
     const created = await tx.feedPost.create({
       data: {
         authorProfileId: current.profileId,
@@ -239,6 +242,7 @@ export async function createFeedCommentForCurrentUser(
   postId: string,
   input: { body: string; parentCommentId?: string | null }
 ) {
+  assertPaidFeatureAccess(current);
   const post = await prisma.feedPost.findFirst({
     where: { id: postId, status: "active", visibility: "public" },
     select: {
@@ -266,7 +270,7 @@ export async function createFeedCommentForCurrentUser(
   if (phraseMatch?.action === "block") throw new Error("feed.blocked_phrase");
   const status = phraseMatch ? "hidden" : "active";
 
-  const comment = await prisma.feedComment.create({
+  const comment = await withDbRequestContext(current, (tx) => tx.feedComment.create({
     data: {
       postId,
       authorProfileId: current.profileId,
@@ -274,7 +278,7 @@ export async function createFeedCommentForCurrentUser(
       body: input.body,
       status,
     },
-  });
+  }));
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -311,6 +315,7 @@ export async function toggleFeedPostReactionForCurrentUser(
   current: CurrentUserProfile,
   postId: string
 ) {
+  assertPaidFeatureAccess(current);
   const post = await prisma.feedPost.findFirst({
     where: { id: postId, status: "active", visibility: "public" },
     select: {
@@ -337,13 +342,13 @@ export async function toggleFeedPostReactionForCurrentUser(
     return { liked: false };
   }
 
-  await prisma.feedReaction.create({
+  await withDbRequestContext(current, (tx) => tx.feedReaction.create({
     data: {
       postId,
       profileId: current.profileId,
       reactionType: "like",
     },
-  });
+  }));
   await broadcastFeedRealtimeEvent("reaction_updated", { postId });
   if (post.authorProfileId !== current.profileId) {
     await createInAppNotification({

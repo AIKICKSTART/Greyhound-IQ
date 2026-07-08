@@ -48,6 +48,17 @@ for (const requiredEnv of ["LAGO_API_URL", "LAGO_FRONT_URL", "LAGO_API_KEY", "LA
     findings.push(`ci.yml: missing ${requiredEnv} for production env gate`);
   }
 }
+for (const requiredEnv of [
+  "STRIPE_SECRET_KEY",
+  "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "STRIPE_PRICE_PRO_MONTHLY",
+  "STRIPE_PRICE_PRO_YEARLY",
+]) {
+  if (!ci.includes(`${requiredEnv}:`)) {
+    findings.push(`ci.yml: missing ${requiredEnv} for production env gate`);
+  }
+}
 
 const migrate = workflow("supabase-migrate.yml");
 if (
@@ -95,6 +106,20 @@ for (const livekitSecret of ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECR
   if (!cloudRunDeploy.includes(`${livekitSecret}=greyhoundiq-$env_name-${livekitSecret}:latest`)) {
     findings.push(`cloud-run-deploy.yml: missing ${livekitSecret} secret mapping`);
   }
+}
+for (const stripeSecret of [
+  "STRIPE_SECRET_KEY",
+  "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "STRIPE_PRICE_PRO_MONTHLY",
+  "STRIPE_PRICE_PRO_YEARLY",
+]) {
+  if (!cloudRunDeploy.includes(`${stripeSecret}=greyhoundiq-$env_name-${stripeSecret}:latest`)) {
+    findings.push(`cloud-run-deploy.yml: missing ${stripeSecret} secret mapping`);
+  }
+}
+if (!cloudRunDeploy.includes("STRIPE_APP_URL=$nextauth_url")) {
+  findings.push("cloud-run-deploy.yml: STRIPE_APP_URL must follow NEXTAUTH_URL");
 }
 for (const publicSupabaseSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) {
   if (!cloudRunDeploy.includes(`${publicSupabaseSecret}=greyhoundiq-$env_name-${publicSupabaseSecret}:latest`)) {
@@ -149,6 +174,21 @@ const cloudRunBootstrapPs1 = readFileSync(
 );
 if (!cloudRunBootstrapPs1.includes("--public-access-prevention")) {
   findings.push("gcp-cloud-run-bootstrap.ps1: GCS buckets must enforce public access prevention");
+}
+for (const publicSupabaseSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) {
+  if (!cloudRunBootstrapPs1.includes(`"${publicSupabaseSecret}"`)) {
+    findings.push(`gcp-cloud-run-bootstrap.ps1: must create ${publicSupabaseSecret} secret shell`);
+  }
+}
+
+const cloudRunBootstrapSh = readFileSync(
+  join(root, "scripts", "gcp-cloud-run-bootstrap.sh"),
+  "utf8",
+);
+for (const publicSupabaseSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) {
+  if (!cloudRunBootstrapSh.includes(publicSupabaseSecret)) {
+    findings.push(`gcp-cloud-run-bootstrap.sh: must create ${publicSupabaseSecret} secret shell`);
+  }
 }
 
 const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {

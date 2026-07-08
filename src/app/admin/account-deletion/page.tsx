@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -180,13 +181,14 @@ export default async function AdminAccountDeletionPage() {
                 <th className="px-4 py-3 text-left">Completed</th>
                 <th className="px-4 py-3 text-left">Created</th>
                 <th className="px-4 py-3 text-left">Updated</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {deletionJobs.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No deletion jobs found.
@@ -204,6 +206,15 @@ export default async function AdminAccountDeletionPage() {
                     <DateCell date={job.completedAt} emptyLabel="Not completed" />
                     <DateCell date={job.createdAt} emptyLabel="Not recorded" />
                     <DateCell date={job.updatedAt} emptyLabel="Not recorded" />
+                    <td className="px-4 py-3">
+                      <AdminStatusForm
+                        resource="deletionJob"
+                        id={job.id}
+                        currentStatus={job.status}
+                        statuses={["pending", "cancelled", "completed", "failed"]}
+                        path="/admin/account-deletion"
+                      />
+                    </td>
                   </tr>
                 ))
               )}

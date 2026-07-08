@@ -28,7 +28,7 @@ import { ConversationCallPanel } from "@/components/conversation-call-panel";
 import { InstantMessageComposer } from "@/components/instant-message-composer";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
 import { SubmitButton } from "@/components/submit-button";
-import { getCurrentUser, type CurrentUserProfile } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import {
   getActiveCallRoomForConversation,
   getPendingCallInviteForConversation,
@@ -69,14 +69,20 @@ export default async function MessageThreadPage({
     searchParams,
     getCurrentUser(),
   ]);
-  if (!user?.profileId) return <SignedOutThread />;
+  if (!user?.profileId || !user.dbUserId) return <SignedOutThread />;
+  const callContext = {
+    dbUserId: user.dbUserId,
+    profileId: user.profileId,
+    profileRole: user.role ?? "member",
+    tier: user.tier,
+  };
   const before = typeof query.before === "string" ? query.before : undefined;
 
   let conversation: Awaited<ReturnType<typeof getConversationForProfile>>;
   try {
     conversation = await getConversationForProfile(
+      callContext,
       id,
-      user.profileId,
       before ? { before } : undefined
     );
   } catch {
@@ -95,24 +101,17 @@ export default async function MessageThreadPage({
   ] = await Promise.allSettled([
       conversation.blockedAt
         ? null
-        : getActiveCallRoomForConversation(
-            { profileId: user.profileId },
-            conversation.id
-          ),
+        : getActiveCallRoomForConversation(callContext, conversation.id),
       conversation.blockedAt
         ? null
-        : getPendingCallInviteForConversation(conversation.id),
-      getRecentCallLogForConversation(conversation.id),
+        : getPendingCallInviteForConversation(callContext, conversation.id),
+      getRecentCallLogForConversation(callContext, conversation.id),
       prisma.userPresence.findUnique({
         where: { profileId: other.id },
         select: { lastSeenAt: true },
       }),
       // Recipient viewing the thread = messages delivered.
-      // ponytail: the function only reads profileId; the cast avoids a second auth fetch.
-      markConversationDelivered(
-        { profileId: user.profileId } as CurrentUserProfile,
-        conversation.id
-      ),
+      markConversationDelivered(callContext, conversation.id),
     ] as const);
   const activeCallRoom =
     activeCallRoomResult.status === "fulfilled"
@@ -244,34 +243,6 @@ export default async function MessageThreadPage({
               : "This conversation is blocked by the other participant."}
           </div>
         )}
-        <ConversationCallPanel
-          conversationId={conversation.id}
-          activeRoom={
-            activeCallRoom
-              ? {
-                  id: activeCallRoom.id,
-                  callType: activeCallRoom.callType === "voice" ? "voice" : "video",
-                }
-              : null
-          }
-          pendingInvite={
-            pendingCallInvite
-              ? {
-                  id: pendingCallInvite.id,
-                  roomId: pendingCallInvite.callRoomId,
-                  callType:
-                    pendingCallInvite.callRoom.callType === "voice"
-                      ? "voice"
-                      : "video",
-                  fromName: pendingCallInvite.fromProfile.displayName,
-                  expiresAt: pendingCallInvite.expiresAt.toISOString(),
-                  forMe: pendingCallInvite.toProfileId === user.profileId,
-                }
-              : null
-          }
-          blocked={Boolean(conversation.blockedAt)}
-          otherName={other.displayName}
-        />
       </header>
 
       <section className="giq-panel">
@@ -447,6 +418,38 @@ export default async function MessageThreadPage({
               );
             })
           )}
+        </div>
+
+        <div className="border-t border-white/[0.06] p-5">
+          <ConversationCallPanel
+            conversationId={conversation.id}
+            activeRoom={
+              activeCallRoom
+                ? {
+                    id: activeCallRoom.id,
+                    callType:
+                      activeCallRoom.callType === "voice" ? "voice" : "video",
+                  }
+                : null
+            }
+            pendingInvite={
+              pendingCallInvite
+                ? {
+                    id: pendingCallInvite.id,
+                    roomId: pendingCallInvite.callRoomId,
+                    callType:
+                      pendingCallInvite.callRoom.callType === "voice"
+                        ? "voice"
+                        : "video",
+                    fromName: pendingCallInvite.fromProfile.displayName,
+                    expiresAt: pendingCallInvite.expiresAt.toISOString(),
+                    forMe: pendingCallInvite.toProfileId === user.profileId,
+                  }
+                : null
+            }
+            blocked={Boolean(conversation.blockedAt)}
+            otherName={other.displayName}
+          />
         </div>
 
         <InstantMessageComposer

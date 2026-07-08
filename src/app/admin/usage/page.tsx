@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -36,6 +37,7 @@ type UsageOutboxRow = {
 };
 
 type UsageAggregateRow = {
+  id: string;
   metricKey: string;
   quantity: number;
   periodStart: Date;
@@ -102,22 +104,23 @@ function UsageAggregatesTable({ rows }: { rows: UsageAggregateRow[] }) {
               <th className="px-4 py-3 text-left">Status</th>
               <th className="px-4 py-3 text-left">Created</th>
               <th className="px-4 py-3 text-left">Updated</th>
+              <th className="px-4 py-3 text-left">Action</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                 >
                   No usage aggregates found.
                 </td>
               </tr>
             ) : (
-              rows.map((row, index) => (
+              rows.map((row) => (
                 <tr
-                  key={`${row.metricKey}-${row.periodStart.toISOString()}-${index}`}
+                  key={row.id}
                   className="border-t border-white/[0.06]"
                 >
                   <MonoCell>{row.metricKey}</MonoCell>
@@ -131,6 +134,15 @@ function UsageAggregatesTable({ rows }: { rows: UsageAggregateRow[] }) {
                   </td>
                   <DateCell date={row.createdAt} emptyLabel="Not recorded" />
                   <DateCell date={row.updatedAt} emptyLabel="Not recorded" />
+                  <td className="px-4 py-3">
+                    <AdminStatusForm
+                      resource="usageAggregate"
+                      id={row.id}
+                      currentStatus={row.status}
+                      statuses={["open", "closed", "failed", "ignored"]}
+                      path="/admin/usage"
+                    />
+                  </td>
                 </tr>
               ))
             )}
@@ -164,13 +176,14 @@ function UsageEventsTable({ rows }: { rows: UsageEventRow[] }) {
               <th className="px-4 py-3 text-left">Processed</th>
               <th className="px-4 py-3 text-left">Failed</th>
               <th className="px-4 py-3 text-left">Created</th>
+              <th className="px-4 py-3 text-left">Action</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={9}
+                  colSpan={10}
                   className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                 >
                   No usage events found.
@@ -194,6 +207,15 @@ function UsageEventsTable({ rows }: { rows: UsageEventRow[] }) {
                   <DateCell date={row.processedAt} emptyLabel="Not processed" />
                   <DateCell date={row.failedAt} emptyLabel="Not failed" />
                   <DateCell date={row.createdAt} emptyLabel="Not recorded" />
+                  <td className="px-4 py-3">
+                    <AdminStatusForm
+                      resource="usageEvent"
+                      id={row.id}
+                      currentStatus={row.status}
+                      statuses={["received", "processed", "failed", "ignored"]}
+                      path="/admin/usage"
+                    />
+                  </td>
                 </tr>
               ))
             )}
@@ -228,13 +250,14 @@ function UsageOutboxTable({ rows }: { rows: UsageOutboxRow[] }) {
               <th className="px-4 py-3 text-left">Sent</th>
               <th className="px-4 py-3 text-left">Failed</th>
               <th className="px-4 py-3 text-left">Created</th>
+              <th className="px-4 py-3 text-left">Action</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={11}
                   className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                 >
                   No usage outbox rows found.
@@ -259,6 +282,15 @@ function UsageOutboxTable({ rows }: { rows: UsageOutboxRow[] }) {
                   <DateCell date={row.sentAt} emptyLabel="Not sent" />
                   <DateCell date={row.failedAt} emptyLabel="Not failed" />
                   <DateCell date={row.createdAt} emptyLabel="Not recorded" />
+                  <td className="px-4 py-3">
+                    <AdminStatusForm
+                      resource="usageOutbox"
+                      id={row.id}
+                      currentStatus={row.status}
+                      statuses={["pending", "sent", "failed", "ignored"]}
+                      path="/admin/usage"
+                    />
+                  </td>
                 </tr>
               ))
             )}
@@ -343,6 +375,7 @@ function getUsageAggregates() {
         orderBy: { updatedAt: "desc" },
         take: 10,
         select: {
+          id: true,
           metricKey: true,
           quantity: true,
           periodStart: true,

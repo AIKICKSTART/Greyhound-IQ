@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -65,13 +66,14 @@ export default async function AdminInvoicesPage() {
                 <th className="px-4 py-3 text-left">Due</th>
                 <th className="px-4 py-3 text-left">Paid</th>
                 <th className="px-4 py-3 text-left">Created</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {invoices.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={13}
+                    colSpan={14}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No invoice records found.
@@ -99,6 +101,15 @@ export default async function AdminInvoicesPage() {
                     <DateCell date={invoice.dueAt} emptyLabel="No due date" />
                     <DateCell date={invoice.paidAt} emptyLabel="Not paid" />
                     <DateCell date={invoice.createdAt} emptyLabel="Not recorded" />
+                    <td className="px-4 py-3">
+                      <AdminStatusForm
+                        resource="invoiceRecord"
+                        id={invoice.id}
+                        currentStatus={invoice.status}
+                        statuses={["draft", "issued", "paid", "overdue", "voided", "ignored"]}
+                        path="/admin/invoices"
+                      />
+                    </td>
                   </tr>
                 ))
               )}

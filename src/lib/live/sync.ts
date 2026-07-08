@@ -21,6 +21,10 @@ export type SyncCounts = {
 export type SyncScope = "upcoming" | "results" | "all";
 
 const BULK_WRITE_CHUNK_SIZE = 100;
+const LIVE_SYNC_TRANSACTION_MAX_WAIT_MS = 30_000;
+const LIVE_SYNC_TRANSACTION_TIMEOUT_MS = 240_000;
+
+type LiveSyncDbClient = Prisma.TransactionClient;
 
 type TrackRow = { id: string; name: string; state: string };
 type RaceRow = { id: string; meetingId: string; raceNumber: number };
@@ -64,6 +68,7 @@ type ResultUpsertRow = {
   finishingPosition: number | null;
   runningTime: number | null;
   margin: number | null;
+  prizeMoneyWon: number | null;
   splitTime: number | null;
   sectionals: string | null;
   sourceProvider: string | null;
@@ -175,17 +180,17 @@ export async function syncLiveData(
   console.log(`[live-sync] Using provider: ${provider.name} scope=${scope}`);
   const counts: SyncCounts = { meetings: 0, races: 0, runners: 0, results: 0 };
   if (scope === "upcoming" || scope === "all") {
+    const meetings = stampMeetings(await provider.fetchUpcomingMeetings(days), provider.name);
     addCounts(
       counts,
-      await upsertMeetings(
-        stampMeetings(await provider.fetchUpcomingMeetings(days), provider.name)
-      )
+      await upsertSystemMeetings(meetings)
     );
   }
   if (scope === "results" || scope === "all") {
+    const meetings = stampMeetings(await provider.fetchResults(days), provider.name);
     addCounts(
       counts,
-      await upsertMeetings(stampMeetings(await provider.fetchResults(days), provider.name))
+      await upsertSystemMeetings(meetings)
     );
   }
 
@@ -206,7 +211,34 @@ export async function syncLiveMeetings(
   meetings: LiveMeeting[],
   fallbackProvider: string
 ): Promise<SyncCounts> {
-  return upsertMeetings(stampMeetings(meetings, fallbackProvider));
+  return upsertSystemMeetings(stampMeetings(meetings, fallbackProvider));
+}
+
+async function upsertSystemMeetings(meetings: LiveMeeting[]) {
+  if (meetings.length === 0) {
+    return { meetings: 0, races: 0, runners: 0, results: 0 };
+  }
+
+  return prisma.$transaction(
+    async (tx) => {
+      await setLiveSyncSystemContext(tx);
+      return upsertMeetings(tx, meetings);
+    },
+    {
+      maxWait: LIVE_SYNC_TRANSACTION_MAX_WAIT_MS,
+      timeout: LIVE_SYNC_TRANSACTION_TIMEOUT_MS,
+    }
+  );
+}
+
+async function setLiveSyncSystemContext(db: LiveSyncDbClient) {
+  await setLocal(db, "app.system", "true");
+  await setLocal(db, "app.current_tier", "system");
+  await setLocal(db, "app.current_role", "system");
+}
+
+function setLocal(db: LiveSyncDbClient, key: string, value: string) {
+  return db.$executeRaw`SELECT set_config(${key}, ${value}, true)`;
 }
 
 function stampMeetings(meetings: LiveMeeting[], fallbackProvider: string) {
@@ -223,7 +255,10 @@ function stampMeetings(meetings: LiveMeeting[], fallbackProvider: string) {
   });
 }
 
-async function upsertMeetings(meetings: LiveMeeting[]): Promise<SyncCounts> {
+async function upsertMeetings(
+  db: LiveSyncDbClient,
+  meetings: LiveMeeting[]
+): Promise<SyncCounts> {
   const counts: SyncCounts = { meetings: 0, races: 0, runners: 0, results: 0 };
   if (meetings.length === 0) return counts;
 
@@ -233,12 +268,12 @@ async function upsertMeetings(meetings: LiveMeeting[]): Promise<SyncCounts> {
     races: meetings.reduce((total, meeting) => total + meeting.races.length, 0),
   });
   const tracks = await syncStage("ensureTracks", { meetings: meetings.length }, () =>
-    ensureTracks(meetings)
+    ensureTracks(db, meetings)
   );
   const meetingRows = await syncStage(
     "ensureMeetings",
     { meetings: meetings.length, tracks: tracks.size },
-    () => ensureMeetings(meetings, tracks, now)
+    () => ensureMeetings(db, meetings, tracks, now)
   );
   counts.meetings = meetings.length;
 
@@ -249,10 +284,10 @@ async function upsertMeetings(meetings: LiveMeeting[]): Promise<SyncCounts> {
   });
 
   const raceRows = await syncStage("ensureRaces", { races: raceItems.length }, () =>
-    ensureRaces(raceItems, now)
+    ensureRaces(db, raceItems, now)
   );
   await syncStage("ensureRaceVideos", { races: raceItems.length }, () =>
-    ensureRaceVideos(raceItems, raceRows, now)
+    ensureRaceVideos(db, raceItems, raceRows, now)
   );
   counts.races = raceItems.length;
 
@@ -273,24 +308,24 @@ async function upsertMeetings(meetings: LiveMeeting[]): Promise<SyncCounts> {
   });
 
   const dogIds = await syncStage("ensureDogs", { runners: runnerItems.length }, () =>
-    ensureDogs(runnerItems.map((item) => item.runner.dog))
+    ensureDogs(db, runnerItems.map((item) => item.runner.dog))
   );
   const trainerIds = await syncStage(
     "ensureTrainers",
     { runners: runnerItems.length },
-    () => ensureTrainers(runnerItems.map((item) => item.runner.trainerName))
+    () => ensureTrainers(db, runnerItems.map((item) => item.runner.trainerName))
   );
   const runnerRows = await syncStage(
     "ensureRunners",
     { runners: runnerItems.length, dogs: dogIds.size, trainers: trainerIds.size },
-    () => ensureRunners(runnerItems, dogIds, trainerIds)
+    () => ensureRunners(db, runnerItems, dogIds, trainerIds)
   );
   counts.runners = runnerItems.length;
   counts.results = await syncStage("ensureResults", { runners: runnerItems.length }, () =>
-    ensureResults(runnerItems, runnerRows)
+    ensureResults(db, runnerItems, runnerRows)
   );
   await syncStage("ensureFormEntries", { runners: runnerItems.length }, () =>
-    ensureFormEntries(runnerItems, runnerRows)
+    ensureFormEntries(db, runnerItems, runnerRows)
   );
   syncDebug("upsertMeetings ok", counts);
 
@@ -344,7 +379,7 @@ function conflictAction(updateSql: Prisma.Sql) {
   return process.env.LIVE_SYNC_INSERT_ONLY === "1" ? Prisma.sql`DO NOTHING` : updateSql;
 }
 
-async function ensureTracks(meetings: LiveMeeting[]) {
+async function ensureTracks(db: LiveSyncDbClient, meetings: LiveMeeting[]) {
   const byName = new Map<string, { name: string; state?: string }>();
   for (const meeting of meetings) {
     const trackName = canonicalTrackName(meeting.trackName);
@@ -356,7 +391,7 @@ async function ensureTracks(meetings: LiveMeeting[]) {
     }
   }
 
-  const existing = await prisma.track.findMany({
+  const existing = await db.track.findMany({
     where: { name: { in: [...byName.keys()] } },
     select: { id: true, name: true, state: true },
   });
@@ -364,7 +399,7 @@ async function ensureTracks(meetings: LiveMeeting[]) {
 
   for (const track of byName.values()) {
     if (tracks.has(track.name)) continue;
-    const created = await prisma.track.create({
+    const created = await db.track.create({
       data: { name: track.name, state: track.state ?? "NSW" },
       select: { id: true, name: true, state: true },
     });
@@ -375,6 +410,7 @@ async function ensureTracks(meetings: LiveMeeting[]) {
 }
 
 async function ensureMeetings(
+  db: LiveSyncDbClient,
   meetings: LiveMeeting[],
   tracks: Map<string, TrackRow>,
   now: Date
@@ -397,12 +433,12 @@ async function ensureMeetings(
     ];
   });
 
-  await bulkUpsertMeetings(rows);
+  await bulkUpsertMeetings(db, rows);
 
   const dates = [
     ...new Set(rows.map((row) => row.meetingDate.toISOString())),
   ].map((date) => new Date(date));
-  const allRows = await prisma.meeting.findMany({
+  const allRows = await db.meeting.findMany({
     where: { trackId: { in: trackIds }, meetingDate: { in: dates } },
     select: { id: true, trackId: true, meetingDate: true },
   });
@@ -411,7 +447,7 @@ async function ensureMeetings(
   );
 }
 
-async function ensureRaces(items: RaceWithMeeting[], now: Date) {
+async function ensureRaces(db: LiveSyncDbClient, items: RaceWithMeeting[], now: Date) {
   if (items.length === 0) return new Map<string, RaceRow>();
   const meetingIds = [...new Set(items.map((item) => item.meetingId))];
   const upserts: RaceUpsertRow[] = items.map((item) => ({
@@ -433,9 +469,9 @@ async function ensureRaces(items: RaceWithMeeting[], now: Date) {
     lastSyncedAt: now,
   }));
 
-  await bulkUpsertRaces(upserts);
+  await bulkUpsertRaces(db, upserts);
 
-  const allRows = await prisma.race.findMany({
+  const allRows = await db.race.findMany({
     where: { meetingId: { in: meetingIds } },
     select: { id: true, meetingId: true, raceNumber: true },
   });
@@ -443,6 +479,7 @@ async function ensureRaces(items: RaceWithMeeting[], now: Date) {
 }
 
 async function ensureRaceVideos(
+  db: LiveSyncDbClient,
   items: RaceWithMeeting[],
   races: Map<string, RaceRow>,
   now: Date
@@ -476,11 +513,11 @@ async function ensureRaceVideos(
     ];
   });
 
-  await bulkUpsertRaceVideos(rows);
+  await bulkUpsertRaceVideos(db, rows);
   return rows.length;
 }
 
-async function bulkUpsertRaceVideos(rows: RaceVideoUpsertRow[]) {
+async function bulkUpsertRaceVideos(db: LiveSyncDbClient, rows: RaceVideoUpsertRow[]) {
   const uniqueRows = uniqueBy(
     rows,
     (row) => `${row.raceId}:${row.sourceProvider}:${row.kind}`
@@ -489,7 +526,7 @@ async function bulkUpsertRaceVideos(rows: RaceVideoUpsertRow[]) {
     const chunk = uniqueRows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
     if (chunk.length === 0) continue;
 
-    await prisma.$executeRaw`
+    await db.$executeRaw`
       INSERT INTO "RaceVideo"
         ("id", "raceId", "sourceProvider", "sourceId", "kind", "pageUrl", "embedSourceType", "sourceStatus", "sourceCode", "streamUrl", "streamContentType", "title", "description", "sourceRawJson", "fetchedAt", "lastSyncedAt", "createdAt", "updatedAt")
       VALUES ${Prisma.join(
@@ -515,7 +552,7 @@ async function bulkUpsertRaceVideos(rows: RaceVideoUpsertRow[]) {
   }
 }
 
-async function bulkUpsertMeetings(rows: MeetingUpsertRow[]) {
+async function bulkUpsertMeetings(db: LiveSyncDbClient, rows: MeetingUpsertRow[]) {
   const uniqueRows = uniqueByPreferredSource(rows, (row) =>
     naturalMeetingKey(row.trackId, row.meetingDate)
   );
@@ -523,7 +560,7 @@ async function bulkUpsertMeetings(rows: MeetingUpsertRow[]) {
     const chunk = uniqueRows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
     if (chunk.length === 0) continue;
 
-    await prisma.$executeRaw`
+    await db.$executeRaw`
       INSERT INTO "Meeting"
         ("id", "trackId", "meetingDate", "meetingType", "sourceProvider", "sourceId", "sourceRawJson", "lastSyncedAt", "createdAt")
       VALUES ${Prisma.join(
@@ -541,18 +578,19 @@ async function bulkUpsertMeetings(rows: MeetingUpsertRow[]) {
   }
 }
 
-async function bulkUpsertRaces(rows: RaceUpsertRow[]) {
+async function bulkUpsertRaces(db: LiveSyncDbClient, rows: RaceUpsertRow[]) {
   const uniqueRows = uniqueByPreferredSource(rows, (row) =>
     raceKey(row.meetingId, { raceNumber: row.raceNumber })
   );
   const confirmedRows = uniqueRows.filter((row) => row.raceTimeSource !== "fallback");
   const fallbackRows = uniqueRows.filter((row) => row.raceTimeSource === "fallback");
 
-  await bulkUpsertRaceChunkSet(confirmedRows, true);
-  await bulkUpsertRaceChunkSet(fallbackRows, false);
+  await bulkUpsertRaceChunkSet(db, confirmedRows, true);
+  await bulkUpsertRaceChunkSet(db, fallbackRows, false);
 }
 
 async function bulkUpsertRaceChunkSet(
+  db: LiveSyncDbClient,
   rows: RaceUpsertRow[],
   updateRaceTimeOnConflict: boolean
 ) {
@@ -560,7 +598,7 @@ async function bulkUpsertRaceChunkSet(
     const chunk = rows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
     if (chunk.length === 0) continue;
 
-    await prisma.$executeRaw`
+    await db.$executeRaw`
       INSERT INTO "Race"
         ("id", "meetingId", "raceNumber", "name", "raceTime", "distance", "grade", "prizeMoney", "resultStatus", "replayUrl", "photoFinishUrl", "sourceProvider", "sourceId", "sourceRawJson", "lastSyncedAt", "createdAt")
       VALUES ${Prisma.join(
@@ -585,7 +623,7 @@ async function bulkUpsertRaceChunkSet(
   }
 }
 
-async function ensureDogs(dogs: LiveDog[]) {
+async function ensureDogs(db: LiveSyncDbClient, dogs: LiveDog[]) {
   const byKey = new Map<string, LiveDog>();
   for (const dog of dogs) {
     const key = dogKey(dog);
@@ -601,7 +639,7 @@ async function ensureDogs(dogs: LiveDog[]) {
   const dogLookupClauses: Prisma.DogWhereInput[] = [];
   if (names.length > 0) dogLookupClauses.push({ name: { in: names } });
   if (earBrands.length > 0) dogLookupClauses.push({ earBrand: { in: earBrands } });
-  const existing = await prisma.dog.findMany({
+  const existing = await db.dog.findMany({
     where: { OR: dogLookupClauses },
     select: { id: true, name: true, earBrand: true },
   });
@@ -616,7 +654,7 @@ async function ensureDogs(dogs: LiveDog[]) {
     const nameId = ids.get(dog.name);
     if (existingId || !nameId || !dog.earBrand) continue;
     try {
-      await prisma.dog.update({
+      await db.dog.update({
         where: { id: nameId },
         data: {
           earBrand: dog.earBrand,
@@ -633,7 +671,7 @@ async function ensureDogs(dogs: LiveDog[]) {
   const missing = values.filter((dog) => !ids.has(dogKey(dog)));
 
   if (missing.length > 0) {
-    await prisma.dog.createMany({
+    await db.dog.createMany({
       data: missing.map((dog) => ({
         name: dog.name,
         earBrand: dog.earBrand,
@@ -642,7 +680,7 @@ async function ensureDogs(dogs: LiveDog[]) {
       })),
       skipDuplicates: true,
     });
-    const created = await prisma.dog.findMany({
+    const created = await db.dog.findMany({
       where: {
         OR: [
           { name: { in: missing.map((dog) => dog.name) } },
@@ -672,13 +710,13 @@ function isUniqueConstraintError(err: unknown) {
   );
 }
 
-async function ensureTrainers(names: Array<string | undefined>) {
+async function ensureTrainers(db: LiveSyncDbClient, names: Array<string | undefined>) {
   const uniqueNames = [
     ...new Set(names.filter((name): name is string => Boolean(name))),
   ];
   if (uniqueNames.length === 0) return new Map<string, string>();
 
-  const existing = await prisma.trainer.findMany({
+  const existing = await db.trainer.findMany({
     where: { name: { in: uniqueNames } },
     select: { id: true, name: true },
   });
@@ -686,10 +724,10 @@ async function ensureTrainers(names: Array<string | undefined>) {
   const missing = uniqueNames.filter((name) => !ids.has(name));
 
   if (missing.length > 0) {
-    await prisma.trainer.createMany({
+    await db.trainer.createMany({
       data: missing.map((name) => ({ name })),
     });
-    const created = await prisma.trainer.findMany({
+    const created = await db.trainer.findMany({
       where: { name: { in: missing } },
       select: { id: true, name: true },
     });
@@ -702,6 +740,7 @@ async function ensureTrainers(names: Array<string | undefined>) {
 }
 
 async function ensureRunners(
+  db: LiveSyncDbClient,
   items: RunnerWithRace[],
   dogIds: Map<string, string>,
   trainerIds: Map<string, string>
@@ -732,22 +771,22 @@ async function ensureRunners(
     });
   }
 
-  await bulkUpsertRunners(upserts);
+  await bulkUpsertRunners(db, upserts);
 
-  const allRows = await prisma.runner.findMany({
+  const allRows = await db.runner.findMany({
     where: { raceId: { in: raceIds } },
     select: { id: true, raceId: true, boxNumber: true, dogId: true },
   });
   return new Map(allRows.map((row) => [runnerKey(row.raceId, row.boxNumber), row]));
 }
 
-async function bulkUpsertRunners(rows: RunnerUpsertRow[]) {
+async function bulkUpsertRunners(db: LiveSyncDbClient, rows: RunnerUpsertRow[]) {
   const uniqueRows = uniqueBy(rows, (row) => runnerKey(row.raceId, row.boxNumber));
   for (let index = 0; index < uniqueRows.length; index += BULK_WRITE_CHUNK_SIZE) {
     const chunk = uniqueRows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
     if (chunk.length === 0) continue;
 
-    await prisma.$executeRaw`
+    await db.$executeRaw`
       INSERT INTO "Runner"
         ("id", "raceId", "boxNumber", "dogId", "weight", "trainerId", "startingPrice", "scratched", "sourceProvider", "sourceId", "sourceRawJson", "createdAt")
       VALUES ${Prisma.join(
@@ -769,6 +808,7 @@ async function bulkUpsertRunners(rows: RunnerUpsertRow[]) {
 }
 
 async function ensureResults(
+  db: LiveSyncDbClient,
   items: RunnerWithRace[],
   runners: Map<string, RunnerRow>
 ) {
@@ -787,6 +827,7 @@ async function ensureResults(
         finishingPosition: item.runner.finishingPosition ?? null,
         runningTime: item.runner.runningTime ?? null,
         margin: item.runner.margin ?? null,
+        prizeMoneyWon: item.runner.prizeMoneyWon ?? null,
         splitTime: item.runner.splitTime ?? null,
         sectionals: item.runner.sectionals ?? null,
         sourceProvider: item.runner.sourceProvider ?? item.sourceProvider ?? null,
@@ -799,22 +840,22 @@ async function ensureResults(
     ];
   });
 
-  await bulkUpsertResults(rows);
+  await bulkUpsertResults(db, rows);
   return rows.length;
 }
 
-async function bulkUpsertResults(rows: ResultUpsertRow[]) {
+async function bulkUpsertResults(db: LiveSyncDbClient, rows: ResultUpsertRow[]) {
   const uniqueRows = mergeResultRows(rows);
   for (let index = 0; index < uniqueRows.length; index += BULK_WRITE_CHUNK_SIZE) {
     const chunk = uniqueRows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
     if (chunk.length === 0) continue;
 
-    await prisma.$executeRaw`
+    await db.$executeRaw`
       INSERT INTO "Result"
-        ("id", "runnerId", "raceId", "finishingPosition", "runningTime", "margin", "splitTime", "sectionals", "sourceProvider", "sourceId", "sourceRawJson", "lastSyncedAt", "createdAt")
+        ("id", "runnerId", "raceId", "finishingPosition", "runningTime", "margin", "prizeMoneyWon", "splitTime", "sectionals", "sourceProvider", "sourceId", "sourceRawJson", "lastSyncedAt", "createdAt")
       VALUES ${Prisma.join(
         chunk.map((row) => Prisma.sql`
-          (${row.id}, ${row.runnerId}, ${row.raceId}, ${row.finishingPosition}, ${row.runningTime}, ${row.margin}, ${row.splitTime}, ${row.sectionals}, ${row.sourceProvider}, ${row.sourceId}, ${row.sourceRawJson}, ${row.lastSyncedAt}, NOW())
+          (${row.id}, ${row.runnerId}, ${row.raceId}, ${row.finishingPosition}, ${row.runningTime}, ${row.margin}, ${row.prizeMoneyWon}, ${row.splitTime}, ${row.sectionals}, ${row.sourceProvider}, ${row.sourceId}, ${row.sourceRawJson}, ${row.lastSyncedAt}, NOW())
         `)
       )}
       ON CONFLICT ("runnerId") ${conflictAction(Prisma.sql`DO UPDATE SET
@@ -822,6 +863,7 @@ async function bulkUpsertResults(rows: ResultUpsertRow[]) {
         "finishingPosition" = EXCLUDED."finishingPosition",
         "runningTime" = COALESCE(EXCLUDED."runningTime", "Result"."runningTime"),
         "margin" = COALESCE(EXCLUDED."margin", "Result"."margin"),
+        "prizeMoneyWon" = COALESCE(EXCLUDED."prizeMoneyWon", "Result"."prizeMoneyWon"),
         "splitTime" = COALESCE(EXCLUDED."splitTime", "Result"."splitTime"),
         "sectionals" = COALESCE(EXCLUDED."sectionals", "Result"."sectionals"),
         "sourceProvider" = EXCLUDED."sourceProvider",
@@ -845,6 +887,7 @@ function mergeResultRows(rows: ResultUpsertRow[]) {
       finishingPosition: row.finishingPosition ?? existing.finishingPosition,
       runningTime: row.runningTime ?? existing.runningTime,
       margin: row.margin ?? existing.margin,
+      prizeMoneyWon: row.prizeMoneyWon ?? existing.prizeMoneyWon,
       splitTime: row.splitTime ?? existing.splitTime,
       sectionals: row.sectionals ?? existing.sectionals,
       sourceRawJson: row.sourceRawJson ?? existing.sourceRawJson,
@@ -854,6 +897,7 @@ function mergeResultRows(rows: ResultUpsertRow[]) {
 }
 
 async function ensureFormEntries(
+  db: LiveSyncDbClient,
   items: RunnerWithRace[],
   runners: Map<string, RunnerRow>
 ) {
@@ -878,16 +922,16 @@ async function ensureFormEntries(
     ];
   });
 
-  await bulkUpsertFormEntries(rows);
+  await bulkUpsertFormEntries(db, rows);
 }
 
-async function bulkUpsertFormEntries(rows: FormEntryUpsertRow[]) {
+async function bulkUpsertFormEntries(db: LiveSyncDbClient, rows: FormEntryUpsertRow[]) {
   const uniqueRows = uniqueBy(rows, (row) => `${row.dogId}:${row.raceId}`);
   for (let index = 0; index < uniqueRows.length; index += BULK_WRITE_CHUNK_SIZE) {
     const chunk = uniqueRows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
     if (chunk.length === 0) continue;
 
-    await prisma.$executeRaw`
+    await db.$executeRaw`
       INSERT INTO "FormEntry"
         ("id", "dogId", "raceId", "trackId", "date", "boxNumber", "finish", "time", "distance", "grade", "weight", "createdAt")
       VALUES ${Prisma.join(

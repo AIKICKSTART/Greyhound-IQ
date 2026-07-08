@@ -3,7 +3,7 @@ import { ArrowLeft, Lock, PlusCircle } from "lucide-react";
 import { createListing } from "@/app/actions";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
 import { SubmitButton } from "@/components/submit-button";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, hasTier } from "@/lib/auth";
 import {
   getDogsForListingSelect,
   getMarketplaceCategories,
@@ -33,6 +33,7 @@ export default async function NewListingPage() {
     getDogsForListingSelect(120),
     getMarketplaceCategories(),
   ]);
+  const canCreateListing = Boolean(user && hasTier(user.tier, "pro"));
 
   return (
     <div className="giq-form-page mx-auto max-w-4xl px-6 py-10">
@@ -56,7 +57,7 @@ export default async function NewListingPage() {
       </div>
 
       <section className="giq-panel p-6">
-        {user ? (
+        {canCreateListing ? (
           <form action={createListing} className="grid gap-5">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block">
@@ -313,6 +314,27 @@ export default async function NewListingPage() {
               Submit for review
             </SubmitButton>
           </form>
+        ) : user ? (
+          <div className="grid gap-5 md:grid-cols-[56px_1fr_auto] md:items-center">
+            <div className="giq-icon-plate flex h-12 w-12 items-center justify-center rounded-lg">
+              <Lock className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+            </div>
+            <div>
+              <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
+                Upgrade to create marketplace items
+              </h2>
+              <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
+                Free accounts can browse and save marketplace items. Listing
+                creation is included with Pro.
+              </p>
+            </div>
+            <Link
+              href="/pricing"
+              className="giq-button giq-button-primary px-4 text-[13px] font-semibold"
+            >
+              View Pro
+            </Link>
+          </div>
         ) : (
           <div className="grid gap-5 md:grid-cols-[56px_1fr_auto] md:items-center">
             <div className="giq-icon-plate flex h-12 w-12 items-center justify-center rounded-lg">

@@ -56,7 +56,8 @@ function statusForErrorMessage(message: string) {
   if (
     message === "internal.not_configured" ||
     message === "call.not_configured" ||
-    message === "media.secret_not_configured"
+    message === "media.secret_not_configured" ||
+    message.startsWith("billing.stripe_not_configured")
   ) {
     return 503;
   }

@@ -1,4 +1,7 @@
-import { prisma } from "@/lib/db";
+import {
+  withDbSystemContext,
+  type DbContextClient,
+} from "@/lib/db-context";
 
 export interface AuthIdentity {
   id: string;
@@ -8,11 +11,18 @@ export interface AuthIdentity {
 }
 
 export async function syncAuthUser(user: AuthIdentity) {
+  return withDbSystemContext((tx) => syncAuthUserWithClient(tx, user));
+}
+
+async function syncAuthUserWithClient(
+  db: DbContextClient,
+  user: AuthIdentity
+) {
   const displayName = displayNameForAuth(user);
-  const existing = await findUserForAuth(user.id, user.email);
+  const existing = await findUserForAuthWithClient(db, user.id, user.email);
 
   if (!existing) {
-    const created = await prisma.user.create({
+    const created = await db.user.create({
       data: {
         email: user.email,
         name: displayName,
@@ -21,7 +31,7 @@ export async function syncAuthUser(user: AuthIdentity) {
       },
       include: { profile: true },
     });
-    return ensureProfile(created, displayName);
+    return ensureProfile(db, created, displayName);
   }
 
   if (existing.isBanned && !existing.deletionRequestedAt) {
@@ -31,7 +41,7 @@ export async function syncAuthUser(user: AuthIdentity) {
   const wasDeletionPending = Boolean(
     existing.isBanned && existing.deletionRequestedAt
   );
-  const dbUser = await prisma.user.update({
+  const dbUser = await db.user.update({
     where: { id: existing.id },
     data: {
       email: user.email,
@@ -44,7 +54,7 @@ export async function syncAuthUser(user: AuthIdentity) {
   });
 
   if (wasDeletionPending) {
-    await prisma.auditLog.create({
+    await db.auditLog.create({
       data: {
         actorId: dbUser.id,
         actorType: "user",
@@ -58,11 +68,21 @@ export async function syncAuthUser(user: AuthIdentity) {
     });
   }
 
-  return ensureProfile(dbUser, displayName);
+  return ensureProfile(db, dbUser, displayName);
 }
 
 export function findUserForAuth(authId: string, email: string) {
-  return prisma.user.findFirst({
+  return withDbSystemContext((tx) =>
+    findUserForAuthWithClient(tx, authId, email)
+  );
+}
+
+function findUserForAuthWithClient(
+  db: DbContextClient,
+  authId: string,
+  email: string
+) {
+  return db.user.findFirst({
     where: {
       OR: [{ workosUserId: authId }, { email }],
     },
@@ -76,11 +96,12 @@ export function displayNameForAuth(user: AuthIdentity) {
 }
 
 async function ensureProfile(
-  dbUser: NonNullable<Awaited<ReturnType<typeof findUserForAuth>>>,
+  db: DbContextClient,
+  dbUser: NonNullable<Awaited<ReturnType<typeof findUserForAuthWithClient>>>,
   displayName: string
 ) {
   if (dbUser.profile) return dbUser;
-  const profile = await prisma.profile.create({
+  const profile = await db.profile.create({
     data: {
       userId: dbUser.id,
       displayName,

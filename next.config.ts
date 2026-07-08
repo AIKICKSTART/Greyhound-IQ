@@ -10,8 +10,16 @@ type RemotePattern = NonNullable<
   NonNullable<NextConfig["images"]>["remotePatterns"]
 >[number];
 
+const replayFrameOrigins =
+  "https://www.youtube-nocookie.com https://player.vimeo.com";
+const replayMediaOrigins =
+  "https://www.thedogs.com.au https://mediarqs.skyracing.com.au https://tasracing-race-replays.s3.ap-southeast-2.amazonaws.com";
+
 const nextConfig: NextConfig = {
   output: "standalone",
+  experimental: {
+    authInterrupts: true,
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     qualities: [70, 75, 78, 82],
@@ -75,8 +83,9 @@ function contentSecurityPolicy() {
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
     join("img-src 'self' data: blob:", supa),
-    join("media-src 'self' blob:", supa),
+    join("media-src 'self' blob:", supa, replayMediaOrigins),
     join("connect-src 'self'", supa, supaWs, lk, devWs),
+    join("frame-src 'self'", replayFrameOrigins),
     "worker-src 'self' blob:",
     "font-src 'self' data:",
     "object-src 'none'",

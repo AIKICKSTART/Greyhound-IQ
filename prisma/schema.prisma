@@ -279,6 +279,7 @@ model Result {
   finishingPosition Int?
   runningTime       Float?
   margin            Float?
+  prizeMoneyWon     Float?
   splitTime         Float?
   sectionals        String?
   gpsData           String?
@@ -1096,6 +1097,23 @@ model Profile {
   conversationsA           Conversation[]            @relation("ConversationA")
   conversationsB           Conversation[]            @relation("ConversationB")
   dogsOwned                DogOwnership[]
+  friendshipsA             Friendship[]              @relation("FriendshipA")
+  friendshipsB             Friendship[]              @relation("FriendshipB")
+}
+
+model Friendship {
+  id         String   @id @default(cuid())
+  profileAId String
+  profileA   Profile  @relation("FriendshipA", fields: [profileAId], references: [id], onDelete: Cascade)
+  profileBId String
+  profileB   Profile  @relation("FriendshipB", fields: [profileBId], references: [id], onDelete: Cascade)
+  status     String   @default("accepted")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([profileAId, profileBId])
+  @@index([profileAId, status, updatedAt])
+  @@index([profileBId, status, updatedAt])
 }
 
 model DogOwnership {

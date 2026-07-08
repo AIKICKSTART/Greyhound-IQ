@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -57,13 +58,14 @@ export default async function AdminBillingEventsPage() {
                 <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">Occurred</th>
                 <th className="px-4 py-3 text-left">Created</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {events.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No billing events found.
@@ -83,6 +85,15 @@ export default async function AdminBillingEventsPage() {
                     <TextCell>{event.status}</TextCell>
                     <DateCell date={event.occurredAt} />
                     <DateCell date={event.createdAt} />
+                    <td className="px-4 py-3">
+                      <AdminStatusForm
+                        resource="billingEvent"
+                        id={event.id}
+                        currentStatus={event.status}
+                        statuses={["recorded", "processed", "failed", "ignored"]}
+                        path="/admin/billing-events"
+                      />
+                    </td>
                   </tr>
                 ))
               )}

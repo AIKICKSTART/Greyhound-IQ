@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -40,12 +41,12 @@ export default async function AdminOrganizationInvitationsPage() {
           Organization invitations
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 20 local organization invitation rows with token hashes, email
-          hashes, and provider data excluded.
+          Latest 20 local organization invitation rows. Token hashes, email
+          hashes, and provider data stay hidden; status changes are audited.
         </p>
 
         <div className="giq-table-shell mt-6 overflow-x-auto">
-          <table className="w-full min-w-[1480px]">
+          <table className="w-full min-w-[1620px]">
             <thead>
               <tr className="giq-table-head">
                 <th className="px-4 py-3 text-left">Invitation ID</th>
@@ -57,13 +58,14 @@ export default async function AdminOrganizationInvitationsPage() {
                 <th className="px-4 py-3 text-left">Accepted</th>
                 <th className="px-4 py-3 text-left">Created</th>
                 <th className="px-4 py-3 text-left">Updated</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {invitations.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No organization invitations found.
@@ -89,6 +91,15 @@ export default async function AdminOrganizationInvitationsPage() {
                     />
                     <DateCell date={invitation.createdAt} />
                     <DateCell date={invitation.updatedAt} />
+                    <td className="px-4 py-3">
+                      <AdminStatusForm
+                        resource="organizationInvitation"
+                        id={invitation.id}
+                        currentStatus={invitation.status}
+                        statuses={["pending", "accepted", "cancelled", "expired"]}
+                        path="/admin/invitations"
+                      />
+                    </td>
                   </tr>
                 ))
               )}

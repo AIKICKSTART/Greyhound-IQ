@@ -1,5 +1,9 @@
 import Link from "next/link";
 
+import {
+  AdminSourceHealthForm,
+  AdminStatusForm,
+} from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 import { getLiveFeedStatus } from "@/lib/live/status";
@@ -14,6 +18,7 @@ export const metadata = {
 type LiveFeedStatus = Awaited<ReturnType<typeof getLiveFeedStatus>>;
 
 type DataSourceHealthRow = {
+  id: string;
   sourceProvider: string;
   status: string;
   lastCheckedAt: Date;
@@ -45,9 +50,14 @@ export default async function AdminSourceHealthPage() {
           Source health
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Read-only live feed status from the local health helper. This page does
-          not trigger provider imports or external feed calls.
+          Live feed status from the local health helper plus editable
+          DataSourceHealth rows. This page does not trigger provider imports or
+          external feed calls.
         </p>
+
+        <div className="mt-6">
+          <AdminSourceHealthForm path="/admin/source-health" />
+        </div>
 
         <StatusSummary liveStatus={liveStatus} />
         <StatusDetails liveStatus={liveStatus} />
@@ -186,7 +196,7 @@ function DataSourceHealthTable({ rows }: { rows: DataSourceHealthRow[] }) {
       </p>
 
       <div className="giq-table-shell mt-3 overflow-x-auto">
-        <table className="w-full min-w-[1180px]">
+        <table className="w-full min-w-[1380px]">
           <thead>
             <tr className="giq-table-head">
               <th className="px-4 py-3 text-left">Source provider</th>
@@ -197,13 +207,14 @@ function DataSourceHealthTable({ rows }: { rows: DataSourceHealthRow[] }) {
               <th className="px-4 py-3 text-right">Latency</th>
               <th className="px-4 py-3 text-left">Created</th>
               <th className="px-4 py-3 text-left">Updated</th>
+              <th className="px-4 py-3 text-left">Action</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                 >
                   No data source health rows found.
@@ -238,6 +249,15 @@ function DataSourceHealthTable({ rows }: { rows: DataSourceHealthRow[] }) {
                   </td>
                   <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
                     {formatTimestamp(row.updatedAt)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <AdminStatusForm
+                      resource="dataSourceHealth"
+                      id={row.id}
+                      currentStatus={row.status}
+                      statuses={["ok", "degraded", "error", "unknown"]}
+                      path="/admin/source-health"
+                    />
                   </td>
                 </tr>
               ))
@@ -319,6 +339,7 @@ function getDataSourceHealthRows() {
       prisma.dataSourceHealth.findMany({
         orderBy: [{ lastCheckedAt: "desc" }, { sourceProvider: "asc" }],
         select: {
+          id: true,
           sourceProvider: true,
           status: true,
           lastCheckedAt: true,

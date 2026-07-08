@@ -7,7 +7,6 @@ import {
   BadgeDollarSign,
   CheckCircle2,
   CircleMinus,
-  Code2,
   DatabaseZap,
   ShieldCheck,
   Smartphone,
@@ -78,10 +77,9 @@ const COMPARISON = [
   {
     feature: "Pro price/year",
     them: "~$125 AUD",
-    us: "$99 AUD",
+    us: "$278.40 AUD",
     Icon: BadgeDollarSign,
     tone: "price",
-    emphasis: true,
   },
   {
     feature: "AI predictions",
@@ -105,10 +103,10 @@ const COMPARISON = [
     tone: "clean",
   },
   {
-    feature: "API access",
+    feature: "Marketplace tools",
     them: "Not available",
-    us: "Pro+ tier",
-    Icon: Code2,
+    us: "Pro tier",
+    Icon: Sparkles,
     tone: "api",
   },
 ] as const;
@@ -258,12 +256,12 @@ function WhyGreyhoundIQSection() {
             Why <span className="giq-text-purple-glass">Greyhound</span><span className="giq-text-gold-glass">IQ?</span>
           </h2>
           <p>
-            Built for serious local racing users with official feeds, AUD pricing, AI predictions, mobile-first workflows, and zero ads.
+            Built for serious local racing users with official feeds, AUD pricing, marketplace tools, mobile-first workflows, and zero ads.
           </p>
         </div>
         <div className="giq-comparison-meta" aria-label="GreyhoundIQ advantages">
           <span className="giq-pill giq-pill-sky">Official data</span>
-          <span className="giq-pill giq-pill-gold">$99 AUD</span>
+          <span className="giq-pill giq-pill-gold">$29 AUD/mo</span>
           <span className="giq-pill giq-pill-green">Mobile first</span>
         </div>
       </div>

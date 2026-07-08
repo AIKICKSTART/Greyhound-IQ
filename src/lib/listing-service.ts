@@ -1,5 +1,6 @@
-import type { CurrentUserProfile } from "@/lib/auth";
+import type { CurrentUserProfile } from "@/lib/auth-types";
 import { isModeratorRole } from "@/lib/auth-roles";
+import { assertPaidFeatureAccess } from "@/lib/tier-access";
 import type { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/account-service";
 import {
@@ -7,6 +8,7 @@ import {
   startOrGetConversation,
 } from "@/lib/conversation-service";
 import { prisma } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import {
   assertListingAcknowledgements,
   assertListingMediaPolicy,
@@ -64,6 +66,7 @@ export async function createListingForCurrentUser(
   current: CurrentUserProfile,
   input: ListingWriteInput
 ) {
+  assertPaidFeatureAccess(current);
   const dogId = input.dogId || null;
   if (dogId) await assertDogExists(dogId);
   const categoryId = input.categoryId || (await defaultCategoryIdForType(input.type));
@@ -80,7 +83,7 @@ export async function createListingForCurrentUser(
     ? `Keyword flag: ${phraseMatch.reason ?? phraseMatch.phrase}`
     : null;
 
-  const listing = await prisma.$transaction(async (tx) => {
+  const listing = await withDbRequestContext(current, async (tx) => {
     const created = await tx.listing.create({
       data: {
         profileId: current.profileId,
@@ -136,6 +139,7 @@ export async function updateListingForCurrentUser(
   listingId: string,
   input: Partial<ListingWriteInput>
 ) {
+  assertPaidFeatureAccess(current);
   const existing = await getOwnedListing(current, listingId);
   const dogId = input.dogId === undefined ? existing.dogId : input.dogId || null;
   if (dogId) await assertDogExists(dogId);
@@ -320,6 +324,7 @@ export async function renewListingForCurrentUser(
   current: CurrentUserProfile,
   listingId: string
 ) {
+  assertPaidFeatureAccess(current);
   const existing = await getOwnedListing(current, listingId);
   const listing = await prisma.$transaction(async (tx) => {
     const updated = await tx.listing.update({
@@ -533,11 +538,7 @@ export async function getPublicListingById(listingId: string) {
     throw new Error("listing.not_found");
   }
 
-  return prisma.listing.update({
-    where: { id: listing.id },
-    data: { views: { increment: 1 } },
-    include: listingInclude(),
-  });
+  return listing;
 }
 
 export async function getListingForViewerById(
@@ -551,11 +552,7 @@ export async function getListingForViewerById(
   if (!listing) throw new Error("listing.not_found");
 
   if (listingIsPublic(listing)) {
-    return prisma.listing.update({
-      where: { id: listing.id },
-      data: { views: { increment: 1 } },
-      include: listingInclude(),
-    });
+    return listing;
   }
 
   const canView =
@@ -569,6 +566,7 @@ export async function createListingEnquiryForCurrentUser(
   listingId: string,
   message: string
 ) {
+  assertPaidFeatureAccess(current);
   const listing = await prisma.listing.findUnique({
     where: { id: listingId },
     include: { profile: true },
@@ -583,7 +581,7 @@ export async function createListingEnquiryForCurrentUser(
     body: `Listing enquiry: ${listing.title}\n\n${message}`,
   });
 
-  const enquiry = await prisma.listingEnquiry.create({
+  const enquiry = await withDbRequestContext(current, (tx) => tx.listingEnquiry.create({
     data: {
       listingId: listing.id,
       conversationId: conversation.id,
@@ -592,7 +590,7 @@ export async function createListingEnquiryForCurrentUser(
       message,
       status: "open",
     },
-  });
+  }));
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -649,16 +647,16 @@ export async function toggleSavedListingForCurrentUser(
   };
   const existing = await prisma.savedListing.findUnique({ where });
   if (existing) {
-    await prisma.savedListing.delete({ where });
+    await withDbRequestContext(current, (tx) => tx.savedListing.delete({ where }));
     return { saved: false };
   }
 
-  await prisma.savedListing.create({
+  await withDbRequestContext(current, (tx) => tx.savedListing.create({
     data: {
       profileId: current.profileId,
       listingId: listing.id,
     },
-  });
+  }));
   return { saved: true };
 }
 
@@ -775,7 +773,15 @@ export function soldSearchCutoffDate(date = new Date()) {
 
 export function listingInclude() {
   return {
-    profile: { include: { user: { select: { email: true } } } },
+    profile: {
+      select: {
+        id: true,
+        displayName: true,
+        kennelName: true,
+        state: true,
+        verified: true,
+      },
+    },
     category: true,
     location: true,
     attributes: { orderBy: { key: "asc" } },

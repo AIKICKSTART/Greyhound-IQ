@@ -1,3 +1,4 @@
+import "@/lib/workos-env";
 import { getSignInUrl } from "@workos-inc/authkit-nextjs";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";

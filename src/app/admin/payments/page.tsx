@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -83,11 +84,12 @@ function PaymentRecordsTable({ records }: { records: PaymentRecordRow[] }) {
               <th className="px-4 py-3 text-right">Amount cents</th>
               <th className="px-4 py-3 text-left">Occurred</th>
               <th className="px-4 py-3 text-left">Created</th>
+              <th className="px-4 py-3 text-left">Action</th>
             </tr>
           </thead>
           <tbody>
             {records.length === 0 ? (
-              <EmptyRow colSpan={10}>No payment records found.</EmptyRow>
+              <EmptyRow colSpan={11}>No payment records found.</EmptyRow>
             ) : (
               records.map((record) => (
                 <tr key={record.id} className="border-t border-white/[0.06]">
@@ -103,6 +105,15 @@ function PaymentRecordsTable({ records }: { records: PaymentRecordRow[] }) {
                   <AmountCell amountCents={record.amountCents} />
                   <DateCell date={record.occurredAt} />
                   <DateCell date={record.createdAt} />
+                  <td className="px-4 py-3">
+                    <AdminStatusForm
+                      resource="paymentRecord"
+                      id={record.id}
+                      currentStatus={record.status}
+                      statuses={["pending", "succeeded", "failed", "refunded", "ignored"]}
+                      path="/admin/payments"
+                    />
+                  </td>
                 </tr>
               ))
             )}
@@ -134,11 +145,12 @@ function RefundRecordsTable({ records }: { records: RefundRecordRow[] }) {
               <th className="px-4 py-3 text-right">Amount cents</th>
               <th className="px-4 py-3 text-left">Occurred</th>
               <th className="px-4 py-3 text-left">Created</th>
+              <th className="px-4 py-3 text-left">Action</th>
             </tr>
           </thead>
           <tbody>
             {records.length === 0 ? (
-              <EmptyRow colSpan={11}>No refund records found.</EmptyRow>
+              <EmptyRow colSpan={12}>No refund records found.</EmptyRow>
             ) : (
               records.map((record) => (
                 <tr key={record.id} className="border-t border-white/[0.06]">
@@ -155,6 +167,15 @@ function RefundRecordsTable({ records }: { records: RefundRecordRow[] }) {
                   <AmountCell amountCents={record.amountCents} />
                   <DateCell date={record.occurredAt} />
                   <DateCell date={record.createdAt} />
+                  <td className="px-4 py-3">
+                    <AdminStatusForm
+                      resource="refundRecord"
+                      id={record.id}
+                      currentStatus={record.status}
+                      statuses={["pending", "succeeded", "failed", "ignored"]}
+                      path="/admin/payments"
+                    />
+                  </td>
                 </tr>
               ))
             )}
@@ -189,11 +210,12 @@ function CreditNoteRecordsTable({
               <th className="px-4 py-3 text-right">Amount cents</th>
               <th className="px-4 py-3 text-left">Occurred</th>
               <th className="px-4 py-3 text-left">Created</th>
+              <th className="px-4 py-3 text-left">Action</th>
             </tr>
           </thead>
           <tbody>
             {records.length === 0 ? (
-              <EmptyRow colSpan={10}>No credit note records found.</EmptyRow>
+              <EmptyRow colSpan={11}>No credit note records found.</EmptyRow>
             ) : (
               records.map((record) => (
                 <tr key={record.id} className="border-t border-white/[0.06]">
@@ -209,6 +231,15 @@ function CreditNoteRecordsTable({
                   <AmountCell amountCents={record.amountCents} />
                   <DateCell date={record.occurredAt} />
                   <DateCell date={record.createdAt} />
+                  <td className="px-4 py-3">
+                    <AdminStatusForm
+                      resource="creditNoteRecord"
+                      id={record.id}
+                      currentStatus={record.status}
+                      statuses={["issued", "voided", "failed", "ignored"]}
+                      path="/admin/payments"
+                    />
+                  </td>
                 </tr>
               ))
             )}

@@ -9,6 +9,7 @@ import {
 type UsageLimitMeta = {
   label: string;
   format: "number" | "bytes" | "days" | "boolean";
+  hidden?: boolean;
 };
 
 export type UsageLimitDisplay = {
@@ -43,10 +44,12 @@ const USAGE_LIMIT_META = {
   api_calls_per_month: {
     label: "API calls / month",
     format: "number",
+    hidden: true,
   },
   api_keys: {
     label: "API keys",
     format: "number",
+    hidden: true,
   },
   exports_per_month: {
     label: "Exports / month",
@@ -71,6 +74,7 @@ const USAGE_LIMIT_META = {
   priority_jobs: {
     label: "Priority jobs",
     format: "boolean",
+    hidden: true,
   },
   advanced_prediction_agents: {
     label: "Advanced prediction agents",
@@ -85,14 +89,15 @@ export function getUsageLimitDisplay(tier: BillingTier): UsageLimitDisplay[] {
 export function formatUsageLimitDisplay(
   limits: EntitlementLimits
 ): UsageLimitDisplay[] {
-  return Object.entries(USAGE_LIMIT_META).map(([key, meta]) => {
+  return Object.entries(USAGE_LIMIT_META).flatMap(([key, meta]) => {
+    if ("hidden" in meta && meta.hidden) return [];
     const entitlementKey = key as EntitlementKey;
 
-    return {
+    return [{
       key: entitlementKey,
       label: meta.label,
       value: formatLimit(limits[entitlementKey], meta.format),
-    };
+    }];
   });
 }
 
@@ -103,6 +108,10 @@ function formatLimit(value: EntitlementLimitValue, format: UsageLimitMeta["forma
 
   if (typeof value !== "number") {
     return "Not included";
+  }
+
+  if (value < 0) {
+    return "Unlimited";
   }
 
   if (format === "bytes") {

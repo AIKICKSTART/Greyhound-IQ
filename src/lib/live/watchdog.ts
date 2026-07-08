@@ -220,8 +220,10 @@ function mapWatchdogRace(
   meetingDate: string
 ): LiveRace {
   const videoId = race.videoId?.trim() || undefined;
+  const prizeMoneyByPosition = placePrizeMoney(race);
   const runners = participants
     .map(mapWatchdogRunner)
+    .map((runner) => applyPrizeMoneyWon(runner, prizeMoneyByPosition))
     .filter((runner): runner is LiveRunner => runner.boxNumber > 0)
     .sort((a, b) => a.boxNumber - b.boxNumber);
 
@@ -285,7 +287,14 @@ function mapWatchdogRunner(participant: WatchdogParticipant): LiveRunner {
 }
 
 function totalPrizeMoney(race: WatchdogRace) {
-  const values = [
+  const values = placePrizeMoney(race)
+    .filter((value): value is number => value != null);
+
+  return values.length > 0 ? values.reduce((sum, value) => sum + value, 0) : undefined;
+}
+
+function placePrizeMoney(race: WatchdogRace) {
+  return [
     race.firstPrize,
     race.secondPrize,
     race.thirdPrize,
@@ -294,11 +303,22 @@ function totalPrizeMoney(race: WatchdogRace) {
     race.sixthPrize,
     race.seventhPrize,
     race.eighthPrize,
-  ]
-    .map(numberOrNull)
-    .filter((value): value is number => value != null);
+  ].map(numberOrNull);
+}
 
-  return values.length > 0 ? values.reduce((sum, value) => sum + value, 0) : undefined;
+function applyPrizeMoneyWon(
+  runner: LiveRunner,
+  prizeMoneyByPosition: Array<number | null>
+) {
+  if (
+    runner.finishingPosition == null ||
+    !prizeMoneyByPosition.some((value) => value != null)
+  ) {
+    return runner;
+  }
+
+  const prizeMoneyWon = prizeMoneyByPosition[runner.finishingPosition - 1] ?? 0;
+  return { ...runner, prizeMoneyWon };
 }
 
 function isMeetingInForwardWindow(meeting: WatchdogMeeting, days: number) {

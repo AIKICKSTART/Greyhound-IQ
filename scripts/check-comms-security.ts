@@ -74,7 +74,7 @@ async function main() {
 
     // ── Stranger cannot read A-B conversation ─────────────────────────────────
     await assert.rejects(
-      () => getConversationForProfile(abConv.id, c.profileId),
+      () => getConversationForProfile(c, abConv.id),
       (err: Error) => err.message === "conversation.not_found",
     );
     console.log("PASS: stranger cannot read conversation");
@@ -233,7 +233,7 @@ async function createSecUser(
     firstName,
     lastName,
     name: displayName,
-    tier: "free",
+    tier: "pro",
     role: profile.role,
     isBanned: false,
     deletionRequestedAt: null,

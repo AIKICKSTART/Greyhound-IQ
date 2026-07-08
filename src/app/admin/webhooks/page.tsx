@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -81,13 +82,14 @@ export default async function AdminWebhooksPage() {
                 <th className="px-4 py-3 text-left">Retries</th>
                 <th className="px-4 py-3 text-left">Received</th>
                 <th className="px-4 py-3 text-left">Processed</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {events.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No webhook events found.
@@ -110,6 +112,15 @@ export default async function AdminWebhooksPage() {
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
                       {formatDateTime(event.processedAt)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <AdminStatusForm
+                        resource="webhookEvent"
+                        id={event.id}
+                        currentStatus={event.status}
+                        statuses={["received", "processed", "failed", "ignored"]}
+                        path="/admin/webhooks"
+                      />
                     </td>
                   </tr>
                 ))

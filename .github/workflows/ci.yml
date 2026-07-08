@@ -61,6 +61,11 @@ jobs:
       LAGO_FRONT_URL: https://billing.example.test
       LAGO_API_KEY: ci-lago-api-key
       LAGO_WEBHOOK_SECRET: ci-lago-webhook-secret-32-characters
+      STRIPE_SECRET_KEY: sk_test_ci_dummy
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci_dummy
+      STRIPE_WEBHOOK_SECRET: whsec_ci_dummy
+      STRIPE_PRICE_PRO_MONTHLY: price_ciProMonthly
+      STRIPE_PRICE_PRO_YEARLY: price_ciProYearly
       REALTIME_CHANNEL_SECRET: ci-realtime-channel-secret-32-chars-min
       LIVEKIT_URL: wss://livekit.ci.invalid
       LIVEKIT_API_KEY: ci-livekit-key

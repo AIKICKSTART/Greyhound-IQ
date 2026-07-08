@@ -17,6 +17,7 @@ async function main() {
           finishingPosition: runner.finishingPosition!,
           runningTime: runner.runningTime,
           margin: runner.margin,
+          prizeMoneyWon: runner.prizeMoneyWon,
           splitTime: runner.splitTime,
           sectionals: runner.sectionals,
           sourceId: runner.sourceId,
@@ -127,6 +128,20 @@ async function main() {
             reason: "split_time_mismatch",
             expected: runner.splitTime,
             actual: dbRunner.result.splitTime,
+          },
+        ];
+      }
+      if (
+        runner.prizeMoneyWon != null &&
+        dbRunner.result.prizeMoneyWon !== runner.prizeMoneyWon
+      ) {
+        return [
+          {
+            key: expected.key,
+            boxNumber: runner.boxNumber,
+            reason: "prize_money_won_mismatch",
+            expected: runner.prizeMoneyWon,
+            actual: dbRunner.result.prizeMoneyWon,
           },
         ];
       }

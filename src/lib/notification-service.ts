@@ -1,7 +1,8 @@
 import "server-only";
 
-import type { CurrentUserProfile } from "@/lib/auth";
+import type { CurrentUserProfile } from "@/lib/auth-types";
 import { prisma, safeQuery } from "@/lib/db";
+import { withDbRequestContext, withDbSystemContext } from "@/lib/db-context";
 
 const NOTIFICATION_DELIVERY_LIMIT = 50;
 const NOTIFICATION_DELIVERY_MAX_ATTEMPTS = 5;
@@ -22,7 +23,7 @@ type NotificationInput = {
 
 export async function createInAppNotification(input: NotificationInput) {
   try {
-    return await prisma.notification.create({
+    return await withDbSystemContext((tx) => tx.notification.create({
       data: {
         userId: input.userId,
         actorProfileId: input.actorProfileId ?? null,
@@ -34,7 +35,7 @@ export async function createInAppNotification(input: NotificationInput) {
         targetId: input.targetId ?? null,
         metadataJson: input.metadata ? JSON.stringify(input.metadata) : null,
       },
-    });
+    }));
   } catch (err) {
     if (process.env.NODE_ENV === "production") {
       console.error("notification.create_failed", {
@@ -94,19 +95,19 @@ export async function markNotificationReadForCurrentUser(
   current: CurrentUserProfile,
   notificationId: string
 ) {
-  await prisma.notification.updateMany({
+  await withDbRequestContext(current, (tx) => tx.notification.updateMany({
     where: { id: notificationId, userId: current.dbUserId, readAt: null },
     data: { readAt: new Date() },
-  });
+  }));
 }
 
 export async function markAllNotificationsReadForCurrentUser(
   current: CurrentUserProfile
 ) {
-  await prisma.notification.updateMany({
+  await withDbRequestContext(current, (tx) => tx.notification.updateMany({
     where: { userId: current.dbUserId, readAt: null },
     data: { readAt: new Date() },
-  });
+  }));
 }
 
 export function notificationBodySnippet(value: string, maxLength = 160) {

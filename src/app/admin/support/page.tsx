@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminSupportTicketForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -55,8 +56,8 @@ export default async function AdminSupportPage() {
           Support ticket counts
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Read-only aggregate support ticket counts and recent ticket rows.
-          Support message contents are not displayed.
+          Aggregate support ticket counts and recent ticket rows. Status
+          changes are audited; support message contents are not displayed.
         </p>
 
         <div className="mt-6 grid gap-4 lg:grid-cols-[0.75fr_1fr_1fr]">
@@ -73,7 +74,7 @@ export default async function AdminSupportPage() {
         </div>
 
         <div className="giq-table-shell mt-6 overflow-x-auto">
-          <table className="w-full min-w-[920px]">
+          <table className="w-full min-w-[1180px]">
             <thead>
               <tr className="giq-table-head">
                 <th className="px-4 py-3 text-left">Ticket ID</th>
@@ -84,13 +85,14 @@ export default async function AdminSupportPage() {
                 <th className="px-4 py-3 text-left">Priority</th>
                 <th className="px-4 py-3 text-left">Created</th>
                 <th className="px-4 py-3 text-left">Updated</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {tickets.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No support tickets found.
@@ -107,6 +109,12 @@ export default async function AdminSupportPage() {
                     <TextCell>{formatLabel(ticket.priority)}</TextCell>
                     <DateCell date={ticket.createdAt} />
                     <DateCell date={ticket.updatedAt} />
+                    <td className="px-4 py-3">
+                      <AdminSupportTicketForm
+                        ticket={ticket}
+                        path="/admin/support"
+                      />
+                    </td>
                   </tr>
                 ))
               )}

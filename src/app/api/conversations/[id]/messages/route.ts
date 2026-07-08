@@ -34,8 +34,8 @@ export async function GET(
       limit: searchParams.get("limit") ?? undefined,
     });
     const conversation = await getConversationForProfile(
+      current,
       id,
-      current.profileId,
       query
     );
     await markConversationDelivered(current, id);

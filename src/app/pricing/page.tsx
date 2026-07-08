@@ -1,6 +1,5 @@
-import { Check, X, Zap, Crown, Sparkles } from "lucide-react";
+import { Check, CreditCard, X, Zap, Crown, Sparkles } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
-import { CreditCard } from "lucide-react";
 
 const PLANS = [
   {
@@ -9,15 +8,23 @@ const PLANS = [
     icon: Zap,
     price: "$0",
     period: "forever",
-    description: "Perfect for casual punters and form checkers.",
+    description: "Full racing data access for casual punters and form checkers.",
     features: [
+      "All race data points",
       "Today's race cards (all AU tracks)",
-      "Basic form (last 6 starts)",
-      "Results (today + yesterday)",
+      "Full form and results",
+      "GPS tracking data",
       "Dog & track search",
-      "5 detailed lookups per day",
+      "Watchlists/basic research",
+      "Browse public marketplace listings",
+      "Save marketplace listings",
     ],
-    notIncluded: ["Full career history", "AI predictions", "API access"],
+    notIncluded: [
+      "No marketplace listing creation",
+      "No messaging trainers/sellers",
+      "No custom trainer, punter, business, or dog marketing pages",
+      "No automated winner cards",
+    ],
     cta: "Start Free",
     highlighted: false,
   },
@@ -25,21 +32,24 @@ const PLANS = [
     id: "pro",
     name: "Pro",
     icon: Sparkles,
-    price: "$12",
-    period: "/month or $99/year",
-    description: "For serious punters who want every edge.",
+    price: "$29",
+    period: "/month or $278.40/year",
+    description: "For marketplace sellers, trainers, and serious racing users.",
     features: [
       "Everything in Free",
-      "Full career history (every start)",
-      "Advanced statistics & box bias",
-      "Split times & sectionals",
-      "5-generation pedigrees",
-      "Breeding analytics",
-      "Speed maps & watchlists",
-      "5 years historical data",
-      "No ads",
+      "Message trainers and sellers about listings",
+      "Create marketplace listings",
+      "Custom trainer page",
+      "Custom punter page",
+      "Custom business page",
+      "Custom dog marketing pages",
+      "Automatic greyhound winner cards when your dog wins",
+      "Easy card-to-marketplace listing flow",
+      "Community feed posting",
+      "Community chat",
+      "Professional profile tools",
     ],
-    notIncluded: ["AI predictions", "API access"],
+    notIncluded: [],
     cta: "Go Pro",
     highlighted: true,
   },
@@ -47,25 +57,15 @@ const PLANS = [
     id: "pro_plus",
     name: "Pro+",
     icon: Crown,
-    price: "$29",
-    period: "/month or $249/year",
-    description: "The complete toolkit for professionals.",
-    features: [
-      "Everything in Pro",
-      "GPS tracking data",
-      "AI race predictions",
-      "AI speed maps (ML)",
-      "Performance forecasting",
-      "Custom analytics dashboard",
-      "API access (1,000 calls/day)",
-      "Data exports (CSV/JSON)",
-      "Priority support",
-    ],
+    price: "$49",
+    period: "/month",
+    description: "Coming soon. Not available for purchase yet.",
+    features: [],
     notIncluded: [],
-    cta: "Go Pro+",
+    cta: "Coming soon",
     highlighted: false,
   },
-];
+] as const;
 
 const FAQ = [
   {
@@ -133,18 +133,41 @@ export default function PricingPage() {
                 </div>
                 <p className="text-[13px] text-[hsl(var(--muted-foreground))] mb-5 mt-2 tracking-[-0.013em]">{plan.description}</p>
 
-                <a
-                  href={`/sign-in?plan=${plan.id}`}
-                  className={`mb-5 w-full text-center text-[13px] font-semibold ${
-                    plan.highlighted
-                      ? "giq-liquid-purple-button"
-                      : plan.name === "Pro+"
-                        ? "giq-button giq-button-gold"
-                        : "giq-button giq-button-carbon"
-                  }`}
-                >
-                  {plan.cta}
-                </a>
+                {plan.id === "free" ? (
+                  <a
+                    href="/sign-in?plan=free"
+                    className="giq-button giq-button-carbon mb-5 w-full text-center text-[13px] font-semibold"
+                  >
+                    {plan.cta}
+                  </a>
+                ) : plan.id === "pro_plus" ? (
+                  <button
+                    className="giq-button giq-button-carbon mb-5 w-full cursor-not-allowed text-center text-[13px] font-semibold opacity-60"
+                    disabled
+                    type="button"
+                  >
+                    {plan.cta}
+                  </button>
+                ) : (
+                  <div className="mb-5 grid gap-2">
+                    <CheckoutButton
+                      interval="monthly"
+                      plan={plan.id}
+                      primary={plan.highlighted}
+                      tone="carbon"
+                    >
+                      {plan.cta}
+                    </CheckoutButton>
+                    <CheckoutButton
+                      interval="yearly"
+                      plan={plan.id}
+                      primary={false}
+                      tone="carbon"
+                    >
+                      Pay yearly
+                    </CheckoutButton>
+                  </div>
+                )}
 
                 <ul className="space-y-2">
                   {plan.features.map((f) => (
@@ -167,8 +190,8 @@ export default function PricingPage() {
 
         <div className="mt-10 text-center">
           <p className="text-[13px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]">
-            greyhound-data.com Gold: ~$125 AUD/year. GreyhoundIQ Pro:{" "}
-            <span className="font-semibold text-[hsl(var(--primary-bright))]">$99 AUD/year</span>. That&apos;s 21% cheaper.
+            GreyhoundIQ Pro yearly:{" "}
+            <span className="font-semibold text-[hsl(var(--primary-bright))]">$278.40 AUD/year</span>. That&apos;s 20% off monthly pricing.
           </p>
         </div>
       </section>
@@ -218,5 +241,33 @@ export default function PricingPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function CheckoutButton({
+  children,
+  interval,
+  plan,
+  primary,
+  tone,
+}: {
+  children: string;
+  interval: "monthly" | "yearly";
+  plan: "pro";
+  primary: boolean;
+  tone: "carbon" | "gold";
+}) {
+  const className = primary
+    ? "giq-liquid-purple-button w-full text-center text-[13px] font-semibold"
+    : `giq-button ${tone === "gold" ? "giq-button-gold" : "giq-button-carbon"} w-full text-center text-[13px] font-semibold`;
+
+  return (
+    <form action="/api/billing/checkout" method="post">
+      <input name="plan" type="hidden" value={plan} />
+      <input name="interval" type="hidden" value={interval} />
+      <button className={className} type="submit">
+        {children}
+      </button>
+    </form>
   );
 }

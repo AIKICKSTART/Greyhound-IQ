@@ -1,10 +1,11 @@
+import "@/lib/workos-env";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import {
   displayNameForAuth,
   findUserForAuth,
   syncAuthUser,
 } from "@/lib/auth-sync";
-import { isModeratorRole } from "@/lib/auth-roles";
+import { isAdminRole, isModeratorRole } from "@/lib/auth-roles";
 import { prisma, safeQuery } from "@/lib/db";
 
 // Subscription tiers, ordered. Pricing: Free / Pro ($12) / Pro+ ($29).
@@ -116,10 +117,19 @@ export async function requireCurrentUserProfile(): Promise<CurrentUserProfile> {
 }
 
 export { isModeratorRole };
+export { assertPaidFeatureAccess } from "@/lib/tier-access";
 
 export async function requireModeratorProfile(): Promise<CurrentUserProfile> {
   const current = await requireCurrentUserProfile();
   if (!isModeratorRole(current.profileRole)) {
+    throw new Error("auth.forbidden");
+  }
+  return current;
+}
+
+export async function requireAdminProfile(): Promise<CurrentUserProfile> {
+  const current = await requireCurrentUserProfile();
+  if (!isAdminRole(current.profileRole)) {
     throw new Error("auth.forbidden");
   }
   return current;

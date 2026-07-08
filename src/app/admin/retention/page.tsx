@@ -1,5 +1,10 @@
 import Link from "next/link";
 
+import {
+  AdminEnabledForm,
+  AdminRetentionForms,
+  AdminStatusForm,
+} from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -55,13 +60,17 @@ export default async function AdminRetentionPage() {
           Retention
         </h1>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Read-only retention policies and deletion jobs using only the approved
-          operational identifiers, statuses, schedules, and timestamps.
+          Manage retention policies and schedule deletion jobs using only
+          approved operational identifiers, statuses, schedules, and timestamps.
         </p>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <MetricCard label="Policies shown" value={policies.length} />
           <MetricCard label="Deletion jobs shown" value={jobs.length} />
+        </div>
+
+        <div className="mt-6">
+          <AdminRetentionForms path="/admin/retention" />
         </div>
       </section>
 
@@ -81,7 +90,7 @@ export default async function AdminRetentionPage() {
         </div>
 
         <div className="giq-table-shell mt-6 overflow-x-auto">
-          <table className="w-full min-w-[960px]">
+          <table className="w-full min-w-[1160px]">
             <thead>
               <tr className="giq-table-head">
                 <th className="px-4 py-3 text-left">Policy ID</th>
@@ -91,13 +100,14 @@ export default async function AdminRetentionPage() {
                 <th className="px-4 py-3 text-left">Enabled</th>
                 <th className="px-4 py-3 text-left">Created</th>
                 <th className="px-4 py-3 text-left">Updated</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {policies.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No retention policies found.
@@ -117,6 +127,14 @@ export default async function AdminRetentionPage() {
                     </td>
                     <DateCell date={policy.createdAt} emptyLabel="Not recorded" />
                     <DateCell date={policy.updatedAt} emptyLabel="Not recorded" />
+                    <td className="px-4 py-3">
+                      <AdminEnabledForm
+                        resource="retentionPolicy"
+                        id={policy.id}
+                        enabled={policy.enabled}
+                        path="/admin/retention"
+                      />
+                    </td>
                   </tr>
                 ))
               )}
@@ -141,7 +159,7 @@ export default async function AdminRetentionPage() {
         </div>
 
         <div className="giq-table-shell mt-6 overflow-x-auto">
-          <table className="w-full min-w-[1280px]">
+          <table className="w-full min-w-[1480px]">
             <thead>
               <tr className="giq-table-head">
                 <th className="px-4 py-3 text-left">Job ID</th>
@@ -153,13 +171,14 @@ export default async function AdminRetentionPage() {
                 <th className="px-4 py-3 text-left">Completed</th>
                 <th className="px-4 py-3 text-left">Created</th>
                 <th className="px-4 py-3 text-left">Updated</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
               {jobs.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No deletion jobs found.
@@ -177,6 +196,15 @@ export default async function AdminRetentionPage() {
                     <DateCell date={job.completedAt} emptyLabel="Not completed" />
                     <DateCell date={job.createdAt} emptyLabel="Not recorded" />
                     <DateCell date={job.updatedAt} emptyLabel="Not recorded" />
+                    <td className="px-4 py-3">
+                      <AdminStatusForm
+                        resource="deletionJob"
+                        id={job.id}
+                        currentStatus={job.status}
+                        statuses={["pending", "cancelled", "completed", "failed"]}
+                        path="/admin/retention"
+                      />
+                    </td>
                   </tr>
                 ))
               )}

@@ -3,6 +3,7 @@ import NextImage from "next/image";
 import {
   Flag,
   ImageIcon,
+  Lock,
   MessageSquare,
   Paperclip,
   ShieldAlert,
@@ -19,7 +20,7 @@ import {
 } from "@/components/instant-feed-controls";
 import { PageHero } from "@/components/page-hero";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, hasTier } from "@/lib/auth";
 import {
   feedPostMediaUrl,
   getFeedPostsForViewer,
@@ -37,6 +38,7 @@ export const metadata = {
 
 export default async function FeedPage() {
   const user = await getCurrentUser();
+  const canPost = Boolean(user && hasTier(user.tier, "pro"));
   const realtimeChannel = publicFeedRealtimeChannel();
   const [topics, posts] = await Promise.all([
     getFeedTopics(),
@@ -88,7 +90,7 @@ export default async function FeedPage() {
 
       <section className="mx-auto grid max-w-6xl gap-6 px-6 py-12 lg:grid-cols-[minmax(0,1fr)_320px]">
         <main className="space-y-4">
-          {user ? (
+          {canPost ? (
             <section className="giq-panel p-5">
               <div className="mb-4 flex items-center gap-3">
                 <MessageSquare className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
@@ -97,6 +99,25 @@ export default async function FeedPage() {
                 </h2>
               </div>
               <InstantFeedPostComposer topics={topics} />
+            </section>
+          ) : user ? (
+            <section className="giq-panel p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <Lock className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+                <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
+                  Upgrade to post
+                </h2>
+              </div>
+              <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
+                Free accounts can read the community feed. Posting, comments,
+                and reactions are included with Pro.
+              </p>
+              <Link
+                href="/pricing"
+                className="giq-button giq-button-primary mt-4 w-fit px-4 text-[13px] font-semibold"
+              >
+                View Pro
+              </Link>
             </section>
           ) : (
             <section className="giq-panel p-5">
@@ -127,6 +148,7 @@ export default async function FeedPage() {
               <FeedPostCard
                 key={post.id}
                 post={post}
+                canInteract={canPost}
                 currentProfileId={user?.profileId ?? null}
                 signedIn={Boolean(user)}
               />
@@ -180,10 +202,12 @@ export default async function FeedPage() {
 type FeedPostRow = Awaited<ReturnType<typeof getFeedPostsForViewer>>[number];
 
 function FeedPostCard({
+  canInteract,
   post,
   currentProfileId,
   signedIn,
 }: {
+  canInteract: boolean;
   post: FeedPostRow;
   currentProfileId: string | null;
   signedIn: boolean;
@@ -226,7 +250,7 @@ function FeedPostCard({
           postId={post.id}
           initialCount={post._count.reactions}
           initiallyLiked={liked}
-          disabled={!signedIn}
+          disabled={!canInteract}
         />
         <span className="giq-status-pill">
           <MessageSquare className="h-3.5 w-3.5 text-[hsl(var(--primary-bright))]" />
@@ -249,7 +273,7 @@ function FeedPostCard({
         </div>
       )}
 
-      {signedIn && (
+      {canInteract && (
         <div className="mt-4 grid gap-3 md:grid-cols-[1fr_220px]">
           <InstantFeedCommentForm postId={post.id} />
           <form action={reportAction} className="flex gap-2">
@@ -278,6 +302,11 @@ function FeedPostCard({
             </form>
           )}
         </div>
+      )}
+      {signedIn && !canInteract && (
+        <p className="mt-4 text-[12px] text-[hsl(var(--muted-foreground))]">
+          Upgrade to Pro to comment or react.
+        </p>
       )}
     </article>
   );

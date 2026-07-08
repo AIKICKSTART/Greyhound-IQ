@@ -26,6 +26,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Image, { getImageProps } from "next/image";
+import "@/lib/workos-env";
 import { signOut } from "@workos-inc/authkit-nextjs";
 import {
   Sheet,
@@ -377,7 +378,12 @@ export async function SiteHeader() {
   const [unreadMessages, unreadNotifications] =
     user?.profileId && user.dbUserId
       ? await Promise.all([
-          countUnreadMessagesTotal(user.profileId),
+          countUnreadMessagesTotal({
+            dbUserId: user.dbUserId,
+            profileId: user.profileId,
+            profileRole: user.role ?? "member",
+            tier: user.tier,
+          }),
           countUnreadNotificationsForUser(user.dbUserId),
         ])
       : [0, 0];

@@ -1,5 +1,5 @@
 import { createAuditLog } from "@/lib/account-service";
-import type { CurrentUserProfile } from "@/lib/auth";
+import type { CurrentUserProfile } from "@/lib/auth-types";
 import { cleanText } from "@/lib/content";
 import { prisma, safeQuery } from "@/lib/db";
 

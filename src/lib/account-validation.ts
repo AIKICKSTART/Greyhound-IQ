@@ -44,6 +44,12 @@ export const profileUpdateSchema = z.object({
   phone: optionalText(40),
 });
 
+export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
+
+export function hasProfileMarketingFields(value: ProfileUpdateInput) {
+  return Boolean(value.kennelName || value.kennelPrefix || value.website || value.phone);
+}
+
 export const dogOwnershipRoleSchema = z.enum([
   "owner",
   "breeder",

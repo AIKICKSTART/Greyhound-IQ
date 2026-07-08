@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
-import { profileUpdateSchema } from "@/lib/account-validation";
-import { requireCurrentUserProfile } from "@/lib/auth";
+import {
+  hasProfileMarketingFields,
+  profileUpdateSchema,
+} from "@/lib/account-validation";
+import { assertPaidFeatureAccess, hasTier, requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { prisma } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const PROFILE_UPDATE_RATE_LIMIT = 10;
@@ -65,11 +69,19 @@ export async function PATCH(request: Request) {
     }
 
     const parsed = profileUpdateSchema.parse(await request.json());
+    if (hasProfileMarketingFields(parsed)) assertPaidFeatureAccess(current);
+    const data = hasTier(current.tier, "pro")
+      ? parsed
+      : {
+          displayName: parsed.displayName,
+          bio: parsed.bio,
+          state: parsed.state,
+        };
 
-    const profile = await prisma.profile.update({
+    const profile = await withDbRequestContext(current, (tx) => tx.profile.update({
       where: { id: current.profileId },
-      data: parsed,
-    });
+      data,
+    }));
 
     return NextResponse.json({ item: profile });
   } catch (err) {

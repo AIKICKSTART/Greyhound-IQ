@@ -22,6 +22,7 @@ import {
   toggleConversationMessageReaction,
 } from "@/lib/conversation-service";
 import { prisma } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 import {
   createFeedCommentForCurrentUser,
   createFeedPostForCurrentUser,
@@ -155,7 +156,7 @@ export async function runCommunityFlowProbe({
     });
     assert.ok(deliveryReceipt, "delivery receipt row exists after markConversationDelivered");
 
-    const unreadMapBefore = await countUnreadMessagesByConversation(buyer.profileId);
+    const unreadMapBefore = await countUnreadMessagesByConversation(buyer);
     assert.equal(
       unreadMapBefore.get(conversation.id),
       1,
@@ -174,7 +175,7 @@ export async function runCommunityFlowProbe({
     assert.equal(await markConversationRead(buyer, conversation.id), 1);
 
     // ── Unread count + read receipt ──────────────────────────────────────────
-    const unreadMapAfterRead = await countUnreadMessagesByConversation(buyer.profileId);
+    const unreadMapAfterRead = await countUnreadMessagesByConversation(buyer);
     assert.equal(
       unreadMapAfterRead.get(conversation.id) ?? 0,
       0,
@@ -207,18 +208,21 @@ export async function runCommunityFlowProbe({
 
     // ── Pagination ───────────────────────────────────────────────────────────
     const bulkBase = Date.now();
-    for (let i = 0; i < 60; i++) {
-      await prisma.message.create({
-        data: {
-          conversationId: conversation.id,
-          senderId: seller.profileId,
-          recipientId: buyer.profileId,
-          body: `pagination-test-msg-${i}`,
-          createdAt: new Date(bulkBase + i * 10),
-        },
-      });
-    }
-    const page1 = await getConversationForProfile(conversation.id, seller.profileId);
+    // System context: raw bulk inserts must clear the pro-write trigger.
+    await withDbSystemContext(async (tx) => {
+      for (let i = 0; i < 60; i++) {
+        await tx.message.create({
+          data: {
+            conversationId: conversation.id,
+            senderId: seller.profileId,
+            recipientId: buyer.profileId,
+            body: `pagination-test-msg-${i}`,
+            createdAt: new Date(bulkBase + i * 10),
+          },
+        });
+      }
+    });
+    const page1 = await getConversationForProfile(seller, conversation.id);
     assert.equal(page1.messages.length, 50, "default returns 50 messages");
     const newestInPage1 = page1.messages[page1.messages.length - 1];
     assert.equal(
@@ -227,7 +231,7 @@ export async function runCommunityFlowProbe({
       "newest message is the last bulk message",
     );
     const oldestInPage1 = page1.messages[0];
-    const page2 = await getConversationForProfile(conversation.id, seller.profileId, {
+    const page2 = await getConversationForProfile(seller, conversation.id, {
       before: oldestInPage1.id,
     });
     assert.ok(page2.messages.length > 0, "page2 has older messages");
@@ -261,7 +265,10 @@ export async function runCommunityFlowProbe({
     // Decline: room ended + invite declined
     const declineRoom = await createCallRoomForConversation(seller, conversation.id);
     ids.callRooms.add(declineRoom.id);
-    const pendingInvite = await getPendingCallInviteForConversation(conversation.id);
+    const pendingInvite = await getPendingCallInviteForConversation(
+      seller,
+      conversation.id
+    );
     assert.ok(pendingInvite, "pending invite exists after room creation");
     assert.equal(pendingInvite.toProfileId, buyer.profileId, "invite targets buyer");
 
@@ -495,7 +502,7 @@ async function createProbeCurrent(
     firstName,
     lastName,
     name: displayName,
-    tier: "free",
+    tier: "pro",
     role: profile.role,
     isBanned: false,
     deletionRequestedAt: null,

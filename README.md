@@ -11,7 +11,7 @@ Current delivery model:
 - **App:** Next.js 16 App Router
 - **Database:** Supabase Postgres via Prisma
 - **Auth:** WorkOS AuthKit only
-- **Billing:** Lago is the billing and subscription source of truth
+- **Billing:** Stripe Checkout/Billing for subscriptions; Lago remains legacy metering/snapshot infrastructure
 - **Storage/runtime integrations:** Supabase Storage, internal maintenance APIs
 - **Production hosting:** Google Cloud Run on Google Cloud
 - **Staging hosting:** Google Cloud Run staging service
@@ -62,7 +62,8 @@ Copy `.env.example` to `.env`. Required production-class values include:
 - `WORKOS_COOKIE_PASSWORD`
 - `WORKOS_COOKIE_DOMAIN` for apex/www production cookies
 - `NEXT_PUBLIC_WORKOS_REDIRECT_URI`
-- Lago billing credentials and webhook secrets
+- Stripe Billing credentials, price IDs, and webhook secrets
+- Lago billing credentials and webhook secrets for legacy metering/snapshots
 - `INTERNAL_API_SECRET`
 - `CRON_SECRET`
 
@@ -157,7 +158,8 @@ The production deployment path is Google Cloud Run:
 - Production runs on `greyhoundiq-web-prod` after manual approval.
 - Staging runs on `greyhoundiq-web-staging`.
 - WorkOS is the only production auth system.
-- Lago is the billing and subscription source of truth.
+- Stripe is the subscription checkout and payment path.
+- Lago remains legacy billing snapshot/metering infrastructure until removed.
 - Supabase remains the database/storage provider.
 
 See [docs/gcp-cloud-run-migration-plan.md](docs/gcp-cloud-run-migration-plan.md).

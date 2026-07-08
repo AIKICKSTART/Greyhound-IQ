@@ -27,6 +27,7 @@ export interface LiveRunner {
   finishingPosition?: number;
   runningTime?: number;
   margin?: number;
+  prizeMoneyWon?: number;
   splitTime?: number;
   sectionals?: string;
 }

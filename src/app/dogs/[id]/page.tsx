@@ -4,7 +4,7 @@ import { BadgeCheck, Clock, Lock, ShieldCheck } from "lucide-react";
 import { claimDogOwnership } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
-import { getDogById } from "@/lib/queries";
+import { getDogById, getDogPrizeMoney } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,11 @@ export default async function DogProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [dog, user] = await Promise.all([getDogById(id), getCurrentUser()]);
+  const [dog, user, prize] = await Promise.all([
+    getDogById(id),
+    getCurrentUser(),
+    getDogPrizeMoney(id),
+  ]);
   if (!dog) notFound();
 
   const verifiedOwnership = dog.ownership.filter((entry) => entry.verified);
@@ -49,6 +53,17 @@ export default async function DogProfilePage({
 
   const allTimes = dog.formEntries.filter((e) => e.time).map((e) => e.time!);
   const bestTime = allTimes.length > 0 ? Math.min(...allTimes) : null;
+
+  // Per-race prize money only exists on Runner/Result rows (recent live races);
+  // historical formEntries carry none. A runner with no Result hasn't finished,
+  // so it's an upcoming start (show the race's prize pool); finished starts show
+  // prizeMoneyWon.
+  const finishedStarts = dog.runners.filter((r) => r.result);
+  const upcomingStarts = dog.runners.filter((r) => !r.result);
+  const hasPrizeData =
+    prize.careerWon > 0 ||
+    finishedStarts.some((r) => r.result?.prizeMoneyWon != null) ||
+    upcomingStarts.some((r) => r.race.prizeMoney != null);
 
   return (
     <div className="giq-dog-detail-page mx-auto max-w-4xl px-6 py-10">
@@ -255,6 +270,111 @@ export default async function DogProfilePage({
         </div>
       )}
 
+      {/* Prize money */}
+      {hasPrizeData && (
+        <section className="giq-panel mb-6 p-6">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))]">
+              Prize Money
+            </h2>
+            <div className="text-right">
+              <div className="text-2xl font-semibold tabular-nums tracking-[-0.02em] text-[hsl(var(--secondary))]">
+                {formatPrize(prize.careerWon)}
+              </div>
+              <div className="text-[12px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]">
+                Career winnings
+              </div>
+            </div>
+          </div>
+
+          {prize.byPosition.length > 0 && (
+            <div className="giq-dog-stat-grid grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {prize.byPosition.map((row) => (
+                <div key={row.position} className="giq-subpanel p-4">
+                  <div className="text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))]">
+                    {ordinal(row.position)} ({row.count})
+                  </div>
+                  <div className="mt-1 text-[15px] font-semibold tabular-nums text-[hsl(var(--foreground))]">
+                    {formatPrize(row.won)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {finishedStarts.some((r) => r.result?.prizeMoneyWon != null) && (
+            <div className="mt-5">
+              <h3 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-[hsl(var(--subtle-foreground))]">
+                Recent results
+              </h3>
+              <div className="space-y-2">
+                {finishedStarts
+                  .filter((r) => r.result?.prizeMoneyWon != null)
+                  .map((r) => (
+                    <div
+                      key={r.id}
+                      className="giq-subpanel flex items-center justify-between gap-3 p-3"
+                    >
+                      <div className="text-[13px] text-[hsl(var(--foreground))]">
+                        {r.race.meeting.track?.name ?? "Unknown track"}
+                        <span className="ml-2 text-[12px] text-[hsl(var(--subtle-foreground))]">
+                          {r.race.raceTime.toLocaleDateString("en-AU", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "2-digit",
+                          })}
+                          {r.result?.finishingPosition != null
+                            ? ` · Finish ${r.result.finishingPosition}`
+                            : ""}
+                        </span>
+                      </div>
+                      <div className="text-[13px] font-semibold tabular-nums text-[hsl(var(--secondary))]">
+                        {formatPrize(r.result!.prizeMoneyWon!)}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {upcomingStarts.some((r) => r.race.prizeMoney != null) && (
+            <div className="mt-5">
+              <h3 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-[hsl(var(--subtle-foreground))]">
+                Upcoming
+              </h3>
+              <div className="space-y-2">
+                {upcomingStarts
+                  .filter((r) => r.race.prizeMoney != null)
+                  .map((r) => (
+                    <div
+                      key={r.id}
+                      className="giq-subpanel flex items-center justify-between gap-3 p-3"
+                    >
+                      <div className="text-[13px] text-[hsl(var(--foreground))]">
+                        {r.race.meeting.track?.name ?? "Unknown track"}
+                        <span className="ml-2 text-[12px] text-[hsl(var(--subtle-foreground))]">
+                          {r.race.raceTime.toLocaleDateString("en-AU", {
+                            day: "2-digit",
+                            month: "short",
+                          })}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[13px] font-semibold tabular-nums text-[hsl(var(--secondary))]">
+                          {formatPrize(r.race.prizeMoney!)}
+                        </div>
+                        <div className="text-[11px] text-[hsl(var(--subtle-foreground))]">
+                          Prize pool
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       {/* Form table */}
       <div className="giq-table-shell">
         <div className="border-b border-white/[0.06] p-5">
@@ -358,6 +478,21 @@ function OwnershipBadge({ verified }: { verified: boolean }) {
       {verified ? "Verified" : "Pending"}
     </span>
   );
+}
+
+function formatPrize(value: number) {
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function ordinal(position: number) {
+  if (position === 1) return "Wins";
+  if (position === 2) return "2nds";
+  if (position === 3) return "3rds";
+  return `${position}th`;
 }
 
 function formatRole(role: string) {

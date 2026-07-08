@@ -4,8 +4,17 @@
 // to: Supabase (REST + realtime ws), LiveKit, and the race-replay media hosts.
 const replayFrameOrigins =
   "https://www.youtube-nocookie.com https://player.vimeo.com";
+// Hosts the resolved replay streams actually live on. thedogs serves recent
+// replays as HLS from a CloudFront distribution and older ones as .mp4 from
+// mediatdogs.skyracing.com.au (neither is www.thedogs.com.au). racing-queensland
+// uses mediarqs.skyracing.com.au (.mp4); tasracing uses its S3 bucket (HLS).
 const replayMediaOrigins =
-  "https://www.thedogs.com.au https://mediarqs.skyracing.com.au https://tasracing-race-replays.s3.ap-southeast-2.amazonaws.com";
+  "https://www.thedogs.com.au https://d2w8yyjcswa0zt.cloudfront.net https://mediatdogs.skyracing.com.au https://mediarqs.skyracing.com.au https://tasracing-race-replays.s3.ap-southeast-2.amazonaws.com";
+// HLS (.m3u8) hosts also need connect-src, because hls.js XHR-fetches the
+// manifest + segments. The .mp4 hosts play via media.src alone, so they are
+// intentionally media-src only.
+const replayStreamConnectOrigins =
+  "https://d2w8yyjcswa0zt.cloudfront.net https://tasracing-race-replays.s3.ap-southeast-2.amazonaws.com";
 
 export function contentSecurityPolicy(nonce: string) {
   const supa = safeOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
@@ -33,7 +42,7 @@ export function contentSecurityPolicy(nonce: string) {
     "style-src 'self' 'unsafe-inline'",
     join("img-src 'self' data: blob:", supa),
     join("media-src 'self' blob:", supa, replayMediaOrigins),
-    join("connect-src 'self'", supa, supaWs, lk, devWs),
+    join("connect-src 'self'", supa, supaWs, lk, replayStreamConnectOrigins, devWs),
     join("frame-src 'self'", replayFrameOrigins),
     "worker-src 'self' blob:",
     "font-src 'self' data:",

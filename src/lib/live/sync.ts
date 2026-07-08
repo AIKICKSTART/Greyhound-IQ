@@ -192,12 +192,27 @@ export async function syncLiveData(
       counts,
       await upsertSystemMeetings(meetings)
     );
+    await refreshSireLeaderboard();
   }
 
   console.log(
     `[live-sync] Synced ${counts.meetings} meetings, ${counts.races} races, ${counts.runners} runners, ${counts.results} results via ${provider.name} (${scope}).`
   );
   return { synced: true, provider: provider.name, scope, ...counts };
+}
+
+// Hourly (results cron cadence) refresh of the breeding leaderboard
+// materialized view. CONCURRENTLY keeps /breeding readable during refresh;
+// failures are logged and never break the sync itself.
+async function refreshSireLeaderboard() {
+  try {
+    await prisma.$executeRawUnsafe(
+      "REFRESH MATERIALIZED VIEW CONCURRENTLY giq_sire_leaderboard"
+    );
+    console.log("[live-sync] Refreshed giq_sire_leaderboard.");
+  } catch (err) {
+    console.error("[live-sync] giq_sire_leaderboard refresh failed:", err);
+  }
 }
 
 function addCounts(total: SyncCounts, next: SyncCounts) {

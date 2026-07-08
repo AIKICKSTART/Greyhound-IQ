@@ -1,8 +1,9 @@
 import { cache } from "react";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
+import { cached } from "@/lib/ttl-cache";
 import { getApproximateTableCounts } from "@/lib/db-stats";
 import {
   formatRaceDateInput,
@@ -211,25 +212,96 @@ export async function getPreviousRaceVideoRunners(raceId: string) {
   );
 }
 
-export async function searchDogs(query: string, limit = 20) {
-  if (!query || query.length < 2) return [];
-  return safeQuery(
+// Minimal payload: only the fields the search dropdown renders. Heavy relations
+// (form entries, runners, ownership) stay on the profile page. formEntries is a
+// _count, not a row fetch, so it's a cheap indexed subquery, not an unbounded include.
+const dogSearchSelect = {
+  id: true,
+  name: true,
+  colour: true,
+  sex: true,
+  trainer: { select: { name: true } },
+  sire: { select: { name: true } },
+  dam: { select: { name: true } },
+  _count: { select: { formEntries: true } },
+} as const satisfies Prisma.DogSelect;
+
+type DogSearchResult = Prisma.DogGetPayload<{ select: typeof dogSearchSelect }>;
+
+export async function searchDogs(
+  query: string,
+  limit = 20
+): Promise<DogSearchResult[]> {
+  const trimmed = query?.trim().replace(/\s+/g, " ").slice(0, 80);
+  if (!trimmed || trimmed.length < 2) return [];
+
+  // Each whitespace-separated word must appear somewhere in the name (AND). The
+  // trigram GIN index on Dog.name makes the ILIKE '%word%' scans index-assisted.
+  const words = trimmed.split(" ");
+  const prefixPattern = `${escapeLikePattern(trimmed)}%`;
+  const wordConditions = Prisma.join(
+    words.map(
+      (word) =>
+        Prisma.sql`d.name ILIKE ${`%${escapeLikePattern(word)}%`} ESCAPE '\\'`
+    ),
+    " AND "
+  );
+
+  // Raw query orders ids (exact-prefix first, then trigram similarity); the rich
+  // include shape is hydrated below, preserving that order.
+  const ranked = await safeQuery(
+    () =>
+      prisma.$queryRaw<{ id: string }[]>`
+        SELECT d.id
+        FROM "Dog" d
+        WHERE ${wordConditions}
+        ORDER BY
+          CASE WHEN d.name ILIKE ${prefixPattern} ESCAPE '\\' THEN 1 ELSE 0 END DESC,
+          similarity(d.name, ${trimmed}) DESC,
+          d.name ASC
+        LIMIT ${limit}
+      `,
+    []
+  );
+
+  if (ranked.length === 0) return [];
+  const ids = ranked.map((row) => row.id);
+
+  const dogs = await safeQuery(
     () =>
       prisma.dog.findMany({
-        where: {
-          name: { contains: query },
-        },
-        include: {
-          trainer: true,
-          sire: { select: { name: true } },
-          dam: { select: { name: true } },
-          _count: { select: { formEntries: true } },
-        },
-        take: limit,
-        orderBy: { name: "asc" },
+        where: { id: { in: ids } },
+        select: dogSearchSelect,
       }),
     []
   );
+
+  const byId = new Map(dogs.map((dog) => [dog.id, dog]));
+  return ids
+    .map((id) => byId.get(id))
+    .filter((dog): dog is DogSearchResult => dog != null);
+}
+
+const DOG_TALLY_TTL_MS = 10 * 60 * 1000;
+
+export type DogSearchTallies = {
+  dogs: number;
+  races: number;
+  results: number;
+};
+
+// Approximate row counts (pg_class.reltuples) for the dog-search landing page.
+// Exact COUNT(*) over 5.6M+ rows is expensive; estimates are effectively free
+// and accurate enough for a "national database" headline. Cached per instance.
+export async function getDogSearchTallies(): Promise<DogSearchTallies> {
+  return cached("dog-search-tallies", DOG_TALLY_TTL_MS, async () => {
+    const counts = await getApproximateTableCounts(["Dog", "Race", "Result"]);
+    return {
+      dogs: counts.get("Dog") ?? 0,
+      races: counts.get("Race") ?? 0,
+      results: counts.get("Result") ?? 0,
+    };
+  });
 }
 
 export const getDogById = cache(async (id: string) => {
@@ -276,6 +348,55 @@ export const getDogById = cache(async (id: string) => {
   );
 });
 
+export type DogPrizeMoney = {
+  careerWon: number;
+  // Winnings + count grouped by finishing position (only positions with a
+  // non-null prizeMoneyWon somewhere in the dog's results).
+  byPosition: { position: number; count: number; won: number }[];
+};
+
+// One aggregate + one grouped query over Result joined to Runner.dogId. Never
+// loads rows into JS; both scans ride Runner_dogId_idx. Career figures are
+// independent of the take:20 runners cap on getDogById.
+export const getDogPrizeMoney = cache(
+  async (dogId: string): Promise<DogPrizeMoney> => {
+    const [total, grouped] = await Promise.all([
+      safeQuery(
+        () =>
+          prisma.result.aggregate({
+            where: { prizeMoneyWon: { not: null }, runner: { dogId } },
+            _sum: { prizeMoneyWon: true },
+          }),
+        null
+      ),
+      safeQuery(
+        () =>
+          prisma.result.groupBy({
+            by: ["finishingPosition"],
+            where: {
+              prizeMoneyWon: { not: null },
+              finishingPosition: { not: null },
+              runner: { dogId },
+            },
+            _sum: { prizeMoneyWon: true },
+            _count: { _all: true },
+            orderBy: { finishingPosition: "asc" },
+          }),
+        []
+      ),
+    ]);
+
+    return {
+      careerWon: total?._sum.prizeMoneyWon ?? 0,
+      byPosition: grouped.map((row) => ({
+        position: row.finishingPosition!,
+        count: row._count._all,
+        won: row._sum.prizeMoneyWon ?? 0,
+      })),
+    };
+  }
+);
+
 type RecentResultsFilters = {
   date?: string | null;
   trackId?: string | null;
@@ -283,6 +404,16 @@ type RecentResultsFilters = {
 };
 
 export async function getRecentResults(filters: RecentResultsFilters = {}) {
+  // The unfiltered default view is identical for every visitor — cache it.
+  if (!filters.date && !filters.trackId) {
+    return cached("results:recent:default", 60_000, () =>
+      fetchRecentResults(filters)
+    );
+  }
+  return fetchRecentResults(filters);
+}
+
+async function fetchRecentResults(filters: RecentResultsFilters = {}) {
   const selectedDate = normaliseRaceDateInput(filters.date);
   const raceFilters: Prisma.RaceWhereInput[] = [
     { runners: { some: { result: { isNot: null } } } },
@@ -326,44 +457,45 @@ export async function getRecentResults(filters: RecentResultsFilters = {}) {
   );
 }
 
-export async function getResultFilterOptions() {
-  const [tracks, dates] = await Promise.all([
-    safeQuery(
-      () =>
-        prisma.track.findMany({
-          where: {
-            meetings: {
-              some: {
-                races: {
-                  some: {
-                    runners: { some: { result: { isNot: null } } },
-                  },
-                },
-              },
-            },
-          },
-          orderBy: [{ state: "asc" }, { name: "asc" }],
-          select: { id: true, name: true, state: true },
-        }),
-      []
-    ),
-    safeQuery(
-      () =>
-        prisma.$queryRaw<{ date: string; races: number }[]>`
-          SELECT to_char(((ra."raceTime" AT TIME ZONE 'UTC') AT TIME ZONE 'Australia/Sydney')::date, 'YYYY-MM-DD') AS date,
-                 COUNT(DISTINCT ra.id)::int AS races
-          FROM "Result" res
-          JOIN "Runner" rn ON rn.id = res."runnerId"
-          JOIN "Race" ra ON ra.id = rn."raceId"
-          GROUP BY 1
-          ORDER BY 1 DESC
-          LIMIT 30
-        `,
-      []
-    ),
-  ]);
+// Bounded to a recent window and cached: the previous versions aggregated the
+// full 5.6M-row Result history (and a 4-level nested EXISTS for tracks) on
+// every page view, which saturated the DB and hung /results.
+const RESULT_FILTER_WINDOW_DAYS = 45;
 
-  return { tracks, dates };
+export async function getResultFilterOptions() {
+  return cached("results:filter-options", 5 * 60_000, async () => {
+    const [tracks, dates] = await Promise.all([
+      safeQuery(
+        () =>
+          prisma.$queryRaw<{ id: string; name: string; state: string }[]>`
+            SELECT DISTINCT t.id, t.name, t.state
+            FROM "Race" ra
+            JOIN "Meeting" m ON m.id = ra."meetingId"
+            JOIN "Track" t ON t.id = m."trackId"
+            WHERE ra."raceTime" >= now() - make_interval(days => ${RESULT_FILTER_WINDOW_DAYS})
+              AND EXISTS (SELECT 1 FROM "Result" res WHERE res."raceId" = ra.id)
+            ORDER BY t.state ASC, t.name ASC
+          `,
+        []
+      ),
+      safeQuery(
+        () =>
+          prisma.$queryRaw<{ date: string; races: number }[]>`
+            SELECT to_char(((ra."raceTime" AT TIME ZONE 'UTC') AT TIME ZONE 'Australia/Sydney')::date, 'YYYY-MM-DD') AS date,
+                   COUNT(ra.id)::int AS races
+            FROM "Race" ra
+            WHERE ra."raceTime" >= now() - make_interval(days => ${RESULT_FILTER_WINDOW_DAYS})
+              AND EXISTS (SELECT 1 FROM "Result" res WHERE res."raceId" = ra.id)
+            GROUP BY 1
+            ORDER BY 1 DESC
+            LIMIT 30
+          `,
+        []
+      ),
+    ]);
+
+    return { tracks, dates };
+  });
 }
 
 export async function getUpcomingRaces(days = 7) {
@@ -1817,26 +1949,22 @@ export interface SireLeaderRow {
 }
 
 export async function getSireLeaderboard(limit = 10): Promise<SireLeaderRow[]> {
-  const rows = await safeQuery(
-    () =>
-      prisma.$queryRaw<
-        { name: string; progeny: number; winners: number; earnings: number }[]
-      >`
-        SELECT s.name AS name,
-               COUNT(DISTINCT child.id)::int AS progeny,
-               COUNT(DISTINCT child.id) FILTER (WHERE res."finishingPosition" = 1)::int AS winners,
-               COALESCE(SUM(ra."prizeMoney") FILTER (WHERE res."finishingPosition" = 1), 0)::float AS earnings
-        FROM "Dog" s
-        JOIN "Dog" child ON child."sireId" = s.id
-        LEFT JOIN "Runner" rn ON rn."dogId" = child.id
-        LEFT JOIN "Result" res ON res."runnerId" = rn.id
-        LEFT JOIN "Race" ra ON ra.id = rn."raceId"
-        GROUP BY s.id, s.name
-        HAVING COUNT(DISTINCT child.id) > 0
-        ORDER BY winners DESC, progeny DESC
-        LIMIT ${limit}
-      `,
-    []
+  // Served from the giq_sire_leaderboard materialized view (refreshed hourly
+  // by the live-sync results cron). The inline aggregation took 200s+ across
+  // Dog x Runner(6.4M) x Result(5.6M) and hung /breeding.
+  const rows = await cached(`breeding:sire-leaderboard:${limit}`, 5 * 60_000, () =>
+    safeQuery(
+      () =>
+        prisma.$queryRaw<
+          { name: string; progeny: number; winners: number; earnings: number }[]
+        >`
+          SELECT name, progeny, winners, earnings
+          FROM giq_sire_leaderboard
+          ORDER BY winners DESC, progeny DESC
+          LIMIT ${limit}
+        `,
+      []
+    )
   );
   return rows.map((r) => ({
     name: r.name,

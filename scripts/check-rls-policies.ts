@@ -147,6 +147,57 @@ if (!/FORCE ROW LEVEL SECURITY/.test(forceMigrationSql)) {
   findings.push("force-RLS migration must FORCE ROW LEVEL SECURITY");
 }
 
+// Static gate for the remaining-tables migration: every newly protected table
+// must declare both ENABLE and FORCE ROW LEVEL SECURITY in that migration file.
+const remainingRlsSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260708190000_add_rls_remaining_tables",
+    "migration.sql"
+  ),
+  "utf8"
+);
+const remainingRlsTables = [
+  "TermsAcceptance",
+  "ConsentEvent",
+  "MarketingPreference",
+  "Organization",
+  "Membership",
+  "OrganizationInvitation",
+  "SupportTicket",
+  "SupportMessage",
+  "Feedback",
+  "BugReport",
+  "RetentionPolicy",
+  "DeletionJob",
+  "ExportArtifact",
+  "DogOwnership",
+  "ListingReport",
+  "ListingModerationAction",
+  "ListingView",
+  "TrustSafetyFlag",
+  "BannedPhrase",
+  "MessageModerationAction",
+  "AgentRun",
+  "AgentRunUsage",
+  "MemoryEntry",
+  "ConversationContext",
+  "AdminAction",
+  "JobRun",
+  "DataSourceHealth",
+  "Report",
+];
+for (const table of remainingRlsTables) {
+  if (!remainingRlsSql.includes(`ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY`)) {
+    findings.push(`${table} RLS enable missing in remaining-tables migration`);
+  }
+  if (!remainingRlsSql.includes(`ALTER TABLE "${table}" FORCE ROW LEVEL SECURITY`)) {
+    findings.push(`${table} RLS force missing in remaining-tables migration`);
+  }
+}
+
 void main();
 
 async function main() {

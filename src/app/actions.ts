@@ -869,17 +869,19 @@ export async function reportConversationMessage(
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
-  const message = await prisma.message.findFirst({
-    where: {
-      id: messageId,
-      conversationId,
-      OR: [
-        { senderId: current.profileId },
-        { recipientId: current.profileId },
-      ],
-    },
-    select: { senderId: true },
-  });
+  const message = await withDbRequestContext(current, (tx) =>
+    tx.message.findFirst({
+      where: {
+        id: messageId,
+        conversationId,
+        OR: [
+          { senderId: current.profileId },
+          { recipientId: current.profileId },
+        ],
+      },
+      select: { senderId: true },
+    })
+  );
   if (!message) throw new Error("message.not_found");
   if (message.senderId === current.profileId) {
     throw new Error("message.cannot_report_own");
@@ -930,7 +932,7 @@ export async function createSupportTicket(formData: FormData) {
     body: field(formData, "body"),
   });
 
-  await prisma.$transaction(async (tx) => {
+  await withDbRequestContext(current, async (tx) => {
     const ticket = await tx.supportTicket.create({
       data: {
         userId: current.dbUserId,

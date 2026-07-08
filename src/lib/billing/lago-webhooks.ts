@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 
 import { getLagoEnv } from "@/lib/billing/lago-env";
 import { reduceLagoWebhook } from "@/lib/billing/lago-reducer";
-import { prisma } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 const LAGO_SIGNATURE_HEADER = "x-lago-signature";
 const LAGO_SIGNATURE_ALGORITHM_HEADER = "x-lago-signature-algorithm";
@@ -61,10 +61,10 @@ export async function ingestLagoWebhook({
   };
 
   try {
-    const event = await prisma.webhookEvent.create({
+    const event = await withDbSystemContext((tx) => tx.webhookEvent.create({
       data,
       select: eventSelect,
-    });
+    }));
     await reduceLagoWebhook({
       webhookEventId: event.id,
       lagoEventId,
@@ -94,19 +94,19 @@ async function incrementDuplicateWebhookEvent({
   payloadHash: string;
 }) {
   if (lagoEventId) {
-    const existingById = await prisma.webhookEvent.findUnique({
+    const existingById = await withDbSystemContext((tx) => tx.webhookEvent.findUnique({
       where: { lagoEventId },
       select: { id: true },
-    });
+    }));
     if (existingById) {
       return incrementWebhookRetryCount(existingById.id);
     }
   }
 
-  const existing = await prisma.webhookEvent.findFirst({
+  const existing = await withDbSystemContext((tx) => tx.webhookEvent.findFirst({
     where: { provider: "lago", eventType, payloadHash },
     select: { id: true },
-  });
+  }));
   if (!existing) {
     throw new Error("lago.webhook_duplicate_not_found");
   }
@@ -115,11 +115,11 @@ async function incrementDuplicateWebhookEvent({
 }
 
 function incrementWebhookRetryCount(id: string) {
-  return prisma.webhookEvent.update({
+  return withDbSystemContext((tx) => tx.webhookEvent.update({
     where: { id },
     data: { retryCount: { increment: 1 } },
     select: eventSelect,
-  });
+  }));
 }
 
 function verifyLagoWebhook(headers: Headers, rawBody: Buffer) {

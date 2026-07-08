@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -53,24 +52,13 @@ export default async function AdminCompliancePage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Compliance"
+        description="Read-only terms acceptance, consent event, and marketing preference records. User emails, secrets, raw tokens, and provider payloads are not selected."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Compliance
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Read-only terms acceptance, consent event, and marketing preference
-          records. User emails, secrets, raw tokens, and provider payloads are
-          not selected.
-        </p>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <MetricCard
             label="Terms accepted"
             value={data.counts.termsAcceptances}

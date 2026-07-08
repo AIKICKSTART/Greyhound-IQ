@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { AdminStatusForm } from "@/app/admin/form-controls";
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -29,22 +28,12 @@ export default async function AdminOrganizationInvitationsPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Organization invitations"
+        description="Latest 20 local organization invitation rows. Token hashes, email hashes, and provider data stay hidden; status changes are audited."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Organization invitations
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 20 local organization invitation rows. Token hashes, email
-          hashes, and provider data stay hidden; status changes are audited.
-        </p>
-
         <div className="giq-table-shell mt-6 overflow-x-auto">
           <table className="w-full min-w-[1620px]">
             <thead>

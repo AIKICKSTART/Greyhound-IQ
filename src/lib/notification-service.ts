@@ -55,7 +55,7 @@ export async function createInAppNotificationDeduped(
 ) {
   const windowMs = opts?.windowMs ?? NOTIFICATION_DEDUPE_WINDOW_MS;
   try {
-    const existing = await prisma.notification.findFirst({
+    const existing = await withDbSystemContext((tx) => tx.notification.findFirst({
       where: {
         userId: input.userId,
         type: input.type,
@@ -64,7 +64,7 @@ export async function createInAppNotificationDeduped(
         createdAt: { gte: new Date(Date.now() - windowMs) },
       },
       select: { id: true },
-    });
+    }));
     if (existing) return null;
   } catch {
     // Dedupe is best-effort; fall through to create.
@@ -74,7 +74,10 @@ export async function createInAppNotificationDeduped(
 
 export async function countUnreadNotificationsForUser(userId: string) {
   return safeQuery(
-    () => prisma.notification.count({ where: { userId, readAt: null } }),
+    () =>
+      withDbSystemContext((tx) =>
+        tx.notification.count({ where: { userId, readAt: null } })
+      ),
     0
   );
 }
@@ -82,11 +85,13 @@ export async function countUnreadNotificationsForUser(userId: string) {
 export async function listNotificationsForUser(userId: string, limit = 50) {
   return safeQuery(
     () =>
-      prisma.notification.findMany({
-        where: { userId },
-        orderBy: [{ readAt: "asc" }, { createdAt: "desc" }],
-        take: limit,
-      }),
+      withDbSystemContext((tx) =>
+        tx.notification.findMany({
+          where: { userId },
+          orderBy: [{ readAt: "asc" }, { createdAt: "desc" }],
+          take: limit,
+        })
+      ),
     []
   );
 }
@@ -127,66 +132,69 @@ export async function runNotificationDeliveryMaintenance() {
     deliveryAttempts: { lt: maxAttempts },
     user: { isBanned: false, deletionRequestedAt: null },
   };
-  const pendingCount = await prisma.notification.count({ where: pendingWhere });
   const webhookUrl = notificationWebhookUrl();
 
-  if (!webhookUrl) {
-    return {
-      mode: "disabled",
-      pendingCount,
-      attempted: 0,
-      delivered: 0,
-      failed: 0,
-    };
-  }
+  return withDbSystemContext(async (tx) => {
+    const pendingCount = await tx.notification.count({ where: pendingWhere });
 
-  const notifications = await prisma.notification.findMany({
-    where: pendingWhere,
-    include: {
-      user: { select: { email: true, name: true } },
-    },
-    orderBy: { createdAt: "asc" },
-    take: NOTIFICATION_DELIVERY_LIMIT,
-  });
-
-  let delivered = 0;
-  let failed = 0;
-  for (const notification of notifications) {
-    const attemptedAt = new Date();
-    try {
-      await deliverNotificationWebhook(webhookUrl, notification);
-      await prisma.notification.update({
-        where: { id: notification.id },
-        data: {
-          deliveryStatus: "delivered",
-          deliveryAttempts: { increment: 1 },
-          deliveredAt: new Date(),
-          lastDeliveryAttemptAt: attemptedAt,
-          lastDeliveryError: null,
-        },
-      });
-      delivered += 1;
-    } catch (err) {
-      await prisma.notification.update({
-        where: { id: notification.id },
-        data: {
-          deliveryStatus: "error",
-          deliveryAttempts: { increment: 1 },
-          lastDeliveryAttemptAt: attemptedAt,
-          lastDeliveryError: deliveryErrorMessage(err),
-        },
-      });
-      failed += 1;
+    if (!webhookUrl) {
+      return {
+        mode: "disabled",
+        pendingCount,
+        attempted: 0,
+        delivered: 0,
+        failed: 0,
+      };
     }
-  }
 
-  return {
-    mode: "webhook",
-    pendingCount,
-    attempted: notifications.length,
-    delivered,
-    failed,
-  };
+    const notifications = await tx.notification.findMany({
+      where: pendingWhere,
+      include: {
+        user: { select: { email: true, name: true } },
+      },
+      orderBy: { createdAt: "asc" },
+      take: NOTIFICATION_DELIVERY_LIMIT,
+    });
+
+    let delivered = 0;
+    let failed = 0;
+    for (const notification of notifications) {
+      const attemptedAt = new Date();
+      try {
+        await deliverNotificationWebhook(webhookUrl, notification);
+        await tx.notification.update({
+          where: { id: notification.id },
+          data: {
+            deliveryStatus: "delivered",
+            deliveryAttempts: { increment: 1 },
+            deliveredAt: new Date(),
+            lastDeliveryAttemptAt: attemptedAt,
+            lastDeliveryError: null,
+          },
+        });
+        delivered += 1;
+      } catch (err) {
+        await tx.notification.update({
+          where: { id: notification.id },
+          data: {
+            deliveryStatus: "error",
+            deliveryAttempts: { increment: 1 },
+            lastDeliveryAttemptAt: attemptedAt,
+            lastDeliveryError: deliveryErrorMessage(err),
+          },
+        });
+        failed += 1;
+      }
+    }
+
+    return {
+      mode: "webhook",
+      pendingCount,
+      attempted: notifications.length,
+      delivered,
+      failed,
+    };
+  });
 }
 
 async function deliverNotificationWebhook(

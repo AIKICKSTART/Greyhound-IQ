@@ -1,8 +1,8 @@
-import Link from "next/link";
-
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -57,24 +57,12 @@ export default async function AdminUsagePage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Usage"
+        description="Latest local usage aggregate, usage event, and usage outbox rows. Aggregate rows are limited to approved operational fields."
+      />
 
       <div className="grid gap-6">
-        <section className="giq-panel p-6">
-          <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-            Admin
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-            Usage
-          </h1>
-          <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-            Latest local usage aggregate, usage event, and usage outbox rows.
-            Aggregate rows are limited to approved operational fields.
-          </p>
-        </section>
-
         <UsageAggregatesTable rows={aggregateRows} />
         <UsageEventsTable rows={events} />
         <UsageOutboxTable rows={outboxRows} />
@@ -326,21 +314,23 @@ function DateCell({
 function getUsageEvents() {
   return safeQuery<UsageEventRow[]>(
     () =>
-      prisma.usageEvent.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        select: {
-          id: true,
-          metricKey: true,
-          quantity: true,
-          status: true,
-          retryCount: true,
-          occurredAt: true,
-          processedAt: true,
-          failedAt: true,
-          createdAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.usageEvent.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          select: {
+            id: true,
+            metricKey: true,
+            quantity: true,
+            status: true,
+            retryCount: true,
+            occurredAt: true,
+            processedAt: true,
+            failedAt: true,
+            createdAt: true,
+          },
+        })
+      ),
     []
   );
 }
@@ -348,22 +338,24 @@ function getUsageEvents() {
 function getUsageOutboxRows() {
   return safeQuery<UsageOutboxRow[]>(
     () =>
-      prisma.usageOutbox.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        select: {
-          id: true,
-          usageEventId: true,
-          metricKey: true,
-          quantity: true,
-          status: true,
-          retryCount: true,
-          occurredAt: true,
-          sentAt: true,
-          failedAt: true,
-          createdAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.usageOutbox.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          select: {
+            id: true,
+            usageEventId: true,
+            metricKey: true,
+            quantity: true,
+            status: true,
+            retryCount: true,
+            occurredAt: true,
+            sentAt: true,
+            failedAt: true,
+            createdAt: true,
+          },
+        })
+      ),
     []
   );
 }
@@ -371,20 +363,22 @@ function getUsageOutboxRows() {
 function getUsageAggregates() {
   return safeQuery<UsageAggregateRow[]>(
     () =>
-      prisma.usageAggregate.findMany({
-        orderBy: { updatedAt: "desc" },
-        take: 10,
-        select: {
-          id: true,
-          metricKey: true,
-          quantity: true,
-          periodStart: true,
-          periodEnd: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.usageAggregate.findMany({
+          orderBy: { updatedAt: "desc" },
+          take: 10,
+          select: {
+            id: true,
+            metricKey: true,
+            quantity: true,
+            periodStart: true,
+            periodEnd: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        })
+      ),
     []
   );
 }

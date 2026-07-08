@@ -6,7 +6,8 @@ import {
   type BillingTier,
   type EntitlementLimits,
 } from "@/lib/billing/entitlements";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 type EntitlementSubject = {
   dbUserId: string | null;
@@ -22,20 +23,22 @@ export async function getEntitlementLimitsForCurrentUser(
   const now = new Date();
   const snapshot = await safeQuery(
     () =>
-      prisma.entitlementSnapshot.findFirst({
-        where: {
-          userId: current.dbUserId,
-          status: "active",
-          effectiveAt: { lte: now },
-          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-        },
-        orderBy: [
-          { effectiveAt: "desc" },
-          { createdAt: "desc" },
-          { id: "desc" },
-        ],
-        select: { entitlementsJson: true },
-      }),
+      withDbSystemContext((tx) =>
+        tx.entitlementSnapshot.findFirst({
+          where: {
+            userId: current.dbUserId,
+            status: "active",
+            effectiveAt: { lte: now },
+            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+          },
+          orderBy: [
+            { effectiveAt: "desc" },
+            { createdAt: "desc" },
+            { id: "desc" },
+          ],
+          select: { entitlementsJson: true },
+        })
+      ),
     null
   );
 

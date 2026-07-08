@@ -1230,6 +1230,7 @@ model Listing {
   @@index([status])
   @@index([moderationStatus])
   @@index([status, categoryId, state, createdAt])
+  @@index([status, moderationStatus, expiresAt, createdAt])
   @@index([profileId, status])
   @@index([expiresAt])
   @@index([soldAt])
@@ -1653,6 +1654,7 @@ model FeedPost {
   reactions       FeedReaction[]
 
   @@index([status, createdAt])
+  @@index([status, visibility, pinnedAt, createdAt])
   @@index([topicId, status, createdAt])
   @@index([authorProfileId, createdAt])
   @@index([pinnedAt])

@@ -1,8 +1,8 @@
-import Link from "next/link";
-
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -29,23 +29,13 @@ export default async function AdminBillingEventsPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Billing events"
+        description="Latest 20 local billing event records. Provider event identifiers and raw payloads are not displayed here."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Billing events
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 20 local billing event records. Provider event identifiers and
-          raw payloads are not displayed here.
-        </p>
-
-        <div className="giq-table-shell mt-6 overflow-x-auto">
+        <div className="giq-table-shell overflow-x-auto">
           <table className="w-full min-w-[1480px]">
             <thead>
               <tr className="giq-table-head">
@@ -108,21 +98,23 @@ export default async function AdminBillingEventsPage() {
 function getBillingEvents() {
   return safeQuery<BillingEventRow[]>(
     () =>
-      prisma.billingEvent.findMany({
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        take: 20,
-        select: {
-          id: true,
-          userId: true,
-          billingCustomerId: true,
-          subscriptionId: true,
-          invoiceRecordId: true,
-          eventType: true,
-          status: true,
-          occurredAt: true,
-          createdAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.billingEvent.findMany({
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: 20,
+          select: {
+            id: true,
+            userId: true,
+            billingCustomerId: true,
+            subscriptionId: true,
+            invoiceRecordId: true,
+            eventType: true,
+            status: true,
+            occurredAt: true,
+            createdAt: true,
+          },
+        })
+      ),
     []
   );
 }

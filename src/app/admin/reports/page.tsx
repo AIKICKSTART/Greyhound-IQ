@@ -1,8 +1,8 @@
-import Link from "next/link";
-
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { resolveReport } from "@/app/actions";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -44,24 +44,13 @@ export default async function AdminReportsPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Reports"
+        description="Latest 50 local report records. Moderators can dismiss reports or mark them resolved after taking the appropriate content or user action."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Reports
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 50 local report records. Moderators can dismiss reports or
-          mark them resolved after taking the appropriate content or user
-          action.
-        </p>
-
-        <div className="giq-table-shell mt-6 overflow-x-auto">
+        <div className="giq-table-shell overflow-x-auto">
           <table className="w-full min-w-[1180px]">
             <thead>
               <tr className="giq-table-head">
@@ -194,33 +183,35 @@ function ReportResolutionForm({ reportId }: { reportId: string }) {
 async function getReports() {
   const reports = await safeQuery<ReportRow[]>(
     () =>
-      prisma.report.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 50,
-        select: {
-          id: true,
-          targetType: true,
-          targetId: true,
-          reason: true,
-          description: true,
-          status: true,
-          reporter: {
-            select: {
-              email: true,
-              name: true,
+      withDbSystemContext((tx) =>
+        tx.report.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 50,
+          select: {
+            id: true,
+            targetType: true,
+            targetId: true,
+            reason: true,
+            description: true,
+            status: true,
+            reporter: {
+              select: {
+                email: true,
+                name: true,
+              },
             },
-          },
-          reported: {
-            select: {
-              email: true,
-              name: true,
+            reported: {
+              select: {
+                email: true,
+                name: true,
+              },
             },
+            createdAt: true,
+            resolvedAt: true,
+            resolutionNotes: true,
           },
-          createdAt: true,
-          resolvedAt: true,
-          resolutionNotes: true,
-        },
-      }),
+        })
+      ),
     []
   );
 
@@ -231,17 +222,19 @@ async function getReports() {
 
   const messages = await safeQuery(
     () =>
-      prisma.message.findMany({
-        where: { id: { in: messageIds } },
-        select: {
-          id: true,
-          conversationId: true,
-          body: true,
-          createdAt: true,
-          sender: { select: { displayName: true } },
-          recipient: { select: { displayName: true } },
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.message.findMany({
+          where: { id: { in: messageIds } },
+          select: {
+            id: true,
+            conversationId: true,
+            body: true,
+            createdAt: true,
+            sender: { select: { displayName: true } },
+            recipient: { select: { displayName: true } },
+          },
+        })
+      ),
     []
   );
   const previews = new Map(

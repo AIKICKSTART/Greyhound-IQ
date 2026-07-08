@@ -1,8 +1,8 @@
-import Link from "next/link";
-
 import { AdminStatusForm } from "@/app/admin/form-controls";
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -33,22 +33,12 @@ export default async function AdminInvoicesPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Invoices"
+        description="Latest 20 local invoice records. Provider identifiers and raw payloads are not displayed here."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Invoices
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 20 local invoice records. Provider identifiers and raw payloads
-          are not displayed here.
-        </p>
-
         <div className="giq-table-shell mt-6 overflow-x-auto">
           <table className="w-full min-w-[1680px]">
             <thead>
@@ -124,25 +114,27 @@ export default async function AdminInvoicesPage() {
 function getInvoiceRecords() {
   return safeQuery<InvoiceRecordRow[]>(
     () =>
-      prisma.invoiceRecord.findMany({
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        take: 20,
-        select: {
-          id: true,
-          userId: true,
-          billingCustomerId: true,
-          subscriptionId: true,
-          invoiceNumber: true,
-          status: true,
-          paymentStatus: true,
-          currency: true,
-          totalAmountCents: true,
-          issuedAt: true,
-          dueAt: true,
-          paidAt: true,
-          createdAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.invoiceRecord.findMany({
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: 20,
+          select: {
+            id: true,
+            userId: true,
+            billingCustomerId: true,
+            subscriptionId: true,
+            invoiceNumber: true,
+            status: true,
+            paymentStatus: true,
+            currency: true,
+            totalAmountCents: true,
+            issuedAt: true,
+            dueAt: true,
+            paidAt: true,
+            createdAt: true,
+          },
+        })
+      ),
     []
   );
 }

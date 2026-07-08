@@ -1,8 +1,8 @@
-import Link from "next/link";
-
 import { AdminStatusForm } from "@/app/admin/form-controls";
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -56,25 +56,14 @@ export default async function AdminAccountDeletionPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+    <main className="mx-auto max-w-6xl px-6 py-12 lg:px-10">
+      <AdminPageHeader
+        title="Account deletion"
+        description="Recent account deletion requests and audit activity. Email, WorkOS identifiers, actor IDs, IP addresses, user agents, and metadata are not selected or displayed."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Account deletion
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Recent account deletion requests and audit activity. Email, WorkOS
-          identifiers, actor IDs, IP addresses, user agents, and metadata are
-          not selected or displayed.
-        </p>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="giq-metric-card">
             <p className="text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
               Pending requests shown
@@ -305,21 +294,23 @@ function DateCell({
 function getDeletionJobs() {
   return safeQuery<DeletionJobRow[]>(
     () =>
-      prisma.deletionJob.findMany({
-        orderBy: { scheduledFor: "desc" },
-        take: RECENT_LIMIT,
-        select: {
-          id: true,
-          policyId: true,
-          targetType: true,
-          targetUserId: true,
-          status: true,
-          scheduledFor: true,
-          completedAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.deletionJob.findMany({
+          orderBy: { scheduledFor: "desc" },
+          take: RECENT_LIMIT,
+          select: {
+            id: true,
+            policyId: true,
+            targetType: true,
+            targetUserId: true,
+            status: true,
+            scheduledFor: true,
+            completedAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        })
+      ),
     []
   );
 }
@@ -327,20 +318,22 @@ function getDeletionJobs() {
 function getPendingDeletionRequests() {
   return safeQuery<PendingDeletionUserRow[]>(
     () =>
-      prisma.user.findMany({
-        where: {
-          deletionRequestedAt: { not: null },
-        },
-        orderBy: { deletionRequestedAt: "desc" },
-        take: RECENT_LIMIT,
-        select: {
-          id: true,
-          subscriptionTier: true,
-          isBanned: true,
-          deletionRequestedAt: true,
-          updatedAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.user.findMany({
+          where: {
+            deletionRequestedAt: { not: null },
+          },
+          orderBy: { deletionRequestedAt: "desc" },
+          take: RECENT_LIMIT,
+          select: {
+            id: true,
+            subscriptionTier: true,
+            isBanned: true,
+            deletionRequestedAt: true,
+            updatedAt: true,
+          },
+        })
+      ),
     []
   );
 }
@@ -348,21 +341,23 @@ function getPendingDeletionRequests() {
 function getAccountDeletionAuditLogs() {
   return safeQuery<AccountDeletionAuditRow[]>(
     () =>
-      prisma.auditLog.findMany({
-        where: {
-          action: { in: ACCOUNT_DELETION_AUDIT_ACTIONS },
-        },
-        orderBy: { createdAt: "desc" },
-        take: RECENT_LIMIT,
-        select: {
-          id: true,
-          actorType: true,
-          action: true,
-          targetType: true,
-          targetId: true,
-          createdAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.auditLog.findMany({
+          where: {
+            action: { in: ACCOUNT_DELETION_AUDIT_ACTIONS },
+          },
+          orderBy: { createdAt: "desc" },
+          take: RECENT_LIMIT,
+          select: {
+            id: true,
+            actorType: true,
+            action: true,
+            targetType: true,
+            targetId: true,
+            createdAt: true,
+          },
+        })
+      ),
     []
   );
 }

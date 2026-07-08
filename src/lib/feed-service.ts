@@ -2,8 +2,8 @@ import type { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/account-service";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { assertProfilesCanInteract } from "@/lib/conversation-service";
-import { prisma, safeQuery } from "@/lib/db";
-import { withDbRequestContext } from "@/lib/db-context";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext, withDbSystemContext } from "@/lib/db-context";
 import { assertPaidFeatureAccess } from "@/lib/tier-access";
 import { assertMediaAttachable, mediaDeliveryUrl } from "@/lib/media-service";
 import {
@@ -21,10 +21,12 @@ type Tx = Prisma.TransactionClient;
 export async function getFeedTopics() {
   return safeQuery(
     () =>
-      prisma.feedTopic.findMany({
-        where: { active: true },
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      }),
+      withDbSystemContext((tx) =>
+        tx.feedTopic.findMany({
+          where: { active: true },
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        })
+      ),
     []
   );
 }
@@ -32,14 +34,16 @@ export async function getFeedTopics() {
 export async function getFeedAdminTopics() {
   return safeQuery(
     () =>
-      prisma.feedTopic.findMany({
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-        include: {
-          _count: {
-            select: { posts: true },
+      withDbSystemContext((tx) =>
+        tx.feedTopic.findMany({
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+          include: {
+            _count: {
+              select: { posts: true },
+            },
           },
-        },
-      }),
+        })
+      ),
     []
   );
 }
@@ -47,20 +51,22 @@ export async function getFeedAdminTopics() {
 export async function getFeedAdminPosts(limit = 50) {
   return safeQuery(
     () =>
-      prisma.feedPost.findMany({
-        orderBy: [{ pinnedAt: "desc" }, { createdAt: "desc" }],
-        take: limit,
-        include: {
-          author: true,
-          topic: true,
-          _count: {
-            select: {
-              comments: true,
-              reactions: true,
+      withDbSystemContext((tx) =>
+        tx.feedPost.findMany({
+          orderBy: [{ pinnedAt: "desc" }, { createdAt: "desc" }],
+          take: limit,
+          include: {
+            author: true,
+            topic: true,
+            _count: {
+              select: {
+                comments: true,
+                reactions: true,
+              },
             },
           },
-        },
-      }),
+        })
+      ),
     []
   );
 }
@@ -84,16 +90,18 @@ export async function getFeedPostsForViewer(
 
   return safeQuery(
     () =>
-      prisma.feedPost.findMany({
-        where: {
-          status: "active",
-          visibility: "public",
-          ...(blockFilter ?? {}),
-        },
-        orderBy: [{ pinnedAt: "desc" }, { createdAt: "desc" }],
-        take: limit,
-        include: feedPostInclude(viewerProfileId),
-      }),
+      withDbSystemContext((tx) =>
+        tx.feedPost.findMany({
+          where: {
+            status: "active",
+            visibility: "public",
+            ...(blockFilter ?? {}),
+          },
+          orderBy: [{ pinnedAt: "desc" }, { createdAt: "desc" }],
+          take: limit,
+          include: feedPostInclude(viewerProfileId),
+        })
+      ),
     []
   );
 }
@@ -153,7 +161,7 @@ export async function createFeedTopicForModerator(
   }
 ) {
   const slug = normalizeTopicSlug(input.slug ?? input.name);
-  const topic = await prisma.feedTopic.create({
+  const topic = await withDbRequestContext(current, (tx) => tx.feedTopic.create({
     data: {
       name: input.name,
       slug,
@@ -161,7 +169,7 @@ export async function createFeedTopicForModerator(
       sortOrder: input.sortOrder,
       active: true,
     },
-  });
+  }));
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -181,10 +189,10 @@ export async function setFeedTopicActiveForModerator(
   topicId: string,
   active: boolean
 ) {
-  const topic = await prisma.feedTopic.update({
+  const topic = await withDbRequestContext(current, (tx) => tx.feedTopic.update({
     where: { id: topicId },
     data: { active },
-  });
+  }));
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -216,10 +224,10 @@ export async function moderateFeedPostForModerator(
           ? { status: "active" }
           : { status: input.action === "hide" ? "hidden" : "removed" };
 
-  const post = await prisma.feedPost.update({
+  const post = await withDbRequestContext(current, (tx) => tx.feedPost.update({
     where: { id: postId },
     data,
-  });
+  }));
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -243,14 +251,14 @@ export async function createFeedCommentForCurrentUser(
   input: { body: string; parentCommentId?: string | null }
 ) {
   assertPaidFeatureAccess(current);
-  const post = await prisma.feedPost.findFirst({
+  const post = await withDbRequestContext(current, (tx) => tx.feedPost.findFirst({
     where: { id: postId, status: "active", visibility: "public" },
     select: {
       id: true,
       authorProfileId: true,
       author: { select: { userId: true } },
     },
-  });
+  }));
   if (!post) throw new Error("feed.post_not_found");
   await assertProfilesCanInteract(
     current.profileId,
@@ -260,10 +268,10 @@ export async function createFeedCommentForCurrentUser(
 
   const parentCommentId = input.parentCommentId || null;
   if (parentCommentId) {
-    const parent = await prisma.feedComment.findFirst({
+    const parent = await withDbRequestContext(current, (tx) => tx.feedComment.findFirst({
       where: { id: parentCommentId, postId, status: "active" },
       select: { id: true },
-    });
+    }));
     if (!parent) throw new Error("feed.comment_not_found");
   }
   const phraseMatch = await findBannedPhraseMatch(input.body, "feed");
@@ -316,14 +324,14 @@ export async function toggleFeedPostReactionForCurrentUser(
   postId: string
 ) {
   assertPaidFeatureAccess(current);
-  const post = await prisma.feedPost.findFirst({
+  const post = await withDbRequestContext(current, (tx) => tx.feedPost.findFirst({
     where: { id: postId, status: "active", visibility: "public" },
     select: {
       id: true,
       authorProfileId: true,
       author: { select: { userId: true } },
     },
-  });
+  }));
   if (!post) throw new Error("feed.post_not_found");
   await assertProfilesCanInteract(
     current.profileId,
@@ -331,13 +339,15 @@ export async function toggleFeedPostReactionForCurrentUser(
     "feed.blocked"
   );
 
-  const existing = await prisma.feedReaction.findFirst({
+  const existing = await withDbRequestContext(current, (tx) => tx.feedReaction.findFirst({
     where: { postId, profileId: current.profileId, reactionType: "like" },
     select: { id: true },
-  });
+  }));
 
   if (existing) {
-    await prisma.feedReaction.delete({ where: { id: existing.id } });
+    await withDbRequestContext(current, (tx) =>
+      tx.feedReaction.delete({ where: { id: existing.id } })
+    );
     await broadcastFeedRealtimeEvent("reaction_updated", { postId });
     return { liked: false };
   }
@@ -368,16 +378,16 @@ export async function blockFeedPostAuthorForCurrentUser(
   current: CurrentUserProfile,
   postId: string
 ) {
-  const post = await prisma.feedPost.findFirst({
+  const post = await withDbRequestContext(current, (tx) => tx.feedPost.findFirst({
     where: { id: postId, status: "active", visibility: "public" },
     select: { id: true, authorProfileId: true },
-  });
+  }));
   if (!post) throw new Error("feed.post_not_found");
   if (post.authorProfileId === current.profileId) {
     throw new Error("feed.cannot_block_self");
   }
 
-  const block = await prisma.userBlock.upsert({
+  const block = await withDbRequestContext(current, (tx) => tx.userBlock.upsert({
     where: {
       blockerProfileId_blockedProfileId: {
         blockerProfileId: current.profileId,
@@ -390,7 +400,7 @@ export async function blockFeedPostAuthorForCurrentUser(
       blockedProfileId: post.authorProfileId,
       reason: "feed_author_block",
     },
-  });
+  }));
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -431,20 +441,39 @@ function feedPostInclude(viewerProfileId?: string | null) {
   };
 
   return {
-    author: true,
+    author: { select: { displayName: true } },
     topic: true,
     media: {
       orderBy: { position: "asc" },
-      include: { media: true },
+      include: {
+        media: {
+          select: {
+            id: true,
+            storageBucket: true,
+            storagePath: true,
+            publicUrl: true,
+            originalName: true,
+            mimeType: true,
+            widthPx: true,
+            heightPx: true,
+          },
+        },
+      },
     },
     comments: {
       where: commentWhere,
       orderBy: { createdAt: "asc" },
       take: 3,
-      include: { author: true },
+      include: { author: { select: { displayName: true } } },
     },
     reactions: {
-      where: { reactionType: "like" },
+      // Viewer-only: the card just needs whether the current user liked the
+      // post; the total comes from _count.reactions. Empty `in` matches none
+      // for signed-out viewers.
+      where: {
+        reactionType: "like",
+        profileId: { in: viewerProfileId ? [viewerProfileId] : [] },
+      },
       select: { profileId: true },
     },
     _count: {
@@ -457,10 +486,10 @@ function feedPostInclude(viewerProfileId?: string | null) {
 }
 
 async function assertActiveTopic(topicId: string) {
-  const topic = await prisma.feedTopic.findFirst({
+  const topic = await withDbSystemContext((tx) => tx.feedTopic.findFirst({
     where: { id: topicId, active: true },
     select: { id: true },
-  });
+  }));
   if (!topic) throw new Error("feed.topic_not_found");
 }
 

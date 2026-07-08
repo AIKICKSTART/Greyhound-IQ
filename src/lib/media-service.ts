@@ -11,8 +11,7 @@ import { recordUsageEvent } from "@/lib/billing/usage-service";
 import type { EntitlementLimits } from "@/lib/billing/entitlements";
 import type { CurrentUser, CurrentUserProfile } from "@/lib/auth-types";
 import { isModeratorRole } from "@/lib/auth-roles";
-import { prisma } from "@/lib/db";
-import { withDbRequestContext } from "@/lib/db-context";
+import { withDbRequestContext, withDbSystemContext } from "@/lib/db-context";
 import { logError } from "@/lib/logger";
 import {
   mediaMaxBytes,
@@ -37,9 +36,11 @@ import {
   createSignedStorageDownloadUrl,
   createSignedStorageUploadUrl,
   downloadStorageObject,
+  downloadStorageObjectHead,
   getStorageObjectInfo,
   removeStorageObject,
 } from "@/lib/supabase-storage";
+import { sniffMatchesMimeType } from "@/lib/media-sniff";
 
 const UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
 const DOWNLOAD_URL_TTL_SECONDS = 15 * 60;
@@ -154,31 +155,25 @@ export async function finalizeMediaUpload(
   mediaId: string,
   input: FinalizeMediaInput
 ) {
-  const media = await prisma.mediaAsset.findFirst({
+  const media = await withDbRequestContext(current, (tx) => tx.mediaAsset.findFirst({
     where: {
       id: mediaId,
       uploaderId: current.dbUserId,
       deletedAt: null,
     },
-  });
+  }));
   if (!media) throw new Error("media.not_found");
 
   const bucket = assertKnownBucket(media.storageBucket);
-  const trustClientScanStatus = process.env.NODE_ENV !== "production";
-
-  if (trustClientScanStatus && input.scanStatus === "infected") {
-    await markMediaScanStatus(media.id, "infected");
-    throw new Error("media.infected");
-  }
-  if (trustClientScanStatus && input.scanStatus === "error") {
-    await markMediaScanStatus(media.id, "error");
-    throw new Error("media.scan_failed");
-  }
 
   // Only terminal-bad scan verdicts block finalize; "pending" finalizes and
-  // waits for the async scanner to clear it for delivery.
+  // waits for the async scanner to clear it for delivery. Client-reported
+  // scanStatus is never trusted — the async scanner (or MEDIA_SCAN_MODE) owns
+  // the verdict, in dev and prod alike.
   if (media.scanStatus === "infected") throw new Error("media.infected");
   if (media.scanStatus === "error") throw new Error("media.scan_failed");
+
+  await assertStoredBytesMatchMimeType(bucket, media);
 
   const objectInfo = await getStorageObjectInfo(bucket, media.storagePath);
   const sizeBytes =
@@ -210,14 +205,8 @@ export async function finalizeMediaUpload(
       durationSec: input.durationSec ?? null,
       mediaType: mediaTypeForMimeType(media.mimeType),
       // publicUrl only when clean: the scanner sets it in runMediaMaintenance
-      // once the pending asset passes the scan.
-      ...(trustClientScanStatus
-        ? {
-            scanStatus: "clean",
-            scanCompletedAt: new Date(),
-            publicUrl: publicUrlForMedia(bucket, media.storagePath),
-          }
-        : {}),
+      // once the pending asset passes the scan. Finalize always leaves the
+      // asset pending until the async scanner clears it.
       expiresAt: null,
     },
   }));
@@ -259,13 +248,13 @@ export async function getMediaForCurrentUser(
   current: CurrentUserProfile,
   mediaId: string
 ) {
-  const media = await prisma.mediaAsset.findFirst({
+  const media = await withDbRequestContext(current, (tx) => tx.mediaAsset.findFirst({
     where: mediaAccessWhere(mediaId, current),
     include: {
       messageAttachments: { select: { messageId: true, position: true } },
       listingAttachments: { select: { listingId: true, position: true } },
     },
-  });
+  }));
   if (!media) throw new Error("media.not_found");
   return media;
 }
@@ -310,7 +299,7 @@ export async function deleteMediaForCurrentUser(
   current: CurrentUserProfile,
   mediaId: string
 ) {
-  const media = await prisma.mediaAsset.findFirst({
+  const media = await withDbRequestContext(current, (tx) => tx.mediaAsset.findFirst({
     where: {
       id: mediaId,
       deletedAt: null,
@@ -319,7 +308,7 @@ export async function deleteMediaForCurrentUser(
         ...(isModeratorRole(current.profileRole) ? [{}] : []),
       ],
     },
-  });
+  }));
   if (!media) throw new Error("media.not_found");
 
   const bucket = assertKnownBucket(media.storageBucket);
@@ -347,14 +336,14 @@ export async function deleteMediaForCurrentUser(
 
 export async function runMediaMaintenance() {
   const now = new Date();
-  const expired = await prisma.mediaAsset.findMany({
+  const expired = await withDbSystemContext((tx) => tx.mediaAsset.findMany({
     where: {
       deletedAt: null,
       expiresAt: { lt: now },
     },
     orderBy: { expiresAt: "asc" },
     take: MEDIA_MAINTENANCE_LIMIT,
-  });
+  }));
 
   let expiredDeleted = 0;
   let expiredDeleteErrors = 0;
@@ -366,10 +355,10 @@ export async function runMediaMaintenance() {
 
     try {
       await removeStorageObject(media.storageBucket, media.storagePath);
-      await prisma.mediaAsset.update({
+      await withDbSystemContext((tx) => tx.mediaAsset.update({
         where: { id: media.id },
         data: { deletedAt: now },
-      });
+      }));
       expiredDeleted += 1;
     } catch {
       expiredDeleteErrors += 1;
@@ -379,7 +368,7 @@ export async function runMediaMaintenance() {
   const scanMode = mediaScanMode();
   const scanCandidates =
     scanMode === "metadata" || scanMode === "clamav"
-      ? await prisma.mediaAsset.findMany({
+      ? await withDbSystemContext((tx) => tx.mediaAsset.findMany({
           where: {
             deletedAt: null,
             scanStatus: "pending",
@@ -387,7 +376,7 @@ export async function runMediaMaintenance() {
           },
           orderBy: { createdAt: "asc" },
           take: MEDIA_MAINTENANCE_LIMIT,
-        })
+        }))
       : [];
 
   let scanCleaned = 0;
@@ -430,15 +419,19 @@ export async function runMediaMaintenance() {
         }
       }
 
-      await prisma.mediaAsset.update({
+      const cleanPublicUrl = publicUrlForMedia(
+        media.storageBucket,
+        media.storagePath
+      );
+      await withDbSystemContext((tx) => tx.mediaAsset.update({
         where: { id: media.id },
         data: {
           scanStatus: "clean",
           scanCompletedAt: now,
           sizeBytes,
-          publicUrl: publicUrlForMedia(media.storageBucket, media.storagePath),
+          publicUrl: cleanPublicUrl,
         },
-      });
+      }));
       await notifyMessageScanVerdict(media, "clean");
       scanCleaned += 1;
     } catch (err) {
@@ -452,12 +445,12 @@ export async function runMediaMaintenance() {
     }
   }
 
-  const pendingScanCount = await prisma.mediaAsset.count({
+  const pendingScanCount = await withDbSystemContext((tx) => tx.mediaAsset.count({
     where: {
       deletedAt: null,
       scanStatus: "pending",
     },
-  });
+  }));
 
   return {
     expiredFound: expired.length,
@@ -483,42 +476,53 @@ export async function getMediaBlob(
   void _token;
 
   const media = current?.profileId
-    ? await prisma.mediaAsset.findFirst({
-        where: mediaAccessWhere(mediaId, {
-          ...current,
+    ? await withDbRequestContext(
+        {
           dbUserId: current.dbUserId ?? "",
           profileId: current.profileId,
-        }),
-      })
-    : await prisma.mediaAsset.findFirst({
-        where: {
-          id: mediaId,
-          deletedAt: null,
-          scanStatus: "clean",
-          OR: [
-            { storageBucket: SITE_ASSETS_BUCKET },
-            {
-              storageBucket: PUBLIC_USER_MEDIA_BUCKET,
-              OR: [
-                {
-                  listingAttachments: {
-                    some: {
-                      listing: publicListingMediaWhere(),
-                    },
-                  },
-                },
-                {
-                  feedAttachments: {
-                    some: {
-                      post: publicFeedMediaWhere(),
-                    },
-                  },
-                },
-              ],
-            },
-          ],
+          profileRole: current.role ?? "",
+          tier: current.tier,
         },
-      });
+        (tx) =>
+          tx.mediaAsset.findFirst({
+            where: mediaAccessWhere(mediaId, {
+              ...current,
+              dbUserId: current.dbUserId ?? "",
+              profileId: current.profileId as string,
+            }),
+          })
+      )
+    : await withDbSystemContext((tx) =>
+        tx.mediaAsset.findFirst({
+          where: {
+            id: mediaId,
+            deletedAt: null,
+            scanStatus: "clean",
+            OR: [
+              { storageBucket: SITE_ASSETS_BUCKET },
+              {
+                storageBucket: PUBLIC_USER_MEDIA_BUCKET,
+                OR: [
+                  {
+                    listingAttachments: {
+                      some: {
+                        listing: publicListingMediaWhere(),
+                      },
+                    },
+                  },
+                  {
+                    feedAttachments: {
+                      some: {
+                        post: publicFeedMediaWhere(),
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        })
+      );
 
   if (!media) throw new Error("media.not_found");
   assertMediaClean(media.scanStatus);
@@ -543,13 +547,13 @@ export async function assertMediaAttachable(
   if (uniqueIds.length !== mediaIds.length) throw new Error("media.duplicate");
   if (uniqueIds.length === 0) return [];
 
-  const media = await prisma.mediaAsset.findMany({
+  const media = await withDbRequestContext(current, (tx) => tx.mediaAsset.findMany({
     where: {
       id: { in: uniqueIds },
       uploaderId: current.dbUserId,
       deletedAt: null,
     },
-  });
+  }));
 
   if (media.length !== uniqueIds.length) throw new Error("media.not_found");
   for (const item of media) {
@@ -702,12 +706,12 @@ async function assertMonthlyUploadsAvailable(
   current: CurrentUserProfile,
   uploadsPerMonth: number
 ) {
-  const uploadsThisMonth = await prisma.mediaAsset.count({
+  const uploadsThisMonth = await withDbRequestContext(current, (tx) => tx.mediaAsset.count({
     where: {
       uploaderId: current.dbUserId,
       createdAt: { gte: startOfCurrentUtcMonth() },
     },
-  });
+  }));
   if (uploadsThisMonth >= uploadsPerMonth) {
     throw new Error("media.quota_exceeded");
   }
@@ -718,13 +722,13 @@ async function assertStorageQuotaAvailable(
   candidateBytes: number,
   storageBytes: number
 ) {
-  const usage = await prisma.mediaAsset.aggregate({
+  const usage = await withDbRequestContext(current, (tx) => tx.mediaAsset.aggregate({
     where: {
       uploaderId: current.dbUserId,
       deletedAt: null,
     },
     _sum: { sizeBytes: true },
-  });
+  }));
   const usedBytes = usage._sum.sizeBytes ?? 0;
   if (usedBytes + candidateBytes > storageBytes) {
     throw new Error("media.quota_exceeded");
@@ -757,10 +761,10 @@ async function markMediaScanStatus(
   mediaId: string,
   scanStatus: "infected" | "error"
 ) {
-  await prisma.mediaAsset.update({
+  await withDbSystemContext((tx) => tx.mediaAsset.update({
     where: { id: mediaId },
     data: { scanStatus, scanCompletedAt: new Date() },
-  });
+  }));
 }
 
 async function notifyMessageScanVerdict(
@@ -770,10 +774,10 @@ async function notifyMessageScanVerdict(
   try {
     // MessageMedia is the authoritative link; linkedEntityType is a
     // denormalized copy that later attachments can overwrite.
-    const attachment = await prisma.messageMedia.findFirst({
+    const attachment = await withDbSystemContext((tx) => tx.messageMedia.findFirst({
       where: { mediaId: media.id },
       select: { message: { select: { conversationId: true } } },
-    });
+    }));
     if (!attachment) return;
     const conversationId = attachment.message.conversationId;
 
@@ -798,6 +802,29 @@ async function notifyMessageScanVerdict(
   } catch (err) {
     logError("media.scan_notify_failed", { mediaId: media.id }, err);
   }
+}
+
+// Sniff the stored bytes and confirm they match the client-declared mimeType.
+// On mismatch, tombstone the asset (mark error + purge the object) the same way
+// a failed scan does, then reject — never let a mislabeled file finalize.
+const SNIFF_HEAD_BYTES = 4100;
+
+async function assertStoredBytesMatchMimeType(
+  bucket: SupabaseStorageBucket,
+  media: { id: string; storagePath: string; mimeType: string }
+) {
+  const head = await downloadStorageObjectHead(
+    bucket,
+    media.storagePath,
+    SNIFF_HEAD_BYTES
+  );
+  if (sniffMatchesMimeType(head, media.mimeType as MediaMimeType)) return;
+
+  await markMediaScanStatus(media.id, "error");
+  await removeStorageObject(bucket, media.storagePath).catch((err) =>
+    logError("media.invalid_type_purge_failed", { mediaId: media.id }, err)
+  );
+  throw new Error("media.invalid_type");
 }
 
 async function verifyStorageObjectForScan(media: {

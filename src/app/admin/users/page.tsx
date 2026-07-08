@@ -1,11 +1,11 @@
-import Link from "next/link";
-
 import {
   AdminCreateUserForm,
   AdminUserAccessForm,
 } from "@/app/admin/form-controls";
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -32,23 +32,13 @@ export default async function AdminUsersPage() {
   const users = await getUsers();
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+    <main className="mx-auto max-w-6xl px-6 py-12 lg:px-10">
+      <AdminPageHeader
+        title="Users"
+        description="Create local users, update tiers and roles, ban accounts, and cancel deletion requests. Every mutation requires a reason and is audited."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Users
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Create local users, update tiers and roles, ban accounts, and cancel
-          deletion requests. Every mutation requires a reason and is audited.
-        </p>
-
         <div className="mt-6">
           <AdminCreateUserForm path="/admin/users" />
         </div>
@@ -139,24 +129,26 @@ function DateCell({
 function getUsers() {
   return safeQuery<AdminUserRow[]>(
     () =>
-      prisma.user.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 20,
-        select: {
-          id: true,
-          subscriptionTier: true,
-          isBanned: true,
-          deletionRequestedAt: true,
-          createdAt: true,
-          updatedAt: true,
-          profile: {
-            select: {
-              role: true,
-              verified: true,
+      withDbSystemContext((tx) =>
+        tx.user.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 20,
+          select: {
+            id: true,
+            subscriptionTier: true,
+            isBanned: true,
+            deletionRequestedAt: true,
+            createdAt: true,
+            updatedAt: true,
+            profile: {
+              select: {
+                role: true,
+                verified: true,
+              },
             },
           },
-        },
-      }),
+        })
+      ),
     []
   );
 }

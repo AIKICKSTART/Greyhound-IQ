@@ -7,8 +7,7 @@ import {
   sendConversationMessage,
   startOrGetConversation,
 } from "@/lib/conversation-service";
-import { prisma } from "@/lib/db";
-import { withDbRequestContext } from "@/lib/db-context";
+import { withDbRequestContext, withDbSystemContext } from "@/lib/db-context";
 import {
   assertListingAcknowledgements,
   assertListingMediaPolicy,
@@ -164,7 +163,7 @@ export async function updateListingForCurrentUser(
       ? LISTING_STATUS_PENDING_REVIEW
       : existing.status;
 
-  const listing = await prisma.$transaction(async (tx) => {
+  const listing = await withDbRequestContext(current, async (tx) => {
     const updated = await tx.listing.update({
       where: { id: existing.id },
       data: {
@@ -252,14 +251,16 @@ export async function updateListingForCurrentUser(
 }
 
 export async function getMarketplaceCategoriesForModerator() {
-  return prisma.marketplaceCategory.findMany({
-    orderBy: [{ active: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
-    include: {
-      _count: {
-        select: { listings: true },
+  return withDbSystemContext((tx) =>
+    tx.marketplaceCategory.findMany({
+      orderBy: [{ active: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
+      include: {
+        _count: {
+          select: { listings: true },
+        },
       },
-    },
-  });
+    })
+  );
 }
 
 export async function createMarketplaceCategoryForModerator(
@@ -273,15 +274,17 @@ export async function createMarketplaceCategoryForModerator(
 ) {
   assertModerator(current);
   const slug = normalizeCategorySlug(input.slug ?? input.name);
-  const category = await prisma.marketplaceCategory.create({
-    data: {
-      name: input.name,
-      slug,
-      description: input.description ?? null,
-      sortOrder: input.sortOrder,
-      active: true,
-    },
-  });
+  const category = await withDbRequestContext(current, (tx) =>
+    tx.marketplaceCategory.create({
+      data: {
+        name: input.name,
+        slug,
+        description: input.description ?? null,
+        sortOrder: input.sortOrder,
+        active: true,
+      },
+    })
+  );
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -301,10 +304,12 @@ export async function setMarketplaceCategoryActiveForModerator(
   active: boolean
 ) {
   assertModerator(current);
-  const category = await prisma.marketplaceCategory.update({
-    where: { id: categoryId },
-    data: { active },
-  });
+  const category = await withDbRequestContext(current, (tx) =>
+    tx.marketplaceCategory.update({
+      where: { id: categoryId },
+      data: { active },
+    })
+  );
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -326,7 +331,7 @@ export async function renewListingForCurrentUser(
 ) {
   assertPaidFeatureAccess(current);
   const existing = await getOwnedListing(current, listingId);
-  const listing = await prisma.$transaction(async (tx) => {
+  const listing = await withDbRequestContext(current, async (tx) => {
     const updated = await tx.listing.update({
       where: { id: existing.id },
       data: {
@@ -361,7 +366,7 @@ export async function markListingSoldForCurrentUser(
   listingId: string
 ) {
   const existing = await getOwnedListing(current, listingId);
-  const listing = await prisma.$transaction(async (tx) => {
+  const listing = await withDbRequestContext(current, async (tx) => {
     const updated = await tx.listing.update({
       where: { id: existing.id },
       data: {
@@ -391,7 +396,7 @@ export async function withdrawListingForCurrentUser(
   listingId: string
 ) {
   const existing = await getOwnedListing(current, listingId);
-  const listing = await prisma.$transaction(async (tx) => {
+  const listing = await withDbRequestContext(current, async (tx) => {
     const updated = await tx.listing.update({
       where: { id: existing.id },
       data: {
@@ -420,9 +425,11 @@ export async function approveListingForModerator(
   listingId: string
 ) {
   assertModerator(current);
-  const existing = await prisma.listing.findUnique({ where: { id: listingId } });
+  const existing = await withDbRequestContext(current, (tx) =>
+    tx.listing.findUnique({ where: { id: listingId } })
+  );
   if (!existing) throw new Error("listing.not_found");
-  const listing = await prisma.$transaction(async (tx) => {
+  const listing = await withDbRequestContext(current, async (tx) => {
     const updated = await tx.listing.update({
       where: { id: listingId },
       data: {
@@ -463,9 +470,11 @@ export async function rejectListingForModerator(
   reason: string
 ) {
   assertModerator(current);
-  const existing = await prisma.listing.findUnique({ where: { id: listingId } });
+  const existing = await withDbRequestContext(current, (tx) =>
+    tx.listing.findUnique({ where: { id: listingId } })
+  );
   if (!existing) throw new Error("listing.not_found");
-  const listing = await prisma.$transaction(async (tx) => {
+  const listing = await withDbRequestContext(current, async (tx) => {
     const updated = await tx.listing.update({
       where: { id: listingId },
       data: {
@@ -499,9 +508,11 @@ export async function removeListingForModerator(
   reason: string
 ) {
   assertModerator(current);
-  const existing = await prisma.listing.findUnique({ where: { id: listingId } });
+  const existing = await withDbRequestContext(current, (tx) =>
+    tx.listing.findUnique({ where: { id: listingId } })
+  );
   if (!existing) throw new Error("listing.not_found");
-  const listing = await prisma.$transaction(async (tx) => {
+  const listing = await withDbRequestContext(current, async (tx) => {
     const updated = await tx.listing.update({
       where: { id: listingId },
       data: {
@@ -530,10 +541,12 @@ export async function removeListingForModerator(
 }
 
 export async function getPublicListingById(listingId: string) {
-  const listing = await prisma.listing.findUnique({
-    where: { id: listingId },
-    include: listingInclude(),
-  });
+  const listing = await withDbSystemContext((tx) =>
+    tx.listing.findUnique({
+      where: { id: listingId },
+      include: listingInclude(),
+    })
+  );
   if (!listing || !listingIsPublic(listing)) {
     throw new Error("listing.not_found");
   }
@@ -545,10 +558,12 @@ export async function getListingForViewerById(
   listingId: string,
   current?: { profileId: string | null; role: string | null } | null
 ) {
-  const listing = await prisma.listing.findUnique({
-    where: { id: listingId },
-    include: listingInclude(),
-  });
+  const listing = await withDbSystemContext((tx) =>
+    tx.listing.findUnique({
+      where: { id: listingId },
+      include: listingInclude(),
+    })
+  );
   if (!listing) throw new Error("listing.not_found");
 
   if (listingIsPublic(listing)) {
@@ -567,10 +582,12 @@ export async function createListingEnquiryForCurrentUser(
   message: string
 ) {
   assertPaidFeatureAccess(current);
-  const listing = await prisma.listing.findUnique({
-    where: { id: listingId },
-    include: { profile: true },
-  });
+  const listing = await withDbRequestContext(current, (tx) =>
+    tx.listing.findUnique({
+      where: { id: listingId },
+      include: { profile: true },
+    })
+  );
   if (!listing || !listingIsPublic(listing)) throw new Error("listing.not_found");
   if (listing.profileId === current.profileId) {
     throw new Error("listing.cannot_enquire_own_listing");
@@ -623,17 +640,19 @@ export async function toggleSavedListingForCurrentUser(
   current: CurrentUserProfile,
   listingId: string
 ) {
-  const listing = await prisma.listing.findUnique({
-    where: { id: listingId },
-    select: {
-      id: true,
-      profileId: true,
-      status: true,
-      moderationStatus: true,
-      archivedAt: true,
-      expiresAt: true,
-    },
-  });
+  const listing = await withDbRequestContext(current, (tx) =>
+    tx.listing.findUnique({
+      where: { id: listingId },
+      select: {
+        id: true,
+        profileId: true,
+        status: true,
+        moderationStatus: true,
+        archivedAt: true,
+        expiresAt: true,
+      },
+    })
+  );
   if (!listing || !listingIsPublic(listing)) throw new Error("listing.not_found");
   if (listing.profileId === current.profileId) {
     throw new Error("listing.cannot_save_own_listing");
@@ -645,7 +664,9 @@ export async function toggleSavedListingForCurrentUser(
       listingId: listing.id,
     },
   };
-  const existing = await prisma.savedListing.findUnique({ where });
+  const existing = await withDbRequestContext(current, (tx) =>
+    tx.savedListing.findUnique({ where })
+  );
   if (existing) {
     await withDbRequestContext(current, (tx) => tx.savedListing.delete({ where }));
     return { saved: false };
@@ -665,10 +686,12 @@ export async function getSavedListingIdsForProfile(
   listingIds: string[]
 ) {
   if (listingIds.length === 0) return new Set<string>();
-  const rows = await prisma.savedListing.findMany({
-    where: { profileId, listingId: { in: listingIds } },
-    select: { listingId: true },
-  });
+  const rows = await withDbSystemContext((tx) =>
+    tx.savedListing.findMany({
+      where: { profileId, listingId: { in: listingIds } },
+      select: { listingId: true },
+    })
+  );
   return new Set(rows.map((row) => row.listingId));
 }
 
@@ -676,19 +699,21 @@ export async function getSavedListingsForCurrentUser(
   current: CurrentUserProfile
 ) {
   const now = new Date();
-  return prisma.savedListing.findMany({
-    where: {
-      profileId: current.profileId,
-      listing: {
-        status: LISTING_STATUS_ACTIVE,
-        moderationStatus: LISTING_MODERATION_APPROVED,
-        archivedAt: null,
-        OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
+  return withDbRequestContext(current, (tx) =>
+    tx.savedListing.findMany({
+      where: {
+        profileId: current.profileId,
+        listing: {
+          status: LISTING_STATUS_ACTIVE,
+          moderationStatus: LISTING_MODERATION_APPROVED,
+          archivedAt: null,
+          OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
+        },
       },
-    },
-    orderBy: { createdAt: "desc" },
-    include: { listing: { include: listingInclude() } },
-  });
+      orderBy: { createdAt: "desc" },
+      include: { listing: { include: listingInclude() } },
+    })
+  );
 }
 
 export async function runListingMaintenance(
@@ -696,8 +721,8 @@ export async function runListingMaintenance(
 ): Promise<ListingMaintenanceResult> {
   const soldCutoff = soldSearchCutoffDate(now);
 
-  const [expired, archivedSold] = await prisma.$transaction([
-    prisma.listing.updateMany({
+  const [expired, archivedSold] = await withDbSystemContext(async (tx) => {
+    const expired = await tx.listing.updateMany({
       where: {
         status: "active",
         archivedAt: null,
@@ -706,8 +731,8 @@ export async function runListingMaintenance(
       data: {
         status: "expired",
       },
-    }),
-    prisma.listing.updateMany({
+    });
+    const archivedSold = await tx.listing.updateMany({
       where: {
         status: "sold",
         archivedAt: null,
@@ -717,8 +742,9 @@ export async function runListingMaintenance(
         status: "archived",
         archivedAt: now,
       },
-    }),
-  ]);
+    });
+    return [expired, archivedSold] as const;
+  });
 
   if (expired.count > 0 || archivedSold.count > 0) {
     await createAuditLog({
@@ -802,23 +828,29 @@ async function getOwnedListing(
   current: CurrentUserProfile,
   listingId: string
 ) {
-  const listing = await prisma.listing.findFirst({
-    where: { id: listingId, profileId: current.profileId },
-  });
+  const listing = await withDbRequestContext(current, (tx) =>
+    tx.listing.findFirst({
+      where: { id: listingId, profileId: current.profileId },
+    })
+  );
   if (!listing) throw new Error("listing.not_found");
   return listing;
 }
 
 async function assertDogExists(dogId: string) {
-  const dog = await prisma.dog.findUnique({ where: { id: dogId } });
+  const dog = await withDbSystemContext((tx) =>
+    tx.dog.findUnique({ where: { id: dogId } })
+  );
   if (!dog) throw new Error("listing.dog_not_found");
 }
 
 async function assertCategoryExists(categoryId: string) {
-  const category = await prisma.marketplaceCategory.findFirst({
-    where: { id: categoryId, active: true },
-    select: { id: true },
-  });
+  const category = await withDbSystemContext((tx) =>
+    tx.marketplaceCategory.findFirst({
+      where: { id: categoryId, active: true },
+      select: { id: true },
+    })
+  );
   if (!category) throw new Error("listing.category_not_found");
 }
 
@@ -832,10 +864,12 @@ async function defaultCategoryIdForType(type: string) {
   };
   const slug = slugByType[type];
   if (!slug) return null;
-  const category = await prisma.marketplaceCategory.findUnique({
-    where: { slug },
-    select: { id: true },
-  });
+  const category = await withDbSystemContext((tx) =>
+    tx.marketplaceCategory.findUnique({
+      where: { slug },
+      select: { id: true },
+    })
+  );
   return category?.id ?? null;
 }
 
@@ -1016,8 +1050,8 @@ async function auditListingModeration(
   listingId: string,
   reason: string
 ) {
-  await prisma.$transaction([
-    prisma.adminAction.create({
+  await withDbRequestContext(current, async (tx) => {
+    await tx.adminAction.create({
       data: {
         adminId: current.dbUserId,
         action,
@@ -1025,16 +1059,16 @@ async function auditListingModeration(
         targetId: listingId,
         reason,
       },
-    }),
-    prisma.listingModerationAction.create({
+    });
+    await tx.listingModerationAction.create({
       data: {
         listingId,
         actorProfileId: current.profileId,
         action,
         reason,
       },
-    }),
-  ]);
+    });
+  });
 
   await createAuditLog({
     actorId: current.dbUserId,

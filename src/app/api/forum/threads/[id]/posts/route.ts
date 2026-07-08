@@ -3,8 +3,7 @@ import { z } from "zod";
 import { assertPaidFeatureAccess, requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { cleanText } from "@/lib/content";
-import { prisma } from "@/lib/db";
-import { withDbRequestContext } from "@/lib/db-context";
+import { withDbRequestContext, withDbSystemContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const createPostSchema = z.object({
@@ -19,17 +18,19 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const thread = await prisma.thread.findUnique({
-    where: { id },
-    include: {
-      category: true,
-      author: true,
-      posts: {
-        orderBy: { createdAt: "asc" },
-        include: { author: true },
+  const thread = await withDbSystemContext((tx) =>
+    tx.thread.findUnique({
+      where: { id },
+      include: {
+        category: true,
+        author: true,
+        posts: {
+          orderBy: { createdAt: "asc" },
+          include: { author: true },
+        },
       },
-    },
-  });
+    })
+  );
   if (!thread) {
     return NextResponse.json(
       { error: { code: "forum.thread_not_found", message: "Thread not found" } },
@@ -67,7 +68,9 @@ export async function POST(
     }
 
     const parsed = createPostSchema.parse(await request.json());
-    const thread = await prisma.thread.findUnique({ where: { id } });
+    const thread = await withDbRequestContext(current, (tx) =>
+      tx.thread.findUnique({ where: { id } })
+    );
     if (!thread || thread.locked) throw new Error("forum.thread_not_found");
 
     const post = await withDbRequestContext(current, async (tx) => {

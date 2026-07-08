@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminSupportTicketForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
@@ -44,23 +43,13 @@ export default async function AdminSupportPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Support ticket counts"
+        description="Aggregate support ticket counts and recent ticket rows. Status changes are audited; support message contents are not displayed."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Support ticket counts
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Aggregate support ticket counts and recent ticket rows. Status
-          changes are audited; support message contents are not displayed.
-        </p>
-
-        <div className="mt-6 grid gap-4 lg:grid-cols-[0.75fr_1fr_1fr]">
+        <div className="grid gap-4 lg:grid-cols-[0.75fr_1fr_1fr]">
           <div className="giq-subpanel p-5">
             <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
               Total

@@ -47,23 +47,23 @@ export async function withDbSystemContext<T>(
   );
 }
 
+// Single round trip: every GUC in one statement. Latency here multiplies
+// across all wrapped queries (notably the rate limiter on hot paths).
 export async function setDbRequestContext(
   tx: DbContextClient,
   current: DbContextUser,
 ) {
-  await setLocal(tx, "app.current_user_id", current.dbUserId);
-  await setLocal(tx, "app.current_profile_id", current.profileId);
-  await setLocal(tx, "app.current_tier", current.tier);
-  await setLocal(tx, "app.current_role", current.profileRole);
-  await setLocal(tx, "app.system", "false");
+  await tx.$executeRaw`SELECT
+    set_config('app.current_user_id', ${current.dbUserId}, true),
+    set_config('app.current_profile_id', ${current.profileId}, true),
+    set_config('app.current_tier', ${current.tier}, true),
+    set_config('app.current_role', ${current.profileRole}, true),
+    set_config('app.system', 'false', true)`;
 }
 
 export async function setDbSystemContext(tx: DbContextClient) {
-  await setLocal(tx, "app.system", "true");
-  await setLocal(tx, "app.current_tier", "system");
-  await setLocal(tx, "app.current_role", "system");
-}
-
-function setLocal(tx: DbContextClient, key: string, value: string) {
-  return tx.$executeRaw`SELECT set_config(${key}, ${value}, true)`;
+  await tx.$executeRaw`SELECT
+    set_config('app.system', 'true', true),
+    set_config('app.current_tier', 'system', true),
+    set_config('app.current_role', 'system', true)`;
 }

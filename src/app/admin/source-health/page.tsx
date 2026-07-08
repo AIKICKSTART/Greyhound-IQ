@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import {
   AdminSourceHealthForm,
   AdminStatusForm,
@@ -38,24 +37,13 @@ export default async function AdminSourceHealthPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Source health"
+        description="Live feed status from the local health helper plus editable DataSourceHealth rows. This page does not trigger provider imports or external feed calls."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Source health
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Live feed status from the local health helper plus editable
-          DataSourceHealth rows. This page does not trigger provider imports or
-          external feed calls.
-        </p>
-
-        <div className="mt-6">
+        <div>
           <AdminSourceHealthForm path="/admin/source-health" />
         </div>
 

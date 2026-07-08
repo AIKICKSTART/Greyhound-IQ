@@ -47,6 +47,7 @@ import { countUnreadMessagesTotal } from "@/lib/conversation-service";
 import { countUnreadNotificationsForUser } from "@/lib/notification-service";
 import { profileRealtimeChannel } from "@/lib/realtime-service";
 import { siteAssetUrl } from "@/lib/storage-paths";
+import { cached } from "@/lib/ttl-cache";
 
 const TIER_BADGE: Record<string, { label: string; color: string }> = {
   free: { label: "Free", color: "var(--muted-foreground)" },
@@ -384,7 +385,9 @@ export async function SiteHeader() {
             profileRole: user.role ?? "member",
             tier: user.tier,
           }),
-          countUnreadNotificationsForUser(user.dbUserId),
+          cached(`notif:unread:${user.dbUserId}`, 30_000, () =>
+            countUnreadNotificationsForUser(user.dbUserId!)
+          ),
         ])
       : [0, 0];
   const profileChannel = user?.profileId

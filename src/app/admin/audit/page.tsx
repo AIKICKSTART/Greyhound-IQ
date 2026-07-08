@@ -1,7 +1,7 @@
-import Link from "next/link";
-
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -25,23 +25,13 @@ export default async function AdminAuditLogPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Audit log"
+        description="Latest 20 audit log rows from the local database. Metadata, IP addresses, user agents, actor IDs, and payloads are not displayed."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Audit log
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 20 audit log rows from the local database. Metadata, IP
-          addresses, user agents, actor IDs, and payloads are not displayed.
-        </p>
-
-        <div className="giq-table-shell mt-6 overflow-x-auto">
+        <div className="giq-table-shell overflow-x-auto">
           <table className="w-full min-w-[960px]">
             <thead>
               <tr className="giq-table-head">
@@ -96,18 +86,20 @@ function MonoCell({ children }: { children: string }) {
 function getAuditLogs() {
   return safeQuery<AuditLogRow[]>(
     () =>
-      prisma.auditLog.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 20,
-        select: {
-          id: true,
-          actorType: true,
-          action: true,
-          targetType: true,
-          targetId: true,
-          createdAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.auditLog.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 20,
+          select: {
+            id: true,
+            actorType: true,
+            action: true,
+            targetType: true,
+            targetId: true,
+            createdAt: true,
+          },
+        })
+      ),
     []
   );
 }

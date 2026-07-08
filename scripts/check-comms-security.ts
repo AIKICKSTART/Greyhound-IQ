@@ -162,14 +162,14 @@ async function main() {
     // ── Rate limit: window reset ──────────────────────────────────────────────
     const windowKey = `${marker}_window`;
     rateLimitKeys.push(windowKey);
-    const wr1 = await checkRateLimit(windowKey, 2, 1500);
+    const wr1 = await checkRateLimit(windowKey, 2, 4000);
     assert.equal(wr1.allowed, true);
-    await checkRateLimit(windowKey, 2, 1500);
-    const wr3 = await checkRateLimit(windowKey, 2, 1500);
+    await checkRateLimit(windowKey, 2, 4000);
+    const wr3 = await checkRateLimit(windowKey, 2, 4000);
     assert.equal(wr3.allowed, false, "3rd call exhausts limit");
     const waitMs = wr1.resetAt - Date.now() + 150;
     await new Promise((res) => setTimeout(res, Math.max(waitMs, 0)));
-    const wr4 = await checkRateLimit(windowKey, 2, 1500);
+    const wr4 = await checkRateLimit(windowKey, 2, 4000);
     assert.equal(wr4.allowed, true, "allowed again after window reset");
     console.log("PASS: rate limit window reset");
 

@@ -11,8 +11,11 @@ import {
   assertProfilesCanInteract,
   getConversationForProfile,
 } from "@/lib/conversation-service";
-import { prisma } from "@/lib/db";
-import { withDbRequestContext, type DbContextUser } from "@/lib/db-context";
+import {
+  withDbRequestContext,
+  withDbSystemContext,
+  type DbContextUser,
+} from "@/lib/db-context";
 import { assertPaidFeatureAccess } from "@/lib/tier-access";
 import { deleteLiveKitRoom, liveKitConfig } from "@/lib/livekit-admin";
 import { createInAppNotification } from "@/lib/notification-service";
@@ -354,7 +357,9 @@ export async function handleLiveKitWebhookEvent(event: WebhookEvent) {
   const roomName = event.room?.name;
   if (!roomName?.startsWith("ghiq-")) return;
 
-  const room = await prisma.callRoom.findUnique({ where: { roomName } });
+  const room = await withDbSystemContext((tx) =>
+    tx.callRoom.findUnique({ where: { roomName } })
+  );
   if (!room) return;
 
   if (event.event === "room_finished") {
@@ -370,22 +375,24 @@ export async function handleLiveKitWebhookEvent(event: WebhookEvent) {
     const profileId = event.participant?.identity;
     if (!profileId) return;
     const joined = event.event === "participant_joined";
-    // Only touch participants provisioned at room creation; unknown
-    // identities are ignored. Gating on the null column keeps retried
-    // webhook deliveries idempotent.
-    const updated = await prisma.callParticipant.updateMany({
-      where: joined
-        ? { callRoomId: room.id, profileId, joinedAt: null }
-        : { callRoomId: room.id, profileId, leftAt: null },
-      data: joined ? { joinedAt: new Date() } : { leftAt: new Date() },
-    });
-    if (updated.count === 0) return;
-    await prisma.callEvent.create({
-      data: {
-        callRoomId: room.id,
-        profileId,
-        eventType: event.event,
-      },
+    await withDbSystemContext(async (tx) => {
+      // Only touch participants provisioned at room creation; unknown
+      // identities are ignored. Gating on the null column keeps retried
+      // webhook deliveries idempotent.
+      const updated = await tx.callParticipant.updateMany({
+        where: joined
+          ? { callRoomId: room.id, profileId, joinedAt: null }
+          : { callRoomId: room.id, profileId, leftAt: null },
+        data: joined ? { joinedAt: new Date() } : { leftAt: new Date() },
+      });
+      if (updated.count === 0) return;
+      await tx.callEvent.create({
+        data: {
+          callRoomId: room.id,
+          profileId,
+          eventType: event.event,
+        },
+      });
     });
   }
 }
@@ -393,38 +400,42 @@ export async function handleLiveKitWebhookEvent(event: WebhookEvent) {
 export async function runCallMaintenance() {
   const now = new Date();
 
-  const staleRooms = await prisma.callRoom.findMany({
-    where: {
-      status: "active",
-      createdAt: { lt: new Date(now.getTime() - CALL_ROOM_JOIN_TTL_MS) },
-    },
-  });
+  const staleRooms = await withDbSystemContext((tx) =>
+    tx.callRoom.findMany({
+      where: {
+        status: "active",
+        createdAt: { lt: new Date(now.getTime() - CALL_ROOM_JOIN_TTL_MS) },
+      },
+    })
+  );
   for (const room of staleRooms) {
     await endCallRoom(room, { eventType: "room_expired" });
     await deleteLiveKitRoom(room.roomName);
   }
 
-  const expiredInvites = await prisma.callInvite.findMany({
-    where: { status: "pending", expiresAt: { lt: now } },
-    include: {
-      callRoom: true,
-      toProfile: { select: { userId: true } },
-    },
-  });
+  const expiredInvites = await withDbSystemContext((tx) =>
+    tx.callInvite.findMany({
+      where: { status: "pending", expiresAt: { lt: now } },
+      include: {
+        callRoom: true,
+        toProfile: { select: { userId: true } },
+      },
+    })
+  );
   for (const invite of expiredInvites) {
-    await prisma.$transaction([
-      prisma.callInvite.update({
+    await withDbSystemContext(async (tx) => {
+      await tx.callInvite.update({
         where: { id: invite.id },
         data: { status: "missed" },
-      }),
-      prisma.callEvent.create({
+      });
+      await tx.callEvent.create({
         data: {
           callRoomId: invite.callRoomId,
           profileId: invite.toProfileId,
           eventType: "invite_missed",
         },
-      }),
-    ]);
+      });
+    });
     await createInAppNotification({
       userId: invite.toProfile.userId,
       actorProfileId: invite.fromProfileId,
@@ -460,7 +471,7 @@ async function endCallRoom(
   }
 ) {
   const endedAt = new Date();
-  const ended = await prisma.$transaction(async (tx) => {
+  const ended = await withDbSystemContext(async (tx) => {
     // Compare-and-set: only the first caller to flip active->ended proceeds.
     // A concurrent user-end + room_finished webhook would otherwise both emit
     // duplicate events and broadcasts.

@@ -1,7 +1,7 @@
 import type { z } from "zod";
 import { createAuditLog } from "@/lib/account-service";
 import type { CurrentUserProfile } from "@/lib/auth-types";
-import { prisma } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { createInAppNotification } from "@/lib/notification-service";
 import {
   broadcastConversationRealtimeEvent,
@@ -27,17 +27,19 @@ export async function createReportForUser(
   }
 
   const duplicateSince = new Date(Date.now() - DUPLICATE_WINDOW_MS);
-  const duplicate = await prisma.report.findFirst({
-    where: {
-      reporterId: current.dbUserId,
-      targetType: input.targetType,
-      targetId: input.targetId,
-      createdAt: { gte: duplicateSince },
-    },
-  });
+  const duplicate = await withDbRequestContext(current, (tx) =>
+    tx.report.findFirst({
+      where: {
+        reporterId: current.dbUserId,
+        targetType: input.targetType,
+        targetId: input.targetId,
+        createdAt: { gte: duplicateSince },
+      },
+    })
+  );
   if (duplicate) throw new Error("report.duplicate");
 
-  const report = await prisma.$transaction(async (tx) => {
+  const report = await withDbRequestContext(current, async (tx) => {
     const created = await tx.report.create({
       data: {
         reporterId: current.dbUserId,
@@ -106,13 +108,16 @@ export async function resolveReportForModerator(
   reportId: string,
   input: ReportResolveInput
 ) {
-  const report = await prisma.report.findUnique({ where: { id: reportId } });
+  const report = await withDbRequestContext(current, (tx) =>
+    tx.report.findUnique({ where: { id: reportId } })
+  );
   if (!report) throw new Error("report.not_found");
 
   const status = input.action === "dismiss" ? "dismissed" : "resolved";
   const now = new Date();
 
-  const { updated: resolved, messageConversation } = await prisma.$transaction(
+  const { updated: resolved, messageConversation } = await withDbRequestContext(
+    current,
     async (tx) => {
       let messageConversation:
         | { id: string; participantAId: string; participantBId: string }
@@ -282,73 +287,75 @@ async function getReportedUserId(
   targetType: ReportCreateInput["targetType"],
   targetId: string
 ) {
-  if (targetType === "user") {
-    const user = await prisma.user.findUnique({ where: { id: targetId } });
-    if (!user) throw new Error("report.target_not_found");
-    return user.id;
-  }
+  return withDbRequestContext(current, async (tx) => {
+    if (targetType === "user") {
+      const user = await tx.user.findUnique({ where: { id: targetId } });
+      if (!user) throw new Error("report.target_not_found");
+      return user.id;
+    }
 
-  if (targetType === "profile") {
-    const profile = await prisma.profile.findUnique({ where: { id: targetId } });
-    if (!profile) throw new Error("report.target_not_found");
-    return profile.userId;
-  }
+    if (targetType === "profile") {
+      const profile = await tx.profile.findUnique({ where: { id: targetId } });
+      if (!profile) throw new Error("report.target_not_found");
+      return profile.userId;
+    }
 
-  if (targetType === "thread") {
-    const thread = await prisma.thread.findUnique({
-      where: { id: targetId },
-      include: { author: true },
+    if (targetType === "thread") {
+      const thread = await tx.thread.findUnique({
+        where: { id: targetId },
+        include: { author: true },
+      });
+      if (!thread) throw new Error("report.target_not_found");
+      return thread.author.userId;
+    }
+
+    if (targetType === "post") {
+      const post = await tx.post.findUnique({
+        where: { id: targetId },
+        include: { author: true },
+      });
+      if (!post) throw new Error("report.target_not_found");
+      return post.author.userId;
+    }
+
+    if (targetType === "feed_post") {
+      const post = await tx.feedPost.findUnique({
+        where: { id: targetId },
+        include: { author: true },
+      });
+      if (!post) throw new Error("report.target_not_found");
+      return post.author.userId;
+    }
+
+    if (targetType === "feed_comment") {
+      const comment = await tx.feedComment.findUnique({
+        where: { id: targetId },
+        include: { author: true },
+      });
+      if (!comment) throw new Error("report.target_not_found");
+      return comment.author.userId;
+    }
+
+    if (targetType === "listing") {
+      const listing = await tx.listing.findUnique({
+        where: { id: targetId },
+        include: { profile: true },
+      });
+      if (!listing) throw new Error("report.target_not_found");
+      return listing.profile.userId;
+    }
+
+    const message = await tx.message.findFirst({
+      where: {
+        id: targetId,
+        recipientId: current.profileId,
+        deletedByRecipientAt: null,
+      },
+      include: {
+        sender: true,
+      },
     });
-    if (!thread) throw new Error("report.target_not_found");
-    return thread.author.userId;
-  }
-
-  if (targetType === "post") {
-    const post = await prisma.post.findUnique({
-      where: { id: targetId },
-      include: { author: true },
-    });
-    if (!post) throw new Error("report.target_not_found");
-    return post.author.userId;
-  }
-
-  if (targetType === "feed_post") {
-    const post = await prisma.feedPost.findUnique({
-      where: { id: targetId },
-      include: { author: true },
-    });
-    if (!post) throw new Error("report.target_not_found");
-    return post.author.userId;
-  }
-
-  if (targetType === "feed_comment") {
-    const comment = await prisma.feedComment.findUnique({
-      where: { id: targetId },
-      include: { author: true },
-    });
-    if (!comment) throw new Error("report.target_not_found");
-    return comment.author.userId;
-  }
-
-  if (targetType === "listing") {
-    const listing = await prisma.listing.findUnique({
-      where: { id: targetId },
-      include: { profile: true },
-    });
-    if (!listing) throw new Error("report.target_not_found");
-    return listing.profile.userId;
-  }
-
-  const message = await prisma.message.findFirst({
-    where: {
-      id: targetId,
-      recipientId: current.profileId,
-      deletedByRecipientAt: null,
-    },
-    include: {
-      sender: true,
-    },
+    if (!message) throw new Error("report.target_not_found");
+    return message.sender.userId;
   });
-  if (!message) throw new Error("report.target_not_found");
-  return message.sender.userId;
 }

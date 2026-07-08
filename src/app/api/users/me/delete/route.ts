@@ -4,6 +4,7 @@ import { requestAccountDeletion } from "@/lib/account-service";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/request-ip";
 
 const deletionRequestSchema = z.object({
   confirm: z.literal("DELETE"),
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
     deletionRequestSchema.parse(await request.json());
 
     const requestedAt = await requestAccountDeletion(current, {
-      ip: request.headers.get("x-forwarded-for"),
+      ip: getClientIp(request.headers),
       userAgent: request.headers.get("user-agent"),
     });
 

@@ -2,7 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 
-import { prisma } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -72,7 +72,7 @@ export async function reduceLagoWebhook({
     return { reduced: false, reason: "unsupported_payload" };
   }
 
-  return prisma.$transaction(async (tx) => {
+  return withDbSystemContext(async (tx) => {
     const existing = await tx.billingEvent.findFirst({
       where: { webhookEventId },
       select: { id: true },
@@ -411,7 +411,7 @@ async function findBillingCustomer(
 }
 
 async function markWebhookEventIgnored(webhookEventId: string) {
-  await prisma.$transaction((tx) =>
+  await withDbSystemContext((tx) =>
     markWebhookEventHandled(tx, webhookEventId, "ignored")
   );
 }

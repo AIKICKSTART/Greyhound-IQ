@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { forbidden, redirect } from "next/navigation";
 
 import { requireModeratorProfile } from "@/lib/auth";
+import { AdminNav } from "@/app/admin/admin-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -20,5 +21,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     throw err;
   }
 
-  return children;
+  return (
+    <div className="flex min-h-screen w-full">
+      <AdminNav />
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
-import { prisma } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const MEMORY_DELETE_RATE_LIMIT = 5;
@@ -16,15 +16,18 @@ export async function GET(
       params,
       requireCurrentUserProfile(),
     ]);
-    const item = await prisma.memoryEntry.findFirst({
-      where: { id, userId: current.dbUserId, deletedAt: null },
+    const item = await withDbRequestContext(current, async (tx) => {
+      const found = await tx.memoryEntry.findFirst({
+        where: { id, userId: current.dbUserId, deletedAt: null },
+      });
+      if (!found) return null;
+      await tx.memoryEntry.update({
+        where: { id: found.id },
+        data: { lastAccessedAt: new Date(), accessCount: { increment: 1 } },
+      });
+      return found;
     });
     if (!item) throw new Error("memory.not_found");
-
-    await prisma.memoryEntry.update({
-      where: { id: item.id },
-      data: { lastAccessedAt: new Date(), accessCount: { increment: 1 } },
-    });
 
     return NextResponse.json({ item });
   } catch (err) {
@@ -58,15 +61,17 @@ export async function DELETE(
       );
     }
 
-    const existing = await prisma.memoryEntry.findFirst({
-      where: { id, userId: current.dbUserId, deletedAt: null },
+    const item = await withDbRequestContext(current, async (tx) => {
+      const existing = await tx.memoryEntry.findFirst({
+        where: { id, userId: current.dbUserId, deletedAt: null },
+      });
+      if (!existing) return null;
+      return tx.memoryEntry.update({
+        where: { id: existing.id },
+        data: { deletedAt: new Date() },
+      });
     });
-    if (!existing) throw new Error("memory.not_found");
-
-    const item = await prisma.memoryEntry.update({
-      where: { id: existing.id },
-      data: { deletedAt: new Date() },
-    });
+    if (!item) throw new Error("memory.not_found");
 
     return NextResponse.json({ item });
   } catch (err) {

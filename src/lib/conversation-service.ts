@@ -44,6 +44,18 @@ const CONVERSATION_INCLUDE = {
   participants: true,
 } as const;
 
+// The conversation list only renders the last message's sender/body/read state
+// and whether it carried media — not the full thread of receipts/reactions.
+const CONVERSATION_LIST_MESSAGE_SELECT = {
+  id: true,
+  body: true,
+  createdAt: true,
+  senderId: true,
+  read: true,
+  readAt: true,
+  _count: { select: { media: true } },
+} as const;
+
 const MESSAGE_INCLUDE = {
   sender: true,
   recipient: true,
@@ -82,7 +94,7 @@ export async function listConversationsForProfile(current: DbContextUser) {
           where: visibleMessageWhere(current.profileId),
           orderBy: { createdAt: "desc" },
           take: 1,
-          include: MESSAGE_INCLUDE,
+          select: CONVERSATION_LIST_MESSAGE_SELECT,
         },
       },
       take: 50,
@@ -329,22 +341,14 @@ export async function markConversationRead(
       })),
       skipDuplicates: true,
     });
-    for (const messageId of messageIds) {
-      await tx.messageReadReceipt.upsert({
-        where: {
-          messageId_profileId: {
-            messageId,
-            profileId: current.profileId,
-          },
-        },
-        update: { readAt: now },
-        create: {
-          messageId,
-          profileId: current.profileId,
-          readAt: now,
-        },
-      });
-    }
+    await tx.messageReadReceipt.createMany({
+      data: messageIds.map((messageId) => ({
+        messageId,
+        profileId: current.profileId,
+        readAt: now,
+      })),
+      skipDuplicates: true,
+    });
     await tx.conversationParticipant.upsert({
       where: {
         conversationId_profileId: {

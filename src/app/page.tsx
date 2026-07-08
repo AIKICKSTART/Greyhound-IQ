@@ -77,7 +77,7 @@ const COMPARISON = [
   {
     feature: "Pro price/year",
     them: "~$125 AUD",
-    us: "$278.40 AUD",
+    us: "$204 AUD",
     Icon: BadgeDollarSign,
     tone: "price",
   },
@@ -261,7 +261,7 @@ function WhyGreyhoundIQSection() {
         </div>
         <div className="giq-comparison-meta" aria-label="GreyhoundIQ advantages">
           <span className="giq-pill giq-pill-sky">Official data</span>
-          <span className="giq-pill giq-pill-gold">$29 AUD/mo</span>
+          <span className="giq-pill giq-pill-gold">$20 AUD/mo</span>
           <span className="giq-pill giq-pill-green">Mobile first</span>
         </div>
       </div>

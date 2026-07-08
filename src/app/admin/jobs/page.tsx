@@ -1,8 +1,8 @@
-import Link from "next/link";
-
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -119,27 +119,14 @@ export default async function AdminJobsPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Jobs"
+        description="Read-only local operational status across usage outbox, usage events, webhook events, job runs, agent runs, and agent run usage. Raw payloads, webhook bodies, metadata, errors, user identifiers, provider identifiers, tokens, emails, IP addresses, and user agents are not selected or displayed."
+      />
 
       <div className="grid gap-6">
         <section className="giq-panel p-6">
-          <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-            Admin
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-            Jobs
-          </h1>
-          <p className="mt-3 max-w-3xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-            Read-only local operational status across usage outbox, usage
-            events, webhook events, job runs, agent runs, and agent run usage.
-            Raw payloads, webhook bodies, metadata, errors, user identifiers,
-            provider identifiers, tokens, emails, IP addresses, and user agents
-            are not selected or displayed.
-          </p>
-
-          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             {summaries.map((summary) => (
               <StatusSummaryCard key={summary.source} summary={summary} />
             ))}
@@ -452,70 +439,75 @@ async function getJobStatusSummaries(): Promise<JobStatusSummary[]> {
 
 function getUsageOutboxStatusCounts() {
   return safeQuery(
-    async () => {
-      const rows = await prisma.usageOutbox.groupBy({
-        by: ["status"],
-        _count: { _all: true },
-        orderBy: { status: "asc" },
-      });
-      return normalizeStatusCounts(rows);
-    },
+    () =>
+      withDbSystemContext(async (tx) => {
+        const rows = await tx.usageOutbox.groupBy({
+          by: ["status"],
+          _count: { _all: true },
+          orderBy: { status: "asc" },
+        });
+        return normalizeStatusCounts(rows);
+      }),
     []
   );
 }
 
 function getUsageEventStatusCounts() {
   return safeQuery(
-    async () => {
-      const rows = await prisma.usageEvent.groupBy({
-        by: ["status"],
-        _count: { _all: true },
-        orderBy: { status: "asc" },
-      });
-      return normalizeStatusCounts(rows);
-    },
+    () =>
+      withDbSystemContext(async (tx) => {
+        const rows = await tx.usageEvent.groupBy({
+          by: ["status"],
+          _count: { _all: true },
+          orderBy: { status: "asc" },
+        });
+        return normalizeStatusCounts(rows);
+      }),
     []
   );
 }
 
 function getWebhookEventStatusCounts() {
   return safeQuery(
-    async () => {
-      const rows = await prisma.webhookEvent.groupBy({
-        by: ["status"],
-        _count: { _all: true },
-        orderBy: { status: "asc" },
-      });
-      return normalizeStatusCounts(rows);
-    },
+    () =>
+      withDbSystemContext(async (tx) => {
+        const rows = await tx.webhookEvent.groupBy({
+          by: ["status"],
+          _count: { _all: true },
+          orderBy: { status: "asc" },
+        });
+        return normalizeStatusCounts(rows);
+      }),
     []
   );
 }
 
 function getJobRunStatusCounts() {
   return safeQuery(
-    async () => {
-      const rows = await prisma.jobRun.groupBy({
-        by: ["status"],
-        _count: { _all: true },
-        orderBy: { status: "asc" },
-      });
-      return normalizeStatusCounts(rows);
-    },
+    () =>
+      withDbSystemContext(async (tx) => {
+        const rows = await tx.jobRun.groupBy({
+          by: ["status"],
+          _count: { _all: true },
+          orderBy: { status: "asc" },
+        });
+        return normalizeStatusCounts(rows);
+      }),
     []
   );
 }
 
 function getAgentRunStatusCounts() {
   return safeQuery(
-    async () => {
-      const rows = await prisma.agentRun.groupBy({
-        by: ["status"],
-        _count: { _all: true },
-        orderBy: { status: "asc" },
-      });
-      return normalizeStatusCounts(rows);
-    },
+    () =>
+      withDbSystemContext(async (tx) => {
+        const rows = await tx.agentRun.groupBy({
+          by: ["status"],
+          _count: { _all: true },
+          orderBy: { status: "asc" },
+        });
+        return normalizeStatusCounts(rows);
+      }),
     []
   );
 }
@@ -539,7 +531,8 @@ async function getAgentRunUsageSummary(): Promise<AgentRunUsageSummary> {
 function getAgentRunUsageStatusCounts() {
   return safeQuery<AgentRunUsageStatusCountRow[]>(
     () =>
-      prisma.$queryRaw<AgentRunUsageStatusCountRow[]>`
+      withDbSystemContext((tx) =>
+        tx.$queryRaw<AgentRunUsageStatusCountRow[]>`
         SELECT
           usage."metricKey",
           COALESCE(run."status", 'unlinked') AS "status",
@@ -548,7 +541,8 @@ function getAgentRunUsageStatusCounts() {
         LEFT JOIN "AgentRun" run ON run."id" = usage."agentRunId"
         GROUP BY usage."metricKey", COALESCE(run."status", 'unlinked')
         ORDER BY usage."metricKey" ASC, "status" ASC
-      `,
+      `
+      ),
     []
   );
 }
@@ -556,17 +550,19 @@ function getAgentRunUsageStatusCounts() {
 function getRecentAgentRunUsageRows() {
   return safeQuery<AgentRunUsageRecentRow[]>(
     () =>
-      prisma.agentRunUsage.findMany({
-        orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
-        take: RECENT_ROWS_LIMIT,
-        select: {
-          metricKey: true,
-          quantity: true,
-          unit: true,
-          occurredAt: true,
-          createdAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.agentRunUsage.findMany({
+          orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+          take: RECENT_ROWS_LIMIT,
+          select: {
+            metricKey: true,
+            quantity: true,
+            unit: true,
+            occurredAt: true,
+            createdAt: true,
+          },
+        })
+      ),
     []
   );
 }
@@ -595,21 +591,23 @@ async function getRecentOperationalRows(): Promise<OperationalJobRow[]> {
 function getRecentUsageOutboxRows() {
   return safeQuery<UsageOutboxRow[]>(
     () =>
-      prisma.usageOutbox.findMany({
-        orderBy: [{ createdAt: "desc" }],
-        take: RECENT_PER_SOURCE,
-        select: {
-          id: true,
-          metricKey: true,
-          status: true,
-          retryCount: true,
-          occurredAt: true,
-          lastAttemptAt: true,
-          nextRetryAt: true,
-          sentAt: true,
-          failedAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.usageOutbox.findMany({
+          orderBy: [{ createdAt: "desc" }],
+          take: RECENT_PER_SOURCE,
+          select: {
+            id: true,
+            metricKey: true,
+            status: true,
+            retryCount: true,
+            occurredAt: true,
+            lastAttemptAt: true,
+            nextRetryAt: true,
+            sentAt: true,
+            failedAt: true,
+          },
+        })
+      ),
     []
   );
 }
@@ -617,21 +615,23 @@ function getRecentUsageOutboxRows() {
 function getRecentUsageEventRows() {
   return safeQuery<UsageEventRow[]>(
     () =>
-      prisma.usageEvent.findMany({
-        orderBy: [{ createdAt: "desc" }],
-        take: RECENT_PER_SOURCE,
-        select: {
-          id: true,
-          metricKey: true,
-          status: true,
-          retryCount: true,
-          occurredAt: true,
-          lastAttemptAt: true,
-          nextRetryAt: true,
-          processedAt: true,
-          failedAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.usageEvent.findMany({
+          orderBy: [{ createdAt: "desc" }],
+          take: RECENT_PER_SOURCE,
+          select: {
+            id: true,
+            metricKey: true,
+            status: true,
+            retryCount: true,
+            occurredAt: true,
+            lastAttemptAt: true,
+            nextRetryAt: true,
+            processedAt: true,
+            failedAt: true,
+          },
+        })
+      ),
     []
   );
 }
@@ -639,18 +639,20 @@ function getRecentUsageEventRows() {
 function getRecentWebhookEventRows() {
   return safeQuery<WebhookEventRow[]>(
     () =>
-      prisma.webhookEvent.findMany({
-        orderBy: [{ receivedAt: "desc" }],
-        take: RECENT_PER_SOURCE,
-        select: {
-          id: true,
-          eventType: true,
-          status: true,
-          retryCount: true,
-          receivedAt: true,
-          processedAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.webhookEvent.findMany({
+          orderBy: [{ receivedAt: "desc" }],
+          take: RECENT_PER_SOURCE,
+          select: {
+            id: true,
+            eventType: true,
+            status: true,
+            retryCount: true,
+            receivedAt: true,
+            processedAt: true,
+          },
+        })
+      ),
     []
   );
 }
@@ -658,18 +660,20 @@ function getRecentWebhookEventRows() {
 function getRecentJobRunRows() {
   return safeQuery<JobRunRow[]>(
     () =>
-      prisma.jobRun.findMany({
-        orderBy: [{ createdAt: "desc" }],
-        take: RECENT_PER_SOURCE,
-        select: {
-          id: true,
-          name: true,
-          status: true,
-          startedAt: true,
-          completedAt: true,
-          createdAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.jobRun.findMany({
+          orderBy: [{ createdAt: "desc" }],
+          take: RECENT_PER_SOURCE,
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            startedAt: true,
+            completedAt: true,
+            createdAt: true,
+          },
+        })
+      ),
     []
   );
 }
@@ -677,17 +681,19 @@ function getRecentJobRunRows() {
 function getRecentAgentRunRows() {
   return safeQuery<AgentRunRow[]>(
     () =>
-      prisma.agentRun.findMany({
-        orderBy: [{ createdAt: "desc" }],
-        take: RECENT_PER_SOURCE,
-        select: {
-          agentType: true,
-          status: true,
-          durationMs: true,
-          createdAt: true,
-          completedAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.agentRun.findMany({
+          orderBy: [{ createdAt: "desc" }],
+          take: RECENT_PER_SOURCE,
+          select: {
+            agentType: true,
+            status: true,
+            durationMs: true,
+            createdAt: true,
+            completedAt: true,
+          },
+        })
+      ),
     []
   );
 }

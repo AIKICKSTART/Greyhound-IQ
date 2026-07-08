@@ -1,12 +1,12 @@
-import Link from "next/link";
-
 import {
   AdminEnabledForm,
   AdminPlanForms,
   AdminStatusForm,
 } from "@/app/admin/form-controls";
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -46,22 +46,12 @@ export default async function AdminPlansPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Plans"
+        description="Create and update local plan catalog rows, prices, and entitlement limits. Provider IDs stay read-only and are not edited here."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Plans
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Create and update local plan catalog rows, prices, and entitlement
-          limits. Provider IDs stay read-only and are not edited here.
-        </p>
-
         <div className="mt-6">
           <AdminPlanForms plans={plans.map((plan) => ({ id: plan.id, code: plan.code }))} path="/admin/plans" />
         </div>
@@ -119,35 +109,37 @@ export default async function AdminPlansPage() {
 function getPlans() {
   return safeQuery<PlanCatalogRow[]>(
     () =>
-      prisma.plan.findMany({
-        orderBy: { code: "asc" },
-        select: {
-          code: true,
-          id: true,
-          name: true,
-          status: true,
-          prices: {
-            orderBy: [{ interval: "asc" }, { currency: "asc" }],
-            select: {
-              id: true,
-              interval: true,
-              currency: true,
-              amountCents: true,
-              status: true,
+      withDbSystemContext((tx) =>
+        tx.plan.findMany({
+          orderBy: { code: "asc" },
+          select: {
+            code: true,
+            id: true,
+            name: true,
+            status: true,
+            prices: {
+              orderBy: [{ interval: "asc" }, { currency: "asc" }],
+              select: {
+                id: true,
+                interval: true,
+                currency: true,
+                amountCents: true,
+                status: true,
+              },
+            },
+            entitlements: {
+              orderBy: { featureKey: "asc" },
+              select: {
+                id: true,
+                featureKey: true,
+                enabled: true,
+                limitValue: true,
+                unit: true,
+              },
             },
           },
-          entitlements: {
-            orderBy: { featureKey: "asc" },
-            select: {
-              id: true,
-              featureKey: true,
-              enabled: true,
-              limitValue: true,
-              unit: true,
-            },
-          },
-        },
-      }),
+        })
+      ),
     []
   );
 }

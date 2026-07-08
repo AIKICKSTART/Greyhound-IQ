@@ -38,7 +38,7 @@ import {
   getConversationForProfile,
   markConversationDelivered,
 } from "@/lib/conversation-service";
-import { prisma } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { conversationRealtimeChannel } from "@/lib/realtime-service";
 
 export const dynamic = "force-dynamic";
@@ -106,10 +106,12 @@ export default async function MessageThreadPage({
         ? null
         : getPendingCallInviteForConversation(callContext, conversation.id),
       getRecentCallLogForConversation(callContext, conversation.id),
-      prisma.userPresence.findUnique({
-        where: { profileId: other.id },
-        select: { lastSeenAt: true },
-      }),
+      withDbRequestContext(callContext, (tx) =>
+        tx.userPresence.findUnique({
+          where: { profileId: other.id },
+          select: { lastSeenAt: true },
+        })
+      ),
       // Recipient viewing the thread = messages delivered.
       markConversationDelivered(callContext, conversation.id),
     ] as const);

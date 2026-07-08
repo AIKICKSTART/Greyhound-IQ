@@ -21,7 +21,6 @@ import {
   startOrGetConversation,
   toggleConversationMessageReaction,
 } from "@/lib/conversation-service";
-import { prisma } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
 import {
   createFeedCommentForCurrentUser,
@@ -143,17 +142,21 @@ export async function runCommunityFlowProbe({
     assert.equal(message.conversationId, conversation.id);
 
     // ── Delivered semantics ──────────────────────────────────────────────────
-    const receiptsBeforeDeliver = await prisma.messageDeliveryReceipt.count({
-      where: { messageId: message.id, profileId: buyer.profileId },
-    });
+    const receiptsBeforeDeliver = await withDbSystemContext((tx) =>
+      tx.messageDeliveryReceipt.count({
+        where: { messageId: message.id, profileId: buyer.profileId },
+      }),
+    );
     assert.equal(receiptsBeforeDeliver, 0, "no delivery receipt before markConversationDelivered");
 
     const deliveredResult = await markConversationDelivered(buyer, conversation.id);
     assert.equal(deliveredResult.delivered, 1, "markConversationDelivered delivers 1 message");
 
-    const deliveryReceipt = await prisma.messageDeliveryReceipt.findFirst({
-      where: { messageId: message.id, profileId: buyer.profileId },
-    });
+    const deliveryReceipt = await withDbSystemContext((tx) =>
+      tx.messageDeliveryReceipt.findFirst({
+        where: { messageId: message.id, profileId: buyer.profileId },
+      }),
+    );
     assert.ok(deliveryReceipt, "delivery receipt row exists after markConversationDelivered");
 
     const unreadMapBefore = await countUnreadMessagesByConversation(buyer);
@@ -165,9 +168,11 @@ export async function runCommunityFlowProbe({
 
     // Presence: touchPresence is fire-and-forget in sendConversationMessage; the
     // DB roundtrips above give it time to complete.
-    const presenceRow = await prisma.userPresence.findFirst({
-      where: { profileId: seller.profileId },
-    });
+    const presenceRow = await withDbSystemContext((tx) =>
+      tx.userPresence.findFirst({
+        where: { profileId: seller.profileId },
+      }),
+    );
     assert.ok(presenceRow, "UserPresence row exists for sender after send");
     assert.ok(presenceRow.lastSeenAt, "lastSeenAt is populated");
     // ── End delivered semantics ──────────────────────────────────────────────
@@ -181,9 +186,11 @@ export async function runCommunityFlowProbe({
       0,
       "0 unread after markConversationRead",
     );
-    const readReceiptRow = await prisma.messageReadReceipt.findFirst({
-      where: { messageId: message.id, profileId: buyer.profileId },
-    });
+    const readReceiptRow = await withDbSystemContext((tx) =>
+      tx.messageReadReceipt.findFirst({
+        where: { messageId: message.id, profileId: buyer.profileId },
+      }),
+    );
     assert.ok(readReceiptRow, "read receipt row exists after markConversationRead");
     // ── End unread/read receipt ──────────────────────────────────────────────
 
@@ -195,14 +202,16 @@ export async function runCommunityFlowProbe({
       mediaIds: [],
     });
     assert.ok(msg2.id);
-    const notifCount = await prisma.notification.count({
-      where: {
-        userId: buyer.dbUserId,
-        type: "message",
-        href: `/pulse/${conversation.id}`,
-        readAt: null,
-      },
-    });
+    const notifCount = await withDbSystemContext((tx) =>
+      tx.notification.count({
+        where: {
+          userId: buyer.dbUserId,
+          type: "message",
+          href: `/pulse/${conversation.id}`,
+          readAt: null,
+        },
+      }),
+    );
     assert.equal(notifCount, 1, "exactly 1 unread message notification (deduped)");
     // ── End notification dedupe ──────────────────────────────────────────────
 
@@ -278,7 +287,7 @@ export async function runCommunityFlowProbe({
       "decline",
     );
     assert.equal(declineResult.status, "declined");
-    const declineRoomRow = await prisma.callRoom.findUnique({ where: { id: declineRoom.id } });
+    const declineRoomRow = await withDbSystemContext((tx) => tx.callRoom.findUnique({ where: { id: declineRoom.id } }));
     assert.equal(declineRoomRow?.status, "ended", "room ended after decline");
 
     // Accept: token issuance works
@@ -298,24 +307,32 @@ export async function runCommunityFlowProbe({
     // Missed: backdate invite, run maintenance, assert missed + notification
     const missedRoom = await createCallRoomForConversation(seller, conversation.id);
     ids.callRooms.add(missedRoom.id);
-    const pendingInvite3 = await prisma.callInvite.findFirst({
-      where: { callRoomId: missedRoom.id, status: "pending" },
-    });
+    const pendingInvite3 = await withDbSystemContext((tx) =>
+      tx.callInvite.findFirst({
+        where: { callRoomId: missedRoom.id, status: "pending" },
+      }),
+    );
     assert.ok(pendingInvite3, "pending invite exists for missed-room test");
-    await prisma.callInvite.update({
-      where: { id: pendingInvite3.id },
-      data: { expiresAt: new Date(Date.now() - 5_000) },
-    });
+    await withDbSystemContext((tx) =>
+      tx.callInvite.update({
+        where: { id: pendingInvite3.id },
+        data: { expiresAt: new Date(Date.now() - 5_000) },
+      }),
+    );
     await runCallMaintenance();
-    const invite3Updated = await prisma.callInvite.findUnique({
-      where: { id: pendingInvite3.id },
-    });
+    const invite3Updated = await withDbSystemContext((tx) =>
+      tx.callInvite.findUnique({
+        where: { id: pendingInvite3.id },
+      }),
+    );
     assert.equal(invite3Updated?.status, "missed", "invite marked missed by maintenance");
-    const missedNotif = await prisma.notification.findFirst({
-      where: { userId: buyer.dbUserId, type: "call_missed" },
-    });
+    const missedNotif = await withDbSystemContext((tx) =>
+      tx.notification.findFirst({
+        where: { userId: buyer.dbUserId, type: "call_missed" },
+      }),
+    );
     assert.ok(missedNotif, "call_missed notification created for callee");
-    const missedRoomRow = await prisma.callRoom.findUnique({ where: { id: missedRoom.id } });
+    const missedRoomRow = await withDbSystemContext((tx) => tx.callRoom.findUnique({ where: { id: missedRoom.id } }));
     assert.equal(missedRoomRow?.status, "active", "room remains active after invite missed");
     // ── End invite lifecycle ─────────────────────────────────────────────────
 
@@ -328,64 +345,76 @@ export async function runCommunityFlowProbe({
       room: { name: webhookRoom.roomName },
     } as unknown as WebhookEvent);
 
-    const webhookRoomRow = await prisma.callRoom.findUnique({ where: { id: webhookRoom.id } });
+    const webhookRoomRow = await withDbSystemContext((tx) => tx.callRoom.findUnique({ where: { id: webhookRoom.id } }));
     assert.equal(webhookRoomRow?.status, "ended", "webhook event ends room");
 
-    const webhookParticipants = await prisma.callParticipant.findMany({
-      where: { callRoomId: webhookRoom.id },
-    });
+    const webhookParticipants = await withDbSystemContext((tx) =>
+      tx.callParticipant.findMany({
+        where: { callRoomId: webhookRoom.id },
+      }),
+    );
     assert.ok(
       webhookParticipants.every((p) => p.leftAt !== null),
       "all participants have leftAt set after webhook",
     );
 
     // Idempotence: second call must not throw or add events
-    const eventsBefore = await prisma.callEvent.count({
-      where: { callRoomId: webhookRoom.id },
-    });
+    const eventsBefore = await withDbSystemContext((tx) =>
+      tx.callEvent.count({
+        where: { callRoomId: webhookRoom.id },
+      }),
+    );
     await handleLiveKitWebhookEvent({
       event: "room_finished",
       room: { name: webhookRoom.roomName },
     } as unknown as WebhookEvent);
-    const eventsAfter = await prisma.callEvent.count({
-      where: { callRoomId: webhookRoom.id },
-    });
+    const eventsAfter = await withDbSystemContext((tx) =>
+      tx.callEvent.count({
+        where: { callRoomId: webhookRoom.id },
+      }),
+    );
     assert.equal(eventsAfter, eventsBefore, "webhook idempotent: no additional events on replay");
     // ── End webhook reconciliation ───────────────────────────────────────────
 
     // ── Media pending-attach ─────────────────────────────────────────────────
-    const probeMedia = await prisma.mediaAsset.create({
-      data: {
-        uploaderId: seller.dbUserId,
-        storageBucket: PRIVATE_USER_MEDIA_BUCKET,
-        storagePath: `users/${seller.dbUserId}/messages/pending/${marker}-probe.bin`,
-        publicUrl: null,
-        mediaType: "image",
-        originalName: "probe-media.jpg",
-        mimeType: "image/jpeg",
-        sizeBytes: 1024,
-        linkedEntityType: null,
-        linkedEntityId: null,
-        expiresAt: null,
-        scanStatus: "pending",
-      },
-    });
+    const probeMedia = await withDbSystemContext((tx) =>
+      tx.mediaAsset.create({
+        data: {
+          uploaderId: seller.dbUserId,
+          storageBucket: PRIVATE_USER_MEDIA_BUCKET,
+          storagePath: `users/${seller.dbUserId}/messages/pending/${marker}-probe.bin`,
+          publicUrl: null,
+          mediaType: "image",
+          originalName: "probe-media.jpg",
+          mimeType: "image/jpeg",
+          sizeBytes: 1024,
+          linkedEntityType: null,
+          linkedEntityId: null,
+          expiresAt: null,
+          scanStatus: "pending",
+        },
+      }),
+    );
     ids.mediaAssets.add(probeMedia.id);
 
     const mediaMsg = await sendConversationMessage(seller, conversation.id, {
       body: "Media attachment probe",
       mediaIds: [probeMedia.id],
     });
-    const mediaMsgRow = await prisma.messageMedia.findFirst({
-      where: { mediaId: probeMedia.id },
-    });
+    const mediaMsgRow = await withDbSystemContext((tx) =>
+      tx.messageMedia.findFirst({
+        where: { mediaId: probeMedia.id },
+      }),
+    );
     assert.ok(mediaMsgRow, "MessageMedia row exists after attaching pending media");
     assert.equal(mediaMsgRow.messageId, mediaMsg.id);
 
-    await prisma.mediaAsset.update({
-      where: { id: probeMedia.id },
-      data: { scanStatus: "infected" },
-    });
+    await withDbSystemContext((tx) =>
+      tx.mediaAsset.update({
+        where: { id: probeMedia.id },
+        data: { scanStatus: "infected" },
+      }),
+    );
     await assert.rejects(
       () => createMediaDownloadUrl(seller, probeMedia.id),
       (err: Error) => err.message === "media.infected",
@@ -484,14 +513,17 @@ async function createProbeCurrent(
   const user = await syncAuthUser(auth);
   ids.users.add(user.id);
   assert.ok(user.profile);
+  const userProfile = user.profile;
 
   const profile =
-    user.profile.role === role
-      ? user.profile
-      : await prisma.profile.update({
-          where: { id: user.profile.id },
-          data: { role },
-        });
+    userProfile.role === role
+      ? userProfile
+      : await withDbSystemContext((tx) =>
+          tx.profile.update({
+            where: { id: userProfile.id },
+            data: { role },
+          }),
+        );
   ids.profiles.add(profile.id);
 
   return {
@@ -532,138 +564,150 @@ async function cleanupCommunityFlowProbeRows({
   const trackedCategoryIds = includeTrackedIds ? [...ids.categories] : [];
   const trackedMediaAssetIds = includeTrackedIds ? [...ids.mediaAssets] : [];
 
-  const users = await prisma.user.findMany({
-    where: {
-      OR: [
-        { id: { in: trackedUserIds } },
-        {
-          email: {
-            startsWith: emailStartsWith,
-            endsWith: "@example.invalid",
+  const users = await withDbSystemContext((tx) =>
+    tx.user.findMany({
+      where: {
+        OR: [
+          { id: { in: trackedUserIds } },
+          {
+            email: {
+              startsWith: emailStartsWith,
+              endsWith: "@example.invalid",
+            },
           },
-        },
-      ],
-    },
-    select: { id: true, profile: { select: { id: true } } },
-  });
+        ],
+      },
+      select: { id: true, profile: { select: { id: true } } },
+    }),
+  );
   const userIds = unique([...trackedUserIds, ...users.map((user) => user.id)]);
   const profileIds = unique([
     ...trackedProfileIds,
     ...users.map((user) => user.profile?.id),
   ]);
 
-  const categories = await prisma.marketplaceCategory.findMany({
-    where: {
-      OR: [
-        { id: { in: trackedCategoryIds } },
-        { slug: { startsWith: categorySlugStartsWith } },
-      ],
-    },
-    select: { id: true },
-  });
+  const categories = await withDbSystemContext((tx) =>
+    tx.marketplaceCategory.findMany({
+      where: {
+        OR: [
+          { id: { in: trackedCategoryIds } },
+          { slug: { startsWith: categorySlugStartsWith } },
+        ],
+      },
+      select: { id: true },
+    }),
+  );
   const categoryIds = unique([
     ...trackedCategoryIds,
     ...categories.map((category) => category.id),
   ]);
 
-  const conversations = await prisma.conversation.findMany({
-    where: {
-      OR: [
-        { id: { in: trackedConversationIds } },
-        { participantAId: { in: profileIds } },
-        { participantBId: { in: profileIds } },
-        { participants: { some: { profileId: { in: profileIds } } } },
-      ],
-    },
-    select: { id: true },
-  });
+  const conversations = await withDbSystemContext((tx) =>
+    tx.conversation.findMany({
+      where: {
+        OR: [
+          { id: { in: trackedConversationIds } },
+          { participantAId: { in: profileIds } },
+          { participantBId: { in: profileIds } },
+          { participants: { some: { profileId: { in: profileIds } } } },
+        ],
+      },
+      select: { id: true },
+    }),
+  );
   const conversationIds = unique([
     ...trackedConversationIds,
     ...conversations.map((conversation) => conversation.id),
   ]);
 
-  const callRooms = await prisma.callRoom.findMany({
-    where: {
-      OR: [
-        { id: { in: trackedCallRoomIds } },
-        { conversationId: { in: conversationIds } },
-        { createdByProfileId: { in: profileIds } },
-        { participants: { some: { profileId: { in: profileIds } } } },
-        {
-          invites: {
-            some: {
-              OR: [
-                { fromProfileId: { in: profileIds } },
-                { toProfileId: { in: profileIds } },
-              ],
+  const callRooms = await withDbSystemContext((tx) =>
+    tx.callRoom.findMany({
+      where: {
+        OR: [
+          { id: { in: trackedCallRoomIds } },
+          { conversationId: { in: conversationIds } },
+          { createdByProfileId: { in: profileIds } },
+          { participants: { some: { profileId: { in: profileIds } } } },
+          {
+            invites: {
+              some: {
+                OR: [
+                  { fromProfileId: { in: profileIds } },
+                  { toProfileId: { in: profileIds } },
+                ],
+              },
             },
           },
-        },
-        { reports: { some: { reporterProfileId: { in: profileIds } } } },
-        { permissions: { some: { profileId: { in: profileIds } } } },
-      ],
-    },
-    select: { id: true },
-  });
+          { reports: { some: { reporterProfileId: { in: profileIds } } } },
+          { permissions: { some: { profileId: { in: profileIds } } } },
+        ],
+      },
+      select: { id: true },
+    }),
+  );
   const callRoomIds = unique([
     ...trackedCallRoomIds,
     ...callRooms.map((room) => room.id),
   ]);
 
-  const listings = await prisma.listing.findMany({
-    where: {
-      OR: [
-        { id: { in: trackedListingIds } },
-        { profileId: { in: profileIds } },
-        { reviewedById: { in: profileIds } },
-        { categoryId: { in: categoryIds } },
-        { savedBy: { some: { profileId: { in: profileIds } } } },
-        {
-          enquiries: {
-            some: {
-              OR: [
-                { fromProfileId: { in: profileIds } },
-                { toProfileId: { in: profileIds } },
-              ],
+  const listings = await withDbSystemContext((tx) =>
+    tx.listing.findMany({
+      where: {
+        OR: [
+          { id: { in: trackedListingIds } },
+          { profileId: { in: profileIds } },
+          { reviewedById: { in: profileIds } },
+          { categoryId: { in: categoryIds } },
+          { savedBy: { some: { profileId: { in: profileIds } } } },
+          {
+            enquiries: {
+              some: {
+                OR: [
+                  { fromProfileId: { in: profileIds } },
+                  { toProfileId: { in: profileIds } },
+                ],
+              },
             },
           },
-        },
-        {
-          listingReports: {
-            some: {
-              OR: [
-                { reporterProfileId: { in: profileIds } },
-                { resolvedByProfileId: { in: profileIds } },
-              ],
+          {
+            listingReports: {
+              some: {
+                OR: [
+                  { reporterProfileId: { in: profileIds } },
+                  { resolvedByProfileId: { in: profileIds } },
+                ],
+              },
             },
           },
-        },
-        {
-          moderationActions: {
-            some: { actorProfileId: { in: profileIds } },
+          {
+            moderationActions: {
+              some: { actorProfileId: { in: profileIds } },
+            },
           },
-        },
-        { viewEvents: { some: { viewerProfileId: { in: profileIds } } } },
-      ],
-    },
-    select: { id: true },
-  });
+          { viewEvents: { some: { viewerProfileId: { in: profileIds } } } },
+        ],
+      },
+      select: { id: true },
+    }),
+  );
   const listingIds = unique([
     ...trackedListingIds,
     ...listings.map((listing) => listing.id),
   ]);
 
-  const feedPosts = await prisma.feedPost.findMany({
-    where: {
-      OR: [
-        { id: { in: trackedFeedPostIds } },
-        { authorProfileId: { in: profileIds } },
-        { comments: { some: { authorProfileId: { in: profileIds } } } },
-        { reactions: { some: { profileId: { in: profileIds } } } },
-      ],
-    },
-    select: { id: true },
-  });
+  const feedPosts = await withDbSystemContext((tx) =>
+    tx.feedPost.findMany({
+      where: {
+        OR: [
+          { id: { in: trackedFeedPostIds } },
+          { authorProfileId: { in: profileIds } },
+          { comments: { some: { authorProfileId: { in: profileIds } } } },
+          { reactions: { some: { profileId: { in: profileIds } } } },
+        ],
+      },
+      select: { id: true },
+    }),
+  );
   const feedPostIds = unique([
     ...trackedFeedPostIds,
     ...feedPosts.map((post) => post.id),
@@ -678,198 +722,250 @@ async function cleanupCommunityFlowProbeRows({
     ...profileIds,
   ];
 
-  await prisma.callPermission.deleteMany({
-    where: {
-      OR: [
-        { callRoomId: { in: callRoomIds } },
-        { profileId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.callParticipant.deleteMany({
-    where: {
-      OR: [
-        { callRoomId: { in: callRoomIds } },
-        { profileId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.callInvite.deleteMany({
-    where: {
-      OR: [
-        { callRoomId: { in: callRoomIds } },
-        { fromProfileId: { in: profileIds } },
-        { toProfileId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.callReport.deleteMany({
-    where: {
-      OR: [
-        { callRoomId: { in: callRoomIds } },
-        { reporterProfileId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.callRoom.deleteMany({ where: { id: { in: callRoomIds } } });
+  await withDbSystemContext((tx) =>
+    tx.callPermission.deleteMany({
+      where: {
+        OR: [
+          { callRoomId: { in: callRoomIds } },
+          { profileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.callParticipant.deleteMany({
+      where: {
+        OR: [
+          { callRoomId: { in: callRoomIds } },
+          { profileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.callInvite.deleteMany({
+      where: {
+        OR: [
+          { callRoomId: { in: callRoomIds } },
+          { fromProfileId: { in: profileIds } },
+          { toProfileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.callReport.deleteMany({
+      where: {
+        OR: [
+          { callRoomId: { in: callRoomIds } },
+          { reporterProfileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) => tx.callRoom.deleteMany({ where: { id: { in: callRoomIds } } }));
 
   // Delete probe media attachments before messages
   if (trackedMediaAssetIds.length > 0) {
-    await prisma.messageMedia.deleteMany({
-      where: { mediaId: { in: trackedMediaAssetIds } },
-    });
+    await withDbSystemContext((tx) =>
+      tx.messageMedia.deleteMany({
+        where: { mediaId: { in: trackedMediaAssetIds } },
+      }),
+    );
   }
 
-  await prisma.messageReaction.deleteMany({
-    where: { profileId: { in: profileIds } },
-  });
-  await prisma.messageReadReceipt.deleteMany({
-    where: { profileId: { in: profileIds } },
-  });
-  await prisma.messageDeliveryReceipt.deleteMany({
-    where: { profileId: { in: profileIds } },
-  });
-  await prisma.message.deleteMany({
-    where: {
-      OR: [
-        { conversationId: { in: conversationIds } },
-        { senderId: { in: profileIds } },
-        { recipientId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.conversationParticipant.deleteMany({
-    where: {
-      OR: [
-        { conversationId: { in: conversationIds } },
-        { profileId: { in: profileIds } },
-      ],
-    },
-  });
+  await withDbSystemContext((tx) =>
+    tx.messageReaction.deleteMany({
+      where: { profileId: { in: profileIds } },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.messageReadReceipt.deleteMany({
+      where: { profileId: { in: profileIds } },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.messageDeliveryReceipt.deleteMany({
+      where: { profileId: { in: profileIds } },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.message.deleteMany({
+      where: {
+        OR: [
+          { conversationId: { in: conversationIds } },
+          { senderId: { in: profileIds } },
+          { recipientId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.conversationParticipant.deleteMany({
+      where: {
+        OR: [
+          { conversationId: { in: conversationIds } },
+          { profileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
 
   // Delete probe media assets after message cleanup
   if (trackedMediaAssetIds.length > 0) {
-    await prisma.mediaAsset.deleteMany({
-      where: { id: { in: trackedMediaAssetIds } },
-    });
+    await withDbSystemContext((tx) =>
+      tx.mediaAsset.deleteMany({
+        where: { id: { in: trackedMediaAssetIds } },
+      }),
+    );
   }
 
-  await prisma.savedListing.deleteMany({
-    where: {
-      OR: [
-        { listingId: { in: listingIds } },
-        { profileId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.listingEnquiry.deleteMany({
-    where: {
-      OR: [
-        { listingId: { in: listingIds } },
-        { conversationId: { in: conversationIds } },
-        { fromProfileId: { in: profileIds } },
-        { toProfileId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.listingReport.deleteMany({
-    where: {
-      OR: [
-        { listingId: { in: listingIds } },
-        { reporterProfileId: { in: profileIds } },
-        { resolvedByProfileId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.listingView.deleteMany({
-    where: {
-      OR: [
-        { listingId: { in: listingIds } },
-        { viewerProfileId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.listingStatusHistory.deleteMany({
-    where: {
-      OR: [
-        { listingId: { in: listingIds } },
-        { actorProfileId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.listingModerationAction.deleteMany({
-    where: {
-      OR: [
-        { listingId: { in: listingIds } },
-        { actorProfileId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.listing.deleteMany({ where: { id: { in: listingIds } } });
+  await withDbSystemContext((tx) =>
+    tx.savedListing.deleteMany({
+      where: {
+        OR: [
+          { listingId: { in: listingIds } },
+          { profileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.listingEnquiry.deleteMany({
+      where: {
+        OR: [
+          { listingId: { in: listingIds } },
+          { conversationId: { in: conversationIds } },
+          { fromProfileId: { in: profileIds } },
+          { toProfileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.listingReport.deleteMany({
+      where: {
+        OR: [
+          { listingId: { in: listingIds } },
+          { reporterProfileId: { in: profileIds } },
+          { resolvedByProfileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.listingView.deleteMany({
+      where: {
+        OR: [
+          { listingId: { in: listingIds } },
+          { viewerProfileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.listingStatusHistory.deleteMany({
+      where: {
+        OR: [
+          { listingId: { in: listingIds } },
+          { actorProfileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.listingModerationAction.deleteMany({
+      where: {
+        OR: [
+          { listingId: { in: listingIds } },
+          { actorProfileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) => tx.listing.deleteMany({ where: { id: { in: listingIds } } }));
 
-  await prisma.feedReaction.deleteMany({
-    where: {
-      OR: [
-        { postId: { in: feedPostIds } },
-        { profileId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.feedComment.deleteMany({
-    where: {
-      OR: [
-        { postId: { in: feedPostIds } },
-        { authorProfileId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.feedPost.deleteMany({ where: { id: { in: feedPostIds } } });
+  await withDbSystemContext((tx) =>
+    tx.feedReaction.deleteMany({
+      where: {
+        OR: [
+          { postId: { in: feedPostIds } },
+          { profileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.feedComment.deleteMany({
+      where: {
+        OR: [
+          { postId: { in: feedPostIds } },
+          { authorProfileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) => tx.feedPost.deleteMany({ where: { id: { in: feedPostIds } } }));
 
-  await prisma.conversation.deleteMany({
-    where: { id: { in: conversationIds } },
-  });
-  await prisma.marketplaceCategory.deleteMany({
-    where: { id: { in: categoryIds } },
-  });
-  await prisma.notification.deleteMany({
-    where: {
-      OR: [
-        { userId: { in: userIds } },
-        { actorProfileId: { in: profileIds } },
-        { targetId: { in: targetIds } },
-      ],
-    },
-  });
-  await prisma.trustSafetyFlag.deleteMany({
-    where: {
-      OR: [
-        { userId: { in: userIds } },
-        { profileId: { in: profileIds } },
-        { targetId: { in: targetIds } },
-      ],
-    },
-  });
-  await prisma.userBlock.deleteMany({
-    where: {
-      OR: [
-        { blockerProfileId: { in: profileIds } },
-        { blockedProfileId: { in: profileIds } },
-      ],
-    },
-  });
-  await prisma.auditLog.deleteMany({
-    where: {
-      OR: [
-        { actorId: { in: userIds } },
-        { targetId: { in: targetIds } },
-      ],
-    },
-  });
-  await prisma.userPresence.deleteMany({
-    where: { profileId: { in: profileIds } },
-  });
-  await prisma.profile.deleteMany({ where: { id: { in: profileIds } } });
-  await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+  await withDbSystemContext((tx) =>
+    tx.conversation.deleteMany({
+      where: { id: { in: conversationIds } },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.marketplaceCategory.deleteMany({
+      where: { id: { in: categoryIds } },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.notification.deleteMany({
+      where: {
+        OR: [
+          { userId: { in: userIds } },
+          { actorProfileId: { in: profileIds } },
+          { targetId: { in: targetIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.trustSafetyFlag.deleteMany({
+      where: {
+        OR: [
+          { userId: { in: userIds } },
+          { profileId: { in: profileIds } },
+          { targetId: { in: targetIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.userBlock.deleteMany({
+      where: {
+        OR: [
+          { blockerProfileId: { in: profileIds } },
+          { blockedProfileId: { in: profileIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.auditLog.deleteMany({
+      where: {
+        OR: [
+          { actorId: { in: userIds } },
+          { targetId: { in: targetIds } },
+        ],
+      },
+    }),
+  );
+  await withDbSystemContext((tx) =>
+    tx.userPresence.deleteMany({
+      where: { profileId: { in: profileIds } },
+    }),
+  );
+  await withDbSystemContext((tx) => tx.profile.deleteMany({ where: { id: { in: profileIds } } }));
+  await withDbSystemContext((tx) => tx.user.deleteMany({ where: { id: { in: userIds } } }));
 }
 
 function captureProbeEnv() {

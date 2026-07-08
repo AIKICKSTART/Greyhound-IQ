@@ -1,4 +1,5 @@
-import { databaseConfigurationError, prisma, safeQuery } from "@/lib/db";
+import { databaseConfigurationError, safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 import { getApproximateTableCounts } from "@/lib/db-stats";
 import { formatRaceDateInput, raceDateWindow } from "@/lib/race-time";
 import { getLiveProviderConfig } from "./provider";
@@ -13,7 +14,10 @@ export async function getLiveFeedStatus() {
 
   const databaseReady =
     isDatabaseConfigured() &&
-    await safeQuery(() => prisma.track.count().then(() => true), false);
+    await safeQuery(
+      () => withDbSystemContext((tx) => tx.track.count()).then(() => true),
+      false
+    );
   const freshness = databaseReady
     ? await getDataFreshness(today, nextWeek)
     : emptyFreshness();
@@ -47,32 +51,38 @@ async function getDataFreshness(today: Date, nextWeek: Date) {
       getWindowCounts(today, nextWeek),
       safeQuery(
         () =>
-          prisma.meeting.groupBy({
-            by: ["sourceProvider"],
-            where: {
-              meetingDate: { gte: today, lte: nextWeek },
-              sourceProvider: { not: null },
-            },
-            _count: { _all: true },
-          }),
+          withDbSystemContext((tx) =>
+            tx.meeting.groupBy({
+              by: ["sourceProvider"],
+              where: {
+                meetingDate: { gte: today, lte: nextWeek },
+                sourceProvider: { not: null },
+              },
+              _count: { _all: true },
+            })
+          ),
         []
       ),
       getApproximateTableCounts(["Result"]),
       safeQuery(
         () =>
-          prisma.race.findFirst({
-            orderBy: { raceTime: "desc" },
-            select: { raceTime: true },
-          }),
+          withDbSystemContext((tx) =>
+            tx.race.findFirst({
+              orderBy: { raceTime: "desc" },
+              select: { raceTime: true },
+            })
+          ),
         null
       ),
       safeQuery(
         () =>
-          prisma.result.findFirst({
-            where: { lastSyncedAt: { not: null } },
-            orderBy: { lastSyncedAt: "desc" },
-            select: { lastSyncedAt: true },
-          }),
+          withDbSystemContext((tx) =>
+            tx.result.findFirst({
+              where: { lastSyncedAt: { not: null } },
+              orderBy: { lastSyncedAt: "desc" },
+              select: { lastSyncedAt: true },
+            })
+          ),
         null
       ),
     ]);
@@ -96,15 +106,17 @@ async function getDataFreshness(today: Date, nextWeek: Date) {
 async function getWindowCounts(today: Date, nextWeek: Date) {
   const rows = await safeQuery(
     () =>
-      prisma.$queryRaw<
-        {
-          upcomingMeetings: number;
-          upcomingRaces: number;
-          upcomingRunners: number;
-          liveSourcedMeetings: number;
-          liveSourcedRaces: number;
-        }[]
-      >`
+      withDbSystemContext(
+        (tx) =>
+          tx.$queryRaw<
+            {
+              upcomingMeetings: number;
+              upcomingRaces: number;
+              upcomingRunners: number;
+              liveSourcedMeetings: number;
+              liveSourcedRaces: number;
+            }[]
+          >`
         WITH meeting_scope AS (
           SELECT id, "sourceProvider"
           FROM "Meeting"
@@ -135,7 +147,8 @@ async function getWindowCounts(today: Date, nextWeek: Date) {
             FROM race_scope
             WHERE "sourceProvider" IS NOT NULL
           ) AS "liveSourcedRaces"
-      `,
+      `
+      ),
     []
   );
 

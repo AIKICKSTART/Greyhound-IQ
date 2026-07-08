@@ -4,7 +4,11 @@ import {
   databaseUrlConfigurationError,
   runtimeDatabaseUrl,
 } from "@/lib/database-url";
-import { logError } from "@/lib/logger";
+import { logError, logWarn } from "@/lib/logger";
+
+// Slow-query threshold. Above this a single WARNING line is emitted per query so
+// pathological queries surface in Cloud Logging without flooding it.
+const SLOW_QUERY_MS = 500;
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -15,17 +19,50 @@ const prismaConfigurationError = databaseConfigurationError();
 function makePrisma(): PrismaClient | null {
   if (prismaConfigurationError) return null;
   try {
-    return new PrismaClient({
+    const client = new PrismaClient({
       datasources: {
         db: {
           url: runtimeDatabaseUrl(process.env.DATABASE_URL ?? ""),
         },
       },
     });
+    // $extends returns a structurally-wider client; callers only use the
+    // PrismaClient surface, so cast back for the existing export contract.
+    return client.$extends(slowQueryLogger) as unknown as PrismaClient;
   } catch {
     return null;
   }
 }
+
+const slowQueryLogger = {
+  query: {
+    async $allOperations({
+      model,
+      operation,
+      args,
+      query,
+    }: {
+      model?: string;
+      operation: string;
+      args: unknown;
+      query: (args: unknown) => Promise<unknown>;
+    }) {
+      const start = performance.now();
+      try {
+        return await query(args);
+      } finally {
+        const durationMs = Math.round(performance.now() - start);
+        if (durationMs > SLOW_QUERY_MS) {
+          logWarn("db.slow_query", {
+            model: model ?? "raw",
+            operation,
+            durationMs,
+          });
+        }
+      }
+    },
+  },
+} as const;
 
 export function databaseConfigurationError() {
   const error = databaseUrlConfigurationError(process.env.DATABASE_URL, {

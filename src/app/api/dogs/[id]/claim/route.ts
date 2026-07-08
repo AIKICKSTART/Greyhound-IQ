@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { dogOwnershipClaimSchema } from "@/lib/account-validation";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
-import { prisma } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const DOG_CLAIM_RATE_LIMIT = 3;
@@ -36,34 +36,36 @@ export async function POST(
 
     const parsed = dogOwnershipClaimSchema.parse(await request.json());
 
-    const dog = await prisma.dog.findUnique({ where: { id } });
-    if (!dog) throw new Error("dog.not_found");
+    const ownership = await withDbRequestContext(current, async (tx) => {
+      const dog = await tx.dog.findUnique({ where: { id } });
+      if (!dog) throw new Error("dog.not_found");
 
-    const ownership = await prisma.dogOwnership.upsert({
-      where: {
-        dogId_profileId: {
-          dogId: dog.id,
-          profileId: current.profileId,
-        },
-      },
-      update: {
-        role: parsed.role,
-      },
-      create: {
-        dogId: dog.id,
-        profileId: current.profileId,
-        role: parsed.role,
-        verified: false,
-      },
-      include: {
-        dog: {
-          select: {
-            id: true,
-            name: true,
+      return tx.dogOwnership.upsert({
+        where: {
+          dogId_profileId: {
+            dogId: dog.id,
+            profileId: current.profileId,
           },
         },
-        profile: true,
-      },
+        update: {
+          role: parsed.role,
+        },
+        create: {
+          dogId: dog.id,
+          profileId: current.profileId,
+          role: parsed.role,
+          verified: false,
+        },
+        include: {
+          dog: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          profile: true,
+        },
+      });
     });
 
     return NextResponse.json({ item: ownership }, { status: 201 });

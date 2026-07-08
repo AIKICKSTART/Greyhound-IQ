@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import {
   createFeedTopic,
   moderateFeedPost,
@@ -27,21 +26,10 @@ export default async function AdminFeedPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
-
-      <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Feed moderation
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Manage community topics, pinned posts, and public feed visibility.
-        </p>
-      </section>
+      <AdminPageHeader
+        title="Feed moderation"
+        description="Manage community topics, pinned posts, and public feed visibility."
+      />
 
       <section className="mt-6 grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
         <div className="space-y-6">

@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { AdminOrganizationForms } from "@/app/admin/form-controls";
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
 
@@ -27,23 +26,13 @@ export default async function AdminOrganizationsPage() {
   const organizations = await getOrganizations();
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+    <main className="mx-auto max-w-6xl px-6 py-12 lg:px-10">
+      <AdminPageHeader
+        title="Organizations"
+        description="Create or update local organization rows and generate organization invitations. Token hashes and provider secrets are not displayed."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Organizations
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Create or update local organization rows and generate organization
-          invitations. Token hashes and provider secrets are not displayed.
-        </p>
-
         <div className="mt-6">
           <AdminOrganizationForms path="/admin/organizations" />
         </div>

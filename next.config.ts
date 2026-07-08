@@ -10,11 +10,6 @@ type RemotePattern = NonNullable<
   NonNullable<NextConfig["images"]>["remotePatterns"]
 >[number];
 
-const replayFrameOrigins =
-  "https://www.youtube-nocookie.com https://player.vimeo.com";
-const replayMediaOrigins =
-  "https://www.thedogs.com.au https://mediarqs.skyracing.com.au https://tasracing-race-replays.s3.ap-southeast-2.amazonaws.com";
-
 const nextConfig: NextConfig = {
   output: "standalone",
   experimental: {
@@ -45,7 +40,9 @@ const nextConfig: NextConfig = {
             value:
               "camera=(self), microphone=(self), display-capture=(self), geolocation=()",
           },
-          { key: "Content-Security-Policy", value: contentSecurityPolicy() },
+          // Content-Security-Policy is set per-request in src/proxy.ts so
+          // script-src can carry a fresh nonce. Keep it out of here to avoid a
+          // duplicate, nonce-less header.
         ],
       },
     ];
@@ -63,46 +60,6 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-
-// Built from env at build time. Origins missing in dev are simply omitted.
-// ponytail: 'unsafe-inline' script-src; nonce-based CSP is the deferred upgrade.
-function contentSecurityPolicy() {
-  const supa = safeOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const supaWs = supa?.replace(/^http/, "ws");
-  const lk = safeOrigin(process.env.NEXT_PUBLIC_LIVEKIT_URL);
-  const devWs =
-    process.env.NODE_ENV !== "production"
-      ? "ws://localhost:* ws://127.0.0.1:*"
-      : undefined;
-
-  const join = (...parts: Array<string | undefined>) =>
-    parts.filter(Boolean).join(" ");
-
-  return [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
-    "style-src 'self' 'unsafe-inline'",
-    join("img-src 'self' data: blob:", supa),
-    join("media-src 'self' blob:", supa, replayMediaOrigins),
-    join("connect-src 'self'", supa, supaWs, lk, devWs),
-    join("frame-src 'self'", replayFrameOrigins),
-    "worker-src 'self' blob:",
-    "font-src 'self' data:",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
-  ].join("; ");
-}
-
-function safeOrigin(value: string | undefined) {
-  if (!value) return undefined;
-  try {
-    return new URL(value).origin;
-  } catch {
-    return undefined;
-  }
-}
 
 function safeImageRemotePattern(value: string): RemotePattern | null {
   try {

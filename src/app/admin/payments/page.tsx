@@ -1,8 +1,8 @@
-import Link from "next/link";
-
 import { AdminStatusForm } from "@/app/admin/form-controls";
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -40,22 +40,12 @@ export default async function AdminPaymentsPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Payment reconciliation"
+        description="Latest 20 local payment, refund, and credit note records for operational reconciliation."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Payment reconciliation
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 20 local payment, refund, and credit note records for
-          operational reconciliation.
-        </p>
-
         <PaymentRecordsTable records={payments} />
         <RefundRecordsTable records={refunds} />
         <CreditNoteRecordsTable records={creditNotes} />
@@ -253,7 +243,8 @@ function CreditNoteRecordsTable({
 function getPaymentRecords() {
   return safeQuery<PaymentRecordRow[]>(
     () =>
-      prisma.paymentRecord.findMany({
+      withDbSystemContext((tx) =>
+        tx.paymentRecord.findMany({
         orderBy: [
           { occurredAt: "desc" },
           { createdAt: "desc" },
@@ -272,7 +263,8 @@ function getPaymentRecords() {
           occurredAt: true,
           createdAt: true,
         },
-      }),
+      })
+      ),
     []
   );
 }
@@ -280,7 +272,8 @@ function getPaymentRecords() {
 function getRefundRecords() {
   return safeQuery<RefundRecordRow[]>(
     () =>
-      prisma.refundRecord.findMany({
+      withDbSystemContext((tx) =>
+        tx.refundRecord.findMany({
         orderBy: [
           { occurredAt: "desc" },
           { createdAt: "desc" },
@@ -300,7 +293,8 @@ function getRefundRecords() {
           occurredAt: true,
           createdAt: true,
         },
-      }),
+      })
+      ),
     []
   );
 }
@@ -308,7 +302,8 @@ function getRefundRecords() {
 function getCreditNoteRecords() {
   return safeQuery<CreditNoteRecordRow[]>(
     () =>
-      prisma.creditNoteRecord.findMany({
+      withDbSystemContext((tx) =>
+        tx.creditNoteRecord.findMany({
         orderBy: [
           { occurredAt: "desc" },
           { createdAt: "desc" },
@@ -327,7 +322,8 @@ function getCreditNoteRecords() {
           occurredAt: true,
           createdAt: true,
         },
-      }),
+      })
+      ),
     []
   );
 }

@@ -1,5 +1,29 @@
 import "server-only";
 
+// Realtime authorization model: channel-name secrecy (NOT Supabase Realtime
+// Authorization / RLS on realtime.messages — that is the deferred upgrade path).
+//
+// - Channel names for scoped (conversation/profile) channels are HMAC-SHA256
+//   digests of `${scope}:${id}` keyed by REALTIME_CHANNEL_SECRET. They are
+//   unguessable capabilities: possessing the name is the access token.
+// - Names are only ever issued server-side to the authenticated owner: the
+//   profile channel is derived from the session's own profileId, and the
+//   conversation channel is derived from a conversation id that
+//   getConversationForProfile already gated to a participant. A client cannot
+//   pass an arbitrary profileId to obtain someone else's channel name.
+// - REALTIME_CHANNEL_SECRET is server-only (this module is "server-only" and
+//   the secret is never exposed via NEXT_PUBLIC_* or serialized into props);
+//   only the derived name reaches the client.
+// - Rotation = rotate REALTIME_CHANNEL_SECRET; all existing names change and
+//   stale subscribers are evicted from the new topics.
+// - Residual risk: a channel name could leak via client logs/referrers, and
+//   because Supabase presence is client-asserted, a participant on a shared
+//   channel can spoof the other party's presence label. Both are bounded to
+//   already-authorized 1:1 channels and content-free (ids/flags only) payloads.
+// - Upgrade path if name secrecy proves insufficient: enable Supabase Realtime
+//   Authorization with RLS on realtime.messages keyed to conversation
+//   membership, and drop the HMAC naming.
+
 import { createHmac } from "node:crypto";
 import { logError } from "@/lib/logger";
 import { getSupabaseAdminClient } from "@/lib/supabase-storage";

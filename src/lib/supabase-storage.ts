@@ -73,6 +73,29 @@ export async function downloadStorageObject(
   return data;
 }
 
+/**
+ * Downloads only the leading bytes of an object via an HTTP Range request, so
+ * signature sniffing on a large video doesn't pull the whole file. Falls back
+ * to a full download if the storage backend ignores the Range header.
+ */
+export async function downloadStorageObjectHead(
+  bucket: SupabaseStorageBucket,
+  objectPath: string,
+  bytes: number
+) {
+  const { data, error } = await getSupabaseAdminClient()
+    .storage.from(bucket)
+    // Third arg is passed through as fetch options; a Range header yields a
+    // 206 partial response when supported.
+    .download(objectPath, undefined, {
+      headers: { Range: `bytes=0-${Math.max(0, bytes - 1)}` },
+    } as never);
+
+  if (error) throw new Error(`storage.download_failed:${error.message}`);
+  const buffer = Buffer.from(await data.slice(0, bytes).arrayBuffer());
+  return buffer;
+}
+
 export async function removeStorageObject(
   bucket: SupabaseStorageBucket,
   objectPath: string

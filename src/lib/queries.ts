@@ -2,6 +2,7 @@ import { cache } from "react";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 import { getApproximateTableCounts } from "@/lib/db-stats";
 import {
   formatRaceDateInput,
@@ -10,6 +11,8 @@ import {
   raceDateWindow,
 } from "@/lib/race-time";
 import { canonicalTrackName, trackNameAliasKey } from "@/lib/live/track-name";
+
+const MARKETPLACE_CARD_MEDIA_LIMIT = 6;
 
 const marketplaceListingCardInclude = {
   profile: { select: { id: true, displayName: true, verified: true } },
@@ -24,6 +27,7 @@ const marketplaceListingCardInclude = {
   },
   media: {
     orderBy: { position: "asc" },
+    take: MARKETPLACE_CARD_MEDIA_LIMIT,
     include: {
       media: {
         select: {
@@ -2176,7 +2180,7 @@ export async function getMessagingProfiles(
   const trimmedSearch = search?.trim();
   return safeQuery(
     () =>
-      prisma.profile.findMany({
+      withDbSystemContext((tx) => tx.profile.findMany({
         where: {
           user: {
             ...(excludeEmail ? { email: { not: excludeEmail } } : {}),
@@ -2202,7 +2206,7 @@ export async function getMessagingProfiles(
             },
           },
         },
-      }),
+      })),
     []
   );
 }
@@ -2210,10 +2214,10 @@ export async function getMessagingProfiles(
 export async function getMessagesForUserEmail(email: string) {
   const user = await safeQuery(
     () =>
-      prisma.user.findUnique({
+      withDbSystemContext((tx) => tx.user.findUnique({
         where: { email },
         include: { profile: true },
-      }),
+      })),
     null
   );
 
@@ -2221,7 +2225,7 @@ export async function getMessagesForUserEmail(email: string) {
 
   return safeQuery(
     () =>
-      prisma.message.findMany({
+      withDbSystemContext((tx) => tx.message.findMany({
         where: {
           OR: [
             { senderId: user.profile!.id },
@@ -2238,7 +2242,7 @@ export async function getMessagesForUserEmail(email: string) {
             include: { media: true },
           },
         },
-      }),
+      })),
     []
   );
 }
@@ -2246,10 +2250,10 @@ export async function getMessagesForUserEmail(email: string) {
 export async function getConversationsForUserEmail(email: string) {
   const user = await safeQuery(
     () =>
-      prisma.user.findUnique({
+      withDbSystemContext((tx) => tx.user.findUnique({
         where: { email },
         include: { profile: true },
-      }),
+      })),
     null
   );
 
@@ -2257,7 +2261,7 @@ export async function getConversationsForUserEmail(email: string) {
 
   return safeQuery(
     () =>
-      prisma.conversation.findMany({
+      withDbSystemContext((tx) => tx.conversation.findMany({
         where: {
           OR: [
             { participantAId: user.profile!.id },
@@ -2294,7 +2298,7 @@ export async function getConversationsForUserEmail(email: string) {
             },
           },
         },
-      }),
+      })),
     []
   );
 }
@@ -2313,7 +2317,7 @@ export async function getAgentRuns(limit = 12) {
 export async function getAccountSummary(email: string) {
   return safeQuery(
     () =>
-      prisma.user.findUnique({
+      withDbSystemContext((tx) => tx.user.findUnique({
         where: { email },
         include: {
           profile: {
@@ -2343,7 +2347,7 @@ export async function getAccountSummary(email: string) {
             },
           },
         },
-      }),
+      })),
     null
   );
 }

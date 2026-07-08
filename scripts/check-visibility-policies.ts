@@ -13,7 +13,7 @@ must(conversationService, "{ recipientId: profileId, deletedByRecipientAt: null 
 const mediaService = read("src/lib/media-service.ts");
 must(mediaService, 'moderationStatus: "approved"', "public listing media must require approved listings");
 must(mediaService, "bucket === SITE_ASSETS_BUCKET ? publicUrlForMedia(bucket, objectPath) : null", "pending user uploads must not store or return public URLs");
-must(mediaService, "publicUrl: publicUrlForMedia(media.storageBucket, media.storagePath)", "scanner must publish public URL only after clean scan");
+must(mediaService, "publicUrl: cleanPublicUrl", "scanner must publish public URL only after clean scan");
 
 const reportService = read("src/lib/report-service.ts");
 must(reportService, "recipientId: current.profileId", "message reports must target received messages only");

@@ -1,8 +1,8 @@
-import Link from "next/link";
-
 import { AdminStatusForm } from "@/app/admin/form-controls";
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -24,23 +24,13 @@ export default async function AdminBillingPage() {
   const customers = await getBillingCustomers();
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+    <main className="mx-auto max-w-6xl px-6 py-12 lg:px-10">
+      <AdminPageHeader
+        title="Billing customers"
+        description="Latest 10 local billing customer records. Raw provider payloads and metadata are not displayed here."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Billing customers
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 10 local billing customer records. Raw provider payloads and
-          metadata are not displayed here.
-        </p>
-
         <div className="giq-table-shell mt-6 overflow-x-auto">
           <table className="w-full min-w-[820px]">
             <thead>
@@ -107,17 +97,19 @@ export default async function AdminBillingPage() {
 function getBillingCustomers() {
   return safeQuery<BillingCustomerRow[]>(
     () =>
-      prisma.billingCustomer.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        select: {
-          id: true,
-          userId: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.billingCustomer.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          select: {
+            id: true,
+            userId: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        })
+      ),
     []
   );
 }

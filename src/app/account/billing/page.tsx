@@ -18,7 +18,8 @@ import type {
   EntitlementKey,
   EntitlementLimits,
 } from "@/lib/billing/entitlements";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext, type DbContextUser } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -279,12 +280,20 @@ async function getLocalBillingOverview(user: BillingUser) {
   }
 
   const userId = user.dbUserId;
+  const dbContext: DbContextUser = {
+    dbUserId: user.dbUserId,
+    profileId: user.profileId ?? user.dbUserId,
+    profileRole: user.role ?? "member",
+    tier: user.tier,
+  };
   const billingCustomer = await safeQuery(
     () =>
-      prisma.billingCustomer.findUnique({
-        where: { userId },
-        select: { id: true },
-      }),
+      withDbRequestContext(dbContext, (tx) =>
+        tx.billingCustomer.findUnique({
+          where: { userId },
+          select: { id: true },
+        })
+      ),
     null
   );
 
@@ -304,7 +313,7 @@ async function getLocalBillingOverview(user: BillingUser) {
     await Promise.all([
       safeQuery(
         () =>
-          prisma.subscription.findFirst({
+          withDbRequestContext(dbContext, (tx) => tx.subscription.findFirst({
             where: subscriptionWhere,
             orderBy: [
               { updatedAt: "desc" },
@@ -320,12 +329,12 @@ async function getLocalBillingOverview(user: BillingUser) {
               currentPeriodEnd: true,
               updatedAt: true,
             },
-          }),
+          })),
         null
       ),
       safeQuery(
         () =>
-          prisma.entitlementSnapshot.findFirst({
+          withDbRequestContext(dbContext, (tx) => tx.entitlementSnapshot.findFirst({
             where: {
               AND: [
                 entitlementWhere,
@@ -348,12 +357,12 @@ async function getLocalBillingOverview(user: BillingUser) {
               expiresAt: true,
               updatedAt: true,
             },
-          }),
+          })),
         null
       ),
       safeQuery(
         () =>
-          prisma.invoiceRecord.findMany({
+          withDbRequestContext(dbContext, (tx) => tx.invoiceRecord.findMany({
             where: invoiceWhere,
             orderBy: [
               { issuedAt: "desc" },
@@ -371,7 +380,7 @@ async function getLocalBillingOverview(user: BillingUser) {
               issuedAt: true,
               dueAt: true,
             },
-          }),
+          })),
         []
       ),
       entitlementsPromise,

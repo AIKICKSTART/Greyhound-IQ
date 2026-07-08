@@ -1,12 +1,12 @@
-import Link from "next/link";
-
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import {
   createBannedPhrase,
   resolveTrustSafetyFlag,
   setBannedPhraseActive,
 } from "@/app/actions";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 import {
   listBannedPhrasesForModerator,
   listTrustSafetyFlagsForModerator,
@@ -29,18 +29,10 @@ export default async function AdminSafetyPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader title="Moderation controls" />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Trust and safety
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Moderation controls
-        </h1>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {metrics.map((metric) => (
             <div key={metric.label} className="giq-metric-card">
               <p className="text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
@@ -229,18 +221,32 @@ async function getSafetyMetrics() {
     uploadFailures,
     openFlags,
   ] = await Promise.all([
-    countRows(() => prisma.listing.count({ where: { status: "pending_review" } })),
-    countRows(() => prisma.report.count({ where: { status: "open" } })),
     countRows(() =>
-      prisma.listingModerationAction.count({
-        where: { action: { in: ["listing.reject", "listing.remove"] } },
-      })
+      withDbSystemContext((tx) =>
+        tx.listing.count({ where: { status: "pending_review" } })
+      )
+    ),
+    countRows(() =>
+      withDbSystemContext((tx) => tx.report.count({ where: { status: "open" } }))
+    ),
+    countRows(() =>
+      withDbSystemContext((tx) =>
+        tx.listingModerationAction.count({
+          where: { action: { in: ["listing.reject", "listing.remove"] } },
+        })
+      )
     ),
     countRepeatOffenders(),
     countRows(() =>
-      prisma.mediaAsset.count({ where: { scanStatus: { in: ["infected", "error"] } } })
+      withDbSystemContext((tx) =>
+        tx.mediaAsset.count({ where: { scanStatus: { in: ["infected", "error"] } } })
+      )
     ),
-    countRows(() => prisma.trustSafetyFlag.count({ where: { status: "open" } })),
+    countRows(() =>
+      withDbSystemContext((tx) =>
+        tx.trustSafetyFlag.count({ where: { status: "open" } })
+      )
+    ),
   ]);
 
   return [
@@ -258,14 +264,18 @@ function countRows(fn: () => Promise<number>) {
 }
 
 async function countRepeatOffenders() {
-  return safeQuery<number | null>(async () => {
-    const rows = await prisma.report.groupBy({
-      by: ["reportedId"],
-      where: { reportedId: { not: null } },
-      _count: { _all: true },
-    });
-    return rows.filter((row) => row._count._all >= 2).length;
-  }, null);
+  return safeQuery<number | null>(
+    () =>
+      withDbSystemContext(async (tx) => {
+        const rows = await tx.report.groupBy({
+          by: ["reportedId"],
+          where: { reportedId: { not: null } },
+          _count: { _all: true },
+        });
+        return rows.filter((row) => row._count._all >= 2).length;
+      }),
+    null
+  );
 }
 
 function formatCount(value: number | null) {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createLiveKitCallToken } from "@/lib/call-token";
 import { jsonError } from "@/lib/api-errors";
 import { runCommunityFlowProbe } from "@/lib/community-flow-probe";
-import { prisma } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 import { requireInternalRequest } from "@/lib/internal-auth";
 import { getSupabaseAdminClient } from "@/lib/supabase-storage";
 
@@ -16,12 +16,14 @@ export async function POST(request: Request) {
     }
 
     const [feedTopics, forumCategories, marketplaceCategories, activeListings] =
-      await Promise.all([
-        prisma.feedTopic.count({ where: { active: true } }),
-        prisma.forumCategory.count(),
-        prisma.marketplaceCategory.count({ where: { active: true } }),
-        prisma.listing.count({ where: { status: "active" } }),
-      ]);
+      await withDbSystemContext((tx) =>
+        Promise.all([
+          tx.feedTopic.count({ where: { active: true } }),
+          tx.forumCategory.count(),
+          tx.marketplaceCategory.count({ where: { active: true } }),
+          tx.listing.count({ where: { status: "active" } }),
+        ])
+      );
 
     const checks = {
       feedTopics,

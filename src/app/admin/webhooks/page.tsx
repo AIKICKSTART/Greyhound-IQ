@@ -1,8 +1,8 @@
-import Link from "next/link";
-
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -34,22 +34,13 @@ export default async function AdminWebhooksPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Webhook events"
+        description="Latest 10 stored webhook events from the local database."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Webhook events
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 10 stored webhook events from the local database.
-        </p>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {statusCounts.length === 0 ? (
             <div className="giq-metric-card">
               <p className="text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
@@ -135,14 +126,15 @@ export default async function AdminWebhooksPage() {
 
 function getWebhookStatusCounts() {
   return safeQuery<WebhookStatusCountRow[]>(
-    async () => {
-      const rows = await prisma.webhookEvent.groupBy({
-        by: ["status"],
-        _count: { _all: true },
-        orderBy: { status: "asc" },
-      });
-      return rows;
-    },
+    () =>
+      withDbSystemContext(async (tx) => {
+        const rows = await tx.webhookEvent.groupBy({
+          by: ["status"],
+          _count: { _all: true },
+          orderBy: { status: "asc" },
+        });
+        return rows;
+      }),
     []
   );
 }
@@ -150,18 +142,20 @@ function getWebhookStatusCounts() {
 function getWebhookEvents() {
   return safeQuery<WebhookEventRow[]>(
     () =>
-      prisma.webhookEvent.findMany({
-        orderBy: { receivedAt: "desc" },
-        take: 10,
-        select: {
-          id: true,
-          eventType: true,
-          status: true,
-          retryCount: true,
-          receivedAt: true,
-          processedAt: true,
-        },
-      }),
+      withDbSystemContext((tx) =>
+        tx.webhookEvent.findMany({
+          orderBy: { receivedAt: "desc" },
+          take: 10,
+          select: {
+            id: true,
+            eventType: true,
+            status: true,
+            retryCount: true,
+            receivedAt: true,
+            processedAt: true,
+          },
+        })
+      ),
     []
   );
 }

@@ -32,8 +32,8 @@ const PLANS = [
     id: "pro",
     name: "Pro",
     icon: Sparkles,
-    price: "$29",
-    period: "/month or $278.40/year",
+    price: "$20",
+    period: "/month or $204/year",
     description: "For marketplace sellers, trainers, and serious racing users.",
     features: [
       "Everything in Free",
@@ -57,7 +57,7 @@ const PLANS = [
     id: "pro_plus",
     name: "Pro+",
     icon: Crown,
-    price: "$49",
+    price: "$39",
     period: "/month",
     description: "Coming soon. Not available for purchase yet.",
     features: [],
@@ -191,7 +191,7 @@ export default function PricingPage() {
         <div className="mt-10 text-center">
           <p className="text-[13px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]">
             GreyhoundIQ Pro yearly:{" "}
-            <span className="font-semibold text-[hsl(var(--primary-bright))]">$278.40 AUD/year</span>. That&apos;s 20% off monthly pricing.
+            <span className="font-semibold text-[hsl(var(--primary-bright))]">$204 AUD/year</span>. That&apos;s 15% off monthly pricing.
           </p>
         </div>
       </section>

@@ -9,6 +9,7 @@ import {
 import { recordUsageEvent } from "@/lib/billing/usage-service";
 import { cleanText } from "@/lib/content";
 import { prisma } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export const AGENT_TYPES = {
   "race-analyst": "race_analyst",
@@ -89,18 +90,20 @@ export async function runAgentForCurrentUser(
   const memory = await loadAgentMemory(current.dbUserId);
   await markMemoriesAccessed(memory.top);
 
-  const run = await prisma.agentRun.create({
-    data: {
-      agentType,
-      userId: current.dbUserId,
-      inputJson: JSON.stringify({
-        input: input.input,
-        conversationContextId: context.id,
-      }),
-      status: "running",
-      harnessSessionId,
-    },
-  });
+  const run = await withDbSystemContext((tx) =>
+    tx.agentRun.create({
+      data: {
+        agentType,
+        userId: current.dbUserId,
+        inputJson: JSON.stringify({
+          input: input.input,
+          conversationContextId: context.id,
+        }),
+        status: "running",
+        harnessSessionId,
+      },
+    })
+  );
 
   try {
     const output = await buildAgentOutput(agentType, input.input, memory);
@@ -110,33 +113,35 @@ export async function runAgentForCurrentUser(
       input.input,
       run.id
     );
-    await prisma.conversationContext.update({
-      where: { id: context.id },
-      data: {
-        lastMessageAt: new Date(),
-        pendingAction:
-          createdMemory.kind === "unfinished"
-            ? JSON.stringify({
-                runId: run.id,
-                agentType,
-                content: createdMemory.content,
-              })
-            : null,
-      },
-    });
+    const completed = await withDbSystemContext(async (tx) => {
+      await tx.conversationContext.update({
+        where: { id: context.id },
+        data: {
+          lastMessageAt: new Date(),
+          pendingAction:
+            createdMemory.kind === "unfinished"
+              ? JSON.stringify({
+                  runId: run.id,
+                  agentType,
+                  content: createdMemory.content,
+                })
+              : null,
+        },
+      });
 
-    const completed = await prisma.agentRun.update({
-      where: { id: run.id },
-      data: {
-        outputJson: JSON.stringify(output),
-        toolInvocations: JSON.stringify(output.toolInvocations),
-        createdMemoryIds: JSON.stringify([createdMemory.id]),
-        status: "completed",
-        promptTokens: estimateTokens(input.input) + memory.promptTokens,
-        completionTokens: estimateTokens(JSON.stringify(output)),
-        durationMs: Date.now() - started,
-        completedAt: new Date(),
-      },
+      return tx.agentRun.update({
+        where: { id: run.id },
+        data: {
+          outputJson: JSON.stringify(output),
+          toolInvocations: JSON.stringify(output.toolInvocations),
+          createdMemoryIds: JSON.stringify([createdMemory.id]),
+          status: "completed",
+          promptTokens: estimateTokens(input.input) + memory.promptTokens,
+          completionTokens: estimateTokens(JSON.stringify(output)),
+          durationMs: Date.now() - started,
+          completedAt: new Date(),
+        },
+      });
     });
 
     await recordUsageEvent({
@@ -166,32 +171,38 @@ export async function runAgentForCurrentUser(
 
     return completed;
   } catch (err) {
-    await prisma.agentRun.update({
-      where: { id: run.id },
-      data: {
-        status: "failed",
-        error: err instanceof Error ? err.message : "agent.failed",
-        durationMs: Date.now() - started,
-        completedAt: new Date(),
-      },
-    });
+    await withDbSystemContext((tx) =>
+      tx.agentRun.update({
+        where: { id: run.id },
+        data: {
+          status: "failed",
+          error: err instanceof Error ? err.message : "agent.failed",
+          durationMs: Date.now() - started,
+          completedAt: new Date(),
+        },
+      })
+    );
     throw err;
   }
 }
 
 export async function listAgentRunsForCurrentUser(current: CurrentUserProfile) {
-  return prisma.agentRun.findMany({
-    where: { userId: current.dbUserId },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  });
+  return withDbSystemContext((tx) =>
+    tx.agentRun.findMany({
+      where: { userId: current.dbUserId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    })
+  );
 }
 
 export async function getAgentRunForCurrentUser(
   current: CurrentUserProfile,
   runId: string
 ) {
-  const run = await prisma.agentRun.findUnique({ where: { id: runId } });
+  const run = await withDbSystemContext((tx) =>
+    tx.agentRun.findUnique({ where: { id: runId } })
+  );
   if (!run || run.userId !== current.dbUserId) {
     throw new Error("agent.run_not_found");
   }
@@ -205,13 +216,15 @@ export async function cancelAgentRunForCurrentUser(
   const run = await getAgentRunForCurrentUser(current, runId);
   if (run.status !== "pending" && run.status !== "running") return run;
 
-  return prisma.agentRun.update({
-    where: { id: run.id },
-    data: {
-      status: "cancelled",
-      completedAt: new Date(),
-    },
-  });
+  return withDbSystemContext((tx) =>
+    tx.agentRun.update({
+      where: { id: run.id },
+      data: {
+        status: "cancelled",
+        completedAt: new Date(),
+      },
+    })
+  );
 }
 
 export async function runMemoryMaintenance(
@@ -219,41 +232,41 @@ export async function runMemoryMaintenance(
 ): Promise<MemoryMaintenanceResult> {
   const idleCutoff = daysBefore(now, MEMORY_DECAY_DAYS);
   const recentCutoff = daysBefore(now, MEMORY_REINFORCE_DAYS);
-  const staleMemories = await prisma.memoryEntry.findMany({
-    where: {
-      deletedAt: null,
-      supersededAt: null,
-      lastAccessedAt: { lt: idleCutoff },
-      importance: { gt: MEMORY_MIN_IMPORTANCE },
-    },
-    select: {
-      id: true,
-      importance: true,
-      lastAccessedAt: true,
-      lastMaintainedAt: true,
-    },
-  });
-  const recentMemories = await prisma.memoryEntry.findMany({
-    where: {
-      deletedAt: null,
-      supersededAt: null,
-      accessCount: { gt: 0 },
-      lastAccessedAt: { gte: recentCutoff },
-      importance: { lt: MEMORY_MAX_IMPORTANCE },
-    },
-    select: {
-      id: true,
-      importance: true,
-      lastAccessedAt: true,
-      lastMaintainedAt: true,
-    },
-  });
-
   let decayedCount = 0;
   let reinforcedCount = 0;
   let floorCount = 0;
   let cappedCount = 0;
-  await prisma.$transaction(async (tx) => {
+  await withDbSystemContext(async (tx) => {
+    const staleMemories = await tx.memoryEntry.findMany({
+      where: {
+        deletedAt: null,
+        supersededAt: null,
+        lastAccessedAt: { lt: idleCutoff },
+        importance: { gt: MEMORY_MIN_IMPORTANCE },
+      },
+      select: {
+        id: true,
+        importance: true,
+        lastAccessedAt: true,
+        lastMaintainedAt: true,
+      },
+    });
+    const recentMemories = await tx.memoryEntry.findMany({
+      where: {
+        deletedAt: null,
+        supersededAt: null,
+        accessCount: { gt: 0 },
+        lastAccessedAt: { gte: recentCutoff },
+        importance: { lt: MEMORY_MAX_IMPORTANCE },
+      },
+      select: {
+        id: true,
+        importance: true,
+        lastAccessedAt: true,
+        lastMaintainedAt: true,
+      },
+    });
+
     for (const memory of staleMemories) {
       const periods = unappliedDecayPeriods(memory, now);
       if (periods === 0) continue;
@@ -315,17 +328,19 @@ export async function runAgentCleanup(
   now = new Date()
 ): Promise<AgentCleanupResult> {
   const timeoutCutoff = hoursBefore(now, AGENT_RUN_TIMEOUT_HOURS);
-  const timedOut = await prisma.agentRun.updateMany({
-    where: {
-      status: { in: ["pending", "running"] },
-      createdAt: { lt: timeoutCutoff },
-    },
-    data: {
-      status: "failed",
-      error: "agent.cleanup.timeout",
-      completedAt: now,
-    },
-  });
+  const timedOut = await withDbSystemContext((tx) =>
+    tx.agentRun.updateMany({
+      where: {
+        status: { in: ["pending", "running"] },
+        createdAt: { lt: timeoutCutoff },
+      },
+      data: {
+        status: "failed",
+        error: "agent.cleanup.timeout",
+        completedAt: now,
+      },
+    })
+  );
 
   const result: AgentCleanupResult = {
     timedOutCount: timedOut.count,
@@ -357,28 +372,30 @@ export async function getAgentContextForCurrentUser(
 }
 
 export async function loadAgentMemory(userId: string) {
-  const [top, recent] = await Promise.all([
-    prisma.memoryEntry.findMany({
-      where: {
-        userId,
-        deletedAt: null,
-        supersededAt: null,
-        importance: { gte: 0.2 },
-      },
-      orderBy: [{ importance: "desc" }, { lastAccessedAt: "desc" }],
-      take: 20,
-    }),
-    prisma.memoryEntry.findMany({
-      where: {
-        userId,
-        deletedAt: null,
-        supersededAt: null,
-        kind: "episodic",
-      },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-  ]);
+  const [top, recent] = await withDbSystemContext((tx) =>
+    Promise.all([
+      tx.memoryEntry.findMany({
+        where: {
+          userId,
+          deletedAt: null,
+          supersededAt: null,
+          importance: { gte: 0.2 },
+        },
+        orderBy: [{ importance: "desc" }, { lastAccessedAt: "desc" }],
+        take: 20,
+      }),
+      tx.memoryEntry.findMany({
+        where: {
+          userId,
+          deletedAt: null,
+          supersededAt: null,
+          kind: "episodic",
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+    ])
+  );
 
   return {
     top,
@@ -394,17 +411,19 @@ async function getOrCreateConversationContext(
   agentType: AgentType,
   contextId?: string | null
 ) {
-  if (contextId) {
-    const existing = await prisma.conversationContext.findFirst({
-      where: { id: contextId, userId, agentType },
-    });
-    if (existing) return existing;
-  }
+  return withDbSystemContext(async (tx) => {
+    if (contextId) {
+      const existing = await tx.conversationContext.findFirst({
+        where: { id: contextId, userId, agentType },
+      });
+      if (existing) return existing;
+    }
 
-  return prisma.conversationContext.upsert({
-    where: { userId_agentType: { userId, agentType } },
-    update: { lastMessageAt: new Date() },
-    create: { userId, agentType },
+    return tx.conversationContext.upsert({
+      where: { userId_agentType: { userId, agentType } },
+      update: { lastMessageAt: new Date() },
+      create: { userId, agentType },
+    });
   });
 }
 
@@ -609,7 +628,7 @@ async function createMemoryFromAgentInput(
 ) {
   const kind = inferMemoryKind(input);
   const importance = kind === "unfinished" ? 0.9 : kind === "preference" ? 0.8 : 0.6;
-  return prisma.memoryEntry.create({
+  return withDbSystemContext((tx) => tx.memoryEntry.create({
     data: {
       userId,
       kind,
@@ -618,18 +637,18 @@ async function createMemoryFromAgentInput(
       sourceRef: runId,
       importance,
     },
-  });
+  }));
 }
 
 async function markMemoriesAccessed(memories: { id: string }[]) {
   if (memories.length === 0) return;
-  await prisma.memoryEntry.updateMany({
+  await withDbSystemContext((tx) => tx.memoryEntry.updateMany({
     where: { id: { in: memories.map((entry) => entry.id) } },
     data: {
       lastAccessedAt: new Date(),
       accessCount: { increment: 1 },
     },
-  });
+  }));
 }
 
 function splitPair(input: string) {

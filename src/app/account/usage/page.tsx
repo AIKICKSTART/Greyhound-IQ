@@ -7,7 +7,8 @@ import {
   BILLING_TIER_LABELS,
   formatUsageLimitDisplay,
 } from "@/lib/billing/usage-display";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ async function SignedInUsage({
 }) {
   const [entitlements, usageEvents] = await Promise.all([
     getEntitlementLimitsForCurrentUser(user),
-    getUsageEventsForUser(user.dbUserId),
+    getUsageEventsForUser(user),
   ]);
   const limits = formatUsageLimitDisplay(entitlements);
 
@@ -205,24 +206,36 @@ function DateCell({
   );
 }
 
-function getUsageEventsForUser(userId: string | null) {
-  if (!userId) return Promise.resolve([]);
+function getUsageEventsForUser(
+  user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>
+) {
+  if (!user.dbUserId || !user.profileId) return Promise.resolve([]);
+  const userId = user.dbUserId;
 
   return safeQuery<UsageEventRow[]>(
     () =>
-      prisma.usageEvent.findMany({
-        where: { userId },
-        orderBy: { occurredAt: "desc" },
-        take: 10,
-        select: {
-          metricKey: true,
-          quantity: true,
-          status: true,
-          occurredAt: true,
-          processedAt: true,
-          failedAt: true,
+      withDbRequestContext(
+        {
+          dbUserId: user.dbUserId!,
+          profileId: user.profileId!,
+          profileRole: user.role ?? "member",
+          tier: user.tier,
         },
-      }),
+        (tx) =>
+          tx.usageEvent.findMany({
+            where: { userId },
+            orderBy: { occurredAt: "desc" },
+            take: 10,
+            select: {
+              metricKey: true,
+              quantity: true,
+              status: true,
+              occurredAt: true,
+              processedAt: true,
+              failedAt: true,
+            },
+          })
+      ),
     []
   );
 }

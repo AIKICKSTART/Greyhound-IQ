@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import {
   approveListing,
   createMarketplaceCategory,
@@ -8,7 +9,8 @@ import {
   setMarketplaceCategoryActive,
 } from "@/app/actions";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 import { getMarketplaceCategoriesForModerator } from "@/lib/listing-service";
 
 export const dynamic = "force-dynamic";
@@ -28,22 +30,12 @@ export default async function AdminListingsPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Marketplace review queue"
+        description="New marketplace items stay private until a moderator approves them. Rejections and removals are written to admin actions and audit logs."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Marketplace
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Marketplace review queue
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          New marketplace items stay private until a moderator approves them.
-          Rejections and removals are written to admin actions and audit logs.
-        </p>
-
         <ListingTable listings={pending} mode="pending" />
       </section>
 
@@ -274,12 +266,14 @@ type ListingRow = Awaited<ReturnType<typeof getPendingListings>>[number];
 function getPendingListings() {
   return safeQuery(
     () =>
-      prisma.listing.findMany({
-        where: { status: "pending_review" },
-        orderBy: { createdAt: "asc" },
-        take: 50,
-        include: listingAdminInclude(),
-      }),
+      withDbSystemContext((tx) =>
+        tx.listing.findMany({
+          where: { status: "pending_review" },
+          orderBy: { createdAt: "asc" },
+          take: 50,
+          include: listingAdminInclude(),
+        })
+      ),
     []
   );
 }
@@ -287,14 +281,16 @@ function getPendingListings() {
 function getRecentListings() {
   return safeQuery(
     () =>
-      prisma.listing.findMany({
-        where: {
-          status: { in: ["active", "pending_review", "rejected", "removed"] },
-        },
-        orderBy: { updatedAt: "desc" },
-        take: 30,
-        include: listingAdminInclude(),
-      }),
+      withDbSystemContext((tx) =>
+        tx.listing.findMany({
+          where: {
+            status: { in: ["active", "pending_review", "rejected", "removed"] },
+          },
+          orderBy: { updatedAt: "desc" },
+          take: 30,
+          include: listingAdminInclude(),
+        })
+      ),
     []
   );
 }

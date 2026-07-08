@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 import { logError } from "@/lib/logger";
 
 type RateLimitResult = { allowed: boolean; remaining: number; resetAt: number };
@@ -18,14 +18,16 @@ export async function checkRateLimit(
   const windowSeconds = windowMs / 1000;
 
   try {
-    const rows = await prisma.$queryRaw<Array<{ count: number; resetAt: Date }>>`
-      INSERT INTO "RateLimit" ("key","count","resetAt")
-      VALUES (${normalizedKey}, 1, now() + make_interval(secs => ${windowSeconds}))
-      ON CONFLICT ("key") DO UPDATE SET
-        "count" = CASE WHEN "RateLimit"."resetAt" <= now() THEN 1 ELSE "RateLimit"."count" + 1 END,
-        "resetAt" = CASE WHEN "RateLimit"."resetAt" <= now() THEN now() + make_interval(secs => ${windowSeconds}) ELSE "RateLimit"."resetAt" END
-      RETURNING "count", "resetAt"
-    `;
+    const rows = await withDbSystemContext(
+      (tx) => tx.$queryRaw<Array<{ count: number; resetAt: Date }>>`
+        INSERT INTO "RateLimit" ("key","count","resetAt")
+        VALUES (${normalizedKey}, 1, now() + make_interval(secs => ${windowSeconds}))
+        ON CONFLICT ("key") DO UPDATE SET
+          "count" = CASE WHEN "RateLimit"."resetAt" <= now() THEN 1 ELSE "RateLimit"."count" + 1 END,
+          "resetAt" = CASE WHEN "RateLimit"."resetAt" <= now() THEN now() + make_interval(secs => ${windowSeconds}) ELSE "RateLimit"."resetAt" END
+        RETURNING "count", "resetAt"
+      `
+    );
 
     const row = rows[0];
     if (!row) {

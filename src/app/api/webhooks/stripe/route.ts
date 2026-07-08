@@ -5,6 +5,7 @@ import {
   StripeWebhookError,
 } from "@/lib/billing/stripe-webhooks";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/request-ip";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -68,6 +69,6 @@ export async function POST(request: Request) {
 }
 
 function getStripeWebhookRateLimitKey(headers: Headers) {
-  const forwardedFor = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return `stripe-webhook:${forwardedFor || "missing-forwarded-for"}`;
+  const clientIp = getClientIp(headers);
+  return `stripe-webhook:${clientIp || "missing-forwarded-for"}`;
 }

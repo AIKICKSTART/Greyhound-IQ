@@ -5,7 +5,6 @@ import {
 } from "@/lib/account-validation";
 import { assertPaidFeatureAccess, hasTier, requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
-import { prisma } from "@/lib/db";
 import { withDbRequestContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
 
@@ -15,32 +14,34 @@ const PROFILE_UPDATE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 export async function GET() {
   try {
     const current = await requireCurrentUserProfile();
-    const profile = await prisma.profile.findUnique({
-      where: { id: current.profileId },
-      include: {
-        dogsOwned: {
-          orderBy: [{ verified: "desc" }, { createdAt: "desc" }],
-          include: {
-            dog: {
-              select: {
-                id: true,
-                name: true,
-                sex: true,
-                colour: true,
+    const profile = await withDbRequestContext(current, (tx) =>
+      tx.profile.findUnique({
+        where: { id: current.profileId },
+        include: {
+          dogsOwned: {
+            orderBy: [{ verified: "desc" }, { createdAt: "desc" }],
+            include: {
+              dog: {
+                select: {
+                  id: true,
+                  name: true,
+                  sex: true,
+                  colour: true,
+                },
               },
             },
           },
-        },
-        _count: {
-          select: {
-            listings: true,
-            threads: true,
-            posts: true,
-            dogsOwned: true,
+          _count: {
+            select: {
+              listings: true,
+              threads: true,
+              posts: true,
+              dogsOwned: true,
+            },
           },
         },
-      },
-    });
+      })
+    );
 
     return NextResponse.json({ item: profile });
   } catch (err) {

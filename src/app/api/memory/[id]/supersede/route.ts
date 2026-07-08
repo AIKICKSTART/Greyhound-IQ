@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
-import { prisma } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { memorySupersedeSchema } from "@/lib/memory-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 
@@ -35,12 +35,12 @@ export async function POST(
     }
 
     const parsed = memorySupersedeSchema.parse(await request.json());
-    const existing = await prisma.memoryEntry.findFirst({
-      where: { id, userId: current.dbUserId, deletedAt: null },
-    });
-    if (!existing) throw new Error("memory.not_found");
+    const item = await withDbRequestContext(current, async (tx) => {
+      const existing = await tx.memoryEntry.findFirst({
+        where: { id, userId: current.dbUserId, deletedAt: null },
+      });
+      if (!existing) throw new Error("memory.not_found");
 
-    const item = await prisma.$transaction(async (tx) => {
       const replacement = parsed.replacementContent
         ? await tx.memoryEntry.create({
             data: {

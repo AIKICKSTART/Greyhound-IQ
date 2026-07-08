@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { databaseConfigurationError, prisma } from "@/lib/db";
+import { databaseConfigurationError } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 export async function GET() {
   const dbConfigurationError = databaseConfigurationError();
@@ -16,7 +17,7 @@ export async function GET() {
   }
 
   try {
-    await prisma.track.count();
+    await withDbSystemContext((tx) => tx.track.count());
     return NextResponse.json({
       status: "ready",
       checks: { database: "ok" },

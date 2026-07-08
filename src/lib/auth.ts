@@ -6,7 +6,8 @@ import {
   syncAuthUser,
 } from "@/lib/auth-sync";
 import { isAdminRole, isModeratorRole } from "@/lib/auth-roles";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 // Subscription tiers, ordered. Pricing: Free / Pro ($12) / Pro+ ($29).
 export type Tier = "free" | "pro" | "pro_plus";
@@ -90,13 +91,15 @@ export async function requireCurrentUserProfile(): Promise<CurrentUserProfile> {
 
   const profile =
     dbUser.profile ??
-    (await prisma.profile.create({
-      data: {
-        userId: dbUser.id,
-        displayName,
-        role: "member",
-      },
-    }));
+    (await withDbSystemContext((tx) =>
+      tx.profile.create({
+        data: {
+          userId: dbUser.id,
+          displayName,
+          role: "member",
+        },
+      })
+    ));
 
   return {
     id: user.id,

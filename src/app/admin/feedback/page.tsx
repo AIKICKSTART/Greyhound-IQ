@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
 import { prisma, safeQuery } from "@/lib/db";
@@ -25,23 +24,13 @@ export default async function AdminFeedbackPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <Link href="/admin" className="giq-outline-action mb-6 w-fit">
-        Back to admin
-      </Link>
+      <AdminPageHeader
+        title="Feedback"
+        description="Latest 20 stored feedback records from the local database. Only identifiers, status, timestamps, and audited status controls are shown."
+      />
 
       <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Feedback
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Latest 20 stored feedback records from the local database. Only
-          identifiers, status, timestamps, and audited status controls are shown.
-        </p>
-
-        <div className="giq-table-shell mt-6 overflow-x-auto">
+        <div className="giq-table-shell overflow-x-auto">
           <table className="w-full min-w-[1080px]">
             <thead>
               <tr className="giq-table-head">

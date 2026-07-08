@@ -4,7 +4,7 @@ import {
   LAGO_BILLABLE_METRIC_KEYS,
   type LagoBillableMetricKey,
 } from "@/lib/billing/billable-metrics";
-import { prisma } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
 
 type UsageMetadata = Record<string, unknown> | readonly unknown[];
 
@@ -56,7 +56,7 @@ export async function recordUsageEvent(
     occurredAt,
   };
 
-  return prisma.$transaction(async (tx) => {
+  return withDbSystemContext(async (tx) => {
     const usageEvent = await tx.usageEvent.upsert({
       where: { idempotencyKey },
       create: eventData,

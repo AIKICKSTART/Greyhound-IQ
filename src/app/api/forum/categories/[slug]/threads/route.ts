@@ -3,8 +3,7 @@ import { z } from "zod";
 import { assertPaidFeatureAccess, requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { cleanText } from "@/lib/content";
-import { prisma } from "@/lib/db";
-import { withDbRequestContext } from "@/lib/db-context";
+import { withDbRequestContext, withDbSystemContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const createThreadSchema = z.object({
@@ -20,18 +19,20 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const category = await prisma.forumCategory.findUnique({
-    where: { slug },
-    include: {
-      threads: {
-        orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
-        include: {
-          author: true,
-          _count: { select: { posts: true } },
+  const category = await withDbSystemContext((tx) =>
+    tx.forumCategory.findUnique({
+      where: { slug },
+      include: {
+        threads: {
+          orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
+          include: {
+            author: true,
+            _count: { select: { posts: true } },
+          },
         },
       },
-    },
-  });
+    })
+  );
   if (!category) {
     return NextResponse.json(
       { error: { code: "forum.category_not_found", message: "Category not found" } },
@@ -69,7 +70,9 @@ export async function POST(
     }
 
     const parsed = createThreadSchema.parse(await request.json());
-    const category = await prisma.forumCategory.findUnique({ where: { slug } });
+    const category = await withDbRequestContext(current, (tx) =>
+      tx.forumCategory.findUnique({ where: { slug } })
+    );
     if (!category) throw new Error("forum.category_not_found");
 
     const thread = await withDbRequestContext(current, async (tx) => {

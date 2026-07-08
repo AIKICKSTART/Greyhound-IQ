@@ -1,4 +1,20 @@
+import { REQUEST_ID_HEADER } from "@/lib/request-id";
+
 type LogContext = Record<string, string | number | boolean | null | undefined>;
+
+// Reads the per-request id the proxy stamped onto the forwarded request
+// headers. Returns undefined outside a request scope (build, cron, module init)
+// so callers can spread it into a log context without guarding. Kept out of
+// `emit` because `headers()` is async and `emit` is a hot sync path — request
+// contexts that want correlation pass `{ requestId: await getRequestId() }`.
+export async function getRequestId(): Promise<string | undefined> {
+  try {
+    const { headers } = await import("next/headers");
+    return (await headers()).get(REQUEST_ID_HEADER) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 // One-line JSON to stdout/stderr. Cloud Run parses `severity`; an ERROR entry
 // whose message contains a stack trace is auto-ingested by GCP Error Reporting.

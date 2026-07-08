@@ -1,7 +1,12 @@
 import Link from "next/link";
+import { AlertTriangle, ArrowRight } from "lucide-react";
 
+import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { ADMIN_NAV } from "@/app/admin/admin-nav-data";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbSystemContext } from "@/lib/db-context";
+import { cached } from "@/lib/ttl-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -10,167 +15,138 @@ export const metadata = {
   description: "Read-only GreyhoundIQ administration overview.",
 };
 
-const COUNTS = [
-  { key: "users", label: "Users" },
-  { key: "invitations", label: "Invitations" },
-  { key: "billingCustomers", label: "Billing customers" },
-  { key: "plans", label: "Plans" },
-  { key: "subscriptions", label: "Subscriptions" },
-  { key: "termsAcceptances", label: "Terms acceptances" },
-  { key: "consentEvents", label: "Consent events" },
-  { key: "marketingPreferences", label: "Marketing preferences" },
-  { key: "retentionPolicies", label: "Retention policies" },
-  { key: "deletionJobs", label: "Deletion jobs" },
-  { key: "feedback", label: "Feedback" },
-  { key: "bugReports", label: "Bug reports" },
-  { key: "webhookEvents", label: "Webhook events" },
-  { key: "invoiceRecords", label: "Invoice records" },
-  { key: "paymentRecords", label: "Payment records" },
-  { key: "usageOutbox", label: "Usage outbox" },
-  { key: "usageAggregates", label: "Usage aggregates" },
-  { key: "agentRunUsage", label: "Agent run usage" },
-  { key: "adminActions", label: "Admin actions" },
-  { key: "pendingListings", label: "Pending marketplace" },
-  { key: "openReports", label: "Open reports" },
-  { key: "openSafetyFlags", label: "Open safety flags" },
-  { key: "bannedPhrases", label: "Banned phrases" },
-  { key: "feedTopics", label: "Feed topics" },
-  { key: "feedPosts", label: "Feed posts" },
-  { key: "jobRuns", label: "Job runs" },
-  { key: "exportArtifacts", label: "Export artifacts" },
-  { key: "dataSourceHealth", label: "Data source health" },
+// Maps a nav route to the dashboard count it should surface (label + value key).
+const ROUTE_COUNT: Partial<Record<string, { key: CountKey; label: string }>> = {
+  "/admin/users": { key: "users", label: "users" },
+  "/admin/organizations": { key: "invitations", label: "invitations" },
+  "/admin/invitations": { key: "invitations", label: "invitations" },
+  "/admin/account-deletion": { key: "deletionJobs", label: "deletion jobs" },
+  "/admin/plans": { key: "plans", label: "plans" },
+  "/admin/subscriptions": { key: "subscriptions", label: "subscriptions" },
+  "/admin/invoices": { key: "invoiceRecords", label: "invoices" },
+  "/admin/payments": { key: "paymentRecords", label: "payments" },
+  "/admin/billing": { key: "billingCustomers", label: "customers" },
+  "/admin/reports": { key: "openReports", label: "open" },
+  "/admin/safety": { key: "openSafetyFlags", label: "open flags" },
+  "/admin/listings": { key: "pendingListings", label: "pending" },
+  "/admin/feed": { key: "feedPosts", label: "posts" },
+  "/admin/feedback": { key: "feedback", label: "items" },
+  "/admin/bug-reports": { key: "bugReports", label: "reports" },
+  "/admin/retention": { key: "retentionPolicies", label: "policies" },
+  "/admin/exports": { key: "exportArtifacts", label: "artifacts" },
+  "/admin/actions": { key: "adminActions", label: "actions" },
+  "/admin/jobs": { key: "jobRuns", label: "job runs" },
+  "/admin/webhooks": { key: "webhookEvents", label: "events" },
+  "/admin/usage": { key: "usageAggregates", label: "aggregates" },
+  "/admin/source-health": { key: "dataSourceHealth", label: "sources" },
+};
+
+// Queues an admin actually needs to work down, surfaced up top.
+const PRIORITY = [
+  { key: "pendingListings", label: "Pending listings", href: "/admin/listings" },
+  { key: "openReports", label: "Open reports", href: "/admin/reports" },
+  { key: "openSafetyFlags", label: "Open safety flags", href: "/admin/safety" },
 ] as const;
 
-type CountKey = (typeof COUNTS)[number]["key"];
-type AdminCounts = Record<CountKey, number | null>;
+// Count keys are sourced from getAdminCounts's return shape (below), so there is
+// one list to keep in sync, not two.
+type AdminCounts = Awaited<ReturnType<typeof getAdminCounts>>;
+type CountKey = keyof AdminCounts;
 
 export default async function AdminPage() {
   await requireModeratorProfile();
-  const counts = await getAdminCounts();
+  const counts = await cached("admin:dashboard:counts", 120_000, getAdminCounts);
+
+  const sections = ADMIN_NAV.filter((group) => group.title !== "Overview");
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
-      <Link href="/account" className="giq-outline-action mb-6 w-fit">
-        Back to account
-      </Link>
+    <main className="mx-auto max-w-6xl px-6 py-12 lg:px-10">
+      <AdminPageHeader
+        title="Dashboard"
+        description="Operational snapshot across every admin domain. Pick a section from the sidebar, or jump straight from a card below."
+      />
 
-      <section className="giq-panel p-6">
-        <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-[hsl(var(--foreground))]">
-          Read-only overview
-        </h1>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Local account, invitation, compliance, billing, feedback, bug report,
-          webhook, job, source health, and usage counts.
-        </p>
-
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link href="/admin/users" className="giq-outline-action">
-            Users
-          </Link>
-          <Link href="/admin/organizations" className="giq-outline-action">
-            Organizations
-          </Link>
-          <Link href="/admin/invitations" className="giq-outline-action">
-            Invitations
-          </Link>
-          <Link href="/admin/plans" className="giq-outline-action">
-            Plans
-          </Link>
-          <Link href="/admin/subscriptions" className="giq-outline-action">
-            Subscriptions
-          </Link>
-          <Link href="/admin/entitlements" className="giq-outline-action">
-            Entitlements
-          </Link>
-          <Link href="/admin/invoices" className="giq-outline-action">
-            Invoices
-          </Link>
-          <Link href="/admin/payments" className="giq-outline-action">
-            Payments
-          </Link>
-          <Link href="/admin/webhooks" className="giq-outline-action">
-            Webhook events
-          </Link>
-          <Link href="/admin/support" className="giq-outline-action">
-            Support tickets
-          </Link>
-          <Link href="/admin/feedback" className="giq-outline-action">
-            Feedback
-          </Link>
-          <Link href="/admin/bug-reports" className="giq-outline-action">
-            Bug reports
-          </Link>
-          <Link href="/admin/billing" className="giq-outline-action">
-            Billing
-          </Link>
-          <Link href="/admin/billing-events" className="giq-outline-action">
-            Billing events
-          </Link>
-          <Link href="/admin/usage" className="giq-outline-action">
-            Usage
-          </Link>
-          <Link href="/admin/jobs" className="giq-outline-action">
-            Agent run usage
-          </Link>
-          <Link href="/admin/audit" className="giq-outline-action">
-            Audit
-          </Link>
-          <Link href="/admin/actions" className="giq-outline-action">
-            Admin actions
-          </Link>
-          <Link href="/admin/compliance" className="giq-outline-action">
-            Compliance
-          </Link>
-          <Link href="/admin/retention" className="giq-outline-action">
-            Retention
-          </Link>
-          <Link href="/admin/reports" className="giq-outline-action">
-            Reports
-          </Link>
-          <Link href="/admin/safety" className="giq-outline-action">
-            Trust and safety
-          </Link>
-          <Link href="/admin/listings" className="giq-outline-action">
-            Marketplace review
-          </Link>
-          <Link href="/admin/feed" className="giq-outline-action">
-            Feed moderation
-          </Link>
-          <Link href="/admin/exports" className="giq-outline-action">
-            Exports
-          </Link>
-          <Link href="/admin/source-health" className="giq-outline-action">
-            Source health
-          </Link>
-          <Link href="/admin/account-deletion" className="giq-outline-action">
-            Account deletion
-          </Link>
-          <Link href="/admin/jobs" className="giq-outline-action">
-            Jobs
-          </Link>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {COUNTS.map((item) => (
-            <div key={item.key} className="giq-metric-card">
-              <p className="text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-                {item.label}
-              </p>
-              <p className="mt-1 text-2xl font-semibold text-[hsl(var(--foreground))]">
-                {formatCount(counts[item.key])}
-              </p>
-            </div>
-          ))}
+      <section aria-label="Needs attention" className="mb-8">
+        <div className="grid gap-3 sm:grid-cols-3">
+          {PRIORITY.map((item) => {
+            const value = counts[item.key];
+            const attention = typeof value === "number" && value > 0;
+            return (
+              <Link
+                key={item.key}
+                href={item.href}
+                className={`giq-panel giq-panel-hover flex items-center justify-between gap-4 p-5 ${
+                  attention
+                    ? "border-amber-300/40 bg-amber-300/[0.06]"
+                    : ""
+                }`}
+              >
+                <div>
+                  <p className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
+                    {attention ? (
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-300" />
+                    ) : null}
+                    {item.label}
+                  </p>
+                  <p className="mt-1 text-3xl font-semibold text-[hsl(var(--foreground))]">
+                    {formatCount(value)}
+                  </p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
+              </Link>
+            );
+          })}
         </div>
       </section>
+
+      <div className="grid gap-8">
+        {sections.map((group) => (
+          <section key={group.title} aria-label={group.title}>
+            <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
+              {group.title}
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {group.items.map((item) => {
+                const count = ROUTE_COUNT[item.href];
+                const value = count ? counts[count.key] : null;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="giq-panel giq-panel-hover group flex flex-col gap-2 p-5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-[15px] font-semibold text-[hsl(var(--foreground))]">
+                        {item.label}
+                      </span>
+                      {count ? (
+                        <span className="shrink-0 text-right">
+                          <span className="block text-[20px] font-semibold leading-none text-[hsl(var(--foreground))]">
+                            {formatCount(value)}
+                          </span>
+                          <span className="text-[11px] text-[hsl(var(--subtle-foreground))]">
+                            {count.label}
+                          </span>
+                        </span>
+                      ) : (
+                        <ArrowRight className="h-4 w-4 shrink-0 text-[hsl(var(--muted-foreground))] transition-transform group-hover:translate-x-0.5" />
+                      )}
+                    </div>
+                    <p className="text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                      {item.blurb}
+                    </p>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
     </main>
   );
 }
 
-async function getAdminCounts(): Promise<AdminCounts> {
+async function getAdminCounts() {
   const [
     users,
     invitations,
@@ -201,34 +177,44 @@ async function getAdminCounts(): Promise<AdminCounts> {
     exportArtifacts,
     dataSourceHealth,
   ] = await Promise.all([
-    countRows(() => prisma.user.count()),
-    countRows(() => prisma.organizationInvitation.count()),
-    countRows(() => prisma.billingCustomer.count()),
-    countRows(() => prisma.plan.count()),
-    countRows(() => prisma.subscription.count()),
-    countRows(() => prisma.termsAcceptance.count()),
-    countRows(() => prisma.consentEvent.count()),
-    countRows(() => prisma.marketingPreference.count()),
-    countRows(() => prisma.retentionPolicy.count()),
-    countRows(() => prisma.deletionJob.count()),
-    countRows(() => prisma.feedback.count()),
-    countRows(() => prisma.bugReport.count()),
-    countRows(() => prisma.webhookEvent.count()),
-    countRows(() => prisma.invoiceRecord.count()),
-    countRows(() => prisma.paymentRecord.count()),
-    countRows(() => prisma.usageOutbox.count()),
-    countRows(() => prisma.usageAggregate.count()),
-    countRows(() => prisma.agentRunUsage.count()),
-    countRows(() => prisma.adminAction.count()),
-    countRows(() => prisma.listing.count({ where: { status: "pending_review" } })),
-    countRows(() => prisma.report.count({ where: { status: "open" } })),
-    countRows(() => prisma.trustSafetyFlag.count({ where: { status: "open" } })),
-    countRows(() => prisma.bannedPhrase.count()),
-    countRows(() => prisma.feedTopic.count()),
-    countRows(() => prisma.feedPost.count()),
-    countRows(() => prisma.jobRun.count()),
-    countRows(() => prisma.exportArtifact.count()),
-    countRows(() => prisma.dataSourceHealth.count()),
+    countRows(() => withDbSystemContext((tx) => tx.user.count())),
+    countRows(() => withDbSystemContext((tx) => tx.organizationInvitation.count())),
+    countRows(() => withDbSystemContext((tx) => tx.billingCustomer.count())),
+    countRows(() => withDbSystemContext((tx) => tx.plan.count())),
+    countRows(() => withDbSystemContext((tx) => tx.subscription.count())),
+    countRows(() => withDbSystemContext((tx) => tx.termsAcceptance.count())),
+    countRows(() => withDbSystemContext((tx) => tx.consentEvent.count())),
+    countRows(() => withDbSystemContext((tx) => tx.marketingPreference.count())),
+    countRows(() => withDbSystemContext((tx) => tx.retentionPolicy.count())),
+    countRows(() => withDbSystemContext((tx) => tx.deletionJob.count())),
+    countRows(() => withDbSystemContext((tx) => tx.feedback.count())),
+    countRows(() => withDbSystemContext((tx) => tx.bugReport.count())),
+    countRows(() => withDbSystemContext((tx) => tx.webhookEvent.count())),
+    countRows(() => withDbSystemContext((tx) => tx.invoiceRecord.count())),
+    countRows(() => withDbSystemContext((tx) => tx.paymentRecord.count())),
+    countRows(() => withDbSystemContext((tx) => tx.usageOutbox.count())),
+    countRows(() => withDbSystemContext((tx) => tx.usageAggregate.count())),
+    countRows(() => withDbSystemContext((tx) => tx.agentRunUsage.count())),
+    countRows(() => withDbSystemContext((tx) => tx.adminAction.count())),
+    countRows(() =>
+      withDbSystemContext((tx) =>
+        tx.listing.count({ where: { status: "pending_review" } })
+      )
+    ),
+    countRows(() =>
+      withDbSystemContext((tx) => tx.report.count({ where: { status: "open" } }))
+    ),
+    countRows(() =>
+      withDbSystemContext((tx) =>
+        tx.trustSafetyFlag.count({ where: { status: "open" } })
+      )
+    ),
+    countRows(() => withDbSystemContext((tx) => tx.bannedPhrase.count())),
+    countRows(() => withDbSystemContext((tx) => tx.feedTopic.count())),
+    countRows(() => withDbSystemContext((tx) => tx.feedPost.count())),
+    countRows(() => withDbSystemContext((tx) => tx.jobRun.count())),
+    countRows(() => withDbSystemContext((tx) => tx.exportArtifact.count())),
+    countRows(() => withDbSystemContext((tx) => tx.dataSourceHealth.count())),
   ]);
 
   return {

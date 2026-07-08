@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { createAuditLog } from "@/lib/account-service";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
-import { prisma } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/request-ip";
 
 const USER_EXPORT_RATE_LIMIT = 3;
 const USER_EXPORT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
@@ -42,8 +43,8 @@ export async function GET(request: Request) {
       memoryEntries,
       agentContexts,
       agentRuns,
-    ] = await Promise.all([
-      prisma.user.findUnique({
+    ] = await withDbRequestContext(current, (tx) => Promise.all([
+      tx.user.findUnique({
         where: { id: current.dbUserId },
         select: {
           id: true,
@@ -58,7 +59,7 @@ export async function GET(request: Request) {
           updatedAt: true,
         },
       }),
-      prisma.profile.findUnique({
+      tx.profile.findUnique({
         where: { id: current.profileId },
         include: {
           dogsOwned: {
@@ -78,12 +79,12 @@ export async function GET(request: Request) {
           },
         },
       }),
-      prisma.thread.findMany({
+      tx.thread.findMany({
         where: { authorId: current.profileId },
         orderBy: { createdAt: "desc" },
         include: { category: true, _count: { select: { posts: true } } },
       }),
-      prisma.post.findMany({
+      tx.post.findMany({
         where: { authorId: current.profileId },
         orderBy: { createdAt: "desc" },
         include: {
@@ -96,7 +97,7 @@ export async function GET(request: Request) {
           },
         },
       }),
-      prisma.listing.findMany({
+      tx.listing.findMany({
         where: { profileId: current.profileId },
         orderBy: { createdAt: "desc" },
         include: {
@@ -113,7 +114,7 @@ export async function GET(request: Request) {
           },
         },
       }),
-      prisma.conversation.findMany({
+      tx.conversation.findMany({
         where: {
           OR: [
             { participantAId: current.profileId },
@@ -126,7 +127,7 @@ export async function GET(request: Request) {
           participantB: true,
         },
       }),
-      prisma.message.findMany({
+      tx.message.findMany({
         where: { senderId: current.profileId },
         orderBy: { createdAt: "desc" },
         include: {
@@ -142,7 +143,7 @@ export async function GET(request: Request) {
           },
         },
       }),
-      prisma.message.findMany({
+      tx.message.findMany({
         where: { recipientId: current.profileId },
         orderBy: { createdAt: "desc" },
         include: {
@@ -158,7 +159,7 @@ export async function GET(request: Request) {
           },
         },
       }),
-      prisma.mediaAsset.findMany({
+      tx.mediaAsset.findMany({
         where: { uploaderId: current.dbUserId },
         orderBy: { createdAt: "desc" },
         include: {
@@ -166,19 +167,19 @@ export async function GET(request: Request) {
           listingAttachments: true,
         },
       }),
-      prisma.memoryEntry.findMany({
+      tx.memoryEntry.findMany({
         where: { userId: current.dbUserId },
         orderBy: { createdAt: "desc" },
       }),
-      prisma.conversationContext.findMany({
+      tx.conversationContext.findMany({
         where: { userId: current.dbUserId },
         orderBy: { updatedAt: "desc" },
       }),
-      prisma.agentRun.findMany({
+      tx.agentRun.findMany({
         where: { userId: current.dbUserId },
         orderBy: { createdAt: "desc" },
       }),
-    ]);
+    ]));
 
     await createAuditLog({
       actorId: current.dbUserId,
@@ -186,7 +187,7 @@ export async function GET(request: Request) {
       action: "user.export",
       targetType: "user",
       targetId: current.dbUserId,
-      ip: request.headers.get("x-forwarded-for"),
+      ip: getClientIp(request.headers),
       userAgent: request.headers.get("user-agent"),
       metadata: {
         format: "json",
@@ -231,17 +232,19 @@ export async function GET(request: Request) {
     const responseBody = JSON.stringify(archive, null, 2);
     const sizeBytes = new TextEncoder().encode(responseBody).byteLength;
 
-    await prisma.exportArtifact.create({
-      data: {
-        exportType: "user_data",
-        status: "completed",
-        targetUserId: current.dbUserId,
-        requestedByUserId: current.dbUserId,
-        sizeBytes,
-        completedAt: exportedAt,
-        expiresAt: new Date(exportedAt.getTime() + USER_EXPORT_ARTIFACT_TTL_MS),
-      },
-    });
+    await withDbRequestContext(current, (tx) =>
+      tx.exportArtifact.create({
+        data: {
+          exportType: "user_data",
+          status: "completed",
+          targetUserId: current.dbUserId,
+          requestedByUserId: current.dbUserId,
+          sizeBytes,
+          completedAt: exportedAt,
+          expiresAt: new Date(exportedAt.getTime() + USER_EXPORT_ARTIFACT_TTL_MS),
+        },
+      })
+    );
 
     const date = exportedAt.toISOString().slice(0, 10);
     return new NextResponse(responseBody, {

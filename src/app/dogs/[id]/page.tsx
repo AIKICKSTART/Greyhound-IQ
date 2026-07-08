@@ -82,8 +82,12 @@ export default async function DogProfilePage({
   // prizeMoneyWon.
   const finishedStarts = dog.runners.filter((r) => r.result);
   const upcomingStarts = dog.runners.filter((r) => !r.result);
+  // Career total: Dog.prizeMoney is the authoritative figure from the profile
+  // backfill (covers full career). prize.careerWon only sums our live Result
+  // rows (a recent subset), so take the larger of the two.
+  const careerWinnings = Math.max(dog.prizeMoney ?? 0, prize.careerWon);
   const hasPrizeData =
-    prize.careerWon > 0 ||
+    careerWinnings > 0 ||
     finishedStarts.some((r) => r.result?.prizeMoneyWon != null) ||
     upcomingStarts.some((r) => r.race.prizeMoney != null);
 
@@ -358,7 +362,7 @@ export default async function DogProfilePage({
             </h2>
             <div className="text-right">
               <div className="text-2xl font-semibold tabular-nums tracking-[-0.02em] text-[hsl(var(--secondary))]">
-                {formatPrize(prize.careerWon)}
+                {formatPrize(careerWinnings)}
               </div>
               <div className="text-[12px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]">
                 Career winnings

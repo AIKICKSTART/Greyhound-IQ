@@ -459,7 +459,14 @@ Invoke-Gcloud builds submit . `
   --project $ProjectId
 
 $runtimeServiceAccount = "giq-web-$Environment@$ProjectId.iam.gserviceaccount.com"
-$allSecretMappings = @($requiredSecrets + $enabledOptionalSecrets)
+$availableRequiredSecrets = $requiredSecrets
+if ($AllowMissingSecrets) {
+  # Mounting a secret with no version fails the revision; skip absent ones.
+  $availableRequiredSecrets = @($requiredSecrets | Where-Object {
+    Secret-HasVersion "greyhoundiq-$Environment-$($_)"
+  })
+}
+$allSecretMappings = @($availableRequiredSecrets + $enabledOptionalSecrets)
 $secretMappings = ($allSecretMappings | ForEach-Object {
   "$_=greyhoundiq-$Environment-$($_):latest"
 }) -join ","
@@ -513,7 +520,7 @@ $deployArgs = @(
   "--set-env-vars=$plainEnv"
 )
 if ($secretMappings) {
-  $deployArgs += "--update-secrets=$secretMappings"
+  $deployArgs += "--set-secrets=$secretMappings"
 }
 $deployArgs += @("--project", $ProjectId)
 Invoke-Gcloud @deployArgs
@@ -552,7 +559,7 @@ if (-not $SkipMediaScanner) {
     "--set-env-vars=$scannerEnv"
   )
   if ($secretMappings) {
-    $scannerDeployArgs += "--update-secrets=$secretMappings"
+    $scannerDeployArgs += "--set-secrets=$secretMappings"
   }
   $scannerDeployArgs += @("--project", $ProjectId)
   Invoke-Gcloud @scannerDeployArgs

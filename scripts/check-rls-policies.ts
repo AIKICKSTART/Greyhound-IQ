@@ -133,13 +133,74 @@ if (!/\bNOBYPASSRLS\b/.test(sql)) {
   findings.push("runtime role must be documented/created as NOBYPASSRLS");
 }
 
-if (findings.length > 0) {
-  console.error("RLS policy gate failed:");
-  for (const finding of findings) console.error(`- ${finding}`);
-  process.exit(1);
+const forceMigrationSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260708170000_force_row_level_security",
+    "migration.sql"
+  ),
+  "utf8"
+);
+if (!/FORCE ROW LEVEL SECURITY/.test(forceMigrationSql)) {
+  findings.push("force-RLS migration must FORCE ROW LEVEL SECURITY");
 }
 
-console.log("RLS policy gate passed.");
+void main();
+
+async function main() {
+  await checkDatabaseState();
+
+  if (findings.length > 0) {
+    console.error("RLS policy gate failed:");
+    for (const finding of findings) console.error(`- ${finding}`);
+    process.exit(1);
+  }
+
+  console.log("RLS policy gate passed.");
+}
+
+// Live-database assertions: the runtime role must stay unable to bypass RLS,
+// and every RLS-enabled table must have FORCE so table owners are bound too.
+async function checkDatabaseState() {
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
+  try {
+    const roles = await prisma.$queryRaw<
+      { rolname: string; rolsuper: boolean; rolbypassrls: boolean }[]
+    >`SELECT rolname, rolsuper, rolbypassrls
+      FROM pg_roles
+      WHERE rolname IN ('greyhoundiq_app', 'greyhoundiq_runtime', 'greyhoundiq_migrator')`;
+    if (roles.length === 0) {
+      findings.push(
+        "no greyhoundiq runtime roles found in database (expected greyhoundiq_app/greyhoundiq_runtime)"
+      );
+    }
+    for (const role of roles) {
+      if (role.rolsuper) findings.push(`${role.rolname} must not be SUPERUSER`);
+      if (role.rolbypassrls) findings.push(`${role.rolname} must be NOBYPASSRLS`);
+    }
+
+    const unforced = await prisma.$queryRaw<{ relname: string }[]>`
+      SELECT relname
+      FROM pg_class
+      WHERE relnamespace = 'public'::regnamespace
+        AND relkind = 'r'
+        AND relrowsecurity
+        AND NOT relforcerowsecurity
+      ORDER BY relname`;
+    for (const table of unforced) {
+      findings.push(`"${table.relname}" has RLS enabled but not FORCE ROW LEVEL SECURITY`);
+    }
+  } catch (err) {
+    findings.push(
+      `database state check failed: ${err instanceof Error ? err.message.split("\n")[0] : String(err)}`
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
 
 function must(needle: string, label: string) {
   if (!sql.includes(needle)) findings.push(label);

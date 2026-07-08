@@ -129,7 +129,9 @@ export default async function DogProfilePage({
           {dog.whelpDate && (
             <span>· Whelped {dog.whelpDate.toLocaleDateString("en-AU")}</span>
           )}
-          {dog.earBrand && (
+          {/* Internal source identifiers (e.g. "thedogs:443230") must never be
+              shown; only surface a genuine ear brand if one exists. */}
+          {dog.earBrand && !dog.earBrand.includes(":") && (
             <span className="font-mono text-[hsl(var(--primary-bright))]">· {dog.earBrand}</span>
           )}
         </div>

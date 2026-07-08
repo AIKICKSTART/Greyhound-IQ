@@ -15,6 +15,10 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
   if (request.headers.get("x-forwarded-proto") === "http") {
     const httpsUrl = new URL(request.url);
     httpsUrl.protocol = "https:";
+    // request.url carries the internal Cloud Run host (0.0.0.0:8080), so rebuild
+    // the redirect against the public forwarded host to avoid leaking it.
+    const forwardedHost = request.headers.get("x-forwarded-host");
+    if (forwardedHost) httpsUrl.host = forwardedHost;
     return NextResponse.redirect(httpsUrl, 308);
   }
 
@@ -44,6 +48,21 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
   // browser (redirect or next alike). X-Request-ID surfaces the id to the LB.
   response.headers.set("Content-Security-Policy", csp);
   response.headers.set(REQUEST_ID_HEADER, requestId);
+
+  // Keep auth-gated / app-shell areas out of the search index (they carry no
+  // public search value). Public data pages are not listed here.
+  const path = request.nextUrl.pathname;
+  const noindex = [
+    "/account",
+    "/admin",
+    "/messages",
+    "/feed",
+    "/pulse",
+    "/marketplace/new",
+    "/listings/new",
+  ].some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+  if (noindex) response.headers.set("X-Robots-Tag", "noindex, follow");
+
   return response;
 }
 

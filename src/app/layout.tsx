@@ -9,6 +9,7 @@ import { MobileBottomDock } from "@/components/mobile-bottom-dock";
 import { ResponsibleUseAlert } from "@/components/responsible-use-alert";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { JsonLd, organizationSchema, websiteSchema } from "@/components/json-ld";
 import { siteAssetUrl } from "@/lib/storage-paths";
 
 const inter = Inter({
@@ -32,14 +33,25 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
     apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
   openGraph: {
+    type: "website",
+    siteName: "GreyhoundIQ",
+    url: "https://greyhoundsiq.com.au",
     title: "GreyhoundIQ — Australian Greyhound Racing Intelligence",
     description:
       "Real-time race cards, full career form, breeding analytics, AI predictions, and a community for breeders and owners.",
-    images: [OG_IMAGE],
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "GreyhoundIQ" }],
   },
   twitter: {
     card: "summary_large_image",
+    title: "GreyhoundIQ — Australian Greyhound Racing Intelligence",
+    description:
+      "Real-time race cards, full career form, breeding analytics, AI predictions, and a community for breeders and owners.",
     images: [OG_IMAGE],
   },
 };
@@ -59,6 +71,7 @@ export default async function RootLayout({
         className={`${inter.className} antialiased min-h-screen`}
         style={{ fontFeatureSettings: '"cv01", "ss03", "rlig" 1, "calt" 1' }}
       >
+        <JsonLd data={[organizationSchema, websiteSchema]} />
         <AuthKitProvider initialAuth={initialAuth}>
           <a
             href="#main-content"

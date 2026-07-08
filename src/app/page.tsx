@@ -20,6 +20,10 @@ import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  alternates: { canonical: "/" },
+};
+
 const FEATURES = [
   {
     image: "/images/feature-career-form-purple.webp",

@@ -32,10 +32,10 @@ function formatPrize(value: number | null) {
   });
 }
 
-function DogSearchInner() {
-  const [query, setQuery] = useState("");
+function DogSearchInner({ initialQuery = "" }: { initialQuery?: string }) {
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(initialQuery.trim().length >= 1);
   const [activeIndex, setActiveIndex] = useState(-1);
   const listboxId = useId();
   const router = useRouter();
@@ -216,10 +216,10 @@ function DogSearchInner() {
   );
 }
 
-export function DogSearch() {
+export function DogSearch({ initialQuery }: { initialQuery?: string }) {
   return (
     <MotionIsland>
-      <DogSearchInner />
+      <DogSearchInner initialQuery={initialQuery} />
     </MotionIsland>
   );
 }

@@ -18,6 +18,7 @@ import {
   broadcastProfileRealtimeEvent,
 } from "@/lib/realtime-service";
 import { PRIVATE_USER_MEDIA_BUCKET } from "@/lib/storage-paths";
+import { assertPaidFeatureAccess } from "@/lib/tier-access";
 import type { Prisma } from "@prisma/client";
 
 const CONVERSATION_INCLUDE = {
@@ -149,6 +150,11 @@ export async function startOrGetConversation(
   current: CurrentUserProfile,
   recipientIdOrProfileId: string
 ) {
+  // Direct messaging is a Pro feature (pricing: Free = "No messaging
+  // trainers/sellers"). Enforce here so the action, /api/conversations, and
+  // /api/messages all inherit the paywall from this shared chokepoint.
+  assertPaidFeatureAccess(current);
+
   const recipient = await withDbRequestContext(current, (tx) =>
     tx.profile.findFirst({
       where: {
@@ -196,6 +202,10 @@ export async function sendConversationMessage(
   conversationId: string,
   input: { body: string; mediaIds?: string[] }
 ) {
+  // Sending a message is Pro-only (see startOrGetConversation). Gating send as
+  // well as start closes the paywall bypass on the reply path too.
+  assertPaidFeatureAccess(current);
+
   const conversation = await getConversationForProfile(
     current,
     conversationId,

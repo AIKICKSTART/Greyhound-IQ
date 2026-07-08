@@ -4,6 +4,7 @@ import { BadgeCheck, Ban, Clock, Lock, ShieldCheck } from "lucide-react";
 import { claimDogOwnership } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
+import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
 import { getDogById, getDogPrizeMoney, getMyDogOwnership } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -19,9 +20,17 @@ export async function generateMetadata({
     title: "Dog not found — GreyhoundIQ",
     description: "Greyhound profile not found in the national database.",
   };
+  const description = `Full career form, recent starts, pedigree, and trainer info for ${dog.name}.`;
   return {
-    title: `${dog.name} — GreyhoundIQ`,
-    description: `Full career form, recent starts, pedigree, and trainer info for ${dog.name}.`,
+    title: `${dog.name} — Greyhound Form & Pedigree | GreyhoundIQ`,
+    description,
+    alternates: { canonical: `/dogs/${id}` },
+    openGraph: {
+      title: `${dog.name} — Greyhound Form & Pedigree | GreyhoundIQ`,
+      description,
+      url: `/dogs/${id}`,
+      type: "profile",
+    },
   };
 }
 
@@ -78,8 +87,32 @@ export default async function DogProfilePage({
     finishedStarts.some((r) => r.result?.prizeMoneyWon != null) ||
     upcomingStarts.some((r) => r.race.prizeMoney != null);
 
+  const dogSchema = {
+    "@context": "https://schema.org",
+    "@type": "Animal",
+    "@id": `https://greyhoundsiq.com.au/dogs/${dog.id}`,
+    name: dog.name,
+    url: `https://greyhoundsiq.com.au/dogs/${dog.id}`,
+    description: `Full career form, recent starts, pedigree, and trainer info for ${dog.name}.`,
+    ...(dog.colour ? { color: dog.colour } : {}),
+    ...(dog.sex ? { gender: dog.sex === "M" ? "Male" : "Female" } : {}),
+    ...(dog.trainer
+      ? { trainer: { "@type": "Person", name: dog.trainer.name } }
+      : {}),
+  };
+
   return (
     <div className="giq-dog-detail-page mx-auto max-w-4xl px-6 py-10">
+      <JsonLd
+        data={[
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Dogs", path: "/dogs" },
+            { name: dog.name, path: `/dogs/${dog.id}` },
+          ]),
+          dogSchema,
+        ]}
+      />
       {/* Header */}
       <div className="mb-8">
         <h1

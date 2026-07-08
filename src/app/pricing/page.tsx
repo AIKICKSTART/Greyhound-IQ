@@ -1,5 +1,6 @@
 import { Check, CreditCard, X, Zap, Crown, Sparkles } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
+import { JsonLd } from "@/components/json-ld";
 
 const PLANS = [
   {
@@ -87,13 +88,74 @@ const FAQ = [
 ];
 
 export const metadata = {
-  title: "Pricing — GreyhoundIQ",
-  description: "Simple honest pricing for Australian greyhound racing data. AUD pricing, no ads, no surprises.",
+  title: "GreyhoundIQ Plans & Pricing — Free + Pro from $20 AUD/mo",
+  description:
+    "Compare GreyhoundIQ Free vs Pro. Full AU greyhound racing form, marketplace tools, and breeding analytics. AUD pricing, no ads, cancel anytime.",
+  alternates: { canonical: "/pricing" },
+  openGraph: {
+    title: "GreyhoundIQ Plans & Pricing — Free + Pro from $20 AUD/mo",
+    description:
+      "Compare GreyhoundIQ Free vs Pro. Full AU greyhound racing form, marketplace tools, and breeding analytics. AUD pricing, no ads, cancel anytime.",
+    url: "/pricing",
+    type: "website",
+  },
+};
+
+const SITE_URL = "https://greyhoundsiq.com.au";
+
+const softwareApplicationSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "@id": `${SITE_URL}/#app`,
+  name: "GreyhoundIQ",
+  applicationCategory: "SportsApplication",
+  operatingSystem: "Web, iOS, Android",
+  url: SITE_URL,
+  description:
+    "Australian greyhound racing analytics. Real-time race cards, AI predictions, breeding analytics, marketplace tools, and community.",
+  publisher: { "@id": `${SITE_URL}/#organization` },
+  offers: [
+    {
+      "@type": "Offer",
+      name: "GreyhoundIQ Free",
+      price: "0",
+      priceCurrency: "AUD",
+      url: `${SITE_URL}/pricing`,
+      availability: "https://schema.org/InStock",
+    },
+    {
+      "@type": "Offer",
+      name: "GreyhoundIQ Pro (Monthly)",
+      price: "20",
+      priceCurrency: "AUD",
+      url: `${SITE_URL}/pricing`,
+      availability: "https://schema.org/InStock",
+    },
+    {
+      "@type": "Offer",
+      name: "GreyhoundIQ Pro (Annual)",
+      price: "204",
+      priceCurrency: "AUD",
+      url: `${SITE_URL}/pricing`,
+      availability: "https://schema.org/InStock",
+    },
+  ],
+};
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: { "@type": "Answer", text: item.a },
+  })),
 };
 
 export default function PricingPage() {
   return (
     <div>
+      <JsonLd data={[softwareApplicationSchema, faqSchema]} />
       <PageHero
         image="/images/wentworth-gate-hero.webp"
         badge="PRICING"

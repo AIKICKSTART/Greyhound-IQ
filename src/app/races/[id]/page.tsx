@@ -10,6 +10,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { getPreviousRaceVideoRunners, getRaceById } from "@/lib/queries";
+import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
 import { RaceReplayPlayer } from "@/components/race-replay-player";
 import { RunnerRow } from "@/components/runner-row";
 import type { ResolvedRaceReplay } from "@/lib/live/race-replay";
@@ -63,9 +64,18 @@ export async function generateMetadata({
       title: "Race not found - GreyhoundIQ",
       description: "Race not found in the GreyhoundIQ database.",
     };
+  const title = `${race.meeting.track.name} Race ${race.raceNumber} (${race.distance}m) | GreyhoundIQ`;
+  const description = `Race ${race.raceNumber} at ${race.meeting.track.name}, ${race.distance}m${race.grade ? ` (${race.grade})` : ""}. Full runner list, results, and replay video where available.`;
   return {
-    title: `R${race.raceNumber} ${race.meeting.track.name} - ${race.distance}m | GreyhoundIQ`,
-    description: `Race ${race.raceNumber} at ${race.meeting.track.name}, ${race.distance}m${race.grade ? ` (${race.grade})` : ""}. Full runner list, results, and replay video where available.`,
+    title,
+    description,
+    alternates: { canonical: `/races/${id}` },
+    openGraph: {
+      title,
+      description,
+      url: `/races/${id}`,
+      type: "website",
+    },
   };
 }
 
@@ -124,8 +134,46 @@ export default async function RacePage({
     collectPreviousRaceVideoCandidates(race, previousVideoRunners)
   );
 
+  const raceEventSchema = {
+    "@context": "https://schema.org",
+    "@type": "SportsEvent",
+    "@id": `https://greyhoundsiq.com.au/races/${race.id}`,
+    name: race.name || `${track.name} Race ${race.raceNumber} (${race.distance}m)`,
+    url: `https://greyhoundsiq.com.au/races/${race.id}`,
+    sport: "Greyhound racing",
+    startDate: race.raceTime.toISOString(),
+    eventStatus: hasResults
+      ? "https://schema.org/EventScheduled"
+      : "https://schema.org/EventScheduled",
+    location: {
+      "@type": "SportsActivityLocation",
+      name: track.name,
+      address: {
+        "@type": "PostalAddress",
+        addressRegion: track.state,
+        addressCountry: "AU",
+      },
+    },
+    competitor: race.runners
+      .filter((runner) => !runner.scratched)
+      .map((runner) => ({ "@type": "Person", name: runner.dog.name })),
+  };
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+      <JsonLd
+        data={[
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Racecards", path: "/races" },
+            {
+              name: `${track.name} R${race.raceNumber}`,
+              path: `/races/${race.id}`,
+            },
+          ]),
+          raceEventSchema,
+        ]}
+      />
       <div className="mb-6">
         <div className="mb-3 flex flex-wrap items-center gap-3 text-[12px] tracking-[-0.013em] text-[hsl(220_7%_52%)]">
           <span className="flex items-center gap-1.5">

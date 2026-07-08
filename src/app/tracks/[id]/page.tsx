@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, Clock, MapPin, Route, Trophy } from "lucide-react";
 import { getBoxColourStyle } from "@/lib/box-colours";
+import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
 import { getTrackById } from "@/lib/queries";
 import {
   formatRaceDateInput,
@@ -24,9 +25,18 @@ export async function generateMetadata({
       description: "Track not found in the GreyhoundIQ database.",
     };
   }
+  const title = `${track.name} Greyhound Racing — Form, Results & Box Stats | GreyhoundIQ`;
+  const description = `${track.name} greyhound racing (${track.state}): recent meetings, race distances, box-bias data, and seeded records.`;
   return {
-    title: `${track.name} Track Guide - GreyhoundIQ`,
-    description: `Track guide, recent meetings, distances, and records for ${track.name}, ${track.state}.`,
+    title,
+    description,
+    alternates: { canonical: `/tracks/${id}` },
+    openGraph: {
+      title,
+      description,
+      url: `/tracks/${id}`,
+      type: "website",
+    },
   };
 }
 
@@ -58,8 +68,31 @@ export default async function TrackDetailPage({
   });
   const maxWins = Math.max(...boxWins.map((row) => row.wins), 1);
 
+  const trackSchema = {
+    "@context": "https://schema.org",
+    "@type": "SportsActivityLocation",
+    "@id": `https://greyhoundsiq.com.au/tracks/${track.id}`,
+    name: track.name,
+    description: `${track.name} greyhound racing track, ${track.state}. Box bias, records, and recent meetings.`,
+    address: {
+      "@type": "PostalAddress",
+      addressRegion: track.state,
+      addressCountry: "AU",
+    },
+  };
+
   return (
     <div>
+      <JsonLd
+        data={[
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Tracks", path: "/tracks" },
+            { name: track.name, path: `/tracks/${track.id}` },
+          ]),
+          trackSchema,
+        ]}
+      />
       <section className="relative overflow-hidden border-b border-white/[0.06] bg-[hsl(var(--background))]">
         <div className="absolute inset-0 grid-bg opacity-60" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_15%,hsl(var(--primary)/0.18),transparent_36%)]" />

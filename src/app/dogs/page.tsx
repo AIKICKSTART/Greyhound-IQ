@@ -6,13 +6,26 @@ import { Search } from "lucide-react";
 export const metadata = {
   title: "Dog Search — GreyhoundIQ",
   description: "Search the national database for any greyhound by name. Get full career form, pedigree, and trainer info.",
+  alternates: { canonical: "/dogs" },
+  openGraph: {
+    title: "Dog Search — GreyhoundIQ",
+    description: "Search the national database for any greyhound by name. Get full career form, pedigree, and trainer info.",
+    url: "/dogs",
+    type: "website",
+  },
 };
 
 function formatTally(value: number): string {
   return value.toLocaleString("en-AU");
 }
 
-export default async function DogsPage() {
+export default async function DogsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { q } = await searchParams;
+  const initialQuery = Array.isArray(q) ? q[0] : (q ?? "");
   const tallies = await getDogSearchTallies();
   const stats = [
     { label: "Greyhounds", value: tallies.dogs },
@@ -37,7 +50,7 @@ export default async function DogsPage() {
         subtitle="Search the national database by name, ear brand, or trainer. Get full career form, pedigree, and stats."
       />
       <section className="mx-auto max-w-3xl px-6 py-16">
-        <DogSearch />
+        <DogSearch initialQuery={initialQuery} />
         <div className="mt-8 grid grid-cols-3 gap-3">
           {stats.map((stat) => (
             <div key={stat.label} className="giq-glass-panel p-4 text-center">

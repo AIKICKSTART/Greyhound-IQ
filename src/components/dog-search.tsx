@@ -17,8 +17,20 @@ type SearchResult = {
   trainer: { name: string } | null;
   sire: { name: string } | null;
   dam: { name: string } | null;
+  careerStarts: number | null;
+  careerWins: number | null;
+  prizeMoney: number | null;
   _count: { formEntries: number };
 };
+
+function formatPrize(value: number | null) {
+  if (!value) return null;
+  return value.toLocaleString("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    maximumFractionDigits: 0,
+  });
+}
 
 function DogSearchInner() {
   const [query, setQuery] = useState("");
@@ -175,8 +187,10 @@ function DogSearchInner() {
                         </span>
                       )}
                     </div>
-                    <span className="text-[12px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]">
-                      {dog._count.formEntries} starts
+                    <span className="text-[12px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em] tabular-nums">
+                      {dog.careerStarts ?? dog._count.formEntries} starts
+                      {dog.careerWins != null && ` · ${dog.careerWins}W`}
+                      {formatPrize(dog.prizeMoney) && ` · ${formatPrize(dog.prizeMoney)}`}
                     </span>
                   </div>
                   {(dog.sire || dog.dam) && (

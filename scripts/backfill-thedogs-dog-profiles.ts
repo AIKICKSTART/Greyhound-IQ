@@ -33,6 +33,7 @@ type Options = {
   maxErrors: number;
   shardIndex: number;
   shardCount: number;
+  racedOnly: boolean;
 };
 
 type DogSeed = {
@@ -127,7 +128,13 @@ async function main() {
 async function findDogs(options: Options, completed: Set<string>) {
   const where = options.sourceId
     ? { earBrand: `thedogs:${options.sourceId}` }
-    : { earBrand: { startsWith: "thedogs:" }, lastProfileSyncedAt: null };
+    : {
+        earBrand: { startsWith: "thedogs:" },
+        lastProfileSyncedAt: null,
+        // Raced-only scope: restrict to dogs that appear as a runner in at
+        // least one race, skipping reference-only dogs that never started.
+        ...(options.racedOnly ? { runners: { some: {} } } : {}),
+      };
   const dogs = await prisma.dog.findMany({
     where,
     select: {
@@ -288,6 +295,7 @@ function parseOptions(args: string[]): Options {
     maxErrors: positiveInt(stringOption(values, "max-errors"), 25),
     shardIndex: positiveInt(stringOption(values, "shard-index"), 1),
     shardCount: positiveInt(stringOption(values, "shard-count"), 1),
+    racedOnly: values.has("raced-only"),
   };
 }
 

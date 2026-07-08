@@ -16,6 +16,7 @@ export const metadata = {
 
 type AdminUserRow = {
   id: string;
+  email: string;
   subscriptionTier: string;
   isBanned: boolean;
   deletionRequestedAt: Date | null;
@@ -48,6 +49,7 @@ export default async function AdminUsersPage() {
             <thead>
               <tr className="giq-table-head">
                 <th className="px-4 py-3 text-left">User ID</th>
+                <th className="px-4 py-3 text-left">Email</th>
                 <th className="px-4 py-3 text-left">Tier</th>
                 <th className="px-4 py-3 text-left">Role</th>
                 <th className="px-4 py-3 text-left">Verified</th>
@@ -62,7 +64,7 @@ export default async function AdminUsersPage() {
               {users.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
                     No users found.
@@ -72,6 +74,9 @@ export default async function AdminUsersPage() {
                 users.map((user) => (
                   <tr key={user.id} className="border-t border-white/[0.06]">
                     <MonoCell>{user.id}</MonoCell>
+                    <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))] break-all">
+                      {user.email}
+                    </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
                       {user.subscriptionTier}
                     </td>
@@ -135,6 +140,7 @@ function getUsers() {
           take: 20,
           select: {
             id: true,
+            email: true,
             subscriptionTier: true,
             isBanned: true,
             deletionRequestedAt: true,

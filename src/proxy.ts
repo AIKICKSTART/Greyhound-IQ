@@ -10,6 +10,14 @@ import { contentSecurityPolicy } from "@/lib/csp";
 import { deriveRequestId, REQUEST_ID_HEADER } from "@/lib/request-id";
 
 export async function proxy(request: NextRequest, event: NextFetchEvent) {
+  // Cloud Run terminates TLS and forwards the client scheme here. Only redirect
+  // when it is explicitly http, so localhost dev (no header) is untouched.
+  if (request.headers.get("x-forwarded-proto") === "http") {
+    const httpsUrl = new URL(request.url);
+    httpsUrl.protocol = "https:";
+    return NextResponse.redirect(httpsUrl, 308);
+  }
+
   const requestId = deriveRequestId(request.headers);
   // Per-request nonce so script-src drops 'unsafe-inline'. Next parses the CSP
   // from the *request* header and stamps the nonce onto its own <script> tags

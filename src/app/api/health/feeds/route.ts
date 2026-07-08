@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getLiveFeedStatus } from "@/lib/live/status";
+import { isInternalRequest } from "@/lib/internal-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,12 +16,22 @@ let pendingFeedStatus:
   | Promise<Awaited<ReturnType<typeof getLiveFeedStatus>>>
   | null = null;
 
-export async function GET() {
+export async function GET(request: Request) {
   const status = await cachedLiveFeedStatus();
+  // Public probe gets liveness only; provider names, missing-env, scheduler
+  // cadence, and data counts are operational detail behind the internal secret.
+  if (!isInternalRequest(request)) {
+    return NextResponse.json(
+      { status: status.status, timestamp: status.timestamp },
+      {
+        headers: {
+          "Cache-Control": "public, max-age=30, stale-while-revalidate=60",
+        },
+      }
+    );
+  }
   return NextResponse.json(status, {
-    headers: {
-      "Cache-Control": "public, max-age=30, stale-while-revalidate=60",
-    },
+    headers: { "Cache-Control": "no-store" },
   });
 }
 

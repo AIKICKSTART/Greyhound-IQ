@@ -95,7 +95,7 @@ GitHub Actions:
 
 `Live Racing Sync` calls `/api/internal/live-sync` from Cloud Scheduler and the backup GitHub Actions workflow. The fast schedule refreshes the current national racecards and posted results every 5 minutes with `days=1&scope=all`; the full schedule refreshes the 7-day national racecard horizon hourly with `days=7&scope=upcoming`. Manual operator sync can run `npm run sync:live`. `THEDOGS_PROVIDER_ENABLED=true` enables the public all-Australia racecard and result feed for national field coverage. `WATCHDOG_PROVIDER_ENABLED=true` adds Victoria/GRV racecards, results, tips, and replay IDs from Watchdog; this enriches VIC rows while The Dogs remains the national baseline. Topaz remains the licensed production feed where available, and the bounded FastTrack prototype fallback can keep demo race data flowing if the public feeds are disabled.
 
-Feed readiness is exposed at `/api/health/feeds`. It reports configured providers, scheduler coverage, upcoming race counts, and missing feed credentials without exposing secret values.
+Feed readiness is exposed at `/api/health/feeds`. Public callers get only `{ status, timestamp }`; the full detail (configured providers, scheduler coverage, upcoming race counts, missing feed credentials) requires the internal secret (`X-Internal-Secret` header or `Authorization: Bearer`). Secret values are never returned.
 
 Run `npm run audit:live-race-coverage -- 7` after a sync to compare the database against the live all-Australia racecard feed. Run `npm run audit:live-result-coverage -- 1` to compare posted results against the national results feed. The audits exit non-zero while any expected live venue/date/racecard or result row is missing or stale.
 

@@ -28,6 +28,15 @@ export function requireInternalRequest(request: Request) {
   }
 }
 
+export function isInternalRequest(request: Request) {
+  try {
+    requireInternalRequest(request);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function bearerToken(header: string | null) {
   const prefix = "Bearer ";
   return header?.startsWith(prefix) ? header.slice(prefix.length) : null;

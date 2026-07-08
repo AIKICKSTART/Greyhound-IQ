@@ -4,11 +4,12 @@ import {
   getStripeCheckoutEnv,
   getStripeWebhookEnv,
 } from "@/lib/billing/stripe-env";
+import { isInternalRequest } from "@/lib/internal-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export function GET() {
+export function GET(request: Request) {
   const checks = {
     stripeCheckout: "not_configured",
     stripeWebhook: "not_configured",
@@ -36,12 +37,11 @@ export function GET() {
     checks.lagoBilling = "configured";
   } catch {}
 
-  return NextResponse.json(
-    {
-      status: ready ? "ready" : "not_ready",
-      checks,
-      timestamp: new Date().toISOString(),
-    },
-    { status: ready ? 200 : 503 }
-  );
+  // Public probe gets ready/not_ready only; per-provider readiness is
+  // operational detail behind the internal secret.
+  const body = isInternalRequest(request)
+    ? { status: ready ? "ready" : "not_ready", checks, timestamp: new Date().toISOString() }
+    : { status: ready ? "ready" : "not_ready", timestamp: new Date().toISOString() };
+
+  return NextResponse.json(body, { status: ready ? 200 : 503 });
 }

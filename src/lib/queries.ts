@@ -472,7 +472,7 @@ export async function getResultFilterOptions() {
             FROM "Race" ra
             JOIN "Meeting" m ON m.id = ra."meetingId"
             JOIN "Track" t ON t.id = m."trackId"
-            WHERE ra."raceTime" >= now() - make_interval(days => ${RESULT_FILTER_WINDOW_DAYS})
+            WHERE ra."raceTime" >= now() - make_interval(days => ${RESULT_FILTER_WINDOW_DAYS}::int)
               AND EXISTS (SELECT 1 FROM "Result" res WHERE res."raceId" = ra.id)
             ORDER BY t.state ASC, t.name ASC
           `,
@@ -484,7 +484,7 @@ export async function getResultFilterOptions() {
             SELECT to_char(((ra."raceTime" AT TIME ZONE 'UTC') AT TIME ZONE 'Australia/Sydney')::date, 'YYYY-MM-DD') AS date,
                    COUNT(ra.id)::int AS races
             FROM "Race" ra
-            WHERE ra."raceTime" >= now() - make_interval(days => ${RESULT_FILTER_WINDOW_DAYS})
+            WHERE ra."raceTime" >= now() - make_interval(days => ${RESULT_FILTER_WINDOW_DAYS}::int)
               AND EXISTS (SELECT 1 FROM "Result" res WHERE res."raceId" = ra.id)
             GROUP BY 1
             ORDER BY 1 DESC

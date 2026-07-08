@@ -12,6 +12,7 @@ type RemotePattern = NonNullable<
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  poweredByHeader: false,
   experimental: {
     authInterrupts: true,
   },

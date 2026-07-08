@@ -96,7 +96,7 @@ role.
 
 `NOTIFICATION_WEBHOOK_URL` enables background delivery for persisted in-app notifications through `/api/internal/notification-delivery`. Leave it unset for in-app-only notifications. `NOTIFICATION_WEBHOOK_SECRET` is sent as `X-Notification-Secret` to the webhook target. `NOTIFICATION_DELIVERY_MAX_ATTEMPTS` caps retry attempts before operator review.
 
-`/api/health/feeds` reports whether live feed credentials are configured without returning secret values.
+`/api/health/feeds` returns only `{ status, timestamp }` to public callers; provider names, scheduler cadence, data counts, and missing-credential detail require the internal secret (`X-Internal-Secret` or `Authorization: Bearer`). Secret values are never returned.
 
 `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA` controls pre-launch marketplace mock imagery. Keep it enabled while listings need demo media, then set it to `false` for live-only listing uploads.
 

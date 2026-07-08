@@ -56,7 +56,11 @@ npm run smoke:race-provider -- --no-network
 SMOKE_BASE_URL="https://<deployment-url>" npm run test:smoke
 ```
 
-- Open `/api/health/feeds` on the deployed app and confirm:
+- Query `/api/health/feeds` with the internal secret (the detailed fields below
+  are only returned when `X-Internal-Secret` or `Authorization: Bearer <secret>`
+  is supplied; an unauthenticated request returns only `{ status, timestamp }`),
+  e.g. `curl -H "X-Internal-Secret: $INTERNAL_API_SECRET" .../api/health/feeds`,
+  and confirm:
   - `status` is `configured`, or `waiting_for_credentials` only when the
     target intentionally lacks a blocking credential.
   - `activeProvider` includes the expected combination of `thedogs`, `topaz`,

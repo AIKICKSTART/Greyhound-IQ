@@ -233,36 +233,28 @@ export async function searchDogs(
   limit = 20
 ): Promise<DogSearchResult[]> {
   const trimmed = query?.trim().replace(/\s+/g, " ").slice(0, 80);
-  if (!trimmed || trimmed.length < 2) return [];
+  if (!trimmed) return [];
 
-  // Each whitespace-separated word must appear somewhere in the name (AND). The
-  // trigram GIN index on Dog.name makes the ILIKE '%word%' scans index-assisted.
-  const words = trimmed.split(" ");
   const prefixPattern = `${escapeLikePattern(trimmed)}%`;
-  const wordConditions = Prisma.join(
-    words.map(
-      (word) =>
-        Prisma.sql`d.name ILIKE ${`%${escapeLikePattern(word)}%`} ESCAPE '\\'`
-    ),
-    " AND "
-  );
 
-  // Raw query orders ids (exact-prefix first, then trigram similarity); the rich
-  // include shape is hydrated below, preserving that order.
-  const ranked = await safeQuery(
-    () =>
-      prisma.$queryRaw<{ id: string }[]>`
-        SELECT d.id
-        FROM "Dog" d
-        WHERE ${wordConditions}
-        ORDER BY
-          CASE WHEN d.name ILIKE ${prefixPattern} ESCAPE '\\' THEN 1 ELSE 0 END DESC,
-          similarity(d.name, ${trimmed}) DESC,
-          d.name ASC
-        LIMIT ${limit}
-      `,
-    []
-  );
+  // pg_trgm needs 3+ chars to be index-useful; a 1-2 char "%x%" contains scan
+  // would seq-scan 200k+ rows. For short queries do a case-insensitive prefix
+  // match on lower(name), served by Dog_lower_name_prefix_idx (text_pattern_ops)
+  // — fast, ordered, and what "filter as you type" wants (type "b" -> B dogs).
+  const ranked =
+    trimmed.length < 3
+      ? await safeQuery(
+          () =>
+            prisma.$queryRaw<{ id: string }[]>`
+              SELECT d.id
+              FROM "Dog" d
+              WHERE lower(d.name) LIKE lower(${prefixPattern}) ESCAPE '\\'
+              ORDER BY d.name ASC
+              LIMIT ${limit}
+            `,
+          []
+        )
+      : await searchDogsTrigram(trimmed, prefixPattern, limit);
 
   if (ranked.length === 0) return [];
   const ids = ranked.map((row) => row.id);
@@ -303,6 +295,39 @@ export async function searchDogs(
   return ids
     .map((id) => byId.get(id))
     .filter((dog): dog is DogSearchResult => dog != null);
+}
+
+// 3+ char search: each whitespace word must appear anywhere in the name (AND);
+// the trigram GIN index makes the ILIKE '%word%' scans index-assisted. Ranks
+// exact-prefix first, then trigram similarity.
+function searchDogsTrigram(
+  trimmed: string,
+  prefixPattern: string,
+  limit: number
+) {
+  const words = trimmed.split(" ");
+  const wordConditions = Prisma.join(
+    words.map(
+      (word) =>
+        Prisma.sql`d.name ILIKE ${`%${escapeLikePattern(word)}%`} ESCAPE '\\'`
+    ),
+    " AND "
+  );
+
+  return safeQuery(
+    () =>
+      prisma.$queryRaw<{ id: string }[]>`
+        SELECT d.id
+        FROM "Dog" d
+        WHERE ${wordConditions}
+        ORDER BY
+          CASE WHEN d.name ILIKE ${prefixPattern} ESCAPE '\\' THEN 1 ELSE 0 END DESC,
+          similarity(d.name, ${trimmed}) DESC,
+          d.name ASC
+        LIMIT ${limit}
+      `,
+    []
+  );
 }
 
 const DOG_TALLY_TTL_MS = 10 * 60 * 1000;

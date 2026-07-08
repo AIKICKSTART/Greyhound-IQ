@@ -29,7 +29,7 @@ function DogSearchInner() {
   const router = useRouter();
 
   useEffect(() => {
-    if (query.length < 2) {
+    if (query.trim().length < 1) {
       return;
     }
     const controller = new AbortController();
@@ -60,7 +60,7 @@ function DogSearchInner() {
   function handleQueryChange(next: string) {
     setQuery(next);
     setActiveIndex(-1);
-    if (next.length < 2) {
+    if (next.trim().length < 1) {
       setResults([]);
       setLoading(false);
       return;
@@ -89,7 +89,7 @@ function DogSearchInner() {
 
   const status = loading
     ? "Searching"
-    : query.length >= 2
+    : query.trim().length >= 1
       ? results.length > 0
         ? `${results.length} result${results.length === 1 ? "" : "s"} for ${query}`
         : `No results for ${query}`

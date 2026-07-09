@@ -310,6 +310,7 @@ export type CustomPageContent = {
   avatarMediaId: string | null;
   bannerMediaId: string | null;
   logoMediaId: string | null;
+  cardMediaId: string | null;
 };
 
 export function parseCustomPageContent(contentJson: string | null): CustomPageContent {
@@ -320,9 +321,10 @@ export function parseCustomPageContent(contentJson: string | null): CustomPageCo
       avatarMediaId: raw.avatarMediaId ?? null,
       bannerMediaId: raw.bannerMediaId ?? null,
       logoMediaId: raw.logoMediaId ?? null,
+      cardMediaId: raw.cardMediaId ?? null,
     };
   } catch {
-    return { galleryMediaIds: [], avatarMediaId: null, bannerMediaId: null, logoMediaId: null };
+    return { galleryMediaIds: [], avatarMediaId: null, bannerMediaId: null, logoMediaId: null, cardMediaId: null };
   }
 }
 
@@ -330,6 +332,7 @@ export type CustomPageMediaUrls = {
   avatarUrl: string | null;
   bannerUrl: string | null;
   logoUrl: string | null;
+  cardUrl: string | null;
   galleryUrls: string[];
 };
 
@@ -343,10 +346,11 @@ export async function resolveCustomPageMedia(
     content.avatarMediaId,
     content.bannerMediaId,
     content.logoMediaId,
+    content.cardMediaId,
     ...content.galleryMediaIds,
   ].filter((id): id is string => Boolean(id));
   if (ids.length === 0) {
-    return { avatarUrl: null, bannerUrl: null, logoUrl: null, galleryUrls: [] };
+    return { avatarUrl: null, bannerUrl: null, logoUrl: null, cardUrl: null, galleryUrls: [] };
   }
   const assets = await withDbSystemContext((tx) =>
     tx.mediaAsset.findMany({
@@ -359,6 +363,7 @@ export async function resolveCustomPageMedia(
     avatarUrl: content.avatarMediaId ? urlById.get(content.avatarMediaId) ?? null : null,
     bannerUrl: content.bannerMediaId ? urlById.get(content.bannerMediaId) ?? null : null,
     logoUrl: content.logoMediaId ? urlById.get(content.logoMediaId) ?? null : null,
+    cardUrl: content.cardMediaId ? urlById.get(content.cardMediaId) ?? null : null,
     galleryUrls: content.galleryMediaIds
       .map((id) => urlById.get(id))
       .filter((u): u is string => Boolean(u)),

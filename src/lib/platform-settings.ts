@@ -11,6 +11,8 @@ export const PLATFORM_FLAGS = {
   requireRegisteredDog: "custom_pages.require_registered_dog",
   enforceDogPageLimit: "custom_pages.enforce_dog_page_limit",
   requirePro: "custom_pages.require_pro",
+  // Default OFF — enable once gpt-image-2 prompts are tuned in prod.
+  cardGenerationEnabled: "dog_cards.generation_enabled",
 } as const;
 
 export type PlatformFlagKey =

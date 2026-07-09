@@ -74,6 +74,7 @@ import {
   customPageCreateSchema,
   customPageUpdateSchema,
 } from "@/lib/custom-page-validation";
+import { generateDogCard } from "@/lib/dog-card-service";
 import {
   createBannedPhraseForModerator,
   resolveTrustSafetyFlagForModerator,
@@ -1217,4 +1218,16 @@ export async function deleteCustomPageAction(pageId: string) {
   await deleteCustomPage(current, pageId);
   revalidatePath("/account/pages");
   redirect("/account/pages");
+}
+
+export async function generateDogCardAction(pageId: string) {
+  const current = await requireCurrentUserProfile();
+  const rl = await checkRateLimit(
+    `dog-card:generate:${current.dbUserId}`,
+    10,
+    60 * 60 * 1000
+  );
+  if (!rl.allowed) throw new Error("rate_limit.exceeded");
+  await generateDogCard(current, pageId);
+  revalidatePath(`/account/pages/${pageId}`);
 }

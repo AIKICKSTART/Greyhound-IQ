@@ -136,6 +136,19 @@ export default async function CustomPageView({
             </section>
           )}
 
+          {page.pageType === "dog" && media.cardUrl && (
+            <div className="mb-6 flex justify-center">
+              <Image
+                src={media.cardUrl}
+                alt={`${page.dog?.name ?? "Dog"} trading card`}
+                width={340}
+                height={510}
+                className="w-64 rounded-xl border border-white/10 shadow-2xl sm:w-72"
+                priority
+              />
+            </div>
+          )}
+
           {page.pageType === "dog" && page.dog && <DogBody page={page} accent={accent} />}
 
           {page.pageType === "business" && <StorefrontBody profileId={page.ownerProfile.id} />}

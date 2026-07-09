@@ -15,7 +15,9 @@ import {
   updateCustomPageAction,
   publishCustomPageAction,
   deleteCustomPageAction,
+  generateDogCardAction,
 } from "@/app/actions";
+import { getPlatformFlag, PLATFORM_FLAGS } from "@/lib/platform-settings";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
 import { SubmitButton } from "@/components/submit-button";
 
@@ -45,6 +47,11 @@ export default async function EditCustomPage({
   const updateAction = updateCustomPageAction.bind(null, page.id);
   const publishAction = publishCustomPageAction.bind(null, page.id);
   const deleteAction = deleteCustomPageAction.bind(null, page.id);
+  const cardGenAction = generateDogCardAction.bind(null, page.id);
+  const cardGenEnabled =
+    page.pageType === "dog"
+      ? await getPlatformFlag(PLATFORM_FLAGS.cardGenerationEnabled, false)
+      : false;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
@@ -178,6 +185,32 @@ export default async function EditCustomPage({
           </SubmitButton>
         </div>
       </form>
+
+      {cardGenEnabled && (
+        <section className="mt-8 rounded-lg border border-white/[0.07] p-4">
+          <h2 className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
+            Trading card
+          </h2>
+          <p className="mt-1 text-[12px] text-[hsl(var(--muted-foreground))]">
+            System-generated from this dog&apos;s career stats and a front-facing photo
+            (uses your banner or profile picture). GreyhoundsIQ branded.
+          </p>
+          {media.cardUrl && (
+            <Image
+              src={media.cardUrl}
+              alt=""
+              width={200}
+              height={300}
+              className="mt-3 w-40 rounded-lg border border-white/10 object-cover"
+            />
+          )}
+          <form action={cardGenAction} className="mt-3">
+            <SubmitButton className="giq-button giq-button-glass min-h-9 px-4 text-[12px]">
+              {media.cardUrl ? "Regenerate card" : "Generate card"}
+            </SubmitButton>
+          </form>
+        </section>
+      )}
 
       <form action={deleteAction} className="mt-10 border-t border-white/[0.06] pt-6">
         <SubmitButton className="giq-button giq-button-glass min-h-9 px-4 text-[12px] text-[hsl(var(--destructive,0_70%_60%))]">

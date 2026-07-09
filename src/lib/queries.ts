@@ -2221,6 +2221,24 @@ export interface MarketplaceListingFilters {
 
 const LISTING_SEARCH_CANDIDATE_LIMIT = 500;
 
+// A seller's active, approved listings — powers the business-page storefront.
+export function getActiveListingsForProfile(profileId: string, limit = 12) {
+  return safeQuery(
+    () =>
+      prisma.listing.findMany({
+        where: {
+          profileId,
+          status: "active",
+          moderationStatus: "approved",
+        },
+        include: marketplaceListingCardInclude,
+        orderBy: { createdAt: "desc" },
+        take: limit,
+      }),
+    []
+  );
+}
+
 export async function getMarketplaceListings(
   limit = 24,
   filters: MarketplaceListingFilters = {}

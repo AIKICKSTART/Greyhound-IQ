@@ -101,7 +101,18 @@ const forumReplySchema = z.object({
 });
 
 const listingSchema = z.object({
-  type: z.enum(["pup_for_sale", "dog_for_sale", "stud_service", "wanted", "share"]),
+  type: z.enum([
+    "pup_for_sale",
+    "dog_for_sale",
+    "stud_service",
+    "wanted",
+    "share",
+    "equipment",
+    "float_trailer",
+    "caravan",
+    "supplies",
+    "other",
+  ]),
   categoryId: z.string().trim().optional(),
   title: z.string().trim().min(5).max(100),
   description: z.string().trim().min(20).max(5_000),
@@ -110,9 +121,13 @@ const listingSchema = z.object({
   suburb: z.string().trim().max(120).optional(),
   postcode: z.string().trim().max(16).optional(),
   condition: z.string().trim().max(80).optional(),
+  itemBrand: z.string().trim().max(80).optional(),
+  itemModel: z.string().trim().max(80).optional(),
   negotiable: z.boolean().default(false),
   contactPreference: z.enum(["message", "email", "phone"]).default("message"),
   dogId: z.string().trim().optional(),
+  sireDogId: z.string().trim().optional(),
+  damDogId: z.string().trim().optional(),
   price: z
     .string()
     .trim()
@@ -468,9 +483,13 @@ export async function createListing(formData: FormData) {
     suburb: field(formData, "suburb") || undefined,
     postcode: field(formData, "postcode") || undefined,
     condition: field(formData, "condition") || undefined,
+    itemBrand: field(formData, "itemBrand") || undefined,
+    itemModel: field(formData, "itemModel") || undefined,
     negotiable: field(formData, "negotiable") === "true",
     contactPreference: field(formData, "contactPreference") || "message",
     dogId: field(formData, "dogId") || undefined,
+    sireDogId: field(formData, "sireDogId") || undefined,
+    damDogId: field(formData, "damDogId") || undefined,
     price: field(formData, "price") || undefined,
     welfareAcknowledged: field(formData, "welfareAcknowledged") === "true",
     legalAcknowledged: field(formData, "legalAcknowledged") === "true",
@@ -497,6 +516,10 @@ export async function createListing(formData: FormData) {
     negotiable: parsed.negotiable,
     contactPreference: parsed.contactPreference,
     dogId,
+    sireDogId: parsed.sireDogId || null,
+    damDogId: parsed.damDogId || null,
+    itemBrand: parsed.itemBrand || null,
+    itemModel: parsed.itemModel || null,
     price: parsed.price,
     welfareAcknowledged: parsed.welfareAcknowledged,
     legalAcknowledged: parsed.legalAcknowledged,

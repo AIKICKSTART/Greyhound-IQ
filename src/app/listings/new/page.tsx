@@ -32,7 +32,12 @@ const LISTING_TYPES = [
 
 const STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"];
 
-export default async function NewListingPage() {
+export default async function NewListingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ dogId?: string }>;
+}) {
+  const { dogId: prefillDogId } = await searchParams;
   const [user, dogs, categories] = await Promise.all([
     getCurrentUser(),
     getDogsForListingSelect(120),
@@ -216,7 +221,7 @@ export default async function NewListingPage() {
                 <select
                   name="dogId"
                   className="giq-form-control mt-2 px-3 py-2"
-                  defaultValue=""
+                  defaultValue={prefillDogId ?? ""}
                 >
                   <option value="">No dog linked</option>
                   {dogs.map((dog) => (
@@ -241,6 +246,22 @@ export default async function NewListingPage() {
                   <option value="email">Email after enquiry</option>
                   <option value="phone">Phone after enquiry</option>
                 </select>
+              </label>
+            </div>
+
+            {/* Goods details — optional; used for equipment/trailers/supplies etc. */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block">
+                <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                  Brand (goods)
+                </span>
+                <input name="itemBrand" maxLength={80} className="giq-form-control mt-2 px-3 py-2" />
+              </label>
+              <label className="block">
+                <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                  Model (goods)
+                </span>
+                <input name="itemModel" maxLength={80} className="giq-form-control mt-2 px-3 py-2" />
               </label>
             </div>
 

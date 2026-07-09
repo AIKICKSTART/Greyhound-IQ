@@ -8,7 +8,8 @@ import {
   CUSTOM_PAGE_TYPE_LABELS,
   type PublicCustomPage,
 } from "@/lib/custom-page-service";
-import { getDogPrizeMoney } from "@/lib/queries";
+import { getDogPrizeMoney, getActiveListingsForProfile } from "@/lib/queries";
+import { mediaDeliveryUrl } from "@/lib/media-service";
 import { FinishBadge } from "@/components/finish-badge";
 
 export const dynamic = "force-dynamic";
@@ -137,6 +138,8 @@ export default async function CustomPageView({
 
           {page.pageType === "dog" && page.dog && <DogBody page={page} accent={accent} />}
 
+          {page.pageType === "business" && <StorefrontBody profileId={page.ownerProfile.id} />}
+
           {media.galleryUrls.length > 0 && (
             <section className="giq-panel p-6">
               <h2 className="mb-3 text-[16px] font-semibold text-[hsl(var(--foreground))]">Gallery</h2>
@@ -212,6 +215,53 @@ function ContactCard({ page }: { page: PublicCustomPage }) {
   );
 }
 
+async function StorefrontBody({ profileId }: { profileId: string }) {
+  const listings = await getActiveListingsForProfile(profileId, 12);
+  if (listings.length === 0) return null;
+  return (
+    <section className="giq-panel p-6">
+      <h2 className="mb-4 text-[16px] font-semibold text-[hsl(var(--foreground))]">
+        For sale
+      </h2>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {listings.map((listing) => {
+          const first = listing.media[0]?.media;
+          const img = first ? mediaDeliveryUrl(first) : null;
+          return (
+            <Link
+              key={listing.id}
+              href={`/listings/${listing.id}`}
+              className="group overflow-hidden rounded-lg border border-white/[0.06] bg-[hsl(var(--surface-1))]"
+            >
+              <div className="aspect-square w-full bg-black/40">
+                {img && (
+                  <Image
+                    src={img}
+                    alt={listing.title}
+                    width={240}
+                    height={240}
+                    className="h-full w-full object-cover transition group-hover:scale-[1.03]"
+                  />
+                )}
+              </div>
+              <div className="p-2">
+                <div className="truncate text-[12px] font-medium text-[hsl(var(--foreground))]">
+                  {listing.title}
+                </div>
+                {listing.price != null && (
+                  <div className="text-[12px] text-[hsl(var(--secondary))]">
+                    {money(listing.price)}
+                  </div>
+                )}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 async function DogBody({ page, accent }: { page: PublicCustomPage; accent: string }) {
   const dog = page.dog!;
   const prize = await getDogPrizeMoney(dog.id);
@@ -234,16 +284,26 @@ async function DogBody({ page, accent }: { page: PublicCustomPage; accent: strin
         <h2 className="text-[16px] font-semibold text-[hsl(var(--foreground))]">
           {dog.name}
         </h2>
-        {saleLabel && (
-          <span
-            className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold text-black"
-            style={{ background: accent }}
-          >
-            <DollarSign className="h-3.5 w-3.5" />
-            {saleLabel}
-            {page.priceOrFee != null && ` · ${money(page.priceOrFee)}`}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {saleLabel && (
+            <span
+              className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold text-black"
+              style={{ background: accent }}
+            >
+              <DollarSign className="h-3.5 w-3.5" />
+              {saleLabel}
+              {page.priceOrFee != null && ` · ${money(page.priceOrFee)}`}
+            </span>
+          )}
+          {page.saleStatus === "for_sale" && (
+            <Link
+              href={`/listings/new?dogId=${dog.id}`}
+              className="giq-outline-action text-[12px]"
+            >
+              List on marketplace
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="mb-5 grid grid-cols-3 gap-3">

@@ -52,6 +52,8 @@ export interface ListingWriteInput {
   dogId?: string | null;
   sireDogId?: string | null;
   damDogId?: string | null;
+  itemBrand?: string | null;
+  itemModel?: string | null;
   price?: number | null;
   welfareAcknowledged?: boolean;
   legalAcknowledged?: boolean;
@@ -115,6 +117,8 @@ export async function createListingForCurrentUser(
         dogId,
         sireDogId: input.sireDogId || null,
         damDogId: input.damDogId || null,
+        itemBrand: input.itemBrand || null,
+        itemModel: input.itemModel || null,
         price: input.price ?? null,
         currency: "AUD",
         status: LISTING_STATUS_PENDING_REVIEW,

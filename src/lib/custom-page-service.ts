@@ -6,6 +6,7 @@ import { assertPaidFeatureAccess, hasTier } from "@/lib/tier-access";
 import { findBannedPhraseMatch } from "@/lib/moderation-service";
 import { createAuditLog } from "@/lib/account-service";
 import { getPlatformFlag, PLATFORM_FLAGS } from "@/lib/platform-settings";
+import { mediaDeliveryUrl } from "@/lib/media-service";
 import type {
   CustomPageCreateInput,
   CustomPageUpdateInput,
@@ -127,7 +128,12 @@ export async function createCustomPage(
         dogId: input.pageType === "dog" ? input.dogId : null,
         saleStatus: input.pageType === "dog" ? input.saleStatus ?? null : null,
         priceOrFee: input.pageType === "dog" ? input.priceOrFee ?? null : null,
-        contentJson: JSON.stringify({ galleryMediaIds: input.galleryMediaIds ?? [] }),
+        contentJson: JSON.stringify({
+          galleryMediaIds: input.galleryMediaIds ?? [],
+          avatarMediaId: input.avatarMediaId ?? null,
+          bannerMediaId: input.bannerMediaId ?? null,
+          logoMediaId: input.logoMediaId ?? null,
+        }),
         published: false,
       },
     })
@@ -179,7 +185,12 @@ export async function updateCustomPage(
         heroMediaId: input.heroMediaId ?? null,
         saleStatus: page.pageType === "dog" ? input.saleStatus ?? null : page.saleStatus,
         priceOrFee: page.pageType === "dog" ? input.priceOrFee ?? null : page.priceOrFee,
-        contentJson: JSON.stringify({ galleryMediaIds: input.galleryMediaIds ?? [] }),
+        contentJson: JSON.stringify({
+          galleryMediaIds: input.galleryMediaIds ?? [],
+          avatarMediaId: input.avatarMediaId ?? null,
+          bannerMediaId: input.bannerMediaId ?? null,
+          logoMediaId: input.logoMediaId ?? null,
+        }),
       },
     })
   );
@@ -260,3 +271,63 @@ export const CUSTOM_PAGE_TYPE_LABELS: Record<CustomPageType, string> = {
   business: "Business",
   dog: "Dog",
 };
+
+export type CustomPageContent = {
+  galleryMediaIds: string[];
+  avatarMediaId: string | null;
+  bannerMediaId: string | null;
+  logoMediaId: string | null;
+};
+
+export function parseCustomPageContent(contentJson: string | null): CustomPageContent {
+  try {
+    const raw = contentJson ? (JSON.parse(contentJson) as Partial<CustomPageContent>) : {};
+    return {
+      galleryMediaIds: Array.isArray(raw.galleryMediaIds) ? raw.galleryMediaIds : [],
+      avatarMediaId: raw.avatarMediaId ?? null,
+      bannerMediaId: raw.bannerMediaId ?? null,
+      logoMediaId: raw.logoMediaId ?? null,
+    };
+  } catch {
+    return { galleryMediaIds: [], avatarMediaId: null, bannerMediaId: null, logoMediaId: null };
+  }
+}
+
+export type CustomPageMediaUrls = {
+  avatarUrl: string | null;
+  bannerUrl: string | null;
+  logoUrl: string | null;
+  galleryUrls: string[];
+};
+
+// Resolve stored media ids to clean public URLs (system context read). Only
+// scanStatus==='clean' assets surface; missing/pending/infected → dropped.
+export async function resolveCustomPageMedia(
+  contentJson: string | null
+): Promise<CustomPageMediaUrls> {
+  const content = parseCustomPageContent(contentJson);
+  const ids = [
+    content.avatarMediaId,
+    content.bannerMediaId,
+    content.logoMediaId,
+    ...content.galleryMediaIds,
+  ].filter((id): id is string => Boolean(id));
+  if (ids.length === 0) {
+    return { avatarUrl: null, bannerUrl: null, logoUrl: null, galleryUrls: [] };
+  }
+  const assets = await withDbSystemContext((tx) =>
+    tx.mediaAsset.findMany({
+      where: { id: { in: ids }, scanStatus: "clean" },
+      select: { id: true, storageBucket: true, storagePath: true, publicUrl: true },
+    })
+  );
+  const urlById = new Map(assets.map((a) => [a.id, mediaDeliveryUrl(a)]));
+  return {
+    avatarUrl: content.avatarMediaId ? urlById.get(content.avatarMediaId) ?? null : null,
+    bannerUrl: content.bannerMediaId ? urlById.get(content.bannerMediaId) ?? null : null,
+    logoUrl: content.logoMediaId ? urlById.get(content.logoMediaId) ?? null : null,
+    galleryUrls: content.galleryMediaIds
+      .map((id) => urlById.get(id))
+      .filter((u): u is string => Boolean(u)),
+  };
+}

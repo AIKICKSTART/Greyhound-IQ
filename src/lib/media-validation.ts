@@ -17,6 +17,7 @@ export const MEDIA_CONTEXTS = [
   "messages",
   "verification",
   "agent-outputs",
+  "custom-page",
 ] as const;
 
 export const MEDIA_MIME_LIMITS = {

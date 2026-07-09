@@ -44,6 +44,9 @@ const baseFields = {
   website: z.string().trim().url().max(200).optional().nullable(),
   accentColor: hexColor,
   heroMediaId: z.string().trim().min(1).optional().nullable(),
+  avatarMediaId: z.string().trim().min(1).optional().nullable(),
+  bannerMediaId: z.string().trim().min(1).optional().nullable(),
+  logoMediaId: z.string().trim().min(1).optional().nullable(),
   galleryMediaIds: z.array(z.string().trim().min(1)).max(12).default([]),
 };
 

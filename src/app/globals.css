@@ -5688,6 +5688,14 @@ select.giq-form-control option:checked {
    sidebar/top bar, full-height, no dock overlaying table actions). */
 body:has([data-admin-shell]) .giq-site-header,
 body:has([data-admin-shell]) .giq-footer-shell,
-body:has([data-admin-shell]) .giq-mobile-dock {
+body:has([data-admin-shell]) .giq-mobile-dock,
+body:has([data-admin-shell]) .giq-alert-wrap {
   display: none;
+}
+
+/* Root <main> forces min-h-screen; with the marketing header/alert hidden on
+   admin that left ~100vh of empty scroll above the admin content on mobile.
+   Neutralise the min-height inside the admin shell so content sits at the top. */
+body:has([data-admin-shell]) #main-content {
+  min-height: 0;
 }

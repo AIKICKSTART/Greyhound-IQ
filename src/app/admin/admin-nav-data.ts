@@ -76,6 +76,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/webhooks", label: "Webhook events", blurb: "Inbound webhook processing." },
       { href: "/admin/usage", label: "Usage", blurb: "Usage events and aggregates." },
       { href: "/admin/source-health", label: "Source health", blurb: "Data source status." },
+      { href: "/admin/page-rules", label: "Page rules", blurb: "Custom-page & marketplace fraud gates." },
     ],
   },
 ];

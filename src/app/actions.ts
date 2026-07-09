@@ -65,6 +65,16 @@ import {
 } from "@/lib/listing-service";
 import { listingEnquirySchema } from "@/lib/listing-validation";
 import {
+  createCustomPage,
+  updateCustomPage,
+  setCustomPagePublished,
+  deleteCustomPage,
+} from "@/lib/custom-page-service";
+import {
+  customPageCreateSchema,
+  customPageUpdateSchema,
+} from "@/lib/custom-page-validation";
+import {
   createBannedPhraseForModerator,
   resolveTrustSafetyFlagForModerator,
   setBannedPhraseActiveForModerator,
@@ -1072,4 +1082,116 @@ export async function requestAccountDeletion() {
 
   revalidatePath("/account");
   redirect("/account");
+}
+
+const CUSTOM_PAGE_RATE_LIMIT = 20;
+const CUSTOM_PAGE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+
+function optional(formData: FormData, name: string): string | null {
+  const v = field(formData, name).trim();
+  return v.length > 0 ? v : null;
+}
+
+function firstMedia(formData: FormData, name: string): string | null {
+  return fields(formData, name)[0] ?? null;
+}
+
+// A newly-uploaded image (name+"New") replaces the existing hidden id; gallery
+// merges existing hidden ids with any new uploads. Lets edit preserve untouched
+// media without re-uploading.
+function customPageMediaFields(formData: FormData) {
+  const pick = (name: string) => firstMedia(formData, `${name}New`) ?? firstMedia(formData, name);
+  return {
+    avatarMediaId: pick("avatarMediaId"),
+    bannerMediaId: pick("bannerMediaId"),
+    logoMediaId: pick("logoMediaId"),
+    galleryMediaIds: [
+      ...fields(formData, "galleryMediaIds"),
+      ...fields(formData, "galleryMediaIdsNew"),
+    ].slice(0, 12),
+  };
+}
+
+export async function createCustomPageAction(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const rl = await checkRateLimit(
+    `custom-page:create:${current.dbUserId}`,
+    CUSTOM_PAGE_RATE_LIMIT,
+    CUSTOM_PAGE_RATE_LIMIT_WINDOW_MS
+  );
+  if (!rl.allowed) throw new Error("rate_limit.exceeded");
+
+  const pageType = field(formData, "pageType");
+  const base = {
+    title: field(formData, "title"),
+    tagline: optional(formData, "tagline"),
+    about: optional(formData, "about"),
+    contactEmail: optional(formData, "contactEmail"),
+    contactPhone: optional(formData, "contactPhone"),
+    website: optional(formData, "website"),
+    accentColor: optional(formData, "accentColor"),
+    heroMediaId: null,
+    ...customPageMediaFields(formData),
+  };
+  const raw =
+    pageType === "business"
+      ? { pageType, ...base, businessCategory: optional(formData, "businessCategory") }
+      : pageType === "dog"
+        ? {
+            pageType,
+            ...base,
+            dogId: field(formData, "dogId"),
+            saleStatus: optional(formData, "saleStatus"),
+            priceOrFee: optional(formData, "priceOrFee"),
+          }
+        : { pageType, ...base };
+
+  const parsed = customPageCreateSchema.parse(raw);
+  const page = await createCustomPage(current, parsed);
+  revalidatePath("/account/pages");
+  redirect(`/account/pages/${page.id}`);
+}
+
+export async function updateCustomPageAction(pageId: string, formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const rl = await checkRateLimit(
+    `custom-page:update:${current.dbUserId}`,
+    CUSTOM_PAGE_RATE_LIMIT,
+    CUSTOM_PAGE_RATE_LIMIT_WINDOW_MS
+  );
+  if (!rl.allowed) throw new Error("rate_limit.exceeded");
+
+  const parsed = customPageUpdateSchema.parse({
+    title: field(formData, "title"),
+    tagline: optional(formData, "tagline"),
+    about: optional(formData, "about"),
+    contactEmail: optional(formData, "contactEmail"),
+    contactPhone: optional(formData, "contactPhone"),
+    website: optional(formData, "website"),
+    accentColor: optional(formData, "accentColor"),
+    heroMediaId: null,
+    businessCategory: optional(formData, "businessCategory"),
+    saleStatus: optional(formData, "saleStatus"),
+    priceOrFee: optional(formData, "priceOrFee"),
+    ...customPageMediaFields(formData),
+  });
+  await updateCustomPage(current, pageId, parsed);
+  revalidatePath("/account/pages");
+  revalidatePath(`/account/pages/${pageId}`);
+  redirect(`/account/pages/${pageId}`);
+}
+
+export async function publishCustomPageAction(pageId: string, formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const publish = field(formData, "publish") === "true";
+  await setCustomPagePublished(current, pageId, publish);
+  revalidatePath("/account/pages");
+  revalidatePath(`/account/pages/${pageId}`);
+}
+
+export async function deleteCustomPageAction(pageId: string) {
+  const current = await requireCurrentUserProfile();
+  await deleteCustomPage(current, pageId);
+  revalidatePath("/account/pages");
+  redirect("/account/pages");
 }

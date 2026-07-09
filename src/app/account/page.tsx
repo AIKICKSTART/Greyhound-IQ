@@ -181,6 +181,12 @@ async function SignedInAccount({
                   />
                 </label>
               </div>
+              <Link
+                href="/account/pages"
+                className="giq-outline-action mt-2 w-fit text-[12px]"
+              >
+                Manage my pages →
+              </Link>
             </>
           ) : (
             <div className="rounded-lg border border-[hsl(var(--primary)/0.24)] bg-[hsl(var(--primary)/0.08)] p-4">

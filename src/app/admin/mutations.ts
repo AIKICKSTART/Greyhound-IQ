@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireAdminProfile, requireModeratorProfile } from "@/lib/auth";
+import { setPlatformFlag, PLATFORM_FLAGS } from "@/lib/platform-settings";
 import {
   approveDogOwnership,
   createAdminDeletionJob,
@@ -446,4 +447,25 @@ function revalidateAdmin(path?: string) {
   const target = path?.startsWith("/admin") ? path : "/admin";
   revalidatePath(target);
   if (target !== "/admin") revalidatePath("/admin");
+}
+
+export async function updatePageRulesAction(formData: FormData) {
+  const current = await requireAdminProfile();
+  await setPlatformFlag(current, PLATFORM_FLAGS.requirePro, checkbox(formData, "requirePro"));
+  await setPlatformFlag(
+    current,
+    PLATFORM_FLAGS.requireApprovedOwnership,
+    checkbox(formData, "requireApprovedOwnership")
+  );
+  await setPlatformFlag(
+    current,
+    PLATFORM_FLAGS.requireRegisteredDog,
+    checkbox(formData, "requireRegisteredDog")
+  );
+  await setPlatformFlag(
+    current,
+    PLATFORM_FLAGS.enforceDogPageLimit,
+    checkbox(formData, "enforceDogPageLimit")
+  );
+  revalidateAdmin("/admin/page-rules");
 }

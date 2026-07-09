@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getActiveTracks } from "@/lib/queries";
+import { getPublishedCustomPagesForSitemap } from "@/lib/custom-page-service";
 
 // Track list comes from the DB, which is unavailable at build time — generate
 // per request so the build doesn't try to prerender it.
@@ -51,5 +52,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // DB unavailable (e.g. build/preview) — still emit the static routes.
   }
 
-  return [...staticEntries, ...trackEntries];
+  let customPageEntries: MetadataRoute.Sitemap = [];
+  try {
+    const pages = await getPublishedCustomPagesForSitemap();
+    customPageEntries = pages.map((page) => ({
+      url: `${SITE}/p/${page.handle}`,
+      lastModified: page.updatedAt,
+      changeFrequency: "weekly",
+      priority: 0.5,
+    }));
+  } catch {
+    // DB unavailable — skip custom pages.
+  }
+
+  return [...staticEntries, ...trackEntries, ...customPageEntries];
 }

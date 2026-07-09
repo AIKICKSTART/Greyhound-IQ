@@ -25,7 +25,8 @@ type MediaContext =
   | "forum"
   | "messages"
   | "verification"
-  | "agent-outputs";
+  | "agent-outputs"
+  | "custom-page";
 
 type ActiveStep = "signing" | "uploading" | "finalizing";
 type UploadStep = ActiveStep | "done" | "error";
@@ -52,12 +53,14 @@ interface MediaAttachmentFieldsProps {
   mediaContext?: MediaContext;
   maxFiles?: number;
   compact?: boolean;
+  fieldName?: string;
 }
 
 export function MediaAttachmentFields({
   mediaContext = "messages",
   maxFiles = 4,
   compact = false,
+  fieldName = "mediaIds",
 }: MediaAttachmentFieldsProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const ctxRef = useRef<Map<string, UploadContext>>(new Map());
@@ -208,7 +211,7 @@ export function MediaAttachmentFields({
           <input
             key={item.key}
             type="hidden"
-            name="mediaIds"
+            name={fieldName}
             value={item.mediaId}
           />
         ))}

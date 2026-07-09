@@ -231,6 +231,28 @@ export async function deleteCustomPage(current: CurrentUserProfile, pageId: stri
   });
 }
 
+// Dogs the user has admin-approved ownership of — candidates for a dog page.
+export function listApprovedOwnedDogs(current: CurrentUserProfile) {
+  return withDbRequestContext(current, async (tx) => {
+    const owned = await tx.dogOwnership.findMany({
+      where: { profileId: current.profileId, status: "approved" },
+      select: { dog: { select: { id: true, name: true, sourceId: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+    return owned.map((o) => o.dog);
+  });
+}
+
+export function getOwnedCustomPage(current: CurrentUserProfile, pageId: string) {
+  return withDbRequestContext(current, (tx) =>
+    tx.customPage.findFirst({
+      where: { id: pageId, ownerProfileId: current.profileId },
+      include: { dog: { select: { id: true, name: true } } },
+    })
+  );
+}
+
 export function listCustomPagesForCurrentUser(current: CurrentUserProfile) {
   return withDbRequestContext(current, (tx) =>
     tx.customPage.findMany({
@@ -264,6 +286,17 @@ export const getPublishedCustomPageByHandle = cache((handle: string) =>
 export type PublicCustomPage = NonNullable<
   Awaited<ReturnType<typeof getPublishedCustomPageByHandle>>
 >;
+
+// Published, non-removed pages for the sitemap (system context).
+export function getPublishedCustomPagesForSitemap() {
+  return withDbSystemContext((tx) =>
+    tx.customPage.findMany({
+      where: { published: true, moderationStatus: { not: "removed" } },
+      select: { handle: true, updatedAt: true },
+      take: 5000,
+    })
+  );
+}
 
 export const CUSTOM_PAGE_TYPE_LABELS: Record<CustomPageType, string> = {
   trainer: "Trainer",

@@ -2031,3 +2031,11 @@ model RateLimit {
 
   @@index([resetAt])
 }
+
+// Admin-editable platform flags (e.g. relax custom-page/listing fraud gates).
+model PlatformSetting {
+  key                String   @id
+  value              String
+  updatedByProfileId String?
+  updatedAt          DateTime @default(now()) @updatedAt
+}

@@ -5,6 +5,7 @@ import type { CurrentUserProfile } from "@/lib/auth-types";
 import { assertPaidFeatureAccess, hasTier } from "@/lib/tier-access";
 import { findBannedPhraseMatch } from "@/lib/moderation-service";
 import { createAuditLog } from "@/lib/account-service";
+import { getPlatformFlag, PLATFORM_FLAGS } from "@/lib/platform-settings";
 import type {
   CustomPageCreateInput,
   CustomPageUpdateInput,
@@ -47,7 +48,10 @@ export async function createCustomPage(
   current: CurrentUserProfile,
   input: CustomPageCreateInput
 ) {
-  assertPaidFeatureAccess(current);
+  // Gates are admin-relaxable via PlatformSetting flags (default strict).
+  if (await getPlatformFlag(PLATFORM_FLAGS.requirePro)) {
+    assertPaidFeatureAccess(current);
+  }
   await assertClean(`${input.title} ${input.tagline ?? ""} ${input.about ?? ""}`);
 
   // Non-dog types: one per user. Dog type: verify approved ownership, one per dog.
@@ -60,13 +64,24 @@ export async function createCustomPage(
     );
     if (existing) throw new Error("custom_page.type_exists");
   } else {
-    const owns = await withDbRequestContext(current, (tx) =>
-      tx.dogOwnership.findFirst({
-        where: { dogId: input.dogId, profileId: current.profileId, status: "approved" },
-        select: { id: true },
-      })
-    );
-    if (!owns) throw new Error("custom_page.dog_not_owned");
+    if (await getPlatformFlag(PLATFORM_FLAGS.requireApprovedOwnership)) {
+      const owns = await withDbRequestContext(current, (tx) =>
+        tx.dogOwnership.findFirst({
+          where: { dogId: input.dogId, profileId: current.profileId, status: "approved" },
+          select: { id: true },
+        })
+      );
+      if (!owns) throw new Error("custom_page.dog_not_owned");
+    }
+    if (await getPlatformFlag(PLATFORM_FLAGS.requireRegisteredDog)) {
+      const registered = await withDbRequestContext(current, (tx) =>
+        tx.dog.findFirst({
+          where: { id: input.dogId, sourceId: { not: null } },
+          select: { id: true },
+        })
+      );
+      if (!registered) throw new Error("custom_page.dog_not_registered");
+    }
     const dup = await withDbRequestContext(current, (tx) =>
       tx.customPage.findFirst({
         where: { ownerProfileId: current.profileId, pageType: "dog", dogId: input.dogId },
@@ -75,13 +90,15 @@ export async function createCustomPage(
     );
     if (dup) throw new Error("custom_page.dog_page_exists");
     // Pro includes up to PRO_DOG_PAGE_LIMIT dog pages; beyond that needs Pro+.
-    const dogPageCount = await withDbRequestContext(current, (tx) =>
-      tx.customPage.count({
-        where: { ownerProfileId: current.profileId, pageType: "dog" },
-      })
-    );
-    if (dogPageCount >= PRO_DOG_PAGE_LIMIT && !hasTier(current.tier, "pro_plus")) {
-      throw new Error("custom_page.dog_limit_pro_plus");
+    if (await getPlatformFlag(PLATFORM_FLAGS.enforceDogPageLimit)) {
+      const dogPageCount = await withDbRequestContext(current, (tx) =>
+        tx.customPage.count({
+          where: { ownerProfileId: current.profileId, pageType: "dog" },
+        })
+      );
+      if (dogPageCount >= PRO_DOG_PAGE_LIMIT && !hasTier(current.tier, "pro_plus")) {
+        throw new Error("custom_page.dog_limit_pro_plus");
+      }
     }
   }
 

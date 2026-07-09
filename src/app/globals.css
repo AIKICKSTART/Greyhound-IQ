@@ -5273,11 +5273,15 @@ select.giq-form-control option:checked {
 }
 
 .giq-table-shell {
-  overflow: hidden;
+  /* Wide admin tables (e.g. Users with a full per-row action form) must scroll
+     horizontally instead of clipping the ACTIONS column off the right edge. */
+  overflow-x: auto;
+  overflow-y: hidden;
   border: 1px solid hsl(var(--metal-silver) / 0.14);
   border-radius: 12px;
   background: hsl(var(--surface-1) / 0.64);
   box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.10);
+  -webkit-overflow-scrolling: touch;
 }
 
 .giq-table-head {

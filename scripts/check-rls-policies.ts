@@ -198,6 +198,31 @@ for (const table of remainingRlsTables) {
   }
 }
 
+// CustomPage (user-created public pages) must be RLS+FORCE with published-only
+// public reads and owner/moderator/system writes.
+const customPageSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260709100000_add_custom_pages",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  'ALTER TABLE "CustomPage" ENABLE ROW LEVEL SECURITY',
+  'ALTER TABLE "CustomPage" FORCE ROW LEVEL SECURITY',
+  "CREATE POLICY giq_custom_page_select",
+  "CREATE POLICY giq_custom_page_insert",
+  "CREATE POLICY giq_custom_page_update",
+  "CREATE POLICY giq_custom_page_delete",
+]) {
+  if (!customPageSql.includes(needle)) {
+    findings.push(`CustomPage RLS missing: ${needle}`);
+  }
+}
+
 void main();
 
 async function main() {

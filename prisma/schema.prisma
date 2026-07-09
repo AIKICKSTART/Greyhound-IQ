@@ -52,6 +52,7 @@ model Dog {
   profileArchives      DogProfileArchive[]
   ownership            DogOwnership[]
   listings             Listing[]
+  customPages          CustomPage[]        @relation("DogCustomPages")
 
   @@unique([sourceProvider, sourceId])
   @@index([name])
@@ -1100,6 +1101,39 @@ model Profile {
   dogOwnershipsReviewed    DogOwnership[]            @relation("DogOwnershipReviewer")
   friendshipsA             Friendship[]              @relation("FriendshipA")
   friendshipsB             Friendship[]              @relation("FriendshipB")
+  customPages              CustomPage[]              @relation("ProfileCustomPages")
+}
+
+model CustomPage {
+  id               String   @id @default(cuid())
+  ownerProfileId   String
+  ownerProfile     Profile  @relation("ProfileCustomPages", fields: [ownerProfileId], references: [id], onDelete: Cascade)
+  pageType         String // trainer | punter | business | dog
+  handle           String   @unique
+  title            String
+  tagline          String?
+  about            String?
+  businessCategory String? // stud | transport | vet | supplies | other
+  contactEmail     String?
+  contactPhone     String?
+  website          String?
+  accentColor      String?
+  heroMediaId      String?
+  dogId            String?
+  dog              Dog?     @relation("DogCustomPages", fields: [dogId], references: [id], onDelete: Cascade)
+  saleStatus       String? // for_sale | stud | not_available
+  priceOrFee       Float?
+  contentJson      String?
+  published        Boolean  @default(false)
+  moderationStatus String   @default("approved") // approved | pending_review | removed
+  views            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([ownerProfileId, pageType, dogId])
+  @@index([handle])
+  @@index([pageType, published])
+  @@index([dogId])
 }
 
 model Friendship {

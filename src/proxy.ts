@@ -10,19 +10,20 @@ import { contentSecurityPolicy } from "@/lib/csp";
 import { deriveRequestId, REQUEST_ID_HEADER } from "@/lib/request-id";
 
 export async function proxy(request: NextRequest, event: NextFetchEvent) {
-  // Cloud Run terminates TLS and forwards the client scheme here. Only force
-  // https in production — Next 16 dev sets x-forwarded-proto:http on every
-  // request, so redirecting there 308s local http dev to a dead https://localhost.
-  if (
-    process.env.NODE_ENV === "production" &&
-    request.headers.get("x-forwarded-proto") === "http"
-  ) {
+  // Cloud Run terminates TLS and forwards the client scheme + public host here.
+  // Only redirect http->https when there is a REAL external forwarded host: Next
+  // sets x-forwarded-proto:http on every local request (dev and `next start`),
+  // so gating on the proto alone 308s localhost/CI to a dead https://localhost.
+  // Requiring a non-localhost x-forwarded-host means only genuine edge traffic
+  // (behind the Cloud Run LB) is upgraded.
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const isLocalForwardHost =
+    !forwardedHost || /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(forwardedHost);
+  if (forwardedProto === "http" && !isLocalForwardHost) {
     const httpsUrl = new URL(request.url);
     httpsUrl.protocol = "https:";
-    // request.url carries the internal Cloud Run host (0.0.0.0:8080), so rebuild
-    // the redirect against the public forwarded host to avoid leaking it.
-    const forwardedHost = request.headers.get("x-forwarded-host");
-    if (forwardedHost) httpsUrl.host = forwardedHost;
+    httpsUrl.host = forwardedHost!;
     return NextResponse.redirect(httpsUrl, 308);
   }
 

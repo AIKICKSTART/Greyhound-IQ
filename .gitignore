@@ -49,3 +49,6 @@ output/
 skills-lock.json
 
 certificates
+
+# local deploy logs
+.deploy-*.log

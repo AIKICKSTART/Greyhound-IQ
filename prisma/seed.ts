@@ -11,7 +11,20 @@ import "../scripts/load-env";
 import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
 
-const prisma = new PrismaClient();
+// Seeding is a system/admin operation: run the connection with app.system=true so
+// the entitlement triggers (giq_require_pro_write, profile marketing tier gate)
+// allow fixture inserts instead of raising payment.required (42501).
+function seedDatabaseUrl(): string | undefined {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) return undefined;
+  const sep = raw.includes("?") ? "&" : "?";
+  return `${raw}${sep}options=-c%20app.system%3Dtrue`;
+}
+
+const seedUrl = seedDatabaseUrl();
+const prisma = seedUrl
+  ? new PrismaClient({ datasources: { db: { url: seedUrl } } })
+  : new PrismaClient();
 
 const id = () => randomUUID();
 

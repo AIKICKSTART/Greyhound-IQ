@@ -52,7 +52,6 @@ export function isProductionTarget(env: NodeJS.ProcessEnv = process.env) {
   const values = [
     env.NODE_ENV,
     env.APP_ENV,
-    env.VERCEL_ENV,
     env.NEXT_PUBLIC_APP_URL,
     env.NEXTAUTH_URL,
     env.WORKOS_REDIRECT_URI,

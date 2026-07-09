@@ -24,7 +24,8 @@ export async function POST(request: Request) {
     const rateLimit = await checkRateLimit(
       `stripe:portal:${current.dbUserId}`,
       PORTAL_RATE_LIMIT,
-      PORTAL_RATE_LIMIT_WINDOW_MS
+      PORTAL_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true }
     );
     if (!rateLimit.allowed) {
       return NextResponse.json(

@@ -42,7 +42,8 @@ export async function POST(request: Request) {
     const rateLimit = await checkRateLimit(
       `stripe:checkout:${current.dbUserId}`,
       CHECKOUT_RATE_LIMIT,
-      CHECKOUT_RATE_LIMIT_WINDOW_MS
+      CHECKOUT_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true }
     );
     if (!rateLimit.allowed) {
       return NextResponse.json(

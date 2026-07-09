@@ -18,7 +18,8 @@ export async function POST(request: Request) {
     const rateLimit = await checkRateLimit(
       getStripeWebhookRateLimitKey(request.headers),
       STRIPE_WEBHOOK_RATE_LIMIT,
-      STRIPE_WEBHOOK_RATE_LIMIT_WINDOW_MS
+      STRIPE_WEBHOOK_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true }
     );
 
     if (!rateLimit.allowed) {

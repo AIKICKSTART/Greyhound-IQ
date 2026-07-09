@@ -33,7 +33,8 @@ export async function POST(request: Request) {
     const rateLimit = await checkRateLimit(
       `stripe:bespoke:${current.dbUserId}`,
       RATE_LIMIT,
-      RATE_LIMIT_WINDOW_MS
+      RATE_LIMIT_WINDOW_MS,
+      { failClosed: true }
     );
     if (!rateLimit.allowed) {
       return NextResponse.json(

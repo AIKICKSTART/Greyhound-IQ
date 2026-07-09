@@ -49,6 +49,7 @@ export async function GET(request: Request) {
       headers: {
         "content-type": "application/vnd.apple.mpegurl",
         "cache-control": "no-store",
+        "x-content-type-options": "nosniff",
       },
     });
   }
@@ -60,6 +61,7 @@ export async function GET(request: Request) {
   copyHeader(upstream, headers, "content-range");
   copyHeader(upstream, headers, "accept-ranges");
   headers.set("cache-control", "private, max-age=300");
+  headers.set("x-content-type-options", "nosniff");
   return new NextResponse(upstream.body, {
     status: upstream.status,
     headers,

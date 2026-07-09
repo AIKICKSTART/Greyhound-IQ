@@ -19,7 +19,8 @@ export async function POST(request: Request) {
     const rateLimit = await checkRateLimit(
       `account-delete:request:${current.dbUserId}`,
       ACCOUNT_DELETE_RATE_LIMIT,
-      ACCOUNT_DELETE_RATE_LIMIT_WINDOW_MS
+      ACCOUNT_DELETE_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true }
     );
     if (!rateLimit.allowed) {
       return NextResponse.json(

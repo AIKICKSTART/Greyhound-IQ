@@ -21,9 +21,12 @@ const optionalWebsite = z
   .optional()
   .nullable()
   .transform((value) => cleanText(value ?? ""))
-  .refine((value) => !value || z.string().url().safeParse(value).success, {
-    message: "Website must be a valid URL",
-  })
+  .refine(
+    (value) =>
+      !value ||
+      (z.string().url().safeParse(value).success && /^https?:\/\//i.test(value)),
+    { message: "Website must be a valid http(s) URL" }
+  )
   .transform((value) => (value.length > 0 ? value : null));
 
 export const profileUpdateSchema = z.object({

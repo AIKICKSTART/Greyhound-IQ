@@ -26,7 +26,8 @@ export async function GET(request: Request) {
     const rateLimit = await checkRateLimit(
       `user-export:${current.dbUserId}`,
       USER_EXPORT_RATE_LIMIT,
-      USER_EXPORT_RATE_LIMIT_WINDOW_MS
+      USER_EXPORT_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true }
     );
     if (!rateLimit.allowed) {
       return NextResponse.json(

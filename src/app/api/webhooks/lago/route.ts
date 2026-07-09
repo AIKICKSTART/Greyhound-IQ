@@ -18,7 +18,8 @@ export async function POST(request: Request) {
     const rateLimit = await checkRateLimit(
       getLagoWebhookRateLimitKey(request.headers),
       LAGO_WEBHOOK_RATE_LIMIT,
-      LAGO_WEBHOOK_RATE_LIMIT_WINDOW_MS
+      LAGO_WEBHOOK_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true }
     );
 
     if (!rateLimit.allowed) {

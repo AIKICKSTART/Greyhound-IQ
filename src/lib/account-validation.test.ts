@@ -19,4 +19,18 @@ const marketingProfile = profileUpdateSchema.parse({
 assert.equal(hasProfileMarketingFields(basicProfile), false);
 assert.equal(hasProfileMarketingFields(marketingProfile), true);
 
+const httpsWebsite = profileUpdateSchema.parse({
+  displayName: "Daniel",
+  website: "https://greyhoundsiq.com.au",
+});
+assert.equal(httpsWebsite.website, "https://greyhoundsiq.com.au");
+
+assert.equal(
+  profileUpdateSchema.safeParse({
+    displayName: "Daniel",
+    website: "javascript:alert(1)",
+  }).success,
+  false
+);
+
 console.log("account validation tests passed");

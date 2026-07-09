@@ -25,6 +25,8 @@ const ALLOWLIST: Record<string, string> = {
     "agentRun/conversationContext/memoryEntry are non-RLS; race/dog reads are USING(true)",
   "src/lib/moderation-service.ts":
     "bannedPhrase/trustSafetyFlag are non-RLS tables",
+  "src/lib/pedigree.ts":
+    "only reads public dog reference data (Dog is USING(true)); wrapping each breadth-first ancestor query in a transaction would slow a hot cached read",
 
   // Account/admin surfaces and API routes that ONLY read/write tables without RLS
   // (support, compliance, org/membership, retention, feedback, memory, marketing,

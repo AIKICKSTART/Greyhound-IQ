@@ -20,6 +20,11 @@ import type { AdminResource } from "@/lib/admin-service";
 
 const CONTROL = "giq-form-control w-full px-2 py-1 text-[12px]";
 const SMALL_BUTTON = "giq-button giq-button-glass min-h-8 px-3 text-[12px]";
+const FIELD_LABEL =
+  "block text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]";
+const CHECKBOX_ROW = "flex flex-wrap gap-x-4 gap-y-1.5 pt-0.5";
+const CHECKBOX_LABEL =
+  "flex items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]";
 
 export function AdminStatusForm({
   resource,
@@ -167,7 +172,7 @@ export function AdminCreateUserForm({ path }: { path: string }) {
       <select name="role" defaultValue="member" className={CONTROL}>
         <RoleOptions />
       </select>
-      <label className="flex items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
+      <label className={CHECKBOX_LABEL}>
         <input type="checkbox" name="verified" /> Verified
       </label>
       <ReasonField placeholder="Reason for user create/update" />
@@ -192,30 +197,40 @@ export function AdminUserAccessForm({
   path: string;
 }) {
   return (
-    <form action={updateAdminUserAccessAction} className="min-w-[260px] space-y-2">
+    <form action={updateAdminUserAccessAction} className="w-[320px] space-y-2">
       <input type="hidden" name="userId" value={user.id} />
       <input type="hidden" name="path" value={path} />
-      <select name="tier" defaultValue={user.subscriptionTier} className={CONTROL}>
-        <option value="free">free</option>
-        <option value="pro">pro</option>
-        <option value="pro_plus">pro_plus</option>
-      </select>
-      <select name="role" defaultValue={user.profile?.role ?? "member"} className={CONTROL}>
-        <RoleOptions />
-      </select>
-      <label className="flex items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
-        <input type="checkbox" name="verified" defaultChecked={user.profile?.verified ?? false} />
-        Verified
-      </label>
-      <label className="flex items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
-        <input type="checkbox" name="banned" defaultChecked={user.isBanned} />
-        Banned
-      </label>
-      {user.deletionRequestedAt ? (
-        <label className="flex items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
-          <input type="checkbox" name="cancelDeletion" /> Cancel deletion
+      <div className="grid grid-cols-2 gap-2">
+        <label className="space-y-1">
+          <span className={FIELD_LABEL}>Tier</span>
+          <select name="tier" defaultValue={user.subscriptionTier} className={CONTROL}>
+            <option value="free">free</option>
+            <option value="pro">pro</option>
+            <option value="pro_plus">pro_plus</option>
+          </select>
         </label>
-      ) : null}
+        <label className="space-y-1">
+          <span className={FIELD_LABEL}>Role</span>
+          <select name="role" defaultValue={user.profile?.role ?? "member"} className={CONTROL}>
+            <RoleOptions />
+          </select>
+        </label>
+      </div>
+      <div className={CHECKBOX_ROW}>
+        <label className={CHECKBOX_LABEL}>
+          <input type="checkbox" name="verified" defaultChecked={user.profile?.verified ?? false} />
+          Verified
+        </label>
+        <label className={CHECKBOX_LABEL}>
+          <input type="checkbox" name="banned" defaultChecked={user.isBanned} />
+          Banned
+        </label>
+        {user.deletionRequestedAt ? (
+          <label className={CHECKBOX_LABEL}>
+            <input type="checkbox" name="cancelDeletion" /> Cancel deletion
+          </label>
+        ) : null}
+      </div>
       <ReasonField />
       <button className={SMALL_BUTTON}>Save access</button>
     </form>
@@ -267,7 +282,7 @@ export function AdminPlanForms({
         <input name="featureKey" required placeholder="feature key" className={CONTROL} />
         <input name="limitValue" type="number" min={0} placeholder="limit optional" className={CONTROL} />
         <input name="unit" placeholder="unit optional" className={CONTROL} />
-        <label className="flex items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
+        <label className={CHECKBOX_LABEL}>
           <input type="checkbox" name="enabled" defaultChecked /> Enabled
         </label>
         <ReasonField />
@@ -286,7 +301,7 @@ export function AdminRetentionForms({ path }: { path: string }) {
         <input name="code" required placeholder="policy code" className={CONTROL} />
         <input name="targetType" required placeholder="target type" className={CONTROL} />
         <input name="retentionDays" required type="number" min={0} max={3650} placeholder="365" className={CONTROL} />
-        <label className="flex items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
+        <label className={CHECKBOX_LABEL}>
           <input type="checkbox" name="enabled" defaultChecked /> Enabled
         </label>
         <ReasonField />

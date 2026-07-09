@@ -1,72 +1,17 @@
 import { Check, CreditCard, X, Zap, Crown, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
 import { JsonLd } from "@/components/json-ld";
+import { getPricingContent, type PricingPlanId } from "@/lib/site-content";
 
-const PLANS = [
-  {
-    id: "free",
-    name: "Free",
-    icon: Zap,
-    price: "$0",
-    period: "forever",
-    description: "Full racing data access for casual punters and form checkers.",
-    features: [
-      "All race data points",
-      "Today's race cards (all AU tracks)",
-      "Full form and results",
-      "GPS tracking data",
-      "Dog & track search",
-      "Watchlists/basic research",
-      "Browse public marketplace listings",
-      "Save marketplace listings",
-    ],
-    notIncluded: [
-      "No marketplace listing creation",
-      "No messaging trainers/sellers",
-      "No custom trainer, punter, business, or dog marketing pages",
-      "No automated winner cards",
-    ],
-    cta: "Start Free",
-    highlighted: false,
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    icon: Sparkles,
-    price: "$20",
-    period: "/month or $204/year",
-    description: "For marketplace sellers, trainers, and serious racing users.",
-    features: [
-      "Everything in Free",
-      "Message trainers and sellers about listings",
-      "Create marketplace listings",
-      "Custom trainer page",
-      "Custom punter page",
-      "Custom business page",
-      "Custom dog marketing pages",
-      "Automatic greyhound winner cards when your dog wins",
-      "Easy card-to-marketplace listing flow",
-      "Community feed posting",
-      "Community chat",
-      "Professional profile tools",
-    ],
-    notIncluded: [],
-    cta: "Go Pro",
-    highlighted: true,
-  },
-  {
-    id: "pro_plus",
-    name: "Pro+",
-    icon: Crown,
-    price: "$39",
-    period: "/month",
-    description: "Coming soon. Not available for purchase yet.",
-    features: [],
-    notIncluded: [],
-    cta: "Coming soon",
-    highlighted: false,
-  },
-] as const;
+export const dynamic = "force-dynamic";
+
+// Icons are code (not editable content), mapped by plan id.
+const PLAN_ICONS: Record<PricingPlanId, LucideIcon> = {
+  free: Zap,
+  pro: Sparkles,
+  pro_plus: Crown,
+};
 
 const FAQ = [
   {
@@ -152,7 +97,8 @@ const faqSchema = {
   })),
 };
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const { plans, yearlyNote } = await getPricingContent();
   return (
     <div>
       <JsonLd data={[softwareApplicationSchema, faqSchema]} />
@@ -173,8 +119,8 @@ export default function PricingPage() {
 
       <section className="mx-auto max-w-6xl px-6 py-10">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {PLANS.map((plan) => {
-            const Icon = plan.icon;
+          {plans.map((plan) => {
+            const Icon = PLAN_ICONS[plan.id];
             return (
               <div
                 key={plan.name}
@@ -214,7 +160,7 @@ export default function PricingPage() {
                   <div className="mb-5 grid gap-2">
                     <CheckoutButton
                       interval="monthly"
-                      plan={plan.id}
+                      plan="pro"
                       primary={plan.highlighted}
                       tone="carbon"
                     >
@@ -222,7 +168,7 @@ export default function PricingPage() {
                     </CheckoutButton>
                     <CheckoutButton
                       interval="yearly"
-                      plan={plan.id}
+                      plan="pro"
                       primary={false}
                       tone="carbon"
                     >
@@ -252,8 +198,7 @@ export default function PricingPage() {
 
         <div className="mt-10 text-center">
           <p className="text-[13px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]">
-            GreyhoundIQ Pro yearly:{" "}
-            <span className="font-semibold text-[hsl(var(--primary-bright))]">$204 AUD/year</span>. That&apos;s 15% off monthly pricing.
+            {yearlyNote}
           </p>
         </div>
       </section>

@@ -77,6 +77,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/usage", label: "Usage", blurb: "Usage events and aggregates." },
       { href: "/admin/source-health", label: "Source health", blurb: "Data source status." },
       { href: "/admin/page-rules", label: "Page rules", blurb: "Custom-page & marketplace fraud gates." },
+      { href: "/admin/site-content", label: "Site content", blurb: "Edit public pricing page copy & numbers." },
       { href: "/admin/bespoke", label: "Bespoke design", blurb: "$500 concierge page-design requests." },
     ],
   },

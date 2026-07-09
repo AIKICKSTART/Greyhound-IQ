@@ -10,6 +10,12 @@ import {
   updateCustomDesignRequest,
 } from "@/lib/bespoke-service";
 import {
+  PRICING_PLAN_IDS,
+  setPricingContent,
+  type PricingContent,
+  type PricingPlan,
+} from "@/lib/site-content";
+import {
   approveDogOwnership,
   createAdminDeletionJob,
   createAdminExportArtifact,
@@ -494,4 +500,33 @@ export async function updateBespokeRequestAction(formData: FormData) {
     });
   await updateCustomDesignRequest(current, parsed.id, parsed.status, parsed.notes ?? null);
   revalidateAdmin("/admin/bespoke");
+}
+
+function lines(formData: FormData, name: string): string[] {
+  return field(formData, name)
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
+
+export async function updatePricingContentAction(formData: FormData) {
+  const current = await requireAdminProfile();
+  const plans: PricingPlan[] = PRICING_PLAN_IDS.map((id) => ({
+    id,
+    name: field(formData, `${id}_name`),
+    price: field(formData, `${id}_price`),
+    period: field(formData, `${id}_period`),
+    description: field(formData, `${id}_description`),
+    features: lines(formData, `${id}_features`),
+    notIncluded: lines(formData, `${id}_notIncluded`),
+    cta: field(formData, `${id}_cta`),
+    highlighted: checkbox(formData, `${id}_highlighted`),
+  }));
+  const content: PricingContent = {
+    plans,
+    yearlyNote: field(formData, "yearlyNote"),
+  };
+  await setPricingContent(current, content);
+  revalidatePath("/pricing");
+  revalidateAdmin("/admin/site-content");
 }

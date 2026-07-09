@@ -1,5 +1,6 @@
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { StatusPill } from "@/components/admin/status-pill";
 import { requireModeratorProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
@@ -190,7 +191,9 @@ export default async function AdminAccountDeletionPage() {
                     <MonoCell>{job.policyId ?? "No policy"}</MonoCell>
                     <MonoCell>{job.targetType}</MonoCell>
                     <MonoCell>{job.targetUserId ?? "No target user"}</MonoCell>
-                    <MonoCell>{job.status}</MonoCell>
+                    <td className="px-4 py-3">
+                      <StatusPill value={job.status} />
+                    </td>
                     <DateCell date={job.scheduledFor} emptyLabel="Not scheduled" />
                     <DateCell date={job.completedAt} emptyLabel="Not completed" />
                     <DateCell date={job.createdAt} emptyLabel="Not recorded" />

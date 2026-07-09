@@ -1,4 +1,5 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { StatusPill } from "@/components/admin/status-pill";
 import {
   createBannedPhrase,
   resolveTrustSafetyFlag,
@@ -179,11 +180,11 @@ export default async function AdminSafetyPage() {
                     <td className="px-4 py-3 font-mono text-[12px] text-[hsl(var(--foreground))]">
                       {flag.targetType}:{flag.targetId}
                     </td>
-                    <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                      {flag.severity}
+                    <td className="px-4 py-3">
+                      <StatusPill value={flag.severity} />
                     </td>
-                    <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                      {flag.status}
+                    <td className="px-4 py-3">
+                      <StatusPill value={flag.status} />
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
                       {formatDateTime(flag.createdAt)}

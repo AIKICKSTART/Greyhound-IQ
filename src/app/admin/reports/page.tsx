@@ -1,4 +1,5 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { StatusPill } from "@/components/admin/status-pill";
 import { resolveReport } from "@/app/actions";
 import { requireModeratorProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
@@ -117,8 +118,8 @@ export default async function AdminReportsPage() {
                         </p>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                      {report.status}
+                    <td className="px-4 py-3">
+                      <StatusPill value={report.status} />
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
                       {formatDateTime(report.createdAt)}

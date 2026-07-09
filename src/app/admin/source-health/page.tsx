@@ -1,4 +1,5 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { StatusPill } from "@/components/admin/status-pill";
 import {
   AdminSourceHealthForm,
   AdminStatusForm,
@@ -217,8 +218,8 @@ function DataSourceHealthTable({ rows }: { rows: DataSourceHealthRow[] }) {
                   <td className="px-4 py-3 font-mono text-[12px] text-[hsl(var(--foreground))]">
                     {row.sourceProvider}
                   </td>
-                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                    {row.status}
+                  <td className="px-4 py-3">
+                    <StatusPill value={row.status} />
                   </td>
                   <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
                     {formatTimestamp(row.lastCheckedAt)}

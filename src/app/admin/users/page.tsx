@@ -3,6 +3,7 @@ import {
   AdminUserAccessForm,
 } from "@/app/admin/form-controls";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { StatusPill } from "@/components/admin/status-pill";
 import { requireModeratorProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
@@ -77,8 +78,8 @@ export default async function AdminUsersPage() {
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))] break-all">
                       {user.email}
                     </td>
-                    <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                      {user.subscriptionTier}
+                    <td className="px-4 py-3">
+                      <StatusPill value={user.subscriptionTier} />
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
                       {user.profile?.role ?? "No profile"}

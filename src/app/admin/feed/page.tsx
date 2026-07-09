@@ -1,4 +1,5 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { StatusPill } from "@/components/admin/status-pill";
 import {
   createFeedTopic,
   moderateFeedPost,
@@ -159,13 +160,15 @@ export default async function AdminFeedPage() {
                       <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
                         {post.topic?.name ?? "General"}
                       </td>
-                      <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                        {post.status}
-                        {post.pinnedAt ? (
-                          <span className="giq-badge giq-badge-gold ml-2">
-                            Pinned
-                          </span>
-                        ) : null}
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StatusPill value={post.status} />
+                          {post.pinnedAt ? (
+                            <span className="giq-badge giq-badge-gold">
+                              Pinned
+                            </span>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
                         {formatDateTime(post.createdAt)}

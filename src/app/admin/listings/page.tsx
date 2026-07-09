@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { StatusPill } from "@/components/admin/status-pill";
 import {
   approveListing,
   createMarketplaceCategory,
@@ -185,8 +186,8 @@ function ListingTable({
                 <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
                   {listing.category?.name ?? "Uncategorised"}
                 </td>
-                <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                  {listing.status}
+                <td className="px-4 py-3">
+                  <StatusPill value={listing.status} />
                 </td>
                 <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
                   {listing.reportCount}

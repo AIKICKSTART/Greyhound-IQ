@@ -1,5 +1,6 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminStatusForm } from "@/app/admin/form-controls";
+import { StatusPill } from "@/components/admin/status-pill";
 import { requireModeratorProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
@@ -117,8 +118,8 @@ function UsageAggregatesTable({ rows }: { rows: UsageAggregateRow[] }) {
                   </td>
                   <DateCell date={row.periodStart} emptyLabel="Not recorded" />
                   <DateCell date={row.periodEnd} emptyLabel="Not recorded" />
-                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                    {row.status}
+                  <td className="px-4 py-3">
+                    <StatusPill value={row.status} />
                   </td>
                   <DateCell date={row.createdAt} emptyLabel="Not recorded" />
                   <DateCell date={row.updatedAt} emptyLabel="Not recorded" />
@@ -185,8 +186,8 @@ function UsageEventsTable({ rows }: { rows: UsageEventRow[] }) {
                   <td className="px-4 py-3 font-mono text-[13px] text-[hsl(var(--muted-foreground))]">
                     {formatCount(row.quantity)}
                   </td>
-                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                    {row.status}
+                  <td className="px-4 py-3">
+                    <StatusPill value={row.status} />
                   </td>
                   <td className="px-4 py-3 font-mono text-[13px] text-[hsl(var(--muted-foreground))]">
                     {row.retryCount}
@@ -260,8 +261,8 @@ function UsageOutboxTable({ rows }: { rows: UsageOutboxRow[] }) {
                   <td className="px-4 py-3 font-mono text-[13px] text-[hsl(var(--muted-foreground))]">
                     {formatCount(row.quantity)}
                   </td>
-                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                    {row.status}
+                  <td className="px-4 py-3">
+                    <StatusPill value={row.status} />
                   </td>
                   <td className="px-4 py-3 font-mono text-[13px] text-[hsl(var(--muted-foreground))]">
                     {row.retryCount}

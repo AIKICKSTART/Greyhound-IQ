@@ -47,3 +47,5 @@ output/
 .agents/
 .codex-*.log
 skills-lock.json
+
+certificates

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "@/lib/workos-env";
 import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components";
@@ -20,8 +20,22 @@ const inter = Inter({
 
 const OG_IMAGE = siteAssetUrl("/images/og-image.webp");
 
+// viewport-fit=cover lets the app paint edge-to-edge on notched phones; the
+// safe-area-inset env() paddings in components handle the cutouts. Required
+// for the PWA / wrapped-app (Capacitor) install to look native.
+export const viewport: Viewport = {
+  themeColor: "#08050B",
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://greyhoundsiq.com.au"),
+  // iOS "Add to Home Screen" opens full-screen app mode instead of Safari chrome.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "GreyhoundIQ",
+  },
   title: "GreyhoundIQ — Australian Greyhound Racing Intelligence",
   description:
     "The smartest greyhound racing data platform in Australia. Real-time race cards, AI predictions, breeding analytics, and community.",

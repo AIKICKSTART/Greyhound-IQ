@@ -21,16 +21,27 @@ export function AdminNav() {
 
   return (
     <>
-      {/* Mobile trigger */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="giq-outline-action fixed left-4 top-4 z-40 lg:hidden"
-        aria-label="Open admin navigation"
-      >
-        <Menu className="h-4 w-4" />
-        Admin menu
-      </button>
+      {/* Mobile top bar: in-flow (admin layout stacks on mobile), so it never
+          floats over page headers. Safe-area padding for notched phones. */}
+      <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-white/[0.08] bg-[hsl(var(--surface-1)/0.92)] px-4 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur-lg lg:hidden">
+        <Link href="/admin" className="flex items-center gap-2">
+          <span className="giq-icon-plate flex h-8 w-8 items-center justify-center rounded-lg">
+            <ShieldCheck className="h-4 w-4 text-[hsl(var(--secondary-light))]" />
+          </span>
+          <span className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+            Admin
+          </span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="giq-outline-action"
+          aria-label="Open admin navigation"
+        >
+          <Menu className="h-4 w-4" />
+          Menu
+        </button>
+      </header>
 
       {/* Backdrop (mobile) */}
       {open ? (
@@ -44,7 +55,7 @@ export function AdminNav() {
 
       <aside
         className={cn(
-          "giq-panel z-50 flex w-72 shrink-0 flex-col gap-6 overflow-y-auto p-5",
+          "giq-panel z-50 flex w-72 shrink-0 flex-col gap-6 overflow-y-auto p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-[calc(1.25rem+env(safe-area-inset-top))] lg:pb-5 lg:pt-5",
           "fixed inset-y-0 left-0 transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
         )}
@@ -88,7 +99,7 @@ export function AdminNav() {
                     aria-current={active ? "page" : undefined}
                     onClick={() => setOpen(false)}
                     className={cn(
-                      "rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors",
+                      "flex min-h-11 items-center rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors lg:min-h-0",
                       active
                         ? "border-[hsl(var(--secondary-light)/0.6)] bg-[hsl(var(--secondary-light)/0.14)] text-[hsl(var(--foreground))]"
                         : "border-transparent text-[hsl(var(--muted-foreground))] hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-[hsl(var(--foreground))]",

@@ -5,11 +5,16 @@ const LOGO_MARK = siteAssetUrl("/images/brand/greyhoundiq-iq-icon-dark.webp");
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    // Stable identity + scope: store-wrapped installs (Play TWA / Capacitor)
+    // bind app updates to these.
+    id: "/",
+    scope: "/",
     name: "GreyhoundIQ",
     short_name: "GreyhoundIQ",
     description: "Australian greyhound racing data platform. Race cards, breeding, AI predictions.",
     start_url: "/",
     display: "standalone",
+    categories: ["sports", "news"],
     background_color: "#08050B",
     theme_color: "#8F2CC8",
     icons: [

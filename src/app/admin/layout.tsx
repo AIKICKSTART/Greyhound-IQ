@@ -22,9 +22,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   return (
-    <div className="flex min-h-screen w-full">
+    <div className="flex min-h-screen w-full flex-col lg:flex-row">
       <AdminNav />
-      <div className="min-w-0 flex-1">{children}</div>
+      {/* Bottom padding clears the global mobile dock so table actions stay reachable. */}
+      <div className="min-w-0 flex-1 pb-[var(--giq-mobile-dock-clearance)] lg:pb-0">
+        {children}
+      </div>
     </div>
   );
 }

@@ -6,7 +6,8 @@ type RateLimitResult = { allowed: boolean; remaining: number; resetAt: number };
 export async function checkRateLimit(
   key: string,
   limit: number,
-  windowMs: number
+  windowMs: number,
+  opts?: { failClosed?: boolean }
 ): Promise<RateLimitResult> {
   const normalizedKey = key.trim();
   if (!normalizedKey) throw new Error("rate_limit.key_required");
@@ -41,8 +42,13 @@ export async function checkRateLimit(
       resetAt: row.resetAt.getTime(),
     };
   } catch (err) {
-    // ponytail: fail open on DB error — the limiter must never become an outage mode.
     logError("rate_limit.db_error", { key: normalizedKey }, err);
+    // Security-sensitive keys (auth, credential, abuse-critical) opt in to
+    // failing closed; a DB outage must not disable those limits.
+    if (opts?.failClosed) {
+      return { allowed: false, remaining: 0, resetAt: Date.now() + windowMs };
+    }
+    // ponytail: fail open on DB error — the limiter must never become an outage mode.
     return { allowed: true, remaining: limit, resetAt: Date.now() + windowMs };
   }
 }

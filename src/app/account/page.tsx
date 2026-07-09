@@ -81,10 +81,20 @@ async function SignedInAccount({
   pendingPlan: PendingPlan | null;
   user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
 }) {
-  const [summary, messages] = await Promise.all([
-    getAccountSummary(user.email),
-    getMessagesForUserEmail(user.email),
-  ]);
+  const dbContext = user.dbUserId
+    ? {
+        dbUserId: user.dbUserId,
+        profileId: user.profileId ?? user.dbUserId,
+        profileRole: user.role ?? "member",
+        tier: user.tier,
+      }
+    : null;
+  const [summary, messages] = dbContext
+    ? await Promise.all([
+        getAccountSummary(dbContext, user.email),
+        getMessagesForUserEmail(dbContext, user.email),
+      ])
+    : [null, []];
   const profile = summary?.profile;
   const ownedDogs = profile?.dogsOwned ?? [];
   const deletionRequestedAt = user.deletionRequestedAt;

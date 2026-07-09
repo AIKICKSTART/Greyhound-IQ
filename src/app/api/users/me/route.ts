@@ -11,7 +11,17 @@ export async function GET() {
     );
   }
 
-  const account = await getAccountSummary(user.email);
+  const account = user.dbUserId
+    ? await getAccountSummary(
+        {
+          dbUserId: user.dbUserId,
+          profileId: user.profileId ?? user.dbUserId,
+          profileRole: user.role ?? "member",
+          tier: user.tier,
+        },
+        user.email
+      )
+    : null;
   return NextResponse.json({
     user,
     profile: account?.profile ?? null,

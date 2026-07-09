@@ -41,7 +41,14 @@ const baseFields = {
   about: optionalText(4000),
   contactEmail: z.string().trim().email().max(200).optional().nullable(),
   contactPhone: optionalText(40),
-  website: z.string().trim().url().max(200).optional().nullable(),
+  website: z
+    .string()
+    .trim()
+    .url()
+    .max(200)
+    .refine((u) => /^https?:\/\//i.test(u), "Only http(s) URLs")
+    .optional()
+    .nullable(),
   accentColor: hexColor,
   heroMediaId: z.string().trim().min(1).optional().nullable(),
   avatarMediaId: z.string().trim().min(1).optional().nullable(),

@@ -2,7 +2,10 @@ import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { safeQuery } from "@/lib/db";
-import { withDbRequestContext, withDbSystemContext } from "@/lib/db-context";
+import {
+  withDbRequestContext,
+  type DbContextUser,
+} from "@/lib/db-context";
 import { cached } from "@/lib/ttl-cache";
 import { getApproximateTableCounts } from "@/lib/db-stats";
 import {
@@ -2426,6 +2429,7 @@ export async function getDogsForListingSelect(limit = 80) {
 }
 
 export async function getMessagingProfiles(
+  current: DbContextUser,
   excludeEmail?: string,
   limit = 60,
   search?: string
@@ -2433,7 +2437,7 @@ export async function getMessagingProfiles(
   const trimmedSearch = search?.trim();
   return safeQuery(
     () =>
-      withDbSystemContext((tx) => tx.profile.findMany({
+      withDbRequestContext(current, (tx) => tx.profile.findMany({
         where: {
           user: {
             ...(excludeEmail ? { email: { not: excludeEmail } } : {}),
@@ -2464,10 +2468,13 @@ export async function getMessagingProfiles(
   );
 }
 
-export async function getMessagesForUserEmail(email: string) {
+export async function getMessagesForUserEmail(
+  current: DbContextUser,
+  email: string
+) {
   const user = await safeQuery(
     () =>
-      withDbSystemContext((tx) => tx.user.findUnique({
+      withDbRequestContext(current, (tx) => tx.user.findUnique({
         where: { email },
         include: { profile: true },
       })),
@@ -2478,7 +2485,7 @@ export async function getMessagesForUserEmail(email: string) {
 
   return safeQuery(
     () =>
-      withDbSystemContext((tx) => tx.message.findMany({
+      withDbRequestContext(current, (tx) => tx.message.findMany({
         where: {
           OR: [
             { senderId: user.profile!.id },
@@ -2500,10 +2507,13 @@ export async function getMessagesForUserEmail(email: string) {
   );
 }
 
-export async function getConversationsForUserEmail(email: string) {
+export async function getConversationsForUserEmail(
+  current: DbContextUser,
+  email: string
+) {
   const user = await safeQuery(
     () =>
-      withDbSystemContext((tx) => tx.user.findUnique({
+      withDbRequestContext(current, (tx) => tx.user.findUnique({
         where: { email },
         include: { profile: true },
       })),
@@ -2514,7 +2524,7 @@ export async function getConversationsForUserEmail(email: string) {
 
   return safeQuery(
     () =>
-      withDbSystemContext((tx) => tx.conversation.findMany({
+      withDbRequestContext(current, (tx) => tx.conversation.findMany({
         where: {
           OR: [
             { participantAId: user.profile!.id },
@@ -2556,21 +2566,27 @@ export async function getConversationsForUserEmail(email: string) {
   );
 }
 
-export async function getAgentRuns(limit = 12) {
+export async function getAgentRuns(current: DbContextUser, limit = 12) {
   return safeQuery(
     () =>
-      prisma.agentRun.findMany({
-        orderBy: { createdAt: "desc" },
-        take: limit,
-      }),
+      withDbRequestContext(current, (tx) =>
+        tx.agentRun.findMany({
+          where: { userId: current.dbUserId },
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        })
+      ),
     []
   );
 }
 
-export async function getAccountSummary(email: string) {
+export async function getAccountSummary(
+  current: DbContextUser,
+  email: string
+) {
   return safeQuery(
     () =>
-      withDbSystemContext((tx) => tx.user.findUnique({
+      withDbRequestContext(current, (tx) => tx.user.findUnique({
         where: { email },
         include: {
           profile: {

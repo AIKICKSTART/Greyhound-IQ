@@ -23,6 +23,7 @@ export async function GET(
         "Cache-Control": "private, max-age=60",
         "Content-Type": media.mimeType,
         "Content-Length": media.sizeBytes.toString(),
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (err) {

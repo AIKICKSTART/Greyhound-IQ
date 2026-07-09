@@ -4,13 +4,16 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request-ip";
 
 const DOG_SEARCH_RATE_LIMIT = 60;
+// No trusted client IP means everyone shares one bucket; keep it small so a
+// spoofed/missing header cannot rent the full per-IP allowance.
+const DOG_SEARCH_NO_IP_RATE_LIMIT = 10;
 const DOG_SEARCH_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
 export async function GET(request: Request) {
   const clientIp = getClientIp(request.headers);
   const rateLimit = await checkRateLimit(
     `dog:search:${clientIp || "missing-forwarded-for"}`,
-    DOG_SEARCH_RATE_LIMIT,
+    clientIp ? DOG_SEARCH_RATE_LIMIT : DOG_SEARCH_NO_IP_RATE_LIMIT,
     DOG_SEARCH_RATE_LIMIT_WINDOW_MS
   );
   if (!rateLimit.allowed) {

@@ -30,6 +30,14 @@ const LISTING_STATUS_PENDING_REVIEW = "pending_review";
 const LISTING_STATUS_REJECTED = "rejected";
 const LISTING_STATUS_REMOVED = "removed";
 const LISTING_MODERATION_APPROVED = "approved";
+// Owner transitions must not escape moderation states (rejected/removed) or
+// rewrite terminal ones (sold/archived).
+const SOLD_ALLOWED_FROM_STATUSES = [LISTING_STATUS_ACTIVE, "expired"];
+const WITHDRAW_ALLOWED_FROM_STATUSES = [
+  LISTING_STATUS_ACTIVE,
+  LISTING_STATUS_PENDING_REVIEW,
+  "expired",
+];
 
 export interface ListingMaintenanceResult {
   expiredCount: number;
@@ -389,9 +397,12 @@ export async function markListingSoldForCurrentUser(
   listingId: string
 ) {
   const existing = await getOwnedListing(current, listingId);
+  if (!SOLD_ALLOWED_FROM_STATUSES.includes(existing.status)) {
+    throw new Error("listing.invalid_status_transition");
+  }
   const listing = await withDbRequestContext(current, async (tx) => {
     const updated = await tx.listing.update({
-      where: { id: existing.id },
+      where: { id: existing.id, status: { in: SOLD_ALLOWED_FROM_STATUSES } },
       data: {
         status: "sold",
         soldAt: new Date(),
@@ -419,9 +430,15 @@ export async function withdrawListingForCurrentUser(
   listingId: string
 ) {
   const existing = await getOwnedListing(current, listingId);
+  if (!WITHDRAW_ALLOWED_FROM_STATUSES.includes(existing.status)) {
+    throw new Error("listing.invalid_status_transition");
+  }
   const listing = await withDbRequestContext(current, async (tx) => {
     const updated = await tx.listing.update({
-      where: { id: existing.id },
+      where: {
+        id: existing.id,
+        status: { in: WITHDRAW_ALLOWED_FROM_STATUSES },
+      },
       data: {
         status: "withdrawn",
         archivedAt: null,

@@ -5,6 +5,7 @@ import { PageHero } from "@/components/page-hero";
 import { AgentDemoConsole } from "@/components/agent-demo-console";
 import { ProGate } from "@/components/pro-gate";
 import { SubmitButton } from "@/components/submit-button";
+import { getCurrentUser } from "@/lib/auth";
 import { getAgentRuns } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +40,18 @@ const AGENT_CARDS = [
 ];
 
 export default async function AgentsPage() {
-  const runs = await getAgentRuns(12);
+  const user = await getCurrentUser();
+  const runs = user?.dbUserId
+    ? await getAgentRuns(
+        {
+          dbUserId: user.dbUserId,
+          profileId: user.profileId ?? user.dbUserId,
+          profileRole: user.role ?? "member",
+          tier: user.tier,
+        },
+        12
+      )
+    : [];
   const completed = runs.filter((run) => run.status === "completed").length;
 
   return (

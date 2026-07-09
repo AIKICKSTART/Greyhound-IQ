@@ -35,6 +35,7 @@ export async function GET(request: Request) {
         ?.trim()
         .slice(0, MAX_QUERY_LENGTH) ?? "";
     const profiles = await getMessagingProfiles(
+      current,
       current.email,
       MESSAGING_PROFILES_LIMIT,
       q || undefined

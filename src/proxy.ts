@@ -10,9 +10,13 @@ import { contentSecurityPolicy } from "@/lib/csp";
 import { deriveRequestId, REQUEST_ID_HEADER } from "@/lib/request-id";
 
 export async function proxy(request: NextRequest, event: NextFetchEvent) {
-  // Cloud Run terminates TLS and forwards the client scheme here. Only redirect
-  // when it is explicitly http, so localhost dev (no header) is untouched.
-  if (request.headers.get("x-forwarded-proto") === "http") {
+  // Cloud Run terminates TLS and forwards the client scheme here. Only force
+  // https in production — Next 16 dev sets x-forwarded-proto:http on every
+  // request, so redirecting there 308s local http dev to a dead https://localhost.
+  if (
+    process.env.NODE_ENV === "production" &&
+    request.headers.get("x-forwarded-proto") === "http"
+  ) {
     const httpsUrl = new URL(request.url);
     httpsUrl.protocol = "https:";
     // request.url carries the internal Cloud Run host (0.0.0.0:8080), so rebuild

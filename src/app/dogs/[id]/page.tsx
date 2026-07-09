@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, Ban, Clock, Lock, ShieldCheck, Trophy } from "lucide-react";
+import { BadgeCheck, Ban, Clock, Lock, ShieldCheck } from "lucide-react";
 import { claimDogOwnership } from "@/app/actions";
+import { FinishBadge } from "@/components/finish-badge";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
 import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
@@ -584,27 +585,6 @@ function ordinal(position: number) {
 
 // Gold/Silver/Bronze trophy for podium finishes; plain number otherwise.
 // Mirrors the result badges used in RunnerRow across the site.
-function FinishBadge({ finish }: { finish: number | null | undefined }) {
-  if (finish === 1 || finish === 2 || finish === 3) {
-    const cls =
-      finish === 1
-        ? "giq-result-badge-gold"
-        : finish === 2
-          ? "giq-result-badge-silver"
-          : "giq-result-badge-bronze";
-    return (
-      <span className={`giq-result-badge ${cls}`}>
-        <Trophy className="h-3 w-3" aria-hidden="true" />
-        {finish === 1 ? "1st" : finish === 2 ? "2nd" : "3rd"}
-      </span>
-    );
-  }
-  return (
-    <span className="text-[13px] text-[hsl(var(--muted-foreground))]">
-      {finish ?? "—"}
-    </span>
-  );
-}
 
 function formatRole(role: string) {
   return role

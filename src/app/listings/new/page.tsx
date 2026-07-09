@@ -21,8 +21,13 @@ const LISTING_TYPES = [
   ["pup_for_sale", "Pup for sale"],
   ["dog_for_sale", "Dog for sale"],
   ["stud_service", "Stud service"],
-  ["wanted", "Wanted"],
   ["share", "Share"],
+  ["wanted", "Wanted"],
+  ["equipment", "Equipment"],
+  ["float_trailer", "Float / trailer"],
+  ["caravan", "Caravan"],
+  ["supplies", "Supplies / pet food"],
+  ["other", "Other"],
 ] as const;
 
 const STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"];

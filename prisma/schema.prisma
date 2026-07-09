@@ -1228,6 +1228,8 @@ model Listing {
   state                  String?
   dogId                  String?
   dog                    Dog?                      @relation(fields: [dogId], references: [id])
+  sireDogId              String? // pup listings: registered sire
+  damDogId               String? // pup listings: registered dam
   imageUrl               String?
   status                 String                    @default("active") // active | expired | sold | withdrawn | archived
   moderationStatus       String                    @default("pending_review")

@@ -1,6 +1,7 @@
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { isModeratorRole } from "@/lib/auth-roles";
 import { assertPaidFeatureAccess } from "@/lib/tier-access";
+import { getPlatformFlag, PLATFORM_FLAGS } from "@/lib/platform-settings";
 import type { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/account-service";
 import {
@@ -49,11 +50,25 @@ export interface ListingWriteInput {
   negotiable?: boolean;
   contactPreference?: string | null;
   dogId?: string | null;
+  sireDogId?: string | null;
+  damDogId?: string | null;
   price?: number | null;
   welfareAcknowledged?: boolean;
   legalAcknowledged?: boolean;
   mediaIds?: string[];
   attributes?: ListingAttributeInput[];
+}
+
+// Dog-centric listing types are subject to the registered-dog + approved-owner
+// fraud gate; general goods types are not.
+const DOG_LISTING_TYPES = new Set([
+  "pup_for_sale",
+  "dog_for_sale",
+  "stud_service",
+  "share",
+]);
+export function isDogListingType(type: string) {
+  return DOG_LISTING_TYPES.has(type);
 }
 
 export interface ListingAttributeInput {
@@ -68,6 +83,8 @@ export async function createListingForCurrentUser(
   assertPaidFeatureAccess(current);
   const dogId = input.dogId || null;
   if (dogId) await assertDogExists(dogId);
+  // Anti-fraud: dog/pup listings must trace to a registered, owner-verified dog.
+  if (isDogListingType(input.type)) await assertDogListingAllowed(current, input);
   const categoryId = input.categoryId || (await defaultCategoryIdForType(input.type));
   if (categoryId) await assertCategoryExists(categoryId);
   assertListingAcknowledgements(input);
@@ -96,6 +113,8 @@ export async function createListingForCurrentUser(
         negotiable: input.negotiable ?? false,
         contactPreference: input.contactPreference || "message",
         dogId,
+        sireDogId: input.sireDogId || null,
+        damDogId: input.damDogId || null,
         price: input.price ?? null,
         currency: "AUD",
         status: LISTING_STATUS_PENDING_REVIEW,
@@ -844,6 +863,62 @@ async function assertDogExists(dogId: string) {
   if (!dog) throw new Error("listing.dog_not_found");
 }
 
+// Fraud gate for dog listings (flag-aware). A dog can only be listed if it is a
+// registered Dog (in official data) AND the seller has an approved DogOwnership.
+// Pups (no own record) instead link a registered parent the seller owns.
+async function assertDogListingAllowed(
+  current: CurrentUserProfile,
+  input: ListingWriteInput
+) {
+  const requireRegistered = await getPlatformFlag(PLATFORM_FLAGS.requireRegisteredDog);
+  const requireOwnership = await getPlatformFlag(PLATFORM_FLAGS.requireApprovedOwnership);
+  if (!requireRegistered && !requireOwnership) return;
+
+  const owns = async (dogId: string) =>
+    Boolean(
+      await withDbRequestContext(current, (tx) =>
+        tx.dogOwnership.findFirst({
+          where: { dogId, profileId: current.profileId, status: "approved" },
+          select: { id: true },
+        })
+      )
+    );
+  const registered = async (dogId: string) =>
+    Boolean(
+      await withDbSystemContext((tx) =>
+        tx.dog.findFirst({ where: { id: dogId, sourceId: { not: null } }, select: { id: true } })
+      )
+    );
+
+  if (input.type === "pup_for_sale") {
+    // Pup: verify an approved-owned registered parent (sire or dam).
+    const parents = [input.sireDogId, input.damDogId].filter(
+      (id): id is string => Boolean(id)
+    );
+    if (parents.length === 0) throw new Error("listing.pup_parent_required");
+    for (const parentId of parents) {
+      if (requireRegistered && !(await registered(parentId))) {
+        throw new Error("listing.parent_not_registered");
+      }
+    }
+    if (requireOwnership) {
+      let ok = false;
+      for (const parentId of parents) if (await owns(parentId)) ok = true;
+      if (!ok) throw new Error("listing.parent_not_owned");
+    }
+    return;
+  }
+
+  // Non-pup dog listings: the dog itself must be registered + owned.
+  if (!input.dogId) throw new Error("listing.dog_required");
+  if (requireRegistered && !(await registered(input.dogId))) {
+    throw new Error("listing.dog_not_registered");
+  }
+  if (requireOwnership && !(await owns(input.dogId))) {
+    throw new Error("listing.dog_not_owned");
+  }
+}
+
 async function assertCategoryExists(categoryId: string) {
   const category = await withDbSystemContext((tx) =>
     tx.marketplaceCategory.findFirst({
@@ -861,6 +936,11 @@ async function defaultCategoryIdForType(type: string) {
     stud_service: "stud-services",
     wanted: "wanted",
     share: "shares",
+    equipment: "equipment",
+    float_trailer: "floats-trailers",
+    caravan: "caravans",
+    supplies: "supplies",
+    other: "other",
   };
   const slug = slugByType[type];
   if (!slug) return null;

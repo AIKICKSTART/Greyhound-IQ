@@ -5682,3 +5682,12 @@ select.giq-form-control option:checked {
     transform: none;
   }
 }
+
+/* Admin app shell: /admin marks its layout with data-admin-shell; hide the
+   marketing site chrome there so admin behaves like a dedicated tool (own
+   sidebar/top bar, full-height, no dock overlaying table actions). */
+body:has([data-admin-shell]) .giq-site-header,
+body:has([data-admin-shell]) .giq-footer-shell,
+body:has([data-admin-shell]) .giq-mobile-dock {
+  display: none;
+}

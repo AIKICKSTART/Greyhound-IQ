@@ -22,10 +22,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col lg:flex-row">
+    // data-admin-shell: globals.css hides the marketing site chrome (header,
+    // footer, mobile dock) so admin runs as a dedicated full-height tool.
+    <div data-admin-shell className="flex min-h-screen w-full flex-col lg:flex-row">
       <AdminNav />
-      {/* Bottom padding clears the global mobile dock so table actions stay reachable. */}
-      <div className="min-w-0 flex-1 pb-[var(--giq-mobile-dock-clearance)] lg:pb-0">
+      <div className="min-w-0 flex-1 pb-[env(safe-area-inset-bottom)]">
         {children}
       </div>
     </div>

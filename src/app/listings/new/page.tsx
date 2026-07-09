@@ -35,9 +35,13 @@ const STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"];
 export default async function NewListingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ dogId?: string }>;
+  searchParams: Promise<{ dogId?: string; title?: string; price?: string }>;
 }) {
-  const { dogId: prefillDogId } = await searchParams;
+  const {
+    dogId: prefillDogId,
+    title: prefillTitle,
+    price: prefillPrice,
+  } = await searchParams;
   const [user, dogs, categories] = await Promise.all([
     getCurrentUser(),
     getDogsForListingSelect(120),
@@ -160,6 +164,7 @@ export default async function NewListingPage({
                 required
                 minLength={5}
                 maxLength={100}
+                defaultValue={prefillTitle ?? ""}
                 className="giq-form-control mt-2 px-3 py-2"
                 placeholder="Fernando Bale pup for sale"
               />
@@ -190,6 +195,7 @@ export default async function NewListingPage({
                   type="number"
                   min={0}
                   step={1}
+                  defaultValue={prefillPrice ?? ""}
                   className="giq-form-control mt-2 px-3 py-2"
                   placeholder="5000"
                 />

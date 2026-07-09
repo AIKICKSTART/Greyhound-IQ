@@ -1,5 +1,6 @@
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { StatusPill } from "@/components/admin/status-pill";
 import { requireModeratorProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
@@ -77,8 +78,8 @@ export default async function AdminSubscriptionsPage() {
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
                       {subscription.planCode ?? "No plan"}
                     </td>
-                    <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                      {subscription.status}
+                    <td className="px-4 py-3">
+                      <StatusPill value={subscription.status} />
                     </td>
                     <DateCell
                       date={subscription.currentPeriodEnd}

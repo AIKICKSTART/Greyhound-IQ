@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 
 import { PageHero } from "@/components/page-hero";
 import { requireCurrentUserProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import type { CurrentUserProfile } from "@/lib/auth-types";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,7 @@ type TeamMembership = {
 
 export default async function AccountTeamPage() {
   const current = await requireTeamProfile();
-  const memberships = await getTeamMemberships(current.dbUserId);
+  const memberships = await getTeamMemberships(current);
 
   return (
     <div>
@@ -85,24 +87,28 @@ async function requireTeamProfile() {
   }
 }
 
-async function getTeamMemberships(userId: string): Promise<TeamMembership[]> {
+async function getTeamMemberships(
+  current: CurrentUserProfile
+): Promise<TeamMembership[]> {
   return safeQuery(
     () =>
-      prisma.membership.findMany({
-        where: { userId },
-        orderBy: [{ createdAt: "desc" }],
-        select: {
-          organization: {
-            select: {
-              name: true,
+      withDbRequestContext(current, (tx) =>
+        tx.membership.findMany({
+          where: { userId: current.dbUserId },
+          orderBy: [{ createdAt: "desc" }],
+          select: {
+            organization: {
+              select: {
+                name: true,
+              },
             },
+            role: true,
+            status: true,
+            acceptedAt: true,
+            createdAt: true,
           },
-          role: true,
-          status: true,
-          acceptedAt: true,
-          createdAt: true,
-        },
-      }),
+        })
+      ),
     []
   );
 }

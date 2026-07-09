@@ -1,7 +1,9 @@
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import type { CurrentUserProfile } from "@/lib/auth-types";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +25,8 @@ type OrganizationInvitationRow = {
 };
 
 export default async function AdminOrganizationInvitationsPage() {
-  await requireModeratorProfile();
-  const invitations = await getOrganizationInvitations();
+  const current = await requireModeratorProfile();
+  const invitations = await getOrganizationInvitations(current);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
@@ -100,24 +102,26 @@ export default async function AdminOrganizationInvitationsPage() {
   );
 }
 
-function getOrganizationInvitations() {
+function getOrganizationInvitations(current: CurrentUserProfile) {
   return safeQuery<OrganizationInvitationRow[]>(
     () =>
-      prisma.organizationInvitation.findMany({
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        take: 20,
-        select: {
-          id: true,
-          organizationId: true,
-          invitedByUserId: true,
-          role: true,
-          status: true,
-          expiresAt: true,
-          acceptedAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
+      withDbRequestContext(current, (tx) =>
+        tx.organizationInvitation.findMany({
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: 20,
+          select: {
+            id: true,
+            organizationId: true,
+            invitedByUserId: true,
+            role: true,
+            status: true,
+            expiresAt: true,
+            acceptedAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        })
+      ),
     []
   );
 }

@@ -4,8 +4,10 @@ import {
   AdminSourceHealthForm,
   AdminStatusForm,
 } from "@/app/admin/form-controls";
+import type { CurrentUserProfile } from "@/lib/auth-types";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { getLiveFeedStatus } from "@/lib/live/status";
 
 export const dynamic = "force-dynamic";
@@ -30,10 +32,10 @@ type DataSourceHealthRow = {
 };
 
 export default async function AdminSourceHealthPage() {
-  await requireModeratorProfile();
+  const current = await requireModeratorProfile();
   const [liveStatus, dataSourceHealthRows] = await Promise.all([
     getLiveFeedStatus(),
-    getDataSourceHealthRows(),
+    getDataSourceHealthRows(current),
   ]);
 
   return (
@@ -322,23 +324,25 @@ function formatLiveProviders(
     .join(", ");
 }
 
-function getDataSourceHealthRows() {
+function getDataSourceHealthRows(current: CurrentUserProfile) {
   return safeQuery<DataSourceHealthRow[]>(
     () =>
-      prisma.dataSourceHealth.findMany({
-        orderBy: [{ lastCheckedAt: "desc" }, { sourceProvider: "asc" }],
-        select: {
-          id: true,
-          sourceProvider: true,
-          status: true,
-          lastCheckedAt: true,
-          lastSuccessAt: true,
-          lastFailureAt: true,
-          latencyMs: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
+      withDbRequestContext(current, (tx) =>
+        tx.dataSourceHealth.findMany({
+          orderBy: [{ lastCheckedAt: "desc" }, { sourceProvider: "asc" }],
+          select: {
+            id: true,
+            sourceProvider: true,
+            status: true,
+            lastCheckedAt: true,
+            lastSuccessAt: true,
+            lastFailureAt: true,
+            latencyMs: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        })
+      ),
     []
   );
 }

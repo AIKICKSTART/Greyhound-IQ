@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 
 import { PageHero } from "@/components/page-hero";
 import { requireCurrentUserProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import type { CurrentUserProfile } from "@/lib/auth-types";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +44,7 @@ export default async function AccountSupportPage({
 }: AccountSupportPageProps) {
   const current = await requireSupportProfile();
   const ticketCreated = (await searchParams).ticket === "created";
-  const tickets = await getSupportTicketsForUser(current.dbUserId);
+  const tickets = await getSupportTicketsForUser(current);
 
   return (
     <div>
@@ -110,26 +112,28 @@ async function requireSupportProfile() {
   }
 }
 
-function getSupportTicketsForUser(userId: string) {
+function getSupportTicketsForUser(current: CurrentUserProfile) {
   return safeQuery<SupportTicketSummary[]>(
     () =>
-      prisma.supportTicket.findMany({
-        where: { userId },
-        orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
-        select: {
-          id: true,
-          category: true,
-          status: true,
-          priority: true,
-          createdAt: true,
-          updatedAt: true,
-          _count: {
-            select: {
-              messages: true,
+      withDbRequestContext(current, (tx) =>
+        tx.supportTicket.findMany({
+          where: { userId: current.dbUserId },
+          orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+          select: {
+            id: true,
+            category: true,
+            status: true,
+            priority: true,
+            createdAt: true,
+            updatedAt: true,
+            _count: {
+              select: {
+                messages: true,
+              },
             },
           },
-        },
-      }),
+        })
+      ),
     []
   );
 }

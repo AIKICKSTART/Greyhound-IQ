@@ -1,7 +1,9 @@
 import { AdminOrganizationForms } from "@/app/admin/form-controls";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import type { CurrentUserProfile } from "@/lib/auth-types";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +24,8 @@ type OrganizationRow = {
 };
 
 export default async function AdminOrganizationsPage() {
-  await requireModeratorProfile();
-  const organizations = await getOrganizations();
+  const current = await requireModeratorProfile();
+  const organizations = await getOrganizations(current);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12 lg:px-10">
@@ -98,10 +100,11 @@ function MonoCell({ children }: { children: string }) {
   );
 }
 
-function getOrganizations() {
+function getOrganizations(current: CurrentUserProfile) {
   return safeQuery<OrganizationRow[]>(
     () =>
-      prisma.organization.findMany({
+      withDbRequestContext(current, (tx) =>
+        tx.organization.findMany({
         orderBy: { createdAt: "desc" },
         take: 20,
         select: {
@@ -116,7 +119,8 @@ function getOrganizations() {
             },
           },
         },
-      }),
+        }),
+      ),
     []
   );
 }

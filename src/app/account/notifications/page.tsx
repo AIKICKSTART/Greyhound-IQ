@@ -16,7 +16,9 @@ import {
 } from "@/app/actions";
 import { PageHero } from "@/components/page-hero";
 import { requireCurrentUserProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import type { CurrentUserProfile } from "@/lib/auth-types";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { listNotificationsForUser } from "@/lib/notification-service";
 
 export const dynamic = "force-dynamic";
@@ -54,7 +56,7 @@ export default async function AccountNotificationsPage() {
   const current = await requireNotificationsProfile();
   const [notifications, preferences] = await Promise.all([
     listNotificationsForUser(current.dbUserId),
-    getMarketingPreferences(current.dbUserId),
+    getMarketingPreferences(current),
   ]);
   const unreadCount = notifications.filter((item) => !item.readAt).length;
 
@@ -133,21 +135,23 @@ async function requireNotificationsProfile() {
 }
 
 function getMarketingPreferences(
-  userId: string
+  current: CurrentUserProfile
 ): Promise<MarketingPreferenceRecord[]> {
   return safeQuery(
     async () => {
-      const rows = await prisma.marketingPreference.findMany({
-        orderBy: [{ updatedAt: "desc" }],
-        select: {
-          channel: true,
-          createdAt: true,
-          optedIn: true,
-          source: true,
-          updatedAt: true,
-        },
-        where: { userId },
-      });
+      const rows = await withDbRequestContext(current, (tx) =>
+        tx.marketingPreference.findMany({
+          orderBy: [{ updatedAt: "desc" }],
+          select: {
+            channel: true,
+            createdAt: true,
+            optedIn: true,
+            source: true,
+            updatedAt: true,
+          },
+          where: { userId: current.dbUserId },
+        })
+      );
 
       return rows.map((row) => ({
         channel: row.channel,

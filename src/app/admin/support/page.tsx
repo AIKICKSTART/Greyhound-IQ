@@ -1,7 +1,9 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminSupportTicketForm } from "@/app/admin/form-controls";
+import type { CurrentUserProfile } from "@/lib/auth-types";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -35,10 +37,10 @@ type SupportTicketCounts = {
 };
 
 export default async function AdminSupportPage() {
-  await requireModeratorProfile();
+  const current = await requireModeratorProfile();
   const [ticketCounts, tickets] = await Promise.all([
-    getSupportTicketCounts(),
-    getSupportTickets(),
+    getSupportTicketCounts(current),
+    getSupportTickets(current),
   ]);
 
   return (
@@ -115,22 +117,26 @@ export default async function AdminSupportPage() {
   );
 }
 
-function getSupportTicketCounts() {
+function getSupportTicketCounts(current: CurrentUserProfile) {
   return safeQuery<SupportTicketCounts>(
     async () => {
-      const [statuses, priorities, total] = await Promise.all([
-        prisma.supportTicket.groupBy({
-          by: ["status"],
-          orderBy: { status: "asc" },
-          _count: { _all: true },
-        }),
-        prisma.supportTicket.groupBy({
-          by: ["priority"],
-          orderBy: { priority: "asc" },
-          _count: { _all: true },
-        }),
-        prisma.supportTicket.count(),
-      ]);
+      const [statuses, priorities, total] = await withDbRequestContext(
+        current,
+        (tx) =>
+          Promise.all([
+            tx.supportTicket.groupBy({
+              by: ["status"],
+              orderBy: { status: "asc" },
+              _count: { _all: true },
+            }),
+            tx.supportTicket.groupBy({
+              by: ["priority"],
+              orderBy: { priority: "asc" },
+              _count: { _all: true },
+            }),
+            tx.supportTicket.count(),
+          ])
+      );
 
       return {
         total,
@@ -185,27 +191,29 @@ function CountGroup({
   );
 }
 
-function getSupportTickets() {
+function getSupportTickets(current: CurrentUserProfile) {
   return safeQuery<SupportTicketSummaryRow[]>(
     () =>
-      prisma.supportTicket.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        select: {
-          id: true,
-          userId: true,
-          status: true,
-          priority: true,
-          category: true,
-          createdAt: true,
-          updatedAt: true,
-          _count: {
-            select: {
-              messages: true,
+      withDbRequestContext(current, (tx) =>
+        tx.supportTicket.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          select: {
+            id: true,
+            userId: true,
+            status: true,
+            priority: true,
+            category: true,
+            createdAt: true,
+            updatedAt: true,
+            _count: {
+              select: {
+                messages: true,
+              },
             },
           },
-        },
-      }),
+        })
+      ),
     []
   );
 }

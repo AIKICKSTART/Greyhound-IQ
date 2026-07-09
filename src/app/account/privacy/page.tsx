@@ -13,7 +13,9 @@ import { redirect } from "next/navigation";
 
 import { PageHero } from "@/components/page-hero";
 import { requireCurrentUserProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import type { CurrentUserProfile } from "@/lib/auth-types";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +84,7 @@ const EMPTY_PRIVACY_RECORDS: PrivacyRecords = {
 
 export default async function AccountPrivacyPage() {
   const current = await requirePrivacyProfile();
-  const records = await getPrivacyRecords(current.dbUserId);
+  const records = await getPrivacyRecords(current);
 
   return (
     <div>
@@ -198,9 +200,15 @@ async function requirePrivacyProfile() {
   }
 }
 
-async function getPrivacyRecords(userId: string): Promise<PrivacyRecords> {
+async function getPrivacyRecords(
+  current: CurrentUserProfile
+): Promise<PrivacyRecords> {
+  const userId = current.dbUserId;
+  // Request context so RLS (userId = giq_current_user_id()) returns the user's
+  // own rows; a context-less read is denied to empty under FORCE ROW LEVEL SECURITY.
   return safeQuery<PrivacyRecords>(
-    async () => {
+    () =>
+      withDbRequestContext(current, async (tx) => {
       const [
         termsAcceptances,
         consentEvents,
@@ -208,7 +216,7 @@ async function getPrivacyRecords(userId: string): Promise<PrivacyRecords> {
         exportArtifacts,
       ] =
         await Promise.all([
-          prisma.termsAcceptance.findMany({
+          tx.termsAcceptance.findMany({
             orderBy: [{ acceptedAt: "desc" }],
             select: {
               acceptedAt: true,
@@ -217,7 +225,7 @@ async function getPrivacyRecords(userId: string): Promise<PrivacyRecords> {
             },
             where: { userId },
           }),
-          prisma.consentEvent.findMany({
+          tx.consentEvent.findMany({
             orderBy: [{ occurredAt: "desc" }],
             select: {
               action: true,
@@ -229,7 +237,7 @@ async function getPrivacyRecords(userId: string): Promise<PrivacyRecords> {
             },
             where: { userId },
           }),
-          prisma.marketingPreference.findMany({
+          tx.marketingPreference.findMany({
             orderBy: [{ updatedAt: "desc" }],
             select: {
               channel: true,
@@ -240,7 +248,7 @@ async function getPrivacyRecords(userId: string): Promise<PrivacyRecords> {
             },
             where: { userId },
           }),
-          prisma.exportArtifact.findMany({
+          tx.exportArtifact.findMany({
             orderBy: [{ createdAt: "desc" }],
             select: {
               completedAt: true,
@@ -263,7 +271,7 @@ async function getPrivacyRecords(userId: string): Promise<PrivacyRecords> {
         marketingPreferences,
         termsAcceptances,
       };
-    },
+      }),
     EMPTY_PRIVACY_RECORDS
   );
 }

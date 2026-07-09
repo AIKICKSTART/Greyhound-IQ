@@ -1,7 +1,9 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminExportForm, AdminStatusForm } from "@/app/admin/form-controls";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import type { CurrentUserProfile } from "@/lib/auth-types";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +22,8 @@ type ExportArtifactRow = {
 };
 
 export default async function AdminExportsPage() {
-  await requireModeratorProfile();
-  const artifacts = await getExportArtifacts();
+  const current = await requireModeratorProfile();
+  const artifacts = await getExportArtifacts(current);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
@@ -103,10 +105,11 @@ export default async function AdminExportsPage() {
   );
 }
 
-function getExportArtifacts() {
+function getExportArtifacts(current: CurrentUserProfile) {
   return safeQuery<ExportArtifactRow[]>(
     () =>
-      prisma.exportArtifact.findMany({
+      withDbRequestContext(current, (tx) =>
+        tx.exportArtifact.findMany({
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 20,
         select: {
@@ -122,7 +125,8 @@ function getExportArtifacts() {
           createdAt: true,
           updatedAt: true,
         },
-      }),
+      })
+      ),
     []
   );
 }

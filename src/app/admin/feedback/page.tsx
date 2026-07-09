@@ -1,7 +1,10 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminStatusForm } from "@/app/admin/form-controls";
+import { StatusPill } from "@/components/admin/status-pill";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import type { CurrentUserProfile } from "@/lib/auth-types";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +22,8 @@ type FeedbackRow = {
 };
 
 export default async function AdminFeedbackPage() {
-  await requireModeratorProfile();
-  const feedback = await getFeedback();
+  const current = await requireModeratorProfile();
+  const feedback = await getFeedback(current);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
@@ -61,8 +64,8 @@ export default async function AdminFeedbackPage() {
                     <td className="px-4 py-3 font-mono text-[12px] text-[hsl(var(--muted-foreground))]">
                       {item.userId ?? "No user"}
                     </td>
-                    <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                      {item.status}
+                    <td className="px-4 py-3">
+                      <StatusPill value={item.status} />
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
                       {formatDateTime(item.createdAt)}
@@ -90,20 +93,22 @@ export default async function AdminFeedbackPage() {
   );
 }
 
-function getFeedback() {
+function getFeedback(current: CurrentUserProfile) {
   return safeQuery<FeedbackRow[]>(
     () =>
-      prisma.feedback.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 20,
-        select: {
-          id: true,
-          userId: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
+      withDbRequestContext(current, (tx) =>
+        tx.feedback.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 20,
+          select: {
+            id: true,
+            userId: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        })
+      ),
     []
   );
 }

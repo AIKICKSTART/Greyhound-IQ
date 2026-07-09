@@ -1,5 +1,6 @@
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { StatusPill } from "@/components/admin/status-pill";
 import { requireModeratorProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
@@ -79,7 +80,9 @@ export default async function AdminInvoicesPage() {
                     </MonoCell>
                     <MonoCell>{invoice.subscriptionId ?? "No subscription"}</MonoCell>
                     <MonoCell>{invoice.invoiceNumber ?? "No number"}</MonoCell>
-                    <TextCell>{invoice.status}</TextCell>
+                    <td className="px-4 py-3">
+                      <StatusPill value={invoice.status} />
+                    </td>
                     <TextCell>
                       {invoice.paymentStatus ?? "No payment status"}
                     </TextCell>

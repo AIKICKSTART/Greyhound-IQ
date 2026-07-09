@@ -1,6 +1,8 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import type { CurrentUserProfile } from "@/lib/auth-types";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +23,8 @@ type AdminActionRow = {
 };
 
 export default async function AdminActionsPage() {
-  await requireModeratorProfile();
-  const actions = await getAdminActions();
+  const current = await requireModeratorProfile();
+  const actions = await getAdminActions(current);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
@@ -92,10 +94,11 @@ function MonoCell({ children }: { children: string }) {
   );
 }
 
-function getAdminActions() {
+function getAdminActions(current: CurrentUserProfile) {
   return safeQuery<AdminActionRow[]>(
     () =>
-      prisma.adminAction.findMany({
+      withDbRequestContext(current, (tx) =>
+        tx.adminAction.findMany({
         orderBy: { createdAt: "desc" },
         take: 20,
         select: {
@@ -108,7 +111,8 @@ function getAdminActions() {
           reason: true,
           createdAt: true,
         },
-      }),
+        }),
+      ),
     []
   );
 }

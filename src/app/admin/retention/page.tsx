@@ -4,8 +4,10 @@ import {
   AdminRetentionForms,
   AdminStatusForm,
 } from "@/app/admin/form-controls";
+import type { CurrentUserProfile } from "@/lib/auth-types";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -39,10 +41,10 @@ type DeletionJobRow = {
 };
 
 export default async function AdminRetentionPage() {
-  await requireModeratorProfile();
+  const current = await requireModeratorProfile();
   const [policies, jobs] = await Promise.all([
-    getRetentionPolicies(),
-    getDeletionJobs(),
+    getRetentionPolicies(current),
+    getDeletionJobs(current),
   ]);
 
   return (
@@ -240,44 +242,48 @@ function DateCell({
   );
 }
 
-function getRetentionPolicies() {
+function getRetentionPolicies(current: CurrentUserProfile) {
   return safeQuery<RetentionPolicyRow[]>(
     () =>
-      prisma.retentionPolicy.findMany({
-        orderBy: { updatedAt: "desc" },
-        take: RECENT_LIMIT,
-        select: {
-          id: true,
-          code: true,
-          targetType: true,
-          retentionDays: true,
-          enabled: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
+      withDbRequestContext(current, (tx) =>
+        tx.retentionPolicy.findMany({
+          orderBy: { updatedAt: "desc" },
+          take: RECENT_LIMIT,
+          select: {
+            id: true,
+            code: true,
+            targetType: true,
+            retentionDays: true,
+            enabled: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        })
+      ),
     []
   );
 }
 
-function getDeletionJobs() {
+function getDeletionJobs(current: CurrentUserProfile) {
   return safeQuery<DeletionJobRow[]>(
     () =>
-      prisma.deletionJob.findMany({
-        orderBy: { scheduledFor: "desc" },
-        take: RECENT_LIMIT,
-        select: {
-          id: true,
-          policyId: true,
-          targetType: true,
-          targetUserId: true,
-          status: true,
-          scheduledFor: true,
-          completedAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
+      withDbRequestContext(current, (tx) =>
+        tx.deletionJob.findMany({
+          orderBy: { scheduledFor: "desc" },
+          take: RECENT_LIMIT,
+          select: {
+            id: true,
+            policyId: true,
+            targetType: true,
+            targetUserId: true,
+            status: true,
+            scheduledFor: true,
+            completedAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        })
+      ),
     []
   );
 }

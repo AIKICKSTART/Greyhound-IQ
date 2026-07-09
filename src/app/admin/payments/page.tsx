@@ -1,5 +1,6 @@
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { StatusPill } from "@/components/admin/status-pill";
 import { requireModeratorProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
@@ -90,7 +91,9 @@ function PaymentRecordsTable({ records }: { records: PaymentRecordRow[] }) {
                     {record.subscriptionId ?? "No subscription"}
                   </MonoCell>
                   <MonoCell>{record.invoiceRecordId ?? "No invoice"}</MonoCell>
-                  <TextCell>{record.status}</TextCell>
+                  <td className="px-4 py-3">
+                    <StatusPill value={record.status} />
+                  </td>
                   <TextCell>{record.currency}</TextCell>
                   <AmountCell amountCents={record.amountCents} />
                   <DateCell date={record.occurredAt} />
@@ -152,7 +155,9 @@ function RefundRecordsTable({ records }: { records: RefundRecordRow[] }) {
                   </MonoCell>
                   <MonoCell>{record.invoiceRecordId ?? "No invoice"}</MonoCell>
                   <MonoCell>{record.paymentRecordId ?? "No payment"}</MonoCell>
-                  <TextCell>{record.status}</TextCell>
+                  <td className="px-4 py-3">
+                    <StatusPill value={record.status} />
+                  </td>
                   <TextCell>{record.currency}</TextCell>
                   <AmountCell amountCents={record.amountCents} />
                   <DateCell date={record.occurredAt} />
@@ -216,7 +221,9 @@ function CreditNoteRecordsTable({
                     {record.subscriptionId ?? "No subscription"}
                   </MonoCell>
                   <MonoCell>{record.invoiceRecordId ?? "No invoice"}</MonoCell>
-                  <TextCell>{record.status}</TextCell>
+                  <td className="px-4 py-3">
+                    <StatusPill value={record.status} />
+                  </td>
                   <TextCell>{record.currency}</TextCell>
                   <AmountCell amountCents={record.amountCents} />
                   <DateCell date={record.occurredAt} />

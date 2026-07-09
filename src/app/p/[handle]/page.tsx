@@ -310,7 +310,9 @@ async function DogBody({ page, accent }: { page: PublicCustomPage; accent: strin
           )}
           {page.saleStatus === "for_sale" && (
             <Link
-              href={`/listings/new?dogId=${dog.id}`}
+              href={`/listings/new?dogId=${dog.id}&title=${encodeURIComponent(dog.name)}${
+                page.priceOrFee != null ? `&price=${page.priceOrFee}` : ""
+              }`}
               className="giq-outline-action text-[12px]"
             >
               List on marketplace

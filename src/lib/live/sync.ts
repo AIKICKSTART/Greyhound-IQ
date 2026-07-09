@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
+import { notifyDogWinnersFromRecentResults } from "../dog-win-notify";
 import {
   getLiveProvider,
   getLiveProviderConfig,
@@ -193,6 +194,7 @@ export async function syncLiveData(
       await upsertSystemMeetings(meetings)
     );
     await refreshSireLeaderboard();
+    await notifyDogWinnersFromRecentResults();
   }
 
   console.log(

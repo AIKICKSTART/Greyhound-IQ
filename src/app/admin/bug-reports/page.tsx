@@ -1,7 +1,10 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminBugReportForm } from "@/app/admin/form-controls";
+import { StatusPill } from "@/components/admin/status-pill";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import type { CurrentUserProfile } from "@/lib/auth-types";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +18,8 @@ type BugReportRow = {
 };
 
 export default async function AdminBugReportsPage() {
-  await requireModeratorProfile();
-  const bugReports = await getBugReports();
+  const current = await requireModeratorProfile();
+  const bugReports = await getBugReports(current);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
@@ -54,11 +57,11 @@ export default async function AdminBugReportsPage() {
                   <tr key={bugReport.id} className="border-t border-white/[0.06]">
                     <MonoCell>{bugReport.id}</MonoCell>
                     <MonoCell>{bugReport.userId ?? "No user"}</MonoCell>
-                    <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                      {bugReport.severity}
+                    <td className="px-4 py-3">
+                      <StatusPill value={bugReport.severity} />
                     </td>
-                    <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                      {bugReport.status}
+                    <td className="px-4 py-3">
+                      <StatusPill value={bugReport.status} />
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
                       {formatDateTime(bugReport.createdAt)}
@@ -91,10 +94,11 @@ function MonoCell({ children }: { children: string }) {
   );
 }
 
-function getBugReports() {
+function getBugReports(current: CurrentUserProfile) {
   return safeQuery<BugReportRow[]>(
     () =>
-      prisma.bugReport.findMany({
+      withDbRequestContext(current, (tx) =>
+        tx.bugReport.findMany({
         orderBy: { createdAt: "desc" },
         take: 20,
         select: {
@@ -105,7 +109,8 @@ function getBugReports() {
           createdAt: true,
           updatedAt: true,
         },
-      }),
+        }),
+      ),
     []
   );
 }

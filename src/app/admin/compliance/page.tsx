@@ -1,6 +1,8 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { requireModeratorProfile } from "@/lib/auth";
-import { prisma, safeQuery } from "@/lib/db";
+import type { CurrentUserProfile } from "@/lib/auth-types";
+import { safeQuery } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 
 export const dynamic = "force-dynamic";
 
@@ -47,8 +49,8 @@ type ComplianceData = {
 };
 
 export default async function AdminCompliancePage() {
-  await requireModeratorProfile();
-  const data = await getComplianceData();
+  const current = await requireModeratorProfile();
+  const data = await getComplianceData(current);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
@@ -204,7 +206,9 @@ function AdminTable({
   );
 }
 
-async function getComplianceData(): Promise<ComplianceData> {
+async function getComplianceData(
+  current: CurrentUserProfile,
+): Promise<ComplianceData> {
   const [
     termsAcceptances,
     consentEvents,
@@ -215,14 +219,28 @@ async function getComplianceData(): Promise<ComplianceData> {
     recentConsentEvents,
     recentMarketingPreferences,
   ] = await Promise.all([
-    countRows(() => prisma.termsAcceptance.count()),
-    countRows(() => prisma.consentEvent.count()),
-    countRows(() => prisma.marketingPreference.count()),
-    countRows(() => prisma.marketingPreference.count({ where: { optedIn: true } })),
-    countRows(() => prisma.marketingPreference.count({ where: { optedIn: false } })),
-    getTermsAcceptances(),
-    getConsentEvents(),
-    getMarketingPreferences(),
+    countRows(() =>
+      withDbRequestContext(current, (tx) => tx.termsAcceptance.count()),
+    ),
+    countRows(() =>
+      withDbRequestContext(current, (tx) => tx.consentEvent.count()),
+    ),
+    countRows(() =>
+      withDbRequestContext(current, (tx) => tx.marketingPreference.count()),
+    ),
+    countRows(() =>
+      withDbRequestContext(current, (tx) =>
+        tx.marketingPreference.count({ where: { optedIn: true } }),
+      ),
+    ),
+    countRows(() =>
+      withDbRequestContext(current, (tx) =>
+        tx.marketingPreference.count({ where: { optedIn: false } }),
+      ),
+    ),
+    getTermsAcceptances(current),
+    getConsentEvents(current),
+    getMarketingPreferences(current),
   ]);
 
   return {
@@ -239,56 +257,62 @@ async function getComplianceData(): Promise<ComplianceData> {
   };
 }
 
-function getTermsAcceptances() {
+function getTermsAcceptances(current: CurrentUserProfile) {
   return safeQuery<TermsAcceptanceRow[]>(
     () =>
-      prisma.termsAcceptance.findMany({
-        orderBy: { acceptedAt: "desc" },
-        take: 10,
-        select: {
-          id: true,
-          userId: true,
-          termsVersion: true,
-          acceptedAt: true,
-        },
-      }),
+      withDbRequestContext(current, (tx) =>
+        tx.termsAcceptance.findMany({
+          orderBy: { acceptedAt: "desc" },
+          take: 10,
+          select: {
+            id: true,
+            userId: true,
+            termsVersion: true,
+            acceptedAt: true,
+          },
+        }),
+      ),
     []
   );
 }
 
-function getConsentEvents() {
+function getConsentEvents(current: CurrentUserProfile) {
   return safeQuery<ConsentEventRow[]>(
     () =>
-      prisma.consentEvent.findMany({
-        orderBy: { occurredAt: "desc" },
-        take: 10,
-        select: {
-          id: true,
-          userId: true,
-          consentType: true,
-          action: true,
-          version: true,
-          occurredAt: true,
-        },
-      }),
+      withDbRequestContext(current, (tx) =>
+        tx.consentEvent.findMany({
+          orderBy: { occurredAt: "desc" },
+          take: 10,
+          select: {
+            id: true,
+            userId: true,
+            consentType: true,
+            action: true,
+            version: true,
+            occurredAt: true,
+          },
+        }),
+      ),
     []
   );
 }
 
-function getMarketingPreferences() {
+function getMarketingPreferences(current: CurrentUserProfile) {
   return safeQuery<MarketingPreferenceRow[]>(
     () =>
-      prisma.marketingPreference.findMany({
-        orderBy: { updatedAt: "desc" },
-        take: 10,
-        select: {
-          id: true,
-          userId: true,
-          channel: true,
-          optedIn: true,
-          updatedAt: true,
-        },
-      }),
+      withDbRequestContext(current, (tx) =>
+        tx.marketingPreference.findMany({
+          orderBy: { updatedAt: "desc" },
+          take: 10,
+          select: {
+            id: true,
+            userId: true,
+            channel: true,
+            optedIn: true,
+            updatedAt: true,
+          },
+        }),
+      ),
     []
   );
 }

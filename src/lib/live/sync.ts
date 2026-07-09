@@ -203,17 +203,26 @@ export async function syncLiveData(
   return { synced: true, provider: provider.name, scope, ...counts };
 }
 
-// Hourly (results cron cadence) refresh of the breeding leaderboard
-// materialized view. CONCURRENTLY keeps /breeding readable during refresh;
-// failures are logged and never break the sync itself.
+// Hourly (results cron cadence) refresh of the aggregate materialized views
+// backing /breeding and /statistics. CONCURRENTLY keeps pages readable during
+// refresh; failures are logged per-view and never break the sync itself.
+const AGGREGATE_MATVIEWS = [
+  "giq_sire_leaderboard",
+  "giq_box_bias",
+  "giq_trainer_leaderboard",
+  "giq_track_records",
+] as const;
+
 async function refreshSireLeaderboard() {
-  try {
-    await prisma.$executeRawUnsafe(
-      "REFRESH MATERIALIZED VIEW CONCURRENTLY giq_sire_leaderboard"
-    );
-    console.log("[live-sync] Refreshed giq_sire_leaderboard.");
-  } catch (err) {
-    console.error("[live-sync] giq_sire_leaderboard refresh failed:", err);
+  for (const view of AGGREGATE_MATVIEWS) {
+    try {
+      await prisma.$executeRawUnsafe(
+        `REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`
+      );
+      console.log(`[live-sync] Refreshed ${view}.`);
+    } catch (err) {
+      console.error(`[live-sync] ${view} refresh failed:`, err);
+    }
   }
 }
 

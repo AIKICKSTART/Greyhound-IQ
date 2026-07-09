@@ -1958,19 +1958,19 @@ export interface BoxBiasRow {
 }
 
 export async function getBoxBias(): Promise<BoxBiasRow[]> {
-  const rows = await safeQuery(
-    () =>
-      prisma.$queryRaw<{ box: number; starts: number; wins: number }[]>`
-        SELECT rn."boxNumber" AS box,
-               COUNT(*)::int AS starts,
-               COUNT(*) FILTER (WHERE res."finishingPosition" = 1)::int AS wins
-        FROM "Result" res
-        JOIN "Runner" rn ON rn.id = res."runnerId"
-        WHERE rn."boxNumber" BETWEEN 1 AND 8
-        GROUP BY rn."boxNumber"
-        ORDER BY rn."boxNumber" ASC
-      `,
-    []
+  // Served from the giq_box_bias materialized view (hourly cron refresh, see
+  // live/sync.ts). The inline aggregation scanned Result(5.6M) per view and
+  // hung /statistics.
+  const rows = await cached("stats:box-bias", 5 * 60_000, () =>
+    safeQuery(
+      () =>
+        prisma.$queryRaw<{ box: number; starts: number; wins: number }[]>`
+          SELECT box, starts, wins
+          FROM giq_box_bias
+          ORDER BY box ASC
+        `,
+      []
+    )
   );
   return rows.map((r) => ({
     ...r,
@@ -1987,24 +1987,20 @@ export interface TrainerLeaderRow {
 }
 
 export async function getTrainerLeaderboard(limit = 10): Promise<TrainerLeaderRow[]> {
-  const rows = await safeQuery(
-    () =>
-      prisma.$queryRaw<
-        { name: string; wins: number; starters: number; winsp: number }[]
-      >`
-        SELECT t.name AS name,
-               COUNT(rn.id)::int AS starters,
-               COUNT(*) FILTER (WHERE res."finishingPosition" = 1)::int AS wins,
-               COALESCE(SUM(rn."startingPrice") FILTER (WHERE res."finishingPosition" = 1), 0)::float AS winsp
-        FROM "Runner" rn
-        JOIN "Result" res ON res."runnerId" = rn.id
-        JOIN "Trainer" t ON t.id = rn."trainerId"
-        GROUP BY t.id, t.name
-        HAVING COUNT(rn.id) >= 5
-        ORDER BY wins DESC
-        LIMIT ${limit}
-      `,
-    []
+  // Served from giq_trainer_leaderboard (hourly cron refresh, see live/sync.ts).
+  const rows = await cached(`stats:trainer-leaderboard:${limit}`, 5 * 60_000, () =>
+    safeQuery(
+      () =>
+        prisma.$queryRaw<
+          { name: string; wins: number; starters: number; winsp: number }[]
+        >`
+          SELECT name, starters, wins, winsp
+          FROM giq_trainer_leaderboard
+          ORDER BY wins DESC
+          LIMIT ${limit}
+        `,
+      []
+    )
   );
   // ROI from flat $1 win bets at starting price: (returns - outlay) / outlay.
   return rows.map((r) => ({
@@ -2025,26 +2021,18 @@ export interface TrackRecordRow {
 }
 
 export async function getTrackRecords(limit = 12): Promise<TrackRecordRow[]> {
-  return safeQuery(
-    () =>
-      prisma.$queryRaw<TrackRecordRow[]>`
-        SELECT DISTINCT ON (tr.name, ra.distance)
-               tr.name AS track,
-               ra.distance AS dist,
-               res."runningTime" AS time,
-               d.name AS dog,
-               EXTRACT(YEAR FROM ra."raceTime")::int AS year
-        FROM "Result" res
-        JOIN "Runner" rn ON rn.id = res."runnerId"
-        JOIN "Race" ra ON ra.id = rn."raceId"
-        JOIN "Meeting" m ON m.id = ra."meetingId"
-        JOIN "Track" tr ON tr.id = m."trackId"
-        JOIN "Dog" d ON d.id = rn."dogId"
-        WHERE res."runningTime" IS NOT NULL
-        ORDER BY tr.name, ra.distance, res."runningTime" ASC
-        LIMIT ${limit}
-      `,
-    []
+  // Served from giq_track_records (hourly cron refresh, see live/sync.ts).
+  return cached(`stats:track-records:${limit}`, 5 * 60_000, () =>
+    safeQuery(
+      () =>
+        prisma.$queryRaw<TrackRecordRow[]>`
+          SELECT track, dist, time, dog, year
+          FROM giq_track_records
+          ORDER BY track ASC, dist ASC
+          LIMIT ${limit}
+        `,
+      []
+    )
   );
 }
 

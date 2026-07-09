@@ -1,3 +1,4 @@
+import type { BannedPhrase, TrustSafetyFlag } from "@prisma/client";
 import { createAuditLog } from "@/lib/account-service";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { cleanText } from "@/lib/content";
@@ -14,7 +15,7 @@ export type BannedPhraseInput = {
 };
 
 export async function listBannedPhrasesForModerator() {
-  return safeQuery(
+  return safeQuery<BannedPhrase[]>(
     () =>
       prisma.bannedPhrase.findMany({
         orderBy: [{ active: "desc" }, { target: "asc" }, { phrase: "asc" }],
@@ -82,7 +83,7 @@ export async function setBannedPhraseActiveForModerator(
 }
 
 export async function listTrustSafetyFlagsForModerator(limit = 50) {
-  return safeQuery(
+  return safeQuery<TrustSafetyFlag[]>(
     () =>
       prisma.trustSafetyFlag.findMany({
         orderBy: [{ status: "asc" }, { createdAt: "desc" }],

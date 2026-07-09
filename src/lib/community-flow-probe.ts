@@ -429,8 +429,10 @@ export async function runCommunityFlowProbe({
       sortOrder: 9999,
     });
     ids.categories.add(category.id);
+    // Goods type: exercises the listing → approve → enquiry → save flow without
+    // tripping the dog fraud gate (which needs a registered + owned dog).
     const listing = await createListingForCurrentUser(seller, {
-      type: "dog_for_sale",
+      type: "equipment",
       categoryId: category.id,
       title: "Community flow check listing",
       description: "Temporary marketplace listing for launch verification.",

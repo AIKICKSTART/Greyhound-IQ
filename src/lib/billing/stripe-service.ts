@@ -86,6 +86,57 @@ export function buildStripeCheckoutSessionParams({
   };
 }
 
+// $500 one-off concierge design package. Inline price_data so no Stripe
+// dashboard product is required. Webhook keys off metadata.kind.
+export const BESPOKE_DESIGN_PRICE_CENTS = 50_000;
+
+export async function createBespokeDesignCheckoutSession({
+  current,
+  env,
+}: {
+  current: StripeBillingUser;
+  env: StripeCheckoutEnv;
+}) {
+  const stripe = getStripeClient(env.secretKey);
+  const customerId = await getOrCreateStripeCustomer(current, env);
+
+  const successUrl = new URL("/account/pages", env.appUrl);
+  successUrl.searchParams.set("bespoke", "success");
+  const cancelUrl = new URL("/account/pages", env.appUrl);
+  cancelUrl.searchParams.set("bespoke", "cancelled");
+
+  return stripe.checkout.sessions.create({
+    mode: "payment",
+    client_reference_id: current.dbUserId,
+    customer: customerId,
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "aud",
+          unit_amount: BESPOKE_DESIGN_PRICE_CENTS,
+          product_data: {
+            name: "GreyhoundsIQ bespoke design package",
+            description:
+              "Team-designed business, trainer, punter and up to 5 dog pages.",
+          },
+        },
+      },
+    ],
+    metadata: {
+      kind: "bespoke_design",
+      userId: current.dbUserId,
+      profileId: current.profileId,
+      workosUserId: current.id,
+    },
+    payment_intent_data: {
+      metadata: { kind: "bespoke_design", userId: current.dbUserId },
+    },
+    success_url: successUrl.toString(),
+    cancel_url: cancelUrl.toString(),
+  });
+}
+
 export async function createStripePortalSession({
   current,
   env,

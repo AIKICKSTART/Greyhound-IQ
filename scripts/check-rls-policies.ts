@@ -223,6 +223,29 @@ for (const needle of [
   }
 }
 
+// CustomDesignRequest ($500 concierge) must be RLS+FORCE: buyer reads own,
+// moderators/system manage.
+const bespokeSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260709140000_add_custom_design_requests",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  'ALTER TABLE "CustomDesignRequest" ENABLE ROW LEVEL SECURITY',
+  'ALTER TABLE "CustomDesignRequest" FORCE ROW LEVEL SECURITY',
+  "CREATE POLICY giq_custom_design_request_select",
+  "CREATE POLICY giq_custom_design_request_write",
+]) {
+  if (!bespokeSql.includes(needle)) {
+    findings.push(`CustomDesignRequest RLS missing: ${needle}`);
+  }
+}
+
 void main();
 
 async function main() {

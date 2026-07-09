@@ -1,5 +1,9 @@
 import { requireAdminProfile } from "@/lib/auth";
-import { getAllPlatformFlags, PLATFORM_FLAGS } from "@/lib/platform-settings";
+import {
+  getAllPlatformFlags,
+  getPlatformFlag,
+  PLATFORM_FLAGS,
+} from "@/lib/platform-settings";
 import { updatePageRulesAction } from "@/app/admin/mutations";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { SubmitButton } from "@/components/submit-button";
@@ -40,6 +44,8 @@ const RULES: { name: string; key: string; label: string; blurb: string }[] = [
 export default async function PageRulesAdmin() {
   await requireAdminProfile();
   const flags = await getAllPlatformFlags();
+  // Card generation defaults OFF (unlike the strict-default fraud gates).
+  const cardGenEnabled = await getPlatformFlag(PLATFORM_FLAGS.cardGenerationEnabled, false);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12 lg:px-10">
@@ -70,6 +76,23 @@ export default async function PageRulesAdmin() {
               </span>
             </label>
           ))}
+          <label className="flex items-start gap-3 rounded-lg border border-white/[0.06] p-4">
+            <input
+              type="checkbox"
+              name="cardGenerationEnabled"
+              defaultChecked={cardGenEnabled}
+              className="mt-1"
+            />
+            <span>
+              <span className="block text-[13px] font-semibold text-[hsl(var(--foreground))]">
+                Enable AI dog card generation
+              </span>
+              <span className="block text-[12px] text-[hsl(var(--muted-foreground))]">
+                When on, Pro users can generate gpt-image-2 trading cards on dog pages.
+                Defaults off — enable once prompts are tuned in production.
+              </span>
+            </span>
+          </label>
           <SubmitButton className="giq-button giq-button-primary px-5 text-[13px] font-semibold">
             Save rules
           </SubmitButton>

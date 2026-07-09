@@ -1126,6 +1126,7 @@ model CustomPage {
   contentJson      String?
   published        Boolean  @default(false)
   moderationStatus String   @default("approved") // approved | pending_review | removed
+  bespoke          Boolean  @default(false) // team-designed page; exempt from self-serve limits
   views            Int      @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -2040,4 +2041,26 @@ model PlatformSetting {
   value              String
   updatedByProfileId String?
   updatedAt          DateTime @default(now()) @updatedAt
+}
+
+// $500 concierge "designed by our team" request. Created on Stripe payment
+// success; team hand-builds up to 1 business + 1 trainer + 1 punter + 5 dog
+// pages (marked CustomPage.bespoke = true) and marks the request delivered.
+model CustomDesignRequest {
+  id              String    @id @default(cuid())
+  buyerProfileId  String
+  buyerUserId     String
+  status          String    @default("paid") // paid | in_progress | delivered | cancelled
+  amount          Int // AUD cents actually charged
+  currency        String    @default("aud")
+  stripeSessionId String?   @unique
+  stripePaymentId String?
+  notes           String?
+  assignedAdminId String?
+  deliveredAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([buyerProfileId])
 }

@@ -6,6 +6,10 @@ import { z } from "zod";
 import { requireAdminProfile, requireModeratorProfile } from "@/lib/auth";
 import { setPlatformFlag, PLATFORM_FLAGS } from "@/lib/platform-settings";
 import {
+  BESPOKE_STATUSES,
+  updateCustomDesignRequest,
+} from "@/lib/bespoke-service";
+import {
   approveDogOwnership,
   createAdminDeletionJob,
   createAdminExportArtifact,
@@ -467,5 +471,27 @@ export async function updatePageRulesAction(formData: FormData) {
     PLATFORM_FLAGS.enforceDogPageLimit,
     checkbox(formData, "enforceDogPageLimit")
   );
+  await setPlatformFlag(
+    current,
+    PLATFORM_FLAGS.cardGenerationEnabled,
+    checkbox(formData, "cardGenerationEnabled")
+  );
   revalidateAdmin("/admin/page-rules");
+}
+
+export async function updateBespokeRequestAction(formData: FormData) {
+  const current = await requireModeratorProfile();
+  const parsed = z
+    .object({
+      id: z.string().min(1),
+      status: z.enum(BESPOKE_STATUSES),
+      notes: z.string().max(2000).optional(),
+    })
+    .parse({
+      id: field(formData, "id"),
+      status: field(formData, "status"),
+      notes: field(formData, "notes") || undefined,
+    });
+  await updateCustomDesignRequest(current, parsed.id, parsed.status, parsed.notes ?? null);
+  revalidateAdmin("/admin/bespoke");
 }

@@ -138,9 +138,43 @@ async function handleCheckoutSessionCompleted(
   const userId = firstString(session.client_reference_id, session.metadata?.userId);
   if (!userId) throw new Error("stripe.webhook_missing_user");
 
+  if (session.metadata?.kind === "bespoke_design") {
+    await recordBespokeDesignPurchase(db, session, userId);
+    return;
+  }
+
   await db.user.update({
     where: { id: userId },
     data: stripeUserBillingUpdateForCheckoutSession(session),
+  });
+}
+
+// One-off $500 concierge purchase → CustomDesignRequest(status=paid).
+// Idempotent on stripeSessionId (webhook may retry).
+async function recordBespokeDesignPurchase(
+  db: DbContextClient,
+  session: Stripe.Checkout.Session,
+  userId: string
+) {
+  const profileId = firstString(session.metadata?.profileId);
+  if (!profileId) throw new Error("stripe.webhook_missing_profile");
+
+  const existing = await db.customDesignRequest.findUnique({
+    where: { stripeSessionId: session.id },
+    select: { id: true },
+  });
+  if (existing) return;
+
+  await db.customDesignRequest.create({
+    data: {
+      buyerProfileId: profileId,
+      buyerUserId: userId,
+      status: "paid",
+      amount: session.amount_total ?? 50_000,
+      currency: session.currency ?? "aud",
+      stripeSessionId: session.id,
+      stripePaymentId: stripeId(session.payment_intent),
+    },
   });
 }
 
@@ -309,7 +343,13 @@ function parseBillingPlan(value: unknown): StripeCheckoutPlan | null {
 }
 
 function stripeId(
-  value: string | Stripe.Customer | Stripe.DeletedCustomer | Stripe.Subscription | null
+  value:
+    | string
+    | Stripe.Customer
+    | Stripe.DeletedCustomer
+    | Stripe.Subscription
+    | Stripe.PaymentIntent
+    | null
 ) {
   return typeof value === "string" ? value : value?.id ?? null;
 }

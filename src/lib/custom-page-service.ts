@@ -94,7 +94,8 @@ export async function createCustomPage(
     if (await getPlatformFlag(PLATFORM_FLAGS.enforceDogPageLimit)) {
       const dogPageCount = await withDbRequestContext(current, (tx) =>
         tx.customPage.count({
-          where: { ownerProfileId: current.profileId, pageType: "dog" },
+          // bespoke (team-built) pages don't consume the self-serve allotment.
+          where: { ownerProfileId: current.profileId, pageType: "dog", bespoke: false },
         })
       );
       if (dogPageCount >= PRO_DOG_PAGE_LIMIT && !hasTier(current.tier, "pro_plus")) {

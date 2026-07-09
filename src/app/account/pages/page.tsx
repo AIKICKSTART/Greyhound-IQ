@@ -7,6 +7,7 @@ import {
   listApprovedOwnedDogs,
   CUSTOM_PAGE_TYPE_LABELS,
 } from "@/lib/custom-page-service";
+import { listBespokeRequestsForCurrentUser } from "@/lib/bespoke-service";
 import { createCustomPageAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 
@@ -39,9 +40,10 @@ export default async function MyPagesPage() {
     );
   }
 
-  const [pages, ownedDogs] = await Promise.all([
+  const [pages, ownedDogs, bespokeRequests] = await Promise.all([
     listCustomPagesForCurrentUser(current),
     listApprovedOwnedDogs(current),
+    listBespokeRequestsForCurrentUser(current),
   ]);
   const existingTypes = new Set(pages.filter((p) => p.pageType !== "dog").map((p) => p.pageType));
   const dogPageDogIds = new Set(pages.filter((p) => p.pageType === "dog").map((p) => p.dogId));
@@ -150,6 +152,31 @@ export default async function MyPagesPage() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Bespoke concierge design */}
+      <section className="mt-10 rounded-lg border border-[hsl(var(--primary)/0.24)] bg-[hsl(var(--primary)/0.06)] p-5">
+        <h2 className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          Designed by our team — $500
+        </h2>
+        <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+          One-off concierge package: our team hand-designs a business, trainer and punter
+          page plus up to 5 dog pages for a professional look. One payment, no subscription.
+        </p>
+        {bespokeRequests.length > 0 && (
+          <ul className="mt-3 space-y-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
+            {bespokeRequests.map((r) => (
+              <li key={r.id}>
+                Request {r.createdAt.toISOString().slice(0, 10)} — <b>{r.status}</b>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form action="/api/billing/bespoke/checkout" method="post" className="mt-4">
+          <SubmitButton className="giq-button giq-button-primary px-5 text-[13px] font-semibold">
+            Request bespoke design ($500)
+          </SubmitButton>
+        </form>
       </section>
     </main>
   );

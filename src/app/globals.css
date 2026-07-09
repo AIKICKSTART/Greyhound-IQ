@@ -5703,3 +5703,15 @@ body:has([data-admin-shell]) .giq-alert-wrap {
 body:has([data-admin-shell]) #main-content {
   min-height: 0;
 }
+
+/* Admin page container normalisation: individual admin pages set their own
+   max-width/gutters inline (some max-w-6xl, some max-w-7xl, some with lg:px-10,
+   some without), which made pages look inconsistent side to side. Pin every
+   admin page's root <main> to one width + gutter here instead of editing 20+
+   files. Selector specificity (0,1,1) beats a single Tailwind utility class
+   (0,1,0), so this wins without !important. */
+[data-admin-shell] main {
+  max-width: 80rem; /* = Tailwind max-w-7xl; roomy for wide data tables */
+  padding-left: clamp(1.5rem, 4vw, 2.5rem);
+  padding-right: clamp(1.5rem, 4vw, 2.5rem);
+}

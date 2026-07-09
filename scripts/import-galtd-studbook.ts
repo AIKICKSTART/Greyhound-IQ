@@ -17,7 +17,7 @@
  * Reconciling galtd dogs against existing `thedogs` dogs (by name + whelp year) is a separate pass.
  */
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -220,65 +220,142 @@ function arg(name: string): string | undefined {
   return i >= 0 ? process.argv[i + 1] : undefined;
 }
 
-async function upsertDog(rec: DogRecord, vol: number): Promise<string> {
-  const earBrand = `${SOURCE}:${rec.slug}`;
-  const data = {
-    name: rec.name,
-    sex: rec.sex,
-    colour: rec.colour,
-    whelpDate: rec.whelpDate,
-    ownerName: rec.owner,
-    sourceProvider: SOURCE,
-    sourceId: rec.slug,
-    profileSourceRawJson: JSON.stringify({ firstVol: rec.firstVol ?? vol, dna: rec.dna, raw: rec.raw }),
-    lastProfileSyncedAt: new Date(),
-  };
-  const row = await prisma.dog.upsert({
-    where: { earBrand },
-    create: { earBrand, ...data },
-    update: data,
-    select: { id: true },
-  });
-  return row.id;
+function chunk<T>(arr: readonly T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
 }
 
-/** Ensure a parent referenced only by name exists as at least a stub. */
-async function ensureStub(name: string, sex: "M" | "F", cache: Map<string, string>): Promise<string> {
-  const slug = slugify(name);
-  const cached = cache.get(slug);
-  if (cached) return cached;
-  const earBrand = `${SOURCE}:${slug}`;
-  const row = await prisma.dog.upsert({
-    where: { earBrand },
-    create: { earBrand, name, sex, sourceProvider: SOURCE, sourceId: slug },
-    update: {},
-    select: { id: true },
-  });
-  cache.set(slug, row.id);
-  return row.id;
+const isCuid = (s: string): boolean => /^[a-z0-9]+$/i.test(s);
+
+/**
+ * Batched write over a remote pooler: createMany the dogs + referenced-parent stubs,
+ * resolve slug->id, then bulk-link sire/dam via UPDATE ... FROM (VALUES ...).
+ * skipDuplicates makes re-runs idempotent (existing rows keep their first-seen values).
+ */
+async function writeGraph(records: DogRecord[]): Promise<{ inserted: number; linked: number }> {
+  // 1. Stubs for parents referenced by name but with no own entry.
+  const bySlug = new Map(records.map((r) => [r.slug, r]));
+  const stubs = new Map<string, { name: string; sex: "M" | "F" }>();
+  for (const r of records) {
+    if (r.sireName) {
+      const s = slugify(r.sireName);
+      if (s && !bySlug.has(s) && !stubs.has(s)) stubs.set(s, { name: r.sireName, sex: "M" });
+    }
+    if (r.damName) {
+      const s = slugify(r.damName);
+      if (s && !bySlug.has(s) && !stubs.has(s)) stubs.set(s, { name: r.damName, sex: "F" });
+    }
+  }
+
+  // 2. Bulk insert dogs + stubs.
+  const dogRows = records.map((r) => ({
+    name: r.name,
+    earBrand: `${SOURCE}:${r.slug}`,
+    sourceProvider: SOURCE,
+    sourceId: r.slug,
+    sex: r.sex,
+    colour: r.colour,
+    whelpDate: r.whelpDate,
+    ownerName: r.owner,
+    profileSourceRawJson: JSON.stringify({ firstVol: r.firstVol, dna: r.dna }),
+  }));
+  const stubRows = [...stubs.entries()].map(([slug, s]) => ({
+    name: s.name,
+    earBrand: `${SOURCE}:${slug}`,
+    sourceProvider: SOURCE,
+    sourceId: slug,
+    sex: s.sex,
+  }));
+  let inserted = 0;
+  for (const c of chunk([...dogRows, ...stubRows], 1000)) {
+    const res = await prisma.dog.createMany({ data: c, skipDuplicates: true });
+    inserted += res.count;
+    console.log(`  inserted ${inserted} (skipDuplicates)`);
+  }
+
+  // 3. slug -> id map.
+  const allSlugs = [...new Set([...records.map((r) => r.slug), ...stubs.keys()])];
+  const idMap = new Map<string, string>();
+  for (const c of chunk(allSlugs, 1000)) {
+    const rows = await prisma.dog.findMany({
+      where: { earBrand: { in: c.map((s) => `${SOURCE}:${s}`) } },
+      select: { earBrand: true, id: true },
+    });
+    for (const row of rows) idMap.set(row.earBrand!.slice(SOURCE.length + 1), row.id);
+  }
+
+  // 4. Bulk link sire/dam.
+  const links: { id: string; sireId?: string; damId?: string }[] = [];
+  for (const r of records) {
+    if (!r.sireName && !r.damName) continue;
+    const id = idMap.get(r.slug);
+    if (!id || !isCuid(id)) continue;
+    const sireId = r.sireName ? idMap.get(slugify(r.sireName)) : undefined;
+    const damId = r.damName ? idMap.get(slugify(r.damName)) : undefined;
+    if (sireId || damId) links.push({ id, sireId, damId });
+  }
+
+  let linked = 0;
+  for (const c of chunk(links, 500)) {
+    const tuples = c
+      .map((l) => {
+        const sid = l.sireId && isCuid(l.sireId) ? `'${l.sireId}'` : "''";
+        const did = l.damId && isCuid(l.damId) ? `'${l.damId}'` : "''";
+        return `('${l.id}',${sid},${did})`;
+      })
+      .join(",");
+    // Values are cuids validated by isCuid ([a-z0-9]) — no injection surface.
+    await prisma.$executeRawUnsafe(
+      `UPDATE "Dog" AS d SET "sireId" = NULLIF(v.sid,''), "damId" = NULLIF(v.did,'') ` +
+        `FROM (VALUES ${tuples}) AS v(id, sid, did) WHERE d.id = v.id`
+    );
+    linked += c.length;
+    console.log(`  linked ${linked}/${links.length}`);
+  }
+
+  return { inserted, linked };
+}
+
+function resolveFiles(): string[] {
+  const dir = arg("dir");
+  if (dir) {
+    return readdirSync(dir)
+      .filter((f) => /\.(pdf|txt)$/i.test(f))
+      .sort()
+      .map((f) => join(dir, f));
+  }
+  const file = arg("file");
+  if (!file) throw new Error("--file <path.pdf|.txt> or --dir <folder> is required");
+  return [file];
 }
 
 async function main(): Promise<void> {
-  const file = arg("file");
-  const vol = Number(arg("vol") ?? "0");
   const dryRun = process.argv.includes("--dry-run");
   const limit = Number(arg("limit") ?? "0");
-  if (!file) throw new Error("--file <path.pdf|.txt> is required");
+  const files = resolveFiles();
 
-  const text = extractText(file);
-  const { dogs, namedLitters, unnamedLitters } = parseStudBook(text);
+  // Parse + merge every volume into one graph (cross-volume dedup by slug).
+  const dogs = new Map<string, DogRecord>();
+  let namedLitters = 0;
+  let unnamedLitters = 0;
+  for (const f of files) {
+    const parsed = parseStudBook(extractText(f));
+    for (const rec of parsed.dogs.values()) mergeRecord(dogs, rec);
+    namedLitters += parsed.namedLitters;
+    unnamedLitters += parsed.unnamedLitters;
+    console.log(`Parsed ${f}: +${parsed.dogs.size} dogs (running total ${dogs.size})`);
+  }
 
-  const records = [...dogs.values()];
+  let records = [...dogs.values()];
+  if (limit > 0) records = records.slice(0, limit);
   const withParents = records.filter((r) => r.sireName && r.damName).length;
   console.log(
-    `Parsed vol ${vol}: ${records.length} unique dogs, ${namedLitters} named pups, ` +
+    `Corpus: ${records.length} unique dogs, ${namedLitters} named pups, ` +
       `${unnamedLitters} unnamed litters, ${withParents} with sire+dam.`
   );
 
   if (dryRun) {
-    const sampleFile = join(tmpdir(), `galtd-sample-${vol}.json`);
-    writeFileSync(sampleFile, JSON.stringify(records.slice(0, 30), null, 2));
-    console.log("Sample of 30 records:");
     for (const r of records.slice(0, 12)) {
       console.log(
         `  ${r.name} [${r.sex ?? "?"} ${r.colour ?? "?"} ${
@@ -286,33 +363,11 @@ async function main(): Promise<void> {
         }] by ${r.sireName ?? "?"} / ${r.damName ?? "?"}`
       );
     }
-    console.log(`Full sample written to ${sampleFile}`);
     return;
   }
 
-  const idCache = new Map<string, string>();
-  let done = 0;
-  const target = limit > 0 ? records.slice(0, limit) : records;
-
-  for (const rec of target) {
-    const id = await upsertDog(rec, vol);
-    idCache.set(rec.slug, id);
-    if (++done % 500 === 0) console.log(`  upserted ${done}/${target.length}`);
-  }
-
-  let linked = 0;
-  for (const rec of target) {
-    if (!rec.sireName && !rec.damName) continue;
-    const sireId = rec.sireName ? await ensureStub(rec.sireName, "M", idCache) : null;
-    const damId = rec.damName ? await ensureStub(rec.damName, "F", idCache) : null;
-    await prisma.dog.update({
-      where: { earBrand: `${SOURCE}:${rec.slug}` },
-      data: { sireId, damId },
-    });
-    if (++linked % 500 === 0) console.log(`  linked ${linked}`);
-  }
-
-  console.log(`Done vol ${vol}: ${done} dogs upserted, ${linked} linked to sire/dam.`);
+  const { inserted, linked } = await writeGraph(records);
+  console.log(`Done: ${inserted} new dogs inserted, ${linked} linked to sire/dam.`);
 }
 
 main()

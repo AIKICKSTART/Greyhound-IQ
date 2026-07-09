@@ -7,6 +7,8 @@ import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
 import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
 import { getDogById, getDogPrizeMoney, getMyDogOwnership } from "@/lib/queries";
+import { getDogPedigree } from "@/lib/pedigree";
+import { PedigreeChart } from "@/components/pedigree-chart";
 
 export const dynamic = "force-dynamic";
 
@@ -41,10 +43,11 @@ export default async function DogProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [dog, user, prize] = await Promise.all([
+  const [dog, user, prize, pedigree] = await Promise.all([
     getDogById(id),
     getCurrentUser(),
     getDogPrizeMoney(id),
+    getDogPedigree(id),
   ]);
   if (!dog) notFound();
 
@@ -301,57 +304,31 @@ export default async function DogProfilePage({
         </div>
       </section>
 
-      {/* Pedigree */}
-      {(dog.sire || dog.dam) && (
-        <div className="giq-panel mb-6 p-6">
-          <h3
-            className="text-[15px] font-semibold text-[hsl(var(--foreground))] mb-4 tracking-[-0.02em]"
-          >
-            Pedigree
-          </h3>
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-3">
+      {/* Pedigree — deep studbook graph when available, else immediate parents */}
+      {pedigree ? (
+        <PedigreeChart root={pedigree} />
+      ) : (
+        (dog.sire || dog.dam) && (
+          <div className="giq-panel mb-6 p-6">
+            <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))] mb-4 tracking-[-0.02em]">
+              Pedigree
+            </h3>
+            <div className="grid grid-cols-2 gap-6">
               <div>
                 <p className="text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))] mb-1">Sire</p>
                 <p className="text-[14px] font-medium text-[hsl(var(--foreground))]">
                   {dog.sire?.name ?? "Unknown"}
                 </p>
               </div>
-              {dog.sire?.sire && (
-                <div className="pl-4 border-l border-[hsl(var(--primary)/0.3)]">
-                  <p className="text-[11px] text-[hsl(var(--subtle-foreground))]">Grand Sire</p>
-                  <p className="text-[13px] text-[hsl(var(--muted-foreground))]">{dog.sire.sire.name}</p>
-                </div>
-              )}
-              {dog.sire?.dam && (
-                <div className="pl-4 border-l border-[hsl(var(--primary)/0.3)]">
-                  <p className="text-[11px] text-[hsl(var(--subtle-foreground))]">Grand Dam</p>
-                  <p className="text-[13px] text-[hsl(var(--muted-foreground))]">{dog.sire.dam.name}</p>
-                </div>
-              )}
-            </div>
-            <div className="space-y-3">
               <div>
                 <p className="text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))] mb-1">Dam</p>
                 <p className="text-[14px] font-medium text-[hsl(var(--foreground))]">
                   {dog.dam?.name ?? "Unknown"}
                 </p>
               </div>
-              {dog.dam?.sire && (
-                <div className="pl-4 border-l border-[hsl(var(--secondary)/0.3)]">
-                  <p className="text-[11px] text-[hsl(var(--subtle-foreground))]">Grand Sire</p>
-                  <p className="text-[13px] text-[hsl(var(--muted-foreground))]">{dog.dam.sire.name}</p>
-                </div>
-              )}
-              {dog.dam?.dam && (
-                <div className="pl-4 border-l border-[hsl(var(--secondary)/0.3)]">
-                  <p className="text-[11px] text-[hsl(var(--subtle-foreground))]">Grand Dam</p>
-                  <p className="text-[13px] text-[hsl(var(--muted-foreground))]">{dog.dam.dam.name}</p>
-                </div>
-              )}
             </div>
           </div>
-        </div>
+        )
       )}
 
       {/* Prize money */}

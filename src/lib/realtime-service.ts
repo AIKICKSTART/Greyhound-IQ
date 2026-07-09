@@ -47,6 +47,15 @@ export function profileRealtimeChannel(profileId: string) {
   return scopedRealtimeChannel("profile", profileId);
 }
 
+// Single shared presence channel for the signed-in member hub. The name is
+// still HMAC-derived (unguessable to signed-out clients), but every signed-in
+// member receives the same name, so presence payloads must stay content-free:
+// profileId only. Clients filter to their accepted-friend ids. Upgrade path if
+// cross-member visibility becomes a concern: per-profile presence scopes.
+export function membersPresenceChannel() {
+  return scopedRealtimeChannel("presence", "members");
+}
+
 function scopedRealtimeChannel(scope: string, id: string) {
   const secret = realtimeChannelSecret();
   if (!secret) return null;

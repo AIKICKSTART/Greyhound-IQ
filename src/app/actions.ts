@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
@@ -69,7 +70,17 @@ import {
   updateCustomPage,
   setCustomPagePublished,
   deleteCustomPage,
+  listCustomPagesForCurrentUser,
 } from "@/lib/custom-page-service";
+import {
+  removeFriend,
+  respondToFriendRequest,
+  sendFriendRequest,
+} from "@/lib/friend-service";
+import {
+  ACTIVE_IDENTITY_COOKIE,
+  PERSONAL_IDENTITY,
+} from "@/lib/identity";
 import {
   customPageCreateSchema,
   customPageUpdateSchema,
@@ -230,6 +241,10 @@ const FEED_REACTION_RATE_LIMIT = 60;
 const FEED_REACTION_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const FEED_BLOCK_RATE_LIMIT = 20;
 const FEED_BLOCK_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const FRIEND_REQUEST_RATE_LIMIT = 20;
+const FRIEND_REQUEST_RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const FRIEND_RESPOND_RATE_LIMIT = 60;
+const FRIEND_RESPOND_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const MESSAGE_SEND_RATE_LIMIT = 10;
 const MESSAGE_SEND_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MESSAGE_REACTION_RATE_LIMIT = 30;
@@ -354,6 +369,7 @@ export async function createFeedPost(formData: FormData) {
     topicId: field(formData, "topicId") || null,
     body: field(formData, "body"),
     mediaIds: fields(formData, "mediaIds"),
+    pageId: field(formData, "pageId") || null,
   });
 
   await createFeedPostForCurrentUser(current, parsed);
@@ -1230,4 +1246,108 @@ export async function generateDogCardAction(pageId: string) {
   if (!rl.allowed) throw new Error("rate_limit.exceeded");
   await generateDogCard(current, pageId);
   revalidatePath(`/account/pages/${pageId}`);
+}
+
+// === Member hub: friends + active identity ===
+
+const friendTargetSchema = z.object({
+  profileId: z.string().trim().min(1).max(120),
+});
+
+const friendRespondSchema = z.object({
+  friendshipId: z.string().trim().min(1).max(120),
+  response: z.enum(["accept", "decline"]),
+});
+
+export async function sendFriendRequestAction(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `friend:request:${current.dbUserId}`,
+    FRIEND_REQUEST_RATE_LIMIT,
+    FRIEND_REQUEST_RATE_LIMIT_WINDOW_MS
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
+
+  const parsed = friendTargetSchema.parse({
+    profileId: field(formData, "profileId"),
+  });
+  await sendFriendRequest(current, parsed.profileId);
+  revalidatePath("/feed");
+  revalidatePath("/pulse/friends");
+}
+
+export async function respondToFriendRequestAction(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `friend:respond:${current.dbUserId}`,
+    FRIEND_RESPOND_RATE_LIMIT,
+    FRIEND_RESPOND_RATE_LIMIT_WINDOW_MS
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
+
+  const parsed = friendRespondSchema.parse({
+    friendshipId: field(formData, "friendshipId"),
+    response: field(formData, "response"),
+  });
+  await respondToFriendRequest(current, parsed.friendshipId, parsed.response);
+  revalidatePath("/feed");
+  revalidatePath("/pulse/friends");
+}
+
+export async function removeFriendAction(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `friend:respond:${current.dbUserId}`,
+    FRIEND_RESPOND_RATE_LIMIT,
+    FRIEND_RESPOND_RATE_LIMIT_WINDOW_MS
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
+
+  const parsed = z
+    .object({ friendshipId: z.string().trim().min(1).max(120) })
+    .parse({ friendshipId: field(formData, "friendshipId") });
+  await removeFriend(current, parsed.friendshipId);
+  revalidatePath("/feed");
+  revalidatePath("/pulse/friends");
+}
+
+// Pro-only cold-start (startOrGetConversation keeps its own paid gate); free
+// members reach existing threads via links instead.
+export async function startChatAction(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `conversation:start:${current.dbUserId}`,
+    MESSAGE_SEND_RATE_LIMIT,
+    MESSAGE_SEND_RATE_LIMIT_WINDOW_MS
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
+
+  const parsed = friendTargetSchema.parse({
+    profileId: field(formData, "profileId"),
+  });
+  const conversation = await startOrGetConversation(current, parsed.profileId);
+  redirect(`/pulse/${conversation.id}`);
+}
+
+export async function setActiveIdentityAction(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const requested = field(formData, "identity") || PERSONAL_IDENTITY;
+
+  // The cookie is a hint, never an authority — but refuse to store ids the
+  // session does not own so the UI can't even appear to switch.
+  let value = PERSONAL_IDENTITY;
+  if (requested !== PERSONAL_IDENTITY) {
+    const pages = await listCustomPagesForCurrentUser(current);
+    if (pages.some((page) => page.id === requested)) value = requested;
+  }
+
+  const store = await cookies();
+  store.set(ACTIVE_IDENTITY_COOKIE, value, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  revalidatePath("/feed");
 }

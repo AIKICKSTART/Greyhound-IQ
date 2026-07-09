@@ -5,6 +5,8 @@ export const feedPostWriteSchema = z.object({
   topicId: z.string().trim().min(1).max(120).optional().nullable(),
   body: z.string().trim().min(2).max(5000).transform(cleanText),
   mediaIds: z.array(z.string().trim().min(1)).max(4).optional().default([]),
+  // Owned CustomPage id to post as; ownership re-verified server-side.
+  pageId: z.string().trim().min(1).max(120).optional().nullable(),
 });
 
 export const feedCommentWriteSchema = z.object({

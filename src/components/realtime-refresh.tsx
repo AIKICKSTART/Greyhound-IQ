@@ -191,7 +191,7 @@ export function RealtimeRefresh({ channels }: RealtimeRefreshProps) {
   return null;
 }
 
-function getBrowserRealtimeClient() {
+export function getBrowserRealtimeClient() {
   if (browserRealtimeClient) return browserRealtimeClient;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

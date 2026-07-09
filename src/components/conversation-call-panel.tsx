@@ -79,12 +79,16 @@ export function ConversationCallPanel({
   pendingInvite,
   blocked,
   otherName,
+  canStartCall = true,
 }: {
   conversationId: string;
   activeRoom: ActiveCallRoom | null;
   pendingInvite: PendingCallInvite | null;
   blocked: boolean;
   otherName: string;
+  // Free members cannot START calls (server-gated too); they can still join
+  // an active room and accept/decline invites.
+  canStartCall?: boolean;
 }) {
   const [localRoom, setLocalRoom] = useState<ActiveCallRoom | null>(null);
   const [dismissedRoomId, setDismissedRoomId] = useState<string | null>(null);
@@ -439,7 +443,7 @@ export function ConversationCallPanel({
                 <PhoneCall className="h-3.5 w-3.5" />
                 Join {currentRoom.callType} call
               </button>
-            ) : (
+            ) : canStartCall ? (
               <>
                 <button
                   type="button"
@@ -460,6 +464,14 @@ export function ConversationCallPanel({
                   Video call
                 </button>
               </>
+            ) : (
+              <a
+                href="/pricing"
+                className="giq-outline-action min-h-11 px-4 text-[13px] font-semibold"
+              >
+                <Phone className="h-3.5 w-3.5" />
+                Calls are a Pro feature
+              </a>
             )}
           </div>
         )}

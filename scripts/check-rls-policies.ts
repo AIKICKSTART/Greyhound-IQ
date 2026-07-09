@@ -246,6 +246,108 @@ for (const needle of [
   }
 }
 
+// Member hub (2026-07-10): friend-request writes, free-reply messaging, and
+// free call receivers. These SUPERSEDE some 20260706 policies asserted above
+// (that file is history and stays byte-stable); the current semantics are:
+// - Friendship: members insert pending requests, recipients accept, either
+//   participant deletes.
+// - Message/Conversation: free tier may reply/update within conversations it
+//   participates in; starting stays Pro (trigger + insert policy).
+// - Call invite/participant/event/permission: self-scoped access no longer
+//   requires Pro (receivers), while CallRoom INSERT keeps giq_is_pro().
+const friendshipWritesSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710120500_friendship_member_writes",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  'ADD COLUMN "requestedByProfileId"',
+  'CONSTRAINT "Friendship_requestedBy_participant"',
+  "CREATE POLICY giq_friendship_insert",
+  "CREATE POLICY giq_friendship_accept",
+  "CREATE POLICY giq_friendship_delete",
+  `"requestedByProfileId" <> public.giq_current_profile_id()`,
+]) {
+  if (!friendshipWritesSql.includes(needle)) {
+    findings.push(`Friendship member-writes RLS missing: ${needle}`);
+  }
+}
+
+const freeReplySql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710121000_free_reply_messaging",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  "FUNCTION public.giq_message_write_guard()",
+  "FUNCTION public.giq_conversation_write_guard()",
+  "FUNCTION public.giq_is_conversation_participant(",
+  'DROP POLICY IF EXISTS giq_message_insert ON "Message"',
+  'public.giq_is_conversation_participant("conversationId")',
+  '"senderId" = public.giq_current_profile_id()',
+]) {
+  if (!freeReplySql.includes(needle)) {
+    findings.push(`free-reply messaging RLS missing: ${needle}`);
+  }
+}
+// The reply INSERT arm must never be unconditional: sender-scoped AND
+// participant-scoped, with pro as the only alternative.
+if (
+  !/CREATE POLICY giq_message_insert ON "Message" FOR INSERT WITH CHECK \(\s*"senderId" = public\.giq_current_profile_id\(\)\s*AND \(\s*public\.giq_is_pro\(\)\s*OR \(/.test(
+    freeReplySql
+  )
+) {
+  findings.push(
+    "giq_message_insert must stay sender-scoped with pro-or-participant-reply"
+  );
+}
+
+const freeCallReceiversSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710121500_free_call_receivers",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  "CREATE POLICY giq_call_invite_access",
+  "CREATE POLICY giq_call_participant_access",
+  "CREATE POLICY giq_call_event_access",
+  "CREATE POLICY giq_call_permission_access",
+]) {
+  if (!freeCallReceiversSql.includes(needle)) {
+    findings.push(`free-call-receivers RLS missing: ${needle}`);
+  }
+}
+// CallRoom creation must NOT be relaxed by this migration (comments may
+// reference the policy name; only DDL against it is forbidden).
+if (/(CREATE|DROP|ALTER) POLICY (IF EXISTS )?giq_call_room_insert/.test(freeCallReceiversSql)) {
+  findings.push(
+    "free-call-receivers migration must not touch giq_call_room_insert (initiation stays Pro)"
+  );
+}
+// CallPermission writes stay paid/system — only reads were opened to receivers.
+if (
+  !/WITH CHECK \(\s*public\.giq_is_system\(\)\s*OR public\.giq_is_moderator\(\)\s*OR \(public\.giq_is_pro\(\) AND "profileId" = public\.giq_current_profile_id\(\)\)/.test(
+    freeCallReceiversSql
+  )
+) {
+  findings.push("CallPermission WITH CHECK must keep the pro gate on writes");
+}
+
 void main();
 
 async function main() {

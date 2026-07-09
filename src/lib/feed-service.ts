@@ -109,11 +109,17 @@ export async function getFeedPostsForViewer(
 
 export async function createFeedPostForCurrentUser(
   current: CurrentUserProfile,
-  input: { topicId?: string | null; body: string; mediaIds?: string[] }
+  input: {
+    topicId?: string | null;
+    body: string;
+    mediaIds?: string[];
+    pageId?: string | null;
+  }
 ) {
   assertPaidFeatureAccess(current);
   const topicId = input.topicId || null;
   if (topicId) await assertActiveTopic(topicId);
+  const pageId = input.pageId || null;
   const mediaIds = input.mediaIds ?? [];
   await assertFeedMediaAttachable(current, mediaIds);
   const phraseMatch = await findBannedPhraseMatch(input.body, "feed");
@@ -121,9 +127,22 @@ export async function createFeedPostForCurrentUser(
   const status = phraseMatch ? "hidden" : "active";
 
   const post = await withDbRequestContext(current, async (tx) => {
+    if (pageId) {
+      // Server-side ownership check: never trust a client-supplied page id.
+      const owned = await tx.customPage.findFirst({
+        where: {
+          id: pageId,
+          ownerProfileId: current.profileId,
+          moderationStatus: { not: "removed" },
+        },
+        select: { id: true },
+      });
+      if (!owned) throw new Error("feed.page_not_owned");
+    }
     const created = await tx.feedPost.create({
       data: {
         authorProfileId: current.profileId,
+        authorPageId: pageId,
         topicId,
         body: input.body,
         status,
@@ -140,7 +159,12 @@ export async function createFeedPostForCurrentUser(
     action: "feed.post.create",
     targetType: "feed_post",
     targetId: post.id,
-    metadata: { mediaCount: mediaIds.length, topicId, phraseFlag: phraseMatch?.id },
+    metadata: {
+      mediaCount: mediaIds.length,
+      topicId,
+      pageId,
+      phraseFlag: phraseMatch?.id,
+    },
   });
   if (status === "active") {
     await broadcastFeedRealtimeEvent("post_created", {
@@ -450,6 +474,17 @@ function feedPostInclude(viewerProfileId?: string | null) {
 
   return {
     author: { select: { displayName: true } },
+    authorPage: {
+      select: {
+        id: true,
+        handle: true,
+        title: true,
+        pageType: true,
+        published: true,
+        accentColor: true,
+        contentJson: true,
+      },
+    },
     topic: true,
     media: {
       orderBy: { position: "asc" },

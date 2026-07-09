@@ -70,6 +70,29 @@ export function getPendingCallInviteForConversation(
   }));
 }
 
+// Read-only: pending invites ringing THIS profile across all conversations —
+// powers the hub incoming-call card. RLS scopes rows; the where clause keeps
+// intent explicit and drops expired invites.
+export function listPendingCallInvitesForProfile(current: DbContextUser) {
+  return withDbRequestContext(current, (tx) => tx.callInvite.findMany({
+    where: {
+      status: "pending",
+      toProfileId: current.profileId,
+      expiresAt: { gt: new Date() },
+      callRoom: { status: "active" },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+    select: {
+      id: true,
+      callRoomId: true,
+      expiresAt: true,
+      fromProfile: { select: { id: true, displayName: true } },
+      callRoom: { select: { callType: true, conversationId: true } },
+    },
+  }));
+}
+
 // Read-only: recent terminal call events for the conversation thread log.
 // Callers must have already authorized access to the conversation.
 export function getRecentCallLogForConversation(
@@ -186,7 +209,11 @@ export async function createCallTokenForCurrentUser(
   current: CurrentUserProfile,
   roomId: string
 ) {
-  assertPaidFeatureAccess(current);
+  // Deliberately NOT tier-gated: free members may JOIN calls a paid member
+  // started. callRoomJoinWhere only matches rooms holding an explicit
+  // CallPermission.canJoin row for this profile, and only a paid initiator
+  // (createCallRoomForConversation, still assertPaidFeatureAccess-gated) can
+  // create those rows. Block + room-TTL checks below still apply.
   const config = liveKitConfig();
   const room = await withDbRequestContext(current, (tx) => tx.callRoom.findFirst({
     where: callRoomJoinWhere(roomId, current.profileId),

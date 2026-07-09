@@ -28,7 +28,7 @@ import { ConversationCallPanel } from "@/components/conversation-call-panel";
 import { InstantMessageComposer } from "@/components/instant-message-composer";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
 import { SubmitButton } from "@/components/submit-button";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, hasTier } from "@/lib/auth";
 import {
   getActiveCallRoomForConversation,
   getPendingCallInviteForConversation,
@@ -451,6 +451,7 @@ export default async function MessageThreadPage({
             }
             blocked={Boolean(conversation.blockedAt)}
             otherName={other.displayName}
+            canStartCall={hasTier(user.tier, "pro")}
           />
         </div>
 

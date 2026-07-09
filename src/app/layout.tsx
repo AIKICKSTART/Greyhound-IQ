@@ -5,6 +5,8 @@ import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import "./globals.css";
 import { CookieConsentBanner } from "@/components/cookie-consent";
+import { getCurrentUser } from "@/lib/auth";
+import { countUnreadMessagesTotal } from "@/lib/conversation-service";
 import { MobileBottomDock } from "@/components/mobile-bottom-dock";
 import { ResponsibleUseAlert } from "@/components/responsible-use-alert";
 import { SiteHeader } from "@/components/site-header";
@@ -79,6 +81,17 @@ export default async function RootLayout({
   const initialAuth = { ...auth };
   delete (initialAuth as { accessToken?: unknown }).accessToken;
 
+  const user = await getCurrentUser();
+  const unreadMessages =
+    user?.dbUserId && user.profileId
+      ? await countUnreadMessagesTotal({
+          dbUserId: user.dbUserId,
+          profileId: user.profileId,
+          profileRole: user.role ?? "member",
+          tier: user.tier,
+        })
+      : 0;
+
   return (
     <html lang="en" className={inter.variable}>
       <body
@@ -99,7 +112,7 @@ export default async function RootLayout({
             <main id="main-content" className="min-h-screen flex-1">{children}</main>
             <SiteFooter />
           </div>
-          <MobileBottomDock />
+          <MobileBottomDock unreadMessages={unreadMessages} />
           <CookieConsentBanner />
         </AuthKitProvider>
       </body>

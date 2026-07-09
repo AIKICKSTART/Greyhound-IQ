@@ -405,6 +405,7 @@ export async function SiteHeader() {
                 "message_created",
                 "conversation_updated",
                 "call_invite_created",
+                "friend_updated",
               ],
             },
           ]}

@@ -1131,6 +1131,8 @@ model CustomPage {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
+  feedPosts FeedPost[] @relation("CustomPageFeedPosts")
+
   @@unique([ownerProfileId, pageType, dogId])
   @@index([handle])
   @@index([pageType, published])
@@ -1138,14 +1140,17 @@ model CustomPage {
 }
 
 model Friendship {
-  id         String   @id @default(cuid())
-  profileAId String
-  profileA   Profile  @relation("FriendshipA", fields: [profileAId], references: [id], onDelete: Cascade)
-  profileBId String
-  profileB   Profile  @relation("FriendshipB", fields: [profileBId], references: [id], onDelete: Cascade)
-  status     String   @default("accepted")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                   String  @id @default(cuid())
+  profileAId           String
+  profileA             Profile @relation("FriendshipA", fields: [profileAId], references: [id], onDelete: Cascade)
+  profileBId           String
+  profileB             Profile @relation("FriendshipB", fields: [profileBId], references: [id], onDelete: Cascade)
+  // pending | accepted (decline/remove = row delete)
+  status               String  @default("accepted")
+  // profile that sent the request; NULL on legacy auto-accepted rows
+  requestedByProfileId String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@unique([profileAId, profileBId])
   @@index([profileAId, status, updatedAt])
@@ -1685,6 +1690,8 @@ model FeedPost {
   id              String          @id @default(cuid())
   authorProfileId String
   author          Profile         @relation(fields: [authorProfileId], references: [id])
+  authorPageId    String? // posted "as" an owned CustomPage identity
+  authorPage      CustomPage?     @relation("CustomPageFeedPosts", fields: [authorPageId], references: [id], onDelete: SetNull)
   topicId         String?
   topic           FeedTopic?      @relation(fields: [topicId], references: [id], onDelete: SetNull)
   body            String
@@ -1702,6 +1709,7 @@ model FeedPost {
   @@index([status, visibility, pinnedAt, createdAt])
   @@index([topicId, status, createdAt])
   @@index([authorProfileId, createdAt])
+  @@index([authorPageId, createdAt])
   @@index([pinnedAt])
 }
 

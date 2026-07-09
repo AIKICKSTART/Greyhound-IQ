@@ -202,10 +202,10 @@ export async function sendConversationMessage(
   conversationId: string,
   input: { body: string; mediaIds?: string[] }
 ) {
-  // Sending a message is Pro-only (see startOrGetConversation). Gating send as
-  // well as start closes the paywall bypass on the reply path too.
-  assertPaidFeatureAccess(current);
-
+  // Starting a conversation is Pro-only (startOrGetConversation). Replying is
+  // open to any tier: getConversationForProfile below throws unless the sender
+  // already participates, and the giq_message_write_guard DB trigger enforces
+  // the same participant-reply rule under RLS.
   const conversation = await getConversationForProfile(
     current,
     conversationId,

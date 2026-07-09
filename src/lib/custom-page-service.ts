@@ -1,6 +1,10 @@
 import "server-only";
 import { cache } from "react";
-import { withDbRequestContext, withDbSystemContext } from "@/lib/db-context";
+import {
+  withDbRequestContext,
+  withDbSystemContext,
+  type DbContextUser,
+} from "@/lib/db-context";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { assertPaidFeatureAccess, hasTier } from "@/lib/tier-access";
 import { findBannedPhraseMatch } from "@/lib/moderation-service";
@@ -254,7 +258,7 @@ export function getOwnedCustomPage(current: CurrentUserProfile, pageId: string) 
   );
 }
 
-export function listCustomPagesForCurrentUser(current: CurrentUserProfile) {
+export function listCustomPagesForCurrentUser(current: DbContextUser) {
   return withDbRequestContext(current, (tx) =>
     tx.customPage.findMany({
       where: { ownerProfileId: current.profileId },
@@ -327,6 +331,35 @@ export function parseCustomPageContent(contentJson: string | null): CustomPageCo
   } catch {
     return { galleryMediaIds: [], avatarMediaId: null, bannerMediaId: null, logoMediaId: null, cardMediaId: null };
   }
+}
+
+// Batch avatar resolution for feed cards: one MediaAsset query for any number
+// of pages (per-post resolveCustomPageMedia would be N queries).
+export async function resolvePageAvatarUrls(
+  pages: { id: string; contentJson: string | null }[]
+): Promise<Map<string, string | null>> {
+  const avatarIdByPage = new Map(
+    pages.map((page) => [
+      page.id,
+      parseCustomPageContent(page.contentJson).avatarMediaId,
+    ])
+  );
+  const ids = [...new Set([...avatarIdByPage.values()].filter(Boolean))] as string[];
+  const assets = ids.length
+    ? await withDbSystemContext((tx) =>
+        tx.mediaAsset.findMany({
+          where: { id: { in: ids }, scanStatus: "clean" },
+          select: { id: true, storageBucket: true, storagePath: true, publicUrl: true },
+        })
+      )
+    : [];
+  const urlById = new Map(assets.map((a) => [a.id, mediaDeliveryUrl(a)]));
+  return new Map(
+    pages.map((page) => {
+      const avatarId = avatarIdByPage.get(page.id);
+      return [page.id, avatarId ? urlById.get(avatarId) ?? null : null];
+    })
+  );
 }
 
 export type CustomPageMediaUrls = {

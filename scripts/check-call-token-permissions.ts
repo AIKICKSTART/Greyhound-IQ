@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash, createHmac } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { WebhookReceiver } from "livekit-server-sdk";
 
@@ -113,6 +115,43 @@ async function main() {
   );
   console.log("PASS: wrong-secret JWT rejected");
   // ── End webhook signature verification ────────────────────────────────────
+
+  // ── Tier-gate placement (free receivers may join, only paid may start) ────
+  // Source-level invariant: createCallRoomForConversation keeps the paid gate;
+  // createCallTokenForCurrentUser must NOT have it (free receivers mint join
+  // tokens for rooms holding their CallPermission.canJoin row).
+  const callServiceSource = readFileSync(
+    join(__dirname, "..", "src", "lib", "call-service.ts"),
+    "utf8"
+  );
+  const createRoomBody = sliceFunction(
+    callServiceSource,
+    "createCallRoomForConversation"
+  );
+  const createTokenBody = sliceFunction(
+    callServiceSource,
+    "createCallTokenForCurrentUser"
+  );
+  assert.ok(
+    createRoomBody.includes("assertPaidFeatureAccess"),
+    "createCallRoomForConversation must keep the paid initiation gate"
+  );
+  assert.ok(
+    !createTokenBody.includes("assertPaidFeatureAccess("),
+    "createCallTokenForCurrentUser must not tier-gate receivers joining"
+  );
+  console.log("PASS: call initiation paid-gated, token join ungated");
+  // ── End tier-gate placement ────────────────────────────────────────────────
+}
+
+// Text between a named export and the next top-level export — enough to
+// assert which gates live inside which function without executing DB code.
+function sliceFunction(source: string, name: string) {
+  const start = source.indexOf(`export async function ${name}`);
+  assert.ok(start >= 0, `call-service.ts must export ${name}`);
+  const rest = source.slice(start + 1);
+  const nextExport = rest.search(/\nexport /);
+  return nextExport >= 0 ? rest.slice(0, nextExport) : rest;
 }
 
 function buildWebhookJwt(body: string, apiKey: string, apiSecret: string): string {

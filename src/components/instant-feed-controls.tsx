@@ -12,8 +12,13 @@ type FeedTopicOption = {
 
 export function InstantFeedPostComposer({
   topics,
+  pageId = null,
+  identityLabel,
 }: {
   topics: FeedTopicOption[];
+  // Owned CustomPage id to post as (server re-verifies ownership).
+  pageId?: string | null;
+  identityLabel?: string;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -43,7 +48,7 @@ export function InstantFeedPostComposer({
       const response = await fetch("/api/feed", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ topicId, body, mediaIds }),
+        body: JSON.stringify({ topicId, body, mediaIds, pageId }),
       });
       if (!response.ok) throw new Error(await errorMessage(response));
 
@@ -59,6 +64,14 @@ export function InstantFeedPostComposer({
 
   return (
     <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
+      {identityLabel && (
+        <p className="text-[12px] font-medium text-[hsl(var(--muted-foreground))]">
+          Posting as{" "}
+          <span className="font-semibold text-[hsl(var(--primary-light))]">
+            {identityLabel}
+          </span>
+        </p>
+      )}
       {topics.length > 0 && (
         <select
           name="topicId"

@@ -212,7 +212,6 @@ export function FeedInfiniteList({
 
   useEffect(() => {
     const client = getBrowserRealtimeClient();
-    if (!client) return;
     let cancelled = false;
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     let refreshRunning = false;
@@ -439,6 +438,23 @@ export function FeedInfiniteList({
       }
       scheduleRefresh();
     };
+    const refreshFromClientMutation = (event: Event) => {
+      const detail =
+        event instanceof CustomEvent && event.detail && typeof event.detail === "object"
+          ? (event.detail as {
+              postId?: unknown;
+              insertIfMissing?: unknown;
+            })
+          : null;
+      const postId =
+        typeof detail?.postId === "string" && detail.postId.length > 0
+          ? detail.postId
+          : undefined;
+      refreshHead(
+        postId ? { payload: { postId } } : undefined,
+        detail?.insertIfMissing === true,
+      );
+    };
     const resetRealtime = () => {
       refreshAbort?.abort();
       if (refreshTimer) clearTimeout(refreshTimer);
@@ -460,16 +476,19 @@ export function FeedInfiniteList({
       scheduleRefresh(0);
     };
     const channel = client
-      .channel("feed:public")
-      .on("broadcast", { event: "post_created" }, (message) =>
-        refreshHead(message, true),
-      )
-      .on("broadcast", { event: "post_updated" }, refreshHead)
-      .on("broadcast", { event: "comment_created" }, refreshHead)
-      .on("broadcast", { event: "comment_updated" }, refreshHead)
-      .on("broadcast", { event: "reaction_updated" }, refreshHead)
-      .subscribe();
+      ? client
+          .channel("feed:public")
+          .on("broadcast", { event: "post_created" }, (message) =>
+            refreshHead(message, true),
+          )
+          .on("broadcast", { event: "post_updated" }, refreshHead)
+          .on("broadcast", { event: "comment_created" }, refreshHead)
+          .on("broadcast", { event: "comment_updated" }, refreshHead)
+          .on("broadcast", { event: "reaction_updated" }, refreshHead)
+          .subscribe()
+      : null;
     window.addEventListener("giq:feed-reset", resetRealtime);
+    window.addEventListener("giq:feed-refresh", refreshFromClientMutation);
     window.addEventListener("online", resumeRealtime);
     document.addEventListener("visibilitychange", resumeRealtime);
     return () => {
@@ -477,9 +496,10 @@ export function FeedInfiniteList({
       if (refreshTimer) clearTimeout(refreshTimer);
       refreshAbort?.abort();
       window.removeEventListener("giq:feed-reset", resetRealtime);
+      window.removeEventListener("giq:feed-refresh", refreshFromClientMutation);
       window.removeEventListener("online", resumeRealtime);
       document.removeEventListener("visibilitychange", resumeRealtime);
-      void client.removeChannel(channel);
+      if (client && channel) void client.removeChannel(channel);
     };
   }, [actorId, mode]);
 

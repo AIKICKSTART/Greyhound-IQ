@@ -123,10 +123,12 @@ export function InstantFeedPostComposer({
         body: JSON.stringify({ topicId, body, mediaIds, pageId, visibility }),
       });
       if (!response.ok) throw new Error(await errorMessage(response));
+      const payload = (await response.json()) as { item?: { id?: string } };
 
       formRef.current?.reset();
       setResetKey((current) => current + 1);
       setExpanded(false);
+      requestFeedRefresh(payload.item?.id, true);
       startTransition(() => router.refresh());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not post to feed");
@@ -361,6 +363,7 @@ export function InstantFeedCommentForm({
       if (!response.ok) throw new Error(await errorMessage(response));
 
       formRef.current?.reset();
+      requestFeedRefresh(postId);
       startTransition(() => router.refresh());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not comment");
@@ -450,6 +453,7 @@ export function InstantFeedReactionButton({
       setReactionType(
         payload.item?.active ? payload.item.reactionType ?? nextType : null
       );
+      requestFeedRefresh(postId);
       startTransition(() => router.refresh());
     } catch {
       setReactionType(previous.reactionType);
@@ -669,6 +673,9 @@ export function InstantFeedTopicFollowButton({
         item?: { followed?: boolean };
       };
       setFollowed(Boolean(payload.item?.followed));
+      // Topic affinity changes the For You ranking buckets, so the existing
+      // keyset cursor is no longer valid. Restart from an authoritative head.
+      requestFeedReset();
     } catch {
       setFollowed(previous);
     } finally {
@@ -722,6 +729,7 @@ export function InstantFeedShareControls({
       if (!response.ok) throw new Error(await errorMessage(response));
       setCount((current) => current + 1);
       setShared(true);
+      requestFeedRefresh(postId);
     } catch {
       // Keep the control retryable; the API remains the source of truth.
     } finally {
@@ -800,6 +808,7 @@ export function InstantFeedOwnerControls({
       if (String(data.get("visibility") ?? initialVisibility) !== initialVisibility) {
         requestFeedReset();
       } else {
+        requestFeedRefresh(postId);
         router.refresh();
       }
     } catch (err) {
@@ -876,6 +885,14 @@ export function InstantFeedOwnerControls({
 
 function requestFeedReset() {
   window.dispatchEvent(new Event("giq:feed-reset"));
+}
+
+function requestFeedRefresh(postId?: string, insertIfMissing = false) {
+  window.dispatchEvent(
+    new CustomEvent("giq:feed-refresh", {
+      detail: { postId, insertIfMissing },
+    }),
+  );
 }
 
 function allowedShareAudiences(source: string) {

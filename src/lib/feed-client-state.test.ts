@@ -91,5 +91,17 @@ assert.deepEqual(
     { id: "tail", value: 1 },
   ]
 );
+assert.deepEqual(
+  mergeFeedItems(
+    [{ id: "existing", value: 1 }],
+    [{ id: "connections-post", value: 1 }],
+    "connections-post",
+    { id: "connections-post", value: 1 },
+  ),
+  [
+    { id: "connections-post", value: 1 },
+    { id: "existing", value: 1 },
+  ],
+);
 
 console.log("feed client state tests passed");

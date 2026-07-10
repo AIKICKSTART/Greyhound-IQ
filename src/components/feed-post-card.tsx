@@ -273,6 +273,7 @@ export function FeedPostCard({
 
       {post.media.length > 0 && (
         <FeedMediaGallery
+          postId={post.id}
           attachments={post.media}
           isAuthor={isAuthor}
           postStatus={post.status}
@@ -356,10 +357,12 @@ export function FeedPostCard({
 }
 
 function FeedMediaGallery({
+  postId,
   attachments,
   isAuthor,
   postStatus,
 }: {
+  postId: string;
   attachments: FeedPostRow["media"];
   isAuthor: boolean;
   postStatus: string;
@@ -393,7 +396,10 @@ function FeedMediaGallery({
               mosaic={!single && !motion}
             />
             {isAuthor && postStatus !== "active" && (
-              <RemoveFeedMediaButton mediaId={attachment.mediaId} />
+              <RemoveFeedMediaButton
+                postId={postId}
+                mediaId={attachment.mediaId}
+              />
             )}
           </div>
         );
@@ -402,7 +408,13 @@ function FeedMediaGallery({
   );
 }
 
-function RemoveFeedMediaButton({ mediaId }: { mediaId: string }) {
+function RemoveFeedMediaButton({
+  postId,
+  mediaId,
+}: {
+  postId: string;
+  mediaId: string;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -416,6 +428,9 @@ function RemoveFeedMediaButton({ mediaId }: { mediaId: string }) {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Could not remove attachment");
+      window.dispatchEvent(
+        new CustomEvent("giq:feed-refresh", { detail: { postId } }),
+      );
       router.refresh();
     } catch (err) {
       setError(

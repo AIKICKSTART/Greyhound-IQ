@@ -29,7 +29,7 @@ export const metadata = {
     "Review your GreyhoundIQ plan, billing status, invoices, and entitlement limits.",
 };
 
-const PANEL_CLASS = "giq-panel p-6";
+const PANEL_CLASS = "giq-panel p-5 sm:p-6";
 const ACTION_CLASS = "giq-outline-action";
 const PLAN_LABELS = {
   free: "Free",
@@ -63,27 +63,77 @@ export default async function BillingPage() {
 
   return (
     <div>
-      <PageHero
-        image="/images/wentworth-gate-hero.webp"
-        title={
-          <>
-            Account
-            <br />
-            <span className="gradient-text">billing.</span>
-          </>
+      {user ? (
+        <BillingMemberHeader tier={user.tier} />
+      ) : (
+        <PageHero
+          image="/images/wentworth-gate-hero.webp"
+          title={
+            <>
+              Account
+              <br />
+              <span className="gradient-text">billing.</span>
+            </>
+          }
+          subtitle="Plan, billing status, invoices, and entitlement limits for your account."
+        />
+      )}
+
+      <section
+        className={
+          user
+            ? "mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
+            : "mx-auto max-w-5xl px-6 py-12"
         }
-        subtitle="Plan, billing status, invoices, and entitlement limits for your account."
-      />
-
-      <section className="mx-auto max-w-5xl px-6 py-12">
-        <Link href="/account" className={`${ACTION_CLASS} mb-6 w-fit`}>
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to account
-        </Link>
-
-        {!user ? <SignedOutBilling /> : <SignedInBilling user={user} />}
+      >
+        {user ? (
+          <SignedInBilling user={user} />
+        ) : (
+          <>
+            <Link href="/account" className={`${ACTION_CLASS} mb-6 w-fit`}>
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              Back to account
+            </Link>
+            <SignedOutBilling />
+          </>
+        )}
       </section>
     </div>
+  );
+}
+
+function BillingMemberHeader({ tier }: { tier: BillingUser["tier"] }) {
+  return (
+    <header className="relative overflow-hidden border-b border-white/[0.07] bg-[linear-gradient(135deg,hsl(var(--card)/0.92),hsl(var(--background))_72%)]">
+      <div
+        aria-hidden="true"
+        className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[hsl(var(--primary-bright)/0.12)] blur-3xl"
+      />
+      <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-8">
+        <div className="max-w-2xl">
+          <p className="program-label">Member settings</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+            Billing
+          </h1>
+          <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
+            Review your plan, billing status, invoices, and account limits.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className="giq-status-pill giq-status-pill-purple min-h-8 px-3"
+            aria-label={`Current tier ${PLAN_LABELS[tier]}`}
+          >
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+            {PLAN_LABELS[tier]}
+          </span>
+          <Link href="/account" className={ACTION_CLASS}>
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            Back to account
+          </Link>
+        </div>
+      </div>
+    </header>
   );
 }
 
@@ -98,11 +148,14 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
       : "No subscription";
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-      <section className={PANEL_CLASS}>
+    <div className="grid gap-5 sm:gap-6 lg:grid-cols-12">
+      <section className={`${PANEL_CLASS} lg:col-span-5`}>
         <div className="mb-5 flex items-center gap-3">
-          <CreditCard className="h-5 w-5 text-[hsl(var(--secondary))]" />
-          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+          <CreditCard
+            className="h-5 w-5 text-[hsl(var(--secondary))]"
+            aria-hidden="true"
+          />
+          <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
             Plan
           </h2>
         </div>
@@ -115,19 +168,23 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
           />
         ) : null}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Metric label="Plan" value={formatPlanCode(planCode)} />
           <Metric label="Status" value={status} />
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-3">
-          <form action="/api/billing/portal" method="post">
-            <button className={ACTION_CLASS} type="submit">
-              <CreditCard className="h-3.5 w-3.5" />
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <form
+            action="/api/billing/portal"
+            method="post"
+            className="w-full sm:w-auto"
+          >
+            <button className={`${ACTION_CLASS} w-full`} type="submit">
+              <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
               Manage billing
             </button>
           </form>
-          <Link href="/pricing" className={ACTION_CLASS}>
+          <Link href="/pricing" className={`${ACTION_CLASS} w-full sm:w-auto`}>
             Change plan
           </Link>
         </div>
@@ -162,17 +219,20 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
         )}
       </section>
 
-      <section className={PANEL_CLASS}>
+      <section className={`${PANEL_CLASS} lg:col-span-7`}>
         <div className="mb-5 flex items-center gap-3">
-          <Gauge className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+          <Gauge
+            className="h-5 w-5 text-[hsl(var(--primary-bright))]"
+            aria-hidden="true"
+          />
+          <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
             Entitlements
           </h2>
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <span className="giq-status-pill giq-status-pill-purple">
-            <ShieldCheck className="h-3.5 w-3.5" />
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
             {overview.entitlementSnapshot ? "Local snapshot" : "Tier defaults"}
           </span>
           <span className="text-[12px] text-[hsl(var(--muted-foreground))]">
@@ -180,7 +240,7 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {ENTITLEMENT_SUMMARY.map((item) => (
             <Metric
               key={item.key}
@@ -191,10 +251,13 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
         </div>
       </section>
 
-      <section className={`${PANEL_CLASS} lg:col-span-2`}>
+      <section className={`${PANEL_CLASS} lg:col-span-12`}>
         <div className="mb-5 flex items-center gap-3">
-          <FileText className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+          <FileText
+            className="h-5 w-5 text-[hsl(var(--primary-bright))]"
+            aria-hidden="true"
+          />
+          <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
             Invoices
           </h2>
         </div>
@@ -254,8 +317,8 @@ function SignedOutBilling() {
         Sign in to view billing
       </h2>
       <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-        Billing snapshots are attached to the local user row created after the
-        WorkOS AuthKit callback.
+        Sign in securely to review your plan, invoices, billing status, and
+        current account limits.
       </p>
       <a
         href="/sign-in"

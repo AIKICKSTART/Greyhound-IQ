@@ -27,6 +27,7 @@ import {
 } from "@/app/actions";
 import { ConversationCallPanel } from "@/components/conversation-call-panel";
 import { InstantMessageComposer } from "@/components/instant-message-composer";
+import { ProcessedVideo } from "@/components/processed-video";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser, hasTier } from "@/lib/auth";
@@ -185,6 +186,48 @@ export default async function MessageThreadPage({
           { limit: 20 }
         )
       : null;
+  const callableIntent = isPageConversation ? null : callIntent;
+  const prioritizeCallPanel =
+    callableIntent !== null ||
+    activeCallRoom !== null ||
+    pendingCallInvite !== null;
+  const callPanel = (
+    <div
+      className={`${prioritizeCallPanel ? "border-b" : "border-t"} border-white/[0.06] p-5`}
+    >
+      <ConversationCallPanel
+        conversationId={conversation.id}
+        activeRoom={
+          activeCallRoom
+            ? {
+                id: activeCallRoom.id,
+                callType:
+                  activeCallRoom.callType === "voice" ? "voice" : "video",
+              }
+            : null
+        }
+        pendingInvite={
+          pendingCallInvite
+            ? {
+                id: pendingCallInvite.id,
+                roomId: pendingCallInvite.callRoomId,
+                callType:
+                  pendingCallInvite.callRoom.callType === "voice"
+                    ? "voice"
+                    : "video",
+                fromName: pendingCallInvite.fromProfile.displayName,
+                expiresAt: pendingCallInvite.expiresAt.toISOString(),
+                forMe: pendingCallInvite.toProfileId === user.profileId,
+              }
+            : null
+        }
+        blocked={Boolean(conversation.blockedAt)}
+        otherName={otherLabel}
+        canStartCall={hasTier(user.tier, "pro") && !isPageConversation}
+        autoCallIntent={callableIntent}
+      />
+    </div>
+  );
 
   return (
     <div className="giq-social-thread mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
@@ -349,6 +392,7 @@ export default async function MessageThreadPage({
       </section>
 
       <section className="giq-social-thread-panel giq-panel">
+        {prioritizeCallPanel && callPanel}
         <div className="space-y-4 p-5">
           {(hasEarlierPage || before) && (
             <div className="flex flex-wrap items-center justify-center gap-2 pb-1">
@@ -527,40 +571,7 @@ export default async function MessageThreadPage({
             })
           )}
         </div>
-
-        <div className="border-t border-white/[0.06] p-5">
-          <ConversationCallPanel
-            conversationId={conversation.id}
-            activeRoom={
-              activeCallRoom
-                ? {
-                    id: activeCallRoom.id,
-                    callType:
-                      activeCallRoom.callType === "voice" ? "voice" : "video",
-                  }
-                : null
-            }
-            pendingInvite={
-              pendingCallInvite
-                ? {
-                    id: pendingCallInvite.id,
-                    roomId: pendingCallInvite.callRoomId,
-                    callType:
-                      pendingCallInvite.callRoom.callType === "voice"
-                        ? "voice"
-                        : "video",
-                    fromName: pendingCallInvite.fromProfile.displayName,
-                    expiresAt: pendingCallInvite.expiresAt.toISOString(),
-                    forMe: pendingCallInvite.toProfileId === user.profileId,
-                  }
-                : null
-            }
-            blocked={Boolean(conversation.blockedAt)}
-            otherName={otherLabel}
-            canStartCall={hasTier(user.tier, "pro") && !isPageConversation}
-            autoCallIntent={isPageConversation ? null : callIntent}
-          />
-        </div>
+        {!prioritizeCallPanel && callPanel}
 
         <InstantMessageComposer
           conversationId={conversation.id}
@@ -644,60 +655,147 @@ function MessageAttachment({
     widthPx: number | null;
     heightPx: number | null;
     scanStatus: string;
+    processingStatus: string;
+    playbackPath: string | null;
+    posterPath: string | null;
+    hlsPath: string | null;
+    altText: string | null;
+    captionPath: string | null;
   };
 }) {
   // Blob endpoints only serve clean media - never emit a link for non-clean.
   if (media.scanStatus === "pending") {
-    return (
-      <span
-        role="status"
-        className="inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[12px] text-[hsl(var(--muted-foreground))]"
-      >
-        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-        Scanning attachment…
-      </span>
-    );
+    return <AttachmentStatus label="Scanning attachment…" loading />;
   }
   if (media.scanStatus !== "clean") {
     return (
-      <span className="inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border border-white/[0.04] bg-white/[0.02] px-3 py-2 text-[12px] text-[hsl(var(--subtle-foreground))]">
-        <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />
-        Attachment removed (failed safety scan)
-      </span>
+      <AttachmentStatus
+        label={
+          media.scanStatus === "infected"
+            ? "Attachment removed by safety scan"
+            : "Attachment safety scan failed"
+        }
+        failed
+      />
+    );
+  }
+  if (media.processingStatus !== "ready") {
+    return (
+      <AttachmentStatus
+        label={
+          media.processingStatus === "failed"
+            ? "Attachment processing failed"
+            : media.processingStatus === "processing"
+              ? "Preparing attachment…"
+              : media.processingStatus === "scanning"
+                ? "Scanning attachment…"
+                : "Attachment queued for processing…"
+        }
+        loading={media.processingStatus !== "failed"}
+        failed={media.processingStatus === "failed"}
+      />
     );
   }
 
-  const url = `/api/media/${media.id}/blob`;
+  const originalUrl = `/api/media/${media.id}/blob`;
+  const playbackUrl = media.playbackPath
+    ? `${originalUrl}?variant=playback`
+    : originalUrl;
+  const label = media.altText ?? media.originalName ?? "Message attachment";
+
   if (media.mimeType.startsWith("image/")) {
     return (
       <a
-        href={url}
+        href={playbackUrl}
         target="_blank"
         rel="noreferrer"
-        className="giq-listing-media block"
+        className="giq-listing-media block overflow-hidden rounded-lg"
       >
         <NextImage
-          src={url}
-          alt={media.originalName ?? "Message media"}
+          src={playbackUrl}
+          alt={label}
           width={media.widthPx ?? 420}
           height={media.heightPx ?? 280}
           unoptimized
-          className="h-36 w-full object-cover"
+          className="max-h-44 w-full object-cover"
         />
       </a>
     );
   }
 
+  if (media.mimeType.startsWith("video/")) {
+    return (
+      <ProcessedVideo
+        playbackUrl={playbackUrl}
+        hlsUrl={media.hlsPath ? `${originalUrl}?variant=hls` : null}
+        posterUrl={media.posterPath ? `${originalUrl}?variant=poster` : null}
+        captionUrl={media.captionPath ? `${originalUrl}?variant=caption` : null}
+        label={label}
+        compact
+      />
+    );
+  }
+
+  if (media.mimeType.startsWith("audio/")) {
+    return (
+      <audio
+        controls
+        preload="metadata"
+        src={playbackUrl}
+        className="min-h-11 w-full"
+        aria-label={label}
+      />
+    );
+  }
+
   return (
     <a
-      href={url}
+      href={originalUrl}
       target="_blank"
       rel="noreferrer"
-      className="giq-outline-action min-h-14 px-3 py-2 text-[12px]"
+      className="giq-outline-action min-h-11 max-w-full px-3 py-2 text-[12px]"
     >
-      <Paperclip className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
+      <Paperclip
+        className="h-4 w-4 shrink-0 text-[hsl(var(--primary-bright))]"
+        aria-hidden="true"
+      />
       <span className="truncate">{media.originalName ?? media.mimeType}</span>
     </a>
+  );
+}
+
+function AttachmentStatus({
+  label,
+  loading = false,
+  failed = false,
+}: {
+  label: string;
+  loading?: boolean;
+  failed?: boolean;
+}) {
+  return (
+    <span
+      role="status"
+      className="inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.025] px-3 py-2 text-[12px] text-[hsl(var(--muted-foreground))]"
+    >
+      {loading ? (
+        <Loader2
+          className="h-3.5 w-3.5 shrink-0 animate-spin"
+          aria-hidden="true"
+        />
+      ) : failed ? (
+        <ShieldAlert
+          className="h-3.5 w-3.5 shrink-0"
+          aria-hidden="true"
+        />
+      ) : (
+        <Paperclip
+          className="h-3.5 w-3.5 shrink-0"
+          aria-hidden="true"
+        />
+      )}
+      <span>{label}</span>
+    </span>
   );
 }
 

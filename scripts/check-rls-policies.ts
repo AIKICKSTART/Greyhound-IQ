@@ -665,6 +665,25 @@ for (const needle of [
     findings.push(`CallInvite response guard trigger missing: ${needle}`);
   }
 }
+
+const runtimeAuditSequenceSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710150000_grant_runtime_audit_sequence",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  'GRANT USAGE ON SEQUENCE public."AuditLog_id_seq" TO greyhoundiq_runtime',
+  'GRANT USAGE ON SEQUENCE public."AuditLog_id_seq" TO greyhoundiq_app',
+]) {
+  if (!runtimeAuditSequenceSql.includes(needle)) {
+    findings.push(`runtime audit sequence permission missing: ${needle}`);
+  }
+}
 for (const table of [
   "SocialActor",
   "ActorFollow",

@@ -107,7 +107,10 @@ jobs:
       - run: npm run check:internal-auth
       - run: npm run check:calls
       - run: npm run check:auth-profile-sync
-      - run: npm run check:community-flow
+      - name: Run community flow under the runtime RLS role
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}?options=-c%20role%3Dgreyhoundiq_runtime
+        run: npm run check:community-flow
       - run: npm run check:marketplace-safety
       - run: npm run check:visibility-policies
       - run: npm run test:unit

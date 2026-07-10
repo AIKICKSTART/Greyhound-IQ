@@ -171,6 +171,87 @@ async function main() {
     );
     trackedCallRoomIds.push(directRoom.id);
     await assert.rejects(() =>
+      withDbRequestContext({ ...b, tier: "free" as const }, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.create({
+          data: {
+            callRoomId: directRoom.id,
+            fromProfileId: b.profileId,
+            toProfileId: a.profileId,
+            status: "pending",
+            expiresAt: new Date(Date.now() + 60_000),
+          },
+        });
+      }),
+      "Free callee cannot create a reverse invite",
+    );
+    const directInvite = await withDbRequestContext(a, async (tx) => {
+      await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+      return tx.callInvite.create({
+        data: {
+          callRoomId: directRoom.id,
+          fromProfileId: a.profileId,
+          toProfileId: b.profileId,
+          status: "pending",
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      });
+    });
+    const acceptedInvite = await withDbRequestContext(
+      { ...b, tier: "free" as const },
+      async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.update({
+          where: { id: directInvite.id },
+          data: { status: "accepted" },
+        });
+      },
+    );
+    assert.equal(acceptedInvite.status, "accepted");
+    await assert.rejects(() =>
+      withDbRequestContext(a, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.update({
+          where: { id: directInvite.id },
+          data: { status: "declined" },
+        });
+      }),
+      "invite sender cannot forge a response",
+    );
+    await assert.rejects(() =>
+      withDbRequestContext({ ...b, tier: "free" as const }, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.update({
+          where: { id: directInvite.id },
+          data: { status: "pending" },
+        });
+      }),
+      "callee cannot reset an accepted invite to pending",
+    );
+    await assert.rejects(() =>
+      withDbRequestContext({ ...b, tier: "free" as const }, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.update({
+          where: { id: directInvite.id },
+          data: { expiresAt: new Date(Date.now() + 120_000) },
+        });
+      }),
+      "callee cannot rewrite invite expiry",
+    );
+    await assert.rejects(() =>
+      withDbRequestContext({ ...b, tier: "free" as const }, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.update({
+          where: { id: directInvite.id },
+          data: {
+            fromProfileId: b.profileId,
+            toProfileId: a.profileId,
+          },
+        });
+      }),
+      "callee cannot rewrite invite identities",
+    );
+    await assert.rejects(() =>
       withDbRequestContext(a, async (tx) => {
         await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
         return tx.callParticipant.create({

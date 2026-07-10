@@ -585,6 +585,86 @@ for (const needle of [
     findings.push(`call child conversation scope missing: ${needle}`);
   }
 }
+
+const splitCallInviteSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710147000_split_call_invite_permissions",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  "CREATE POLICY giq_call_invite_select",
+  "CREATE POLICY giq_call_invite_insert",
+  "CREATE POLICY giq_call_invite_update",
+  "CREATE POLICY giq_call_invite_delete",
+  '"fromProfileId" = public.giq_current_profile_id()',
+  'public.giq_call_room_current_profile_is_creator("callRoomId")',
+  "FUNCTION public.giq_call_invite_identity_guard()",
+  "CREATE TRIGGER giq_call_invite_identity_immutable",
+  "BEFORE UPDATE OF \"callRoomId\", \"fromProfileId\", \"toProfileId\"",
+  "call.invite_identity_immutable",
+]) {
+  if (!splitCallInviteSql.includes(needle)) {
+    findings.push(`split call invite authorization missing: ${needle}`);
+  }
+}
+const inviteInsertPolicy = splitCallInviteSql.match(
+  /CREATE POLICY giq_call_invite_insert[\s\S]*?;/
+)?.[0];
+if (!inviteInsertPolicy?.includes("public.giq_is_pro()")) {
+  findings.push("CallInvite INSERT must remain Pro-only for the room creator");
+}
+
+const callInviteResponseSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710148000_constrain_call_invite_responses",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  "ALTER POLICY giq_call_invite_update",
+  '"toProfileId" = public.giq_current_profile_id()',
+  "FUNCTION public.giq_call_invite_identity_guard()",
+  "OLD.id IS DISTINCT FROM NEW.id",
+  'OLD."expiresAt" IS DISTINCT FROM NEW."expiresAt"',
+  'OLD."createdAt" IS DISTINCT FROM NEW."createdAt"',
+  "OLD.status <> 'pending'",
+  "NEW.status NOT IN ('accepted', 'declined')",
+  "call.invite_response_invalid",
+]) {
+  if (!callInviteResponseSql.includes(needle)) {
+    findings.push(`call invite response constraint missing: ${needle}`);
+  }
+}
+
+const callInviteGuardTriggerSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710149000_run_call_invite_guard_on_all_updates",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  "DROP TRIGGER IF EXISTS giq_call_invite_identity_immutable",
+  "CREATE TRIGGER giq_call_invite_identity_immutable",
+  'BEFORE UPDATE ON public."CallInvite"',
+  "EXECUTE FUNCTION public.giq_call_invite_identity_guard()",
+]) {
+  if (!callInviteGuardTriggerSql.includes(needle)) {
+    findings.push(`CallInvite response guard trigger missing: ${needle}`);
+  }
+}
 for (const table of [
   "SocialActor",
   "ActorFollow",

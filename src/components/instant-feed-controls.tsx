@@ -1,24 +1,55 @@
 "use client";
 
-import { FormEvent, useRef, useState, useTransition } from "react";
+import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AudioLines,
   Bookmark,
+  ChevronDown,
+  HandHeart,
   Heart,
+  ImageIcon,
+  Lightbulb,
   Loader2,
+  PartyPopper,
   Pencil,
   Send,
   Share2,
+  SlidersHorizontal,
   Tags,
+  ThumbsUp,
   Trash2,
+  UserX,
+  Video,
   VolumeX,
 } from "lucide-react";
+import { blockFeedPostAuthor } from "@/app/actions";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
 
 type FeedTopicOption = {
   id: string;
   name: string;
 };
+
+const REACTIONS = [
+  { type: "like", label: "Like", icon: ThumbsUp, tone: "text-sky-300" },
+  { type: "love", label: "Love", icon: Heart, tone: "text-rose-300" },
+  {
+    type: "celebrate",
+    label: "Celebrate",
+    icon: PartyPopper,
+    tone: "text-amber-300",
+  },
+  {
+    type: "insightful",
+    label: "Insightful",
+    icon: Lightbulb,
+    tone: "text-yellow-200",
+  },
+  { type: "support", label: "Support", icon: HandHeart, tone: "text-violet-300" },
+] as const;
+
+export type FeedReactionType = (typeof REACTIONS)[number]["type"];
 
 export function InstantFeedPostComposer({
   topics,
@@ -34,9 +65,39 @@ export function InstantFeedPostComposer({
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
+  const [expanded, setExpanded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [refreshing, startTransition] = useTransition();
   const busy = submitting || refreshing;
+
+  useEffect(() => {
+    let focusFrame = 0;
+    let expandTimer = 0;
+    const expandComposer = () => {
+      window.clearTimeout(expandTimer);
+      expandTimer = window.setTimeout(() => {
+        setExpanded(true);
+        window.cancelAnimationFrame(focusFrame);
+        focusFrame = window.requestAnimationFrame(() =>
+          formRef.current
+            ?.querySelector<HTMLTextAreaElement>("textarea")
+            ?.focus(),
+        );
+      }, 0);
+    };
+    const expandFromHash = () => {
+      if (window.location.hash === "#feed-composer") expandComposer();
+    };
+    expandFromHash();
+    window.addEventListener("hashchange", expandFromHash);
+    window.addEventListener("giq:open-feed-composer", expandComposer);
+    return () => {
+      window.clearTimeout(expandTimer);
+      window.cancelAnimationFrame(focusFrame);
+      window.removeEventListener("hashchange", expandFromHash);
+      window.removeEventListener("giq:open-feed-composer", expandComposer);
+    };
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,6 +126,7 @@ export function InstantFeedPostComposer({
 
       formRef.current?.reset();
       setResetKey((current) => current + 1);
+      setExpanded(false);
       startTransition(() => router.refresh());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not post to feed");
@@ -73,84 +135,192 @@ export function InstantFeedPostComposer({
     }
   }
 
+  function chooseMedia(kind: "image" | "video" | "audio") {
+    setExpanded(true);
+    window.setTimeout(() => {
+      const input = formRef.current?.querySelector<HTMLInputElement>(
+        'input[type="file"][accept]'
+      );
+      if (!input) return;
+      const accepted = input.accept;
+      input.accept = `${kind}/*`;
+      input.click();
+      window.setTimeout(() => {
+        input.accept = accepted;
+      }, 0);
+    }, 0);
+  }
+
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
-      {identityLabel && (
-        <p className="text-[12px] font-medium text-[hsl(var(--muted-foreground))]">
-          Posting as{" "}
-          <span className="font-semibold text-[hsl(var(--primary-light))]">
-            {identityLabel}
-          </span>
-        </p>
-      )}
-      {topics.length > 0 && (
-        <select
-          name="topicId"
-          className="giq-form-control px-3 py-2 text-[13px]"
-          defaultValue=""
-          disabled={busy}
-        >
-          <option value="">General</option>
-          {topics.map((topic) => (
-            <option key={topic.id} value={topic.id}>
-              {topic.name}
-            </option>
-          ))}
-        </select>
-      )}
-      <textarea
-        name="body"
-        required
-        minLength={2}
-        maxLength={5000}
-        rows={5}
-        disabled={busy}
-        className="giq-form-control giq-textarea px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
-        placeholder="Share a race note, kennel update, question, or marketplace context."
-      />
-      <label className="grid gap-1 text-[12px] text-[hsl(var(--muted-foreground))]">
-        Audience
-        <select
-          name="visibility"
-          defaultValue={pageId ? "public" : "connections"}
-          disabled={busy}
-          className="giq-form-control px-3 py-2 text-[13px]"
-        >
-          <option value="public">Public</option>
-          <option value="members">Members</option>
-          <option value="connections">Connections</option>
-          <option value="only_me">Only me</option>
-        </select>
-      </label>
-      <MediaAttachmentFields
-        key={resetKey}
-        mediaContext="feed"
-        maxFiles={10}
-        compact
-      />
-      {error && (
-        <p className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] text-red-100">
-          {error}
-        </p>
-      )}
-      <button
-        type="submit"
-        disabled={busy}
-        className="giq-button giq-button-primary giq-submit-stack px-4 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        <span className={`col-start-1 row-start-1 inline-flex items-center justify-center gap-2 ${busy ? "invisible" : ""}`}>
-          <Send className="h-3.5 w-3.5" />
-          Post
-        </span>
+    <form ref={formRef} onSubmit={onSubmit} className="space-y-3">
+      <div className="flex items-center gap-3">
         <span
-          aria-hidden={!busy}
-          className={`col-start-1 row-start-1 inline-flex items-center justify-center gap-2 ${busy ? "" : "invisible"}`}
+          aria-hidden="true"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[hsl(var(--secondary)/0.45)] bg-[hsl(var(--primary)/0.16)] text-[13px] font-bold text-[hsl(var(--primary-light))]"
         >
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Posting...
+          {(identityLabel ?? "You").slice(0, 1).toUpperCase()}
         </span>
-      </button>
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          aria-expanded={expanded}
+          aria-controls="feed-composer-details"
+          className="min-h-11 min-w-0 flex-1 rounded-full border border-white/[0.09] bg-white/[0.035] px-4 text-left text-[13px] text-[hsl(var(--muted-foreground))] transition hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-[hsl(var(--foreground))]"
+        >
+          Share an update...
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 divide-x divide-white/[0.07] border-y border-white/[0.07]">
+        <ComposerMediaButton
+          label="Photo"
+          icon={ImageIcon}
+          tone="text-emerald-300"
+          onClick={() => chooseMedia("image")}
+        />
+        <ComposerMediaButton
+          label="Video"
+          icon={Video}
+          tone="text-violet-300"
+          onClick={() => chooseMedia("video")}
+        />
+        <ComposerMediaButton
+          label="Audio"
+          icon={AudioLines}
+          tone="text-amber-300"
+          onClick={() => chooseMedia("audio")}
+        />
+      </div>
+
+      <div
+        id="feed-composer-details"
+        className={expanded ? "space-y-3" : "hidden"}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {identityLabel && (
+            <p className="text-[12px] text-[hsl(var(--muted-foreground))]">
+              Posting as{" "}
+              <span className="font-semibold text-[hsl(var(--primary-light))]">
+                {identityLabel}
+              </span>
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="ml-auto min-h-10 rounded-lg px-3 text-[11px] font-semibold text-[hsl(var(--muted-foreground))] hover:bg-white/[0.04] hover:text-[hsl(var(--foreground))]"
+          >
+            Collapse
+          </button>
+        </div>
+
+        <textarea
+          name="body"
+          required
+          minLength={2}
+          maxLength={5000}
+          rows={3}
+          disabled={busy}
+          className="giq-form-control giq-textarea px-3 py-3 text-[14px] disabled:cursor-not-allowed disabled:opacity-50"
+          placeholder="Share a race note, kennel update, question, or marketplace context."
+        />
+
+        <details className="rounded-xl border border-white/[0.07] bg-white/[0.02]">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-[12px] font-semibold text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
+            <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
+            Topic and audience
+            <ChevronDown className="ml-auto h-3.5 w-3.5" aria-hidden="true" />
+          </summary>
+          <div className="grid gap-3 border-t border-white/[0.07] p-3 sm:grid-cols-2">
+            <label className="grid gap-1 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]">
+              Topic
+              <select
+                name="topicId"
+                className="giq-form-control px-3 py-2 text-[13px]"
+                defaultValue=""
+                disabled={busy}
+              >
+                <option value="">General</option>
+                {topics.map((topic) => (
+                  <option key={topic.id} value={topic.id}>
+                    {topic.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-1 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]">
+              Audience
+              <select
+                name="visibility"
+                defaultValue={pageId ? "public" : "connections"}
+                disabled={busy}
+                className="giq-form-control px-3 py-2 text-[13px]"
+              >
+                <option value="public">Public</option>
+                <option value="members">Members</option>
+                <option value="connections">Connections</option>
+                <option value="only_me">Only me</option>
+              </select>
+            </label>
+          </div>
+        </details>
+
+        <MediaAttachmentFields
+          key={resetKey}
+          mediaContext="feed"
+          maxFiles={10}
+          compact
+        />
+        {error && (
+          <p className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] text-red-100">
+            {error}
+          </p>
+        )}
+        <div className="flex items-center justify-end gap-2">
+          <button
+            type="submit"
+            disabled={busy}
+            className="giq-button giq-button-primary giq-submit-stack min-w-28 px-5 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className={`col-start-1 row-start-1 inline-flex items-center justify-center gap-2 ${busy ? "invisible" : ""}`}>
+              <Send className="h-3.5 w-3.5" />
+              Post
+            </span>
+            <span
+              aria-hidden={!busy}
+              className={`col-start-1 row-start-1 inline-flex items-center justify-center gap-2 ${busy ? "" : "invisible"}`}
+            >
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Posting...
+            </span>
+          </button>
+        </div>
+      </div>
     </form>
+  );
+}
+
+function ComposerMediaButton({
+  label,
+  icon: Icon,
+  tone,
+  onClick,
+}: {
+  label: string;
+  icon: typeof ImageIcon;
+  tone: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex min-h-11 items-center justify-center gap-2 px-2 text-[12px] font-semibold text-[hsl(var(--muted-foreground))] transition hover:bg-white/[0.035] hover:text-[hsl(var(--foreground))]"
+      aria-label={`Add ${label.toLowerCase()} to post`}
+    >
+      <Icon className={`h-4 w-4 ${tone}`} aria-hidden="true" />
+      {label}
+    </button>
   );
 }
 
@@ -237,77 +407,116 @@ export function InstantFeedCommentForm({
 export function InstantFeedReactionButton({
   postId,
   initialCount,
-  initiallyLiked,
+  initialReactionType,
   disabled,
   actorId,
 }: {
   postId: string;
   initialCount: number;
-  initiallyLiked: boolean;
+  initialReactionType: FeedReactionType | null;
   disabled: boolean;
   actorId?: string | null;
 }) {
   const router = useRouter();
   const [count, setCount] = useState(initialCount);
-  const [liked, setLiked] = useState(initiallyLiked);
-  const [reactionType, setReactionType] = useState("like");
+  const [reactionType, setReactionType] = useState<FeedReactionType | null>(
+    initialReactionType
+  );
   const [submitting, setSubmitting] = useState(false);
   const [refreshing, startTransition] = useTransition();
   const busy = submitting || refreshing;
 
-  async function onClick() {
+  async function toggle(nextType: FeedReactionType) {
     if (disabled || busy) return;
 
-    const nextLiked = !liked;
-    setLiked(nextLiked);
-    setCount((current) => current + (nextLiked ? 1 : -1));
+    const previous = { count, reactionType };
+    const removing = reactionType === nextType;
+    const nextReaction = removing ? null : nextType;
+    setReactionType(nextReaction);
+    setCount((current) =>
+      Math.max(0, current + (reactionType ? (removing ? -1 : 0) : 1))
+    );
     setSubmitting(true);
     try {
       const response = await fetch(`/api/feed/${postId}/reaction`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ reactionType, actorId }),
+        body: JSON.stringify({ reactionType: nextType, actorId }),
       });
       if (!response.ok) throw new Error(await errorMessage(response));
+      const payload = (await response.json()) as {
+        item?: { active?: boolean; reactionType?: FeedReactionType };
+      };
+      setReactionType(
+        payload.item?.active ? payload.item.reactionType ?? nextType : null
+      );
       startTransition(() => router.refresh());
     } catch {
-      setLiked(liked);
-      setCount(count);
+      setReactionType(previous.reactionType);
+      setCount(previous.count);
     } finally {
       setSubmitting(false);
     }
   }
 
+  const selected =
+    REACTIONS.find((reaction) => reaction.type === reactionType) ?? REACTIONS[0];
+  const SelectedIcon = selected.icon;
+
   return (
-    <div className="flex min-h-11 overflow-hidden rounded-lg border border-white/[0.08]">
+    <div className="relative flex min-h-11 min-w-0 flex-1 items-stretch">
       <button
         type="button"
-        onClick={onClick}
+        onClick={() => void toggle(reactionType ?? "like")}
         disabled={disabled || busy}
-        className="inline-flex min-h-11 items-center gap-2 px-3 text-[12px] disabled:cursor-not-allowed disabled:opacity-50"
-        aria-label={`${liked ? "Remove" : "Add"} ${reactionType} reaction`}
+        className={`inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-l-lg px-2 text-[12px] font-semibold transition hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-50 ${
+          reactionType ? selected.tone : "text-[hsl(var(--muted-foreground))]"
+        }`}
+        aria-label={`${reactionType ? "Remove" : "Add"} ${selected.label} reaction`}
+        aria-pressed={Boolean(reactionType)}
       >
-        <Heart
-          className={`h-3.5 w-3.5 ${liked ? "fill-current text-[hsl(var(--secondary))]" : ""}`}
+        <SelectedIcon
+          className={`h-4 w-4 ${reactionType === "love" ? "fill-current" : ""}`}
+          aria-hidden="true"
         />
-        {count}
+        <span className="truncate">{reactionType ? selected.label : "Like"}</span>
       </button>
-      <select
-        aria-label="Reaction type"
-        value={reactionType}
-        onChange={(event) => {
-          setReactionType(event.target.value);
-          setLiked(event.target.value === "like" && initiallyLiked);
-        }}
-        disabled={disabled || busy}
-        className="border-l border-white/[0.08] bg-transparent px-2 text-[11px] text-[hsl(var(--muted-foreground))]"
-      >
-        <option value="like">Like</option>
-        <option value="love">Love</option>
-        <option value="celebrate">Celebrate</option>
-        <option value="insightful">Insightful</option>
-        <option value="support">Support</option>
-      </select>
+      <details className="group/reactions relative">
+        <summary
+          className="grid min-h-11 w-8 cursor-pointer list-none place-items-center rounded-r-lg text-[hsl(var(--subtle-foreground))] transition hover:bg-white/[0.04] hover:text-[hsl(var(--foreground))]"
+          aria-label="Choose a reaction"
+        >
+          <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+        </summary>
+        <div className="absolute bottom-[calc(100%+8px)] left-0 z-20 flex gap-1 rounded-full border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] p-1.5 shadow-2xl backdrop-blur-xl">
+          {REACTIONS.map((reaction) => {
+            const Icon = reaction.icon;
+            return (
+              <button
+                key={reaction.type}
+                type="button"
+                onClick={(event) => {
+                  void toggle(reaction.type);
+                  const details = event.currentTarget.closest("details");
+                  if (details) details.open = false;
+                }}
+                disabled={disabled || busy}
+                aria-label={reaction.label}
+                aria-pressed={reactionType === reaction.type}
+                className={`grid h-10 w-10 place-items-center rounded-full transition hover:-translate-y-0.5 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))] ${reaction.tone}`}
+              >
+                <Icon
+                  className={`h-5 w-5 ${reaction.type === "love" && reactionType === reaction.type ? "fill-current" : ""}`}
+                  aria-hidden="true"
+                />
+              </button>
+            );
+          })}
+        </div>
+      </details>
+      <span className="sr-only" aria-live="polite">
+        {count} reaction{count === 1 ? "" : "s"}
+      </span>
     </div>
   );
 }
@@ -349,7 +558,7 @@ export function InstantFeedSaveButton({
       onClick={toggle}
       disabled={busy}
       aria-pressed={saved}
-      className="giq-outline-action min-h-11 px-3 text-[12px] disabled:opacity-50"
+      className="inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg px-2 text-[12px] font-semibold text-[hsl(var(--muted-foreground))] transition hover:bg-white/[0.04] hover:text-[hsl(var(--foreground))] disabled:opacity-50"
     >
       <Bookmark className={`h-3.5 w-3.5 ${saved ? "fill-current" : ""}`} />
       {saved ? "Saved" : "Save"}
@@ -364,7 +573,6 @@ export function InstantFeedMuteButton({
   mutedActorId: string;
   muterActorId?: string | null;
 }) {
-  const router = useRouter();
   const [muted, setMuted] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -382,7 +590,7 @@ export function InstantFeedMuteButton({
         item?: { muted?: boolean };
       };
       setMuted(Boolean(payload.item?.muted));
-      router.refresh();
+      requestFeedReset();
     } catch {
       // Keep the current UI state; the member can retry.
     } finally {
@@ -400,6 +608,35 @@ export function InstantFeedMuteButton({
     >
       <VolumeX className="h-3.5 w-3.5" />
       {muted ? "Muted" : "Mute"}
+    </button>
+  );
+}
+
+export function InstantFeedBlockButton({ postId }: { postId: string }) {
+  const [busy, setBusy] = useState(false);
+
+  async function blockAuthor() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await blockFeedPostAuthor(postId);
+      requestFeedReset();
+    } catch {
+      // Keep the action available so the member can retry.
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void blockAuthor()}
+      disabled={busy}
+      className="giq-outline-action min-h-11 flex-1 px-3 text-[12px]"
+    >
+      <UserX className="h-3.5 w-3.5" aria-hidden="true" />
+      Block
     </button>
   );
 }
@@ -506,20 +743,23 @@ export function InstantFeedShareControls({
   }
 
   return (
-    <div className="flex min-h-11 overflow-hidden rounded-lg border border-white/[0.08]">
+    <div className="flex min-h-11 min-w-0 flex-1 overflow-hidden rounded-lg">
       <button
         type="button"
         onClick={internalShare}
         disabled={busy || disabled || shared || audiences.length === 0}
-        className="inline-flex min-h-11 items-center gap-2 px-3 text-[12px] disabled:opacity-50"
+        className="inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 px-2 text-[12px] font-semibold text-[hsl(var(--muted-foreground))] transition hover:bg-white/[0.04] hover:text-[hsl(var(--foreground))] disabled:opacity-50"
       >
         <Share2 className="h-3.5 w-3.5" />
-        {shared ? "Shared" : count}
+        {shared ? "Shared" : "Share"}
+        <span className="sr-only">
+          , {count} share{count === 1 ? "" : "s"}
+        </span>
       </button>
       <button
         type="button"
         onClick={() => void nativeShare()}
-        className="border-l border-white/[0.08] px-2 text-[11px] text-[hsl(var(--muted-foreground))]"
+        className="min-h-11 border-l border-white/[0.07] px-2 text-[10px] font-semibold text-[hsl(var(--subtle-foreground))] transition hover:bg-white/[0.04] hover:text-[hsl(var(--foreground))]"
         aria-label="Share link"
       >
         Link
@@ -557,7 +797,11 @@ export function InstantFeedOwnerControls({
         }),
       });
       if (!response.ok) throw new Error(await errorMessage(response));
-      router.refresh();
+      if (String(data.get("visibility") ?? initialVisibility) !== initialVisibility) {
+        requestFeedReset();
+      } else {
+        router.refresh();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not edit post");
     } finally {
@@ -572,7 +816,7 @@ export function InstantFeedOwnerControls({
     try {
       const response = await fetch(`/api/feed/${postId}`, { method: "DELETE" });
       if (!response.ok) throw new Error(await errorMessage(response));
-      router.refresh();
+      requestFeedReset();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete post");
     } finally {
@@ -581,12 +825,12 @@ export function InstantFeedOwnerControls({
   }
 
   return (
-    <details className="mb-3 rounded-lg border border-white/[0.06] p-2">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
-        <Pencil className="h-3.5 w-3.5" />
-        Manage post
-      </summary>
-      <form onSubmit={edit} className="mt-2 grid gap-2">
+    <section className="rounded-lg border border-white/[0.07] bg-white/[0.025] p-3">
+      <h3 className="mb-2 flex items-center gap-2 text-[12px] font-semibold text-[hsl(var(--foreground))]">
+        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+        Edit post
+      </h3>
+      <form onSubmit={edit} className="grid gap-2">
         <textarea
           name="body"
           defaultValue={initialBody}
@@ -626,8 +870,12 @@ export function InstantFeedOwnerControls({
           </button>
         </div>
       </form>
-    </details>
+    </section>
   );
+}
+
+function requestFeedReset() {
+  window.dispatchEvent(new Event("giq:feed-reset"));
 }
 
 function allowedShareAudiences(source: string) {

@@ -1,4 +1,8 @@
-type FeedClientItem = { id: string; feedEntryId?: string };
+type FeedClientItem = {
+  id: string;
+  feedEntryId?: string;
+  reshare?: unknown;
+};
 
 export function mergeFeedItems<T extends FeedClientItem>(
   current: T[],
@@ -22,11 +26,18 @@ function mergeChangedItem<T extends FeedClientItem>(
   changedItem?: T | null
 ) {
   return items.flatMap((item) => {
-    if (
-      !changedId ||
-      item.id !== changedId ||
-      (item.feedEntryId && item.feedEntryId !== `post:${changedId}`)
-    ) return [item];
+    if (!changedId || item.id !== changedId) return [item];
+    if (item.feedEntryId && item.feedEntryId !== `post:${changedId}`) {
+      if (changedItem === null) return [];
+      if (!changedItem) return [item];
+      return [
+        {
+          ...changedItem,
+          feedEntryId: item.feedEntryId,
+          reshare: item.reshare,
+        } as T,
+      ];
+    }
     if (changedItem === null) return [];
     return [changedItem ?? item];
   });

@@ -10,6 +10,7 @@ import { countUnreadMessagesTotal } from "@/lib/conversation-service";
 import { MobileBottomDock } from "@/components/mobile-bottom-dock";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { HomeRouteContent } from "@/components/home-route-content";
 import { JsonLd, organizationSchema, websiteSchema } from "@/components/json-ld";
 import { siteAssetUrl } from "@/lib/storage-paths";
 
@@ -107,10 +108,19 @@ export default async function RootLayout({
           </a>
           <div className="flex min-h-screen flex-col">
             <SiteHeader user={user} unreadMessages={unreadMessages} />
-            <main id="main-content" className="min-h-screen flex-1">{children}</main>
-            {!user && <SiteFooter />}
+            <main id="main-content" className="flex-1">{children}</main>
+            {user ? (
+              <HomeRouteContent home={<SiteFooter />} app={null} />
+            ) : (
+              <SiteFooter />
+            )}
           </div>
-          {user && <MobileBottomDock unreadMessages={unreadMessages} />}
+          {user && (
+            <HomeRouteContent
+              home={null}
+              app={<MobileBottomDock unreadMessages={unreadMessages} />}
+            />
+          )}
           <CookieConsentBanner />
         </AuthKitProvider>
       </body>

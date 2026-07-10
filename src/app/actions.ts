@@ -7,6 +7,7 @@ import { z } from "zod";
 import {
   dogOwnershipClaimSchema,
   hasProfileMarketingFields,
+  personalActorMediaUpdateSchema,
   profileUpdateSchema,
 } from "@/lib/account-validation";
 import {
@@ -101,6 +102,7 @@ import {
   resolveReportForModerator,
 } from "@/lib/report-service";
 import { reportCreateSchema, reportResolveSchema } from "@/lib/report-validation";
+import { updatePersonalActorMedia } from "@/lib/social-actor-service";
 
 const forumThreadSchema = z.object({
   categoryId: z.string().min(1),
@@ -431,8 +433,7 @@ export async function reportFeedPost(postId: string, formData: FormData) {
   redirect("/feed");
 }
 
-export async function blockFeedPostAuthor(postId: string, _formData?: FormData) {
-  void _formData;
+export async function blockFeedPostAuthor(postId: string) {
   const current = await requireCurrentUserProfile();
   const rateLimit = await checkRateLimit(
     `feed:block:${current.dbUserId}:${postId}`,
@@ -443,7 +444,6 @@ export async function blockFeedPostAuthor(postId: string, _formData?: FormData) 
 
   await blockFeedPostAuthorForCurrentUser(current, postId);
   revalidatePath("/feed");
-  redirect("/feed");
 }
 
 export async function createFeedTopic(formData: FormData) {
@@ -1073,6 +1073,34 @@ export async function updateProfile(formData: FormData) {
   redirect("/account");
 }
 
+export async function updatePersonalIdentityMedia(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const avatarMediaId =
+    field(formData, "removeAvatar") === "true"
+      ? null
+      : firstMedia(formData, "avatarMediaIdNew") ??
+        firstMedia(formData, "avatarMediaId");
+  const coverMediaId =
+    field(formData, "removeCover") === "true"
+      ? null
+      : firstMedia(formData, "coverMediaIdNew") ??
+        firstMedia(formData, "coverMediaId");
+  const parsed = personalActorMediaUpdateSchema.parse({
+    avatarMediaId,
+    coverMediaId,
+    removeAvatar: field(formData, "removeAvatar") === "true",
+    removeCover: field(formData, "removeCover") === "true",
+    coverFocalX: field(formData, "coverFocalX") || 0.5,
+    coverFocalY: field(formData, "coverFocalY") || 0.5,
+  });
+  const actor = await updatePersonalActorMedia(current, parsed);
+
+  revalidatePath("/account");
+  revalidatePath("/feed");
+  revalidatePath(`/p/${actor.handle}`);
+  redirect("/account#profile-media");
+}
+
 export async function claimDogOwnership(dogId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
   const parsed = dogOwnershipClaimSchema.parse({
@@ -1153,7 +1181,10 @@ function firstMedia(formData: FormData, name: string): string | null {
 // merges existing hidden ids with any new uploads. Lets edit preserve untouched
 // media without re-uploading.
 function customPageMediaFields(formData: FormData) {
-  const pick = (name: string) => firstMedia(formData, `${name}New`) ?? firstMedia(formData, name);
+  const pick = (name: string) =>
+    field(formData, `remove${name[0].toUpperCase()}${name.slice(1)}`) === "true"
+      ? null
+      : firstMedia(formData, `${name}New`) ?? firstMedia(formData, name);
   return {
     avatarMediaId: pick("avatarMediaId"),
     bannerMediaId: pick("bannerMediaId"),
@@ -1185,6 +1216,8 @@ export async function createCustomPageAction(formData: FormData) {
     website: optional(formData, "website"),
     accentColor: optional(formData, "accentColor"),
     heroMediaId: null,
+    coverFocalX: field(formData, "coverFocalX") || 0.5,
+    coverFocalY: field(formData, "coverFocalY") || 0.5,
     ...customPageMediaFields(formData),
   };
   const raw =
@@ -1225,6 +1258,8 @@ export async function updateCustomPageAction(pageId: string, formData: FormData)
     website: optional(formData, "website"),
     accentColor: optional(formData, "accentColor"),
     heroMediaId: null,
+    coverFocalX: field(formData, "coverFocalX") || 0.5,
+    coverFocalY: field(formData, "coverFocalY") || 0.5,
     businessCategory: optional(formData, "businessCategory"),
     saleStatus: optional(formData, "saleStatus"),
     priceOrFee: optional(formData, "priceOrFee"),

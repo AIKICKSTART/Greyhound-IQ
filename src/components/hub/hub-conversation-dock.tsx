@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { ExternalLink, Loader2, MessageSquare, Send, X } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import {
+  ExternalLink,
+  Loader2,
+  MessageSquare,
+  Paperclip,
+  RotateCcw,
+  Send,
+  X,
+} from "lucide-react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import {
   ensureBrowserRealtimeAuthorization,
@@ -15,6 +23,7 @@ export type HubDockConversation = {
   otherName: string;
   preview: string;
   unread: number;
+  attachmentCount?: number;
   realtimeChannel: string | null;
 };
 
@@ -23,10 +32,21 @@ type QuickMessage = {
   body: string;
   senderId: string;
   createdAt: string;
+  media?: Array<{
+    mediaId: string;
+    media?: {
+      mimeType?: string | null;
+      originalName?: string | null;
+    };
+  }>;
   pending?: boolean;
 };
 
 const MAX_OPEN_WINDOWS = 2;
+const CHAT_TIME_FORMATTER = new Intl.DateTimeFormat("en-AU", {
+  hour: "numeric",
+  minute: "2-digit",
+});
 
 export function HubConversationDock({
   conversations,
@@ -93,6 +113,11 @@ function ConversationSummary({
 }: {
   conversation: HubDockConversation;
 }) {
+  const preview = conversationPreview(
+    conversation.preview,
+    conversation.attachmentCount ?? 0
+  );
+
   return (
     <>
       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/[0.1] bg-[hsl(var(--surface-2))] text-[12px] font-bold text-white/70">
@@ -102,8 +127,11 @@ function ConversationSummary({
         <span className="block truncate text-[13px] font-medium text-[hsl(var(--foreground))]">
           {conversation.otherName}
         </span>
-        <span className="block truncate text-[11px] text-[hsl(var(--subtle-foreground))]">
-          {conversation.preview}
+        <span className="flex items-center gap-1 truncate text-[11px] text-[hsl(var(--subtle-foreground))]">
+          {preview.attachment && (
+            <Paperclip className="h-3 w-3 shrink-0" aria-hidden="true" />
+          )}
+          <span className="truncate">{preview.label}</span>
         </span>
       </span>
       {conversation.unread > 0 && (
@@ -127,10 +155,12 @@ function QuickChatWindow({
   selfProfileId: string;
   onClose: () => void;
 }) {
+  const messagesViewportRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<QuickMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const loadMessages = useCallback(async () => {
     const response = await fetch(
@@ -140,21 +170,26 @@ function QuickChatWindow({
     if (!response.ok) throw new Error("Could not load chat");
     const payload = (await response.json()) as { items?: QuickMessage[] };
     setMessages(payload.items ?? []);
+    setLoadError(null);
   }, [conversation.id]);
+
+  const retryLoad = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      await loadMessages();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Could not load chat");
+    } finally {
+      setLoading(false);
+    }
+  }, [loadMessages]);
 
   useEffect(() => {
     let cancelled = false;
     let channel: RealtimeChannel | null = null;
     const initialLoadTimer = window.setTimeout(() => {
-      void loadMessages()
-        .catch((err) => {
-          if (!cancelled) {
-            setError(err instanceof Error ? err.message : "Could not load chat");
-          }
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
+      if (!cancelled) void retryLoad();
     }, 0);
 
     const client = getBrowserRealtimeClient();
@@ -178,7 +213,13 @@ function QuickChatWindow({
       window.clearTimeout(initialLoadTimer);
       if (client && channel) void client.removeChannel(channel);
     };
-  }, [conversation.realtimeChannel, loadMessages]);
+  }, [conversation.realtimeChannel, loadMessages, retryLoad]);
+
+  useEffect(() => {
+    if (loading || loadError) return;
+    const viewport = messagesViewportRef.current;
+    if (viewport) viewport.scrollTop = viewport.scrollHeight;
+  }, [loadError, loading, messages]);
 
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -198,7 +239,7 @@ function QuickChatWindow({
       },
     ]);
     setSending(true);
-    setError(null);
+    setSendError(null);
     form.reset();
     try {
       const response = await fetch(
@@ -215,7 +256,9 @@ function QuickChatWindow({
       setMessages((current) =>
         current.filter((message) => message.id !== optimisticId)
       );
-      setError(err instanceof Error ? err.message : "Could not send message");
+      setSendError(
+        err instanceof Error ? err.message : "Could not send message"
+      );
     } finally {
       setSending(false);
     }
@@ -245,9 +288,29 @@ function QuickChatWindow({
         </button>
       </header>
 
-      <div className="flex-1 space-y-2 overflow-y-auto p-3" aria-live="polite">
+      <div
+        ref={messagesViewportRef}
+        className="flex-1 space-y-2 overflow-y-auto p-3"
+        aria-busy={loading}
+        aria-live="polite"
+      >
         {loading ? (
           <Loader2 className="mx-auto mt-8 h-5 w-5 animate-spin text-[hsl(var(--primary-bright))]" />
+        ) : loadError ? (
+          <div
+            role="alert"
+            className="mx-auto mt-8 grid max-w-[220px] justify-items-center gap-3 text-center"
+          >
+            <p className="text-[12px] text-red-200">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => void retryLoad()}
+              className="giq-outline-action min-h-10 px-3 text-[12px]"
+            >
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+              Retry
+            </button>
+          </div>
         ) : messages.length === 0 ? (
           <p className="mt-8 text-center text-[12px] text-[hsl(var(--muted-foreground))]">
             Start the conversation.
@@ -265,9 +328,16 @@ function QuickChatWindow({
                 }`}
               >
                 <p className="whitespace-pre-wrap break-words">{message.body}</p>
-                {message.pending && (
-                  <span className="mt-1 block text-[10px] opacity-70">Sending...</span>
-                )}
+                <MessageAttachmentSummary attachments={message.media ?? []} />
+                <span className="mt-1 block text-[10px] opacity-70">
+                  {message.pending ? (
+                    "Sending..."
+                  ) : (
+                    <time dateTime={message.createdAt}>
+                      {CHAT_TIME_FORMATTER.format(new Date(message.createdAt))}
+                    </time>
+                  )}
+                </span>
               </article>
             );
           })
@@ -302,8 +372,55 @@ function QuickChatWindow({
             )}
           </button>
         </div>
-        {error && <p className="mt-1 text-[11px] text-red-200">{error}</p>}
+        {sendError && (
+          <p role="alert" className="mt-1 text-[11px] text-red-200">
+            {sendError}
+          </p>
+        )}
       </form>
     </section>
   );
+}
+
+function MessageAttachmentSummary({
+  attachments,
+}: {
+  attachments: NonNullable<QuickMessage["media"]>;
+}) {
+  if (attachments.length === 0) return null;
+  return (
+    <p className="mt-1.5 flex items-center gap-1 text-[11px] opacity-80">
+      <Paperclip className="h-3 w-3 shrink-0" aria-hidden="true" />
+      <span className="truncate">{attachmentLabel(attachments)}</span>
+    </p>
+  );
+}
+
+function attachmentLabel(attachments: NonNullable<QuickMessage["media"]>) {
+  if (attachments.length > 1) return `${attachments.length} attachments`;
+  const attachment = attachments[0]?.media;
+  if (attachment?.originalName) return attachment.originalName;
+  const mimeType = attachment?.mimeType ?? "";
+  if (mimeType.startsWith("image/")) return "Photo";
+  if (mimeType.startsWith("video/")) return "Video";
+  if (mimeType.startsWith("audio/")) return "Audio";
+  return "Attachment";
+}
+
+function conversationPreview(value: string, attachmentCount: number) {
+  const trimmed = value.trim();
+  const sentByCurrentUser = trimmed.startsWith("You:");
+  const body = sentByCurrentUser ? trimmed.slice(4).trim() : trimmed;
+  const attachment =
+    attachmentCount > 0 ||
+    body.length === 0 ||
+    /^(attachment|photo|video|audio)s?\b/i.test(body);
+  return {
+    attachment,
+    label: body.length
+      ? trimmed
+      : sentByCurrentUser
+        ? "You sent an attachment"
+        : "Attachment",
+  };
 }

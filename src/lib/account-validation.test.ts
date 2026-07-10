@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import {
   hasProfileMarketingFields,
+  personalActorMediaUpdateSchema,
   profileUpdateSchema,
 } from "@/lib/account-validation";
 
@@ -31,6 +32,27 @@ assert.equal(
     website: "javascript:alert(1)",
   }).success,
   false
+);
+
+const profileMedia = personalActorMediaUpdateSchema.parse({
+  avatarMediaId: " avatar-media ",
+  coverMediaId: "",
+  coverFocalX: "0.25",
+  coverFocalY: "0.75",
+});
+assert.equal(profileMedia.avatarMediaId, "avatar-media");
+assert.equal(profileMedia.coverMediaId, null);
+assert.equal(profileMedia.removeAvatar, false);
+assert.equal(profileMedia.removeCover, false);
+assert.equal(profileMedia.coverFocalX, 0.25);
+assert.equal(profileMedia.coverFocalY, 0.75);
+assert.equal(
+  personalActorMediaUpdateSchema.parse({ removeAvatar: true }).removeAvatar,
+  true,
+);
+assert.equal(
+  personalActorMediaUpdateSchema.safeParse({ coverFocalX: 1.01 }).success,
+  false,
 );
 
 console.log("account validation tests passed");

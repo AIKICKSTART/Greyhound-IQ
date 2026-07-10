@@ -1,18 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ImageIcon,
   MessageSquare,
+  MoreHorizontal,
   Paperclip,
   Trash2,
-  UserX,
 } from "lucide-react";
-import { blockFeedPostAuthor, reportFeedPost } from "@/app/actions";
+import { reportFeedPost } from "@/app/actions";
 import {
+  InstantFeedBlockButton,
   InstantFeedCommentForm,
   InstantFeedReactionButton,
   InstantFeedMuteButton,
@@ -20,8 +21,10 @@ import {
   InstantFeedShareControls,
   InstantFeedOwnerControls,
   InstantFeedTopicFollowButton,
+  type FeedReactionType,
 } from "@/components/instant-feed-controls";
 import { FeedCommentsPanel } from "@/components/feed-comments-panel";
+import { ProcessedVideo } from "@/components/processed-video";
 import type { CustomPageType } from "@/lib/custom-page-validation";
 import type { getFeedPostsForViewer } from "@/lib/feed-service";
 
@@ -31,6 +34,14 @@ const CUSTOM_PAGE_TYPE_LABELS: Record<CustomPageType, string> = {
   business: "Business",
   dog: "Dog",
 };
+
+const FEED_REACTION_TYPES = new Set<FeedReactionType>([
+  "like",
+  "love",
+  "celebrate",
+  "insightful",
+  "support",
+]);
 
 export type FeedPostRow = Awaited<
   ReturnType<typeof getFeedPostsForViewer>
@@ -52,12 +63,16 @@ export function FeedPostCard({
   pageAvatarUrl?: string | null;
 }) {
   const reportAction = reportFeedPost.bind(null, post.id);
-  const blockAction = blockFeedPostAuthor.bind(null, post.id);
-  const liked = post.reactions.some(
+  const currentReaction = post.reactions.find(
     (reaction) =>
       (reaction.actorId && reaction.actorId === activeActorId) ||
       (!reaction.actorId && reaction.profileId === currentProfileId)
   );
+  const currentReactionType = FEED_REACTION_TYPES.has(
+    currentReaction?.reactionType as FeedReactionType,
+  )
+    ? (currentReaction?.reactionType as FeedReactionType)
+    : null;
   const isAuthor = post.authorProfileId === currentProfileId;
   const page = post.authorPage;
   const authorName = page ? page.title : post.author.displayName;
@@ -70,10 +85,10 @@ export function FeedPostCard({
   return (
     <article
       id={post.reshare ? `share-${post.reshare.id}` : `post-${post.id}`}
-      className="giq-panel scroll-mt-24 p-5"
+      className="giq-panel giq-panel-popovers scroll-mt-24 p-0"
     >
       {post.reshare && (
-        <div className="mb-4 border-b border-white/[0.06] pb-3 text-[12px] text-[hsl(var(--muted-foreground))]">
+        <div className="border-b border-white/[0.06] px-5 py-3 text-[12px] text-[hsl(var(--muted-foreground))]">
           <p>
             {resharer ? (
               <Link
@@ -94,7 +109,7 @@ export function FeedPostCard({
           )}
         </div>
       )}
-      <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <header className="flex items-start justify-between gap-3 px-5 pb-3 pt-5">
         <div className="flex min-w-0 items-center gap-3">
           <span
             aria-hidden="true"
@@ -109,6 +124,9 @@ export function FeedPostCard({
                 alt=""
                 width={40}
                 height={40}
+                unoptimized={(pageAvatarUrl ?? post.authorActor?.avatarUrl)!.startsWith(
+                  "/api/media/",
+                )}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -117,9 +135,9 @@ export function FeedPostCard({
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              {page && page.published ? (
+              {(page && page.published) || post.authorActor?.handle ? (
                 <Link
-                  href={`/p/${page.handle}`}
+                  href={`/p/${page?.handle ?? post.authorActor!.handle}`}
                   className="truncate text-[14px] font-semibold text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary-light))]"
                 >
                   {authorName}
@@ -135,55 +153,107 @@ export function FeedPostCard({
                 </span>
               )}
             </div>
-            <p className="mt-0.5 text-[12px] text-[hsl(var(--subtle-foreground))]">
-              {page ? `${post.author.displayName} - ` : ""}
-              {post.topic?.name ?? "General"} - {formatFeedDate(post.createdAt)}
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
+              {page && <span>{post.author.displayName} ·</span>}
+              <span className="capitalize">{post.visibility.replace("_", " ")}</span>
+              <span aria-hidden="true">·</span>
+              <time dateTime={post.createdAt.toISOString()}>
+                {formatFeedDate(post.createdAt)}
+              </time>
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {signedIn && post.topic && (
-            <InstantFeedTopicFollowButton
-              topicId={post.topic.id}
-              actorId={activeActorId}
-              initiallyFollowed={post.topic.followers.length > 0}
-            />
-          )}
+        <div className="flex shrink-0 items-center gap-2">
           {post.pinnedAt && (
             <span className="giq-badge giq-badge-gold">Pinned</span>
+          )}
+          {signedIn && (
+            <details className="group/post-menu relative">
+              <summary
+                className="grid h-11 w-11 cursor-pointer list-none place-items-center rounded-full text-[hsl(var(--muted-foreground))] transition hover:bg-white/[0.05] hover:text-[hsl(var(--foreground))]"
+                aria-label="Post options"
+              >
+                <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
+              </summary>
+              <div className="absolute right-0 top-[calc(100%+4px)] z-30 w-[min(340px,calc(100vw-32px))] space-y-3 rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] p-3 shadow-2xl backdrop-blur-xl">
+                {post.topic && (
+                  <InstantFeedTopicFollowButton
+                    topicId={post.topic.id}
+                    actorId={activeActorId}
+                    initiallyFollowed={post.topic.followers.length > 0}
+                  />
+                )}
+                {isAuthor && (
+                  <InstantFeedOwnerControls
+                    postId={post.id}
+                    initialBody={post.body}
+                    initialVisibility={post.visibility}
+                  />
+                )}
+                {canInteract && (
+                  <section className="space-y-2 rounded-lg border border-white/[0.07] bg-white/[0.025] p-3">
+                    <h3 className="text-[12px] font-semibold text-[hsl(var(--foreground))]">
+                      Safety
+                    </h3>
+                    <form action={reportAction} className="flex gap-2">
+                      <select
+                        name="reason"
+                        className="giq-form-control min-h-11 min-w-0 flex-1 px-2 py-2 text-[12px]"
+                        defaultValue="other"
+                        aria-label="Report reason"
+                      >
+                        <option value="spam">Spam</option>
+                        <option value="harassment">Harassment</option>
+                        <option value="misinformation">Misinformation</option>
+                        <option value="illegal">Illegal</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <button className="giq-outline-action min-h-11 px-3 text-[12px]">
+                        Report
+                      </button>
+                    </form>
+                    {!isAuthor && (
+                      <div className="flex gap-2">
+                        {post.authorActor?.id && (
+                          <InstantFeedMuteButton
+                            mutedActorId={post.authorActor.id}
+                            muterActorId={activeActorId}
+                          />
+                        )}
+                        <InstantFeedBlockButton postId={post.id} />
+                      </div>
+                    )}
+                  </section>
+                )}
+              </div>
+            </details>
           )}
         </div>
       </header>
 
-      {isAuthor && signedIn && (
-        <InstantFeedOwnerControls
-          postId={post.id}
-          initialBody={post.body}
-          initialVisibility={post.visibility}
-        />
-      )}
-
-      <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-[hsl(215_14%_76%)]">
-        {post.body}
-      </p>
-
-      {post.status !== "active" && (
-        <p
-          className="mt-3 rounded-lg border border-amber-300/15 bg-amber-300/[0.06] px-3 py-2 text-[12px] text-amber-100"
-          role="status"
-        >
-          {post.status === "failed"
-            ? "This post is private to you because an attachment failed processing. Edit or remove the attachment before publishing."
-            : "This post is private to you while its media is scanned and prepared. It will publish automatically when ready."}
+      <div className="px-5">
+        <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-[hsl(215_14%_82%)]">
+          {post.body}
         </p>
-      )}
+
+        {post.status !== "active" && (
+          <p
+            className="mt-3 rounded-lg border border-amber-300/15 bg-amber-300/[0.06] px-3 py-2 text-[12px] text-amber-100"
+            role="status"
+          >
+            {post.status === "failed"
+              ? "This post is private to you because an attachment failed processing. Edit or remove the attachment before publishing."
+              : "This post is private to you while its media is scanned and prepared. It will publish automatically when ready."}
+          </p>
+        )}
+      </div>
 
       {linkPreview && (
         <a
           href={linkPreview.url}
           target="_blank"
           rel="noopener noreferrer nofollow"
-          className="giq-subpanel mt-4 block p-4 transition hover:border-white/[0.12]"
+          className="giq-subpanel mx-5 mt-4 block p-4 transition hover:border-white/[0.12]"
         >
           <p className="text-[11px] uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
             {linkPreview.siteName ?? new URL(linkPreview.url).hostname}
@@ -202,37 +272,47 @@ export function FeedPostCard({
       )}
 
       {post.media.length > 0 && (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {post.media.map((attachment) => (
-            <div key={attachment.mediaId} className="relative">
-              <FeedMedia media={attachment.media} />
-              {isAuthor && post.status !== "active" && (
-                <RemoveFeedMediaButton mediaId={attachment.mediaId} />
-              )}
-            </div>
-          ))}
-        </div>
+        <FeedMediaGallery
+          attachments={post.media}
+          isAuthor={isAuthor}
+          postStatus={post.status}
+        />
       )}
 
-      <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-4">
+      <div className="mt-4 flex items-center justify-between gap-3 px-5 pb-2 text-[11px] text-[hsl(var(--subtle-foreground))]">
+        <span>
+          {post._count.reactions} reaction{post._count.reactions === 1 ? "" : "s"}
+        </span>
+        <span className="flex items-center gap-3">
+          <a href={`#comments-${post.id}`} className="hover:text-[hsl(var(--foreground))]">
+            {post._count.comments} comment{post._count.comments === 1 ? "" : "s"}
+          </a>
+          {post._count.shares > 0 && (
+            <span>
+              {post._count.shares} share{post._count.shares === 1 ? "" : "s"}
+            </span>
+          )}
+        </span>
+      </div>
+
+      <div className="mx-3 grid grid-cols-4 border-y border-white/[0.07]">
         <InstantFeedReactionButton
           postId={post.id}
           initialCount={post._count.reactions}
-          initiallyLiked={liked}
+          initialReactionType={currentReactionType}
           disabled={!canInteract}
           actorId={activeActorId}
         />
-        <span className="giq-status-pill">
-          <MessageSquare className="h-3.5 w-3.5 text-[hsl(var(--primary-bright))]" />
-          {post._count.comments}
-        </span>
+        <a
+          href={`#comment-${post.id}`}
+          className="inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-lg px-2 text-[12px] font-semibold text-[hsl(var(--muted-foreground))] transition hover:bg-white/[0.04] hover:text-[hsl(var(--foreground))]"
+        >
+          <MessageSquare className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden sm:inline">Comment</span>
+          <span className="sm:hidden">Reply</span>
+        </a>
         {signedIn && (
           <>
-            <InstantFeedSaveButton
-              postId={post.id}
-              actorId={activeActorId}
-              initiallySaved={post.savedBy.length > 0}
-            />
             <InstantFeedShareControls
               postId={post.id}
               actorId={activeActorId}
@@ -241,63 +321,84 @@ export function FeedPostCard({
               initiallyShared={post.shares.length > 0}
               disabled={!canInteract}
             />
+            <InstantFeedSaveButton
+              postId={post.id}
+              actorId={activeActorId}
+              initiallySaved={post.savedBy.length > 0}
+            />
           </>
         )}
       </div>
 
-      <FeedCommentsPanel
-        postId={post.id}
-        initialComments={post.comments}
-        totalCount={post._count.comments}
-        canInteract={canInteract}
-        currentProfileId={currentProfileId}
-        activeActorId={activeActorId}
-      />
+      <div className="px-5 pb-5">
+        <FeedCommentsPanel
+          postId={post.id}
+          initialComments={post.comments}
+          totalCount={post._count.comments}
+          canInteract={canInteract}
+          currentProfileId={currentProfileId}
+          activeActorId={activeActorId}
+        />
 
-      {canInteract && (
-        <div className="mt-4 grid gap-3 md:grid-cols-[1fr_220px]">
-          <InstantFeedCommentForm postId={post.id} actorId={activeActorId} />
-          <form action={reportAction} className="flex gap-2">
-            <select
-              name="reason"
-              className="giq-form-control min-h-11 min-w-0 flex-1 px-2 py-2 text-[12px]"
-              defaultValue="other"
-              aria-label="Report reason"
-            >
-              <option value="spam">Spam</option>
-              <option value="harassment">Harassment</option>
-              <option value="misinformation">Misinformation</option>
-              <option value="illegal">Illegal</option>
-              <option value="other">Other</option>
-            </select>
-            <button className="giq-outline-action min-h-11 px-3 text-[12px]">
-              Report
-            </button>
-          </form>
-          {!isAuthor && (
-            <div className="flex gap-2 md:col-start-2">
-              {post.authorActor?.id && (
-                <InstantFeedMuteButton
-                  mutedActorId={post.authorActor.id}
-                  muterActorId={activeActorId}
-                />
-              )}
-              <form action={blockAction} className="flex-1">
-                <button className="giq-outline-action min-h-11 w-full px-3 text-[12px]">
-                  <UserX className="h-3.5 w-3.5" />
-                  Block author
-                </button>
-              </form>
-            </div>
-          )}
-        </div>
-      )}
-      {signedIn && !canInteract && (
-        <p className="mt-4 text-[12px] text-[hsl(var(--muted-foreground))]">
-          Switch to your personal identity to comment or react for free.
-        </p>
-      )}
+        {canInteract && (
+          <div id={`comment-${post.id}`} className="mt-4 scroll-mt-24">
+            <InstantFeedCommentForm postId={post.id} actorId={activeActorId} />
+          </div>
+        )}
+        {signedIn && !canInteract && (
+          <p className="mt-4 text-[12px] text-[hsl(var(--muted-foreground))]">
+            Switch to your personal identity to comment or react for free.
+          </p>
+        )}
+      </div>
     </article>
+  );
+}
+
+function FeedMediaGallery({
+  attachments,
+  isAuthor,
+  postStatus,
+}: {
+  attachments: FeedPostRow["media"];
+  isAuthor: boolean;
+  postStatus: string;
+}) {
+  const single = attachments.length === 1;
+  const hasMotion = attachments.some((attachment) =>
+    /^(video|audio)\//.test(attachment.media.mimeType)
+  );
+
+  return (
+    <div
+      className={`mx-3 mt-4 grid gap-1.5 overflow-hidden rounded-xl ${
+        single ? "grid-cols-1" : "grid-cols-2"
+      }`}
+    >
+      {attachments.map((attachment, index) => {
+        const motion = /^(video|audio)\//.test(attachment.media.mimeType);
+        const spanAll = !single && motion;
+        const leadImage =
+          !hasMotion && attachments.length === 3 && index === 0;
+        return (
+          <div
+            key={attachment.mediaId}
+            className={`relative min-w-0 ${
+              spanAll ? "col-span-2" : leadImage ? "row-span-2" : ""
+            }`}
+          >
+            <FeedMedia
+              media={attachment.media}
+              featured={single || motion}
+              mosaic={!single && !motion}
+            />
+            {isAuthor && postStatus !== "active" && (
+              <RemoveFeedMediaButton mediaId={attachment.mediaId} />
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -346,6 +447,8 @@ function RemoveFeedMediaButton({ mediaId }: { mediaId: string }) {
 
 function FeedMedia({
   media,
+  featured,
+  mosaic,
 }: {
   media: {
     id: string;
@@ -366,6 +469,8 @@ function FeedMedia({
     altText: string | null;
     captionPath: string | null;
   };
+  featured: boolean;
+  mosaic: boolean;
 }) {
   const originalUrl = media.publicUrl ?? `/api/media/${media.id}/blob`;
   const playbackUrl = media.playbackPath
@@ -385,15 +490,26 @@ function FeedMedia({
   }
   if (media.mimeType.startsWith("image/")) {
     return (
-      <a href={playbackUrl} target="_blank" rel="noreferrer" className="giq-listing-media block">
+      <a
+        href={playbackUrl}
+        target="_blank"
+        rel="noreferrer"
+        className={`giq-listing-media block h-full bg-black/25 ${
+          featured ? "min-h-[240px]" : "min-h-[180px] sm:min-h-[220px]"
+        }`}
+      >
         <NextImage
           src={playbackUrl}
           unoptimized={playbackUrl.startsWith("/api/media/")}
           alt={media.altText ?? media.originalName ?? "Feed media"}
           width={media.widthPx ?? 640}
           height={media.heightPx ?? 420}
-          sizes="(min-width: 1024px) 420px, (min-width: 640px) 50vw, 100vw"
-          className="h-52 w-full object-cover"
+          sizes={featured ? "(min-width: 1280px) 760px, 100vw" : "(min-width: 1280px) 380px, 50vw"}
+          className={
+            featured
+              ? "max-h-[620px] min-h-[240px] w-full object-contain"
+              : `h-full min-h-[180px] w-full object-cover sm:min-h-[220px] ${mosaic ? "aspect-square" : ""}`
+          }
         />
       </a>
     );
@@ -425,7 +541,7 @@ function FeedMedia({
 
   if (media.mimeType.startsWith("audio/")) {
     return (
-      <div className="giq-listing-media flex min-h-24 items-center p-3">
+      <div className="giq-listing-media flex min-h-28 items-center bg-black/25 p-4">
         <audio
           controls
           preload="metadata"
@@ -451,66 +567,6 @@ function FeedMedia({
       )}
       <span className="truncate">{media.originalName ?? media.mimeType}</span>
     </a>
-  );
-}
-
-function ProcessedVideo({
-  playbackUrl,
-  hlsUrl,
-  posterUrl,
-  captionUrl,
-  label,
-}: {
-  playbackUrl: string;
-  hlsUrl: string | null;
-  posterUrl: string | null;
-  captionUrl: string | null;
-  label: string;
-}) {
-  const ref = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const video = ref.current;
-    if (!video || !hlsUrl) return;
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = hlsUrl;
-      return;
-    }
-    let disposed = false;
-    let destroy: (() => void) | null = null;
-    void import("hls.js").then(({ default: Hls }) => {
-      if (disposed || !Hls.isSupported()) return;
-      const hls = new Hls({ enableWorker: true });
-      destroy = () => hls.destroy();
-      hls.loadSource(hlsUrl);
-      hls.attachMedia(video);
-    });
-    return () => {
-      disposed = true;
-      destroy?.();
-    };
-  }, [hlsUrl]);
-
-  return (
-    <video
-      ref={ref}
-      controls
-      preload="metadata"
-      poster={posterUrl ?? undefined}
-      className="giq-listing-media h-52 w-full object-cover"
-      aria-label={label}
-    >
-      <source src={playbackUrl} type="video/mp4" />
-      {captionUrl && (
-        <track
-          kind="captions"
-          srcLang="en"
-          label="English"
-          src={captionUrl}
-          default
-        />
-      )}
-    </video>
   );
 }
 

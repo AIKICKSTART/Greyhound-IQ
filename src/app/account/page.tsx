@@ -1,6 +1,8 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
 import {
+  Camera,
   CheckCircle2,
   Clock,
   Crown,
@@ -14,11 +16,17 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { requestAccountDeletion, updateProfile } from "@/app/actions";
+import {
+  requestAccountDeletion,
+  updatePersonalIdentityMedia,
+  updateProfile,
+} from "@/app/actions";
+import { MediaAttachmentFields } from "@/components/media-attachment-fields";
 import { PageHero } from "@/components/page-hero";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser, hasTier, isModeratorRole } from "@/lib/auth";
 import { getAccountSummary, getMessagesForUserEmail } from "@/lib/queries";
+import { getPersonalActorMedia } from "@/lib/social-actor-service";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +104,28 @@ async function SignedInAccount({
       ])
     : [null, []];
   const profile = summary?.profile;
+  const personalMedia =
+    user.dbUserId && user.profileId
+      ? await getPersonalActorMedia({
+          id: user.id,
+          dbUserId: user.dbUserId,
+          profileId: user.profileId,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          name: user.name,
+          profileRole: user.role ?? "member",
+          role: user.role,
+          tier: user.tier,
+          isBanned: user.isBanned,
+          deletionRequestedAt: user.deletionRequestedAt,
+          displayName: profile?.displayName ?? user.name,
+          verified: profile?.verified ?? false,
+        })
+      : null;
+  const profileCoverUrl =
+    personalMedia?.coverUrl ?? "/images/wentworth-track-banner-landscape.webp";
+  const profileAvatarUrl = personalMedia?.avatarUrl ?? profile?.avatarUrl ?? null;
   const ownedDogs = profile?.dogsOwned ?? [];
   const deletionRequestedAt = user.deletionRequestedAt;
   const canAccessAdmin = isModeratorRole(user.role);
@@ -103,6 +133,133 @@ async function SignedInAccount({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+      <section id="profile-media" className={`${PANEL_CLASS} scroll-mt-24 lg:col-span-2`}>
+        <div className="mb-5 flex items-start gap-3">
+          <Camera className="mt-1 h-5 w-5 text-[hsl(var(--primary-bright))]" />
+          <div>
+            <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+              Profile picture and cover
+            </h2>
+            <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+              These appear across your Feed identity and public profile.
+            </p>
+          </div>
+        </div>
+
+        <form action={updatePersonalIdentityMedia} className="space-y-5">
+          <input
+            type="hidden"
+            name="avatarMediaId"
+            value={personalMedia?.avatarMediaId ?? ""}
+          />
+          <input
+            type="hidden"
+            name="coverMediaId"
+            value={personalMedia?.coverMediaId ?? ""}
+          />
+
+          <div className="relative aspect-[16/5] min-h-36 overflow-hidden rounded-2xl border border-white/[0.08] bg-black">
+            <Image
+              src={profileCoverUrl}
+              alt="Current profile cover"
+              fill
+              unoptimized={profileCoverUrl.startsWith("/api/media/")}
+              sizes="(max-width: 1024px) 100vw, 960px"
+              className="object-cover"
+              style={{
+                objectPosition: `${(personalMedia?.coverFocalX ?? 0.5) * 100}% ${(personalMedia?.coverFocalY ?? 0.5) * 100}%`,
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="absolute bottom-4 left-4 h-20 w-20 overflow-hidden rounded-full border-4 border-black bg-[hsl(var(--surface-2))] shadow-xl">
+              {profileAvatarUrl ? (
+                <Image
+                  src={profileAvatarUrl}
+                  alt="Current profile picture"
+                  fill
+                  unoptimized={profileAvatarUrl.startsWith("/api/media/")}
+                  sizes="80px"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="grid h-full place-items-center text-2xl font-semibold text-white/80">
+                  {(profile?.displayName ?? user.name).slice(0, 1).toUpperCase()}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2">
+            <fieldset className="giq-subpanel p-4">
+              <legend className="px-1 text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                Profile picture
+              </legend>
+              <MediaAttachmentFields
+                mediaContext="avatars"
+                maxFiles={1}
+                compact
+                fieldName="avatarMediaIdNew"
+              />
+              {personalMedia?.avatarUrl ? (
+                <label className="mt-3 flex min-h-11 items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
+                  <input type="checkbox" name="removeAvatar" value="true" />
+                  Remove current profile picture
+                </label>
+              ) : null}
+            </fieldset>
+
+            <fieldset className="giq-subpanel p-4">
+              <legend className="px-1 text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                Cover image
+              </legend>
+              <MediaAttachmentFields
+                mediaContext="avatars"
+                maxFiles={1}
+                compact
+                fieldName="coverMediaIdNew"
+              />
+              {personalMedia?.coverUrl ? (
+                <label className="mt-3 flex min-h-11 items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
+                  <input type="checkbox" name="removeCover" value="true" />
+                  Remove current cover image
+                </label>
+              ) : null}
+            </fieldset>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+              Horizontal cover focus
+              <input
+                type="range"
+                name="coverFocalX"
+                min="0"
+                max="1"
+                step="0.01"
+                defaultValue={personalMedia?.coverFocalX ?? 0.5}
+                className="mt-3 w-full accent-[hsl(var(--primary))]"
+              />
+            </label>
+            <label className="block text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+              Vertical cover focus
+              <input
+                type="range"
+                name="coverFocalY"
+                min="0"
+                max="1"
+                step="0.01"
+                defaultValue={personalMedia?.coverFocalY ?? 0.5}
+                className="mt-3 w-full accent-[hsl(var(--primary))]"
+              />
+            </label>
+          </div>
+
+          <SubmitButton pendingLabel="Saving media...">
+            Save profile media
+          </SubmitButton>
+        </form>
+      </section>
+
       <section className={PANEL_CLASS}>
         <div className="mb-5 flex items-center gap-3">
           <Pencil className="h-5 w-5 text-[hsl(var(--primary-bright))]" />

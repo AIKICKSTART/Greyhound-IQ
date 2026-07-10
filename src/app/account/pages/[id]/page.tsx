@@ -172,7 +172,10 @@ export default async function EditCustomPage({
         </div>
 
         {/* Media slots. Hidden inputs preserve existing; uploaders add *New. */}
-        <fieldset className="rounded-lg border border-white/[0.07] p-4">
+        <fieldset
+          id="page-media"
+          className="scroll-mt-24 rounded-lg border border-white/[0.07] p-4"
+        >
           <legend className="px-1 text-[12px] font-semibold text-[hsl(var(--muted-foreground))]">
             Images (dark / on-brand recommended — banner 16:5, avatar & logo square)
           </legend>
@@ -184,11 +187,52 @@ export default async function EditCustomPage({
           ))}
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <MediaSlot label="Banner" current={media.bannerUrl} field="bannerMediaIdNew" />
-            <MediaSlot label="Profile picture" current={media.avatarUrl} field="avatarMediaIdNew" />
+            <MediaSlot
+              label="Banner"
+              current={media.bannerUrl}
+              field="bannerMediaIdNew"
+              removeField="removeBannerMediaId"
+            />
+            <MediaSlot
+              label="Profile picture"
+              current={media.avatarUrl}
+              field="avatarMediaIdNew"
+              removeField="removeAvatarMediaId"
+            />
             {page.pageType === "business" && (
-              <MediaSlot label="Logo" current={media.logoUrl} field="logoMediaIdNew" />
+              <MediaSlot
+                label="Logo"
+                current={media.logoUrl}
+                field="logoMediaIdNew"
+                removeField="removeLogoMediaId"
+              />
             )}
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className={LABEL}>
+              Horizontal banner focus
+              <input
+                type="range"
+                name="coverFocalX"
+                min="0"
+                max="1"
+                step="0.01"
+                defaultValue={page.socialActor?.coverFocalX ?? 0.5}
+                className="mt-3 w-full accent-[hsl(var(--primary))]"
+              />
+            </label>
+            <label className={LABEL}>
+              Vertical banner focus
+              <input
+                type="range"
+                name="coverFocalY"
+                min="0"
+                max="1"
+                step="0.01"
+                defaultValue={page.socialActor?.coverFocalY ?? 0.5}
+                className="mt-3 w-full accent-[hsl(var(--primary))]"
+              />
+            </label>
           </div>
           <div className="mt-4">
             <label className={LABEL}>Gallery (add more)</label>
@@ -242,10 +286,12 @@ function MediaSlot({
   label,
   current,
   field,
+  removeField,
 }: {
   label: string;
   current: string | null;
   field: string;
+  removeField: string;
 }) {
   return (
     <div>
@@ -256,10 +302,17 @@ function MediaSlot({
           alt=""
           width={160}
           height={90}
+          unoptimized={current.startsWith("/api/media/")}
           className="mb-2 h-20 w-full rounded-md object-cover"
         />
       )}
       <MediaAttachmentFields mediaContext="custom-page" maxFiles={1} fieldName={field} compact />
+      {current ? (
+        <label className="mt-2 flex min-h-10 items-center gap-2 text-[11px] text-[hsl(var(--muted-foreground))]">
+          <input type="checkbox" name={removeField} value="true" />
+          Remove current {label.toLowerCase()}
+        </label>
+      ) : null}
     </div>
   );
 }

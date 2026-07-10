@@ -19,6 +19,7 @@ export type HubConversationRow = {
   otherName: string;
   preview: string;
   unread: number;
+  attachmentCount?: number;
 };
 
 // Right-hand messenger column. Server-rendered shell with focused client
@@ -48,7 +49,7 @@ export function HubMessengerPanel({
   const outgoing = requests.filter((request) => request.direction === "outgoing");
 
   return (
-    <div className="space-y-4">
+    <div className="max-h-[calc(100dvh-105px)] space-y-4 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
       {invites.map((invite) => (
         <HubIncomingCall key={invite.inviteId} invite={invite} />
       ))}
@@ -130,15 +131,6 @@ export function HubMessengerPanel({
             {outgoing.length} pending sent request{outgoing.length === 1 ? "" : "s"}
           </p>
         )}
-        <div className="mt-4 border-t border-white/[0.06] pt-4">
-          <AddFriendSearch
-            excludeProfileIds={[
-              selfProfileId,
-              ...friends.map((friend) => friend.profileId),
-              ...requests.map((request) => request.profileId),
-            ]}
-          />
-        </div>
       </section>
 
       <section className="giq-panel p-4" aria-label="Recent conversations">
@@ -167,6 +159,20 @@ export function HubMessengerPanel({
             }))}
           />
         )}
+      </section>
+
+      <section className="giq-panel p-4" aria-label="Find people">
+        <h2 className="mb-3 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
+          <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
+          Find people
+        </h2>
+        <AddFriendSearch
+          excludeProfileIds={[
+            selfProfileId,
+            ...friends.map((friend) => friend.profileId),
+            ...requests.map((request) => request.profileId),
+          ]}
+        />
       </section>
     </div>
   );

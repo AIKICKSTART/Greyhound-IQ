@@ -40,6 +40,7 @@ export function FeedCommentsPanel({
   const [comments, setComments] = useState(initialComments);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasMore = hasLoaded
@@ -80,6 +81,11 @@ export function FeedCommentsPanel({
     }
   }
 
+  async function showComments() {
+    setExpanded(true);
+    if (comments.length === 0 && totalCount > 0) await loadComments();
+  }
+
   function updateComment(commentId: string, patch: Partial<FeedCommentItem>) {
     setComments((current) =>
       current.map((comment) => ({
@@ -104,8 +110,23 @@ export function FeedCommentsPanel({
   }
 
   return (
-    <section className="mt-4" aria-label="Comments">
-      {comments.length > 0 && (
+    <section
+      id={`comments-${postId}`}
+      className="mt-3 scroll-mt-24"
+      aria-label="Comments"
+    >
+      {!expanded && totalCount > 0 && (
+        <button
+          type="button"
+          onClick={() => void showComments()}
+          disabled={loading}
+          className="min-h-11 text-[12px] font-semibold text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+        >
+          {loading ? "Loading comments..." : `View ${totalCount} comment${totalCount === 1 ? "" : "s"}`}
+        </button>
+      )}
+
+      {expanded && comments.length > 0 && (
         <div className="space-y-2">
           {comments.map((comment) => (
             <CommentCard
@@ -122,7 +143,7 @@ export function FeedCommentsPanel({
         </div>
       )}
 
-      {hasMore && (
+      {expanded && hasMore && (
         <button
           type="button"
           onClick={() => void loadComments()}
@@ -135,6 +156,15 @@ export function FeedCommentsPanel({
             <MessageSquare className="h-3.5 w-3.5" />
           )}
           {hasLoaded ? "Load more comments" : `View all ${totalCount} comments`}
+        </button>
+      )}
+      {expanded && comments.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="mt-2 min-h-10 text-[11px] font-semibold text-[hsl(var(--subtle-foreground))] hover:text-[hsl(var(--foreground))]"
+        >
+          Hide comments
         </button>
       )}
       {error && (
@@ -169,9 +199,19 @@ function CommentCard({
   const authorName = comment.authorActor?.displayName ?? comment.author.displayName;
 
   return (
-    <div className={`giq-subpanel p-3 ${isReply ? "ml-5 border-l-2" : ""}`}>
+    <div
+      className={`rounded-xl bg-white/[0.035] px-3 py-2.5 ${
+        isReply ? "ml-5 border-l-2 border-[hsl(var(--primary)/0.35)] bg-white/[0.025]" : ""
+      }`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[12px] font-semibold text-[hsl(var(--foreground))]">
+        <p className="flex items-center gap-2 text-[12px] font-semibold text-[hsl(var(--foreground))]">
+          <span
+            aria-hidden="true"
+            className="grid h-7 w-7 place-items-center rounded-full bg-[hsl(var(--primary)/0.15)] text-[10px] font-bold text-[hsl(var(--primary-light))]"
+          >
+            {authorName.slice(0, 1).toUpperCase()}
+          </span>
           {authorName}
         </p>
         {comment.editedAt && (

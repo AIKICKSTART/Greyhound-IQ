@@ -53,6 +53,27 @@ export const profileUpdateSchema = z.object({
     .default("only_me"),
 });
 
+const optionalMediaId = z
+  .string()
+  .trim()
+  .max(64)
+  .optional()
+  .nullable()
+  .transform((value) => value || null);
+
+export const personalActorMediaUpdateSchema = z.object({
+  avatarMediaId: optionalMediaId,
+  coverMediaId: optionalMediaId,
+  removeAvatar: z.boolean().default(false),
+  removeCover: z.boolean().default(false),
+  coverFocalX: z.coerce.number().min(0).max(1).default(0.5),
+  coverFocalY: z.coerce.number().min(0).max(1).default(0.5),
+});
+
+export type PersonalActorMediaUpdateInput = z.infer<
+  typeof personalActorMediaUpdateSchema
+>;
+
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
 
 export function hasProfileMarketingFields(value: ProfileUpdateInput) {

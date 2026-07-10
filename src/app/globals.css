@@ -100,6 +100,10 @@
   --giq-mobile-dock-clearance: 0px;
 }
 
+.giq-member-shell:has(.giq-home-page) {
+  --giq-mobile-dock-clearance: 0px;
+}
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -4986,6 +4990,10 @@ h2,
     0 22px 48px hsl(0 0% 0% / 0.28);
 }
 
+.giq-panel-popovers {
+  overflow: visible;
+}
+
 .giq-panel-hover {
   transition: var(--transition-control);
 }
@@ -5691,6 +5699,24 @@ select.giq-form-control option:checked {
   }
 }
 
+.giq-mobile-dock-link[data-tone="create"] {
+  border-color: hsl(var(--secondary-light) / 0.72);
+  color: hsl(45 35% 12%);
+  background:
+    radial-gradient(circle at 50% 20%, hsl(var(--secondary-light) / 0.82), transparent 58%),
+    linear-gradient(145deg, hsl(var(--secondary-light)), hsl(var(--secondary-deep)));
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.52),
+    0 10px 24px hsl(var(--secondary) / 0.32);
+  transform: translateY(-7px);
+}
+
+.giq-mobile-dock-link[data-tone="create"]:hover,
+.giq-mobile-dock-link[data-tone="create"]:focus-visible {
+  color: hsl(45 35% 8%);
+  transform: translateY(-8px);
+}
+
 /* Admin app shell: /admin marks its layout with data-admin-shell; hide the
    marketing site chrome there so admin behaves like a dedicated tool (own
    sidebar/top bar, full-height, no dock overlaying table actions). */
@@ -5702,9 +5728,8 @@ body:has([data-admin-shell]) .giq-alert-wrap {
   display: none;
 }
 
-/* Root <main> forces min-h-screen; with the marketing header/alert hidden on
-   admin that left ~100vh of empty scroll above the admin content on mobile.
-   Neutralise the min-height inside the admin shell so content sits at the top. */
+/* Keep the admin shell content pinned to the top if a nested route introduces
+   a viewport-height main surface. */
 body:has([data-admin-shell]) #main-content {
   min-height: 0;
 }

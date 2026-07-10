@@ -205,6 +205,7 @@ function IdentityButton({
               alt=""
               width={32}
               height={32}
+              unoptimized={avatarUrl.startsWith("/api/media/")}
               className="h-full w-full object-cover"
             />
           ) : (

@@ -252,17 +252,39 @@ export async function getFeedPostForViewer(
     if (actor) {
       await tx.$executeRaw`SELECT set_config('app.current_actor_id', ${actor.id}, true)`;
     }
+    const mutedActorIds = actor
+      ? (
+          await tx.actorMute.findMany({
+            where: { muterActorId: actor.id },
+            select: { mutedActorId: true },
+          })
+        ).map((mute) => mute.mutedActorId)
+      : [];
     const post = await tx.feedPost.findFirst({
       where: {
         id: postId,
         deletedAt: null,
-        OR: [
-          { status: "active" },
-          ...(options.current
+        AND: [
+          {
+            OR: [
+              { status: "active" },
+              ...(options.current
+                ? [
+                    {
+                      authorProfileId: options.current.profileId,
+                      status: { in: ["processing", "failed"] },
+                    },
+                  ]
+                : []),
+            ],
+          },
+          ...(mutedActorIds.length > 0
             ? [
                 {
-                  authorProfileId: options.current.profileId,
-                  status: { in: ["processing", "failed"] },
+                  OR: [
+                    { authorActorId: null },
+                    { authorActorId: { notIn: mutedActorIds } },
+                  ],
                 },
               ]
             : []),
@@ -1326,11 +1348,9 @@ function feedPostInclude(
       },
     },
     reactions: {
-      // Viewer-only: the card just needs whether the current user liked the
-      // post; the total comes from _count.reactions. Empty `in` matches none
-      // for signed-out viewers.
+      // Viewer-only: the total comes from _count.reactions. Empty `in`
+      // matches none for signed-out viewers.
       where: {
-        reactionType: "like",
         OR: viewerActorId
           ? [
               { actorId: viewerActorId },
@@ -1341,7 +1361,7 @@ function feedPostInclude(
             ]
           : [{ profileId: { in: viewerProfileId ? [viewerProfileId] : [] } }],
       },
-      select: { profileId: true, actorId: true },
+      select: { profileId: true, actorId: true, reactionType: true },
     },
     savedBy: {
       where: { actorId: { in: viewerActorId ? [viewerActorId] : [] } },

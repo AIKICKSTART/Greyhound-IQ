@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
 import { getTodaysMeetings } from "@/lib/queries";
 import { MeetingCard } from "@/components/meeting-card";
 import { PageHero } from "@/components/page-hero";
@@ -117,12 +115,7 @@ const COMPARISON = [
   },
 ] as const;
 
-export default async function HomePage() {
-  // Signed-in members land in the Feed hub; the marketing home stays for
-  // signed-out visitors.
-  const user = await getCurrentUser();
-  if (user?.profileId) redirect("/feed");
-
+export default function HomePage() {
   return (
     <div className="giq-home-page">
       <HomeHero />

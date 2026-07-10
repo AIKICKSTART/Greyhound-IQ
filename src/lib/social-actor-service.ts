@@ -9,7 +9,11 @@ import {
   withDbAnonymousContext,
   withDbRequestContext,
 } from "@/lib/db-context";
-import { mediaDeliveryUrl } from "@/lib/media-service";
+import type { PersonalActorMediaUpdateInput } from "@/lib/account-validation";
+import {
+  assertMediaAttachable,
+  mediaDeliveryUrl,
+} from "@/lib/media-service";
 import { createInAppNotification } from "@/lib/notification-service";
 import {
   canViewAudience,
@@ -602,6 +606,186 @@ export async function ensurePersonalActor(
   return withDbRequestContext(current, (client) =>
     ensurePersonalActorWithClient(client, current.profileId),
   );
+}
+
+const PERSONAL_AVATAR_MEDIA = "social_actor_avatar";
+const PERSONAL_COVER_MEDIA = "social_actor_cover";
+
+export type PersonalActorMedia = {
+  avatarMediaId: string | null;
+  coverMediaId: string | null;
+  avatarUrl: string | null;
+  coverUrl: string | null;
+  coverFocalX: number;
+  coverFocalY: number;
+};
+
+export async function getPersonalActorMedia(
+  current: CurrentUserProfile,
+): Promise<PersonalActorMedia> {
+  return withDbRequestContext(current, async (tx) => {
+    const actor = await ensurePersonalActor(current, tx);
+    const [media, gallerySlots] = await Promise.all([
+      tx.mediaAsset.findMany({
+        where: {
+          uploaderId: current.dbUserId,
+          linkedEntityId: actor.id,
+          linkedEntityType: {
+            in: [PERSONAL_AVATAR_MEDIA, PERSONAL_COVER_MEDIA],
+          },
+          deletedAt: null,
+        },
+        select: { id: true, linkedEntityType: true },
+      }),
+      tx.actorGalleryMedia.findMany({
+        where: {
+          actorId: actor.id,
+          position: { in: [-2, -1] },
+          media: { uploaderId: current.dbUserId, deletedAt: null },
+        },
+        select: { mediaId: true, position: true },
+      }),
+    ]);
+    return {
+      avatarMediaId:
+        media.find((item) => item.linkedEntityType === PERSONAL_AVATAR_MEDIA)
+          ?.id ??
+        gallerySlots.find((item) => item.position === -2)?.mediaId ??
+        null,
+      coverMediaId:
+        media.find((item) => item.linkedEntityType === PERSONAL_COVER_MEDIA)
+          ?.id ??
+        gallerySlots.find((item) => item.position === -1)?.mediaId ??
+        null,
+      avatarUrl: actor.avatarUrl,
+      coverUrl: actor.coverUrl,
+      coverFocalX: actor.coverFocalX,
+      coverFocalY: actor.coverFocalY,
+    };
+  });
+}
+
+export async function updatePersonalActorMedia(
+  current: CurrentUserProfile,
+  input: PersonalActorMediaUpdateInput,
+) {
+  const requestedIds = [input.avatarMediaId, input.coverMediaId].filter(
+    (id): id is string => Boolean(id),
+  );
+  const media = await assertMediaAttachable(current, requestedIds, 2, {
+    allowPending: true,
+  });
+  if (media.some((item) => !item.mimeType.startsWith("image/"))) {
+    throw new Error("media.image_required");
+  }
+  const byId = new Map(media.map((item) => [item.id, item]));
+  const avatar = input.avatarMediaId
+    ? byId.get(input.avatarMediaId) ?? null
+    : null;
+  const cover = input.coverMediaId
+    ? byId.get(input.coverMediaId) ?? null
+    : null;
+
+  return withDbRequestContext(current, async (tx) => {
+    const actor = await ensurePersonalActor(current, tx);
+    const previous = await tx.mediaAsset.findMany({
+      where: {
+        uploaderId: current.dbUserId,
+        linkedEntityId: actor.id,
+        linkedEntityType: {
+          in: [PERSONAL_AVATAR_MEDIA, PERSONAL_COVER_MEDIA],
+        },
+      },
+      select: { id: true },
+    });
+    const touchedIds = [
+      ...new Set([...previous.map((item) => item.id), ...requestedIds]),
+    ];
+
+    await tx.actorGalleryMedia.deleteMany({
+      where: {
+        actorId: actor.id,
+        OR: [
+          { position: { in: [-2, -1] } },
+          ...(touchedIds.length > 0 ? [{ mediaId: { in: touchedIds } }] : []),
+        ],
+      },
+    });
+    if (previous.length > 0) {
+      await tx.mediaAsset.updateMany({
+        where: { id: { in: previous.map((item) => item.id) } },
+        data: { linkedEntityType: null, linkedEntityId: null },
+      });
+    }
+    if (avatar) {
+      await tx.mediaAsset.update({
+        where: { id: avatar.id },
+        data: {
+          linkedEntityType: PERSONAL_AVATAR_MEDIA,
+          linkedEntityId: actor.id,
+        },
+      });
+    }
+    if (cover) {
+      await tx.mediaAsset.update({
+        where: { id: cover.id },
+        data: {
+          linkedEntityType: PERSONAL_COVER_MEDIA,
+          linkedEntityId: actor.id,
+        },
+      });
+    }
+    const attachments = [
+      ...(avatar
+        ? [
+            {
+              actorId: actor.id,
+              mediaId: avatar.id,
+              position: -2,
+              altText: avatar.altText ?? "Profile picture",
+            },
+          ]
+        : []),
+      ...(cover
+        ? [
+            {
+              actorId: actor.id,
+              mediaId: cover.id,
+              position: -1,
+              altText: cover.altText ?? "Profile cover",
+            },
+          ]
+        : []),
+    ];
+    if (attachments.length > 0) {
+      await tx.actorGalleryMedia.createMany({ data: attachments });
+    }
+
+    const avatarUrl = avatar
+      ? mediaDeliveryUrl(avatar)
+      : input.removeAvatar
+        ? null
+        : actor.avatarUrl;
+    const coverUrl = cover
+      ? mediaDeliveryUrl(cover)
+      : input.removeCover
+        ? null
+        : actor.coverUrl;
+    await tx.profile.update({
+      where: { id: current.profileId },
+      data: { avatarUrl },
+    });
+    return tx.socialActor.update({
+      where: { id: actor.id },
+      data: {
+        avatarUrl,
+        coverUrl,
+        coverFocalX: input.coverFocalX,
+        coverFocalY: input.coverFocalY,
+      },
+      select: actorSelect,
+    });
+  });
 }
 
 export async function ensureOwnedPageActor(

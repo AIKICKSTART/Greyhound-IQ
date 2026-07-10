@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { BadgeCheck, ExternalLink, Pencil } from "lucide-react";
+import { BadgeCheck, Camera, ExternalLink, Pencil } from "lucide-react";
 import type { ActiveIdentity } from "@/lib/identity";
 import { CUSTOM_PAGE_TYPE_LABELS } from "@/lib/custom-page-service";
 import type { CustomPageType } from "@/lib/custom-page-validation";
@@ -19,9 +19,17 @@ export type PersonalIdentitySummary = {
 // Banner + avatar header for the hub, mirroring the /p/[handle] public page
 // header so switching identities feels native, not bolted on.
 export function HubIdentityBanner({
+  actor,
   identity,
   personal,
 }: {
+  actor: {
+    handle: string;
+    avatarUrl: string | null;
+    coverUrl: string | null;
+    coverFocalX: number;
+    coverFocalY: number;
+  };
   identity: ActiveIdentity;
   personal: PersonalIdentitySummary;
 }) {
@@ -29,8 +37,10 @@ export function HubIdentityBanner({
   const page = isPage ? identity.page : null;
   const accent = page?.accentColor || BRAND_PURPLE;
   const title = page ? page.title : personal.displayName;
-  const avatarUrl = page ? page.media.avatarUrl : personal.avatarUrl;
-  const bannerUrl = page ? page.media.bannerUrl : null;
+  const avatarUrl = actor.avatarUrl ?? (page ? page.media.avatarUrl : personal.avatarUrl);
+  const bannerUrl = actor.coverUrl ?? page?.media.bannerUrl ?? null;
+  const coverImageUrl =
+    bannerUrl ?? "/images/wentworth-track-banner-landscape.webp";
   const subtitle = page
     ? page.tagline ??
       `${CUSTOM_PAGE_TYPE_LABELS[page.pageType as CustomPageType] ?? page.pageType} page`
@@ -38,31 +48,49 @@ export function HubIdentityBanner({
       "Member profile";
 
   return (
-    <header className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[hsl(var(--surface-1))]">
-      <div className="relative aspect-[16/4] w-full bg-gradient-to-br from-[hsl(var(--primary)/0.35)] via-[hsl(var(--surface-2))] to-black sm:aspect-[16/3]">
-        {bannerUrl && (
-          <Image
-            src={bannerUrl}
-            alt=""
-            fill
-            sizes="(max-width:768px) 100vw, 900px"
-            className="object-cover"
-            priority
-          />
-        )}
+    <header className="overflow-hidden rounded-2xl border border-white/[0.09] bg-[hsl(var(--surface-1))] shadow-[0_18px_55px_rgba(0,0,0,0.32)]">
+      <div className="relative aspect-[16/5] min-h-36 w-full overflow-hidden bg-black sm:min-h-44">
+        <Image
+          src={coverImageUrl}
+          alt=""
+          fill
+          unoptimized={coverImageUrl.startsWith("/api/media/")}
+          sizes="(max-width:768px) 100vw, 980px"
+          className="object-cover"
+          style={{
+            objectPosition: `${actor.coverFocalX * 100}% ${actor.coverFocalY * 100}%`,
+          }}
+          priority
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+        <Link
+          href={page ? `/account/pages/${page.id}#page-media` : "/account#profile-media"}
+          className="giq-button giq-button-glass min-h-10 border-black/20 bg-black/65 px-3 text-[12px] font-semibold backdrop-blur-md"
+          style={{ position: "absolute", right: 12, top: 12, zIndex: 10 }}
+        >
+          <Camera className="h-4 w-4" aria-hidden="true" />
+          Edit cover
+        </Link>
+        <div className="absolute inset-x-0 bottom-0 flex h-1" aria-hidden="true">
+          {["#ef2d75", "#d79a1e", "#20b15a", "#f0c128", "#3478e5", "#e9e9e9", "#d83b3b", "#7c3aed"].map(
+            (color) => (
+              <span key={color} className="flex-1" style={{ backgroundColor: color }} />
+            ),
+          )}
+        </div>
       </div>
-      <div className="flex flex-wrap items-end gap-4 px-5 pb-4 sm:px-6">
+      <div className="flex flex-wrap items-end gap-4 px-5 pb-5 sm:px-6">
         <div
-          className="-mt-9 h-[72px] w-[72px] shrink-0 overflow-hidden rounded-2xl border-2 bg-black"
+          className="-mt-12 h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-black shadow-xl"
           style={{ borderColor: accent }}
         >
           {avatarUrl ? (
             <Image
               src={avatarUrl}
               alt={title}
-              width={72}
-              height={72}
+              width={96}
+              height={96}
+              unoptimized={avatarUrl.startsWith("/api/media/")}
               className="h-full w-full object-cover"
             />
           ) : (
@@ -128,13 +156,22 @@ export function HubIdentityBanner({
               )}
             </>
           ) : (
-            <Link
-              href="/account"
-              className="giq-button giq-button-glass min-h-9 px-3 text-[12px] font-semibold"
-            >
-              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-              Edit profile
-            </Link>
+            <>
+              <Link
+                href="/account"
+                className="giq-button giq-button-glass min-h-9 px-3 text-[12px] font-semibold"
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                Edit profile
+              </Link>
+              <Link
+                href={`/p/${actor.handle}`}
+                className="giq-outline-action min-h-9 px-3 text-[12px]"
+              >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                View public
+              </Link>
+            </>
           )}
         </div>
       </div>

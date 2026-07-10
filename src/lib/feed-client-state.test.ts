@@ -31,18 +31,64 @@ assert.deepEqual(
   mergeFeedItems(
     [
       { id: "source", feedEntryId: "post:source", value: "old" },
-      { id: "source", feedEntryId: "share:one", value: "shared" },
+      {
+        id: "source",
+        feedEntryId: "share:one",
+        value: "shared",
+        reshare: { id: "one" },
+      },
     ],
     [
-      { id: "source", feedEntryId: "share:one", value: "shared" },
+      {
+        id: "source",
+        feedEntryId: "share:one",
+        value: "shared",
+        reshare: { id: "one" },
+      },
       { id: "source", feedEntryId: "post:source", value: "new" },
     ],
     "source",
     { id: "source", feedEntryId: "post:source", value: "changed" }
   ),
   [
-    { id: "source", feedEntryId: "share:one", value: "shared" },
+    {
+      id: "source",
+      feedEntryId: "share:one",
+      value: "changed",
+      reshare: { id: "one" },
+    },
     { id: "source", feedEntryId: "post:source", value: "changed" },
+  ]
+);
+assert.deepEqual(
+  mergeFeedItems(
+    [
+      { id: "source", feedEntryId: "post:source", value: "old" },
+      { id: "source", feedEntryId: "share:one", value: "shared" },
+    ],
+    [],
+    "source",
+    null
+  ),
+  []
+);
+assert.deepEqual(
+  mergeFeedItems(
+    [
+      { id: "head-one", value: 1 },
+      { id: "head-two", value: 1 },
+      { id: "tail", value: 1 },
+    ],
+    [
+      { id: "new", value: 1 },
+      { id: "head-one", value: 2 },
+    ]
+  ),
+  [
+    { id: "new", value: 1 },
+    { id: "head-one", value: 2 },
+    { id: "head-two", value: 1 },
+    { id: "tail", value: 1 },
   ]
 );
 

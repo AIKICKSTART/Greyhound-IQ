@@ -10,9 +10,11 @@ import {
   Dna,
   Dog,
   Flag,
+  Home,
   LayoutGrid,
   Map,
   Menu,
+  Plus,
   Search,
   ShoppingBag,
   Trophy,
@@ -33,19 +35,21 @@ type DockLink = {
   href: string;
   label: string;
   icon: LucideIcon;
-  tone?: "pro";
+  tone?: "pro" | "create";
 };
 
 const DOCK_LINKS: DockLink[] = [
-  { href: "/feed", label: "Home", icon: Activity },
-  { href: "/races", label: "Races", icon: Flag },
-  { href: "/marketplace", label: "Market", icon: ShoppingBag },
+  { href: "/", label: "Home", icon: Home },
+  { href: "/feed", label: "Feed", icon: Activity },
+  { href: "/feed#feed-composer", label: "Create", icon: Plus, tone: "create" },
   { href: "/pulse", label: "Chat", icon: Bell },
 ];
 
 type MenuEntry = { href: string; label: string; icon: LucideIcon };
 
 const MENU_ENTRIES: MenuEntry[] = [
+  { href: "/races", label: "Races", icon: Flag },
+  { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
   { href: "/discover", label: "Discover", icon: Search },
   { href: "/dogs", label: "Dogs", icon: Dog },
   { href: "/results", label: "Results", icon: Trophy },
@@ -72,12 +76,22 @@ export function MobileBottomDock({
     <nav aria-label="Quick actions" className="giq-mobile-dock is-visible">
       {DOCK_LINKS.map((item) => {
         const Icon = item.icon;
-        const active = pathname.startsWith(item.href);
+        const active =
+          pathname === item.href ||
+          (item.href !== "/" && pathname.startsWith(`${item.href}/`));
 
         return (
           <Link
             key={item.href}
             href={item.href}
+            onClick={
+              item.tone === "create"
+                ? () =>
+                    window.dispatchEvent(
+                      new Event("giq:open-feed-composer"),
+                    )
+                : undefined
+            }
             aria-current={active ? "page" : undefined}
             data-tone={item.tone}
             className={`giq-mobile-dock-link ${active ? "is-active" : ""}`}

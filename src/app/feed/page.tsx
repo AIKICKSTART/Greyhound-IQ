@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Lock, MessageSquare } from "lucide-react";
+import { Lock } from "lucide-react";
 import { FeedInfiniteList } from "@/components/feed-infinite-list";
 import { HubIdentityBanner } from "@/components/hub/hub-identity-banner";
 import { HubLeftSidebar } from "@/components/hub/hub-left-sidebar";
@@ -105,7 +105,7 @@ export default async function FeedPage({
         </PageHero>
         <section className="mx-auto max-w-2xl space-y-4 px-4 py-12 sm:px-6">
           <FeedInfiniteList
-            key={feedListKey(mode, null, posts)}
+            key={feedListKey(mode, null)}
             initialPosts={posts}
             initialCursor={feedPage.nextCursor}
             mode={mode}
@@ -195,8 +195,18 @@ export default async function FeedPage({
     tierLabel: TIER_LABELS[user.tier] ?? "Free",
   };
 
-  const conversationRows: HubConversationRow[] = conversations
-    .slice(0, 6)
+  const actorConversations = conversations.filter((conversation) => {
+    const belongsToActiveActor =
+      conversation.participantAActorId === activeActor.id ||
+      conversation.participantBActorId === activeActor.id;
+    const isLegacyPersonalConversation =
+      !activePage &&
+      !conversation.participantAActorId &&
+      !conversation.participantBActorId;
+    return belongsToActiveActor || isLegacyPersonalConversation;
+  });
+  const conversationRows: HubConversationRow[] = actorConversations
+    .slice(0, 12)
     .map((conversation) => {
       const other =
         conversation.participantAId === user.profileId
@@ -214,6 +224,7 @@ export default async function FeedPage({
         preview: message
           ? `${isSent ? "You: " : ""}${message.body}`
           : "Conversation started",
+        attachmentCount: message?._count.media ?? 0,
         unread: unreadByConversation.get(conversation.id) ?? 0,
       };
     });
@@ -227,10 +238,10 @@ export default async function FeedPage({
   }));
 
   return (
-    <div className="mx-auto max-w-[1400px] px-3 py-6 sm:px-5 lg:px-6">
-      <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)_340px]">
+    <div className="mx-auto w-full max-w-[1680px] px-2 py-4 sm:px-4 lg:px-5 2xl:px-6">
+      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_300px] 2xl:grid-cols-[260px_minmax(0,1fr)_340px]">
         <aside className="hidden lg:block" aria-label="Hub navigation">
-          <div className="sticky top-[170px]">
+          <div className="sticky top-[84px] max-h-[calc(100dvh-105px)] overflow-y-auto pr-1">
             <HubLeftSidebar
               identity={identity}
               pages={ownedPages}
@@ -241,10 +252,15 @@ export default async function FeedPage({
           </div>
         </aside>
 
-        <main className="min-w-0 space-y-4">
+        <main
+          data-feed-scroll
+          aria-label="Community feed"
+          tabIndex={0}
+          className="min-w-0 space-y-4 lg:h-[calc(100dvh-105px)] lg:overflow-y-auto lg:overscroll-contain lg:pb-8 lg:pr-1 [scrollbar-gutter:stable]"
+        >
           {/* Ringing card surfaces above the feed on mobile where the right
               messenger column is hidden. */}
-          <div className="space-y-3 lg:hidden">
+          <div className="space-y-3 xl:hidden">
             {invites.map((invite) => (
               <HubIncomingCall key={invite.inviteId} invite={invite} />
             ))}
@@ -285,7 +301,11 @@ export default async function FeedPage({
             </Sheet>
           </div>
 
-          <HubIdentityBanner identity={identity} personal={personal} />
+          <HubIdentityBanner
+            actor={activeActor}
+            identity={identity}
+            personal={personal}
+          />
 
           <nav
             aria-label="Feed order"
@@ -316,13 +336,10 @@ export default async function FeedPage({
           </nav>
 
           {canUseFeedAsActiveIdentity ? (
-            <section className="giq-panel p-5">
-              <div className="mb-4 flex items-center gap-3">
-                <MessageSquare className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-                <h2 className="text-[16px] font-semibold text-[hsl(var(--foreground))]">
-                  Share an update
-                </h2>
-              </div>
+            <section
+              id="feed-composer"
+              className="giq-panel scroll-mt-24 p-4"
+            >
               <InstantFeedPostComposer
                 topics={topics}
                 pageId={activePage?.id ?? null}
@@ -351,7 +368,7 @@ export default async function FeedPage({
           )}
 
           <FeedInfiniteList
-            key={feedListKey(mode, activeActor.id, posts)}
+            key={feedListKey(mode, activeActor.id)}
             initialPosts={posts}
             initialCursor={feedPage.nextCursor}
             mode={mode}
@@ -364,8 +381,8 @@ export default async function FeedPage({
           />
         </main>
 
-        <aside className="hidden lg:block" aria-label="Messenger">
-          <div className="sticky top-[170px]">
+        <aside className="hidden xl:block" aria-label="Messenger">
+          <div className="sticky top-[84px] max-h-[calc(100dvh-105px)]">
             <HubMessengerPanel
               presenceChannel={membersPresenceChannel()}
               selfProfileId={user.profileId}
@@ -377,7 +394,7 @@ export default async function FeedPage({
                 displayName: friend.displayName,
                 verified: friend.verified,
                 conversationId: activePage
-                  ? conversations.find((conversation) =>
+                  ? actorConversations.find((conversation) =>
                       (conversation.participantAActorId === activeActor.id ||
                         conversation.participantBActorId === activeActor.id) &&
                       (conversation.participantAId === friend.profileId ||
@@ -399,23 +416,7 @@ export default async function FeedPage({
 
 function feedListKey(
   mode: FeedMode,
-  actorId: string | null,
-  posts: Awaited<ReturnType<typeof getFeedPageForViewer>>["items"]
+  actorId: string | null
 ) {
-  const revision = posts
-    .map((post) =>
-      [
-        post.id,
-        post.updatedAt.getTime(),
-        post.status,
-        post.visibility,
-        post._count.comments,
-        post._count.reactions,
-        post._count.shares,
-        post.comments.map((comment) => `${comment.id}:${comment.updatedAt.getTime()}`).join(","),
-        post.media.map((item) => `${item.mediaId}:${item.media.processingStatus}`).join(","),
-      ].join(":")
-    )
-    .join("|");
-  return `${mode}:${actorId ?? "anonymous"}:${revision}`;
+  return `${mode}:${actorId ?? "anonymous"}`;
 }

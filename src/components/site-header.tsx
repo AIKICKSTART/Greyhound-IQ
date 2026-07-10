@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/sheet";
 import { getCurrentUser, isModeratorRole } from "@/lib/auth";
 import { HeaderNav } from "@/components/header-nav";
+import { HomeRouteContent } from "@/components/home-route-content";
 import {
   MobileMenuAnchor,
   MobileMenuLink,
@@ -268,9 +269,12 @@ function MobileNavigationMenu({
               <div className="grid gap-2">
                 {section.links.map((link) => {
                   const Icon = link.icon;
-                  const href = user && link.href === "/" ? "/feed" : link.href;
                   return (
-                    <MobileMenuLink key={href} href={href} className="giq-mobile-menu-link">
+                    <MobileMenuLink
+                      key={link.href}
+                      href={link.href}
+                      className="giq-mobile-menu-link"
+                    >
                       <span className="giq-mobile-menu-link-icon" aria-hidden="true">
                         <Icon className="h-4 w-4" />
                       </span>
@@ -399,8 +403,7 @@ export async function SiteHeader({
     ? profileRealtimeChannel(user.profileId)
     : null;
 
-  if (user) {
-    return (
+  const memberHeader = user ? (
       <>
         {profileChannel && (
           <RealtimeRefresh
@@ -418,10 +421,10 @@ export async function SiteHeader({
           />
         )}
         <header className="giq-member-header sticky top-0 z-50 w-full border-b border-white/[0.10] bg-[hsl(var(--surface-1)/0.92)] shadow-[0_12px_32px_hsl(0_0%_0%/0.28)] backdrop-blur-xl">
-          <div className="mx-auto flex min-h-[68px] max-w-[1400px] items-center gap-3 px-3 sm:px-5 lg:px-6">
+          <div className="mx-auto flex min-h-[68px] max-w-[1680px] items-center gap-3 px-3 sm:px-5 lg:px-6">
             <Link
-              href="/feed"
-              aria-label="GreyhoundIQ feed"
+              href="/"
+              aria-label="GreyhoundIQ home"
               className="group flex min-w-0 shrink items-center transition-transform hover:-translate-y-px"
             >
               <span className="relative block h-9 w-[172px] max-w-[48vw] shrink-0 overflow-hidden sm:w-[190px]">
@@ -528,10 +531,9 @@ export async function SiteHeader({
           <div aria-hidden="true" className="race-box-strip h-[2px] rounded-none opacity-80" />
         </header>
       </>
-    );
-  }
+    ) : null;
 
-  return (
+  const cinematicHeader = (
     <header className="giq-site-header sticky top-2 z-50 w-full px-3 md:px-5">
       {profileChannel && (
         <RealtimeRefresh
@@ -615,21 +617,59 @@ export async function SiteHeader({
                 />
               </span>
 
-              <a
-                href="/sign-in"
-                className="giq-button giq-button-glass giq-header-auth-action giq-header-login-action hidden px-4 text-[13px] font-semibold md:inline-flex"
-              >
-                <LogIn className="h-3.5 w-3.5" />
-                Log in
-              </a>
-              <Link
-                href="/pricing"
-                className="giq-button giq-button-gold giq-header-auth-action hidden px-3.5 text-[13px] font-bold md:inline-flex md:px-5"
-              >
-                <Crown className="h-3.5 w-3.5" />
-                <span className="sm:hidden">Pro</span>
-                <span className="hidden sm:inline">Go Pro</span>
-              </Link>
+              {user ? (
+                <Sheet>
+                  <span className="giq-header-auth-action relative hidden md:inline-flex">
+                    <SheetTrigger
+                      aria-label={`Open account menu for ${user.name}`}
+                      className="giq-button giq-button-glass min-h-10 px-3 text-[13px] font-semibold md:px-4"
+                    >
+                      <User className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span className="max-w-[100px] truncate">
+                        {user.firstName || user.name}
+                      </span>
+                      {badge && (
+                        <span
+                          className="hidden rounded-full px-2 py-0.5 text-[10px] font-semibold lg:inline-flex"
+                          style={{
+                            background: `hsl(${badge.color} / 0.14)`,
+                            color: `hsl(${badge.color})`,
+                          }}
+                        >
+                          {badge.label}
+                        </span>
+                      )}
+                      <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                    </SheetTrigger>
+                    <CountBadge
+                      count={unreadNotifications}
+                      label={`${unreadNotifications} unread notifications`}
+                    />
+                  </span>
+                  <AccountNavigationMenu
+                    user={user}
+                    canAccessAdmin={canAccessAdmin}
+                  />
+                </Sheet>
+              ) : (
+                <>
+                  <a
+                    href="/sign-in"
+                    className="giq-button giq-button-glass giq-header-auth-action giq-header-login-action hidden px-4 text-[13px] font-semibold md:inline-flex"
+                  >
+                    <LogIn className="h-3.5 w-3.5" />
+                    Log in
+                  </a>
+                  <Link
+                    href="/pricing"
+                    className="giq-button giq-button-gold giq-header-auth-action hidden px-3.5 text-[13px] font-bold md:inline-flex md:px-5"
+                  >
+                    <Crown className="h-3.5 w-3.5" />
+                    <span className="sm:hidden">Pro</span>
+                    <span className="hidden sm:inline">Go Pro</span>
+                  </Link>
+                </>
+              )}
 
               <Sheet>
                 <SheetTrigger
@@ -677,4 +717,8 @@ export async function SiteHeader({
       </div>
     </header>
   );
+
+  if (!user) return cinematicHeader;
+
+  return <HomeRouteContent home={cinematicHeader} app={memberHeader} />;
 }

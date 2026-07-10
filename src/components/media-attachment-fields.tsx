@@ -88,7 +88,9 @@ export function MediaAttachmentFields({
 
   const remaining = maxFiles - items.length;
   const acceptedMediaTypes =
-    mediaContext === "feed"
+    mediaContext === "avatars"
+      ? ACCEPTED_MEDIA_TYPES.filter((type) => type.startsWith("image/"))
+      : mediaContext === "feed"
       ? ACCEPTED_MEDIA_TYPES.filter((type) => type !== "application/pdf")
       : ACCEPTED_MEDIA_TYPES;
 

@@ -210,6 +210,8 @@ export async function createCustomPage(
             published: false,
             avatarUrl: actorMediaUrl(media, input.avatarMediaId),
             coverUrl: actorMediaUrl(media, input.bannerMediaId),
+            coverFocalX: input.coverFocalX,
+            coverFocalY: input.coverFocalY,
           },
         },
       },
@@ -292,6 +294,8 @@ export async function updateCustomPage(
         contactVisibility: input.contactVisibility,
         avatarUrl: actorMediaUrl(media, input.avatarMediaId),
         coverUrl: actorMediaUrl(media, input.bannerMediaId),
+        coverFocalX: input.coverFocalX,
+        coverFocalY: input.coverFocalY,
       },
     });
     await replaceActorMedia(tx, actorId, media);
@@ -379,7 +383,14 @@ export function getOwnedCustomPage(current: CurrentUserProfile, pageId: string) 
       where: { id: pageId, ownerProfileId: current.profileId },
       include: {
         dog: { select: { id: true, name: true } },
-        socialActor: { select: { id: true, contactVisibility: true } },
+        socialActor: {
+          select: {
+            id: true,
+            contactVisibility: true,
+            coverFocalX: true,
+            coverFocalY: true,
+          },
+        },
       },
     })
   );

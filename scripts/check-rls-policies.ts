@@ -481,6 +481,110 @@ for (const needle of [
     findings.push(`FeedPost RETURNING RLS fix missing: ${needle}`);
   }
 }
+
+const callRoomReturningRlsFixSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710143000_fix_call_room_returning_rls",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  "ALTER POLICY giq_call_room_select",
+  '"createdByProfileId" = public.giq_current_profile_id()',
+  "public.giq_call_room_current_profile_has_access(id)",
+]) {
+  if (!callRoomReturningRlsFixSql.includes(needle)) {
+    findings.push(`CallRoom RETURNING RLS fix missing: ${needle}`);
+  }
+}
+if (callRoomReturningRlsFixSql.includes("giq_call_room_insert")) {
+  findings.push("CallRoom RETURNING fix must not relax Pro initiation");
+}
+
+const messageParticipantMediaSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710144000_allow_message_participant_media_reads",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  "ALTER POLICY giq_media_select",
+  'FROM public."MessageMedia" attachment',
+  'JOIN public."Message" message',
+  'attachment."mediaId" = "MediaAsset".id',
+  'public.giq_media_owned_by_actor(message."senderActorId", "MediaAsset".id)',
+  'message."senderId" = public.giq_current_profile_id()',
+  'message."recipientId" = public.giq_current_profile_id()',
+  'message."deletedBySenderAt" IS NULL',
+  'message."deletedByRecipientAt" IS NULL',
+]) {
+  if (!messageParticipantMediaSql.includes(needle)) {
+    findings.push(`message participant media RLS missing: ${needle}`);
+  }
+}
+
+const callRoomInsertScopeSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710145000_scope_call_room_inserts_to_conversations",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  "ALTER POLICY giq_call_room_insert",
+  "public.giq_is_pro()",
+  '"createdByProfileId" = public.giq_current_profile_id()',
+  '"conversationId" IS NOT NULL',
+  'public.giq_is_conversation_participant("conversationId")',
+]) {
+  if (!callRoomInsertScopeSql.includes(needle)) {
+    findings.push(`CallRoom insert scope missing: ${needle}`);
+  }
+}
+if (!actorFoundationSql.includes("CREATE TRIGGER giq_call_room_person_only")) {
+  findings.push("CallRoom page-actor rejection trigger missing");
+}
+
+const callChildScopeSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710146000_scope_call_children_to_conversation",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  "FUNCTION public.giq_call_room_profile_is_conversation_participant(",
+  "SECURITY DEFINER",
+  "SET search_path = ''",
+  'JOIN public."Conversation" conversation',
+  "ALTER POLICY giq_call_participant_access",
+  "ALTER POLICY giq_call_permission_access",
+  "ALTER POLICY giq_call_invite_access",
+  "ALTER POLICY giq_call_event_access",
+  "ALTER POLICY giq_call_report_access",
+  '"fromProfileId" <> "toProfileId"',
+  'public.giq_call_room_profile_is_conversation_participant("callRoomId", "profileId")',
+  "REVOKE ALL ON FUNCTION public.giq_call_room_profile_is_conversation_participant",
+  "GRANT EXECUTE ON FUNCTION public.giq_call_room_profile_is_conversation_participant",
+]) {
+  if (!callChildScopeSql.includes(needle)) {
+    findings.push(`call child conversation scope missing: ${needle}`);
+  }
+}
 for (const table of [
   "SocialActor",
   "ActorFollow",
@@ -839,6 +943,7 @@ async function checkDatabaseState() {
           'giq_actor_visible',
           'giq_profiles_blocked',
           'giq_is_conversation_participant',
+          'giq_call_room_profile_is_conversation_participant',
           'giq_realtime_topic_allowed'
         )`;
     for (const fn of definerOwners) {

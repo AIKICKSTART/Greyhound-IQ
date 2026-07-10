@@ -164,6 +164,97 @@ async function main() {
       "PASS: actor-scoped personal/page inboxes stay distinct and downgraded page owner can reply",
     );
 
+    const directRoom = await createCallRoomAsRuntime(
+      a,
+      abConv.id,
+      `${marker}-valid`,
+    );
+    trackedCallRoomIds.push(directRoom.id);
+    await assert.rejects(() =>
+      withDbRequestContext(a, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callParticipant.create({
+          data: { callRoomId: directRoom.id, profileId: c.profileId },
+        });
+      }),
+    );
+    await assert.rejects(() =>
+      withDbRequestContext(a, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callPermission.create({
+          data: {
+            callRoomId: directRoom.id,
+            profileId: c.profileId,
+            canJoin: true,
+            canInvite: false,
+          },
+        });
+      }),
+    );
+    await assert.rejects(() =>
+      withDbRequestContext(a, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.create({
+          data: {
+            callRoomId: directRoom.id,
+            fromProfileId: a.profileId,
+            toProfileId: c.profileId,
+            status: "pending",
+            expiresAt: new Date(Date.now() + 60_000),
+          },
+        });
+      }),
+    );
+    await assert.rejects(() =>
+      withDbRequestContext(c, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callEvent.create({
+          data: {
+            callRoomId: directRoom.id,
+            profileId: c.profileId,
+            eventType: "joined",
+          },
+        });
+      }),
+    );
+    await assert.rejects(() =>
+      withDbRequestContext(c, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callReport.create({
+          data: {
+            callRoomId: directRoom.id,
+            reporterProfileId: c.profileId,
+            reason: "not a participant",
+          },
+        });
+      }),
+    );
+    await withDbSystemContext((tx) =>
+      tx.callRoom.update({
+        where: { id: directRoom.id },
+        data: { status: "ended", endedAt: new Date() },
+      }),
+    );
+    await assert.rejects(() =>
+      createCallRoomAsRuntime(a, null, `${marker}-null`),
+    );
+    await assert.rejects(() =>
+      createCallRoomAsRuntime(a, personalConversation.id, `${marker}-foreign`),
+    );
+    await assert.rejects(() =>
+      createCallRoomAsRuntime(c, pageConversation.id, `${marker}-page`),
+    );
+    await assert.rejects(() =>
+      createCallRoomAsRuntime(
+        { ...a, tier: "free" as const },
+        abConv.id,
+        `${marker}-free`,
+      ),
+    );
+    console.log(
+      "PASS: runtime calls require Pro + owned personal conversation and exact participants",
+    );
+
     // Ban D
     await prisma.user.update({ where: { id: d.dbUserId }, data: { isBanned: true } });
 
@@ -234,10 +325,18 @@ async function main() {
       }),
     );
     console.log("PASS: actor gallery rejects cross-owner media");
-    await sendConversationMessage(a, abConv.id, {
+    const mediaMessage = await sendConversationMessage(a, abConv.id, {
       body: "media attach",
       mediaIds: [fakeMedia.id],
     });
+    const recipientThread = await getConversationForProfile(b, abConv.id);
+    assert.equal(
+      recipientThread.messages.find((message) => message.id === mediaMessage.id)
+        ?.media[0]?.media.id,
+      fakeMedia.id,
+      "message recipient can read the attached private media",
+    );
+    console.log("PASS: participant can read message media");
     await assert.rejects(
       () => getMediaForCurrentUser(c, fakeMedia.id),
       (err: Error) => err.message === "media.not_found",
@@ -351,6 +450,27 @@ async function createSecUser(
     profileRole: profile.role,
     verified: profile.verified,
   };
+}
+
+function createCallRoomAsRuntime(
+  current: SecUser,
+  conversationId: string | null,
+  roomName: string,
+) {
+  return withDbRequestContext(current, async (tx) => {
+    await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+    return tx.callRoom.create({
+      data: {
+        conversationId,
+        createdByProfileId: current.profileId,
+        roomName,
+        status: "active",
+        callType: "video",
+        startsAt: new Date(),
+      },
+      select: { id: true },
+    });
+  });
 }
 
 async function sweepStale(currentMarker: string) {

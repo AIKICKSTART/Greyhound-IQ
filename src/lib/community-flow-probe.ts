@@ -21,7 +21,7 @@ import {
   startOrGetConversation,
   toggleConversationMessageReaction,
 } from "@/lib/conversation-service";
-import { withDbSystemContext } from "@/lib/db-context";
+import { withDbRequestContext, withDbSystemContext } from "@/lib/db-context";
 import {
   createFeedCommentForCurrentUser,
   createFeedPostForCurrentUser,
@@ -411,6 +411,42 @@ export async function runCommunityFlowProbe({
     );
     assert.ok(mediaMsgRow, "MessageMedia row exists after attaching pending media");
     assert.equal(mediaMsgRow.messageId, mediaMsg.id);
+
+    const recipientThread = await getConversationForProfile(
+      buyer,
+      conversation.id
+    );
+    const recipientMediaMessage = recipientThread.messages.find(
+      (item) => item.id === mediaMsg.id
+    );
+    assert.equal(
+      recipientMediaMessage?.media[0]?.media.id,
+      probeMedia.id,
+      "recipient can read an authorized private message attachment"
+    );
+    await withDbSystemContext((tx) =>
+      tx.message.update({
+        where: { id: mediaMsg.id },
+        data: { deletedByRecipientAt: new Date() },
+      })
+    );
+    const deletedRecipientMedia = await withDbRequestContext(buyer, (tx) =>
+      tx.mediaAsset.findFirst({
+        where: { id: probeMedia.id },
+        select: { id: true },
+      })
+    );
+    assert.equal(
+      deletedRecipientMedia,
+      null,
+      "recipient loses private media access after deleting the message"
+    );
+    await withDbSystemContext((tx) =>
+      tx.message.update({
+        where: { id: mediaMsg.id },
+        data: { deletedByRecipientAt: null },
+      })
+    );
 
     await withDbSystemContext((tx) =>
       tx.mediaAsset.update({

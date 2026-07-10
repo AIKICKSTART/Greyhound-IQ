@@ -20,6 +20,29 @@ const recipientResolver = service.slice(
   recipientResolverStart,
   recipientResolverEnd
 );
+const conversationIncludeStart = service.indexOf("const CONVERSATION_INCLUDE");
+const conversationIncludeEnd = service.indexOf(
+  "const CONVERSATION_LIST_MESSAGE_SELECT",
+  conversationIncludeStart
+);
+assert.ok(
+  conversationIncludeStart >= 0 && conversationIncludeEnd > conversationIncludeStart,
+  "conversation-service.ts must keep a bounded conversation include"
+);
+const conversationInclude = service.slice(
+  conversationIncludeStart,
+  conversationIncludeEnd
+);
+const messageIncludeStart = service.indexOf("const MESSAGE_INCLUDE");
+const messageIncludeEnd = service.indexOf(
+  "\nexport function canonicalProfilePair",
+  messageIncludeStart
+);
+assert.ok(
+  messageIncludeStart >= 0 && messageIncludeEnd > messageIncludeStart,
+  "conversation-service.ts must keep a bounded message include"
+);
+const messageInclude = service.slice(messageIncludeStart, messageIncludeEnd);
 
 assert.match(
   startBody,
@@ -49,6 +72,37 @@ assert.ok(
     !recipientResolver.includes("ownerProfile.user") &&
     !recipientResolver.includes("profile.user"),
   "Viewer-context recipient lookup must not join the private User relation"
+);
+assert.ok(
+  !conversationInclude.includes("user:"),
+  "Conversation DTOs must not join private participant User records"
+);
+assert.match(
+  messageInclude,
+  /sender:\s*\{\s*select:\s*\{\s*displayName: true\s*\}\s*\}/,
+  "Message DTOs expose only the sender label needed by the UI"
+);
+assert.ok(
+  !messageInclude.includes("\n  recipient:") &&
+    !messageInclude.includes("include: { profile: true }") &&
+    !messageInclude.includes("sender: true"),
+  "Message DTOs must not join full sender, recipient, or reaction Profile records"
+);
+assert.ok(
+  !messageInclude.includes("userId:") &&
+    !messageInclude.includes("phone:") &&
+    !messageInclude.includes("website:") &&
+    !messageInclude.includes("kennelPrefix:") &&
+    !messageInclude.includes("bio:"),
+  "Message API DTOs must not expose private Profile fields"
+);
+assert.ok(
+  sendBody.includes(
+    "const recipientUserId = await assertProfileCanReceiveMessage(recipientId)"
+  ) &&
+    sendBody.includes("userId: recipientUserId") &&
+    !sendBody.includes("message.recipient.userId"),
+  "Notification recipient IDs must be resolved server-side, outside the message DTO"
 );
 assert.ok(
   sendBody.includes("senderActorId: senderActor.id") &&

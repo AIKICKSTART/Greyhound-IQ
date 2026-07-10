@@ -39,24 +39,10 @@ const CONVERSATION_ACTOR_SELECT = {
 
 const CONVERSATION_INCLUDE = {
   participantA: {
-    include: {
-      user: {
-        select: {
-          email: true,
-          subscriptionTier: true,
-        },
-      },
-    },
+    select: { id: true, displayName: true, kennelName: true, state: true },
   },
   participantB: {
-    include: {
-      user: {
-        select: {
-          email: true,
-          subscriptionTier: true,
-        },
-      },
-    },
+    select: { id: true, displayName: true, kennelName: true, state: true },
   },
   participantAActor: { select: CONVERSATION_ACTOR_SELECT },
   participantBActor: { select: CONVERSATION_ACTOR_SELECT },
@@ -80,8 +66,7 @@ const CONVERSATION_LIST_MESSAGE_SELECT = {
 } as const;
 
 const MESSAGE_INCLUDE = {
-  sender: true,
-  recipient: true,
+  sender: { select: { displayName: true } },
   senderActor: { select: CONVERSATION_ACTOR_SELECT },
   recipientActor: { select: CONVERSATION_ACTOR_SELECT },
   media: {
@@ -92,7 +77,7 @@ const MESSAGE_INCLUDE = {
   readReceipts: true,
   reactions: {
     orderBy: { createdAt: "asc" },
-    include: { profile: true },
+    select: { profileId: true },
   },
 } as const;
 
@@ -350,7 +335,7 @@ export async function sendConversationMessage(
     await resolveConversationActorsForSender(current, conversation);
   const recipientId = recipientActor.ownerProfileId;
   await assertProfilesCanInteract(current.profileId, recipientId);
-  await assertProfileCanReceiveMessage(recipientId);
+  const recipientUserId = await assertProfileCanReceiveMessage(recipientId);
   const mediaIds = input.mediaIds ?? [];
   const media = await assertMediaAttachable(current, mediaIds, 4, {
     allowPending: true,
@@ -438,7 +423,7 @@ export async function sendConversationMessage(
     recipientActorId: recipientActor.id,
   });
   await createInAppNotificationDeduped({
-    userId: message.recipient.userId,
+    userId: recipientUserId,
     actorProfileId: current.profileId,
     actorId: senderActor.id,
     type: "message",
@@ -1108,10 +1093,11 @@ async function assertProfileCanReceiveMessage(profileId: string) {
           deletionRequestedAt: null,
         },
       },
-      select: { id: true },
+      select: { userId: true },
     })
   );
   if (!profile) throw new Error("conversation.recipient_unavailable");
+  return profile.userId;
 }
 
 async function refreshConversationLastMessageAt(conversationId: string) {

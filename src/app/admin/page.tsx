@@ -78,7 +78,7 @@ export default async function AdminPage() {
     .reduce((sum, tier) => sum + tier.value, 0);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12 lg:px-10">
+    <main className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10 lg:px-10">
       <AdminPageHeader
         title="Dashboard"
         description="Operational snapshot across every admin domain. Pick a section from the sidebar, or jump straight from a card below."
@@ -133,7 +133,23 @@ export default async function AdminPage() {
         />
       </section>
 
-      <section aria-label="Needs attention" className="mb-8">
+      <section aria-labelledby="admin-attention-heading" className="mb-8">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2
+              id="admin-attention-heading"
+              className="text-xl font-semibold text-[hsl(var(--foreground))]"
+            >
+              Needs attention
+            </h2>
+            <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+              Work through active moderation and member-support queues.
+            </p>
+          </div>
+          <span className="giq-badge giq-badge-gold">
+            {queueTotal.toLocaleString("en-AU")} queued
+          </span>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {queues.map((item) => {
             const attention = typeof item.value === "number" && item.value > 0;
@@ -141,7 +157,7 @@ export default async function AdminPage() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`giq-panel giq-panel-hover flex items-center justify-between gap-3 p-4 ${
+                className={`giq-panel giq-panel-hover flex min-h-20 items-center justify-between gap-3 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))] ${
                   attention ? "border-amber-300/40 bg-amber-300/[0.06]" : ""
                 }`}
               >
@@ -163,7 +179,18 @@ export default async function AdminPage() {
         </div>
       </section>
 
-      <section aria-label="Reporting" className="mb-8 grid gap-3 lg:grid-cols-2">
+      <section aria-labelledby="admin-reporting-heading" className="mb-8 grid gap-3 lg:grid-cols-2">
+        <div className="mb-1 lg:col-span-2">
+          <h2
+            id="admin-reporting-heading"
+            className="text-xl font-semibold text-[hsl(var(--foreground))]"
+          >
+            Reporting snapshot
+          </h2>
+          <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+            Thirty-day membership, revenue, and marketplace trends.
+          </p>
+        </div>
         <ChartPanel
           title="Signups"
           hint={
@@ -211,8 +238,19 @@ export default async function AdminPage() {
         </ChartPanel>
       </section>
 
-      <section aria-label="System health" className="mb-8">
-        <div className="giq-panel grid gap-6 p-6 md:grid-cols-3">
+      <section aria-labelledby="admin-health-heading" className="mb-8">
+        <div className="mb-3">
+          <h2
+            id="admin-health-heading"
+            className="text-xl font-semibold text-[hsl(var(--foreground))]"
+          >
+            System health
+          </h2>
+          <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+            Live operational signals from platform services and ingestion jobs.
+          </p>
+        </div>
+        <div className="giq-panel grid gap-6 p-4 sm:p-6 md:grid-cols-3">
           <div>
             <h3 className="mb-3 text-[13px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
               Platform
@@ -241,7 +279,10 @@ export default async function AdminPage() {
             {reporting.sources.length === 0 ? (
               <p className="text-[13px] text-[hsl(var(--muted-foreground))]">
                 No sources tracked.{" "}
-                <Link href="/admin/source-health" className="underline underline-offset-2">
+                <Link
+                  href="/admin/source-health"
+                  className="rounded-sm underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))]"
+                >
                   Source health
                 </Link>
               </p>
@@ -300,7 +341,7 @@ export default async function AdminPage() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="giq-panel giq-panel-hover group flex flex-col gap-2 p-5"
+                    className="giq-panel giq-panel-hover group flex min-h-28 flex-col gap-2 p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <span className="text-[15px] font-semibold text-[hsl(var(--foreground))]">

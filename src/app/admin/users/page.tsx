@@ -34,19 +34,57 @@ export default async function AdminUsersPage() {
   const users = await getUsers();
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12 lg:px-10">
+    <main className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10 lg:px-10">
       <AdminPageHeader
         title="Users"
         description="Create local users, update tiers and roles, ban accounts, and cancel deletion requests. Every mutation requires a reason and is audited."
       />
 
-      <section className="giq-panel p-6">
-        <div className="mt-6">
+      <section className="giq-panel p-4 sm:p-6" aria-labelledby="user-access-heading">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2
+              id="user-access-heading"
+              className="text-xl font-semibold text-[hsl(var(--foreground))]"
+            >
+              Create or update a user
+            </h2>
+            <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+              Use an account email to create a local record or update its profile access.
+              A reason is required for the audit trail.
+            </p>
+          </div>
+          <span className="giq-badge giq-badge-neutral">Moderator only</span>
+        </div>
+
+        <div className="giq-subpanel mt-4 p-4">
           <AdminCreateUserForm path="/admin/users" />
         </div>
 
-        <div className="giq-table-shell mt-6 overflow-x-auto">
+        <div className="mt-7 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold text-[hsl(var(--foreground))]">
+              Latest users
+            </h2>
+            <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+              Review identity state, subscription access, and account controls.
+            </p>
+          </div>
+          <span className="giq-badge giq-badge-gold" aria-label={`${users.length} user records shown`}>
+            {users.length} shown
+          </span>
+        </div>
+
+        <div
+          className="giq-table-shell mt-4 overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))]"
+          role="region"
+          aria-label="Latest users and access controls"
+          tabIndex={0}
+        >
           <table className="w-full min-w-[1280px]">
+            <caption className="sr-only">
+              Latest users and moderator-only account access controls
+            </caption>
             <thead>
               <tr className="giq-table-head">
                 <th className="px-4 py-3 text-left">User ID</th>
@@ -66,14 +104,17 @@ export default async function AdminUsersPage() {
                 <tr>
                   <td
                     colSpan={10}
-                    className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
+                    className="px-4 py-10 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
-                    No users found.
+                    No user records are available yet.
                   </td>
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user.id} className="border-t border-white/[0.06]">
+                  <tr
+                    key={user.id}
+                    className="border-t border-white/[0.06] align-top transition-colors hover:bg-white/[0.025]"
+                  >
                     <MonoCell>{user.id}</MonoCell>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))] break-all">
                       {user.email}
@@ -112,7 +153,7 @@ export default async function AdminUsersPage() {
 
 function MonoCell({ children }: { children: string }) {
   return (
-    <td className="px-4 py-3 font-mono text-[12px] text-[hsl(var(--foreground))]">
+    <td className="px-4 py-3 font-mono text-[12px] text-[hsl(var(--foreground))] [overflow-wrap:anywhere]">
       {children}
     </td>
   );
@@ -126,7 +167,7 @@ function DateCell({
   emptyLabel: string;
 }) {
   return (
-    <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+    <td className="whitespace-nowrap px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
       {formatDateTime(date, emptyLabel)}
     </td>
   );

@@ -30,59 +30,100 @@ export default async function AdminListingsPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
+    <main className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10 lg:px-10">
       <AdminPageHeader
         title="Marketplace review queue"
         description="New marketplace items stay private until a moderator approves them. Rejections and removals are written to admin actions and audit logs."
       />
 
-      <section className="giq-panel p-6">
+      <section className="giq-panel p-4 sm:p-6" aria-labelledby="pending-listings-heading">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 id="pending-listings-heading" className="text-xl font-semibold text-[hsl(var(--foreground))]">
+              Awaiting review
+            </h2>
+            <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+              Review seller context, welfare disclosures, and attached media before approval.
+            </p>
+          </div>
+          <span className="giq-badge giq-badge-gold" aria-label={`${pending.length} pending marketplace items`}>
+            {pending.length} pending
+          </span>
+        </div>
         <ListingTable listings={pending} mode="pending" />
       </section>
 
-      <section className="giq-panel mt-6 p-6">
-        <h2 className="text-xl font-semibold text-[hsl(var(--foreground))]">
+      <section className="giq-panel mt-6 p-4 sm:p-6" aria-labelledby="recent-listings-heading">
+        <h2 id="recent-listings-heading" className="text-xl font-semibold text-[hsl(var(--foreground))]">
           Recent marketplace items
         </h2>
+        <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+          The latest active, pending, rejected, and removed items.
+        </p>
         <ListingTable listings={recent} mode="recent" />
       </section>
 
-      <section className="giq-panel mt-6 p-6">
-        <h2 className="text-xl font-semibold text-[hsl(var(--foreground))]">
+      <section className="giq-panel mt-6 p-4 sm:p-6" aria-labelledby="marketplace-categories-heading">
+        <h2 id="marketplace-categories-heading" className="text-xl font-semibold text-[hsl(var(--foreground))]">
           Marketplace categories
         </h2>
+        <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+          Maintain the categories members use to browse and filter active items.
+        </p>
         <div className="mt-4 grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
-          <form action={createMarketplaceCategory} className="space-y-3">
-            <input
-              name="name"
-              required
-              minLength={2}
-              maxLength={80}
-              placeholder="Category name"
-              className="giq-form-control w-full px-3 py-2 text-[13px]"
-            />
-            <input
-              name="slug"
-              maxLength={80}
-              placeholder="slug optional"
-              className="giq-form-control w-full px-3 py-2 text-[13px]"
-            />
-            <textarea
-              name="description"
-              maxLength={500}
-              rows={3}
-              placeholder="Description optional"
-              className="giq-form-control giq-textarea w-full px-3 py-2 text-[13px]"
-            />
-            <input
-              name="sortOrder"
-              type="number"
-              min={0}
-              max={9999}
-              defaultValue={0}
-              className="giq-form-control w-full px-3 py-2 text-[13px]"
-            />
-            <button className="giq-button giq-button-primary px-4 text-[13px]">
+          <form action={createMarketplaceCategory} className="giq-subpanel space-y-4 p-4">
+            <label className="grid gap-1.5 text-[12px] font-semibold text-[hsl(var(--muted-foreground))]">
+              Category name
+              <input
+                name="name"
+                required
+                minLength={2}
+                maxLength={80}
+                placeholder="Equipment"
+                className="giq-form-control min-h-11 w-full px-3 py-2 text-[13px]"
+              />
+            </label>
+            <label className="grid gap-1.5 text-[12px] font-semibold text-[hsl(var(--muted-foreground))]">
+              <span>
+                Slug{" "}
+                <span className="font-normal text-[hsl(var(--subtle-foreground))]">
+                  Optional
+                </span>
+              </span>
+              <input
+                name="slug"
+                maxLength={80}
+                placeholder="equipment"
+                className="giq-form-control min-h-11 w-full px-3 py-2 text-[13px]"
+              />
+            </label>
+            <label className="grid gap-1.5 text-[12px] font-semibold text-[hsl(var(--muted-foreground))]">
+              <span>
+                Description{" "}
+                <span className="font-normal text-[hsl(var(--subtle-foreground))]">
+                  Optional
+                </span>
+              </span>
+              <textarea
+                name="description"
+                maxLength={500}
+                rows={3}
+                placeholder="What members should list in this category"
+                className="giq-form-control giq-textarea w-full px-3 py-2 text-[13px]"
+              />
+            </label>
+            <label className="grid gap-1.5 text-[12px] font-semibold text-[hsl(var(--muted-foreground))]">
+              Sort order
+              <input
+                name="sortOrder"
+                type="number"
+                min={0}
+                max={9999}
+                defaultValue={0}
+                className="giq-form-control min-h-11 w-full px-3 py-2 text-[13px]"
+              />
+            </label>
+            <button className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px]">
               Create category
             </button>
           </form>
@@ -115,7 +156,7 @@ export default async function AdminListingsPage() {
                   )}
                   className="mt-3"
                 >
-                  <button className="giq-outline-action min-h-8 px-3 text-[12px]">
+                  <button className="giq-outline-action min-h-11 px-3 text-[12px]">
                     {category.active ? "Deactivate" : "Activate"}
                   </button>
                 </form>
@@ -162,11 +203,11 @@ function ListingTable({
             </tr>
           ) : (
             listings.map((listing) => (
-              <tr key={listing.id} className="border-t border-white/[0.06]">
+              <tr key={listing.id} className="border-t border-white/[0.06] transition-colors hover:bg-white/[0.025]">
                 <td className="px-4 py-3">
                   <Link
                     href={`/marketplace/${listing.id}`}
-                    className="text-[13px] font-semibold text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary-bright))]"
+                    className="rounded-sm text-[13px] font-semibold text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary-bright))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))]"
                   >
                     {listing.title}
                   </Link>
@@ -216,7 +257,7 @@ function ListingActions({ listing }: { listing: ListingRow }) {
     return (
       <div className="flex min-w-[280px] flex-wrap gap-2">
         <form action={approveAction}>
-          <button className="giq-button giq-button-primary px-3 text-[12px]">
+          <button className="giq-button giq-button-primary min-h-11 px-3 text-[12px]">
             Approve
           </button>
         </form>
@@ -227,9 +268,9 @@ function ListingActions({ listing }: { listing: ListingRow }) {
             minLength={3}
             maxLength={500}
             placeholder="Reason"
-            className="giq-form-control w-36 px-2 py-1 text-[12px]"
+            className="giq-form-control min-h-11 w-36 px-2 py-1 text-[12px]"
           />
-          <button className="giq-button giq-button-glass px-3 text-[12px]">
+          <button className="giq-button giq-button-glass min-h-11 px-3 text-[12px]">
             Reject
           </button>
         </form>
@@ -246,9 +287,9 @@ function ListingActions({ listing }: { listing: ListingRow }) {
           minLength={3}
           maxLength={500}
           placeholder="Reason"
-          className="giq-form-control w-36 px-2 py-1 text-[12px]"
+          className="giq-form-control min-h-11 w-36 px-2 py-1 text-[12px]"
         />
-        <button className="giq-button giq-button-glass px-3 text-[12px]">
+        <button className="giq-button giq-button-glass min-h-11 px-3 text-[12px]">
           Remove
         </button>
       </form>

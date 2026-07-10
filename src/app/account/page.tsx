@@ -37,10 +37,12 @@ export const metadata = {
 };
 
 const DEMO_ACCOUNT_ENABLED = demoAccountEnabled();
-const PANEL_CLASS = "giq-panel p-6";
-const INPUT_CLASS = "giq-form-control mt-2 px-3 py-2";
-const TEXTAREA_CLASS = "giq-form-control giq-textarea mt-2 px-3 py-2";
-const ACTION_CLASS = "giq-outline-action";
+const PANEL_CLASS = "giq-panel p-5 sm:p-6";
+const INPUT_CLASS = "giq-form-control mt-2 min-h-11 px-3 py-2.5";
+const TEXTAREA_CLASS =
+  "giq-form-control giq-textarea mt-2 min-h-32 px-3 py-2.5";
+const ACTION_CLASS =
+  "giq-outline-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]";
 const PENDING_PLAN_LABELS = {
   free: "Free",
   pro: "Pro",
@@ -59,19 +61,29 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
 
   return (
     <div>
-      <PageHero
-        image="/images/wentworth-gate-hero.webp"
-        title={
-          <>
-            Your GreyhoundIQ
-            <br />
-            <span className="gradient-text">account.</span>
-          </>
-        }
-        subtitle="Profile, tier, privacy, messaging, and account controls in one place."
-      />
+      {user ? (
+        <AccountMemberHeader tier={user.tier} />
+      ) : (
+        <PageHero
+          image="/images/wentworth-gate-hero.webp"
+          title={
+            <>
+              Your GreyhoundIQ
+              <br />
+              <span className="gradient-text">account.</span>
+            </>
+          }
+          subtitle="Profile, tier, privacy, messaging, and account controls in one place."
+        />
+      )}
 
-      <section className="mx-auto max-w-5xl px-6 py-12">
+      <section
+        className={
+          user
+            ? "mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
+            : "mx-auto max-w-5xl px-6 py-12"
+        }
+      >
         {!user ? (
           <SignedOutAccount />
         ) : (
@@ -79,6 +91,37 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
         )}
       </section>
     </div>
+  );
+}
+
+function AccountMemberHeader({ tier }: { tier: "free" | "pro" | "pro_plus" }) {
+  return (
+    <header className="relative overflow-hidden border-b border-white/[0.07] bg-[linear-gradient(135deg,hsl(var(--card)/0.92),hsl(var(--background))_72%)]">
+      <div
+        aria-hidden="true"
+        className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[hsl(var(--primary-bright)/0.12)] blur-3xl"
+      />
+      <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-8">
+        <div className="max-w-2xl">
+          <p className="program-label">Member settings</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+            Account
+          </h1>
+          <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
+            Manage your profile, identity, privacy, and membership.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="giq-status-pill giq-status-pill-purple min-h-8 px-3">
+            <Crown className="h-3.5 w-3.5" aria-hidden="true" />
+            {tier === "pro_plus" ? "Pro+" : tier === "pro" ? "Pro" : "Free"}
+          </span>
+          <Link href="/feed" className={ACTION_CLASS}>
+            Back to Feed
+          </Link>
+        </div>
+      </div>
+    </header>
   );
 }
 
@@ -132,12 +175,15 @@ async function SignedInAccount({
   const canEditMarketingProfile = hasTier(user.tier, "pro");
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-      <section id="profile-media" className={`${PANEL_CLASS} scroll-mt-24 lg:col-span-2`}>
+    <div className="grid gap-5 sm:gap-6 lg:grid-cols-12">
+      <section
+        id="profile-media"
+        className={`${PANEL_CLASS} scroll-mt-24 lg:col-span-12`}
+      >
         <div className="mb-5 flex items-start gap-3">
           <Camera className="mt-1 h-5 w-5 text-[hsl(var(--primary-bright))]" />
           <div>
-            <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+            <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
               Profile picture and cover
             </h2>
             <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
@@ -158,7 +204,7 @@ async function SignedInAccount({
             value={personalMedia?.coverMediaId ?? ""}
           />
 
-          <div className="relative aspect-[16/5] min-h-36 overflow-hidden rounded-2xl border border-white/[0.08] bg-black">
+          <div className="relative aspect-[16/5] min-h-40 overflow-hidden rounded-2xl border border-white/[0.1] bg-black shadow-[0_22px_50px_hsl(0_0%_0%/0.34)] sm:min-h-[220px]">
             <Image
               src={profileCoverUrl}
               alt="Current profile cover"
@@ -171,14 +217,21 @@ async function SignedInAccount({
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-4 left-4 h-20 w-20 overflow-hidden rounded-full border-4 border-black bg-[hsl(var(--surface-2))] shadow-xl">
+            <Link
+              href="#cover-image-editor"
+              className="giq-hub-cover-edit absolute right-3 top-3 z-20 inline-flex min-h-11 items-center gap-2 rounded-xl border bg-black/70 px-3 text-[12px] font-semibold text-white backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:right-4 sm:top-4"
+            >
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+              Edit cover
+            </Link>
+            <div className="giq-hub-avatar absolute bottom-4 left-4 h-24 w-24 overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-[hsl(var(--surface-2))] sm:h-28 sm:w-28">
               {profileAvatarUrl ? (
                 <Image
                   src={profileAvatarUrl}
                   alt="Current profile picture"
                   fill
                   unoptimized={profileAvatarUrl.startsWith("/api/media/")}
-                  sizes="80px"
+                  sizes="112px"
                   className="object-cover"
                 />
               ) : (
@@ -186,11 +239,21 @@ async function SignedInAccount({
                   {(profile?.displayName ?? user.name).slice(0, 1).toUpperCase()}
                 </div>
               )}
+              <Link
+                href="#profile-picture-editor"
+                aria-label="Edit profile picture"
+                className="giq-hub-avatar-edit absolute bottom-0 right-0 z-20 grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-[hsl(var(--primary)/0.94)] text-white shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+              >
+                <Pencil className="h-4 w-4" aria-hidden="true" />
+              </Link>
             </div>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
-            <fieldset className="giq-subpanel p-4">
+            <fieldset
+              id="profile-picture-editor"
+              className="giq-subpanel scroll-mt-28 p-4 sm:p-5"
+            >
               <legend className="px-1 text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                 Profile picture
               </legend>
@@ -208,7 +271,10 @@ async function SignedInAccount({
               ) : null}
             </fieldset>
 
-            <fieldset className="giq-subpanel p-4">
+            <fieldset
+              id="cover-image-editor"
+              className="giq-subpanel scroll-mt-28 p-4 sm:p-5"
+            >
               <legend className="px-1 text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                 Cover image
               </legend>
@@ -237,7 +303,7 @@ async function SignedInAccount({
                 max="1"
                 step="0.01"
                 defaultValue={personalMedia?.coverFocalX ?? 0.5}
-                className="mt-3 w-full accent-[hsl(var(--primary))]"
+                className="mt-1 min-h-11 w-full accent-[hsl(var(--primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
               />
             </label>
             <label className="block text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
@@ -249,7 +315,7 @@ async function SignedInAccount({
                 max="1"
                 step="0.01"
                 defaultValue={personalMedia?.coverFocalY ?? 0.5}
-                className="mt-3 w-full accent-[hsl(var(--primary))]"
+                className="mt-1 min-h-11 w-full accent-[hsl(var(--primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
               />
             </label>
           </div>
@@ -260,10 +326,10 @@ async function SignedInAccount({
         </form>
       </section>
 
-      <section className={PANEL_CLASS}>
+      <section className={`${PANEL_CLASS} lg:col-span-7`}>
         <div className="mb-5 flex items-center gap-3">
           <Pencil className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+          <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
             Profile
           </h2>
         </div>
@@ -430,10 +496,10 @@ async function SignedInAccount({
         </form>
       </section>
 
-      <section className={PANEL_CLASS}>
+      <section className={`${PANEL_CLASS} lg:col-span-5`}>
         <div className="mb-5 flex items-center gap-3">
           <Crown className="h-5 w-5 text-[hsl(var(--secondary))]" />
-          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+          <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
             Subscription and activity
           </h2>
         </div>
@@ -448,92 +514,68 @@ async function SignedInAccount({
           <Metric label="Owned dogs" value={profile?._count.dogsOwned ?? 0} />
         </div>
         {pendingPlan && <PendingPlanBanner plan={pendingPlan} />}
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link
-            href="/pricing"
-            className="giq-liquid-purple-button min-h-10 px-4 text-[13px] font-semibold"
-          >
-            Manage tier
-          </Link>
-          <Link
-            href="/pulse"
-            className={ACTION_CLASS}
-          >
-            <MessageSquare className="h-3.5 w-3.5" />
-            Open Pulse
-          </Link>
-          <Link
-            href="/account/saved-listings"
-            className={ACTION_CLASS}
-          >
-            <Bookmark className="h-3.5 w-3.5" />
-            Saved marketplace
-          </Link>
-          <Link
-            href="/account/billing"
-            className={ACTION_CLASS}
-          >
-            <Crown className="h-3.5 w-3.5" />
-            Billing
-          </Link>
-          <Link
-            href="/account/usage"
-            className={ACTION_CLASS}
-          >
-            <Database className="h-3.5 w-3.5" />
-            Usage
-          </Link>
-          <Link
-            href="/account/privacy"
-            className={ACTION_CLASS}
-          >
-            <Lock className="h-3.5 w-3.5" />
-            Privacy
-          </Link>
-          <Link
-            href="/account/security"
-            className={ACTION_CLASS}
-          >
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Security
-          </Link>
-          <Link
-            href="/account/notifications"
-            className={ACTION_CLASS}
-          >
-            <MessageSquare className="h-3.5 w-3.5" />
-            Notifications
-          </Link>
-          <Link
-            href="/account/team"
-            className={ACTION_CLASS}
-          >
-            <Users className="h-3.5 w-3.5" />
-            Team
-          </Link>
-          <Link
-            href="/account/support"
-            className={ACTION_CLASS}
-          >
-            <MessageSquare className="h-3.5 w-3.5" />
-            Support
-          </Link>
-          {canAccessAdmin && (
+        <div className="mt-5 grid gap-4">
+          <ActionGroup label="Membership">
             <Link
-              href="/admin"
-              className={ACTION_CLASS}
+              href="/pricing"
+              className="giq-liquid-purple-button min-h-11 px-4 text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
             >
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Admin
+              Manage tier
             </Link>
-          )}
+            <Link href="/account/billing" className={ACTION_CLASS}>
+              <Crown className="h-3.5 w-3.5" />
+              Billing
+            </Link>
+            <Link href="/account/usage" className={ACTION_CLASS}>
+              <Database className="h-3.5 w-3.5" />
+              Usage
+            </Link>
+          </ActionGroup>
+          <ActionGroup label="Settings">
+            <Link href="/account/privacy" className={ACTION_CLASS}>
+              <Lock className="h-3.5 w-3.5" />
+              Privacy
+            </Link>
+            <Link href="/account/security" className={ACTION_CLASS}>
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Security
+            </Link>
+            <Link href="/account/notifications" className={ACTION_CLASS}>
+              <MessageSquare className="h-3.5 w-3.5" />
+              Notifications
+            </Link>
+          </ActionGroup>
+          <ActionGroup label="Activity and support">
+            <Link href="/pulse" className={ACTION_CLASS}>
+              <MessageSquare className="h-3.5 w-3.5" />
+              Open Pulse
+            </Link>
+            <Link href="/account/saved-listings" className={ACTION_CLASS}>
+              <Bookmark className="h-3.5 w-3.5" />
+              Saved marketplace
+            </Link>
+            <Link href="/account/team" className={ACTION_CLASS}>
+              <Users className="h-3.5 w-3.5" />
+              Team
+            </Link>
+            <Link href="/account/support" className={ACTION_CLASS}>
+              <MessageSquare className="h-3.5 w-3.5" />
+              Support
+            </Link>
+            {canAccessAdmin ? (
+              <Link href="/admin" className={ACTION_CLASS}>
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Admin
+              </Link>
+            ) : null}
+          </ActionGroup>
         </div>
       </section>
 
-      <section className={`${PANEL_CLASS} lg:col-span-2`}>
+      <section className={`${PANEL_CLASS} lg:col-span-12`}>
         <div className="mb-5 flex items-center gap-3">
           <PawPrint className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+          <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
             Dogs
           </h2>
         </div>
@@ -544,7 +586,7 @@ async function SignedInAccount({
               <Link
                 key={ownership.id}
                 href={`/dogs/${ownership.dog.id}`}
-                className="giq-subpanel grid gap-3 p-4 transition-colors hover:bg-white/[0.04] sm:grid-cols-[1fr_auto] sm:items-center"
+                className="giq-subpanel grid min-h-16 gap-3 p-4 transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)] sm:grid-cols-[1fr_auto] sm:items-center"
               >
                 <div>
                   <p className="font-semibold text-[hsl(var(--foreground))]">
@@ -576,10 +618,10 @@ async function SignedInAccount({
         )}
       </section>
 
-      <section className={`${PANEL_CLASS} lg:col-span-2`}>
+      <section className={`${PANEL_CLASS} lg:col-span-12`}>
         <div className="mb-5 flex items-center gap-3">
           <ShieldCheck className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+          <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
             Privacy controls
           </h2>
         </div>
@@ -785,6 +827,23 @@ function Metric({ label, value }: { label: string; value: string | number }) {
   );
 }
 
+function ActionGroup({
+  children,
+  label,
+}: {
+  children: ReactNode;
+  label: string;
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--subtle-foreground))]">
+        {label}
+      </p>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}
+
 function ControlCard({
   icon,
   title,
@@ -797,7 +856,7 @@ function ControlCard({
   action?: ReactNode;
 }) {
   return (
-    <div className="giq-subpanel p-4">
+    <div className="giq-subpanel flex h-full flex-col p-4 sm:p-5">
       <div className="giq-icon-plate mb-3 flex h-8 w-8 items-center justify-center rounded-md">
         {icon}
       </div>
@@ -807,7 +866,7 @@ function ControlCard({
       <p className="mt-2 text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
         {body}
       </p>
-      {action && <div className="mt-4">{action}</div>}
+      {action ? <div className="mt-auto pt-4">{action}</div> : null}
     </div>
   );
 }

@@ -2,7 +2,13 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Search, UserPlus } from "lucide-react";
+import {
+  BadgeCheck,
+  Loader2,
+  Search,
+  UserPlus,
+  UserRoundCheck,
+} from "lucide-react";
 import { sendFriendRequestAction } from "@/app/actions";
 
 type MemberOption = {
@@ -22,8 +28,11 @@ export function AddFriendSearch({
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState<MemberOption[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchedQuery, setSearchedQuery] = useState("");
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [sentIds, setSentIds] = useState<ReadonlySet<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const [requestingId, setRequestingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const excluded = new Set(excludeProfileIds);
   // Derive emptiness from the query instead of clearing state in the effect.
@@ -40,13 +49,18 @@ export function AddFriendSearch({
       try {
         const response = await fetch(
           `/api/profiles/messaging?q=${encodeURIComponent(q)}`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
         if (!response.ok) throw new Error(`Search failed (${response.status})`);
         const data = (await response.json()) as { items?: MemberOption[] };
         setOptions(data.items ?? []);
+        setSearchedQuery(q);
       } catch {
-        if (!controller.signal.aborted) setOptions([]);
+        if (!controller.signal.aborted) {
+          setOptions([]);
+          setSearchedQuery(q);
+          setSearchError("Member search is unavailable. Please try again.");
+        }
       } finally {
         if (!controller.signal.aborted) setSearching(false);
       }
@@ -58,7 +72,8 @@ export function AddFriendSearch({
   }, [query]);
 
   function addFriend(profileId: string) {
-    setError(null);
+    setRequestError(null);
+    setRequestingId(profileId);
     const formData = new FormData();
     formData.set("profileId", profileId);
     startTransition(async () => {
@@ -67,76 +82,132 @@ export function AddFriendSearch({
         setSentIds((current) => new Set([...current, profileId]));
         router.refresh();
       } catch (err) {
-        setError(
+        setRequestError(
           err instanceof Error && err.message.includes("rate_limit")
             ? "Too many requests today. Try again later."
-            : "Could not send friend request."
+            : "Could not send friend request.",
         );
+      } finally {
+        setRequestingId(null);
       }
     });
   }
 
   return (
-    <div>
-      <label className="relative block">
-        <span className="sr-only">Search members</span>
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[hsl(var(--subtle-foreground))]"
-        />
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search members"
-          className="giq-form-control min-h-10 w-full py-2 pl-9 pr-3 text-[13px]"
-        />
+    <div className="space-y-3">
+      <label className="block">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
+          Search members
+        </span>
+        <span className="relative mt-2 block">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--subtle-foreground))]"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => {
+              const nextQuery = event.target.value;
+              setQuery(nextQuery);
+              setOptions([]);
+              setSearchedQuery("");
+              setSearchError(null);
+              setSearching(Boolean(nextQuery.trim()));
+            }}
+            placeholder="Name or kennel"
+            aria-controls="member-search-results"
+            aria-busy={searching}
+            className="giq-form-control min-h-11 w-full py-2 pl-10 pr-3 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
+          />
+        </span>
       </label>
-      {searching && (
-        <p role="status" className="mt-2 text-[12px] text-[hsl(var(--muted-foreground))]">
-          Searching…
+      {searching ? (
+        <p
+          role="status"
+          className="flex min-h-6 items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]"
+        >
+          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+          Searching members…
         </p>
-      )}
-      {error && (
-        <p role="alert" className="mt-2 text-[12px] text-red-200">
-          {error}
+      ) : null}
+      {searchError ? (
+        <p role="alert" className="text-[12px] leading-relaxed text-red-200">
+          {searchError}
         </p>
-      )}
-      {visibleOptions.length > 0 && (
-        <ul className="mt-2 max-h-52 space-y-1 overflow-y-auto">
+      ) : null}
+      {requestError ? (
+        <p role="alert" className="text-[12px] leading-relaxed text-red-200">
+          {requestError}
+        </p>
+      ) : null}
+      {visibleOptions.length > 0 ? (
+        <ul
+          id="member-search-results"
+          className="space-y-1"
+        >
           {visibleOptions.map((option) => {
-              const sent = sentIds.has(option.id);
-              return (
-                <li
-                  key={option.id}
-                  className="flex min-h-10 items-center justify-between gap-2 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2.5 py-1.5"
+            const sent = sentIds.has(option.id);
+            const requesting = requestingId === option.id;
+            return (
+              <li
+                key={option.id}
+                className="flex min-h-14 items-center justify-between gap-2 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2 transition hover:border-white/[0.12] hover:bg-white/[0.05]"
+              >
+                <span className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-[hsl(var(--foreground))]">
+                  <span className="truncate">{option.displayName}</span>
+                  {option.verified ? (
+                    <BadgeCheck
+                      className="h-4 w-4 shrink-0 text-[hsl(var(--primary-bright))]"
+                      aria-label="Verified member"
+                    />
+                  ) : null}
+                </span>
+                <button
+                  type="button"
+                  disabled={sent || pending}
+                  onClick={() => addFriend(option.id)}
+                  aria-label={
+                    sent
+                      ? `Friend request sent to ${option.displayName}`
+                      : `Add ${option.displayName} as a friend`
+                  }
+                  className="giq-outline-action min-h-11 shrink-0 px-3 text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <span className="min-w-0 truncate text-[13px] font-medium text-[hsl(var(--foreground))]">
-                    {option.displayName}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={sent || pending}
-                    onClick={() => addFriend(option.id)}
-                    className="giq-outline-action min-h-8 shrink-0 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {pending && !sent ? (
-                      <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
-                    ) : (
-                      <UserPlus className="h-3 w-3" aria-hidden="true" />
-                    )}
-                    {sent ? "Requested" : "Add"}
-                  </button>
-                </li>
-              );
-            })}
+                  {requesting ? (
+                    <Loader2
+                      className="h-3.5 w-3.5 animate-spin"
+                      aria-hidden="true"
+                    />
+                  ) : sent ? (
+                    <UserRoundCheck
+                      className="h-3.5 w-3.5"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                  )}
+                  {requesting ? "Sending" : sent ? "Requested" : "Add"}
+                </button>
+              </li>
+            );
+          })}
         </ul>
-      )}
-      {!searching && query.trim() && visibleOptions.length === 0 && (
-        <p className="mt-2 text-[12px] text-[hsl(var(--muted-foreground))]">
+      ) : null}
+      {!searching &&
+      !searchError &&
+      query.trim() &&
+      searchedQuery === query.trim() &&
+      visibleOptions.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-white/[0.1] px-3 py-4 text-center text-[12px] text-[hsl(var(--muted-foreground))]">
           No matching members.
         </p>
-      )}
+      ) : null}
+      {!query.trim() ? (
+        <p className="text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+          Search by member name or kennel to send a connection request.
+        </p>
+      ) : null}
     </div>
   );
 }

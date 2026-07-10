@@ -7,8 +7,10 @@ import {
   DollarSign,
   Globe,
   ImageIcon,
+  Lock,
   Mail,
   MessageCircle,
+  Pencil,
   Phone,
   Settings,
   Trophy,
@@ -107,7 +109,10 @@ export default async function SocialActorPage({
   const page = await getPublishedCustomPageByHandle(profile.actor.handle);
   if (!page) notFound();
 
-  const media = await resolveCustomPageMedia(page.contentJson, profile.actor.id);
+  const media = await resolveCustomPageMedia(
+    page.contentJson,
+    profile.actor.id,
+  );
   const accent = page.accentColor || BRAND_PURPLE;
 
   return (
@@ -157,10 +162,10 @@ function PersonalProfileView({
     .join(" · ");
 
   return (
-    <main className="giq-custom-page mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
-      <header className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[hsl(var(--surface-1))]">
-        <div className="relative aspect-[16/5] w-full bg-gradient-to-br from-[hsl(var(--surface-2))] via-[hsl(var(--primary)/0.18)] to-black">
-          {profile.actor.coverUrl && (
+    <main className="giq-custom-page mx-auto max-w-5xl px-3 py-4 sm:px-6 sm:py-10">
+      <header className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[hsl(var(--surface-1))] shadow-[0_24px_70px_hsl(0_0%_0%/0.32)]">
+        <div className="relative aspect-[3/1] min-h-36 w-full bg-gradient-to-br from-[hsl(var(--surface-2))] via-[hsl(var(--primary)/0.18)] to-black sm:aspect-[16/5] sm:min-h-0">
+          {profile.actor.coverUrl ? (
             <Image
               src={profile.actor.coverUrl}
               alt=""
@@ -173,46 +178,66 @@ function PersonalProfileView({
               }}
               priority
             />
-          )}
+          ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent" />
+          {profile.viewer.isOwner ? (
+            <Link
+              href="/account#cover-image-editor"
+              className="absolute right-3 top-3 z-10 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/20 bg-black/70 px-3 text-[12px] font-semibold text-white shadow-lg backdrop-blur-md transition hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:right-4 sm:top-4"
+            >
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+              Edit cover
+            </Link>
+          ) : null}
         </div>
-        <div className="flex flex-wrap items-end gap-4 px-5 pb-5 sm:px-7">
-          <div className="-mt-10 h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-[hsl(var(--primary-bright))] bg-black">
-            {avatarUrl ? (
-              <Image
-                src={avatarUrl}
-                alt={profile.actor.displayName}
-                width={96}
-                height={96}
-                unoptimized={avatarUrl.startsWith("/api/media/")}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="grid h-full w-full place-items-center text-2xl font-bold text-white/70">
-                {profile.actor.displayName.slice(0, 1).toUpperCase()}
-              </div>
-            )}
+        <div className="relative flex flex-wrap items-end gap-4 px-4 pb-5 sm:px-7">
+          <div className="relative -mt-14 h-28 w-28 shrink-0 sm:-mt-16 sm:h-32 sm:w-32">
+            <div className="h-full w-full overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-black shadow-[0_14px_35px_hsl(0_0%_0%/0.45)] ring-2 ring-[hsl(var(--primary-bright)/0.75)]">
+              {avatarUrl ? (
+                <Image
+                  src={avatarUrl}
+                  alt={profile.actor.displayName}
+                  width={128}
+                  height={128}
+                  unoptimized={avatarUrl.startsWith("/api/media/")}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="grid h-full w-full place-items-center text-3xl font-bold text-white/70">
+                  {profile.actor.displayName.slice(0, 1).toUpperCase()}
+                </div>
+              )}
+            </div>
+            {profile.viewer.isOwner ? (
+              <Link
+                href="/account#profile-picture-editor"
+                aria-label="Edit profile picture"
+                className="absolute bottom-0 right-0 z-10 grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-[hsl(var(--primary)/0.95)] text-white shadow-xl transition hover:bg-[hsl(var(--primary-bright))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+              >
+                <Pencil className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            ) : null}
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 pb-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))] sm:text-3xl">
+              <h1 className="min-w-0 break-words text-2xl font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))] sm:text-3xl">
                 {profile.actor.displayName}
               </h1>
-              {personal.verified && (
+              {personal.verified ? (
                 <BadgeCheck
-                  className="h-5 w-5 text-[hsl(var(--primary-bright))]"
+                  className="h-5 w-5 shrink-0 text-[hsl(var(--primary-bright))]"
                   aria-label="Verified member"
                 />
-              )}
+              ) : null}
               <span className="rounded-full bg-[hsl(var(--primary)/0.18)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--primary-bright))]">
                 Member
               </span>
             </div>
-            {details && (
+            {details ? (
               <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
                 {details}
               </p>
-            )}
+            ) : null}
           </div>
           <PersonalProfileActions
             profile={profile}
@@ -223,10 +248,10 @@ function PersonalProfileView({
         <ProfileSectionNav finalLabel="Friends" finalHref="#friends" />
       </header>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
+      <div className="mt-5 grid gap-5 sm:mt-6 sm:gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
           <TimelineSection profile={profile} />
-          <section id="about" className="giq-panel scroll-mt-24 p-6">
+          <section id="about" className="giq-panel scroll-mt-24 p-4 sm:p-6">
             <h2 className="mb-3 text-[16px] font-semibold text-[hsl(var(--foreground))]">
               About
             </h2>
@@ -256,7 +281,7 @@ function PersonalProfileView({
               </div>
             </dl>
           </section>
-          <section id="media" className="giq-panel scroll-mt-24 p-6">
+          <section id="media" className="giq-panel scroll-mt-24 p-4 sm:p-6">
             <h2 className="mb-3 flex items-center gap-2 text-[16px] font-semibold text-[hsl(var(--foreground))]">
               <ImageIcon
                 className="h-4 w-4 text-[hsl(var(--primary-bright))]"
@@ -269,7 +294,7 @@ function PersonalProfileView({
                 {profile.gallery.map((item) => (
                   <div
                     key={item.mediaId}
-                    className="overflow-hidden rounded-lg border border-white/[0.06]"
+                    className="overflow-hidden rounded-xl border border-white/[0.08] bg-black/30 shadow-[0_10px_30px_hsl(0_0%_0%/0.18)]"
                   >
                     <Image
                       src={item.url}
@@ -286,9 +311,15 @@ function PersonalProfileView({
                 ))}
               </div>
             ) : (
-              <p className="text-[13px] text-[hsl(var(--muted-foreground))]">
-                No profile media is available to you yet.
-              </p>
+              <div className="giq-empty-state px-4 py-8 text-center">
+                <ImageIcon
+                  className="mx-auto h-7 w-7 text-[hsl(var(--primary-bright))]"
+                  aria-hidden="true"
+                />
+                <p className="mt-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                  No profile media is available to you yet.
+                </p>
+              </div>
             )}
           </section>
         </div>
@@ -324,7 +355,7 @@ function PersonalProfileActions({
     return (
       <Link
         href="/account"
-        className="giq-button giq-button-primary min-h-10 px-4 text-[13px] font-semibold"
+        className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px] font-semibold sm:w-auto"
       >
         <Settings className="h-4 w-4" aria-hidden="true" />
         Manage
@@ -335,7 +366,7 @@ function PersonalProfileActions({
     return (
       <Link
         href="/sign-in"
-        className="giq-button giq-button-primary min-h-10 px-4 text-[13px] font-semibold"
+        className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px] font-semibold sm:w-auto"
       >
         <UserPlus className="h-4 w-4" aria-hidden="true" />
         Sign in to connect
@@ -344,9 +375,9 @@ function PersonalProfileActions({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
       {friendship?.status === "accepted" ? (
-        <span className="giq-button giq-button-glass min-h-10 px-4 text-[13px] font-semibold">
+        <span className="giq-button giq-button-glass min-h-11 flex-1 px-4 text-[13px] font-semibold sm:flex-none">
           <UserRoundCheck className="h-4 w-4" aria-hidden="true" />
           Connected
         </span>
@@ -354,34 +385,34 @@ function PersonalProfileActions({
         friendship.direction === "incoming" ? (
           <Link
             href="/pulse/friends"
-            className="giq-button giq-button-glass min-h-10 px-4 text-[13px] font-semibold"
+            className="giq-button giq-button-glass min-h-11 flex-1 px-4 text-[13px] font-semibold sm:flex-none"
           >
             <UserPlus className="h-4 w-4" aria-hidden="true" />
             Respond
           </Link>
         ) : (
-          <span className="giq-button giq-button-glass min-h-10 px-4 text-[13px] font-semibold">
+          <span className="giq-button giq-button-glass min-h-11 flex-1 px-4 text-[13px] font-semibold sm:flex-none">
             <UserRoundCheck className="h-4 w-4" aria-hidden="true" />
             Request sent
           </span>
         )
       ) : (
-        <form action={sendFriendRequestAction}>
+        <form action={sendFriendRequestAction} className="flex-1 sm:flex-none">
           <input type="hidden" name="profileId" value={profile.profile.id} />
           <SubmitButton
             pendingLabel="Connecting..."
-            className="giq-button giq-button-primary min-h-10 px-4 text-[13px] font-semibold"
+            className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px] font-semibold"
           >
             <UserPlus className="h-4 w-4" aria-hidden="true" />
             Connect
           </SubmitButton>
         </form>
       )}
-      <form action={startChatAction}>
+      <form action={startChatAction} className="flex-1 sm:flex-none">
         <input type="hidden" name="profileId" value={profile.profile.id} />
         <SubmitButton
           pendingLabel="Opening..."
-          className="giq-button giq-button-glass min-h-10 px-4 text-[13px] font-semibold"
+          className="giq-button giq-button-glass min-h-11 w-full px-4 text-[13px] font-semibold"
         >
           <MessageCircle className="h-4 w-4" aria-hidden="true" />
           Message
@@ -413,7 +444,7 @@ function ProfileSectionNav({
         <a
           key={href}
           href={href}
-          className="min-h-11 shrink-0 border-b-2 border-transparent px-3 py-3 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition hover:border-[hsl(var(--primary)/0.7)] hover:text-[hsl(var(--foreground))]"
+          className="min-h-11 shrink-0 rounded-t-lg border-b-2 border-transparent px-3 py-3 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition hover:border-[hsl(var(--primary)/0.7)] hover:bg-white/[0.03] hover:text-[hsl(var(--foreground))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
         >
           {label}
         </a>
@@ -424,7 +455,7 @@ function ProfileSectionNav({
 
 function TimelineSection({ profile }: { profile: SocialActorProfileView }) {
   return (
-    <section id="timeline" className="giq-panel scroll-mt-24 p-6">
+    <section id="timeline" className="giq-panel scroll-mt-24 p-4 sm:p-6">
       <h2 className="mb-4 text-[16px] font-semibold text-[hsl(var(--foreground))]">
         Timeline
       </h2>
@@ -437,7 +468,7 @@ function TimelineSection({ profile }: { profile: SocialActorProfileView }) {
                   Shared {post.sharedFrom.displayName}&apos;s post
                 </p>
               )}
-              <p className="whitespace-pre-line text-[14px] leading-relaxed text-[hsl(var(--foreground))]">
+              <p className="break-words [overflow-wrap:anywhere] whitespace-pre-line text-[14px] leading-relaxed text-[hsl(var(--foreground))]">
                 {post.body}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[hsl(var(--subtle-foreground))]">
@@ -458,7 +489,7 @@ function TimelineSection({ profile }: { profile: SocialActorProfileView }) {
                 )}
                 <Link
                   href={`/feed#post-${post.sourcePostId}`}
-                  className="text-[hsl(var(--primary-light))] hover:underline"
+                  className="rounded-sm text-[hsl(var(--primary-light))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
                 >
                   View in Feed
                 </Link>
@@ -467,9 +498,23 @@ function TimelineSection({ profile }: { profile: SocialActorProfileView }) {
           ))}
         </div>
       ) : (
-        <p className="text-[13px] text-[hsl(var(--muted-foreground))]">
-          No posts are visible to you yet.
-        </p>
+        <div className="giq-empty-state px-4 py-8 text-center">
+          <MessageCircle
+            className="mx-auto h-7 w-7 text-[hsl(var(--primary-bright))]"
+            aria-hidden="true"
+          />
+          <p className="mt-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+            No posts are visible to you yet.
+          </p>
+          {profile.viewer.isOwner ? (
+            <Link
+              href="/feed"
+              className="giq-button giq-button-primary mt-4 min-h-11 px-4 text-[12px] font-semibold"
+            >
+              Create a post
+            </Link>
+          ) : null}
+        </div>
       )}
     </section>
   );
@@ -494,13 +539,13 @@ function FriendsCard({ profile }: { profile: SocialActorProfileView }) {
       </div>
       {profile.viewer.isOwner ? (
         profile.friends.length > 0 ? (
-          <ul className="mt-4 space-y-3">
+          <ul className="mt-4 space-y-1">
             {profile.friends.map((friend) => (
               <li key={friend.profileId}>
                 {friend.handle ? (
                   <Link
                     href={`/p/${friend.handle}`}
-                    className="flex items-center gap-3 text-[13px] text-[hsl(var(--foreground))] hover:underline"
+                    className="flex min-h-11 items-center gap-3 rounded-lg px-2 text-[13px] text-[hsl(var(--foreground))] transition hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
                   >
                     <FriendAvatar friend={friend} />
                     <span className="min-w-0 truncate">
@@ -514,7 +559,7 @@ function FriendsCard({ profile }: { profile: SocialActorProfileView }) {
                     )}
                   </Link>
                 ) : (
-                  <div className="flex items-center gap-3 text-[13px] text-[hsl(var(--foreground))]">
+                  <div className="flex min-h-11 items-center gap-3 rounded-lg px-2 text-[13px] text-[hsl(var(--foreground))]">
                     <FriendAvatar friend={friend} />
                     <span className="min-w-0 truncate">
                       {friend.displayName}
@@ -525,12 +570,21 @@ function FriendsCard({ profile }: { profile: SocialActorProfileView }) {
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-[13px] text-[hsl(var(--muted-foreground))]">
-            No connections yet.
-          </p>
+          <div className="mt-3 rounded-xl border border-dashed border-white/[0.1] px-4 py-5 text-center">
+            <p className="text-[13px] text-[hsl(var(--muted-foreground))]">
+              No connections yet.
+            </p>
+            <Link
+              href="/pulse/friends"
+              className="giq-outline-action mt-3 min-h-11 px-3 text-[12px]"
+            >
+              Find friends
+            </Link>
+          </div>
         )
       ) : (
-        <p className="mt-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+        <p className="mt-3 flex items-start gap-2 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           {profile.viewer.isConnected
             ? "You are connected with this member."
             : "This member’s friend list is private."}
@@ -600,13 +654,13 @@ function ManagedPageView({
 
   return (
     <main
-      className="giq-custom-page mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10"
+      className="giq-custom-page mx-auto max-w-5xl px-3 py-4 sm:px-6 sm:py-10"
       style={{ ["--page-accent" as string]: accent }}
     >
       {/* Banner + identity header (LinkedIn/FB style, brand-framed) */}
-      <header className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[hsl(var(--surface-1))]">
-        <div className="relative aspect-[16/5] w-full bg-gradient-to-br from-[hsl(var(--surface-2))] to-black">
-          {bannerUrl && (
+      <header className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[hsl(var(--surface-1))] shadow-[0_24px_70px_hsl(0_0%_0%/0.32)]">
+        <div className="relative aspect-[3/1] min-h-36 w-full bg-gradient-to-br from-[hsl(var(--surface-2))] to-black sm:aspect-[16/5] sm:min-h-0">
+          {bannerUrl ? (
             <Image
               src={bannerUrl}
               alt=""
@@ -619,37 +673,58 @@ function ManagedPageView({
               }}
               priority
             />
-          )}
+          ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+          {profile.viewer.isOwner ? (
+            <Link
+              href={`/account/pages/${page.id}#page-banner-editor`}
+              className="absolute right-3 top-3 z-10 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/20 bg-black/70 px-3 text-[12px] font-semibold text-white shadow-lg backdrop-blur-md transition hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:right-4 sm:top-4"
+            >
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+              Edit cover
+            </Link>
+          ) : null}
         </div>
-        <div className="flex flex-wrap items-end gap-4 px-5 pb-5 sm:px-7">
-          <div
-            className="-mt-10 h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 bg-black"
-            style={{ borderColor: accent }}
-          >
-            {avatarUrl ? (
-              <Image
-                src={avatarUrl}
-                alt={page.title}
-                width={96}
-                height={96}
-                unoptimized={avatarUrl.startsWith("/api/media/")}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="grid h-full w-full place-items-center text-2xl font-bold text-white/70">
-                {page.title.slice(0, 1).toUpperCase()}
-              </div>
-            )}
+        <div className="relative flex flex-wrap items-end gap-4 px-4 pb-5 sm:px-7">
+          <div className="relative -mt-14 h-28 w-28 shrink-0 sm:-mt-16 sm:h-32 sm:w-32">
+            <div
+              className="h-full w-full overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-black shadow-[0_14px_35px_hsl(0_0%_0%/0.45)] ring-2"
+              style={{ "--tw-ring-color": accent } as React.CSSProperties}
+            >
+              {avatarUrl ? (
+                <Image
+                  src={avatarUrl}
+                  alt={page.title}
+                  width={128}
+                  height={128}
+                  unoptimized={avatarUrl.startsWith("/api/media/")}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="grid h-full w-full place-items-center text-3xl font-bold text-white/70">
+                  {page.title.slice(0, 1).toUpperCase()}
+                </div>
+              )}
+            </div>
+            {profile.viewer.isOwner ? (
+              <Link
+                href={`/account/pages/${page.id}#page-avatar-editor`}
+                aria-label="Edit profile picture"
+                className="absolute bottom-0 right-0 z-10 grid h-11 w-11 place-items-center rounded-full border bg-[hsl(var(--primary))] text-white shadow-xl transition hover:bg-[hsl(var(--primary-bright))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                style={{ borderColor: accent }}
+              >
+                <Pencil className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            ) : null}
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))] sm:text-3xl">
+          <div className="min-w-0 flex-1 pb-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="min-w-0 break-words text-2xl font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))] sm:text-3xl">
                 {page.title}
               </h1>
               <span
-                className="rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-black"
-                style={{ background: accent }}
+                className="rounded-full border bg-black/60 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white"
+                style={{ borderColor: accent }}
               >
                 {
                   CUSTOM_PAGE_TYPE_LABELS[
@@ -658,32 +733,39 @@ function ManagedPageView({
                 }
               </span>
             </div>
-            {page.tagline && (
+            {page.tagline ? (
               <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
                 {page.tagline}
               </p>
-            )}
+            ) : null}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             {profile.viewer.isOwner ? (
               <Link
                 href={`/account/pages/${page.id}`}
-                className="giq-button giq-button-primary min-h-10 px-4 text-[13px] font-semibold"
+                className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px] font-semibold sm:w-auto"
               >
                 <Settings className="h-4 w-4" aria-hidden="true" />
                 Manage
               </Link>
             ) : viewer ? (
               <>
-                <form action={toggleActorFollowAction}>
-                  <input type="hidden" name="actorId" value={profile.actor.id} />
+                <form
+                  action={toggleActorFollowAction}
+                  className="flex-1 sm:flex-none"
+                >
+                  <input
+                    type="hidden"
+                    name="actorId"
+                    value={profile.actor.id}
+                  />
                   <SubmitButton
                     pendingLabel={
                       profile.viewer.isFollowing
                         ? "Unfollowing..."
                         : "Following..."
                     }
-                    className="giq-button giq-button-primary min-h-10 px-4 text-[13px] font-semibold"
+                    className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px] font-semibold"
                   >
                     {profile.viewer.isFollowing ? (
                       <UserRoundCheck className="h-4 w-4" aria-hidden="true" />
@@ -693,7 +775,7 @@ function ManagedPageView({
                     {profile.viewer.isFollowing ? "Following" : "Follow"}
                   </SubmitButton>
                 </form>
-                <form action={startChatAction}>
+                <form action={startChatAction} className="flex-1 sm:flex-none">
                   <input
                     type="hidden"
                     name="profileId"
@@ -701,7 +783,7 @@ function ManagedPageView({
                   />
                   <SubmitButton
                     pendingLabel="Opening..."
-                    className="giq-button giq-button-glass min-h-10 px-4 text-[13px] font-semibold"
+                    className="giq-button giq-button-glass min-h-11 w-full px-4 text-[13px] font-semibold"
                   >
                     <MessageCircle className="h-4 w-4" aria-hidden="true" />
                     Message
@@ -711,14 +793,14 @@ function ManagedPageView({
             ) : (
               <Link
                 href="/sign-in"
-                className="giq-button giq-button-primary min-h-10 px-4 text-[13px] font-semibold"
+                className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px] font-semibold sm:w-auto"
               >
                 <UserPlus className="h-4 w-4" aria-hidden="true" />
                 Sign in to follow
               </Link>
             )}
           </div>
-          {media.logoUrl && (
+          {media.logoUrl ? (
             <Image
               src={media.logoUrl}
               alt=""
@@ -727,16 +809,16 @@ function ManagedPageView({
               unoptimized={media.logoUrl.startsWith("/api/media/")}
               className="h-14 w-14 rounded-lg object-contain"
             />
-          )}
+          ) : null}
         </div>
         <ProfileSectionNav finalLabel="Followers" finalHref="#followers" />
       </header>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
+      <div className="mt-5 grid gap-5 sm:mt-6 sm:gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
           <TimelineSection profile={profile} />
 
-          <section id="about" className="giq-panel scroll-mt-24 p-6">
+          <section id="about" className="giq-panel scroll-mt-24 p-4 sm:p-6">
             <h2 className="mb-3 text-[16px] font-semibold text-[hsl(var(--foreground))]">
               About
             </h2>
@@ -767,7 +849,7 @@ function ManagedPageView({
             <StorefrontBody profileId={page.ownerProfile.id} />
           )}
 
-          <section id="media" className="giq-panel scroll-mt-24 p-6">
+          <section id="media" className="giq-panel scroll-mt-24 p-4 sm:p-6">
             <h2 className="mb-3 flex items-center gap-2 text-[16px] font-semibold text-[hsl(var(--foreground))]">
               <ImageIcon
                 className="h-4 w-4 text-[hsl(var(--primary-bright))]"
@@ -780,7 +862,7 @@ function ManagedPageView({
                 {media.galleryUrls.map((url, i) => (
                   <div
                     key={`${url}-${i}`}
-                    className="overflow-hidden rounded-lg border border-white/[0.06]"
+                    className="overflow-hidden rounded-xl border border-white/[0.08] bg-black/30 shadow-[0_10px_30px_hsl(0_0%_0%/0.18)]"
                   >
                     <Image
                       src={url}
@@ -794,9 +876,15 @@ function ManagedPageView({
                 ))}
               </div>
             ) : (
-              <p className="text-[13px] text-[hsl(var(--muted-foreground))]">
-                No gallery media has been published yet.
-              </p>
+              <div className="giq-empty-state px-4 py-8 text-center">
+                <ImageIcon
+                  className="mx-auto h-7 w-7 text-[hsl(var(--primary-bright))]"
+                  aria-hidden="true"
+                />
+                <p className="mt-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                  No gallery media has been published yet.
+                </p>
+              </div>
             )}
           </section>
         </div>
@@ -833,34 +921,39 @@ function ContactCard({
       </h2>
       <ul className="space-y-2 text-[13px] text-[hsl(var(--muted-foreground))]">
         {contact?.email && (
-          <li className="flex items-center gap-2">
-            <Mail className="h-3.5 w-3.5" />
+          <li>
             <a
               href={`mailto:${contact.email}`}
-              className="break-all hover:underline"
+              className="flex min-h-11 items-center gap-2 rounded-lg px-2 transition hover:bg-white/[0.04] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
             >
-              {contact.email}
+              <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="break-all">{contact.email}</span>
             </a>
           </li>
         )}
         {contact?.phone && (
-          <li className="flex items-center gap-2">
-            <Phone className="h-3.5 w-3.5" />
-            <a href={`tel:${contact.phone}`} className="hover:underline">
-              {contact.phone}
+          <li>
+            <a
+              href={`tel:${contact.phone}`}
+              className="flex min-h-11 items-center gap-2 rounded-lg px-2 transition hover:bg-white/[0.04] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
+            >
+              <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="break-all">{contact.phone}</span>
             </a>
           </li>
         )}
         {contact?.website && (
-          <li className="flex items-center gap-2">
-            <Globe className="h-3.5 w-3.5" />
+          <li>
             <a
               href={contact.website}
               target="_blank"
               rel="noopener noreferrer nofollow"
-              className="break-all hover:underline"
+              className="flex min-h-11 items-center gap-2 rounded-lg px-2 transition hover:bg-white/[0.04] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
             >
-              {contact.website.replace(/^https?:\/\//, "")}
+              <Globe className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="break-all">
+                {contact.website.replace(/^https?:\/\//, "")}
+              </span>
             </a>
           </li>
         )}
@@ -948,8 +1041,8 @@ async function DogBody({
         <div className="flex items-center gap-2">
           {saleLabel && (
             <span
-              className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold text-black"
-              style={{ background: accent }}
+              className="flex items-center gap-1.5 rounded-full border bg-black/60 px-3 py-1 text-[12px] font-semibold text-white"
+              style={{ borderColor: accent }}
             >
               <DollarSign className="h-3.5 w-3.5" />
               {saleLabel}

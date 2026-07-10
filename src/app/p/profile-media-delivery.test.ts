@@ -29,4 +29,19 @@ assert.equal(
   "Personal and managed-page avatars must both preserve viewer authentication"
 );
 
+assert.ok(
+  source.includes('href="/account#cover-image-editor"') &&
+    source.includes('href="/account#profile-picture-editor"'),
+  "Personal profile owners must have separate cover and avatar edit controls"
+);
+assert.ok(
+  source.includes(
+    "href={`/account/pages/${page.id}#page-banner-editor`}"
+  ) &&
+    source.includes(
+      "href={`/account/pages/${page.id}#page-avatar-editor`}"
+    ),
+  "Managed-page owners must have separate cover and avatar edit destinations"
+);
+
 console.log("profile media delivery tests passed");

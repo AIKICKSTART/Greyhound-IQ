@@ -11,7 +11,6 @@ import {
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { PageHero } from "@/components/page-hero";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { safeQuery } from "@/lib/db";
@@ -24,8 +23,9 @@ export const metadata = {
   description: "Review your GreyhoundIQ terms, consent, and marketing records.",
 };
 
-const PANEL_CLASS = "giq-panel p-6";
-const ACTION_CLASS = "giq-outline-action";
+const PANEL_CLASS = "giq-panel p-5 sm:p-6";
+const ACTION_CLASS =
+  "giq-outline-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]";
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-AU", {
   day: "2-digit",
   hour: "2-digit",
@@ -88,25 +88,30 @@ export default async function AccountPrivacyPage() {
 
   return (
     <div>
-      <PageHero
-        image="/images/wentworth-gate-hero.webp"
-        title={
-          <>
-            Account
-            <br />
-            <span className="gradient-text">privacy.</span>
-          </>
-        }
-        subtitle="Read-only privacy, consent, and communication records for your signed-in account."
-      />
+      <header className="relative overflow-hidden border-b border-white/[0.07] bg-[linear-gradient(135deg,hsl(var(--card)/0.92),hsl(var(--background))_72%)]">
+        <div
+          aria-hidden="true"
+          className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[hsl(var(--primary-bright)/0.12)] blur-3xl"
+        />
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-8">
+          <div className="max-w-2xl">
+            <p className="program-label">Account settings</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+              Privacy
+            </h1>
+            <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
+              Review your terms, consent, communication, and export records.
+            </p>
+          </div>
+          <Link href="/account" className={ACTION_CLASS}>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Back to account
+          </Link>
+        </div>
+      </header>
 
-      <section className="mx-auto max-w-5xl px-6 py-12">
-        <Link href="/account" className={`${ACTION_CLASS} mb-6 w-fit`}>
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to account
-        </Link>
-
-        <div className="grid gap-6">
+      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <div className="grid gap-5 sm:gap-6">
           <section className={PANEL_CLASS}>
             <div className="mb-5 flex items-center gap-3">
               <Lock className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
@@ -114,7 +119,7 @@ export default async function AccountPrivacyPage() {
                 Privacy records
               </h2>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Metric
                 label="Terms versions"
                 value={records.termsAcceptances.length}
@@ -280,7 +285,7 @@ function ExportArtifactTable({ records }: { records: ExportArtifactRecord[] }) {
   return (
     <ResponsiveTable>
       <thead>
-        <tr className="border-b border-white/[0.06] bg-white/[0.03] text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+        <tr className="giq-table-head">
           <th className="px-4 py-3">Type</th>
           <th className="px-4 py-3">Status</th>
           <th className="px-4 py-3">Size</th>
@@ -293,7 +298,7 @@ function ExportArtifactTable({ records }: { records: ExportArtifactRecord[] }) {
         {records.map((record, index) => (
           <tr
             key={`${record.exportType}-${record.createdAt.toISOString()}-${index}`}
-            className="border-b border-white/[0.05] last:border-0"
+            className="giq-table-row"
           >
             <td className="px-4 py-4 font-semibold text-[hsl(var(--foreground))]">
               {formatLabel(record.exportType)}
@@ -328,7 +333,7 @@ function TermsAcceptanceTable({
   return (
     <ResponsiveTable>
       <thead>
-        <tr className="border-b border-white/[0.06] bg-white/[0.03] text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+        <tr className="giq-table-head">
           <th className="px-4 py-3">Version</th>
           <th className="px-4 py-3">Accepted</th>
           <th className="px-4 py-3">Created</th>
@@ -338,7 +343,7 @@ function TermsAcceptanceTable({
         {records.map((record, index) => (
           <tr
             key={`${record.termsVersion}-${record.acceptedAt.toISOString()}-${index}`}
-            className="border-b border-white/[0.05] last:border-0"
+            className="giq-table-row"
           >
             <td className="px-4 py-4 font-semibold text-[hsl(var(--foreground))]">
               {record.termsVersion}
@@ -360,7 +365,7 @@ function ConsentEventTable({ records }: { records: ConsentEventRecord[] }) {
   return (
     <ResponsiveTable>
       <thead>
-        <tr className="border-b border-white/[0.06] bg-white/[0.03] text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+        <tr className="giq-table-head">
           <th className="px-4 py-3">Type</th>
           <th className="px-4 py-3">Action</th>
           <th className="px-4 py-3">Version</th>
@@ -373,7 +378,7 @@ function ConsentEventTable({ records }: { records: ConsentEventRecord[] }) {
         {records.map((record, index) => (
           <tr
             key={`${record.consentType}-${record.action}-${record.occurredAt.toISOString()}-${index}`}
-            className="border-b border-white/[0.05] last:border-0"
+            className="giq-table-row"
           >
             <td className="px-4 py-4 font-semibold text-[hsl(var(--foreground))]">
               {formatLabel(record.consentType)}
@@ -408,7 +413,7 @@ function MarketingPreferenceTable({
   return (
     <ResponsiveTable>
       <thead>
-        <tr className="border-b border-white/[0.06] bg-white/[0.03] text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+        <tr className="giq-table-head">
           <th className="px-4 py-3">Channel</th>
           <th className="px-4 py-3">Opt-in status</th>
           <th className="px-4 py-3">Source</th>
@@ -420,7 +425,7 @@ function MarketingPreferenceTable({
         {records.map((record, index) => (
           <tr
             key={`${record.channel}-${record.updatedAt.toISOString()}-${index}`}
-            className="border-b border-white/[0.05] last:border-0"
+            className="giq-table-row"
           >
             <td className="px-4 py-4 font-semibold text-[hsl(var(--foreground))]">
               {formatLabel(record.channel)}
@@ -446,7 +451,12 @@ function MarketingPreferenceTable({
 
 function ResponsiveTable({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-white/[0.06]">
+    <div
+      className="giq-table-shell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
+      role="region"
+      aria-label="Scrollable account records"
+      tabIndex={0}
+    >
       <table className="w-full min-w-[720px] border-collapse text-left text-[13px]">
         {children}
       </table>
@@ -463,8 +473,10 @@ function SectionHeader({
 }) {
   return (
     <div className="mb-5 flex items-center gap-3">
-      {icon}
-      <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+      <span className="giq-icon-plate grid h-9 w-9 shrink-0 place-items-center rounded-lg">
+        {icon}
+      </span>
+      <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
         {title}
       </h2>
     </div>

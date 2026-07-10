@@ -88,7 +88,7 @@ export function MediaAttachmentFields({
 
   const remaining = maxFiles - items.length;
   const acceptedMediaTypes =
-    mediaContext === "avatars"
+    mediaContext === "avatars" || mediaContext === "custom-page"
       ? ACCEPTED_MEDIA_TYPES.filter((type) => type.startsWith("image/"))
       : mediaContext === "listings"
         ? ACCEPTED_MEDIA_TYPES.filter(

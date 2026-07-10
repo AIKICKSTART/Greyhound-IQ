@@ -18,13 +18,16 @@ import {
 } from "@/app/admin/mutations";
 import type { AdminResource } from "@/lib/admin-service";
 
-const CONTROL = "giq-form-control w-full px-2 py-1 text-[12px]";
-const SMALL_BUTTON = "giq-button giq-button-glass min-h-8 px-3 text-[12px]";
+const FOCUS_RING =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--surface-1))]";
+const CONTROL = `giq-form-control w-full px-3 py-2 text-[14px] ${FOCUS_RING}`;
+const SMALL_BUTTON = `giq-button giq-button-glass min-h-11 px-3 text-[13px] ${FOCUS_RING}`;
 const FIELD_LABEL =
-  "block text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]";
-const CHECKBOX_ROW = "flex flex-wrap gap-x-4 gap-y-1.5 pt-0.5";
+  "block text-[11px] font-semibold uppercase tracking-[0.07em] text-[hsl(var(--subtle-foreground))]";
+const CHECKBOX_ROW = "flex flex-wrap gap-x-3 gap-y-1 pt-0.5";
 const CHECKBOX_LABEL =
-  "flex items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]";
+  "flex min-h-11 items-center gap-2 rounded-lg px-1 text-[13px] text-[hsl(var(--muted-foreground))] focus-within:text-[hsl(var(--foreground))]";
+const CHECKBOX = `h-4 w-4 shrink-0 accent-[hsl(var(--primary-bright))] ${FOCUS_RING}`;
 
 export function AdminStatusForm({
   resource,
@@ -40,7 +43,10 @@ export function AdminStatusForm({
   path: string;
 }) {
   return (
-    <form action={updateAdminStatus} className="min-w-[220px] space-y-2">
+    <form
+      action={updateAdminStatus}
+      className="w-full min-w-0 space-y-2 sm:w-[220px] sm:min-w-[220px]"
+    >
       <HiddenAdminFields resource={resource} id={id} path={path} />
       <select name="status" defaultValue={currentStatus} className={CONTROL}>
         {statuses.map((status) => (
@@ -67,7 +73,10 @@ export function AdminEnabledForm({
   path: string;
 }) {
   return (
-    <form action={updateAdminStatus} className="min-w-[180px] space-y-2">
+    <form
+      action={updateAdminStatus}
+      className="w-full min-w-0 space-y-2 sm:w-[180px] sm:min-w-[180px]"
+    >
       <HiddenAdminFields resource={resource} id={id} path={path} />
       <input type="hidden" name="enabled" value={enabled ? "false" : "true"} />
       <ReasonField placeholder={enabled ? "Reason to disable" : "Reason to enable"} />
@@ -89,7 +98,10 @@ export function AdminSupportTicketForm({
   path: string;
 }) {
   return (
-    <form action={updateAdminSupportTicketAction} className="min-w-[300px] space-y-2">
+    <form
+      action={updateAdminSupportTicketAction}
+      className="w-full min-w-0 space-y-2 sm:w-[300px] sm:min-w-[300px]"
+    >
       <input type="hidden" name="ticketId" value={ticket.id} />
       <input type="hidden" name="path" value={path} />
       <select name="status" defaultValue={ticket.status} className={CONTROL}>
@@ -136,7 +148,10 @@ export function AdminBugReportForm({
   path: string;
 }) {
   return (
-    <form action={updateAdminBugReportAction} className="min-w-[240px] space-y-2">
+    <form
+      action={updateAdminBugReportAction}
+      className="w-full min-w-0 space-y-2 sm:w-[240px] sm:min-w-[240px]"
+    >
       <input type="hidden" name="bugReportId" value={bugReport.id} />
       <input type="hidden" name="path" value={path} />
       <select name="status" defaultValue={bugReport.status} className={CONTROL}>
@@ -173,10 +188,12 @@ export function AdminCreateUserForm({ path }: { path: string }) {
         <RoleOptions />
       </select>
       <label className={CHECKBOX_LABEL}>
-        <input type="checkbox" name="verified" /> Verified
+        <input type="checkbox" name="verified" className={CHECKBOX} /> Verified
       </label>
       <ReasonField placeholder="Reason for user create/update" />
-      <button className="giq-button giq-button-primary min-h-9 px-4 text-[13px] md:col-span-2">
+      <button
+        className={`giq-button giq-button-primary min-h-11 px-4 text-[13px] md:col-span-2 ${FOCUS_RING}`}
+      >
         Create or update user
       </button>
     </form>
@@ -197,10 +214,13 @@ export function AdminUserAccessForm({
   path: string;
 }) {
   return (
-    <form action={updateAdminUserAccessAction} className="w-[320px] space-y-2">
+    <form
+      action={updateAdminUserAccessAction}
+      className="w-full min-w-0 space-y-2 sm:w-[320px]"
+    >
       <input type="hidden" name="userId" value={user.id} />
       <input type="hidden" name="path" value={path} />
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid gap-2 sm:grid-cols-2">
         <label className="space-y-1">
           <span className={FIELD_LABEL}>Tier</span>
           <select name="tier" defaultValue={user.subscriptionTier} className={CONTROL}>
@@ -218,16 +238,27 @@ export function AdminUserAccessForm({
       </div>
       <div className={CHECKBOX_ROW}>
         <label className={CHECKBOX_LABEL}>
-          <input type="checkbox" name="verified" defaultChecked={user.profile?.verified ?? false} />
+          <input
+            type="checkbox"
+            name="verified"
+            defaultChecked={user.profile?.verified ?? false}
+            className={CHECKBOX}
+          />
           Verified
         </label>
         <label className={CHECKBOX_LABEL}>
-          <input type="checkbox" name="banned" defaultChecked={user.isBanned} />
+          <input
+            type="checkbox"
+            name="banned"
+            defaultChecked={user.isBanned}
+            className={CHECKBOX}
+          />
           Banned
         </label>
         {user.deletionRequestedAt ? (
           <label className={CHECKBOX_LABEL}>
-            <input type="checkbox" name="cancelDeletion" /> Cancel deletion
+            <input type="checkbox" name="cancelDeletion" className={CHECKBOX} />
+            Cancel deletion
           </label>
         ) : null}
       </div>
@@ -283,7 +314,8 @@ export function AdminPlanForms({
         <input name="limitValue" type="number" min={0} placeholder="limit optional" className={CONTROL} />
         <input name="unit" placeholder="unit optional" className={CONTROL} />
         <label className={CHECKBOX_LABEL}>
-          <input type="checkbox" name="enabled" defaultChecked /> Enabled
+          <input type="checkbox" name="enabled" defaultChecked className={CHECKBOX} />
+          Enabled
         </label>
         <ReasonField />
         <button className={SMALL_BUTTON}>Save entitlement</button>
@@ -302,7 +334,8 @@ export function AdminRetentionForms({ path }: { path: string }) {
         <input name="targetType" required placeholder="target type" className={CONTROL} />
         <input name="retentionDays" required type="number" min={0} max={3650} placeholder="365" className={CONTROL} />
         <label className={CHECKBOX_LABEL}>
-          <input type="checkbox" name="enabled" defaultChecked /> Enabled
+          <input type="checkbox" name="enabled" defaultChecked className={CHECKBOX} />
+          Enabled
         </label>
         <ReasonField />
         <button className={SMALL_BUTTON}>Save policy</button>
@@ -391,7 +424,7 @@ export function AdminDogOwnershipForm({
   path: string;
 }) {
   return (
-    <form className="min-w-[240px] space-y-2">
+    <form className="w-full min-w-0 space-y-2 sm:w-[240px] sm:min-w-[240px]">
       <input type="hidden" name="ownershipId" value={ownershipId} />
       <input type="hidden" name="path" value={path} />
       <ReasonField placeholder="Reason (shown to claimant if rejected)" />

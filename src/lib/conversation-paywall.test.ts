@@ -5,6 +5,21 @@ import { join } from "node:path";
 const service = readFileSync(join(__dirname, "conversation-service.ts"), "utf8");
 const startBody = sliceFunction(service, "startOrGetConversation");
 const sendBody = sliceFunction(service, "sendConversationMessage");
+const recipientResolverStart = service.indexOf(
+  "async function resolveConversationRecipient"
+);
+const recipientResolverEnd = service.indexOf(
+  "\nfunction assertConversationActorPair",
+  recipientResolverStart
+);
+assert.ok(
+  recipientResolverStart >= 0 && recipientResolverEnd > recipientResolverStart,
+  "conversation-service.ts must keep a bounded recipient resolver"
+);
+const recipientResolver = service.slice(
+  recipientResolverStart,
+  recipientResolverEnd
+);
 
 assert.match(
   startBody,
@@ -24,6 +39,16 @@ assert.ok(
 assert.ok(
   startBody.includes("assertConversationActorPair(conversation, actorPair)"),
   "An existing profile pair must not be relabelled as a different actor pair"
+);
+assert.ok(
+  startBody.includes("await assertProfileCanReceiveMessage(recipient.profileId)"),
+  "Recipient availability must be checked through the server-only system context"
+);
+assert.ok(
+  !recipientResolver.includes("user: {") &&
+    !recipientResolver.includes("ownerProfile.user") &&
+    !recipientResolver.includes("profile.user"),
+  "Viewer-context recipient lookup must not join the private User relation"
 );
 assert.ok(
   sendBody.includes("senderActorId: senderActor.id") &&

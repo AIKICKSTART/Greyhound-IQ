@@ -266,9 +266,7 @@ export async function startOrGetConversation(
     assertPaidFeatureAccess(current);
     if (!senderActor.published) throw new Error("actor.page_unpublished");
   }
-  if (recipient.user.isBanned || recipient.user.deletionRequestedAt) {
-    throw new Error("conversation.recipient_unavailable");
-  }
+  await assertProfileCanReceiveMessage(recipient.profileId);
   if (recipient.profileId === current.profileId) {
     throw new Error("conversation.cannot_message_self");
   }
@@ -855,7 +853,6 @@ async function resolveConversationRecipient(
 ): Promise<{
   profileId: string;
   actor: ConversationActorIdentity;
-  user: { isBanned: boolean; deletionRequestedAt: Date | null };
 } | null> {
   const actor = await tx.socialActor.findFirst({
     where: {
@@ -867,9 +864,6 @@ async function resolveConversationRecipient(
       ownerProfile: {
         select: {
           id: true,
-          user: {
-            select: { isBanned: true, deletionRequestedAt: true },
-          },
         },
       },
     },
@@ -878,7 +872,6 @@ async function resolveConversationRecipient(
     return {
       profileId: actor.ownerProfile.id,
       actor,
-      user: actor.ownerProfile.user,
     };
   }
 
@@ -891,9 +884,6 @@ async function resolveConversationRecipient(
     },
     select: {
       id: true,
-      user: {
-        select: { isBanned: true, deletionRequestedAt: true },
-      },
       socialActor: { select: CONVERSATION_ACTOR_SELECT },
     },
   });
@@ -901,7 +891,6 @@ async function resolveConversationRecipient(
   return {
     profileId: profile.id,
     actor: profile.socialActor,
-    user: profile.user,
   };
 }
 

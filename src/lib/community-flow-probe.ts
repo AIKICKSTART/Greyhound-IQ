@@ -126,6 +126,7 @@ export async function runCommunityFlowProbe({
     const post = await createFeedPostForCurrentUser(freeSeller, {
       body: "Community flow check feed post.",
       mediaIds: [],
+      visibility: "members",
     });
     ids.feedPosts.add(post.id);
     const comment = await createFeedCommentForCurrentUser(freeBuyer, post.id, {

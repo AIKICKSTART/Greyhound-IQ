@@ -458,6 +458,29 @@ for (const needle of [
     findings.push(`SocialActor upsert RLS fix missing: ${needle}`);
   }
 }
+
+const feedPostReturningRlsFixSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710142000_fix_feed_post_returning_rls",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  "ALTER POLICY giq_feed_post_select",
+  '"deletedAt" IS NULL',
+  "public.giq_is_system()",
+  "public.giq_is_moderator()",
+  '"authorProfileId" = public.giq_current_profile_id()',
+  "public.giq_feed_post_visible(id)",
+]) {
+  if (!feedPostReturningRlsFixSql.includes(needle)) {
+    findings.push(`FeedPost RETURNING RLS fix missing: ${needle}`);
+  }
+}
 for (const table of [
   "SocialActor",
   "ActorFollow",
@@ -756,13 +779,13 @@ async function checkDatabaseState() {
       if (role.rolbypassrls) findings.push(`${role.rolname} must be NOBYPASSRLS`);
     }
 
-    const actorProbeRole = roles.some((role) => role.rolname === "greyhoundiq_app")
+    const writeProbeRole = roles.some((role) => role.rolname === "greyhoundiq_app")
       ? "greyhoundiq_app"
       : roles.some((role) => role.rolname === "greyhoundiq_runtime")
         ? "greyhoundiq_runtime"
         : null;
-    if (actorProbeRole) {
-      await checkSocialActorUpsertRls(prisma, actorProbeRole);
+    if (writeProbeRole) {
+      await checkSocialWriteReturningRls(prisma, writeProbeRole);
     }
 
     const directRoles = await prisma.$queryRaw<
@@ -866,12 +889,12 @@ async function checkDatabaseState() {
   }
 }
 
-async function checkSocialActorUpsertRls(
+async function checkSocialWriteReturningRls(
   prisma: PrismaClient,
   role: "greyhoundiq_app" | "greyhoundiq_runtime",
 ) {
   const marker = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const rollbackMessage = "social-actor-upsert-rls-probe.rollback";
+  const rollbackMessage = "social-write-returning-rls-probe.rollback";
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -939,9 +962,30 @@ async function checkSocialActorUpsertRls(
         throw new Error("SocialActor conflict upsert was not stable");
       }
 
+      await tx.$executeRaw`SELECT
+        set_config('app.current_user_id', ${user.id}, true),
+        set_config('app.current_profile_id', ${profile.id}, true),
+        set_config('app.current_actor_id', '', true),
+        set_config('app.current_tier', 'free', true),
+        set_config('app.current_role', 'member', true),
+        set_config('app.system', 'false', true)`;
+
+      const feedPost = await tx.feedPost.create({
+        data: {
+          authorProfileId: profile.id,
+          authorActorId: actor.id,
+          body: "FeedPost RETURNING RLS probe",
+          visibility: "connections",
+          status: "active",
+          publishedAt: new Date(),
+        },
+        select: { id: true },
+      });
+      if (!feedPost.id) throw new Error("FeedPost create returned no post");
+
       throw new Error(rollbackMessage);
     });
-    findings.push("SocialActor upsert RLS probe committed unexpectedly");
+    findings.push("Social write RETURNING RLS probe committed unexpectedly");
   } catch (err) {
     if (!(err instanceof Error) || err.message !== rollbackMessage) {
       const code =
@@ -949,7 +993,7 @@ async function checkSocialActorUpsertRls(
           ? ` (${String(err.code)})`
           : "";
       findings.push(
-        `SocialActor upsert fails under ${role} system context${code}`,
+        `SocialActor/FeedPost RETURNING fails under ${role} context${code}`,
       );
     }
   }

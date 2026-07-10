@@ -20,6 +20,7 @@ export type HubConversationRow = {
   preview: string;
   unread: number;
   attachmentCount?: number;
+  personToPerson: boolean;
 };
 
 // Right-hand messenger column. Server-rendered shell with focused client
@@ -153,6 +154,7 @@ export function HubMessengerPanel({
         ) : (
           <HubConversationDock
             selfProfileId={selfProfileId}
+            canStartCall={canStartCall}
             conversations={conversations.map((conversation) => ({
               ...conversation,
               realtimeChannel: conversationRealtimeChannel(conversation.id),

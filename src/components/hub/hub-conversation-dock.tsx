@@ -8,6 +8,7 @@ import {
   Loader2,
   MessageSquare,
   Paperclip,
+  Phone,
   RotateCcw,
   Send,
   ShieldAlert,
@@ -29,6 +30,7 @@ export type HubDockConversation = {
   unread: number;
   attachmentCount?: number;
   realtimeChannel: string | null;
+  personToPerson: boolean;
 };
 
 type QuickMessage = {
@@ -65,9 +67,11 @@ const CHAT_TIME_FORMATTER = new Intl.DateTimeFormat("en-AU", {
 export function HubConversationDock({
   conversations,
   selfProfileId,
+  canStartCall,
 }: {
   conversations: HubDockConversation[];
   selfProfileId: string;
+  canStartCall: boolean;
 }) {
   const [openIds, setOpenIds] = useState<string[]>([]);
 
@@ -111,6 +115,7 @@ export function HubConversationDock({
               key={id}
               conversation={conversation}
               selfProfileId={selfProfileId}
+              canStartCall={canStartCall}
               onClose={() =>
                 setOpenIds((current) => current.filter((item) => item !== id))
               }
@@ -163,10 +168,12 @@ function ConversationSummary({
 function QuickChatWindow({
   conversation,
   selfProfileId,
+  canStartCall,
   onClose,
 }: {
   conversation: HubDockConversation;
   selfProfileId: string;
+  canStartCall: boolean;
   onClose: () => void;
 }) {
   const messagesViewportRef = useRef<HTMLDivElement>(null);
@@ -393,8 +400,29 @@ function QuickChatWindow({
             )}
           </button>
         </div>
-        <div className="mt-2 max-h-44 overflow-y-auto overscroll-contain pr-1">
-          <MediaAttachmentFields key={attachmentResetKey} compact />
+        <div className="mt-2 flex items-start gap-2">
+          {conversation.personToPerson && (
+            <Link
+              href={
+                canStartCall
+                  ? `/pulse/${encodeURIComponent(conversation.id)}?call=voice`
+                  : "/pricing"
+              }
+              aria-label={
+                canStartCall
+                  ? `Start voice call with ${conversation.otherName}`
+                  : "Voice calls are a Pro feature"
+              }
+              className={`giq-outline-action h-11 w-11 shrink-0 justify-center px-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)] ${
+                canStartCall ? "" : "opacity-60"
+              }`}
+            >
+              <Phone className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
+          )}
+          <div className="min-w-0 flex-1 max-h-44 overflow-y-auto overscroll-contain pr-1">
+            <MediaAttachmentFields key={attachmentResetKey} compact />
+          </div>
         </div>
         {sendError && (
           <p role="alert" className="mt-1 text-[11px] text-red-200">

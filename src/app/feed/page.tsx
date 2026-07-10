@@ -220,6 +220,9 @@ export default async function FeedPage({
           : conversation.participantAActor;
       const message = conversation.messages[0];
       const isSent = message?.senderId === user.profileId;
+      const personToPerson =
+        conversation.participantAActor?.kind !== "page" &&
+        conversation.participantBActor?.kind !== "page";
       return {
         id: conversation.id,
         otherName: otherActor?.displayName ?? other.displayName,
@@ -228,6 +231,7 @@ export default async function FeedPage({
           : "Conversation started",
         attachmentCount: message?._count.media ?? 0,
         unread: unreadByConversation.get(conversation.id) ?? 0,
+        personToPerson,
       };
     });
 

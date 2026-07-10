@@ -84,11 +84,20 @@ for (const field of [
   "website",
   "contactVisibility",
   "accentColor",
-  "coverFocalX",
-  "coverFocalY",
 ]) {
   assert.ok(
     pageEditorSource.includes(`name="${field}"`),
+    `Managed-page editor must retain ${field}`
+  );
+}
+for (const field of [
+  'xName: "avatarFocalX"',
+  'yName: "avatarFocalY"',
+  'xName: "coverFocalX"',
+  'yName: "coverFocalY"',
+]) {
+  assert.ok(
+    pageEditorSource.includes(field),
     `Managed-page editor must retain ${field}`
   );
 }
@@ -125,6 +134,11 @@ assert.ok(
     'mediaContext === "avatars" || mediaContext === "custom-page"'
   ),
   "Managed-page image slots must not accept unrenderable audio or documents"
+);
+assert.ok(
+  accountSource.includes("MediaAlignmentUpload") &&
+    pageEditorSource.includes("MediaAlignmentUpload"),
+  "Personal and managed-page uploads must support drag alignment before save"
 );
 
 for (const [source, header] of [

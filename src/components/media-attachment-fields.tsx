@@ -64,6 +64,7 @@ interface MediaAttachmentFieldsProps {
   maxFiles?: number;
   compact?: boolean;
   fieldName?: string;
+  onPrimaryReadyPreviewChange?: (previewUrl: string | null) => void;
 }
 
 function uploadUrlNeedsRefresh(context: UploadContext) {
@@ -78,6 +79,7 @@ export function MediaAttachmentFields({
   maxFiles = 4,
   compact = false,
   fieldName = "mediaIds",
+  onPrimaryReadyPreviewChange,
 }: MediaAttachmentFieldsProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const ctxRef = useRef<Map<string, UploadContext>>(new Map());
@@ -104,6 +106,14 @@ export function MediaAttachmentFields({
       for (const item of contexts.values()) URL.revokeObjectURL(item.previewUrl);
     };
   }, []);
+
+  const primaryReadyPreview =
+    items.find((item) => item.step === "done" && item.mediaId)?.previewUrl ??
+    null;
+
+  useEffect(() => {
+    onPrimaryReadyPreviewChange?.(primaryReadyPreview);
+  }, [onPrimaryReadyPreviewChange, primaryReadyPreview]);
 
   function patchItem(key: string, patch: Partial<UploadItem>) {
     setItems((current) =>

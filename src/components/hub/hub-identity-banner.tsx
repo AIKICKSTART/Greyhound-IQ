@@ -26,6 +26,8 @@ export function HubIdentityBanner({
   actor: {
     handle: string;
     avatarUrl: string | null;
+    avatarFocalX: number;
+    avatarFocalY: number;
     coverUrl: string | null;
     coverFocalX: number;
     coverFocalY: number;
@@ -97,6 +99,9 @@ export function HubIdentityBanner({
                 height={112}
                 unoptimized={avatarUrl.startsWith("/api/media/")}
                 className="h-full w-full object-cover"
+                style={{
+                  objectPosition: `${actor.avatarFocalX * 100}% ${actor.avatarFocalY * 100}%`,
+                }}
               />
             ) : (
               <div className="grid h-full w-full place-items-center text-xl font-bold text-white/70">

@@ -27,6 +27,8 @@ export type SocialActorSummary = {
   handle: string;
   displayName: string;
   avatarUrl: string | null;
+  avatarFocalX: number;
+  avatarFocalY: number;
   coverUrl: string | null;
   coverFocalX: number;
   coverFocalY: number;
@@ -44,6 +46,8 @@ const actorSelect = {
   handle: true,
   displayName: true,
   avatarUrl: true,
+  avatarFocalX: true,
+  avatarFocalY: true,
   coverUrl: true,
   coverFocalX: true,
   coverFocalY: true,
@@ -570,6 +574,8 @@ function pickActorSummary(actor: {
   handle: string;
   displayName: string;
   avatarUrl: string | null;
+  avatarFocalX: number;
+  avatarFocalY: number;
   coverUrl: string | null;
   coverFocalX: number;
   coverFocalY: number;
@@ -586,6 +592,8 @@ function pickActorSummary(actor: {
     handle: actor.handle,
     displayName: actor.displayName,
     avatarUrl: actor.avatarUrl,
+    avatarFocalX: actor.avatarFocalX,
+    avatarFocalY: actor.avatarFocalY,
     coverUrl: actor.coverUrl,
     coverFocalX: actor.coverFocalX,
     coverFocalY: actor.coverFocalY,
@@ -616,6 +624,8 @@ export type PersonalActorMedia = {
   coverMediaId: string | null;
   avatarUrl: string | null;
   coverUrl: string | null;
+  avatarFocalX: number;
+  avatarFocalY: number;
   coverFocalX: number;
   coverFocalY: number;
 };
@@ -659,6 +669,8 @@ export async function getPersonalActorMedia(
         null,
       avatarUrl: actor.avatarUrl,
       coverUrl: actor.coverUrl,
+      avatarFocalX: actor.avatarFocalX,
+      avatarFocalY: actor.avatarFocalY,
       coverFocalX: actor.coverFocalX,
       coverFocalY: actor.coverFocalY,
     };
@@ -780,6 +792,12 @@ export async function updatePersonalActorMedia(
       data: {
         avatarUrl,
         coverUrl,
+        ...(input.avatarFocalX === undefined
+          ? {}
+          : { avatarFocalX: input.avatarFocalX }),
+        ...(input.avatarFocalY === undefined
+          ? {}
+          : { avatarFocalY: input.avatarFocalY }),
         coverFocalX: input.coverFocalX,
         coverFocalY: input.coverFocalY,
       },

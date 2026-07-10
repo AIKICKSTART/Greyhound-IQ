@@ -44,4 +44,15 @@ assert.ok(
   "Managed-page owners must have separate cover and avatar edit destinations"
 );
 
+assert.equal(
+  source.match(/lg:h-\[300px\] lg:w-\[300px\]/g)?.length,
+  2,
+  "Personal and managed-page profile pictures must render at 300px on desktop"
+);
+assert.equal(
+  source.match(/profile\.actor\.avatarFocalX \* 100/g)?.length,
+  2,
+  "Personal and managed-page profile pictures must use their saved alignment"
+);
+
 console.log("profile media delivery tests passed");

@@ -191,19 +191,23 @@ function PersonalProfileView({
           ) : null}
         </div>
         <div className="relative flex flex-wrap items-end gap-4 px-4 pb-5 sm:px-7">
-          <div className="relative -mt-14 h-28 w-28 shrink-0 sm:-mt-16 sm:h-32 sm:w-32">
-            <div className="h-full w-full overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-black shadow-[0_14px_35px_hsl(0_0%_0%/0.45)] ring-2 ring-[hsl(var(--primary-bright)/0.75)]">
+          <div className="relative -mt-20 h-40 w-40 shrink-0 sm:-mt-24 sm:h-52 sm:w-52 lg:-mt-[150px] lg:h-[300px] lg:w-[300px]">
+            <div className="h-full w-full overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-black shadow-[0_14px_35px_hsl(0_0%_0%/0.45)] ring-2 ring-[hsl(var(--primary-bright)/0.75)] lg:border-[6px]">
               {avatarUrl ? (
                 <Image
                   src={avatarUrl}
                   alt={profile.actor.displayName}
-                  width={128}
-                  height={128}
+                  width={300}
+                  height={300}
+                  sizes="(min-width: 1024px) 300px, (min-width: 640px) 208px, 160px"
                   unoptimized={avatarUrl.startsWith("/api/media/")}
                   className="h-full w-full object-cover"
+                  style={{
+                    objectPosition: `${profile.actor.avatarFocalX * 100}% ${profile.actor.avatarFocalY * 100}%`,
+                  }}
                 />
               ) : (
-                <div className="grid h-full w-full place-items-center text-3xl font-bold text-white/70">
+                <div className="grid h-full w-full place-items-center text-4xl font-bold text-white/70 sm:text-5xl lg:text-7xl">
                   {profile.actor.displayName.slice(0, 1).toUpperCase()}
                 </div>
               )}
@@ -686,22 +690,26 @@ function ManagedPageView({
           ) : null}
         </div>
         <div className="relative flex flex-wrap items-end gap-4 px-4 pb-5 sm:px-7">
-          <div className="relative -mt-14 h-28 w-28 shrink-0 sm:-mt-16 sm:h-32 sm:w-32">
+          <div className="relative -mt-20 h-40 w-40 shrink-0 sm:-mt-24 sm:h-52 sm:w-52 lg:-mt-[150px] lg:h-[300px] lg:w-[300px]">
             <div
-              className="h-full w-full overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-black shadow-[0_14px_35px_hsl(0_0%_0%/0.45)] ring-2"
+              className="h-full w-full overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-black shadow-[0_14px_35px_hsl(0_0%_0%/0.45)] ring-2 lg:border-[6px]"
               style={{ "--tw-ring-color": accent } as React.CSSProperties}
             >
               {avatarUrl ? (
                 <Image
                   src={avatarUrl}
                   alt={page.title}
-                  width={128}
-                  height={128}
+                  width={300}
+                  height={300}
+                  sizes="(min-width: 1024px) 300px, (min-width: 640px) 208px, 160px"
                   unoptimized={avatarUrl.startsWith("/api/media/")}
                   className="h-full w-full object-cover"
+                  style={{
+                    objectPosition: `${profile.actor.avatarFocalX * 100}% ${profile.actor.avatarFocalY * 100}%`,
+                  }}
                 />
               ) : (
-                <div className="grid h-full w-full place-items-center text-3xl font-bold text-white/70">
+                <div className="grid h-full w-full place-items-center text-4xl font-bold text-white/70 sm:text-5xl lg:text-7xl">
                   {page.title.slice(0, 1).toUpperCase()}
                 </div>
               )}

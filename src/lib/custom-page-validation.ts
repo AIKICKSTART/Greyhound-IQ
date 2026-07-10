@@ -56,6 +56,8 @@ const baseFields = {
   heroMediaId: z.string().trim().min(1).optional().nullable(),
   avatarMediaId: z.string().trim().min(1).optional().nullable(),
   bannerMediaId: z.string().trim().min(1).optional().nullable(),
+  avatarFocalX: z.coerce.number().min(0).max(1).optional(),
+  avatarFocalY: z.coerce.number().min(0).max(1).optional(),
   coverFocalX: z.coerce.number().min(0).max(1).default(0.5),
   coverFocalY: z.coerce.number().min(0).max(1).default(0.5),
   logoMediaId: z.string().trim().min(1).optional().nullable(),

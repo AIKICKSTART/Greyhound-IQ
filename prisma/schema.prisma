@@ -1164,6 +1164,8 @@ model SocialActor {
   handle            String      @unique
   displayName       String
   avatarUrl         String?
+  avatarFocalX      Float       @default(0.5)
+  avatarFocalY      Float       @default(0.5)
   coverUrl          String?
   coverFocalX       Float       @default(0.5)
   coverFocalY       Float       @default(0.5)

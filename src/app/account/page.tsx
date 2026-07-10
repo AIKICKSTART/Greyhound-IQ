@@ -21,7 +21,7 @@ import {
   updatePersonalIdentityMedia,
   updateProfile,
 } from "@/app/actions";
-import { MediaAttachmentFields } from "@/components/media-attachment-fields";
+import { MediaAlignmentUpload } from "@/components/media-alignment-upload";
 import { PageHero } from "@/components/page-hero";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser, hasTier, isModeratorRole } from "@/lib/auth";
@@ -233,6 +233,9 @@ async function SignedInAccount({
                   unoptimized={profileAvatarUrl.startsWith("/api/media/")}
                   sizes="112px"
                   className="object-cover"
+                  style={{
+                    objectPosition: `${(personalMedia?.avatarFocalX ?? 0.5) * 100}% ${(personalMedia?.avatarFocalY ?? 0.5) * 100}%`,
+                  }}
                 />
               ) : (
                 <div className="grid h-full place-items-center text-2xl font-semibold text-white/80">
@@ -257,11 +260,16 @@ async function SignedInAccount({
               <legend className="px-1 text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                 Profile picture
               </legend>
-              <MediaAttachmentFields
+              <MediaAlignmentUpload
+                currentSrc={profileAvatarUrl}
+                alt="Profile picture alignment preview"
+                shape="circle"
                 mediaContext="avatars"
-                maxFiles={1}
-                compact
                 fieldName="avatarMediaIdNew"
+                xName="avatarFocalX"
+                yName="avatarFocalY"
+                defaultX={personalMedia?.avatarFocalX ?? 0.5}
+                defaultY={personalMedia?.avatarFocalY ?? 0.5}
               />
               {personalMedia?.avatarUrl ? (
                 <label className="mt-3 flex min-h-11 items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
@@ -278,11 +286,16 @@ async function SignedInAccount({
               <legend className="px-1 text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                 Cover image
               </legend>
-              <MediaAttachmentFields
+              <MediaAlignmentUpload
+                currentSrc={personalMedia?.coverUrl ?? null}
+                alt="Cover image alignment preview"
+                shape="banner"
                 mediaContext="avatars"
-                maxFiles={1}
-                compact
                 fieldName="coverMediaIdNew"
+                xName="coverFocalX"
+                yName="coverFocalY"
+                defaultX={personalMedia?.coverFocalX ?? 0.5}
+                defaultY={personalMedia?.coverFocalY ?? 0.5}
               />
               {personalMedia?.coverUrl ? (
                 <label className="mt-3 flex min-h-11 items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
@@ -291,33 +304,6 @@ async function SignedInAccount({
                 </label>
               ) : null}
             </fieldset>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-              Horizontal cover focus
-              <input
-                type="range"
-                name="coverFocalX"
-                min="0"
-                max="1"
-                step="0.01"
-                defaultValue={personalMedia?.coverFocalX ?? 0.5}
-                className="mt-1 min-h-11 w-full accent-[hsl(var(--primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
-              />
-            </label>
-            <label className="block text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-              Vertical cover focus
-              <input
-                type="range"
-                name="coverFocalY"
-                min="0"
-                max="1"
-                step="0.01"
-                defaultValue={personalMedia?.coverFocalY ?? 0.5}
-                className="mt-1 min-h-11 w-full accent-[hsl(var(--primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
-              />
-            </label>
           </div>
 
           <SubmitButton pendingLabel="Saving media...">

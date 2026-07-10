@@ -209,6 +209,8 @@ export async function createCustomPage(
             contactVisibility: input.contactVisibility,
             published: false,
             avatarUrl: actorMediaUrl(media, input.avatarMediaId),
+            avatarFocalX: input.avatarFocalX ?? 0.5,
+            avatarFocalY: input.avatarFocalY ?? 0.5,
             coverUrl: actorMediaUrl(media, input.bannerMediaId),
             coverFocalX: input.coverFocalX,
             coverFocalY: input.coverFocalY,
@@ -293,6 +295,12 @@ export async function updateCustomPage(
         displayName: input.title,
         contactVisibility: input.contactVisibility,
         avatarUrl: actorMediaUrl(media, input.avatarMediaId),
+        ...(input.avatarFocalX === undefined
+          ? {}
+          : { avatarFocalX: input.avatarFocalX }),
+        ...(input.avatarFocalY === undefined
+          ? {}
+          : { avatarFocalY: input.avatarFocalY }),
         coverUrl: actorMediaUrl(media, input.bannerMediaId),
         coverFocalX: input.coverFocalX,
         coverFocalY: input.coverFocalY,
@@ -387,6 +395,8 @@ export function getOwnedCustomPage(current: CurrentUserProfile, pageId: string) 
           select: {
             id: true,
             contactVisibility: true,
+            avatarFocalX: true,
+            avatarFocalY: true,
             coverFocalX: true,
             coverFocalY: true,
           },

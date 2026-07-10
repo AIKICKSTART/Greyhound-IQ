@@ -66,6 +66,8 @@ export const personalActorMediaUpdateSchema = z.object({
   coverMediaId: optionalMediaId,
   removeAvatar: z.boolean().default(false),
   removeCover: z.boolean().default(false),
+  avatarFocalX: z.coerce.number().min(0).max(1).optional(),
+  avatarFocalY: z.coerce.number().min(0).max(1).optional(),
   coverFocalX: z.coerce.number().min(0).max(1).default(0.5),
   coverFocalY: z.coerce.number().min(0).max(1).default(0.5),
 });

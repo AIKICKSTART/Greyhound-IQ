@@ -27,6 +27,7 @@ import {
 } from "@/app/actions";
 import { getPlatformFlag, PLATFORM_FLAGS } from "@/lib/platform-settings";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
+import { MediaAlignmentUpload } from "@/components/media-alignment-upload";
 import { SubmitButton } from "@/components/submit-button";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +66,8 @@ export default async function EditCustomPage({ params }: { params: Promise<{ id:
       : false;
   const focalX = page.socialActor?.coverFocalX ?? 0.5;
   const focalY = page.socialActor?.coverFocalY ?? 0.5;
+  const avatarFocalX = page.socialActor?.avatarFocalX ?? 0.5;
+  const avatarFocalY = page.socialActor?.avatarFocalY ?? 0.5;
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
@@ -145,6 +148,9 @@ export default async function EditCustomPage({ params }: { params: Promise<{ id:
                   unoptimized={media.avatarUrl.startsWith("/api/media/")}
                   sizes="128px"
                   className="object-cover"
+                  style={{
+                    objectPosition: `${avatarFocalX * 100}% ${avatarFocalY * 100}%`,
+                  }}
                 />
               ) : (
                 <span className="grid h-full place-items-center text-3xl font-semibold text-white/80">
@@ -301,6 +307,12 @@ export default async function EditCustomPage({ params }: { params: Promise<{ id:
               field="bannerMediaIdNew"
               removeField="removeBannerMediaId"
               variant="banner"
+              alignment={{
+                xName: "coverFocalX",
+                yName: "coverFocalY",
+                x: focalX,
+                y: focalY,
+              }}
             />
             <MediaSlot
               id="page-avatar-editor"
@@ -309,6 +321,12 @@ export default async function EditCustomPage({ params }: { params: Promise<{ id:
               field="avatarMediaIdNew"
               removeField="removeAvatarMediaId"
               variant="avatar"
+              alignment={{
+                xName: "avatarFocalX",
+                yName: "avatarFocalY",
+                x: avatarFocalX,
+                y: avatarFocalY,
+              }}
             />
             {page.pageType === "business" ? (
               <MediaSlot
@@ -321,20 +339,6 @@ export default async function EditCustomPage({ params }: { params: Promise<{ id:
               />
             ) : null}
           </div>
-
-          <fieldset className="mt-5 rounded-xl border border-white/[0.07] bg-black/10 p-4">
-            <legend className="px-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--subtle-foreground))]">Cover focal point</legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className={LABEL}>
-                Horizontal focus
-                <input type="range" name="coverFocalX" min="0" max="1" step="0.01" defaultValue={focalX} className="mt-2 min-h-11 w-full cursor-pointer accent-[hsl(var(--primary))]" />
-              </label>
-              <label className={LABEL}>
-                Vertical focus
-                <input type="range" name="coverFocalY" min="0" max="1" step="0.01" defaultValue={focalY} className="mt-2 min-h-11 w-full cursor-pointer accent-[hsl(var(--primary))]" />
-              </label>
-            </div>
-          </fieldset>
 
           <fieldset className="mt-5 rounded-xl border border-white/[0.07] bg-black/10 p-4">
             <legend className="flex items-center gap-2 px-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--subtle-foreground))]">
@@ -434,6 +438,7 @@ function MediaSlot({
   field,
   removeField,
   variant,
+  alignment,
 }: {
   id: string;
   label: string;
@@ -441,6 +446,12 @@ function MediaSlot({
   field: string;
   removeField: string;
   variant: "banner" | "avatar" | "logo";
+  alignment?: {
+    xName: string;
+    yName: string;
+    x: number;
+    y: number;
+  };
 }) {
   return (
     <fieldset id={id} className="scroll-mt-24 rounded-xl border border-white/[0.07] bg-black/10 p-4">
@@ -465,6 +476,13 @@ function MediaSlot({
             height={variant === "banner" ? 200 : 640}
             unoptimized={current.startsWith("/api/media/")}
             className="h-full w-full object-cover"
+            style={
+              alignment
+                ? {
+                    objectPosition: `${alignment.x * 100}% ${alignment.y * 100}%`,
+                  }
+                : undefined
+            }
           />
         ) : (
           <span className="grid h-full place-items-center text-[11px] text-[hsl(var(--subtle-foreground))]">
@@ -472,7 +490,26 @@ function MediaSlot({
           </span>
         )}
       </div>
-      <MediaAttachmentFields mediaContext="custom-page" maxFiles={1} fieldName={field} compact />
+      {alignment ? (
+        <MediaAlignmentUpload
+          currentSrc={current}
+          alt={`${label} alignment preview`}
+          shape={variant === "avatar" ? "circle" : "banner"}
+          mediaContext="custom-page"
+          fieldName={field}
+          xName={alignment.xName}
+          yName={alignment.yName}
+          defaultX={alignment.x}
+          defaultY={alignment.y}
+        />
+      ) : (
+        <MediaAttachmentFields
+          mediaContext="custom-page"
+          maxFiles={1}
+          fieldName={field}
+          compact
+        />
+      )}
       {current ? (
         <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 text-[12px] text-[hsl(var(--muted-foreground))] transition hover:bg-white/[0.04]">
           <input type="checkbox" name={removeField} value="true" className="h-[18px] w-[18px] accent-[hsl(var(--primary))]" />

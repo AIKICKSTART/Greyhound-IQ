@@ -37,6 +37,8 @@ assert.equal(
 const profileMedia = personalActorMediaUpdateSchema.parse({
   avatarMediaId: " avatar-media ",
   coverMediaId: "",
+  avatarFocalX: "0.4",
+  avatarFocalY: "0.6",
   coverFocalX: "0.25",
   coverFocalY: "0.75",
 });
@@ -44,11 +46,17 @@ assert.equal(profileMedia.avatarMediaId, "avatar-media");
 assert.equal(profileMedia.coverMediaId, null);
 assert.equal(profileMedia.removeAvatar, false);
 assert.equal(profileMedia.removeCover, false);
+assert.equal(profileMedia.avatarFocalX, 0.4);
+assert.equal(profileMedia.avatarFocalY, 0.6);
 assert.equal(profileMedia.coverFocalX, 0.25);
 assert.equal(profileMedia.coverFocalY, 0.75);
 assert.equal(
   personalActorMediaUpdateSchema.parse({ removeAvatar: true }).removeAvatar,
   true,
+);
+assert.equal(
+  personalActorMediaUpdateSchema.safeParse({ avatarFocalY: -0.01 }).success,
+  false,
 );
 assert.equal(
   personalActorMediaUpdateSchema.safeParse({ coverFocalX: 1.01 }).success,

@@ -392,6 +392,40 @@ for (const needle of [
   }
 }
 
+const legacyFreeWriteTriggerFixSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710141000_drop_legacy_free_write_triggers",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const [trigger, table] of [
+  ["giq_feed_post_pro_insert", "FeedPost"],
+  ["giq_feed_comment_pro_insert", "FeedComment"],
+  ["giq_feed_reaction_pro_insert", "FeedReaction"],
+  ["giq_message_pro_insert", "Message"],
+  ["giq_conversation_pro_insert", "Conversation"],
+] as const) {
+  const needle = `DROP TRIGGER IF EXISTS ${trigger} ON "${table}"`;
+  if (!legacyFreeWriteTriggerFixSql.includes(needle)) {
+    findings.push(`legacy free-write trigger fix missing: ${needle}`);
+  }
+}
+for (const paidTrigger of [
+  "giq_call_room_pro_insert",
+  "giq_listing_pro_insert",
+  "giq_listing_enquiry_pro_insert",
+  "giq_thread_pro_insert",
+  "giq_post_pro_insert",
+]) {
+  if (legacyFreeWriteTriggerFixSql.includes(`DROP TRIGGER IF EXISTS ${paidTrigger}`)) {
+    findings.push(`legacy trigger fix must retain paid gate: ${paidTrigger}`);
+  }
+}
+
 const actorFoundationSql = readFileSync(
   join(
     process.cwd(),
@@ -790,6 +824,26 @@ async function checkDatabaseState() {
           `${fn.proname} owner ${fn.owner_name} cannot safely read FORCE-RLS tables`,
         );
       }
+    }
+
+    const obsoleteFreeWriteTriggers = await prisma.$queryRaw<
+      { table_name: string; trigger_name: string }[]
+    >`SELECT relation.relname AS table_name, trigger.tgname AS trigger_name
+      FROM pg_trigger trigger
+      JOIN pg_class relation ON relation.oid = trigger.tgrelid
+      WHERE NOT trigger.tgisinternal
+        AND (relation.relname, trigger.tgname) IN (
+          ('FeedPost', 'giq_feed_post_pro_insert'),
+          ('FeedComment', 'giq_feed_comment_pro_insert'),
+          ('FeedReaction', 'giq_feed_reaction_pro_insert'),
+          ('Message', 'giq_message_pro_insert'),
+          ('Conversation', 'giq_conversation_pro_insert')
+        )
+      ORDER BY relation.relname, trigger.tgname`;
+    for (const trigger of obsoleteFreeWriteTriggers) {
+      findings.push(
+        `${trigger.table_name}.${trigger.trigger_name} obsolete paid-write trigger remains`,
+      );
     }
 
     const unforced = await prisma.$queryRaw<{ relname: string }[]>`

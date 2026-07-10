@@ -8,6 +8,13 @@ type Finding = {
 };
 
 const MIGRATIONS_DIR = join(process.cwd(), "prisma", "migrations");
+const reviewedTriggerRemovals = new Set([
+  '20260710141000_drop_legacy_free_write_triggers:giq_feed_post_pro_insert:"FeedPost"',
+  '20260710141000_drop_legacy_free_write_triggers:giq_feed_comment_pro_insert:"FeedComment"',
+  '20260710141000_drop_legacy_free_write_triggers:giq_feed_reaction_pro_insert:"FeedReaction"',
+  '20260710141000_drop_legacy_free_write_triggers:giq_message_pro_insert:"Message"',
+  '20260710141000_drop_legacy_free_write_triggers:giq_conversation_pro_insert:"Conversation"',
+]);
 
 const statementRules = [
   {
@@ -43,7 +50,12 @@ for (const migration of readdirSync(MIGRATIONS_DIR).sort()) {
   const sql = readFileSync(file, "utf8");
   const reviewSql = maskSqlComments(sql);
   for (const drop of findTriggerDrops(reviewSql)) {
-    if (!hasLaterTriggerReplacement(reviewSql, drop)) {
+    if (
+      !hasLaterTriggerReplacement(reviewSql, drop) &&
+      !reviewedTriggerRemovals.has(
+        `${migration}:${drop.name}:${drop.table}`,
+      )
+    ) {
       findings.push({
         file,
         line: lineForOffset(sql, drop.index),

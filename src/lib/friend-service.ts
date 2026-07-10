@@ -17,24 +17,16 @@ const FRIEND_PROFILE_SELECT = {
   kennelName: true,
   role: true,
   verified: true,
-  user: {
-    select: {
-      email: true,
-      subscriptionTier: true,
-    },
-  },
 } as const;
 
 export type FriendListItem = {
   friendshipId: string;
   profileId: string;
   displayName: string;
-  email: string | null;
   state: string | null;
   kennelName: string | null;
   role: string;
   verified: boolean;
-  tier: string | null;
   conversationId: string | null;
 };
 
@@ -89,12 +81,10 @@ export async function listFriendsForProfile(current: DbContextUser) {
       friendshipId: friendship.id,
       profileId: friend.id,
       displayName: friend.displayName,
-      email: friend.user?.email ?? null,
       state: friend.state,
       kennelName: friend.kennelName,
       role: friend.role,
       verified: friend.verified,
-      tier: friend.user?.subscriptionTier ?? null,
       conversationId: conversationByPair.get(conversationKey(pair)) ?? null,
     }));
   });

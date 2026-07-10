@@ -88,10 +88,9 @@ export default async function PulseFriendsPage() {
                       {friend.displayName}
                     </h2>
                     <p className="mt-1 truncate text-[13px] text-[hsl(var(--muted-foreground))]">
-                      {friend.email ?? friend.kennelName ?? friend.state ?? "GreyhoundIQ profile"}
+                      {friend.kennelName ?? `${friend.role.charAt(0).toUpperCase()}${friend.role.slice(1)} profile`}
                     </p>
                     <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
-                      {friend.kennelName ? `${friend.kennelName} · ` : ""}
                       {friend.state ?? "Australia"}
                     </p>
                   </div>

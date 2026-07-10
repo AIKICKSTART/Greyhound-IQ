@@ -206,7 +206,7 @@ export default async function MessagesPage() {
                               {friend.displayName}
                             </p>
                             <p className="truncate text-[12px] text-[hsl(var(--muted-foreground))]">
-                              {friend.email ?? friend.state ?? "GreyhoundIQ profile"}
+                              {friend.kennelName ?? friend.state ?? "GreyhoundIQ profile"}
                             </p>
                           </div>
                           {friend.verified && (

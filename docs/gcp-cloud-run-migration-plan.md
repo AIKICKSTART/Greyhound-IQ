@@ -152,7 +152,7 @@ Risks found:
 1. `supabase-migrate.yml` allows `environment=production` and `seed=true`. That can run the destructive seed against production.
 2. `prisma/seed.ts` deletes core tables before inserting demo data.
 3. `db:reset`, `db:push`, and `bootstrap` exist in package scripts. They are useful locally but must be blocked in CI/prod.
-4. Live sync is an HTTP request with `maxDuration = 300`; keep it on bounded Cloud Scheduler HTTP calls for launch, and move archive/backfill work to Cloud Run Jobs before making those workloads routine.
+4. Live sync is an HTTP request with `maxDuration = 300`; aggregate materialized-view maintenance uses a separate internally authenticated route with `maxDuration = 900`. Keep both on bounded Cloud Scheduler HTTP calls for launch, and move archive/backfill work to Cloud Run Jobs before making those workloads routine.
 5. No production app Dockerfile exists yet.
 6. `safeQuery` hides DB failures from users by returning empty states. Good for graceful degradation, but production alerts must fire on readiness/feed failures and DB errors.
 
@@ -663,6 +663,7 @@ Verified on 2026-07-04:
 - Deploy wiring creates or updates Cloud Scheduler jobs for staging live sync, listing maintenance, media maintenance, and notification delivery:
   - `greyhoundiq-staging-live-sync-upcoming`
   - `greyhoundiq-staging-live-sync-results`
+  - `greyhoundiq-staging-aggregate-refresh`
   - `greyhoundiq-staging-listing-maintenance`
   - `greyhoundiq-staging-media-maintenance`
   - `greyhoundiq-staging-notification-delivery`
@@ -695,7 +696,7 @@ Verified on 2026-07-04:
 - LiveKit POC infrastructure is running on GCE host `greyhoundiq-docker-host` in `australia-southeast1-b` with Docker `20.10.24`, `docker-compose` `1.29.2`, Caddy, and `livekit/livekit-server:1.13.3`. `livekit.greyhoundsiq.com.au` resolves to `34.40.149.239`, HTTPS returns `200`, and unauthenticated `/rtc/validate` returns `401`.
 - Cloud Monitoring now has an enabled email notification channel, an uptime check for `/api/health/ready`, and enabled alert policies for staging readiness failure and Cloud Run 5xx responses. Billing already has a `GreyhoundIQ monthly guardrail` budget configured.
 - Cloud Run rollback drill passed on staging: traffic was routed from `greyhoundiq-web-staging-00014-kmz` to previous ready revision `greyhoundiq-web-staging-00013-kqz`, smoke passed, then traffic was restored to `00014-kmz` and smoke passed again.
-- Current launch scheduler paths are bounded and do not need Cloud Tasks/Run Jobs before launch: live sync has `maxDuration=300` and validates `days<=7`, listing maintenance is set-based, notification delivery batches 50 rows, and media maintenance batches 100 rows on the private scanner service with a 900s deadline. Archive/backfill imports remain operator workloads until they are moved to Cloud Run Jobs with GCS manifests.
+- Current launch scheduler paths are bounded and do not need Cloud Tasks/Run Jobs before launch: live sync has `maxDuration=300`, aggregate materialized-view refresh runs separately with a 900s deadline, listing maintenance is set-based, notification delivery batches 50 rows, and media maintenance batches 100 rows on the private scanner service with a 900s deadline. Archive/backfill imports remain operator workloads until they are moved to Cloud Run Jobs with GCS manifests.
 - Staging schema-only restore drill passed: `pg_dump` from the staging `DATABASE_URL` using Postgres 17 client restored into a disposable local Supabase Postgres 17 database, created 93 public tables, verified `_prisma_migrations`, and removed the disposable restore database.
 - GCS staging/prod `media-processing`, `exports`, and `backups` buckets exist in `australia-southeast1` with uniform bucket-level access and public access prevention enforced. Staging/prod `media-processing` buckets now have a 7-day delete lifecycle rule; backups intentionally have no auto-delete until retention policy is approved.
 

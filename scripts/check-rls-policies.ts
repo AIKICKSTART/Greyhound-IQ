@@ -618,11 +618,14 @@ const liveSyncService = readFileSync(
   join(process.cwd(), "src", "lib", "live", "sync.ts"),
   "utf8"
 );
-if (!liveSyncService.includes("public.giq_refresh_aggregate_matview(${view})")) {
+if (!liveSyncService.includes("public.giq_refresh_aggregate_matview(${view})::text")) {
   findings.push("live sync must call the allowlisted aggregate refresh function");
 }
 if (liveSyncService.includes("REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}")) {
   findings.push("live sync must not refresh materialized views directly as the runtime role");
+}
+if (liveSyncService.includes("await refreshAggregateMaterializedViews();")) {
+  findings.push("live result ingestion must not wait for aggregate refresh maintenance");
 }
 
 const freeCallReceiversSql = readFileSync(

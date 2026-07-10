@@ -21,6 +21,7 @@
 - Realtime broadcast payloads must stay content-free: ids and flags only, never message bodies or user data.
 - Managed-page media must be uploader-owned, synchronized to `ActorGalleryMedia`, and delivered only when the actor audience permits the viewer and neither profile has blocked the other.
 - Live provider source snapshots must pass the provider/entity allowlist before storage; unknown providers and unapproved fields are not retained.
+- Keep live result ingestion separate from the hourly aggregate materialized-view refresh route so provider sync stays within its scheduler deadline.
 - Server-side link preview requests must connect only through the public DNS addresses validated for that request and repeat validation/pinning for every redirect.
 - ClamAV maintenance refreshes due signatures as the non-root runtime user and must fail closed when installed definitions exceed the configured maximum age.
 

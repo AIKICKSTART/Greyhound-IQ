@@ -204,7 +204,6 @@ export async function syncLiveData(
       counts,
       await upsertSystemMeetings(meetings)
     );
-    await refreshSireLeaderboard();
     await notifyDogWinnersFromRecentResults();
   }
 
@@ -214,9 +213,8 @@ export async function syncLiveData(
   return { synced: true, provider: provider.name, scope, ...counts };
 }
 
-// Hourly (results cron cadence) refresh of the aggregate materialized views
-// backing /breeding and /statistics. CONCURRENTLY keeps pages readable during
-// refresh; failures are logged per-view and never break the sync itself.
+// Hourly aggregate maintenance runs separately from live-result ingestion so
+// slow refreshes cannot consume the scheduler deadline for provider data.
 const AGGREGATE_MATVIEWS = [
   "giq_sire_leaderboard",
   "giq_box_bias",
@@ -225,17 +223,24 @@ const AGGREGATE_MATVIEWS = [
   "giq_track_records",
 ] as const;
 
-async function refreshSireLeaderboard() {
+export async function refreshAggregateMaterializedViews() {
+  const refreshed: string[] = [];
+  const startedAt = Date.now();
+
   for (const view of AGGREGATE_MATVIEWS) {
     try {
-      await prisma.$queryRaw(
-        Prisma.sql`SELECT public.giq_refresh_aggregate_matview(${view})`
+      await prisma.$queryRaw<Array<{ refreshed: string | null }>>(
+        Prisma.sql`SELECT public.giq_refresh_aggregate_matview(${view})::text AS refreshed`
       );
-      console.log(`[live-sync] Refreshed ${view}.`);
+      refreshed.push(view);
+      console.log(`[aggregate-refresh] Refreshed ${view}.`);
     } catch (err) {
-      console.error(`[live-sync] ${view} refresh failed:`, err);
+      console.error(`[aggregate-refresh] ${view} refresh failed:`, err);
+      throw err;
     }
   }
+
+  return { refreshed, durationMs: Date.now() - startedAt };
 }
 
 function addCounts(total: SyncCounts, next: SyncCounts) {

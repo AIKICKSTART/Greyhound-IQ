@@ -11,6 +11,7 @@
 - `prepare-database-indexes.ts` owns idempotent concurrent index preparation before managed migrations.
 - `sanitize-odds-archives.ts` owns dry-run-first removal of legacy price fields from `.backfill` and database archives.
 - `sql/supabase-private-realtime-policies.sql` owns private Realtime grants and `realtime.messages` authorization in the self-hosted Supabase engine database, separate from the Prisma application database.
+- `gcp-cloud-run-deploy.ps1` and `gcp-scheduler-sync.sh` keep live-result ingestion and aggregate-view refresh on separate Cloud Scheduler jobs and deadlines.
 
 # Local Contracts
 

@@ -104,6 +104,12 @@ const checks: SmokeCheck[] = [
     method: "POST",
     expected: 401,
   },
+  {
+    label: "aggregate refresh requires internal auth",
+    path: "/api/internal/aggregate-refresh",
+    method: "POST",
+    expected: 401,
+  },
   ...(liveKitBaseUrl
     ? [
         {

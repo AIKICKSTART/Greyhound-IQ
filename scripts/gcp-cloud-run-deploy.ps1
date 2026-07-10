@@ -258,6 +258,13 @@ function Ensure-SchedulerJobs {
       Description = "GreyhoundIQ $Environment live race result sync"
     },
     @{
+      Name = "greyhoundiq-$Environment-aggregate-refresh"
+      Schedule = "20 * * * *"
+      Uri = "$baseUrl/api/internal/aggregate-refresh"
+      Description = "GreyhoundIQ $Environment aggregate racing view refresh"
+      AttemptDeadline = "900s"
+    },
+    @{
       Name = "greyhoundiq-$Environment-listing-maintenance"
       Schedule = "17 * * * *"
       Uri = "$baseUrl/api/internal/listing-expiry"
@@ -522,7 +529,7 @@ $deployArgs = @(
   "--cpu-boost",
   "--memory=$WebMemory",
   "--concurrency=$WebConcurrency",
-  "--timeout=300",
+  "--timeout=900",
   "--min-instances=$minInstances",
   "--max-instances=$maxInstances",
   "--network=default",

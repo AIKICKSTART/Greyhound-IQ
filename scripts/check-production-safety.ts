@@ -224,6 +224,21 @@ if (!cloudRunDeployPs1.includes('"--cpu-boost"')) {
 if (!cloudRunDeployPs1.includes('$minInstances = "3"')) {
   findings.push("gcp-cloud-run-deploy.ps1: web min instances must stay at the tuned value");
 }
+const webDeployArgsBlock =
+  cloudRunDeployPs1.match(/\$deployArgs = @\([\s\S]*?\n\)/)?.[0] ?? "";
+if (!webDeployArgsBlock.includes('"--timeout=900"')) {
+  findings.push("gcp-cloud-run-deploy.ps1: web timeout must cover aggregate maintenance");
+}
+for (const schedulerNeedle of [
+  'Name = "greyhoundiq-$Environment-aggregate-refresh"',
+  'Schedule = "20 * * * *"',
+  'Uri = "$baseUrl/api/internal/aggregate-refresh"',
+  'AttemptDeadline = "900s"',
+]) {
+  if (!cloudRunDeployPs1.includes(schedulerNeedle)) {
+    findings.push(`gcp-cloud-run-deploy.ps1: aggregate scheduler missing ${schedulerNeedle}`);
+  }
+}
 if (!cloudRunDeployPs1.includes('$scannerRequiredSecrets = @("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY")')) {
   findings.push("gcp-cloud-run-deploy.ps1: missing scanner Supabase secret preflight");
 }

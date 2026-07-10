@@ -41,17 +41,17 @@ job_exists() {
 
 # create-or-update a plain HTTP job (header-secret auth, no OIDC)
 upsert_http() {
-  local name="$1" uri="$2" sched="$3" secret="$4"
+  local name="$1" uri="$2" sched="$3" secret="$4" deadline="${5:-300s}"
   if job_exists "$name"; then
     gcloud scheduler jobs update http "$name" --project="$PROJECT" --location="$LOC" \
       --schedule="$sched" --uri="$uri" --http-method=POST \
       --update-headers="Content-Type=application/json,x-internal-secret=$secret" \
-      --message-body='{}'
+      --message-body='{}' --attempt-deadline="$deadline"
   else
     gcloud scheduler jobs create http "$name" --project="$PROJECT" --location="$LOC" \
       --schedule="$sched" --uri="$uri" --http-method=POST \
       --headers="Content-Type=application/json,x-internal-secret=$secret" \
-      --message-body='{}'
+      --message-body='{}' --attempt-deadline="$deadline"
   fi
 }
 
@@ -76,6 +76,7 @@ upsert_oidc() {
 
 echo "== Prod job set (prod domain, prod secret) =="
 upsert_http greyhoundiq-prod-live-sync-results     "$PROD_DOMAIN/api/internal/live-sync?scope=results"           "7 * * * *"   "$PROD_SECRET"
+upsert_http greyhoundiq-prod-aggregate-refresh     "$PROD_DOMAIN/api/internal/aggregate-refresh"                 "20 * * * *"  "$PROD_SECRET" "900s"
 upsert_http greyhoundiq-prod-listing-maintenance   "$PROD_DOMAIN/api/internal/listing-expiry"                    "17 * * * *"  "$PROD_SECRET"
 upsert_http greyhoundiq-prod-live-sync-upcoming    "$PROD_DOMAIN/api/internal/live-sync?scope=upcoming&days=31"  "*/5 * * * *" "$PROD_SECRET"
 upsert_http greyhoundiq-prod-notification-delivery "$PROD_DOMAIN/api/internal/notification-delivery"             "*/5 * * * *" "$PROD_SECRET"
@@ -84,6 +85,7 @@ upsert_oidc greyhoundiq-prod-media-maintenance     "$PROD_SCANNER/api/internal/m
 
 echo "== Repoint staging jobs at staging URL (staging secret) =="
 upsert_http greyhoundiq-staging-live-sync-results     "$STAGING_URL/api/internal/live-sync?scope=results"           "7 * * * *"   "$STAGING_SECRET"
+upsert_http greyhoundiq-staging-aggregate-refresh     "$STAGING_URL/api/internal/aggregate-refresh"                 "20 * * * *"  "$STAGING_SECRET" "900s"
 upsert_http greyhoundiq-staging-listing-maintenance   "$STAGING_URL/api/internal/listing-expiry"                    "17 * * * *"  "$STAGING_SECRET"
 upsert_http greyhoundiq-staging-live-sync-upcoming    "$STAGING_URL/api/internal/live-sync?scope=upcoming&days=31"  "*/5 * * * *" "$STAGING_SECRET"
 upsert_http greyhoundiq-staging-notification-delivery "$STAGING_URL/api/internal/notification-delivery"             "*/5 * * * *" "$STAGING_SECRET"

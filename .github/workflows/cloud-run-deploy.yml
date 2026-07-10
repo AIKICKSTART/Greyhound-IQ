@@ -125,7 +125,7 @@ jobs:
             --cpu-boost \
             --memory 4Gi \
             --concurrency 20 \
-            --timeout 300 \
+            --timeout 900 \
             --min-instances "$min_instances" \
             --max-instances "$max_instances" \
             --set-env-vars "$env_vars" \

@@ -8,6 +8,9 @@
 - `load-env.ts` and `load-import-env.ts` own script environment loading.
 - `check-docs.mjs` owns documentation verification.
 - `local-database.ts` owns local database lifecycle commands.
+- `prepare-database-indexes.ts` owns idempotent concurrent index preparation before managed migrations.
+- `sanitize-odds-archives.ts` owns dry-run-first removal of legacy price fields from `.backfill` and database archives.
+- `sql/supabase-private-realtime-policies.sql` owns private Realtime grants and `realtime.messages` authorization in the self-hosted Supabase engine database, separate from the Prisma application database.
 
 # Local Contracts
 
@@ -22,6 +25,7 @@
 - Prefer extending existing script helpers over creating one-off environment/database code.
 - Keep command flags and output boring, explicit, and automation-friendly.
 - For large data workflows, make operator-attention conditions visible instead of hiding them behind success messages.
+- Archive sanitization must remain idempotent and dry-run by default; never run `--apply` against database archives without an approved backup and staging evidence.
 
 # Verification
 

@@ -36,7 +36,10 @@ export default async function EditCustomPage({
   const current = await requireCurrentUserProfile();
   const page = await getOwnedCustomPage(current, id);
   if (!page) notFound();
-  const media = await resolveCustomPageMedia(page.contentJson);
+  const media = await resolveCustomPageMedia(
+    page.contentJson,
+    page.socialActor?.id ?? ""
+  );
   const content = JSON.parse(page.contentJson ?? "{}") as {
     avatarMediaId?: string | null;
     bannerMediaId?: string | null;
@@ -147,6 +150,20 @@ export default async function EditCustomPage({
             <label className={LABEL}>Website</label>
             <input name="website" type="url" defaultValue={page.website ?? ""} className={INPUT} />
           </div>
+        </div>
+
+        <div>
+          <label className={LABEL}>Who can see contact details</label>
+          <select
+            name="contactVisibility"
+            defaultValue={page.socialActor?.contactVisibility ?? "only_me"}
+            className={INPUT}
+          >
+            <option value="only_me">Only me</option>
+            <option value="connections">Followers</option>
+            <option value="members">Members</option>
+            <option value="public">Public</option>
+          </select>
         </div>
 
         <div>

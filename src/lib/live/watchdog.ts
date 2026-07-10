@@ -49,16 +49,11 @@ interface WatchdogRace {
   sixthPrize?: number | null;
   seventhPrize?: number | null;
   eighthPrize?: number | null;
-  suggestedBet?: string | null;
-  watchDogTips?: number[] | null;
-  overview?: string | null;
   videoId?: string | null;
   photoFinishUrl?: string | null;
   declaration?: string | null;
   startTime?: string | null;
   trackCode?: string | null;
-  dividends?: unknown;
-  betName?: string | null;
 }
 
 interface WatchdogParticipant {
@@ -91,8 +86,6 @@ interface WatchdogParticipant {
   pir?: string | null;
   runLine?: string | null;
   jumpStyle?: string | null;
-  oddsFixedWin?: number | null;
-  oddsToteWin?: number | null;
 }
 
 export class WatchdogProvider implements LiveDataProvider {
@@ -196,7 +189,17 @@ function mapWatchdogMeeting(
 
   return {
     sourceId: String(meeting.id),
-    sourceRawJson: JSON.stringify(meeting),
+    sourceRawJson: JSON.stringify({
+      id: meeting.id,
+      trackCode: meeting.trackCode,
+      trackName: meeting.trackName,
+      slot: meeting.slot,
+      statusCode: meeting.statusCode,
+      meetingDate: meeting.meetingDate,
+      startTime: meeting.startTime,
+      countRaces: meeting.countRaces,
+      isInterstate: meeting.isInterstate,
+    }),
     trackName: meeting.trackName?.trim() || meeting.trackCode?.trim() || "Unknown VIC track",
     state: "VIC",
     meetingDate,
@@ -230,8 +233,27 @@ function mapWatchdogRace(
   return {
     sourceId: String(race.id),
     sourceRawJson: JSON.stringify({
-      ...race,
+      id: race.id,
+      number: race.number,
+      raceNumber: race.raceNumber,
+      meetingId: race.meetingId,
+      sponsor: race.sponsor,
+      distance: race.distance,
+      grade: race.grade,
+      gradeCode: race.gradeCode,
+      firstPrize: race.firstPrize,
+      secondPrize: race.secondPrize,
+      thirdPrize: race.thirdPrize,
+      fourthPrize: race.fourthPrize,
+      fifthPrize: race.fifthPrize,
+      sixthPrize: race.sixthPrize,
+      seventhPrize: race.seventhPrize,
+      eighthPrize: race.eighthPrize,
       videoId,
+      photoFinishUrl: race.photoFinishUrl,
+      declaration: race.declaration,
+      startTime: race.startTime,
+      trackCode: race.trackCode,
       participantCount: participants.length,
     }),
     raceNumber: Math.trunc(numberOr(race.number ?? race.raceNumber, 0)),
@@ -264,7 +286,37 @@ function mapWatchdogRunner(participant: WatchdogParticipant): LiveRunner {
         : participant.raceId != null
           ? `${participant.raceId}:box:${boxNumber}`
           : undefined,
-    sourceRawJson: JSON.stringify(participant),
+    sourceRawJson: JSON.stringify({
+      id: participant.id,
+      raceId: participant.raceId,
+      rugNumber: participant.rugNumber,
+      box: participant.box,
+      isLateScratching: participant.isLateScratching,
+      dogId: participant.dogId,
+      dogName: participant.dogName,
+      trainer: participant.trainer,
+      trainerId: participant.trainerId,
+      owner: participant.owner,
+      last5: participant.last5,
+      averageFirstSplitSpeed: participant.averageFirstSplitSpeed,
+      resultPlace: participant.resultPlace,
+      resultWeight: participant.resultWeight,
+      resultMargin: participant.resultMargin,
+      resultTime: participant.resultTime,
+      resultFirstSplitTime: participant.resultFirstSplitTime,
+      comments: participant.comments,
+      sireName: participant.sireName,
+      sireId: participant.sireId,
+      damName: participant.damName,
+      damId: participant.damId,
+      colour: participant.colour,
+      whelpedDate: participant.whelpedDate,
+      sex: participant.sex,
+      careerPrizeMoney: participant.careerPrizeMoney,
+      pir: participant.pir,
+      runLine: participant.runLine,
+      jumpStyle: participant.jumpStyle,
+    }),
     boxNumber,
     dog: {
       name: participant.dogName?.trim() || "Unknown runner",
@@ -274,8 +326,6 @@ function mapWatchdogRunner(participant: WatchdogParticipant): LiveRunner {
     },
     trainerName: participant.trainer ?? undefined,
     weight: numberOrNull(participant.resultWeight) ?? undefined,
-    startingPrice:
-      numberOrNull(participant.oddsFixedWin ?? participant.oddsToteWin) ?? undefined,
     scratched:
       participant.isLateScratching === true ||
       String(participant.box ?? "").toLowerCase() === "scratched",

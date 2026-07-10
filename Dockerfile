@@ -33,12 +33,16 @@ ENV NODE_ENV=production \
   PORT=8080
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends clamav clamav-freshclam \
-  && (freshclam --stdout || true) \
+  && apt-get install -y --no-install-recommends clamav clamav-freshclam ffmpeg \
+  && freshclam --stdout \
   && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --system --gid 1001 nodejs \
-  && useradd --system --uid 1001 --gid nodejs nextjs
+  && useradd --system --uid 1001 --gid nodejs nextjs \
+  && mkdir -p /var/lib/clamav /var/log/clamav \
+  && sed -ri 's/^DatabaseOwner .*/DatabaseOwner nextjs/' /etc/clamav/freshclam.conf \
+  && grep -q '^DatabaseOwner nextjs$' /etc/clamav/freshclam.conf \
+  && chown -R nextjs:nodejs /var/lib/clamav /var/log/clamav
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static

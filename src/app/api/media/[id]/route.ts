@@ -5,10 +5,14 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import {
   deleteMediaForCurrentUser,
   getMediaForCurrentUser,
+  updateMediaMetadataForCurrentUser,
 } from "@/lib/media-service";
+import { mediaMetadataUpdateSchema } from "@/lib/media-validation";
 
 const MEDIA_DELETE_RATE_LIMIT = 3;
 const MEDIA_DELETE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const MEDIA_METADATA_RATE_LIMIT = 30;
+const MEDIA_METADATA_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
 export async function GET(
   _request: Request,
@@ -58,5 +62,33 @@ export async function DELETE(
     return NextResponse.json({ item });
   } catch (err) {
     return jsonError(err, "Could not delete media");
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const [{ id }, current] = await Promise.all([
+      params,
+      requireCurrentUserProfile(),
+    ]);
+    const rateLimit = await checkRateLimit(
+      `media:metadata:${current.dbUserId}:${id}`,
+      MEDIA_METADATA_RATE_LIMIT,
+      MEDIA_METADATA_RATE_LIMIT_WINDOW_MS
+    );
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: { code: "rate_limit.exceeded", message: "Too many requests" } },
+        { status: 429 }
+      );
+    }
+    const input = mediaMetadataUpdateSchema.parse(await request.json());
+    const item = await updateMediaMetadataForCurrentUser(current, id, input);
+    return NextResponse.json({ item });
+  } catch (err) {
+    return jsonError(err, "Could not update media metadata");
   }
 }

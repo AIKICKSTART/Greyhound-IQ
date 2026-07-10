@@ -51,6 +51,7 @@ export function InstantMessageComposer({
     if (!body) return;
 
     setError(null);
+    setPendingBody(body);
     setSubmitting(true);
     try {
       const response = await fetch(`/api/conversations/${conversationId}/messages`, {
@@ -63,9 +64,9 @@ export function InstantMessageComposer({
       formRef.current?.reset();
       lastBodyLengthRef.current = 0;
       setResetKey((current) => current + 1);
-      setPendingBody(body);
       startTransition(() => router.refresh());
     } catch (err) {
+      setPendingBody(null);
       setError(err instanceof Error ? err.message : "Could not send message");
     } finally {
       setSubmitting(false);

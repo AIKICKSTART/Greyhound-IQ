@@ -5,9 +5,16 @@ import { NextRequest, NextResponse } from "next/server";
 import type { NextFetchEvent } from "next/server";
 import "@/lib/workos-env";
 import { authkitProxy } from "@workos-inc/authkit-nextjs";
-import { resolveWorkosRedirectUri } from "@/lib/workos-redirect";
+import {
+  resolveWorkosBaseUrl,
+  resolveWorkosRedirectUri,
+} from "@/lib/workos-redirect";
 import { contentSecurityPolicy } from "@/lib/csp";
 import { deriveRequestId, REQUEST_ID_HEADER } from "@/lib/request-id";
+import {
+  hasEncodedPathSeparator,
+  isCrossOriginBrowserMutation,
+} from "@/lib/request-security";
 
 export async function proxy(request: NextRequest, event: NextFetchEvent) {
   // Cloud Run terminates TLS and forwards the client scheme + public host here.
@@ -38,6 +45,18 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set(REQUEST_ID_HEADER, requestId);
   requestHeaders.set("Content-Security-Policy", csp);
+
+  if (hasEncodedPathSeparator(request.url)) {
+    return securedErrorResponse(400, "request.invalid_path", csp, requestId);
+  }
+  if (
+    isCrossOriginBrowserMutation(
+      request,
+      resolveWorkosBaseUrl(request.url)
+    )
+  ) {
+    return securedErrorResponse(403, "auth.forbidden", csp, requestId);
+  }
 
   // authkitProxy rebuilds forwarded request headers from `request.headers`
   // (partitionAuthkitHeaders), so the clone carries x-nonce/x-request-id into
@@ -88,6 +107,19 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
   return response;
 }
 
+function securedErrorResponse(
+  status: number,
+  error: string,
+  csp: string,
+  requestId: string
+) {
+  const response = NextResponse.json({ error }, { status });
+  response.headers.set("Cache-Control", "no-store");
+  response.headers.set("Content-Security-Policy", csp);
+  response.headers.set(REQUEST_ID_HEADER, requestId);
+  return response;
+}
+
 // Public detail routes that call notFound() on a missing record. The existence
 // check runs anonymously; RLS scopes each read to what a public visitor sees, so
 // it matches the page's own visibility (the /p page only serves published pages).
@@ -122,8 +154,11 @@ async function isMissingDetailResource(pathname: string): Promise<boolean> {
   }
 }
 
-// Match all routes except Next static assets and public images, which must not
-// be intercepted (breaks CSS/fonts/images, esp. with Tailwind v4).
+// Match all routes except known static asset roots/files. Do not exclude by
+// extension: malformed encoded paths can masquerade as an image and bypass
+// request validation before Next rejects them with an unsecured 500.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.png|images/|.*\\.(?:png|jpg|jpeg|svg|webp|ico|webmanifest)).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|images/|fonts/|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest).*)",
+  ],
 };

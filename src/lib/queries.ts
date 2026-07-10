@@ -91,7 +91,11 @@ export const getRaceById = cache(async (id: string) => {
           meeting: { include: { track: true } },
           runners: {
             orderBy: { boxNumber: "asc" },
-            include: {
+            select: {
+              id: true,
+              boxNumber: true,
+              weight: true,
+              scratched: true,
               dog: {
                 include: {
                   trainer: true,
@@ -182,7 +186,7 @@ export async function getPreviousRaceVideoRunners(raceId: string) {
         },
         orderBy: { race: { raceTime: "desc" } },
         take: 24,
-        include: {
+        select: {
           dog: { select: { name: true } },
           result: true,
           race: {
@@ -493,17 +497,21 @@ export const getDogPrizeMoney = cache(
   }
 );
 
+export type ResultsSort = "newest" | "oldest" | "track";
+
 type RecentResultsFilters = {
   date?: string | null;
   trackId?: string | null;
+  sort?: ResultsSort;
   limit?: number;
 };
-
 export async function getRecentResults(filters: RecentResultsFilters = {}) {
   // The unfiltered default view is identical for every visitor — cache it.
   if (!filters.date && !filters.trackId) {
-    return cached("results:recent:default", 60_000, () =>
-      fetchRecentResults(filters)
+    return cached(
+      `results:recent:${filters.sort ?? "newest"}:${filters.limit ?? 50}`,
+      60_000,
+      () => fetchRecentResults(filters)
     );
   }
   return fetchRecentResults(filters);
@@ -511,6 +519,17 @@ export async function getRecentResults(filters: RecentResultsFilters = {}) {
 
 async function fetchRecentResults(filters: RecentResultsFilters = {}) {
   const selectedDate = normaliseRaceDateInput(filters.date);
+  const sort = filters.sort ?? "newest";
+  const orderBy: Prisma.RaceOrderByWithRelationInput[] =
+    sort === "oldest"
+      ? [{ raceTime: "asc" }, { id: "asc" }]
+      : sort === "track"
+        ? [
+            { meeting: { track: { name: "asc" } } },
+            { raceTime: "desc" },
+            { id: "desc" },
+          ]
+        : [{ raceTime: "desc" }, { id: "desc" }];
   const raceFilters: Prisma.RaceWhereInput[] = [
     { runners: { some: { result: { isNot: null } } } },
   ];
@@ -528,25 +547,37 @@ async function fetchRecentResults(filters: RecentResultsFilters = {}) {
         include: {
           meeting: { include: { track: true } },
           runners: {
-            where: { result: { isNot: null } },
-            orderBy: { result: { finishingPosition: "asc" } },
-            take: 3,
-            include: {
+            orderBy: { boxNumber: "asc" },
+            select: {
+              id: true,
+              boxNumber: true,
+              weight: true,
+              scratched: true,
               dog: {
-                include: {
-                  trainer: true,
+                select: {
+                  id: true,
+                  name: true,
+                  colour: true,
+                  sex: true,
+                  trainer: { select: { name: true } },
                   formEntries: {
                     orderBy: { date: "desc" },
                     take: 7,
+                    select: {
+                      finish: true,
+                      date: true,
+                      trackId: true,
+                      raceId: true,
+                    },
                   },
                 },
               },
-              trainer: true,
+              trainer: { select: { name: true } },
               result: true,
             },
           },
         },
-        orderBy: { raceTime: "desc" },
+        orderBy,
         take: filters.limit ?? 50,
       }),
     []
@@ -1980,36 +2011,32 @@ export async function getBoxBias(): Promise<BoxBiasRow[]> {
 
 export interface TrainerLeaderRow {
   name: string;
+  starts: number;
   wins: number;
-  starters: number;
-  strike: number;
-  roi: number;
+  places: number;
+  winRate: number;
+  prizeMoney: number;
 }
 
 export async function getTrainerLeaderboard(limit = 10): Promise<TrainerLeaderRow[]> {
-  // Served from giq_trainer_leaderboard (hourly cron refresh, see live/sync.ts).
-  const rows = await cached(`stats:trainer-leaderboard:${limit}`, 5 * 60_000, () =>
+  // Served from the non-betting aggregate refreshed by the live results cron.
+  return cached(`stats:trainer-performance:${limit}`, 5 * 60_000, () =>
     safeQuery(
       () =>
-        prisma.$queryRaw<
-          { name: string; wins: number; starters: number; winsp: number }[]
-        >`
-          SELECT name, starters, wins, winsp
-          FROM giq_trainer_leaderboard
-          ORDER BY wins DESC
+        prisma.$queryRaw<TrainerLeaderRow[]>`
+          SELECT name,
+                 starts,
+                 wins,
+                 places,
+                 win_rate AS "winRate",
+                 prize_money AS "prizeMoney"
+          FROM giq_trainer_performance
+          ORDER BY wins DESC, places DESC, prize_money DESC, name ASC
           LIMIT ${limit}
         `,
       []
     )
   );
-  // ROI from flat $1 win bets at starting price: (returns - outlay) / outlay.
-  return rows.map((r) => ({
-    name: r.name,
-    wins: r.wins,
-    starters: r.starters,
-    strike: r.starters > 0 ? parseFloat(((r.wins / r.starters) * 100).toFixed(1)) : 0,
-    roi: r.starters > 0 ? parseFloat((((r.winsp - r.starters) / r.starters) * 100).toFixed(1)) : 0,
-  }));
 }
 
 export interface TrackRecordRow {
@@ -2579,6 +2606,7 @@ export async function getAccountSummary(
         include: {
           profile: {
             include: {
+              socialActor: true,
               dogsOwned: {
                 orderBy: [{ verified: "desc" }, { createdAt: "desc" }],
                 include: {

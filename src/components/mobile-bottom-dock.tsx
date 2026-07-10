@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   Map,
   Menu,
+  Search,
   ShoppingBag,
   Trophy,
   User,
@@ -36,7 +37,7 @@ type DockLink = {
 };
 
 const DOCK_LINKS: DockLink[] = [
-  { href: "/", label: "Home", icon: Activity },
+  { href: "/feed", label: "Home", icon: Activity },
   { href: "/races", label: "Races", icon: Flag },
   { href: "/marketplace", label: "Market", icon: ShoppingBag },
   { href: "/pulse", label: "Chat", icon: Bell },
@@ -45,6 +46,7 @@ const DOCK_LINKS: DockLink[] = [
 type MenuEntry = { href: string; label: string; icon: LucideIcon };
 
 const MENU_ENTRIES: MenuEntry[] = [
+  { href: "/discover", label: "Discover", icon: Search },
   { href: "/dogs", label: "Dogs", icon: Dog },
   { href: "/results", label: "Results", icon: Trophy },
   { href: "/tracks", label: "Tracks", icon: Map },
@@ -70,10 +72,7 @@ export function MobileBottomDock({
     <nav aria-label="Quick actions" className="giq-mobile-dock is-visible">
       {DOCK_LINKS.map((item) => {
         const Icon = item.icon;
-        const active =
-          item.href === "/"
-            ? pathname === "/" || pathname.startsWith("/feed")
-            : pathname.startsWith(item.href);
+        const active = pathname.startsWith(item.href);
 
         return (
           <Link

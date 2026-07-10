@@ -2,6 +2,7 @@ import {
   withDbSystemContext,
   type DbContextClient,
 } from "@/lib/db-context";
+import { personalActorHandle } from "@/lib/social-actor-service";
 
 export interface AuthIdentity {
   id: string;
@@ -123,12 +124,32 @@ async function ensureProfile(
   dbUser: NonNullable<Awaited<ReturnType<typeof findUserForAuthWithClient>>>,
   displayName: string
 ) {
-  if (dbUser.profile) return dbUser;
-  const profile = await db.profile.create({
-    data: {
-      userId: dbUser.id,
-      displayName,
-      role: "member",
+  const profile =
+    dbUser.profile ??
+    (await db.profile.create({
+      data: {
+        userId: dbUser.id,
+        displayName,
+        role: "member",
+      },
+    }));
+  await db.socialActor.upsert({
+    where: { profileId: profile.id },
+    create: {
+      kind: "personal",
+      profileId: profile.id,
+      ownerProfileId: profile.id,
+      handle: personalActorHandle(profile.id),
+      displayName: profile.displayName,
+      avatarUrl: profile.avatarUrl,
+      profileVisibility: "members",
+      contactVisibility: "only_me",
+      published: true,
+    },
+    update: {
+      displayName: profile.displayName,
+      avatarUrl: profile.avatarUrl,
+      published: true,
     },
   });
   return { ...dbUser, profile };

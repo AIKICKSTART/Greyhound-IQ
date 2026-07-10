@@ -36,7 +36,7 @@ export const DEFAULT_PRICING: PricingContent = {
       name: "Free",
       price: "$0",
       period: "forever",
-      description: "Full racing data access for casual punters and form checkers.",
+      description: "Full racing data access for followers and form researchers.",
       features: [
         "All race data points",
         "Today's race cards (all AU tracks)",

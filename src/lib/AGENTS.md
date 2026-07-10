@@ -17,9 +17,12 @@
 - Do not leak database internals, stack traces, secrets, service-role keys, or local paths to users or clients.
 - Keep modules side-effect-light. Avoid work at import time unless the existing pattern already requires it.
 - Prefer central fixes in shared services over patching every caller.
-- Realtime channel names are HMAC capabilities derived from `REALTIME_CHANNEL_SECRET`; treat the channel name itself as the access token.
+- Private Realtime topics retain HMAC-derived names, but access also requires a short-lived `SUPABASE_JWT_SECRET` token and an exact, unexpired grant in the self-hosted Supabase engine database accepted by `realtime.messages` RLS. Keep events content-free and Feed public-only.
 - Realtime broadcast payloads must stay content-free: ids and flags only, never message bodies or user data.
-- Supabase private channels with RLS authorization are the deferred upgrade for realtime access control.
+- Managed-page media must be uploader-owned, synchronized to `ActorGalleryMedia`, and delivered only when the actor audience permits the viewer and neither profile has blocked the other.
+- Live provider source snapshots must pass the provider/entity allowlist before storage; unknown providers and unapproved fields are not retained.
+- Server-side link preview requests must connect only through the public DNS addresses validated for that request and repeat validation/pinning for every redirect.
+- ClamAV maintenance refreshes due signatures as the non-root runtime user and must fail closed when installed definitions exceed the configured maximum age.
 
 # Work Guidance
 

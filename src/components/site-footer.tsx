@@ -106,14 +106,11 @@ export function SiteFooter() {
               />
             </Link>
             <p className="giq-mobile-footer-summary">
-              Form, breeding and AI intelligence. Not a wagering service.
+              Form, breeding, community, and AI racing intelligence.
             </p>
             <p className="giq-body-sm mt-[18px] max-w-[216px]">
               Australian greyhound racing intelligence platform -
               race cards, form, breeding, and AI predictions in one track-side view.
-            </p>
-            <p className="giq-micro mt-4 text-[hsl(var(--subtle-foreground))]">
-              Not a wagering service - 18+
             </p>
             <nav className="giq-mobile-footer-links" aria-label="Essential footer links">
               {MOBILE_FOOTER_LINKS.map((link) => (

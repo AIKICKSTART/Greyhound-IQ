@@ -4,6 +4,7 @@ import { cleanText } from "@/lib/content";
 export const conversationStartSchema = z.object({
   recipientProfileId: z.string().trim().min(1).optional(),
   recipientId: z.string().trim().min(1).optional(),
+  senderActorId: z.string().trim().min(1).max(120).optional().nullable(),
 }).refine((value) => value.recipientProfileId || value.recipientId, {
   message: "Recipient is required",
 });

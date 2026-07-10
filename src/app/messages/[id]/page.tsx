@@ -11,6 +11,7 @@ import {
   Loader2,
   Lock,
   Paperclip,
+  Search,
   ShieldAlert,
   ThumbsUp,
   Trash2,
@@ -37,6 +38,7 @@ import {
 import {
   getConversationForProfile,
   markConversationDelivered,
+  searchConversationMessages,
 } from "@/lib/conversation-service";
 import { withDbRequestContext } from "@/lib/db-context";
 import { conversationRealtimeChannel } from "@/lib/realtime-service";
@@ -62,7 +64,10 @@ export default async function MessageThreadPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ before?: string | string[] }>;
+  searchParams: Promise<{
+    before?: string | string[];
+    q?: string | string[];
+  }>;
 }) {
   const [{ id }, query, user] = await Promise.all([
     params,
@@ -77,6 +82,10 @@ export default async function MessageThreadPage({
     tier: user.tier,
   };
   const before = typeof query.before === "string" ? query.before : undefined;
+  const messageQuery =
+    typeof query.q === "string"
+      ? query.q.trim().replace(/\s+/g, " ").slice(0, 100)
+      : "";
 
   let conversation: Awaited<ReturnType<typeof getConversationForProfile>>;
   try {
@@ -89,20 +98,31 @@ export default async function MessageThreadPage({
     notFound();
   }
 
-  const other =
-    conversation.participantAId === user.profileId
-      ? conversation.participantB
-      : conversation.participantA;
+  const currentIsParticipantA = conversation.participantAId === user.profileId;
+  const other = currentIsParticipantA
+    ? conversation.participantB
+    : conversation.participantA;
+  const selfActor = currentIsParticipantA
+    ? conversation.participantAActor
+    : conversation.participantBActor;
+  const otherActor = currentIsParticipantA
+    ? conversation.participantBActor
+    : conversation.participantAActor;
+  const selfLabel = selfActor?.displayName ?? user.name;
+  const otherLabel = otherActor?.displayName ?? other.displayName;
+  const isPageConversation =
+    conversation.participantAActor?.kind === "page" ||
+    conversation.participantBActor?.kind === "page";
   const [
     activeCallRoomResult,
     pendingCallInviteResult,
     callLogResult,
     otherPresenceResult,
   ] = await Promise.allSettled([
-      conversation.blockedAt
+      conversation.blockedAt || isPageConversation
         ? null
         : getActiveCallRoomForConversation(callContext, conversation.id),
-      conversation.blockedAt
+      conversation.blockedAt || isPageConversation
         ? null
         : getPendingCallInviteForConversation(callContext, conversation.id),
       getRecentCallLogForConversation(callContext, conversation.id),
@@ -149,6 +169,15 @@ export default async function MessageThreadPage({
       entry,
     })),
   ].sort((a, b) => a.at.getTime() - b.at.getTime());
+  const messageSearch =
+    messageQuery.length >= 2
+      ? await searchConversationMessages(
+          callContext,
+          conversation.id,
+          messageQuery,
+          { limit: 20 }
+        )
+      : null;
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
@@ -167,7 +196,7 @@ export default async function MessageThreadPage({
               Private Pulse conversation
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
-              {other.displayName}
+              {otherLabel}
             </h1>
             <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">
               {other.kennelName ? `${other.kennelName} · ` : ""}
@@ -186,9 +215,9 @@ export default async function MessageThreadPage({
                     ],
                     presence: {
                       selfProfileId: user.profileId,
-                      selfLabel: user.name,
+                      selfLabel,
                       otherProfileId: other.id,
-                      otherLabel: other.displayName,
+                      otherLabel,
                       offlineLabel: otherPresence
                         ? lastSeenLabel(otherPresence.lastSeenAt)
                         : undefined,
@@ -196,7 +225,7 @@ export default async function MessageThreadPage({
                     typing: {
                       selfProfileId: user.profileId,
                       otherProfileId: other.id,
-                      otherLabel: other.displayName,
+                      otherLabel,
                     },
                   },
                 ]}
@@ -246,6 +275,71 @@ export default async function MessageThreadPage({
           </div>
         )}
       </header>
+
+      <section className="giq-panel mb-6 p-5" aria-label="Search this conversation">
+        <form className="flex flex-wrap gap-2" action={`/pulse/${conversation.id}`}>
+          <label className="sr-only" htmlFor="message-search">
+            Search messages in this conversation
+          </label>
+          <input
+            id="message-search"
+            name="q"
+            type="search"
+            minLength={2}
+            maxLength={100}
+            defaultValue={messageQuery}
+            className="giq-form-control min-h-11 min-w-0 flex-1 px-3"
+            placeholder="Search this conversation"
+          />
+          <button
+            type="submit"
+            className="giq-button giq-button-glass min-h-11 px-4 text-[13px]"
+          >
+            <Search className="h-3.5 w-3.5" />
+            Search
+          </button>
+          {messageQuery && (
+            <Link
+              href={`/pulse/${conversation.id}`}
+              className="giq-outline-action min-h-11 px-3 text-[12px]"
+            >
+              Clear
+            </Link>
+          )}
+        </form>
+        {messageSearch && (
+          <div className="mt-4 border-t border-white/[0.06] pt-4">
+            <p className="text-[12px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
+              {messageSearch.items.length} result
+              {messageSearch.items.length === 1 ? "" : "s"}
+            </p>
+            {messageSearch.items.length > 0 ? (
+              <ol className="mt-3 space-y-2">
+                {messageSearch.items.map((message) => (
+                  <li key={message.id} className="giq-subpanel p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                      <span>
+                        {message.senderActor?.displayName ??
+                          message.sender.displayName}
+                      </span>
+                      <time dateTime={message.createdAt.toISOString()}>
+                        {message.createdAt.toLocaleString("en-AU")}
+                      </time>
+                    </div>
+                    <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[13px] text-[hsl(var(--muted-foreground))]">
+                      {message.body}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="mt-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                No matching messages.
+              </p>
+            )}
+          </div>
+        )}
+      </section>
 
       <section className="giq-panel">
         <div className="space-y-4 p-5">
@@ -321,7 +415,12 @@ export default async function MessageThreadPage({
                 >
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
                     <span className="text-[12px] font-semibold text-[hsl(var(--foreground))]">
-                      {isMine ? "You" : message.sender.displayName}
+                      {isMine
+                        ? selfActor?.kind === "page"
+                          ? `You as ${selfLabel}`
+                          : "You"
+                        : message.senderActor?.displayName ??
+                          message.sender.displayName}
                     </span>
                     <span className="text-[11px] text-[hsl(var(--subtle-foreground))]">
                       {message.createdAt.toLocaleString("en-AU", {
@@ -450,8 +549,8 @@ export default async function MessageThreadPage({
                 : null
             }
             blocked={Boolean(conversation.blockedAt)}
-            otherName={other.displayName}
-            canStartCall={hasTier(user.tier, "pro")}
+            otherName={otherLabel}
+            canStartCall={hasTier(user.tier, "pro") && !isPageConversation}
           />
         </div>
 

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Statistics — GreyhoundIQ",
-  description: "Box bias, trainer leaderboards, track records, and speed maps — the data serious Australian punters use.",
+  description: "Box bias, trainer performance, track records, and speed maps across Australian greyhound racing.",
 };
 
 export default async function StatisticsPage() {
@@ -33,12 +33,12 @@ export default async function StatisticsPage() {
         badgeColor="gold"
         title={
           <>
-            Find the
+            See the
             <br />
-            <span className="gradient-text">edges.</span>
+            <span className="gradient-text">patterns.</span>
           </>
         }
-        subtitle="Box bias, trainer form, track records, speed maps — the data serious punters use to make informed decisions."
+        subtitle="Box bias, trainer form, track records, and speed maps from the GreyhoundIQ dataset."
       />
 
       <section className="mx-auto max-w-6xl px-6 py-16">
@@ -88,7 +88,7 @@ export default async function StatisticsPage() {
             </h2>
           </div>
           <p className="text-[14px] text-[hsl(var(--muted-foreground))] mb-6 tracking-[-0.013em]">
-            Top performers by wins over the last 12 months.
+            Recorded starts, wins, top-three finishes, win rate, and prize money.
           </p>
 
           <div className="giq-table-shell">
@@ -98,14 +98,14 @@ export default async function StatisticsPage() {
                   <th className="text-left p-4 tracking-[0.04em]">Rank</th>
                   <th className="text-left p-4 tracking-[0.04em]">Trainer</th>
                   <th className="text-right p-4 tracking-[0.04em]">Wins</th>
-                  <th className="text-right p-4 tracking-[0.04em]">Starters</th>
-                  <th className="text-right p-4 tracking-[0.04em]">Strike %</th>
-                  <th className="text-right p-4 tracking-[0.04em]">ROI</th>
+                  <th className="text-right p-4 tracking-[0.04em]">Starts</th>
+                  <th className="text-right p-4 tracking-[0.04em]">Places</th>
+                  <th className="text-right p-4 tracking-[0.04em]">Win rate</th>
+                  <th className="text-right p-4 tracking-[0.04em]">Prize money</th>
                 </tr>
               </thead>
               <tbody>
                 {TRAINER_LEADERS.map((t, i) => {
-                  const strike = ((t.wins / t.starters) * 100).toFixed(1);
                   const rankBg = i === 0 ? "hsl(var(--secondary) / 0.20)" : "hsl(var(--surface-3))";
                   const rankColor = i === 0 ? "hsl(var(--secondary))" : "hsl(var(--muted-foreground))";
                   return (
@@ -125,10 +125,11 @@ export default async function StatisticsPage() {
                         {t.name}
                       </td>
                       <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.wins}</td>
-                      <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.starters}</td>
-                      <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{strike}%</td>
+                      <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.starts}</td>
+                      <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.places}</td>
+                      <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.winRate}%</td>
                       <td className="p-4 text-right text-[13px] font-mono font-semibold text-[hsl(var(--primary-bright))]">
-                        +{t.roi}%
+                        ${t.prizeMoney.toLocaleString("en-AU", { maximumFractionDigits: 0 })}
                       </td>
                     </tr>
                   );

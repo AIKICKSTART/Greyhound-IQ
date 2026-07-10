@@ -120,17 +120,19 @@ export async function runCommunityFlowProbe({
     const seller = await createProbeCurrent(marker, ids, "seller", "Flow Seller", "member");
     const buyer = await createProbeCurrent(marker, ids, "buyer", "Flow Buyer", "member");
     const admin = await createProbeCurrent(marker, ids, "admin", "Flow Admin", "admin");
+    const freeSeller = { ...seller, tier: "free" as const };
+    const freeBuyer = { ...buyer, tier: "free" as const };
 
-    const post = await createFeedPostForCurrentUser(seller, {
+    const post = await createFeedPostForCurrentUser(freeSeller, {
       body: "Community flow check feed post.",
       mediaIds: [],
     });
     ids.feedPosts.add(post.id);
-    const comment = await createFeedCommentForCurrentUser(buyer, post.id, {
+    const comment = await createFeedCommentForCurrentUser(freeBuyer, post.id, {
       body: "Community flow check comment.",
     });
     assert.equal(comment.postId, post.id);
-    const reaction = await toggleFeedPostReactionForCurrentUser(buyer, post.id);
+    const reaction = await toggleFeedPostReactionForCurrentUser(freeBuyer, post.id);
     assert.equal(reaction.liked, true);
 
     const conversation = await startOrGetConversation(seller, buyer.profileId);

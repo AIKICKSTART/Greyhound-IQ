@@ -43,7 +43,6 @@ import {
   MobileMenuSearchForm,
 } from "@/components/mobile-menu-close-link";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
-import { countUnreadMessagesTotal } from "@/lib/conversation-service";
 import { countUnreadNotificationsForUser } from "@/lib/notification-service";
 import { profileRealtimeChannel } from "@/lib/realtime-service";
 import { siteAssetUrl } from "@/lib/storage-paths";
@@ -88,6 +87,7 @@ const NAV_SECTIONS: { title: string; links: NavLink[] }[] = [
       { href: "/marketplace", label: "Marketplace", description: "Verified greyhound marketplace and saved dogs", icon: ShoppingBag },
       { href: "/groups", label: "Groups", description: "Community groups, topics, and threads", icon: Users },
       { href: "/feed", label: "Feed", description: "Personalised racing community updates", icon: MessageSquare },
+      { href: "/discover", label: "Discover", description: "People, pages, businesses, and greyhounds", icon: Search },
       { href: "/pulse", label: "Pulse", description: "Private conversations, enquiries, and calls", icon: Bell },
       { href: "/pricing", label: "Pricing", description: "Plans, limits, and Pro access", icon: CreditCard },
     ],
@@ -96,6 +96,14 @@ const NAV_SECTIONS: { title: string; links: NavLink[] }[] = [
 const NAV_LINKS = NAV_SECTIONS.flatMap((section) =>
   section.links.map(({ href, label }) => ({ href, label }))
 );
+const MEMBER_NAV_LINKS = [
+  { href: "/feed", label: "Feed" },
+  { href: "/discover", label: "Discover" },
+  { href: "/races", label: "Races" },
+  { href: "/results", label: "Results" },
+  { href: "/dogs", label: "Dogs" },
+  { href: "/marketplace", label: "Marketplace" },
+];
 
 const HEADER_BANNER_LANDSCAPE = siteAssetUrl("/images/wentworth-track-banner-landscape.webp");
 const HEADER_BANNER_MOBILE = siteAssetUrl("/images/wentworth-track-banner-mobile.webp");
@@ -260,8 +268,9 @@ function MobileNavigationMenu({
               <div className="grid gap-2">
                 {section.links.map((link) => {
                   const Icon = link.icon;
+                  const href = user && link.href === "/" ? "/feed" : link.href;
                   return (
-                    <MobileMenuLink key={link.href} href={link.href} className="giq-mobile-menu-link">
+                    <MobileMenuLink key={href} href={href} className="giq-mobile-menu-link">
                       <span className="giq-mobile-menu-link-icon" aria-hidden="true">
                         <Icon className="h-4 w-4" />
                       </span>
@@ -372,27 +381,155 @@ function HeaderBannerImage() {
   );
 }
 
-export async function SiteHeader() {
-  const user = await getCurrentUser();
+export async function SiteHeader({
+  user,
+  unreadMessages,
+}: {
+  user: HeaderUser;
+  unreadMessages: number;
+}) {
   const badge = user ? TIER_BADGE[user.tier] ?? TIER_BADGE.free : null;
   const canAccessAdmin = user ? isModeratorRole(user.role) : false;
-  const [unreadMessages, unreadNotifications] =
-    user?.profileId && user.dbUserId
-      ? await Promise.all([
-          countUnreadMessagesTotal({
-            dbUserId: user.dbUserId,
-            profileId: user.profileId,
-            profileRole: user.role ?? "member",
-            tier: user.tier,
-          }),
-          cached(`notif:unread:${user.dbUserId}`, 30_000, () =>
-            countUnreadNotificationsForUser(user.dbUserId!)
-          ),
-        ])
-      : [0, 0];
+  const unreadNotifications = user?.dbUserId
+    ? await cached(`notif:unread:${user.dbUserId}`, 30_000, () =>
+        countUnreadNotificationsForUser(user.dbUserId!)
+      )
+    : 0;
   const profileChannel = user?.profileId
     ? profileRealtimeChannel(user.profileId)
     : null;
+
+  if (user) {
+    return (
+      <>
+        {profileChannel && (
+          <RealtimeRefresh
+            channels={[
+              {
+                name: profileChannel,
+                events: [
+                  "message_created",
+                  "conversation_updated",
+                  "call_invite_created",
+                  "friend_updated",
+                ],
+              },
+            ]}
+          />
+        )}
+        <header className="giq-member-header sticky top-0 z-50 w-full border-b border-white/[0.10] bg-[hsl(var(--surface-1)/0.92)] shadow-[0_12px_32px_hsl(0_0%_0%/0.28)] backdrop-blur-xl">
+          <div className="mx-auto flex min-h-[68px] max-w-[1400px] items-center gap-3 px-3 sm:px-5 lg:px-6">
+            <Link
+              href="/feed"
+              aria-label="GreyhoundIQ feed"
+              className="group flex min-w-0 shrink items-center transition-transform hover:-translate-y-px"
+            >
+              <span className="relative block h-9 w-[172px] max-w-[48vw] shrink-0 overflow-hidden sm:w-[190px]">
+                <Image
+                  src={LOGO_MOBILE}
+                  alt=""
+                  fill
+                  priority
+                  className="object-contain object-left"
+                  sizes="(min-width: 640px) 190px, 172px"
+                />
+              </span>
+            </Link>
+
+            <nav
+              aria-label="Member navigation"
+              className="giq-header-nav hidden min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto rounded-xl p-1 lg:flex"
+            >
+              <HeaderNav links={MEMBER_NAV_LINKS} variant="desktop" />
+            </nav>
+
+            <div className="giq-header-actions ml-auto flex shrink-0 items-center gap-2">
+              <form
+                action="/races"
+                role="search"
+                aria-label="Search races"
+                className="giq-search-shell hidden xl:flex"
+              >
+                <Search className="h-3.5 w-3.5" aria-hidden="true" />
+                <input
+                  type="search"
+                  name="q"
+                  className="giq-search-input"
+                  placeholder="Search racing"
+                  aria-label="Search races, tracks, runners"
+                />
+                <input type="hidden" name="sort" value="relevance" />
+              </form>
+
+              <span className="relative hidden sm:inline-flex">
+                <Link
+                  href="/pulse"
+                  aria-label="Open Pulse chat"
+                  className="giq-button giq-button-carbon giq-icon-button min-h-11 w-11 px-0"
+                >
+                  <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                </Link>
+                <CountBadge
+                  count={unreadMessages}
+                  label={`${unreadMessages} unread Pulse messages`}
+                />
+              </span>
+
+              <Sheet>
+                <span className="relative hidden sm:inline-flex">
+                  <SheetTrigger
+                    aria-label={`Open account menu for ${user.name}`}
+                    className="giq-button giq-button-glass min-h-11 px-3 text-[13px] font-semibold"
+                  >
+                    <User className="h-4 w-4" aria-hidden="true" />
+                    <span className="hidden max-w-[100px] truncate md:inline">
+                      {user.firstName || user.name}
+                    </span>
+                    {badge && (
+                      <span
+                        className="hidden rounded-full px-2 py-0.5 text-[10px] font-semibold xl:inline-flex"
+                        style={{
+                          background: `hsl(${badge.color} / 0.14)`,
+                          color: `hsl(${badge.color})`,
+                        }}
+                      >
+                        {badge.label}
+                      </span>
+                    )}
+                    <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                  </SheetTrigger>
+                  <CountBadge
+                    count={unreadNotifications}
+                    label={`${unreadNotifications} unread notifications`}
+                  />
+                </span>
+                <AccountNavigationMenu user={user} canAccessAdmin={canAccessAdmin} />
+              </Sheet>
+
+              <Sheet>
+                <SheetTrigger
+                  aria-label="Open navigation menu"
+                  className="giq-mobile-menu-button lg:hidden"
+                >
+                  <span className="giq-premium-hamburger" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                </SheetTrigger>
+                <MobileNavigationMenu
+                  user={user}
+                  badge={badge}
+                  canAccessAdmin={canAccessAdmin}
+                />
+              </Sheet>
+            </div>
+          </div>
+          <div aria-hidden="true" className="race-box-strip h-[2px] rounded-none opacity-80" />
+        </header>
+      </>
+    );
+  }
 
   return (
     <header className="giq-site-header sticky top-2 z-50 w-full px-3 md:px-5">
@@ -478,51 +615,21 @@ export async function SiteHeader() {
                 />
               </span>
 
-              {user ? (
-                <Sheet>
-                  <span className="giq-header-auth-action relative hidden md:inline-flex">
-                    <SheetTrigger
-                      aria-label={`Open account menu for ${user.name}`}
-                      className="giq-button giq-button-glass min-h-10 px-3 text-[13px] font-semibold md:px-4"
-                    >
-                      <User className="h-3.5 w-3.5" aria-hidden="true" />
-                      <span className="max-w-[100px] truncate">{user.firstName || user.name}</span>
-                      {badge && (
-                        <span
-                          className="hidden rounded-full px-2 py-0.5 text-[10px] font-semibold lg:inline-flex"
-                          style={{ background: `hsl(${badge.color} / 0.14)`, color: `hsl(${badge.color})` }}
-                        >
-                          {badge.label}
-                        </span>
-                      )}
-                      <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-                    </SheetTrigger>
-                    <CountBadge
-                      count={unreadNotifications}
-                      label={`${unreadNotifications} unread notifications`}
-                    />
-                  </span>
-                  <AccountNavigationMenu user={user} canAccessAdmin={canAccessAdmin} />
-                </Sheet>
-              ) : (
-                <>
-                  <a
-                    href="/sign-in"
-                    className="giq-button giq-button-glass giq-header-auth-action giq-header-login-action hidden px-4 text-[13px] font-semibold md:inline-flex"
-                  >
-                    <LogIn className="h-3.5 w-3.5" />
-                    Log in
-                  </a>
-                  <Link
-                    href="/pricing"
-                    className="giq-button giq-button-gold giq-header-auth-action hidden px-3.5 text-[13px] font-bold md:inline-flex md:px-5"
-                  >
-                    <Crown className="h-3.5 w-3.5" />
-                    <span className="sm:hidden">Pro</span>
-                    <span className="hidden sm:inline">Go Pro</span>
-                  </Link>
-                </>
-              )}
+              <a
+                href="/sign-in"
+                className="giq-button giq-button-glass giq-header-auth-action giq-header-login-action hidden px-4 text-[13px] font-semibold md:inline-flex"
+              >
+                <LogIn className="h-3.5 w-3.5" />
+                Log in
+              </a>
+              <Link
+                href="/pricing"
+                className="giq-button giq-button-gold giq-header-auth-action hidden px-3.5 text-[13px] font-bold md:inline-flex md:px-5"
+              >
+                <Crown className="h-3.5 w-3.5" />
+                <span className="sm:hidden">Pro</span>
+                <span className="hidden sm:inline">Go Pro</span>
+              </Link>
 
               <Sheet>
                 <SheetTrigger

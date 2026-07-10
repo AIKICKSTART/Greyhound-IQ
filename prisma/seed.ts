@@ -281,7 +281,7 @@ async function main() {
   // Collect meetings/races/runners/results across both days, then batch-insert.
   const meetingRows: { id: string; trackId: string; meetingDate: Date; meetingType: string }[] = [];
   const raceRows: { id: string; meetingId: string; raceNumber: number; raceTime: Date; distance: number; grade: string; prizeMoney: number }[] = [];
-  const runnerRows: { id: string; raceId: string; dogId: string; boxNumber: number; weight: number; trainerId: string; startingPrice: number; scratched: boolean }[] = [];
+  const runnerRows: { id: string; raceId: string; dogId: string; boxNumber: number; weight: number; trainerId: string; scratched: boolean }[] = [];
   const resultRows: { id: string; runnerId: string; raceId: string; finishingPosition: number; runningTime: number; margin: number; prizeMoneyWon: number; splitTime: number }[] = [];
 
   const today = new Date();
@@ -308,7 +308,6 @@ async function main() {
           id: runnerId, raceId, dogId: raceDogs[box], boxNumber: box + 1,
           weight: parseFloat((28 + Math.random() * 8).toFixed(1)),
           trainerId: randomChoice(trainerIds),
-          startingPrice: parseFloat((1.5 + Math.random() * 20).toFixed(2)),
           scratched: !withResults && Math.random() < 0.03,
         });
         if (withResults) {

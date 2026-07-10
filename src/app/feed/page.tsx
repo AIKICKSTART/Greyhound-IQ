@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Lock, MessageSquare } from "lucide-react";
-import { FeedPostCard } from "@/components/feed-post-card";
+import { FeedInfiniteList } from "@/components/feed-infinite-list";
 import { HubIdentityBanner } from "@/components/hub/hub-identity-banner";
 import { HubLeftSidebar } from "@/components/hub/hub-left-sidebar";
 import {
@@ -13,7 +13,6 @@ import {
 } from "@/components/hub/hub-incoming-call";
 import { InstantFeedPostComposer } from "@/components/instant-feed-controls";
 import { PageHero } from "@/components/page-hero";
-import { RealtimeRefresh } from "@/components/realtime-refresh";
 import {
   Sheet,
   SheetContent,
@@ -28,7 +27,8 @@ import {
 } from "@/lib/conversation-service";
 import { resolvePageAvatarUrls } from "@/lib/custom-page-service";
 import { withDbRequestContext } from "@/lib/db-context";
-import { getFeedPostsForViewer, getFeedTopics } from "@/lib/feed-service";
+import { getFeedPageForViewer, getFeedTopics } from "@/lib/feed-service";
+import type { FeedMode } from "@/lib/feed-pagination";
 import {
   listFriendRequestsForProfile,
   listFriendsForProfile,
@@ -39,8 +39,11 @@ import {
 } from "@/lib/identity";
 import {
   membersPresenceChannel,
-  publicFeedRealtimeChannel,
 } from "@/lib/realtime-service";
+import {
+  ensureOwnedPageActor,
+  ensurePersonalActor,
+} from "@/lib/social-actor-service";
 
 export const dynamic = "force-dynamic";
 
@@ -56,15 +59,21 @@ const TIER_LABELS: Record<string, string> = {
   pro_plus: "Pro+",
 };
 
-export default async function FeedPage() {
+export default async function FeedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
+  const requestedMode = (await searchParams).mode;
+  const mode: FeedMode = requestedMode === "latest" ? "latest" : "for-you";
   const user = await getCurrentUser();
-  const feedChannel = publicFeedRealtimeChannel();
 
   if (!user?.dbUserId || !user.profileId) {
-    const [topics, posts] = await Promise.all([
+    const [topics, feedPage] = await Promise.all([
       getFeedTopics(),
-      getFeedPostsForViewer(30, null),
+      getFeedPageForViewer({ mode, limit: 20, current: null }),
     ]);
+    const posts = feedPage.items;
     void topics;
     return (
       <div>
@@ -94,44 +103,49 @@ export default async function FeedPage() {
             </Link>
           </div>
         </PageHero>
-        <RealtimeRefresh
-          channels={[{ name: feedChannel, events: ["post_created", "post_updated"] }]}
-        />
         <section className="mx-auto max-w-2xl space-y-4 px-4 py-12 sm:px-6">
-          {posts.length === 0 ? (
-            <div className="giq-empty-state p-12 text-center">
-              <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
-                No feed posts yet.
-              </p>
-            </div>
-          ) : (
-            posts.map((post) => (
-              <FeedPostCard
-                key={post.id}
-                post={post}
-                canInteract={false}
-                currentProfileId={null}
-                signedIn={false}
-              />
-            ))
-          )}
+          <FeedInfiniteList
+            key={feedListKey(mode, null, posts)}
+            initialPosts={posts}
+            initialCursor={feedPage.nextCursor}
+            mode={mode}
+            actorId={null}
+            canInteract={false}
+            currentProfileId={null}
+            signedIn={false}
+          />
         </section>
       </div>
     );
   }
 
   const current = {
+    id: user.id,
     dbUserId: user.dbUserId,
     profileId: user.profileId,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    name: user.name,
     profileRole: user.role ?? "member",
+    role: user.role,
     tier: user.tier,
+    isBanned: user.isBanned,
+    deletionRequestedAt: user.deletionRequestedAt,
+    displayName: user.name,
+    verified: false,
   };
   const isPro = hasTier(user.tier, "pro");
+  const ownedPages = await getOwnedPageIdentities(current);
+  const identity = await getActiveIdentity(ownedPages);
+  const activePage = identity.kind === "page" ? identity.page : null;
+  const activeActor = activePage
+    ? await ensureOwnedPageActor(current, activePage.id)
+    : await ensurePersonalActor(current);
 
   const [
     topics,
-    posts,
-    ownedPages,
+    feedPage,
     friends,
     requests,
     conversations,
@@ -140,8 +154,12 @@ export default async function FeedPage() {
     profile,
   ] = await Promise.all([
     getFeedTopics(),
-    getFeedPostsForViewer(30, user.profileId),
-    getOwnedPageIdentities(current),
+    getFeedPageForViewer({
+      mode,
+      actorId: activeActor.id,
+      limit: 20,
+      current,
+    }),
     listFriendsForProfile(current),
     listFriendRequestsForProfile(current),
     listConversationsForProfile(current),
@@ -160,9 +178,8 @@ export default async function FeedPage() {
       })
     ),
   ]);
-
-  const identity = await getActiveIdentity(ownedPages);
-  const activePage = identity.kind === "page" ? identity.page : null;
+  const posts = feedPage.items;
+  const canUseFeedAsActiveIdentity = !activePage || isPro;
 
   const pagesInPosts = posts
     .map((post) => post.authorPage)
@@ -185,11 +202,15 @@ export default async function FeedPage() {
         conversation.participantAId === user.profileId
           ? conversation.participantB
           : conversation.participantA;
+      const otherActor =
+        conversation.participantAId === user.profileId
+          ? conversation.participantBActor
+          : conversation.participantAActor;
       const message = conversation.messages[0];
       const isSent = message?.senderId === user.profileId;
       return {
         id: conversation.id,
-        otherName: other.displayName,
+        otherName: otherActor?.displayName ?? other.displayName,
         preview: message
           ? `${isSent ? "You: " : ""}${message.body}`
           : "Conversation started",
@@ -207,20 +228,6 @@ export default async function FeedPage() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-3 py-6 sm:px-5 lg:px-6">
-      <RealtimeRefresh
-        channels={[
-          {
-            name: feedChannel,
-            events: [
-              "post_created",
-              "post_updated",
-              "comment_created",
-              "reaction_updated",
-              "topic_updated",
-            ],
-          },
-        ]}
-      />
       <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)_340px]">
         <aside className="hidden lg:block" aria-label="Hub navigation">
           <div className="sticky top-[170px]">
@@ -280,7 +287,35 @@ export default async function FeedPage() {
 
           <HubIdentityBanner identity={identity} personal={personal} />
 
-          {isPro ? (
+          <nav
+            aria-label="Feed order"
+            className="giq-panel flex min-h-11 items-center gap-1 p-1"
+          >
+            <Link
+              href="/feed?mode=for-you"
+              aria-current={mode === "for-you" ? "page" : undefined}
+              className={`min-h-10 flex-1 rounded-lg px-4 py-2 text-center text-[13px] font-semibold transition ${
+                mode === "for-you"
+                  ? "bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary-light))]"
+                  : "text-[hsl(var(--muted-foreground))] hover:bg-white/[0.04]"
+              }`}
+            >
+              For You
+            </Link>
+            <Link
+              href="/feed?mode=latest"
+              aria-current={mode === "latest" ? "page" : undefined}
+              className={`min-h-10 flex-1 rounded-lg px-4 py-2 text-center text-[13px] font-semibold transition ${
+                mode === "latest"
+                  ? "bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary-light))]"
+                  : "text-[hsl(var(--muted-foreground))] hover:bg-white/[0.04]"
+              }`}
+            >
+              Latest
+            </Link>
+          </nav>
+
+          {canUseFeedAsActiveIdentity ? (
             <section className="giq-panel p-5">
               <div className="mb-4 flex items-center gap-3">
                 <MessageSquare className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
@@ -299,13 +334,12 @@ export default async function FeedPage() {
               <div className="mb-3 flex items-center gap-3">
                 <Lock className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
                 <h2 className="text-[16px] font-semibold text-[hsl(var(--foreground))]">
-                  Upgrade to post
+                  Managed pages require Pro
                 </h2>
               </div>
               <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
-                Free accounts can read the feed, add friends, and reply in
-                chats. Posting, comments, reactions, pages, and starting calls
-                are included with Pro.
+                Switch to your personal identity to post, comment, and react
+                for free. Pro is required to publish as {activePage?.title}.
               </p>
               <Link
                 href="/pricing"
@@ -316,30 +350,18 @@ export default async function FeedPage() {
             </section>
           )}
 
-          {posts.length === 0 ? (
-            <div className="giq-empty-state p-12 text-center">
-              <MessageSquare className="mx-auto mb-4 h-8 w-8 text-[hsl(var(--primary-bright))]" />
-              <h3 className="text-[16px] font-semibold text-[hsl(var(--foreground))]">
-                No posts yet
-              </h3>
-              <p className="mx-auto mt-2 max-w-md text-[14px] text-[hsl(var(--muted-foreground))]">
-                Be the first to share a race note or kennel update.
-              </p>
-            </div>
-          ) : (
-            posts.map((post) => (
-              <FeedPostCard
-                key={post.id}
-                post={post}
-                canInteract={isPro}
-                currentProfileId={user.profileId}
-                signedIn
-                pageAvatarUrl={
-                  post.authorPage ? pageAvatars.get(post.authorPage.id) : null
-                }
-              />
-            ))
-          )}
+          <FeedInfiniteList
+            key={feedListKey(mode, activeActor.id, posts)}
+            initialPosts={posts}
+            initialCursor={feedPage.nextCursor}
+            mode={mode}
+            actorId={activeActor.id}
+            canInteract={canUseFeedAsActiveIdentity}
+            currentProfileId={user.profileId}
+            activeActorId={activeActor.id}
+            signedIn
+            pageAvatarUrls={Object.fromEntries(pageAvatars)}
+          />
         </main>
 
         <aside className="hidden lg:block" aria-label="Messenger">
@@ -354,15 +376,46 @@ export default async function FeedPage() {
                 profileId: friend.profileId,
                 displayName: friend.displayName,
                 verified: friend.verified,
-                conversationId: friend.conversationId,
+                conversationId: activePage
+                  ? conversations.find((conversation) =>
+                      (conversation.participantAActorId === activeActor.id ||
+                        conversation.participantBActorId === activeActor.id) &&
+                      (conversation.participantAId === friend.profileId ||
+                        conversation.participantBId === friend.profileId)
+                    )?.id ?? null
+                  : friend.conversationId,
               }))}
               conversations={conversationRows}
-              canStartChat={isPro}
-              canStartCall={isPro}
+              canStartChat={!activePage || isPro}
+              canStartCall={isPro && !activePage}
+              senderActorId={activeActor.id}
             />
           </div>
         </aside>
       </div>
     </div>
   );
+}
+
+function feedListKey(
+  mode: FeedMode,
+  actorId: string | null,
+  posts: Awaited<ReturnType<typeof getFeedPageForViewer>>["items"]
+) {
+  const revision = posts
+    .map((post) =>
+      [
+        post.id,
+        post.updatedAt.getTime(),
+        post.status,
+        post.visibility,
+        post._count.comments,
+        post._count.reactions,
+        post._count.shares,
+        post.comments.map((comment) => `${comment.id}:${comment.updatedAt.getTime()}`).join(","),
+        post.media.map((item) => `${item.mediaId}:${item.media.processingStatus}`).join(","),
+      ].join(":")
+    )
+    .join("|");
+  return `${mode}:${actorId ?? "anonymous"}:${revision}`;
 }

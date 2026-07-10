@@ -125,6 +125,39 @@ async function SignedInAccount({
             />
           </label>
 
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                Profile audience
+              </span>
+              <select
+                name="profileVisibility"
+                defaultValue={profile?.socialActor?.profileVisibility ?? "members"}
+                className={INPUT_CLASS}
+              >
+                <option value="public">Public</option>
+                <option value="members">Members</option>
+                <option value="connections">Connections</option>
+                <option value="only_me">Only me</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+                Contact audience
+              </span>
+              <select
+                name="contactVisibility"
+                defaultValue={profile?.socialActor?.contactVisibility ?? "only_me"}
+                className={INPUT_CLASS}
+              >
+                <option value="only_me">Only me</option>
+                <option value="connections">Connections</option>
+                <option value="members">Members</option>
+                <option value="public">Public</option>
+              </select>
+            </label>
+          </div>
+
           <label className="block">
             <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
               State

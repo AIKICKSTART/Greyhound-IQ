@@ -21,7 +21,6 @@ export interface LiveRunner {
   dog: LiveDog;
   trainerName?: string;
   weight?: number;
-  startingPrice?: number;
   scratched?: boolean;
   // Present only for completed races:
   finishingPosition?: number;

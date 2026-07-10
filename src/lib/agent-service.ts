@@ -514,7 +514,7 @@ async function buildRaceAnalystOutput(
       },
     ],
     disclaimer:
-      "AI predictions are statistical estimates, not guarantees. Bet responsibly.",
+      "AI predictions are statistical estimates, not guarantees. Verify important decisions against official race data.",
   };
 }
 

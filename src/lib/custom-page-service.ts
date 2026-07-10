@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import {
+  type DbContextClient,
   withDbRequestContext,
   withDbSystemContext,
   type DbContextUser,
@@ -10,7 +11,10 @@ import { assertPaidFeatureAccess, hasTier } from "@/lib/tier-access";
 import { findBannedPhraseMatch } from "@/lib/moderation-service";
 import { createAuditLog } from "@/lib/account-service";
 import { getPlatformFlag, PLATFORM_FLAGS } from "@/lib/platform-settings";
-import { mediaDeliveryUrl } from "@/lib/media-service";
+import {
+  assertMediaAttachable,
+  mediaDeliveryUrl,
+} from "@/lib/media-service";
 import type {
   CustomPageCreateInput,
   CustomPageUpdateInput,
@@ -19,6 +23,55 @@ import type {
 
 // Dog pages included with Pro up to this many; beyond it needs Pro+.
 const PRO_DOG_PAGE_LIMIT = 3;
+const CUSTOM_PAGE_MEDIA_LIMIT = 17;
+
+type CustomPageMediaInput = Pick<
+  CustomPageCreateInput,
+  | "heroMediaId"
+  | "avatarMediaId"
+  | "bannerMediaId"
+  | "logoMediaId"
+  | "galleryMediaIds"
+>;
+
+function customPageMediaIds(
+  input: CustomPageMediaInput,
+  additionalIds: Array<string | null> = []
+) {
+  return [...new Set([
+    input.avatarMediaId,
+    input.bannerMediaId,
+    input.logoMediaId,
+    input.heroMediaId,
+    ...input.galleryMediaIds,
+    ...additionalIds,
+  ].filter((id): id is string => Boolean(id)))];
+}
+
+async function replaceActorMedia(
+  tx: DbContextClient,
+  actorId: string,
+  media: Awaited<ReturnType<typeof assertMediaAttachable>>
+) {
+  await tx.actorGalleryMedia.deleteMany({ where: { actorId } });
+  if (media.length === 0) return;
+  await tx.actorGalleryMedia.createMany({
+    data: media.map((item, position) => ({
+      actorId,
+      mediaId: item.id,
+      position,
+      altText: item.altText,
+    })),
+  });
+}
+
+function actorMediaUrl(
+  media: Awaited<ReturnType<typeof assertMediaAttachable>>,
+  mediaId: string | null | undefined
+) {
+  const item = mediaId ? media.find((candidate) => candidate.id === mediaId) : null;
+  return item ? mediaDeliveryUrl(item) : null;
+}
 
 function slugify(value: string) {
   return value
@@ -34,7 +87,7 @@ async function uniqueHandle(seed: string): Promise<string> {
   for (let n = 0; n < 50; n++) {
     const candidate = n === 0 ? base : `${base}-${n + 1}`;
     const existing = await withDbSystemContext((tx) =>
-      tx.customPage.findUnique({ where: { handle: candidate }, select: { id: true } })
+      tx.socialActor.findUnique({ where: { handle: candidate }, select: { id: true } })
     );
     if (!existing) return candidate;
   }
@@ -113,9 +166,15 @@ export async function createCustomPage(
       ? `${input.title}`
       : `${current.displayName ?? input.title}-${input.pageType}`;
   const handle = await uniqueHandle(seed);
+  const media = await assertMediaAttachable(
+    current,
+    customPageMediaIds(input),
+    CUSTOM_PAGE_MEDIA_LIMIT,
+    { allowPending: true }
+  );
 
-  const page = await withDbRequestContext(current, (tx) =>
-    tx.customPage.create({
+  const page = await withDbRequestContext(current, async (tx) => {
+    const created = await tx.customPage.create({
       data: {
         ownerProfileId: current.profileId,
         pageType: input.pageType,
@@ -140,9 +199,26 @@ export async function createCustomPage(
           logoMediaId: input.logoMediaId ?? null,
         }),
         published: false,
+        socialActor: {
+          create: {
+            kind: "page",
+            ownerProfileId: current.profileId,
+            handle,
+            displayName: input.title,
+            profileVisibility: "public",
+            contactVisibility: input.contactVisibility,
+            published: false,
+            avatarUrl: actorMediaUrl(media, input.avatarMediaId),
+            coverUrl: actorMediaUrl(media, input.bannerMediaId),
+          },
+        },
       },
-    })
-  );
+      include: { socialActor: { select: { id: true } } },
+    });
+    if (!created.socialActor) throw new Error("actor.not_found");
+    await replaceActorMedia(tx, created.socialActor.id, media);
+    return created;
+  });
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -159,6 +235,7 @@ async function requireOwnedPage(current: CurrentUserProfile, pageId: string) {
   const page = await withDbRequestContext(current, (tx) =>
     tx.customPage.findFirst({
       where: { id: pageId, ownerProfileId: current.profileId },
+      include: { socialActor: { select: { id: true } } },
     })
   );
   if (!page) throw new Error("custom_page.not_found");
@@ -173,9 +250,18 @@ export async function updateCustomPage(
   assertPaidFeatureAccess(current);
   const page = await requireOwnedPage(current, pageId);
   await assertClean(`${input.title} ${input.tagline ?? ""} ${input.about ?? ""}`);
+  if (!page.socialActor) throw new Error("actor.not_found");
+  const actorId = page.socialActor.id;
+  const previousContent = parseCustomPageContent(page.contentJson);
+  const media = await assertMediaAttachable(
+    current,
+    customPageMediaIds(input, [previousContent.cardMediaId]),
+    CUSTOM_PAGE_MEDIA_LIMIT,
+    { allowPending: true }
+  );
 
-  const updated = await withDbRequestContext(current, (tx) =>
-    tx.customPage.update({
+  const updated = await withDbRequestContext(current, async (tx) => {
+    const result = await tx.customPage.update({
       where: { id: page.id },
       data: {
         title: input.title,
@@ -195,10 +281,22 @@ export async function updateCustomPage(
           avatarMediaId: input.avatarMediaId ?? null,
           bannerMediaId: input.bannerMediaId ?? null,
           logoMediaId: input.logoMediaId ?? null,
+          cardMediaId: previousContent.cardMediaId,
         }),
       },
-    })
-  );
+    });
+    await tx.socialActor.updateMany({
+      where: { pageId: page.id, ownerProfileId: current.profileId },
+      data: {
+        displayName: input.title,
+        contactVisibility: input.contactVisibility,
+        avatarUrl: actorMediaUrl(media, input.avatarMediaId),
+        coverUrl: actorMediaUrl(media, input.bannerMediaId),
+      },
+    });
+    await replaceActorMedia(tx, actorId, media);
+    return result;
+  });
   return updated;
 }
 
@@ -209,9 +307,17 @@ export async function setCustomPagePublished(
 ) {
   assertPaidFeatureAccess(current);
   const page = await requireOwnedPage(current, pageId);
-  const updated = await withDbRequestContext(current, (tx) =>
-    tx.customPage.update({ where: { id: page.id }, data: { published } })
-  );
+  const updated = await withDbRequestContext(current, async (tx) => {
+    const result = await tx.customPage.update({
+      where: { id: page.id },
+      data: { published },
+    });
+    await tx.socialActor.updateMany({
+      where: { pageId: page.id, ownerProfileId: current.profileId },
+      data: { published },
+    });
+    return result;
+  });
   await createAuditLog({
     actorId: current.dbUserId,
     actorType: "user",
@@ -224,9 +330,27 @@ export async function setCustomPagePublished(
 
 export async function deleteCustomPage(current: CurrentUserProfile, pageId: string) {
   const page = await requireOwnedPage(current, pageId);
-  await withDbRequestContext(current, (tx) =>
-    tx.customPage.delete({ where: { id: page.id } })
-  );
+  await withDbRequestContext(current, async (tx) => {
+    const actor = await tx.socialActor.findFirst({
+      where: { pageId: page.id, ownerProfileId: current.profileId },
+      select: { id: true },
+    });
+    if (actor) {
+      await tx.feedPost.updateMany({
+        where: { authorActorId: actor.id, deletedAt: null },
+        data: { status: "removed", deletedAt: new Date() },
+      });
+      await tx.conversation.deleteMany({
+        where: {
+          OR: [
+            { participantAActorId: actor.id },
+            { participantBActorId: actor.id },
+          ],
+        },
+      });
+    }
+    await tx.customPage.delete({ where: { id: page.id } });
+  });
   await createAuditLog({
     actorId: current.dbUserId,
     actorType: "user",
@@ -253,7 +377,10 @@ export function getOwnedCustomPage(current: CurrentUserProfile, pageId: string) 
   return withDbRequestContext(current, (tx) =>
     tx.customPage.findFirst({
       where: { id: pageId, ownerProfileId: current.profileId },
-      include: { dog: { select: { id: true, name: true } } },
+      include: {
+        dog: { select: { id: true, name: true } },
+        socialActor: { select: { id: true, contactVisibility: true } },
+      },
     })
   );
 }
@@ -262,6 +389,7 @@ export function listCustomPagesForCurrentUser(current: DbContextUser) {
   return withDbRequestContext(current, (tx) =>
     tx.customPage.findMany({
       where: { ownerProfileId: current.profileId },
+      include: { socialActor: { select: { id: true } } },
       orderBy: [{ pageType: "asc" }, { createdAt: "desc" }],
     })
   );
@@ -345,19 +473,50 @@ export async function resolvePageAvatarUrls(
     ])
   );
   const ids = [...new Set([...avatarIdByPage.values()].filter(Boolean))] as string[];
-  const assets = ids.length
+  const attachments = ids.length
     ? await withDbSystemContext((tx) =>
-        tx.mediaAsset.findMany({
-          where: { id: { in: ids }, scanStatus: "clean" },
-          select: { id: true, storageBucket: true, storagePath: true, publicUrl: true },
+        tx.actorGalleryMedia.findMany({
+          where: {
+            mediaId: { in: ids },
+            actor: { pageId: { in: pages.map((page) => page.id) } },
+            media: {
+              deletedAt: null,
+              scanStatus: "clean",
+              processingStatus: "ready",
+            },
+          },
+          select: {
+            actor: { select: { pageId: true } },
+            media: {
+              select: {
+                id: true,
+                storageBucket: true,
+                storagePath: true,
+                publicUrl: true,
+                playbackPath: true,
+              },
+            },
+          },
         })
       )
     : [];
-  const urlById = new Map(assets.map((a) => [a.id, mediaDeliveryUrl(a)]));
+  const urlByPageAndId = new Map(
+    attachments.flatMap((attachment) =>
+      attachment.actor.pageId
+        ? [[
+            `${attachment.actor.pageId}:${attachment.media.id}`,
+            mediaDeliveryUrl(attachment.media),
+          ] as const]
+        : []
+    )
+  );
   return new Map(
     pages.map((page) => {
       const avatarId = avatarIdByPage.get(page.id);
-      return [page.id, avatarId ? urlById.get(avatarId) ?? null : null];
+      return [
+        page.id,
+        avatarId ? urlByPageAndId.get(`${page.id}:${avatarId}`) ?? null : null,
+      ];
     })
   );
 }
@@ -370,10 +529,11 @@ export type CustomPageMediaUrls = {
   galleryUrls: string[];
 };
 
-// Resolve stored media ids to clean public URLs (system context read). Only
-// scanStatus==='clean' assets surface; missing/pending/infected → dropped.
+// Resolve only media attached to this actor. Protected URLs still enforce the
+// actor audience when fetched; pending, failed, deleted, or foreign ids drop.
 export async function resolveCustomPageMedia(
-  contentJson: string | null
+  contentJson: string | null,
+  actorId: string
 ): Promise<CustomPageMediaUrls> {
   const content = parseCustomPageContent(contentJson);
   const ids = [
@@ -386,13 +546,33 @@ export async function resolveCustomPageMedia(
   if (ids.length === 0) {
     return { avatarUrl: null, bannerUrl: null, logoUrl: null, cardUrl: null, galleryUrls: [] };
   }
-  const assets = await withDbSystemContext((tx) =>
-    tx.mediaAsset.findMany({
-      where: { id: { in: ids }, scanStatus: "clean" },
-      select: { id: true, storageBucket: true, storagePath: true, publicUrl: true },
+  const attachments = await withDbSystemContext((tx) =>
+    tx.actorGalleryMedia.findMany({
+      where: {
+        actorId,
+        mediaId: { in: ids },
+        media: {
+          deletedAt: null,
+          scanStatus: "clean",
+          processingStatus: "ready",
+        },
+      },
+      select: {
+        media: {
+          select: {
+            id: true,
+            storageBucket: true,
+            storagePath: true,
+            publicUrl: true,
+            playbackPath: true,
+          },
+        },
+      },
     })
   );
-  const urlById = new Map(assets.map((a) => [a.id, mediaDeliveryUrl(a)]));
+  const urlById = new Map(
+    attachments.map(({ media }) => [media.id, mediaDeliveryUrl(media)])
+  );
   return {
     avatarUrl: content.avatarMediaId ? urlById.get(content.avatarMediaId) ?? null : null,
     bannerUrl: content.bannerMediaId ? urlById.get(content.bannerMediaId) ?? null : null,

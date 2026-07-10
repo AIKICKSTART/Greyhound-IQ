@@ -19,7 +19,7 @@ const oldEnv = { ...process.env };
 
 try {
   process.env.STRIPE_APP_URL = "https://greyhoundiq.example";
-  process.env.STRIPE_RESTRICTED_KEY = "rk_test_123456789";
+  process.env.STRIPE_RESTRICTED_KEY = "rk_test_123456789"; // gitleaks:allow - test sentinel
   process.env.STRIPE_WEBHOOK_SECRET = "whsec_test_secret_123";
   process.env.STRIPE_PRICE_PRO_MONTHLY = "price_proMonthly";
   process.env.STRIPE_PRICE_PRO_YEARLY = "price_proYearly";

@@ -45,6 +45,12 @@ export const profileUpdateSchema = z.object({
   kennelPrefix: optionalText(40),
   website: optionalWebsite,
   phone: optionalText(40),
+  profileVisibility: z
+    .enum(["public", "members", "connections", "only_me"])
+    .default("members"),
+  contactVisibility: z
+    .enum(["public", "members", "connections", "only_me"])
+    .default("only_me"),
 });
 
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;

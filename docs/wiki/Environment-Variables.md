@@ -56,13 +56,19 @@ role.
 ## Optional app security variables
 
 - `REALTIME_CHANNEL_SECRET`
+- `SUPABASE_JWT_SECRET` (server-only, signs short-lived Realtime Authorization JWTs)
+- `ACTOR_CONVERSATION_MULTIPLEX_ENABLED` (`false` during the compatibility rollout; `true` only after old app revisions retire)
 
 ## Optional media scanner variables
 
 - `MEDIA_SCAN_MODE` (`disabled`, `metadata`, or `clamav`)
 - `MEDIA_CLAMSCAN_BIN`
+- `MEDIA_FRESHCLAM_BIN`
 - `MEDIA_CLAMAV_DATABASE`
 - `MEDIA_CLAMSCAN_TIMEOUT_MS`
+- `MEDIA_FRESHCLAM_TIMEOUT_MS`
+- `MEDIA_CLAMAV_REFRESH_INTERVAL_MS`
+- `MEDIA_CLAMAV_MAX_DEFINITION_AGE_MS`
 
 ## Optional notification delivery variables
 
@@ -90,9 +96,11 @@ role.
 
 `CRON_SECRET` secures scheduled internal sync calls to `/api/internal/live-sync`. `INTERNAL_API_SECRET` remains available for manual internal maintenance calls with the `X-Internal-Secret` header.
 
-`REALTIME_CHANNEL_SECRET` can be set as a dedicated HMAC secret for opaque Supabase Realtime message/profile channel names. If it is not set, the app falls back to `INTERNAL_API_SECRET`, then `AUTH_SECRET`, then `NEXTAUTH_SECRET`.
+`REALTIME_CHANNEL_SECRET` is the dedicated HMAC secret for opaque Supabase Realtime message/profile/presence topic names. `SUPABASE_JWT_SECRET` signs five-minute browser tokens; private topic access is additionally checked by RLS on `realtime.messages`. Store both only in Secret Manager and disable public Realtime channel access before production cutover.
 
-`MEDIA_SCAN_MODE=disabled` leaves pending media blocked from attach/download in production. `MEDIA_SCAN_MODE=metadata` only verifies object metadata and is suitable for local/staging smoke checks, not antivirus scanning. `MEDIA_SCAN_MODE=clamav` runs `clamscan` and marks pending media `clean`, `infected`, or `error`; use it on a dedicated scanner service/job with enough memory rather than the default 1Gi web service. `MEDIA_CLAMSCAN_BIN`, `MEDIA_CLAMAV_DATABASE`, and `MEDIA_CLAMSCAN_TIMEOUT_MS` override the binary path, database path, and scan timeout.
+`ACTOR_CONVERSATION_MULTIPLEX_ENABLED` gates distinct personal and managed-page inbox threads between the same two accountable profiles. Deploy the actor-aware code and migration with this set to `false`; after traffic has fully left old Cloud Run revisions, set the same GitHub environment variable to `true` and redeploy so future revisions retain the cutover.
+
+`MEDIA_SCAN_MODE=disabled` leaves pending media blocked from attach/download in production. `MEDIA_SCAN_MODE=metadata` only verifies object metadata and is suitable for local/staging smoke checks, not antivirus scanning. `MEDIA_SCAN_MODE=clamav` runs `clamscan` and marks pending media `clean`, `infected`, or `error`; use it on a dedicated scanner service/job with enough memory rather than the default 1Gi web service. The scanner checks for definition updates daily with `freshclam`, re-checks the installed definition timestamp, and fails closed once definitions exceed the maximum age. The image grants the non-root `nextjs` runtime user write access to the definition directory. `MEDIA_CLAMSCAN_BIN`, `MEDIA_FRESHCLAM_BIN`, `MEDIA_CLAMAV_DATABASE`, and the timeout/interval variables override those defaults.
 
 `NOTIFICATION_WEBHOOK_URL` enables background delivery for persisted in-app notifications through `/api/internal/notification-delivery`. Leave it unset for in-app-only notifications. `NOTIFICATION_WEBHOOK_SECRET` is sent as `X-Notification-Secret` to the webhook target. `NOTIFICATION_DELIVERY_MAX_ATTEMPTS` caps retry attempts before operator review.
 

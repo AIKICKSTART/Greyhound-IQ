@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { ImagePlus, Paperclip, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ImagePlus, Paperclip, Subtitles, X } from "lucide-react";
+
+const WEBVTT_MAX_BYTES = 256 * 1024;
 
 const ACCEPTED_MEDIA_TYPES = [
   "image/jpeg",
@@ -38,15 +40,23 @@ interface UploadItem {
   progress: number;
   mediaId?: string;
   scanStatus?: string;
+  mimeType: string;
+  previewUrl: string;
+  altText: string;
+  captionFilename?: string;
+  captionState?: "uploading" | "removing" | "done" | "error";
+  captionError?: string;
   error?: string;
   failedStep?: ActiveStep;
 }
 
 interface UploadContext {
   file: File;
+  previewUrl: string;
   mediaId?: string;
   uploadUrl?: string;
   uploadUrlExpiresAtMs?: number;
+  altText?: string;
 }
 
 interface MediaAttachmentFieldsProps {
@@ -54,6 +64,13 @@ interface MediaAttachmentFieldsProps {
   maxFiles?: number;
   compact?: boolean;
   fieldName?: string;
+}
+
+function uploadUrlNeedsRefresh(context: UploadContext) {
+  return (
+    !context.uploadUrl ||
+    (context.uploadUrlExpiresAtMs ?? 0) <= Date.now()
+  );
 }
 
 export function MediaAttachmentFields({
@@ -70,6 +87,17 @@ export function MediaAttachmentFields({
   const [formError, setFormError] = useState<string | null>(null);
 
   const remaining = maxFiles - items.length;
+  const acceptedMediaTypes =
+    mediaContext === "feed"
+      ? ACCEPTED_MEDIA_TYPES.filter((type) => type !== "application/pdf")
+      : ACCEPTED_MEDIA_TYPES;
+
+  useEffect(() => {
+    const contexts = ctxRef.current;
+    return () => {
+      for (const item of contexts.values()) URL.revokeObjectURL(item.previewUrl);
+    };
+  }, []);
 
   function patchItem(key: string, patch: Partial<UploadItem>) {
     setItems((current) =>
@@ -82,10 +110,7 @@ export function MediaAttachmentFields({
     if (!ctx) return;
 
     let step: ActiveStep = from;
-    if (
-      step === "uploading" &&
-      (!ctx.uploadUrl || (ctx.uploadUrlExpiresAtMs ?? 0) <= Date.now())
-    ) {
+    if (step === "uploading" && uploadUrlNeedsRefresh(ctx)) {
       // Signed URL missing or expired: restart from a fresh signature.
       step = "signing";
     }
@@ -132,7 +157,9 @@ export function MediaAttachmentFields({
           mimeType: string;
           scanStatus?: string;
         };
-      }>(`/api/media/${ctx.mediaId}/finalize`, {});
+      }>(`/api/media/${ctx.mediaId}/finalize`, {
+        altText: ctx.altText?.trim() || undefined,
+      });
 
       patchItem(key, {
         step: "done",
@@ -155,16 +182,36 @@ export function MediaAttachmentFields({
     if (!files || files.length === 0 || remaining <= 0) return;
     setFormError(null);
 
-    const accepted: { key: string; file: File }[] = [];
+    const accepted: { key: string; file: File; previewUrl: string }[] = [];
     const rejected: string[] = [];
     for (const file of Array.from(files).slice(0, remaining)) {
-      if (!ACCEPTED_MEDIA_TYPES.includes(file.type)) {
+      if (!acceptedMediaTypes.includes(file.type)) {
         rejected.push(file.name);
         continue;
       }
       const key = `upload-${nextKeyRef.current++}`;
-      ctxRef.current.set(key, { file });
-      accepted.push({ key, file });
+      const previewUrl = URL.createObjectURL(file);
+      ctxRef.current.set(key, { file, previewUrl });
+      accepted.push({ key, file, previewUrl });
+    }
+
+    if (mediaContext === "feed") {
+      const projectedTypes = [...ctxRef.current.values()].map(
+        (context) => context.file.type
+      );
+      const imageCount = projectedTypes.filter((type) => type.startsWith("image/")).length;
+      const audioVideoCount = projectedTypes.filter(
+        (type) => type.startsWith("audio/") || type.startsWith("video/")
+      ).length;
+      if (audioVideoCount > 1 || (audioVideoCount === 1 && imageCount > 4)) {
+        for (const item of accepted) {
+          ctxRef.current.delete(item.key);
+          URL.revokeObjectURL(item.previewUrl);
+        }
+        setFormError("A post can contain ten images, or one video/audio with up to four images.");
+        if (inputRef.current) inputRef.current.value = "";
+        return;
+      }
     }
 
     if (rejected.length > 0) {
@@ -177,9 +224,12 @@ export function MediaAttachmentFields({
     if (accepted.length > 0) {
       setItems((current) => [
         ...current,
-        ...accepted.map(({ key, file }) => ({
+        ...accepted.map(({ key, file, previewUrl }) => ({
           key,
           filename: file.name,
+          mimeType: file.type,
+          previewUrl,
+          altText: "",
           step: "signing" as const,
           progress: 0,
         })),
@@ -199,8 +249,72 @@ export function MediaAttachmentFields({
         () => null
       );
     }
+    const item = items.find((candidate) => candidate.key === key);
+    if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
     ctxRef.current.delete(key);
     setItems((current) => current.filter((item) => item.key !== key));
+  }
+
+  async function uploadCaption(key: string, file: File) {
+    const item = items.find((candidate) => candidate.key === key);
+    if (!item?.mediaId || item.step !== "done") return;
+    if (
+      !file.name.toLowerCase().endsWith(".vtt") ||
+      (file.type !== "" && file.type.toLowerCase() !== "text/vtt") ||
+      file.size === 0 ||
+      file.size > WEBVTT_MAX_BYTES
+    ) {
+      patchItem(key, {
+        captionState: "error",
+        captionError: "Choose a WebVTT (.vtt) file up to 256 KB.",
+      });
+      return;
+    }
+
+    patchItem(key, {
+      captionState: "uploading",
+      captionError: undefined,
+    });
+    try {
+      const response = await fetch(`/api/media/${item.mediaId}/caption`, {
+        method: "PUT",
+        headers: { "Content-Type": "text/vtt" },
+        body: file,
+      });
+      if (!response.ok) throw new Error(await errorMessage(response));
+      patchItem(key, {
+        captionFilename: file.name,
+        captionState: "done",
+        captionError: undefined,
+      });
+    } catch (err) {
+      patchItem(key, {
+        captionState: "error",
+        captionError: err instanceof Error ? err.message : "Caption upload failed.",
+      });
+    }
+  }
+
+  async function removeCaption(key: string) {
+    const item = items.find((candidate) => candidate.key === key);
+    if (!item?.mediaId) return;
+    patchItem(key, { captionState: "removing", captionError: undefined });
+    try {
+      const response = await fetch(`/api/media/${item.mediaId}/caption`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error(await errorMessage(response));
+      patchItem(key, {
+        captionFilename: undefined,
+        captionState: undefined,
+        captionError: undefined,
+      });
+    } catch (err) {
+      patchItem(key, {
+        captionState: "error",
+        captionError: err instanceof Error ? err.message : "Caption removal failed.",
+      });
+    }
   }
 
   return (
@@ -221,7 +335,7 @@ export function MediaAttachmentFields({
           type="button"
           disabled={remaining <= 0}
           onClick={() => inputRef.current?.click()}
-          className="giq-outline-action min-h-9 px-3 text-[12px] disabled:cursor-not-allowed disabled:opacity-50"
+          className="giq-outline-action min-h-11 px-3 text-[12px] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Paperclip className="h-3.5 w-3.5" />
           Attach media
@@ -234,49 +348,125 @@ export function MediaAttachmentFields({
           type="file"
           multiple
           hidden
-          accept={ACCEPTED_MEDIA_TYPES.join(",")}
+          accept={acceptedMediaTypes.join(",")}
           onChange={(event) => addFiles(event.currentTarget.files)}
         />
       </div>
 
       {items.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           {items.map((item) => (
-            <span
+            <div
               key={item.key}
-              role="status"
-              className={`giq-status-pill max-w-full ${
+              className={`overflow-hidden rounded-xl border bg-white/[0.02] ${
                 item.step === "error"
-                  ? "border-red-500/25 bg-red-500/10 text-red-200"
-                  : ""
+                  ? "border-red-500/25"
+                  : "border-white/[0.07]"
               }`}
             >
-              <ImagePlus className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--primary-bright))]" />
-              <span className="truncate" title={itemLabel(item)}>
-                {itemLabel(item)}
-              </span>
-              {item.step === "error" && (
-                <button
-                  type="button"
-                  onClick={() => runUpload(item.key, item.failedStep ?? "signing")}
-                  className="rounded px-1 text-[11px] font-semibold text-[hsl(var(--foreground))] underline-offset-2 transition-colors hover:underline focus-visible:underline"
-                >
-                  Retry
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => removeItem(item.key)}
-                className="rounded p-0.5 text-[hsl(var(--subtle-foreground))] transition-colors hover:text-red-200"
-                aria-label={
-                  item.step === "done"
-                    ? `Remove ${item.filename}`
-                    : `Cancel upload of ${item.filename}`
-                }
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
+              <MediaPreview item={item} />
+              <div className="space-y-2 p-3">
+                <div role="status" className="flex min-h-8 items-center gap-2 text-[11px] text-[hsl(var(--muted-foreground))]">
+                  <ImagePlus className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--primary-bright))]" />
+                  <span className="min-w-0 flex-1 truncate" title={itemLabel(item)}>
+                    {itemLabel(item)}
+                  </span>
+                  {item.step === "error" && (
+                    <button
+                      type="button"
+                      onClick={() => runUpload(item.key, item.failedStep ?? "signing")}
+                      className="min-h-11 rounded px-2 text-[11px] font-semibold text-[hsl(var(--foreground))] underline-offset-2 hover:underline"
+                    >
+                      Retry
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeItem(item.key)}
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded text-[hsl(var(--subtle-foreground))] hover:text-red-200"
+                    aria-label={
+                      item.step === "done"
+                        ? `Remove ${item.filename}`
+                        : `Cancel upload of ${item.filename}`
+                    }
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                {(item.mimeType.startsWith("image/") ||
+                  item.mimeType.startsWith("video/") ||
+                  item.mimeType.startsWith("audio/")) && (
+                  <label className="grid gap-1 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                    Description for accessibility
+                    <input
+                      value={item.altText}
+                      maxLength={500}
+                      onChange={(event) => {
+                        const altText = event.target.value;
+                        const context = ctxRef.current.get(item.key);
+                        if (context) context.altText = altText;
+                        patchItem(item.key, { altText });
+                      }}
+                      onBlur={() => {
+                        if (!item.mediaId || item.step !== "done") return;
+                        void patchMediaAltText(item.mediaId, item.altText);
+                      }}
+                      className="giq-form-control min-h-11 px-3 py-2 text-[12px]"
+                      placeholder="Describe the media"
+                    />
+                  </label>
+                )}
+                {item.mimeType.startsWith("video/") && item.step === "done" && (
+                  <div className="grid gap-1 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                    <label className="grid gap-1">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Subtitles className="h-3.5 w-3.5" aria-hidden="true" />
+                        Caption track (WebVTT)
+                      </span>
+                      <input
+                        type="file"
+                        accept=".vtt,text/vtt"
+                        disabled={
+                          item.captionState === "uploading" ||
+                          item.captionState === "removing"
+                        }
+                        onChange={(event) => {
+                          const file = event.currentTarget.files?.[0];
+                          if (file) void uploadCaption(item.key, file);
+                          event.currentTarget.value = "";
+                        }}
+                        className="giq-form-control min-h-11 px-3 py-2 text-[12px] file:mr-3 file:rounded file:border-0 file:bg-white/10 file:px-2 file:py-1 file:text-[11px] file:text-white"
+                      />
+                    </label>
+                    <div aria-live="polite" className="flex min-h-6 items-center justify-between gap-2">
+                      <span className={item.captionError ? "text-red-200" : undefined}>
+                        {item.captionError ??
+                          (item.captionState === "uploading"
+                            ? "Uploading captions…"
+                            : item.captionState === "removing"
+                              ? "Removing captions…"
+                              : item.captionFilename
+                                ? `${item.captionFilename} attached`
+                                : "Optional .vtt file, up to 256 KB")}
+                      </span>
+                      {item.captionFilename && (
+                        <button
+                          type="button"
+                          disabled={
+                            item.captionState === "uploading" ||
+                            item.captionState === "removing"
+                          }
+                          onClick={() => void removeCaption(item.key)}
+                          className="min-h-11 shrink-0 rounded px-2 font-semibold text-[hsl(var(--foreground))] underline-offset-2 hover:underline disabled:opacity-50"
+                        >
+                          Remove captions
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -284,6 +474,37 @@ export function MediaAttachmentFields({
       {formError && <p className="text-[11px] text-red-200">{formError}</p>}
     </div>
   );
+}
+
+function MediaPreview({ item }: { item: UploadItem }) {
+  if (item.mimeType.startsWith("image/")) {
+    // Object URLs are local previews and cannot use the Next image optimizer.
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={item.previewUrl} alt="" className="h-36 w-full object-cover" />;
+  }
+  if (item.mimeType.startsWith("video/")) {
+    return (
+      <video
+        src={item.previewUrl}
+        controls
+        muted
+        preload="metadata"
+        className="h-36 w-full object-cover"
+      />
+    );
+  }
+  if (item.mimeType.startsWith("audio/")) {
+    return <audio src={item.previewUrl} controls preload="metadata" className="w-full p-3" />;
+  }
+  return null;
+}
+
+async function patchMediaAltText(mediaId: string, altText: string) {
+  await fetch(`/api/media/${mediaId}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ altText: altText.trim() || null }),
+  }).catch(() => null);
 }
 
 function itemLabel(item: UploadItem) {

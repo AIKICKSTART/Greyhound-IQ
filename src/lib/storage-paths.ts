@@ -12,7 +12,6 @@ export type SupabaseStorageBucket = (typeof SUPABASE_STORAGE_BUCKETS)[number];
 
 const PUBLIC_BUCKETS = new Set<SupabaseStorageBucket>([
   SITE_ASSETS_BUCKET,
-  PUBLIC_USER_MEDIA_BUCKET,
 ]);
 
 const SITE_ASSET_SECTIONS: Record<string, string> = {

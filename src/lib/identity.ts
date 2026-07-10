@@ -43,7 +43,10 @@ export async function getOwnedPageIdentities(
       tagline: page.tagline,
       accentColor: page.accentColor,
       published: page.published,
-      media: await resolveCustomPageMedia(page.contentJson),
+      media: await resolveCustomPageMedia(
+        page.contentJson,
+        page.socialActor?.id ?? ""
+      ),
     }))
   );
 }

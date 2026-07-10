@@ -175,31 +175,6 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
         </div>
       </section>
 
-      <section className="mx-auto max-w-2xl px-6 pb-20 text-center">
-        <div className="giq-panel p-8">
-          <h2
-            className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2 tracking-[-0.02em]"
-          >
-            18+ only · Bet responsibly
-          </h2>
-          <p
-            className="text-[13px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.013em]"
-          >
-            GreyhoundIQ is a data platform, not a bookmaker. We don&apos;t take
-            bets and we don&apos;t encourage gambling. If you or someone you know
-            has a gambling problem, contact{" "}
-            <a
-              href="https://www.gamblinghelponline.org.au"
-              className="text-[hsl(var(--primary-bright))] hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Gambling Help Online
-            </a>{" "}
-            on 1800 858 858.
-          </p>
-        </div>
-      </section>
     </div>
   );
 }

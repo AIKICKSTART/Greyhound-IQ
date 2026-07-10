@@ -96,6 +96,10 @@
   );
 }
 
+.giq-public-shell {
+  --giq-mobile-dock-clearance: 0px;
+}
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -5691,6 +5695,7 @@ select.giq-form-control option:checked {
    marketing site chrome there so admin behaves like a dedicated tool (own
    sidebar/top bar, full-height, no dock overlaying table actions). */
 body:has([data-admin-shell]) .giq-site-header,
+body:has([data-admin-shell]) .giq-member-header,
 body:has([data-admin-shell]) .giq-footer-shell,
 body:has([data-admin-shell]) .giq-mobile-dock,
 body:has([data-admin-shell]) .giq-alert-wrap {

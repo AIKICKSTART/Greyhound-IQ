@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { toggleFeedPostReactionForCurrentUser } from "@/lib/feed-service";
+import { feedReactionWriteSchema } from "@/lib/feed-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const FEED_REACTION_RATE_LIMIT = 60;
 const FEED_REACTION_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ postId: string }> }
 ) {
   try {
@@ -17,7 +18,7 @@ export async function POST(
       requireCurrentUserProfile(),
     ]);
     const rateLimit = await checkRateLimit(
-      `feed:reaction:${current.dbUserId}:${postId}`,
+      `feed:reaction:${current.dbUserId}`,
       FEED_REACTION_RATE_LIMIT,
       FEED_REACTION_RATE_LIMIT_WINDOW_MS
     );
@@ -33,7 +34,13 @@ export async function POST(
       );
     }
 
-    const reaction = await toggleFeedPostReactionForCurrentUser(current, postId);
+    const raw = await request.text();
+    const parsed = feedReactionWriteSchema.parse(raw ? JSON.parse(raw) : {});
+    const reaction = await toggleFeedPostReactionForCurrentUser(
+      current,
+      postId,
+      parsed
+    );
     return NextResponse.json({ item: reaction });
   } catch (err) {
     return jsonError(err, "Could not update feed reaction");

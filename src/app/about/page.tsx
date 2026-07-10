@@ -10,8 +10,8 @@ export const metadata = {
 const VALUES = [
   {
     icon: Target,
-    title: "Built for the punter",
-    desc: "Every feature is designed around the actual questions a serious greyhound punter asks. No clutter, no upsells, no noise.",
+    title: "Built for racing people",
+    desc: "Every feature is designed around the questions greyhound followers, trainers, breeders, and owners ask. No clutter, no noise.",
   },
   {
     icon: Heart,
@@ -21,7 +21,7 @@ const VALUES = [
   {
     icon: Globe,
     title: "Open data",
-    desc: "We surface the official data first. Where state bodies offer it, we link to it. Where they don't, we use Betfair + FastTrack + Tasracing as transparent fallbacks.",
+    desc: "We surface official data first and identify every source clearly when public or licensed feeds provide additional coverage.",
   },
   {
     icon: Zap,
@@ -44,7 +44,7 @@ export default function AboutPage() {
             <span className="gradient-text">racing data platform.</span>
           </>
         }
-        subtitle="Built in Australia for Australian punters, breeders, and owners. One platform, real-time data, no ads."
+        subtitle="Built in Australia for greyhound followers, trainers, breeders, and owners. One platform, real-time data, no ads."
       />
 
       <section className="mx-auto max-w-3xl px-6 py-16">
@@ -57,10 +57,9 @@ export default function AboutPage() {
           className="space-y-4 text-[15px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.011em]"
         >
           <p>
-            The Australian greyhound racing market is a $4.3 billion industry. The two
-            main tools punters use are <span className="text-[hsl(var(--foreground))]">greyhound-data.com</span> —
-            an old, ad-heavy UK site priced in GBP — and a patchwork of state body
-            sites that don&apos;t talk to each other.
+            Australian greyhound racing data is fragmented across state bodies,
+            legacy databases, and disconnected public sites. Following a dog across
+            jurisdictions should not require stitching those sources together by hand.
           </p>
           <p>
             We built <span className="text-[hsl(var(--foreground))]">GreyhoundIQ</span> to

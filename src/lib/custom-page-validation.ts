@@ -41,6 +41,9 @@ const baseFields = {
   about: optionalText(4000),
   contactEmail: z.string().trim().email().max(200).optional().nullable(),
   contactPhone: optionalText(40),
+  contactVisibility: z
+    .enum(["public", "members", "connections", "only_me"])
+    .default("only_me"),
   website: z
     .string()
     .trim()

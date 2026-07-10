@@ -10,7 +10,9 @@ import {
   HubIncomingCall,
   type IncomingCallInvite,
 } from "@/components/hub/hub-incoming-call";
+import { HubConversationDock } from "@/components/hub/hub-conversation-dock";
 import type { FriendRequestItem } from "@/lib/friend-service";
+import { conversationRealtimeChannel } from "@/lib/realtime-service";
 
 export type HubConversationRow = {
   id: string;
@@ -19,8 +21,8 @@ export type HubConversationRow = {
   unread: number;
 };
 
-// Right-hand messenger column. Server-rendered shell; presence + search +
-// call-decline are the only client islands.
+// Right-hand messenger column. Server-rendered shell with focused client
+// islands for presence, discovery, calls, and docked desktop quick chats.
 export function HubMessengerPanel({
   presenceChannel,
   selfProfileId,
@@ -30,6 +32,7 @@ export function HubMessengerPanel({
   conversations,
   canStartChat,
   canStartCall,
+  senderActorId,
 }: {
   presenceChannel: string | null;
   selfProfileId: string;
@@ -39,6 +42,7 @@ export function HubMessengerPanel({
   conversations: HubConversationRow[];
   canStartChat: boolean;
   canStartCall: boolean;
+  senderActorId?: string | null;
 }) {
   const incoming = requests.filter((request) => request.direction === "incoming");
   const outgoing = requests.filter((request) => request.direction === "outgoing");
@@ -119,6 +123,7 @@ export function HubMessengerPanel({
           friends={friends}
           canStartChat={canStartChat}
           canStartCall={canStartCall}
+          senderActorId={senderActorId}
         />
         {outgoing.length > 0 && (
           <p className="mt-3 text-[11px] text-[hsl(var(--subtle-foreground))]">
@@ -154,36 +159,13 @@ export function HubMessengerPanel({
             No conversations yet.
           </p>
         ) : (
-          <ul className="space-y-1">
-            {conversations.map((conversation) => (
-              <li key={conversation.id}>
-                <Link
-                  href={`/pulse/${conversation.id}`}
-                  className="flex min-h-11 items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.04]"
-                >
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/[0.1] bg-[hsl(var(--surface-2))] text-[12px] font-bold text-white/70">
-                    {conversation.otherName.slice(0, 1).toUpperCase()}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium text-[hsl(var(--foreground))]">
-                      {conversation.otherName}
-                    </span>
-                    <span className="block truncate text-[11px] text-[hsl(var(--subtle-foreground))]">
-                      {conversation.preview}
-                    </span>
-                  </span>
-                  {conversation.unread > 0 && (
-                    <span
-                      aria-label={`${conversation.unread} unread`}
-                      className="inline-flex min-w-[20px] shrink-0 items-center justify-center rounded-full bg-[hsl(var(--primary-bright))] px-1.5 text-[10px] font-bold leading-[20px] tabular-nums text-[hsl(var(--primary-foreground))]"
-                    >
-                      {conversation.unread > 99 ? "99+" : conversation.unread}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <HubConversationDock
+            selfProfileId={selfProfileId}
+            conversations={conversations.map((conversation) => ({
+              ...conversation,
+              realtimeChannel: conversationRealtimeChannel(conversation.id),
+            }))}
+          />
         )}
       </section>
     </div>

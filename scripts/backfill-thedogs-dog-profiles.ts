@@ -18,6 +18,7 @@ import {
   TheDogsDogProfileProvider,
   type TheDogsDogProfile,
 } from "../src/lib/live/thedogs-profile";
+import { sanitizeRawJson } from "../src/lib/live/raw-sanitizer";
 
 const DEFAULT_PROGRESS = ".backfill/thedogs-dog-profile-progress.jsonl";
 
@@ -183,7 +184,7 @@ async function saveProfile(dogId: string, profile: TheDogsDogProfile) {
         bestTimesJson: profile.bestTimesJson,
         boxHistoryJson: profile.boxHistoryJson,
         distanceHistoryJson: profile.distanceHistoryJson,
-        profileSourceRawJson: profile.profileSourceRawJson,
+        profileSourceRawJson: sanitizeRawJson(profile.profileSourceRawJson),
         lastProfileSyncedAt: new Date(),
       },
     });
@@ -219,9 +220,8 @@ async function saveProfile(dogId: string, profile: TheDogsDogProfile) {
             ? `thedogs:${row.winnerDogSourceId}`
             : undefined,
           inRunningPositions: row.inRunningPositions,
-          startingPrice: row.startingPrice,
           hasVideo: row.hasVideo,
-          sourceRawJson: row.sourceRawJson,
+          sourceRawJson: sanitizeRawJson(row.sourceRawJson),
         })),
       });
     }

@@ -11,8 +11,9 @@
  */
 import { createWriteStream, type WriteStream } from "node:fs";
 import { mkdir, readdir, readFile, rename, stat, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { once } from "node:events";
+import path from "node:path";
+import { sanitizeRawJson } from "../src/lib/live/raw-sanitizer";
 import type { LiveMeeting } from "../src/lib/live/provider";
 
 const DEFAULT_PROFILE_DIR = ".backfill/thedogs-dog-profiles-raw";
@@ -115,7 +116,6 @@ type ArchivedProfileForm = {
   winnerDogName?: string;
   winnerDogSourceId?: string;
   inRunningPositions?: string;
-  startingPrice?: number;
   hasVideo?: boolean;
   sourceRawJson?: string;
 };
@@ -248,7 +248,10 @@ async function exportProfiles(
         boxHistoryJson: profile.boxHistoryJson,
         distanceHistoryJson: profile.distanceHistoryJson,
         profileStatsJson: profile.profileStatsJson,
-        profileSourceRawJson: options.includeRawJson ? profile.profileSourceRawJson : undefined,
+        profileSourceRawJson:
+          options.includeRawJson && profile.profileSourceRawJson
+            ? sanitizeRawJson(profile.profileSourceRawJson)
+            : undefined,
         formRows: profile.formRows?.length ?? 0,
       });
       counts.profileRows += 1;
@@ -279,9 +282,11 @@ async function exportProfiles(
           winnerDogName: row.winnerDogName,
           winnerDogSourceId: row.winnerDogSourceId,
           inRunningPositions: row.inRunningPositions,
-          startingPrice: row.startingPrice,
           hasVideo: row.hasVideo ?? false,
-          sourceRawJson: options.includeRawJson ? row.sourceRawJson : undefined,
+          sourceRawJson:
+            options.includeRawJson && row.sourceRawJson
+              ? sanitizeRawJson(row.sourceRawJson)
+              : undefined,
         });
         counts.profileFormRows += 1;
       }
@@ -330,7 +335,10 @@ async function exportRaces(
           races: meeting.races.length,
           rawPath: candidate.rawPath,
           rawBytes: candidate.bytes,
-          sourceRawJson: options.includeRawJson ? meeting.sourceRawJson : undefined,
+          sourceRawJson:
+            options.includeRawJson && meeting.sourceRawJson
+              ? sanitizeRawJson(meeting.sourceRawJson)
+              : undefined,
         });
         counts.meetingRows += 1;
 
@@ -353,7 +361,10 @@ async function exportRaces(
             replayUrl: race.replayUrl,
             photoFinishUrl: race.photoFinishUrl,
             runners: race.runners.length,
-            sourceRawJson: options.includeRawJson ? race.sourceRawJson : undefined,
+            sourceRawJson:
+              options.includeRawJson && race.sourceRawJson
+                ? sanitizeRawJson(race.sourceRawJson)
+                : undefined,
           });
           counts.raceRows += 1;
 
@@ -376,7 +387,6 @@ async function exportRaces(
               dogColour: runner.dog.colour,
               trainerName: runner.trainerName,
               weight: runner.weight,
-              startingPrice: runner.startingPrice,
               scratched: runner.scratched ?? false,
               finishingPosition: runner.finishingPosition,
               runningTime: runner.runningTime,
@@ -386,7 +396,10 @@ async function exportRaces(
               sectionals: runner.sectionals,
               sourceProvider: runner.sourceProvider ?? race.sourceProvider ?? meeting.sourceProvider ?? "thedogs",
               sourceId: runner.sourceId,
-              sourceRawJson: options.includeRawJson ? runner.sourceRawJson : undefined,
+              sourceRawJson:
+                options.includeRawJson && runner.sourceRawJson
+                  ? sanitizeRawJson(runner.sourceRawJson)
+                  : undefined,
             });
             counts.raceRunnerRows += 1;
           }

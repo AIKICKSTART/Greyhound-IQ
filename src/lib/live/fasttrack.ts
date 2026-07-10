@@ -242,7 +242,6 @@ function parseResultRunners(section: string): LiveRunner[] {
         dog,
         trainerName: optionalText(cells[2]),
         weight: weight && weight > 0 ? weight : undefined,
-        startingPrice: parseMoney(cells[10]) ?? undefined,
         scratched: finishingPosition == null && (runningTime == null || runningTime === 0),
         finishingPosition: finishingPosition ?? undefined,
         runningTime: runningTime && runningTime > 0 ? runningTime : undefined,
@@ -267,7 +266,6 @@ function parseFormGuideRunners(section: string): LiveRunner[] {
         boxNumber: parseInteger(cells[1]) ?? index + 1,
         dog,
         trainerName: optionalText(cells[6]),
-        startingPrice: parseMoney(cells[7]) ?? undefined,
         scratched: /scratched/i.test(cells.join(" ")),
       } satisfies LiveRunner;
     })

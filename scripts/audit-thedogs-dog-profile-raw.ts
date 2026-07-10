@@ -118,7 +118,6 @@ type ParsedFormRow = {
   winnerDogName?: string;
   winnerDogSourceId?: string;
   inRunningPositions?: string;
-  startingPrice?: number;
   hasVideo?: boolean;
 };
 
@@ -161,7 +160,6 @@ type ProfileStats = {
   rowsWithMargin: number;
   rowsWithWinnerDog: number;
   rowsWithInRunningPositions: number;
-  rowsWithStartingPrice: number;
   rowsWithVideo: number;
 };
 
@@ -171,7 +169,6 @@ type YearStats = {
   rowsWithWeight: number;
   rowsWithRunningTime: number;
   rowsWithMargin: number;
-  rowsWithStartingPrice: number;
 };
 
 async function main() {
@@ -291,7 +288,6 @@ async function main() {
         rowWeight: ratio(stats.rowsWithWeight, stats.formRows),
         rowRunningTime: ratio(stats.rowsWithRunningTime, stats.formRows),
         rowMargin: ratio(stats.rowsWithMargin, stats.formRows),
-        rowStartingPrice: ratio(stats.rowsWithStartingPrice, stats.formRows),
         rowBox: ratio(stats.rowsWithBox, stats.formRows),
         rowVideo: ratio(stats.rowsWithVideo, stats.formRows),
       },
@@ -313,10 +309,6 @@ async function main() {
                 yearStats.formRows
               ),
               rowMargin: ratio(yearStats.rowsWithMargin, yearStats.formRows),
-              rowStartingPrice: ratio(
-                yearStats.rowsWithStartingPrice,
-                yearStats.formRows
-              ),
             },
           },
         ])
@@ -537,7 +529,6 @@ function addFormStats(stats: ProfileStats, row: ParsedFormRow) {
   if (row.margin != null) stats.rowsWithMargin += 1;
   if (row.winnerDogName || row.winnerDogSourceId) stats.rowsWithWinnerDog += 1;
   if (row.inRunningPositions) stats.rowsWithInRunningPositions += 1;
-  if (row.startingPrice != null) stats.rowsWithStartingPrice += 1;
   if (row.hasVideo) stats.rowsWithVideo += 1;
 }
 
@@ -546,7 +537,6 @@ function addYearStats(stats: YearStats, row: ParsedFormRow) {
   if (row.weight != null) stats.rowsWithWeight += 1;
   if (row.runningTime != null) stats.rowsWithRunningTime += 1;
   if (row.margin != null) stats.rowsWithMargin += 1;
-  if (row.startingPrice != null) stats.rowsWithStartingPrice += 1;
 }
 
 function ensureYearStats(years: Map<string, YearStats>, year: string) {
@@ -558,7 +548,6 @@ function ensureYearStats(years: Map<string, YearStats>, year: string) {
     rowsWithWeight: 0,
     rowsWithRunningTime: 0,
     rowsWithMargin: 0,
-    rowsWithStartingPrice: 0,
   };
   years.set(year, created);
   return created;
@@ -604,7 +593,6 @@ function emptyProfileStats(): ProfileStats {
     rowsWithMargin: 0,
     rowsWithWinnerDog: 0,
     rowsWithInRunningPositions: 0,
-    rowsWithStartingPrice: 0,
     rowsWithVideo: 0,
   };
 }

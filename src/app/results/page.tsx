@@ -5,8 +5,13 @@ import {
   WebsitePageHeader,
   WebsiteSection,
 } from "@/components/website-kit";
-import { getRecentResults, getResultFilterOptions } from "@/lib/queries";
+import {
+  getRecentResults,
+  getResultFilterOptions,
+  type ResultsSort,
+} from "@/lib/queries";
 import { formatRaceDateTime, formatShortRaceDayLabel } from "@/lib/race-time";
+import { orderRunners } from "@/lib/runner-order";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -29,7 +34,6 @@ type DisplayRunner = {
   weight: number | null;
   scratched: boolean;
   trainer: { name: string } | null;
-  startingPrice: number | null;
   result: ResultEntry | null;
   dog: {
     id: string;
@@ -69,6 +73,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   const params = await searchParams;
   const dateParam = firstParam(params.date);
   const trackParam = firstParam(params.trackId);
+  const selectedSort = resultsSort(firstParam(params.sort));
   const filterOptions = await getResultFilterOptions();
   const selectedDate = filterOptions.dates.some(
     (row) => row.date === dateParam
@@ -83,6 +88,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   const results = await getRecentResults({
     date: selectedDate,
     trackId: selectedTrackId,
+    sort: selectedSort,
   });
   const displayResults = results.map(toDisplayRace);
   const settledCount = results.length;
@@ -93,7 +99,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
         eyebrow="Settled & official"
         title="Race"
         accent="Results"
-        subtitle="Latest settled races from the GreyhoundIQ database, newest first."
+        subtitle="Settled races from the GreyhoundIQ database with official results."
       >
         <span className="giq-status-pill giq-status-pill-purple min-h-9">
           <span
@@ -105,14 +111,15 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
       </WebsitePageHeader>
 
       <WebsiteSection
-        title="Latest results"
-        sub={`${displayResults.length} races - newest first${selectedDate ? ` / ${formatShortRaceDayLabel(selectedDate)}` : ""}`}
+        title="Results"
+        sub={`${displayResults.length} races - ${sortLabel(selectedSort)}${selectedDate ? ` / ${formatShortRaceDayLabel(selectedDate)}` : ""}`}
         right={
           <ResultsFilters
             dates={filterOptions.dates}
             tracks={filterOptions.tracks}
             selectedDate={selectedDate}
             selectedTrackId={selectedTrackId}
+            selectedSort={selectedSort}
           />
         }
       >
@@ -140,14 +147,26 @@ function ResultsFilters({
   tracks,
   selectedDate,
   selectedTrackId,
+  selectedSort,
 }: {
   dates: { date: string; races: number }[];
   tracks: { id: string; name: string; state: string }[];
   selectedDate: string;
   selectedTrackId: string;
+  selectedSort: ResultsSort;
 }) {
   return (
     <form action="/results" className="flex flex-wrap items-center gap-2.5">
+      <select
+        aria-label="Results order"
+        className="giq-form-control min-h-11 min-w-[150px]"
+        name="sort"
+        defaultValue={selectedSort}
+      >
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+        <option value="track">Track A-Z</option>
+      </select>
       <select
         aria-label="Results date"
         className="giq-form-control min-h-11 min-w-[178px]"
@@ -181,7 +200,7 @@ function ResultsFilters({
         <Filter className="h-4 w-4" aria-hidden="true" />
         Filter
       </button>
-      {(selectedDate || selectedTrackId) && (
+      {(selectedDate || selectedTrackId || selectedSort !== "newest") && (
         <Link
           href="/results"
           className="giq-button giq-button-glass min-h-11 px-4 text-[13px] font-semibold"
@@ -263,6 +282,16 @@ function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function resultsSort(value: string | undefined): ResultsSort {
+  return value === "oldest" || value === "track" ? value : "newest";
+}
+
+function sortLabel(sort: ResultsSort) {
+  if (sort === "oldest") return "oldest first";
+  if (sort === "track") return "track A-Z";
+  return "newest first";
+}
+
 function toDisplayRace(
   race: Awaited<ReturnType<typeof getRecentResults>>[number]
 ): DisplayRace {
@@ -279,13 +308,12 @@ function toDisplayRace(
         state: race.meeting.track.state,
       },
     },
-    runners: race.runners.map((runner) => ({
+    runners: orderRunners(race.runners, "finish").map((runner) => ({
       id: runner.id,
       boxNumber: runner.boxNumber,
       weight: runner.weight,
       scratched: runner.scratched,
       trainer: runner.trainer,
-      startingPrice: runner.startingPrice,
       result: runner.result,
       dog: {
         id: runner.dog.id,

@@ -20,6 +20,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: supabase-migrate-${{ inputs.environment }}
+  cancel-in-progress: false
+
 jobs:
   migrate:
     name: migrate-${{ inputs.environment }}
@@ -48,6 +52,8 @@ jobs:
 
       - run: npx prisma validate
       - run: npm run check:migrations
+      - name: Prepare large indexes without blocking writes
+        run: npm run db:indexes:prepare
       - run: npx prisma migrate deploy
 
       - name: Seed staging data

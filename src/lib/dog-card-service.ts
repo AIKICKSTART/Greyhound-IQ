@@ -68,13 +68,18 @@ export async function generateDogCard(current: CurrentUserProfile, pageId: strin
   const page = await withDbRequestContext(current, (tx) =>
     tx.customPage.findFirst({
       where: { id: pageId, ownerProfileId: current.profileId, pageType: "dog" },
-      include: { dog: true },
+      include: { dog: true, socialActor: { select: { id: true } } },
     })
   );
-  if (!page || !page.dog) throw new Error("dog_card.page_not_found");
+  if (!page || !page.dog || !page.socialActor) {
+    throw new Error("dog_card.page_not_found");
+  }
 
   // Source dog photo: the page's avatar or hero image (user-uploaded, clean).
-  const media = await resolveCustomPageMedia(page.contentJson);
+  const media = await resolveCustomPageMedia(
+    page.contentJson,
+    page.socialActor.id
+  );
   const photoUrl = media.avatarUrl ?? media.bannerUrl;
   if (!photoUrl) throw new Error("dog_card.photo_required");
   const photo = await fetchBytes(

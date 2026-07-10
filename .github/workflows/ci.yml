@@ -56,7 +56,7 @@ jobs:
       WORKOS_API_KEY: sk_test_ci_dummy
       WORKOS_COOKIE_PASSWORD: ci-workos-cookie-password-32-characters
       NEXT_PUBLIC_WORKOS_REDIRECT_URI: http://127.0.0.1:3000/callback
-      INTERNAL_API_SECRET: ci-internal-secret-32-characters-min
+      INTERNAL_API_SECRET: ci-internal-secret-32-characters-min # gitleaks:allow - CI sentinel
       LAGO_API_URL: https://billing-api.example.test
       LAGO_FRONT_URL: https://billing.example.test
       LAGO_API_KEY: ci-lago-api-key
@@ -67,6 +67,7 @@ jobs:
       STRIPE_PRICE_PRO_MONTHLY: price_ciProMonthly
       STRIPE_PRICE_PRO_YEARLY: price_ciProYearly
       REALTIME_CHANNEL_SECRET: ci-realtime-channel-secret-32-chars-min
+      SUPABASE_JWT_SECRET: ci-supabase-jwt-secret-32-characters-min
       LIVEKIT_URL: wss://livekit.ci.invalid
       LIVEKIT_API_KEY: ci-livekit-key
       LIVEKIT_API_SECRET: ci-livekit-api-secret-32-characters-min
@@ -75,6 +76,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v6
         with:
@@ -82,6 +85,18 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - name: Scan git history for secrets
+        run: >-
+          docker run --rm -v "$PWD:/repo:ro" -w /repo
+          ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          git . --redact --no-banner
+      - name: Run Semgrep SAST
+        run: >-
+          docker run --rm -v "$PWD:/src:ro" -w /src
+          semgrep/semgrep@sha256:59fbed6127ea7c5dde3ba6a85142733bb20ea9aaa36120c953904f1539aaf66e
+          semgrep --config p/typescript --config p/owasp-top-ten --config p/secrets
+          --jobs 4 --timeout 15 --max-target-bytes 1000000 --exclude "*.test.ts"
+          --exclude "*.test.tsx" --error src/app src/lib scripts
       - run: npm audit --audit-level=high
       - run: npm run check:env -- --ci --production
       - run: npx prisma validate

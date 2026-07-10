@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       marketplaceCategories,
       activeListings,
       realtime: await checkRealtime(),
-      livekit: checkLiveKit(),
+      livekit: await checkLiveKit(),
       writeFlow: runWriteProbe
         ? await runCommunityFlowProbe({ liveKitMode: "configured" })
         : "skipped",
@@ -73,15 +73,16 @@ async function checkRealtime() {
   }
 }
 
-function checkLiveKit() {
+async function checkLiveKit() {
   const url = process.env.LIVEKIT_URL;
   const apiKey = process.env.LIVEKIT_API_KEY;
   const apiSecret = process.env.LIVEKIT_API_SECRET;
   if (!url || !apiKey || !apiSecret) return "missing";
 
-  createLiveKitCallToken(
+  await createLiveKitCallToken(
     { profileId: "community-readiness", displayName: "Community Readiness" },
     "community-readiness",
+    "voice",
     { url, apiKey, apiSecret }
   );
   return "ok";

@@ -127,6 +127,12 @@ export async function createCallRoomForConversation(
     conversationId
   );
   if (conversation.blockedById) throw new Error("call.blocked");
+  if (
+    conversation.participantAActor?.kind === "page" ||
+    conversation.participantBActor?.kind === "page"
+  ) {
+    throw new Error("call.page_actor_forbidden");
+  }
 
   const otherProfileId =
     conversation.participantAId === current.profileId
@@ -218,11 +224,22 @@ export async function createCallTokenForCurrentUser(
   const room = await withDbRequestContext(current, (tx) => tx.callRoom.findFirst({
     where: callRoomJoinWhere(roomId, current.profileId),
     include: {
-      conversation: true,
+      conversation: {
+        include: {
+          participantAActor: { select: { kind: true } },
+          participantBActor: { select: { kind: true } },
+        },
+      },
     },
   }));
   if (!room) throw new Error("call.room_not_found");
   if (room.conversation?.blockedById) throw new Error("call.blocked");
+  if (
+    room.conversation?.participantAActor?.kind === "page" ||
+    room.conversation?.participantBActor?.kind === "page"
+  ) {
+    throw new Error("call.page_actor_forbidden");
+  }
   if (room.conversation) {
     const otherProfileId =
       room.conversation.participantAId === current.profileId
@@ -235,7 +252,12 @@ export async function createCallTokenForCurrentUser(
     );
   }
 
-  const signed = createLiveKitCallToken(current, room.roomName, config);
+  const signed = await createLiveKitCallToken(
+    current,
+    room.roomName,
+    room.callType === "voice" ? "voice" : "video",
+    config
+  );
   const issuedAt = new Date();
 
   await withDbRequestContext(current, async (tx) => {

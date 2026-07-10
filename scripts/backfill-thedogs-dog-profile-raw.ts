@@ -18,6 +18,10 @@ import {
   parseTheDogsDogProfile,
   TheDogsDogProfileProvider,
 } from "../src/lib/live/thedogs-profile";
+import {
+  sanitizeArchiveValue,
+  sanitizeProviderHtml,
+} from "../src/lib/live/raw-sanitizer";
 
 const DEFAULT_RAW_DIR = ".backfill/thedogs-raw";
 const DEFAULT_OUTPUT_DIR = ".backfill/thedogs-dog-profiles-raw";
@@ -200,9 +204,9 @@ async function archiveProfileWithRetries(
           fetchedAt: new Date().toISOString(),
           candidate,
           showMorePath: showMorePath ?? null,
-          profileHtml,
-          fullFormHtml,
-          parsed,
+          profileHtml: sanitizeProviderHtml(profileHtml),
+          fullFormHtml: sanitizeProviderHtml(fullFormHtml),
+          parsed: sanitizeArchiveValue(parsed),
         })}\n`
       );
 

@@ -12,6 +12,7 @@ const NOTIFICATION_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
 type NotificationInput = {
   userId: string;
   actorProfileId?: string | null;
+  actorId?: string | null;
   type: string;
   title: string;
   body?: string | null;
@@ -27,6 +28,7 @@ export async function createInAppNotification(input: NotificationInput) {
       data: {
         userId: input.userId,
         actorProfileId: input.actorProfileId ?? null,
+        actorId: input.actorId ?? null,
         type: input.type,
         title: input.title,
         body: input.body ?? null,

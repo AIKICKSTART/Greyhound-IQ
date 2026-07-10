@@ -1041,20 +1041,33 @@ export async function updateProfile(formData: FormData) {
     kennelPrefix: field(formData, "kennelPrefix"),
     website: field(formData, "website"),
     phone: field(formData, "phone"),
+    profileVisibility: field(formData, "profileVisibility") || "members",
+    contactVisibility: field(formData, "contactVisibility") || "only_me",
   });
   if (hasProfileMarketingFields(parsed)) assertPaidFeatureAccess(current);
+  const { profileVisibility, contactVisibility, ...profileFields } = parsed;
   const data = hasTier(current.tier, "pro")
-    ? parsed
+    ? profileFields
     : {
-        displayName: parsed.displayName,
-        bio: parsed.bio,
-        state: parsed.state,
-      };
-
-  await withDbRequestContext(current, (tx) => tx.profile.update({
-    where: { id: current.profileId },
-    data,
-  }));
+      displayName: profileFields.displayName,
+      bio: profileFields.bio,
+      state: profileFields.state,
+    };
+  await withDbRequestContext(current, async (tx) => {
+    const profile = await tx.profile.update({
+      where: { id: current.profileId },
+      data,
+    });
+    await tx.socialActor.updateMany({
+      where: { profileId: current.profileId },
+      data: {
+        displayName: profile.displayName,
+        avatarUrl: profile.avatarUrl,
+        profileVisibility,
+        contactVisibility,
+      },
+    });
+  });
 
   revalidatePath("/account");
   redirect("/account");
@@ -1168,6 +1181,7 @@ export async function createCustomPageAction(formData: FormData) {
     about: optional(formData, "about"),
     contactEmail: optional(formData, "contactEmail"),
     contactPhone: optional(formData, "contactPhone"),
+    contactVisibility: field(formData, "contactVisibility") || "only_me",
     website: optional(formData, "website"),
     accentColor: optional(formData, "accentColor"),
     heroMediaId: null,
@@ -1207,6 +1221,7 @@ export async function updateCustomPageAction(pageId: string, formData: FormData)
     about: optional(formData, "about"),
     contactEmail: optional(formData, "contactEmail"),
     contactPhone: optional(formData, "contactPhone"),
+    contactVisibility: field(formData, "contactVisibility") || "only_me",
     website: optional(formData, "website"),
     accentColor: optional(formData, "accentColor"),
     heroMediaId: null,
@@ -1252,6 +1267,7 @@ export async function generateDogCardAction(pageId: string) {
 
 const friendTargetSchema = z.object({
   profileId: z.string().trim().min(1).max(120),
+  senderActorId: z.string().trim().min(1).max(120).optional().nullable(),
 });
 
 const friendRespondSchema = z.object({
@@ -1311,8 +1327,7 @@ export async function removeFriendAction(formData: FormData) {
   revalidatePath("/pulse/friends");
 }
 
-// Pro-only cold-start (startOrGetConversation keeps its own paid gate); free
-// members reach existing threads via links instead.
+// Personal cold-starts are free; page identity cold-starts remain Pro-only.
 export async function startChatAction(formData: FormData) {
   const current = await requireCurrentUserProfile();
   const rateLimit = await checkRateLimit(
@@ -1324,8 +1339,11 @@ export async function startChatAction(formData: FormData) {
 
   const parsed = friendTargetSchema.parse({
     profileId: field(formData, "profileId"),
+    senderActorId: field(formData, "senderActorId") || null,
   });
-  const conversation = await startOrGetConversation(current, parsed.profileId);
+  const conversation = await startOrGetConversation(current, parsed.profileId, {
+    senderActorId: parsed.senderActorId,
+  });
   redirect(`/pulse/${conversation.id}`);
 }
 

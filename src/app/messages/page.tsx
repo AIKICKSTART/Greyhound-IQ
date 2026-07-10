@@ -121,6 +121,11 @@ export default async function MessagesPage() {
                       conversation.participantAId === user.profileId
                         ? conversation.participantB
                         : conversation.participantA;
+                    const otherActor =
+                      conversation.participantAId === user.profileId
+                        ? conversation.participantBActor
+                        : conversation.participantAActor;
+                    const otherName = otherActor?.displayName ?? other.displayName;
                     const message = conversation.messages[0];
                     const isSent = message?.senderId === user.profileId;
                     const unreadCount =
@@ -135,7 +140,7 @@ export default async function MessagesPage() {
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
                             <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))]">
-                              {other.displayName}
+                              {otherName}
                             </h3>
                             <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                               {message

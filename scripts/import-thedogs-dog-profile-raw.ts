@@ -13,6 +13,11 @@ import { access, appendFile, mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../src/lib/db";
+import {
+  sanitizeArchiveValue,
+  sanitizeProviderHtml,
+  sanitizeRawJson,
+} from "../src/lib/live/raw-sanitizer";
 
 const DEFAULT_PROFILE_DIR = ".backfill/thedogs-dog-profiles-raw";
 const DEFAULT_PROGRESS = ".backfill/thedogs-dog-profile-import-progress.jsonl";
@@ -125,7 +130,6 @@ type ArchivedProfileForm = {
   winnerDogName?: string;
   winnerDogSourceId?: string;
   inRunningPositions?: string;
-  startingPrice?: number;
   hasVideo?: boolean;
   sourceRawJson?: string;
 };
@@ -435,9 +439,9 @@ async function saveProfileArchiveOnly(
       ${dateOrUndefined(archive.fetchedAt) ?? null},
       ${archive.showMorePath ?? null},
       ${archive.candidate ? JSON.stringify(archive.candidate) : null},
-      ${JSON.stringify(profile)},
-      ${archive.profileHtml ?? null},
-      ${archive.fullFormHtml ?? null},
+      ${JSON.stringify(sanitizeArchiveValue(profile))},
+      ${archive.profileHtml ? sanitizeProviderHtml(archive.profileHtml) : null},
+      ${archive.fullFormHtml ? sanitizeProviderHtml(archive.fullFormHtml) : null},
       NOW(),
       NOW()
     )
@@ -496,7 +500,9 @@ async function saveProfileArchive(
     bestTimesJson: profile.bestTimesJson,
     boxHistoryJson: profile.boxHistoryJson,
     distanceHistoryJson: profile.distanceHistoryJson,
-    profileSourceRawJson: profile.profileSourceRawJson,
+    profileSourceRawJson: profile.profileSourceRawJson
+      ? sanitizeRawJson(profile.profileSourceRawJson)
+      : undefined,
     lastProfileSyncedAt: new Date(),
   };
   const dog = await upsertProfileDog(sourceProvider, sourceId, earBrand, dogData);
@@ -510,9 +516,11 @@ async function saveProfileArchive(
     fetchedAt: dateOrUndefined(archive.fetchedAt) ?? null,
     showMorePath: archive.showMorePath ?? null,
     candidateJson: archive.candidate ? JSON.stringify(archive.candidate) : null,
-    parsedJson: JSON.stringify(profile),
-    profileHtml: archive.profileHtml ?? null,
-    fullFormHtml: archive.fullFormHtml ?? null,
+    parsedJson: JSON.stringify(sanitizeArchiveValue(profile)),
+    profileHtml: archive.profileHtml ? sanitizeProviderHtml(archive.profileHtml) : null,
+    fullFormHtml: archive.fullFormHtml
+      ? sanitizeProviderHtml(archive.fullFormHtml)
+      : null,
   };
 
   await prisma.$executeRaw`
@@ -587,9 +595,8 @@ async function saveProfileArchive(
         winnerDogName: row.winnerDogName,
         winnerDogSourceId: prefixedSourceId(row.winnerDogSourceId, sourceProvider),
         inRunningPositions: row.inRunningPositions,
-        startingPrice: row.startingPrice,
         hasVideo: row.hasVideo ?? false,
-        sourceRawJson: row.sourceRawJson,
+        sourceRawJson: row.sourceRawJson ? sanitizeRawJson(row.sourceRawJson) : undefined,
       })),
     });
   }

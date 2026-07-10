@@ -3,7 +3,7 @@ import { createHash, createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { WebhookReceiver } from "livekit-server-sdk";
+import { TokenVerifier, WebhookReceiver } from "livekit-server-sdk";
 
 import {
   callRoomJoinWhere,
@@ -37,40 +37,57 @@ async function main() {
     },
   });
 
-  const nowSeconds = 1_700_000_000;
-  const signed = createLiveKitCallToken(
+  const tokenConfig = {
+    url: "wss://livekit.example.test",
+    apiKey: "test-api-key",
+    apiSecret: "test-api-secret-for-livekit-token-verification",
+  };
+  const verifier = new TokenVerifier(tokenConfig.apiKey, tokenConfig.apiSecret);
+  const voiceSigned = await createLiveKitCallToken(
     { profileId, displayName: "Token Test User" },
     "room-test",
-    {
-      url: "wss://livekit.example.test",
-      apiKey: "test-api-key",
-      apiSecret: "test-api-secret",
-    },
-    nowSeconds
+    "voice",
+    tokenConfig
   );
 
-  const [headerPart, payloadPart, signaturePart] = signed.token.split(".");
+  const [headerPart, payloadPart, signaturePart] = voiceSigned.token.split(".");
   assert.ok(headerPart);
   assert.ok(payloadPart);
   assert.ok(signaturePart);
 
   const header = decodeJwtPart(headerPart);
-  const payload = decodeJwtPart(payloadPart);
+  const voicePayload = await verifier.verify(voiceSigned.token);
 
-  assert.deepEqual(header, { alg: "HS256", typ: "JWT" });
-  assert.equal(payload.iss, "test-api-key");
-  assert.equal(payload.sub, profileId);
-  assert.equal(payload.name, "Token Test User");
-  assert.equal(payload.nbf, nowSeconds - 5);
-  assert.equal(payload.exp, nowSeconds + 10 * 60);
-  assert.deepEqual(payload.video, {
-    room: "room-test",
-    roomJoin: true,
-    canPublish: true,
-    canSubscribe: true,
-    canPublishData: false,
-  });
-  assert.equal(signed.expiresAtSeconds, nowSeconds + 10 * 60);
+  assert.equal(header.alg, "HS256");
+  assert.equal(voicePayload.iss, tokenConfig.apiKey);
+  assert.equal(voicePayload.sub, profileId);
+  assert.equal(voicePayload.name, "Token Test User");
+  assert.equal(voicePayload.video?.room, "room-test");
+  assert.equal(voicePayload.video?.roomJoin, true);
+  assert.equal(voicePayload.video?.canPublish, true);
+  assert.equal(voicePayload.video?.canSubscribe, true);
+  assert.equal(voicePayload.video?.canPublishData, false);
+  assert.deepEqual(voicePayload.video?.canPublishSources, ["microphone"]);
+  assert.equal(voiceSigned.expiresAtSeconds, voicePayload.exp);
+  assert.ok(
+    voiceSigned.expiresAtSeconds - Math.floor(Date.now() / 1000) <= 10 * 60,
+    "voice token TTL is at most 10 minutes"
+  );
+
+  const videoSigned = await createLiveKitCallToken(
+    { profileId, displayName: "Token Test User" },
+    "room-video-test",
+    "video",
+    tokenConfig
+  );
+  const videoPayload = await verifier.verify(videoSigned.token);
+  assert.equal(videoPayload.video?.room, "room-video-test");
+  assert.deepEqual(videoPayload.video?.canPublishSources, [
+    "microphone",
+    "camera",
+    "screen_share",
+    "screen_share_audio",
+  ]);
 
   console.log("Call token permission checks passed");
 
@@ -140,6 +157,12 @@ async function main() {
     !createTokenBody.includes("assertPaidFeatureAccess("),
     "createCallTokenForCurrentUser must not tier-gate receivers joining"
   );
+  const callTokenSource = readFileSync(
+    join(__dirname, "..", "src", "lib", "call-token.ts"),
+    "utf8"
+  );
+  assert.ok(callTokenSource.includes("new AccessToken("), "LiveKit SDK must sign call tokens");
+  assert.ok(!callTokenSource.includes("createHmac"), "call tokens must not use hand-built JWT signing");
   console.log("PASS: call initiation paid-gated, token join ungated");
   // ── End tier-gate placement ────────────────────────────────────────────────
 }

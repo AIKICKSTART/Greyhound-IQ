@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Lock, MessageSquare, Phone, Video } from "lucide-react";
 import { startChatAction } from "@/app/actions";
-import { getBrowserRealtimeClient } from "@/components/realtime-refresh";
+import {
+  ensureBrowserRealtimeAuthorization,
+  getBrowserRealtimeClient,
+} from "@/components/realtime-refresh";
 
 export type HubFriend = {
   friendshipId: string;
@@ -22,12 +25,14 @@ export function HubFriendsList({
   friends,
   canStartChat,
   canStartCall,
+  senderActorId,
 }: {
   channelName: string | null;
   selfProfileId: string;
   friends: HubFriend[];
   canStartChat: boolean;
   canStartCall: boolean;
+  senderActorId?: string | null;
 }) {
   const [onlineIds, setOnlineIds] = useState<ReadonlySet<string>>(new Set());
 
@@ -35,28 +40,39 @@ export function HubFriendsList({
     const client = getBrowserRealtimeClient();
     if (!client || !channelName) return;
 
-    const channel = client.channel(channelName);
-    const syncOnline = () => {
-      const state = channel.presenceState<{ profileId?: string }>();
-      const ids = new Set(
-        Object.values(state)
-          .flat()
-          .map((presence) => presence.profileId)
-          .filter((id): id is string => Boolean(id))
-      );
-      setOnlineIds(ids);
-    };
-    channel
-      .on("presence", { event: "sync" }, syncOnline)
-      .on("presence", { event: "leave" }, syncOnline)
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          void channel.track({ profileId: selfProfileId });
-        }
+    let cancelled = false;
+    let channel: ReturnType<typeof client.channel> | null = null;
+    const subscribe = async () => {
+      await ensureBrowserRealtimeAuthorization(client, [channelName]);
+      if (cancelled) return;
+      const subscribedChannel = client.channel(channelName, {
+        config: { private: true },
       });
+      channel = subscribedChannel;
+      const syncOnline = () => {
+        const state = subscribedChannel.presenceState<{ profileId?: string }>();
+        const ids = new Set(
+          Object.values(state)
+            .flat()
+            .map((presence) => presence.profileId)
+            .filter((id): id is string => Boolean(id))
+        );
+        setOnlineIds(ids);
+      };
+      subscribedChannel
+        .on("presence", { event: "sync" }, syncOnline)
+        .on("presence", { event: "leave" }, syncOnline)
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            void subscribedChannel.track({ profileId: selfProfileId });
+          }
+        });
+    };
+    void subscribe().catch(() => null);
 
     return () => {
-      void client.removeChannel(channel);
+      cancelled = true;
+      if (channel) void client.removeChannel(channel);
     };
   }, [channelName, selfProfileId]);
 
@@ -104,6 +120,9 @@ export function HubFriendsList({
               ) : canStartChat ? (
                 <form action={startChatAction}>
                   <input type="hidden" name="profileId" value={friend.profileId} />
+                  {senderActorId && (
+                    <input type="hidden" name="senderActorId" value={senderActorId} />
+                  )}
                   <button
                     type="submit"
                     aria-label={`Start chat with ${friend.displayName}`}

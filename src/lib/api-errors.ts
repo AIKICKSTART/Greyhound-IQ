@@ -56,6 +56,7 @@ function statusForErrorMessage(message: string): number | null {
     return 403;
   }
   if (message === "payment.required") return 402;
+  if (message === "rate_limit.exceeded") return 429;
   if (message === "media.too_large" || message === "media.quota_exceeded") {
     return 413;
   }

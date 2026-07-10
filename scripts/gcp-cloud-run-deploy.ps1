@@ -20,6 +20,8 @@ param(
   [int]$WebConcurrency = 20,
   [ValidateSet("metadata", "clamav")]
   [string]$MediaScannerMode = "clamav",
+  [ValidateSet("true", "false")]
+  [string]$ActorConversationMultiplexEnabled = "false",
   [string]$MediaScannerMemory = "4Gi",
   [switch]$AllowMissingSecrets
 )
@@ -388,6 +390,7 @@ $requiredSecrets = @(
   "WORKOS_COOKIE_PASSWORD",
   "INTERNAL_API_SECRET",
   "REALTIME_CHANNEL_SECRET",
+  "SUPABASE_JWT_SECRET",
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
   "NEXT_PUBLIC_SUPABASE_URL",
@@ -465,6 +468,7 @@ Invoke-Gcloud builds submit . `
   --project $ProjectId
 
 $runtimeServiceAccount = "giq-web-$Environment@$ProjectId.iam.gserviceaccount.com"
+$scannerServiceAccount = "giq-media-scanner-$Environment@$ProjectId.iam.gserviceaccount.com"
 $availableRequiredSecrets = $requiredSecrets
 if ($AllowMissingSecrets) {
   # Mounting a secret with no version fails the revision; skip absent ones.
@@ -486,6 +490,7 @@ $plainEnvItems = @(
   "NEXT_PUBLIC_WORKOS_REDIRECT_URI=$NextPublicWorkosRedirectUri",
   "NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=false",
   "NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT=false",
+  "ACTOR_CONVERSATION_MULTIPLEX_ENABLED=$ActorConversationMultiplexEnabled",
   "MEDIA_SCAN_MODE=disabled"
 )
 if ($WorkosCookieDomain) {
@@ -550,7 +555,7 @@ if (-not $SkipMediaScanner) {
     "--image=$image",
     "--region=$Region",
     "--platform=managed",
-    "--service-account=$runtimeServiceAccount",
+    "--service-account=$scannerServiceAccount",
     "--no-allow-unauthenticated",
     "--port=8080",
     "--cpu=1",

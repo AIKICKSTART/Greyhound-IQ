@@ -2,6 +2,8 @@ import "./load-env";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
+process.env.REALTIME_BROADCAST_DISABLED ??= "true";
+
 import { syncAuthUser } from "../src/lib/auth-sync";
 import { prisma } from "../src/lib/db";
 import {
@@ -16,6 +18,8 @@ import {
 } from "../src/lib/call-service";
 import { getMediaForCurrentUser } from "../src/lib/media-service";
 import { checkRateLimit } from "../src/lib/rate-limit";
+import { getSocialActorProfileByHandle } from "../src/lib/social-actor-service";
+import { withDbRequestContext, withDbSystemContext } from "../src/lib/db-context";
 import { PRIVATE_USER_MEDIA_BUCKET } from "../src/lib/storage-paths";
 import type { CurrentUserProfile } from "../src/lib/auth";
 
@@ -38,6 +42,7 @@ async function main() {
   process.env.LIVEKIT_URL = "wss://livekit.comms-sec.example.test";
   process.env.LIVEKIT_API_KEY = "comms-sec-key";
   process.env.LIVEKIT_API_SECRET = "comms-sec-secret";
+  process.env.ACTOR_CONVERSATION_MULTIPLEX_ENABLED = "true";
 
   const trackedUserIds: string[] = [];
   const trackedProfileIds: string[] = [];
@@ -61,6 +66,45 @@ async function main() {
       trackedProfileIds.push(u.profileId);
     }
 
+    // Two-way blocks hide the actor and all contact fields, including when the
+    // actor owner initiated the block.
+    const aActor = await prisma.socialActor.findUniqueOrThrow({
+      where: { profileId: a.profileId },
+      select: { id: true, handle: true },
+    });
+    await assert.rejects(() =>
+      withDbRequestContext(a, (tx) =>
+        tx.socialActor.update({
+          where: { id: aActor.id },
+          data: { ownerProfileId: b.profileId },
+        }),
+      ),
+    );
+    console.log("PASS: actor identity cannot be rebound to another profile");
+    await withDbSystemContext(async (tx) => {
+      await tx.socialActor.update({
+        where: { id: aActor.id },
+        data: { contactVisibility: "public" },
+      });
+      await tx.profile.update({
+        where: { id: a.profileId },
+        data: { phone: "0400000000", website: "https://private.example.invalid" },
+      });
+    });
+    const profileBlock = await prisma.userBlock.create({
+      data: {
+        blockerProfileId: a.profileId,
+        blockedProfileId: b.profileId,
+      },
+    });
+    assert.equal(
+      await getSocialActorProfileByHandle(aActor.handle, b),
+      null,
+      "blocked viewer must not receive actor/contact data",
+    );
+    await prisma.userBlock.delete({ where: { id: profileBlock.id } });
+    console.log("PASS: two-way block hides profile and contact data");
+
     // Create A-B conversation
     const abConv = await startOrGetConversation(a, b.profileId);
     trackedConvIds.push(abConv.id);
@@ -68,6 +112,57 @@ async function main() {
     // Create A-D conversation BEFORE banning D so startOrGetConversation can proceed
     const adConv = await startOrGetConversation(a, d.profileId);
     trackedConvIds.push(adConv.id);
+
+    // A downgraded owner may keep replying in an existing page conversation,
+    // but the page identity may only start the conversation while Pro.
+    const page = await prisma.customPage.create({
+      data: {
+        ownerProfileId: c.profileId,
+        pageType: "business",
+        handle: `page-${marker.replaceAll("_", "-")}`,
+        title: "Security Page",
+        published: true,
+        moderationStatus: "approved",
+      },
+    });
+    const pageActor = await prisma.socialActor.create({
+      data: {
+        kind: "page",
+        pageId: page.id,
+        ownerProfileId: c.profileId,
+        handle: page.handle,
+        displayName: page.title,
+        profileVisibility: "public",
+        contactVisibility: "only_me",
+        published: true,
+      },
+    });
+    const pageConversation = await startOrGetConversation(c, b.profileId, {
+      senderActorId: pageActor.id,
+    });
+    trackedConvIds.push(pageConversation.id);
+    const personalConversation = await startOrGetConversation(c, b.profileId);
+    trackedConvIds.push(personalConversation.id);
+    assert.notEqual(
+      personalConversation.id,
+      pageConversation.id,
+      "personal and page inboxes must use distinct actor-scoped threads",
+    );
+    const pageReply = await sendConversationMessage(
+      { ...c, tier: "free" as const },
+      pageConversation.id,
+      { body: "existing page inbox reply", mediaIds: [] },
+    );
+    assert.equal(pageReply.senderActorId, pageActor.id);
+    const personalReply = await sendConversationMessage(
+      c,
+      personalConversation.id,
+      { body: "personal inbox reply", mediaIds: [] },
+    );
+    assert.notEqual(personalReply.senderActorId, pageActor.id);
+    console.log(
+      "PASS: actor-scoped personal/page inboxes stay distinct and downgraded page owner can reply",
+    );
 
     // Ban D
     await prisma.user.update({ where: { id: d.dbUserId }, data: { isBanned: true } });
@@ -126,6 +221,19 @@ async function main() {
       },
     });
     trackedMediaIds.push(fakeMedia.id);
+    const bActor = await prisma.socialActor.findUniqueOrThrow({
+      where: { profileId: b.profileId },
+      select: { id: true },
+    });
+    await assert.rejects(() =>
+      withDbRequestContext(b, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.actorGalleryMedia.create({
+          data: { actorId: bActor.id, mediaId: fakeMedia.id, position: 0 },
+        });
+      }),
+    );
+    console.log("PASS: actor gallery rejects cross-owner media");
     await sendConversationMessage(a, abConv.id, {
       body: "media attach",
       mediaIds: [fakeMedia.id],
@@ -167,7 +275,9 @@ async function main() {
     await checkRateLimit(windowKey, 2, 4000);
     const wr3 = await checkRateLimit(windowKey, 2, 4000);
     assert.equal(wr3.allowed, false, "3rd call exhausts limit");
-    const waitMs = wr1.resetAt - Date.now() + 150;
+    // Timers can resume slightly early under CI/Windows scheduling. Keep the
+    // assertion beyond the database window without extending product limits.
+    const waitMs = wr1.resetAt - Date.now() + 500;
     await new Promise((res) => setTimeout(res, Math.max(waitMs, 0)));
     const wr4 = await checkRateLimit(windowKey, 2, 4000);
     assert.equal(wr4.allowed, true, "allowed again after window reset");

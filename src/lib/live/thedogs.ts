@@ -537,9 +537,6 @@ function parseRunner(row: string, index: number): LiveRunner | null {
       cleanHtml(firstMatch(row, /T:\s*([^<]+)/i)) ||
       undefined,
     weight: parseNumber(firstMatch(row, /<td class="race-runners__weight">([\s\S]*?)<\/td>/i)),
-    startingPrice: parseMoney(
-      firstMatch(row, /<td class="race-runners__starting-price">([\s\S]*?)<\/td>/i)
-    ),
     scratched: /\(SCR\)|scratched/i.test(row),
     finishingPosition: finish,
     runningTime,

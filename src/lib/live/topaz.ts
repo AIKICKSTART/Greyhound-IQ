@@ -53,8 +53,6 @@ interface TopazRun {
   trainerName?: string | null;
   weightInKg?: number | null;
   weight?: number | null;
-  startingPrice?: number | null;
-  startPrice?: number | null;
   scratched?: boolean | null;
   scratchIsScratched?: boolean | null;
   isLateScratching?: boolean | null;
@@ -189,8 +187,6 @@ export function mapRun(run: TopazRun): LiveRunner {
     },
     trainerName: run.trainerName ?? run.trainer ?? undefined,
     weight: numberOrNull(run.weightInKg ?? run.weight) ?? undefined,
-    startingPrice:
-      numberOrNull(run.startingPrice ?? run.startPrice) ?? undefined,
     scratched:
       run.scratched ?? run.scratchIsScratched ?? run.isLateScratching ?? false,
     finishingPosition: numberOrNull(run.place) ?? undefined,

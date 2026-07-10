@@ -17,7 +17,7 @@ const statementRules = [
   {
     name: "drop-destructive-object",
     pattern:
-      /\bDROP\s+(TABLE|DATABASE|SCHEMA|TYPE|FUNCTION|PROCEDURE|VIEW|MATERIALIZED\s+VIEW|TRIGGER|CONSTRAINT)\b/i,
+      /\bDROP\s+(TABLE|DATABASE|SCHEMA|TYPE|FUNCTION|PROCEDURE|VIEW|MATERIALIZED\s+VIEW|CONSTRAINT)\b/i,
   },
   {
     name: "truncate",
@@ -32,10 +32,25 @@ const statementRules = [
 const findings: Finding[] = [];
 
 for (const migration of readdirSync(MIGRATIONS_DIR).sort()) {
-  const file = join(MIGRATIONS_DIR, migration, "migration.sql");
-  if (!statExists(file)) continue;
+  const migrationDir = join(MIGRATIONS_DIR, migration);
+  if (!directoryExists(migrationDir)) continue;
+  const file = join(migrationDir, "migration.sql");
+  if (!statExists(file)) {
+    findings.push({ file, line: 1, rule: "missing-migration-sql" });
+    continue;
+  }
 
   const sql = readFileSync(file, "utf8");
+  const reviewSql = maskSqlComments(sql);
+  for (const drop of findTriggerDrops(reviewSql)) {
+    if (!hasLaterTriggerReplacement(reviewSql, drop)) {
+      findings.push({
+        file,
+        line: lineForOffset(sql, drop.index),
+        rule: "drop-destructive-object",
+      });
+    }
+  }
   const statements = sql.split(";");
   let offset = 0;
 
@@ -72,12 +87,60 @@ function statExists(path: string) {
   }
 }
 
+function directoryExists(path: string) {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 function stripSqlComments(sql: string) {
   return sql
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .split(/\r?\n/)
     .map((line) => line.replace(/--.*$/, ""))
     .join("\n");
+}
+
+type TriggerDrop = {
+  index: number;
+  end: number;
+  name: string;
+  table: string;
+};
+
+function findTriggerDrops(sql: string): TriggerDrop[] {
+  const identifier = String.raw`(?:"[^"]+"|[A-Za-z_][A-Za-z0-9_$]*)`;
+  const qualifiedIdentifier = `${identifier}(?:\\.${identifier})?`;
+  const pattern = new RegExp(
+    `\\bDROP\\s+TRIGGER(?:\\s+IF\\s+EXISTS)?\\s+(${identifier})\\s+ON\\s+(${qualifiedIdentifier})`,
+    "giu"
+  );
+  return [...sql.matchAll(pattern)].map((match) => ({
+    index: match.index,
+    end: match.index + match[0].length,
+    name: match[1],
+    table: match[2],
+  }));
+}
+
+function hasLaterTriggerReplacement(sql: string, drop: TriggerDrop) {
+  const createPattern = new RegExp(
+    `\\bCREATE\\s+(?:OR\\s+REPLACE\\s+)?TRIGGER\\s+${escapeRegExp(drop.name)}(?=\\s)[\\s\\S]*?\\bON\\s+${escapeRegExp(drop.table)}(?=\\s)`,
+    "iu"
+  );
+  return createPattern.test(sql.slice(drop.end));
+}
+
+function maskSqlComments(sql: string) {
+  return sql
+    .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\r\n]/g, " "))
+    .replace(/--[^\r\n]*/g, (comment) => " ".repeat(comment.length));
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function lineForOffset(text: string, offset: number) {

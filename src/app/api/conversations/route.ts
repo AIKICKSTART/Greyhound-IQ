@@ -45,7 +45,9 @@ export async function POST(request: Request) {
     const recipientId = parsed.recipientProfileId ?? parsed.recipientId;
     if (!recipientId) throw new Error("conversation.recipient_required");
 
-    const conversation = await startOrGetConversation(current, recipientId);
+    const conversation = await startOrGetConversation(current, recipientId, {
+      senderActorId: parsed.senderActorId,
+    });
     return NextResponse.json({ item: conversation }, { status: 201 });
   } catch (err) {
     return jsonError(err, "Could not start conversation");

@@ -1,6 +1,9 @@
 import { getCurrentUser } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
-import { getMediaBlob } from "@/lib/media-service";
+import {
+  getMediaBlob,
+  MediaRangeNotSatisfiableError,
+} from "@/lib/media-service";
 
 export const runtime = "nodejs";
 
@@ -11,22 +14,42 @@ export async function GET(
   try {
     const [{ id }, current] = await Promise.all([params, getCurrentUser()]);
     const url = new URL(request.url);
-    const { media, blob } = await getMediaBlob(
+    const { body, delivery } = await getMediaBlob(
       id,
       current,
       url.searchParams.get("expires"),
-      url.searchParams.get("token")
+      url.searchParams.get("token"),
+      {
+        variant: url.searchParams.get("variant"),
+        range: request.headers.get("range"),
+        signal: request.signal,
+      }
     );
 
-    return new Response(blob.stream(), {
-      headers: {
-        "Cache-Control": "private, max-age=60",
-        "Content-Type": media.mimeType,
-        "Content-Length": media.sizeBytes.toString(),
-        "X-Content-Type-Options": "nosniff",
-      },
+    const headers = new Headers({
+      "Accept-Ranges": "bytes",
+      "Cache-Control": "private, max-age=60",
+      "Content-Length": delivery.contentLength.toString(),
+      "Content-Type": delivery.mimeType,
+      "X-Content-Type-Options": "nosniff",
+    });
+    if (delivery.contentRange) {
+      headers.set("Content-Range", delivery.contentRange);
+    }
+    return new Response(body, {
+      headers,
+      status: delivery.status,
     });
   } catch (err) {
+    if (err instanceof MediaRangeNotSatisfiableError) {
+      return new Response(null, {
+        status: 416,
+        headers: {
+          "Accept-Ranges": "bytes",
+          "Content-Range": `bytes */${err.sizeBytes}`,
+        },
+      });
+    }
     return jsonError(err, "Could not load media file");
   }
 }

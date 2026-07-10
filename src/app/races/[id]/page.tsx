@@ -21,6 +21,7 @@ import {
 import { absoluteTheDogsUrl } from "@/lib/live/thedogs-replay";
 import { proxiedStreamPath } from "@/lib/live/replay-proxy";
 import { formatRaceDetailTime } from "@/lib/race-time";
+import { orderRunners } from "@/lib/runner-order";
 
 export const dynamic = "force-dynamic";
 
@@ -122,11 +123,9 @@ export default async function RacePage({
       : resultCount < expectedResultCount
         ? `Partial ${resultCount}/${expectedResultCount}`
         : "Resulted";
-  const winner = race.runners.find(
+  const orderedRunners = orderRunners(race.runners, hasResults ? "finish" : "box");
+  const winner = orderedRunners.find(
     (runner) => runner.result?.finishingPosition === 1
-  );
-  const hasStartingPrices = race.runners.some(
-    (runner) => runner.startingPrice !== null
   );
   const raceTimeLabel = formatRaceDetailTime(race.raceTime);
   const previousVideoRunners = await getPreviousRaceVideoRunners(race.id);
@@ -280,7 +279,7 @@ export default async function RacePage({
               </div>
             )}
             <div className="overflow-x-auto">
-              <table className={`w-full ${hasStartingPrices ? "min-w-[780px]" : "min-w-[720px]"}`}>
+              <table className="w-full min-w-[720px]">
                 <thead>
                   <tr className="giq-table-head">
                     <th className="w-14 p-3 text-center tracking-[0.04em]">
@@ -296,11 +295,6 @@ export default async function RacePage({
                       Wgt
                     </th>
                     <th className="p-3 text-left tracking-[0.04em]">Form</th>
-                    {hasStartingPrices && (
-                      <th className="p-3 text-center tracking-[0.04em]">
-                        SP
-                      </th>
-                    )}
                     {hasResults && (
                       <th className="p-3 text-center tracking-[0.04em]">
                         Result
@@ -309,11 +303,10 @@ export default async function RacePage({
                   </tr>
                 </thead>
                 <tbody>
-                  {race.runners.map((runner) => (
+                  {orderedRunners.map((runner) => (
                     <RunnerRow
                       key={runner.id}
                       runner={runner}
-                      showStartingPrice={hasStartingPrices}
                       showResults={hasResults}
                     />
                   ))}
@@ -381,9 +374,6 @@ export default async function RacePage({
                     Box {winner.boxNumber}
                     {winner.result.runningTime
                       ? ` / ${winner.result.runningTime.toFixed(2)}s`
-                      : ""}
-                    {winner.startingPrice
-                      ? ` / $${winner.startingPrice.toFixed(2)}`
                       : ""}
                   </p>
                 </div>

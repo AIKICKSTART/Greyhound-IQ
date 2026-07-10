@@ -36,7 +36,7 @@ STAGING_SECRETS=(
   greyhoundiq-staging-REALTIME_CHANNEL_SECRET greyhoundiq-staging-STRIPE_PRICE_PRO_MONTHLY
   greyhoundiq-staging-STRIPE_PRICE_PRO_YEARLY greyhoundiq-staging-STRIPE_SECRET_KEY
   greyhoundiq-staging-STRIPE_WEBHOOK_SECRET greyhoundiq-staging-SUPABASE_SERVICE_ROLE_KEY
-  greyhoundiq-staging-SUPABASE_URL greyhoundiq-staging-WORKOS_API_KEY
+  greyhoundiq-staging-SUPABASE_JWT_SECRET greyhoundiq-staging-SUPABASE_URL greyhoundiq-staging-WORKOS_API_KEY
   greyhoundiq-staging-WORKOS_CLIENT_ID greyhoundiq-staging-WORKOS_COOKIE_PASSWORD
 )
 PROD_SECRETS=(
@@ -45,7 +45,7 @@ PROD_SECRETS=(
   greyhoundiq-prod-LIVEKIT_API_SECRET greyhoundiq-prod-LIVEKIT_URL
   greyhoundiq-prod-NEXTAUTH_SECRET greyhoundiq-prod-NEXT_PUBLIC_SUPABASE_ANON_KEY
   greyhoundiq-prod-NEXT_PUBLIC_SUPABASE_URL greyhoundiq-prod-REALTIME_CHANNEL_SECRET
-  greyhoundiq-prod-SUPABASE_SERVICE_ROLE_KEY greyhoundiq-prod-SUPABASE_URL
+  greyhoundiq-prod-SUPABASE_JWT_SECRET greyhoundiq-prod-SUPABASE_SERVICE_ROLE_KEY greyhoundiq-prod-SUPABASE_URL
   greyhoundiq-prod-WORKOS_API_KEY greyhoundiq-prod-WORKOS_CLIENT_ID
   greyhoundiq-prod-WORKOS_COOKIE_PASSWORD
 )

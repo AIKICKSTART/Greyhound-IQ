@@ -21,6 +21,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
+    "db:indexes:prepare": "tsx scripts/prepare-database-indexes.ts",
     "db:baseline": "prisma migrate resolve --applied 20260630093000_baseline",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
@@ -31,6 +32,7 @@
     "db:local:migrate": "tsx scripts/local-database.ts migrate",
     "db:local:preflight": "tsx scripts/local-database.ts preflight",
     "db:local:status": "tsx scripts/local-database.ts status",
+    "db:local:analyze": "tsx scripts/local-database.ts analyze",
     "db:local:import:race-archive": "tsx scripts/local-database.ts import-race-archive",
     "db:local:import:race-normalized": "tsx scripts/local-database.ts import-race-normalized",
     "db:local:import:dog-archive": "tsx scripts/local-database.ts import-dog-archive",
@@ -99,7 +101,7 @@
     "@auth/prisma-adapter": "^2.11.2",
     "@base-ui/react": "^1.6.0",
     "@hookform/resolvers": "^5.4.0",
-    "@next/env": "16.2.9",
+    "@next/env": "16.2.10",
     "@prisma/client": "^6.19.3",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
@@ -113,17 +115,17 @@
     "livekit-server-sdk": "^2.16.0",
     "lucide-react": "^1.21.0",
     "motion": "^12.42.2",
-    "next": "16.2.9",
+    "next": "16.2.10",
     "next-auth": "^4.24.14",
     "prisma": "^6.19.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.80.0",
     "server-only": "^0.0.1",
-    "shadcn": "^4.12.0",
     "stripe": "^22.3.0",
     "tailwind-merge": "^3.6.0",
     "tsx": "^4.22.4",
+    "undici": "^7.28.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -132,8 +134,17 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.9",
+    "eslint-config-next": "16.2.10",
+    "shadcn": "4.12.0",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.16"
+    },
+    "next-auth": {
+      "uuid": "11.1.1"
+    }
   }
 }

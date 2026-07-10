@@ -11,6 +11,10 @@ import {
   type LiveRunner,
 } from "./provider";
 import { canonicalTrackName } from "./track-name";
+import {
+  whitelistProviderSnapshot,
+  type ProviderSnapshotKind,
+} from "./raw-sanitizer";
 
 export type SyncCounts = {
   meetings: number;
@@ -24,6 +28,14 @@ export type SyncScope = "upcoming" | "results" | "all";
 const BULK_WRITE_CHUNK_SIZE = 100;
 const LIVE_SYNC_TRANSACTION_MAX_WAIT_MS = 30_000;
 const LIVE_SYNC_TRANSACTION_TIMEOUT_MS = 240_000;
+
+function sanitizedRawJson(
+  value: string | null | undefined,
+  provider: string | null | undefined,
+  kind: ProviderSnapshotKind
+) {
+  return whitelistProviderSnapshot(value, provider, kind);
+}
 
 type LiveSyncDbClient = Prisma.TransactionClient;
 
@@ -55,7 +67,6 @@ type RunnerUpsertRow = {
   dogId: string;
   weight: number | null;
   trainerId: string | null;
-  startingPrice: number | null;
   scratched: boolean;
   sourceProvider: string | null;
   sourceId: string | null;
@@ -210,6 +221,7 @@ const AGGREGATE_MATVIEWS = [
   "giq_sire_leaderboard",
   "giq_box_bias",
   "giq_trainer_leaderboard",
+  "giq_trainer_performance",
   "giq_track_records",
 ] as const;
 
@@ -453,7 +465,11 @@ async function ensureMeetings(
         meetingType: meeting.meetingType ?? null,
         sourceProvider: meeting.sourceProvider ?? null,
         sourceId: meeting.sourceId ?? null,
-        sourceRawJson: meeting.sourceRawJson ?? null,
+        sourceRawJson: sanitizedRawJson(
+          meeting.sourceRawJson,
+          meeting.sourceProvider,
+          "meeting"
+        ),
         lastSyncedAt: now,
       },
     ];
@@ -490,7 +506,11 @@ async function ensureRaces(db: LiveSyncDbClient, items: RaceWithMeeting[], now: 
     photoFinishUrl: item.race.photoFinishUrl ?? null,
     sourceProvider: item.race.sourceProvider ?? item.meeting.sourceProvider ?? null,
     sourceId: item.race.sourceId ?? null,
-    sourceRawJson: item.race.sourceRawJson ?? null,
+    sourceRawJson: sanitizedRawJson(
+      item.race.sourceRawJson,
+      item.race.sourceProvider ?? item.meeting.sourceProvider,
+      "race"
+    ),
     raceTimeSource: item.race.raceTimeSource ?? "provider",
     lastSyncedAt: now,
   }));
@@ -532,7 +552,11 @@ async function ensureRaceVideos(
         streamContentType: null,
         title: item.race.name ?? null,
         description: item.race.grade ?? null,
-        sourceRawJson: item.race.sourceRawJson ?? null,
+        sourceRawJson: sanitizedRawJson(
+          item.race.sourceRawJson,
+          sourceProvider,
+          "race"
+        ),
         fetchedAt: now,
         lastSyncedAt: now,
       },
@@ -787,13 +811,16 @@ async function ensureRunners(
       trainerId: item.runner.trainerName
         ? trainerIds.get(item.runner.trainerName) ?? null
         : null,
-      startingPrice: item.runner.startingPrice ?? null,
       scratched: item.runner.scratched ?? false,
       sourceProvider: item.runner.sourceProvider ?? item.sourceProvider ?? null,
       sourceId:
         item.runner.sourceId ??
         (item.raceSourceId ? `${item.raceSourceId}#box-${item.runner.boxNumber}` : null),
-      sourceRawJson: item.runner.sourceRawJson ?? null,
+      sourceRawJson: sanitizedRawJson(
+        item.runner.sourceRawJson,
+        item.runner.sourceProvider ?? item.sourceProvider,
+        "runner"
+      ),
     });
   }
 
@@ -814,17 +841,16 @@ async function bulkUpsertRunners(db: LiveSyncDbClient, rows: RunnerUpsertRow[]) 
 
     await db.$executeRaw`
       INSERT INTO "Runner"
-        ("id", "raceId", "boxNumber", "dogId", "weight", "trainerId", "startingPrice", "scratched", "sourceProvider", "sourceId", "sourceRawJson", "createdAt")
+        ("id", "raceId", "boxNumber", "dogId", "weight", "trainerId", "scratched", "sourceProvider", "sourceId", "sourceRawJson", "createdAt")
       VALUES ${Prisma.join(
         chunk.map((row) => Prisma.sql`
-          (${row.id}, ${row.raceId}, ${row.boxNumber}, ${row.dogId}, ${row.weight}, ${row.trainerId}, ${row.startingPrice}, ${row.scratched}, ${row.sourceProvider}, ${row.sourceId}, ${row.sourceRawJson}, NOW())
+          (${row.id}, ${row.raceId}, ${row.boxNumber}, ${row.dogId}, ${row.weight}, ${row.trainerId}, ${row.scratched}, ${row.sourceProvider}, ${row.sourceId}, ${row.sourceRawJson}, NOW())
         `)
       )}
       ON CONFLICT ("raceId", "boxNumber") ${conflictAction(Prisma.sql`DO UPDATE SET
         "dogId" = EXCLUDED."dogId",
         "weight" = EXCLUDED."weight",
         "trainerId" = EXCLUDED."trainerId",
-        "startingPrice" = EXCLUDED."startingPrice",
         "scratched" = EXCLUDED."scratched",
         "sourceProvider" = EXCLUDED."sourceProvider",
         "sourceId" = EXCLUDED."sourceId",
@@ -860,7 +886,11 @@ async function ensureResults(
         sourceId:
           item.runner.sourceId ??
           (item.raceSourceId ? `${item.raceSourceId}#box-${item.runner.boxNumber}` : null),
-        sourceRawJson: item.runner.sourceRawJson ?? null,
+        sourceRawJson: sanitizedRawJson(
+          item.runner.sourceRawJson,
+          item.runner.sourceProvider ?? item.sourceProvider,
+          "runner"
+        ),
         lastSyncedAt: now,
       },
     ];

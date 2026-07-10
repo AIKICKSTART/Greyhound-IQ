@@ -17,7 +17,6 @@ const theDogsRace = parseTheDogsRaceResult(
       <td class="race-runners__time">30.12</td>
       <td class="race-runners__margin">0</td>
       <td class="race-runners__weight">31.2</td>
-      <td class="race-runners__starting-price">$2.40</td>
     </tr>
     <tr class="race-runner">
       <td><sprite-svg name="rug_2"></sprite-svg></td>
@@ -26,7 +25,6 @@ const theDogsRace = parseTheDogsRaceResult(
       <td class="race-runners__time">30.40</td>
       <td class="race-runners__margin">4</td>
       <td class="race-runners__weight">30.1</td>
-      <td class="race-runners__starting-price">$4.80</td>
     </tr>
     <tr class="race-runner">
       <td><sprite-svg name="rug_4"></sprite-svg></td>
@@ -35,7 +33,6 @@ const theDogsRace = parseTheDogsRaceResult(
       <td class="race-runners__time">30.90</td>
       <td class="race-runners__margin">11</td>
       <td class="race-runners__weight">29.4</td>
-      <td class="race-runners__starting-price">$15.00</td>
     </tr>
   </table>
   `,

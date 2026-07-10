@@ -8,7 +8,6 @@ import { CookieConsentBanner } from "@/components/cookie-consent";
 import { getCurrentUser } from "@/lib/auth";
 import { countUnreadMessagesTotal } from "@/lib/conversation-service";
 import { MobileBottomDock } from "@/components/mobile-bottom-dock";
-import { ResponsibleUseAlert } from "@/components/responsible-use-alert";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { JsonLd, organizationSchema, websiteSchema } from "@/components/json-ld";
@@ -95,7 +94,7 @@ export default async function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body
-        className={`${inter.className} antialiased min-h-screen`}
+        className={`${inter.className} ${user ? "giq-member-shell" : "giq-public-shell"} antialiased min-h-screen`}
         style={{ fontFeatureSettings: '"cv01", "ss03", "rlig" 1, "calt" 1' }}
       >
         <JsonLd data={[organizationSchema, websiteSchema]} />
@@ -107,12 +106,11 @@ export default async function RootLayout({
             Skip to main content
           </a>
           <div className="flex min-h-screen flex-col">
-            <SiteHeader />
-            <ResponsibleUseAlert />
+            <SiteHeader user={user} unreadMessages={unreadMessages} />
             <main id="main-content" className="min-h-screen flex-1">{children}</main>
-            <SiteFooter />
+            {!user && <SiteFooter />}
           </div>
-          <MobileBottomDock unreadMessages={unreadMessages} />
+          {user && <MobileBottomDock unreadMessages={unreadMessages} />}
           <CookieConsentBanner />
         </AuthKitProvider>
       </body>

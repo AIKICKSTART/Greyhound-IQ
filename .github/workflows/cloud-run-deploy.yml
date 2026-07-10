@@ -88,6 +88,10 @@ jobs:
           fi
           min_instances="3"
           max_instances="10"
+          actor_conversation_multiplex="${{ vars.ACTOR_CONVERSATION_MULTIPLEX_ENABLED }}"
+          if [ "$actor_conversation_multiplex" != "true" ]; then
+            actor_conversation_multiplex="false"
+          fi
           nextauth_url="${{ secrets.NEXTAUTH_URL }}"
           workos_cookie_domain="${{ vars.WORKOS_COOKIE_DOMAIN }}"
           if [ -z "$workos_cookie_domain" ]; then
@@ -95,7 +99,7 @@ jobs:
               node -e 'const raw=process.argv[1]; try { const url = new URL(raw); let host = url.hostname.toLowerCase(); if (url.protocol === "https:" && !host.endsWith(".run.app")) { if (host.startsWith("www.")) host = host.slice(4); process.stdout.write(host); } } catch {}' "$nextauth_url"
             )"
           fi
-          for secret_name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY STRIPE_SECRET_KEY NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_PRO_MONTHLY STRIPE_PRICE_PRO_YEARLY REALTIME_CHANNEL_SECRET; do
+          for secret_name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY SUPABASE_JWT_SECRET NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY STRIPE_SECRET_KEY NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_PRO_MONTHLY STRIPE_PRICE_PRO_YEARLY REALTIME_CHANNEL_SECRET; do
             if ! gcloud secrets versions list "greyhoundiq-$env_name-$secret_name" \
               --project "${{ secrets.GCP_PROJECT_ID }}" \
               --filter "state=ENABLED" \
@@ -105,8 +109,8 @@ jobs:
               exit 1
             fi
           done
-          secrets="DATABASE_URL=greyhoundiq-$env_name-DATABASE_URL:latest,SUPABASE_URL=greyhoundiq-$env_name-SUPABASE_URL:latest,SUPABASE_SERVICE_ROLE_KEY=greyhoundiq-$env_name-SUPABASE_SERVICE_ROLE_KEY:latest,NEXT_PUBLIC_SUPABASE_URL=greyhoundiq-$env_name-NEXT_PUBLIC_SUPABASE_URL:latest,NEXT_PUBLIC_SUPABASE_ANON_KEY=greyhoundiq-$env_name-NEXT_PUBLIC_SUPABASE_ANON_KEY:latest,NEXTAUTH_SECRET=greyhoundiq-$env_name-NEXTAUTH_SECRET:latest,AUTH_SECRET=greyhoundiq-$env_name-AUTH_SECRET:latest,WORKOS_CLIENT_ID=greyhoundiq-$env_name-WORKOS_CLIENT_ID:latest,WORKOS_API_KEY=greyhoundiq-$env_name-WORKOS_API_KEY:latest,WORKOS_COOKIE_PASSWORD=greyhoundiq-$env_name-WORKOS_COOKIE_PASSWORD:latest,LAGO_API_KEY=greyhoundiq-$env_name-LAGO_API_KEY:latest,LAGO_WEBHOOK_SECRET=greyhoundiq-$env_name-LAGO_WEBHOOK_SECRET:latest,STRIPE_SECRET_KEY=greyhoundiq-$env_name-STRIPE_SECRET_KEY:latest,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=greyhoundiq-$env_name-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:latest,STRIPE_WEBHOOK_SECRET=greyhoundiq-$env_name-STRIPE_WEBHOOK_SECRET:latest,STRIPE_PRICE_PRO_MONTHLY=greyhoundiq-$env_name-STRIPE_PRICE_PRO_MONTHLY:latest,STRIPE_PRICE_PRO_YEARLY=greyhoundiq-$env_name-STRIPE_PRICE_PRO_YEARLY:latest,INTERNAL_API_SECRET=greyhoundiq-$env_name-INTERNAL_API_SECRET:latest,LIVEKIT_URL=greyhoundiq-$env_name-LIVEKIT_URL:latest,LIVEKIT_API_KEY=greyhoundiq-$env_name-LIVEKIT_API_KEY:latest,LIVEKIT_API_SECRET=greyhoundiq-$env_name-LIVEKIT_API_SECRET:latest,REALTIME_CHANNEL_SECRET=greyhoundiq-$env_name-REALTIME_CHANNEL_SECRET:latest"
-          env_vars="NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1,NEXTAUTH_URL=$nextauth_url,AUTH_URL=$nextauth_url,STRIPE_APP_URL=$nextauth_url,NEXT_PUBLIC_WORKOS_REDIRECT_URI=${{ secrets.NEXT_PUBLIC_WORKOS_REDIRECT_URI }},LAGO_API_URL=${{ secrets.LAGO_API_URL }},LAGO_FRONT_URL=${{ secrets.LAGO_FRONT_URL }},NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=false,NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT=false,MEDIA_SCAN_MODE=disabled"
+          secrets="DATABASE_URL=greyhoundiq-$env_name-DATABASE_URL:latest,SUPABASE_URL=greyhoundiq-$env_name-SUPABASE_URL:latest,SUPABASE_SERVICE_ROLE_KEY=greyhoundiq-$env_name-SUPABASE_SERVICE_ROLE_KEY:latest,SUPABASE_JWT_SECRET=greyhoundiq-$env_name-SUPABASE_JWT_SECRET:latest,NEXT_PUBLIC_SUPABASE_URL=greyhoundiq-$env_name-NEXT_PUBLIC_SUPABASE_URL:latest,NEXT_PUBLIC_SUPABASE_ANON_KEY=greyhoundiq-$env_name-NEXT_PUBLIC_SUPABASE_ANON_KEY:latest,NEXTAUTH_SECRET=greyhoundiq-$env_name-NEXTAUTH_SECRET:latest,AUTH_SECRET=greyhoundiq-$env_name-AUTH_SECRET:latest,WORKOS_CLIENT_ID=greyhoundiq-$env_name-WORKOS_CLIENT_ID:latest,WORKOS_API_KEY=greyhoundiq-$env_name-WORKOS_API_KEY:latest,WORKOS_COOKIE_PASSWORD=greyhoundiq-$env_name-WORKOS_COOKIE_PASSWORD:latest,LAGO_API_KEY=greyhoundiq-$env_name-LAGO_API_KEY:latest,LAGO_WEBHOOK_SECRET=greyhoundiq-$env_name-LAGO_WEBHOOK_SECRET:latest,STRIPE_SECRET_KEY=greyhoundiq-$env_name-STRIPE_SECRET_KEY:latest,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=greyhoundiq-$env_name-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:latest,STRIPE_WEBHOOK_SECRET=greyhoundiq-$env_name-STRIPE_WEBHOOK_SECRET:latest,STRIPE_PRICE_PRO_MONTHLY=greyhoundiq-$env_name-STRIPE_PRICE_PRO_MONTHLY:latest,STRIPE_PRICE_PRO_YEARLY=greyhoundiq-$env_name-STRIPE_PRICE_PRO_YEARLY:latest,INTERNAL_API_SECRET=greyhoundiq-$env_name-INTERNAL_API_SECRET:latest,LIVEKIT_URL=greyhoundiq-$env_name-LIVEKIT_URL:latest,LIVEKIT_API_KEY=greyhoundiq-$env_name-LIVEKIT_API_KEY:latest,LIVEKIT_API_SECRET=greyhoundiq-$env_name-LIVEKIT_API_SECRET:latest,REALTIME_CHANNEL_SECRET=greyhoundiq-$env_name-REALTIME_CHANNEL_SECRET:latest"
+          env_vars="NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1,NEXTAUTH_URL=$nextauth_url,AUTH_URL=$nextauth_url,STRIPE_APP_URL=$nextauth_url,NEXT_PUBLIC_WORKOS_REDIRECT_URI=${{ secrets.NEXT_PUBLIC_WORKOS_REDIRECT_URI }},LAGO_API_URL=${{ secrets.LAGO_API_URL }},LAGO_FRONT_URL=${{ secrets.LAGO_FRONT_URL }},NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=false,NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT=false,ACTOR_CONVERSATION_MULTIPLEX_ENABLED=$actor_conversation_multiplex,MEDIA_SCAN_MODE=disabled"
           if [ -n "$workos_cookie_domain" ]; then
             env_vars="$env_vars,WORKOS_COOKIE_DOMAIN=$workos_cookie_domain"
           fi

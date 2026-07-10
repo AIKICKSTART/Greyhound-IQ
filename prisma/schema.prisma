@@ -58,6 +58,7 @@ model Dog {
   @@index([name])
   @@index([sireId])
   @@index([damId])
+  @@index([trainerId])
   @@index([sourceProvider])
 }
 
@@ -269,6 +270,7 @@ model Runner {
   @@unique([raceId, boxNumber])
   @@index([raceId])
   @@index([dogId])
+  @@index([trainerId])
   @@index([sourceProvider])
 }
 
@@ -313,6 +315,7 @@ model FormEntry {
 
   @@unique([dogId, raceId])
   @@index([dogId])
+  @@index([trackId, date])
   @@index([date])
 }
 
@@ -415,10 +418,12 @@ model MarketingPreference {
 }
 
 model Notification {
-  id                    String    @id @default(cuid())
+  id                    String       @id @default(cuid())
   userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   actorProfileId        String?
+  actorId               String?
+  actor                 SocialActor? @relation(fields: [actorId], references: [id], onDelete: SetNull)
   type                  String
   title                 String
   body                  String?
@@ -426,16 +431,17 @@ model Notification {
   targetType            String?
   targetId              String?
   metadataJson          String?
-  deliveryStatus        String    @default("pending")
-  deliveryAttempts      Int       @default(0)
+  deliveryStatus        String       @default("pending")
+  deliveryAttempts      Int          @default(0)
   deliveredAt           DateTime?
   lastDeliveryAttemptAt DateTime?
   lastDeliveryError     String?
   readAt                DateTime?
-  createdAt             DateTime  @default(now())
+  createdAt             DateTime     @default(now())
 
   @@index([userId, readAt, createdAt])
   @@index([userId, createdAt])
+  @@index([actorId, createdAt])
   @@index([targetType, targetId])
   @@index([deliveryStatus, deliveryAttempts, createdAt])
 }
@@ -490,6 +496,7 @@ model OrganizationInvitation {
 
   @@index([organizationId, status])
   @@index([emailHash, status])
+  @@index([invitedByUserId])
   @@index([expiresAt])
 }
 
@@ -1102,6 +1109,11 @@ model Profile {
   friendshipsA             Friendship[]              @relation("FriendshipA")
   friendshipsB             Friendship[]              @relation("FriendshipB")
   customPages              CustomPage[]              @relation("ProfileCustomPages")
+  socialActor              SocialActor?              @relation("ProfileSocialActor")
+  ownedSocialActors        SocialActor[]             @relation("SocialActorOwner")
+  feedShares               FeedShare[]
+  feedMentions             FeedMention[]
+  realtimeTopicGrants      RealtimeTopicGrant[]
 }
 
 model CustomPage {
@@ -1131,7 +1143,8 @@ model CustomPage {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  feedPosts FeedPost[] @relation("CustomPageFeedPosts")
+  feedPosts   FeedPost[]   @relation("CustomPageFeedPosts")
+  socialActor SocialActor? @relation("CustomPageSocialActor")
 
   @@unique([ownerProfileId, pageType, dogId])
   @@index([handle])
@@ -1139,14 +1152,166 @@ model CustomPage {
   @@index([dogId])
 }
 
+model SocialActor {
+  id                String      @id @default(cuid())
+  kind              String // personal | page
+  profileId         String?     @unique
+  profile           Profile?    @relation("ProfileSocialActor", fields: [profileId], references: [id], onDelete: Cascade)
+  pageId            String?     @unique
+  page              CustomPage? @relation("CustomPageSocialActor", fields: [pageId], references: [id], onDelete: Cascade)
+  ownerProfileId    String
+  ownerProfile      Profile     @relation("SocialActorOwner", fields: [ownerProfileId], references: [id], onDelete: Cascade)
+  handle            String      @unique
+  displayName       String
+  avatarUrl         String?
+  coverUrl          String?
+  coverFocalX       Float       @default(0.5)
+  coverFocalY       Float       @default(0.5)
+  profileVisibility String      @default("members") // public | members | connections | only_me
+  contactVisibility String      @default("only_me") // public | members | connections | only_me
+  published         Boolean     @default(false)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  feedPosts                FeedPost[]                @relation("FeedPostActor")
+  feedComments             FeedComment[]             @relation("FeedCommentActor")
+  feedReactions            FeedReaction[]            @relation("FeedReactionActor")
+  sentMessages             Message[]                 @relation("MessageSenderActor")
+  receivedMessages         Message[]                 @relation("MessageRecipientActor")
+  conversationParticipants ConversationParticipant[]
+  conversationsA           Conversation[]            @relation("ConversationActorA")
+  conversationsB           Conversation[]            @relation("ConversationActorB")
+  following                ActorFollow[]             @relation("ActorFollowFollower")
+  followers                ActorFollow[]             @relation("ActorFollowFollowed")
+  followedTopics           ActorTopicFollow[]
+  mutesInitiated           ActorMute[]               @relation("ActorMuteMuter")
+  mutesReceived            ActorMute[]               @relation("ActorMuteMuted")
+  gallery                  ActorGalleryMedia[]
+  savedPosts               SavedFeedPost[]
+  mentions                 FeedMention[]
+  shares                   FeedShare[]
+  notifications            Notification[]
+
+  @@index([ownerProfileId, kind])
+  @@index([kind, published, updatedAt])
+  @@index([profileVisibility, published])
+}
+
+model RealtimeTopicGrant {
+  topic     String
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  extension String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([topic, profileId, extension])
+  @@index([profileId, expiresAt])
+  @@index([expiresAt])
+}
+
+model ActorFollow {
+  followerActorId String
+  followerActor   SocialActor @relation("ActorFollowFollower", fields: [followerActorId], references: [id], onDelete: Cascade)
+  followedActorId String
+  followedActor   SocialActor @relation("ActorFollowFollowed", fields: [followedActorId], references: [id], onDelete: Cascade)
+  createdAt       DateTime    @default(now())
+
+  @@id([followerActorId, followedActorId])
+  @@index([followedActorId, createdAt])
+}
+
+model ActorTopicFollow {
+  actorId   String
+  actor     SocialActor @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  topicId   String
+  topic     FeedTopic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@id([actorId, topicId])
+  @@index([topicId, createdAt])
+}
+
+model ActorMute {
+  muterActorId String
+  muterActor   SocialActor @relation("ActorMuteMuter", fields: [muterActorId], references: [id], onDelete: Cascade)
+  mutedActorId String
+  mutedActor   SocialActor @relation("ActorMuteMuted", fields: [mutedActorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+
+  @@id([muterActorId, mutedActorId])
+  @@index([mutedActorId, createdAt])
+}
+
+model ActorGalleryMedia {
+  actorId   String
+  actor     SocialActor @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     MediaAsset  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  position  Int
+  altText   String?
+  createdAt DateTime    @default(now())
+
+  @@id([actorId, mediaId])
+  @@unique([actorId, position])
+  @@index([mediaId])
+}
+
+model SavedFeedPost {
+  actorId   String
+  actor     SocialActor @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  postId    String
+  post      FeedPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@id([actorId, postId])
+  @@index([postId, createdAt])
+}
+
+model FeedMention {
+  id                   String       @id @default(cuid())
+  actorId              String
+  actor                SocialActor  @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  accountableProfileId String
+  accountableProfile   Profile      @relation(fields: [accountableProfileId], references: [id], onDelete: Cascade)
+  postId               String?
+  post                 FeedPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId            String?
+  comment              FeedComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  createdAt            DateTime     @default(now())
+
+  @@unique([actorId, postId, commentId])
+  @@index([postId])
+  @@index([commentId])
+  @@index([accountableProfileId, createdAt])
+}
+
+model FeedShare {
+  id                   String      @id @default(cuid())
+  sourcePostId         String
+  sourcePost           FeedPost    @relation(fields: [sourcePostId], references: [id], onDelete: Cascade)
+  actorId              String
+  actor                SocialActor @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  accountableProfileId String
+  accountableProfile   Profile     @relation(fields: [accountableProfileId], references: [id], onDelete: Cascade)
+  body                 String?
+  visibility           String
+  createdAt            DateTime    @default(now())
+
+  @@unique([sourcePostId, actorId])
+  @@index([actorId, createdAt])
+  @@index([accountableProfileId, createdAt])
+}
+
 model Friendship {
-  id                   String  @id @default(cuid())
+  id                   String   @id @default(cuid())
   profileAId           String
-  profileA             Profile @relation("FriendshipA", fields: [profileAId], references: [id], onDelete: Cascade)
+  profileA             Profile  @relation("FriendshipA", fields: [profileAId], references: [id], onDelete: Cascade)
   profileBId           String
-  profileB             Profile @relation("FriendshipB", fields: [profileBId], references: [id], onDelete: Cascade)
+  profileB             Profile  @relation("FriendshipB", fields: [profileBId], references: [id], onDelete: Cascade)
   // pending | accepted (decline/remove = row delete)
-  status               String  @default("accepted")
+  status               String   @default("accepted")
   // profile that sent the request; NULL on legacy auto-accepted rows
   requestedByProfileId String?
   createdAt            DateTime @default(now())
@@ -1174,6 +1339,8 @@ model DogOwnership {
   createdAt           DateTime  @default(now())
 
   @@unique([dogId, profileId])
+  @@index([profileId, status, createdAt])
+  @@index([reviewedByProfileId])
   @@index([status])
 }
 
@@ -1201,6 +1368,7 @@ model Thread {
   updatedAt  DateTime      @updatedAt
 
   @@index([categoryId])
+  @@index([authorId, createdAt])
 }
 
 model Post {
@@ -1214,6 +1382,7 @@ model Post {
   createdAt DateTime  @default(now())
 
   @@index([threadId])
+  @@index([authorId, createdAt])
 }
 
 model Listing {
@@ -1275,6 +1444,7 @@ model Listing {
 
   @@index([profileId])
   @@index([categoryId])
+  @@index([dogId, status, createdAt])
   @@index([type])
   @@index([listingType])
   @@index([status])
@@ -1474,8 +1644,12 @@ model Message {
   conversation         Conversation?             @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   senderId             String
   sender               Profile                   @relation("SenderMessages", fields: [senderId], references: [id])
+  senderActorId        String?
+  senderActor          SocialActor?              @relation("MessageSenderActor", fields: [senderActorId], references: [id], onDelete: SetNull)
   recipientId          String
   recipient            Profile                   @relation("RecipientMessages", fields: [recipientId], references: [id])
+  recipientActorId     String?
+  recipientActor       SocialActor?              @relation("MessageRecipientActor", fields: [recipientActorId], references: [id], onDelete: SetNull)
   body                 String
   mediaIdsJson         String?
   read                 Boolean                   @default(false)
@@ -1492,35 +1666,50 @@ model Message {
   @@index([conversationId, createdAt])
   @@index([senderId])
   @@index([recipientId])
+  @@index([senderActorId, createdAt])
+  @@index([recipientActorId, createdAt])
 }
 
 model MediaAsset {
-  id               String    @id @default(cuid())
-  uploaderId       String
-  uploader         User      @relation(fields: [uploaderId], references: [id])
-  storageBucket    String
-  storagePath      String
-  publicUrl        String?
-  mediaType        String    @default("file")
-  originalName     String?
-  mimeType         String
-  sizeBytes        Int
-  widthPx          Int?
-  heightPx         Int?
-  durationSec      Float?
-  linkedEntityType String?
-  linkedEntityId   String?
-  scanStatus       String    @default("pending") // pending | clean | infected | error
-  scanCompletedAt  DateTime?
-  sha256           String?
-  expiresAt        DateTime?
-  deletedAt        DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  uploaderId            String
+  uploader              User      @relation(fields: [uploaderId], references: [id])
+  storageBucket         String
+  storagePath           String
+  publicUrl             String?
+  mediaType             String    @default("file")
+  originalName          String?
+  mimeType              String
+  sizeBytes             Int
+  widthPx               Int?
+  heightPx              Int?
+  durationSec           Float?
+  linkedEntityType      String?
+  linkedEntityId        String?
+  scanStatus            String    @default("pending") // pending | clean | infected | error
+  scanCompletedAt       DateTime?
+  processingStatus      String    @default("pending") // pending | scanning | processing | ready | failed
+  processingError       String?
+  processingAttempts    Int       @default(0)
+  processingStartedAt   DateTime?
+  processingCompletedAt DateTime?
+  playbackPath          String?
+  posterPath            String?
+  hlsPath               String?
+  waveformJson          String?
+  metadataJson          String?
+  altText               String?
+  captionPath           String?
+  sha256                String?
+  expiresAt             DateTime?
+  deletedAt             DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   messageAttachments MessageMedia[]
   listingAttachments ListingMedia[]
   feedAttachments    FeedPostMedia[]
+  actorGallery       ActorGalleryMedia[]
 
   @@unique([storageBucket, storagePath])
   @@index([uploaderId, createdAt])
@@ -1528,6 +1717,7 @@ model MediaAsset {
   @@index([storageBucket, createdAt])
   @@index([linkedEntityType, linkedEntityId])
   @@index([scanStatus])
+  @@index([processingStatus, createdAt])
 }
 
 model MessageMedia {
@@ -1557,24 +1747,30 @@ model ListingMedia {
 }
 
 model Conversation {
-  id               String                    @id @default(cuid())
-  participantAId   String
-  participantA     Profile                   @relation("ConversationA", fields: [participantAId], references: [id])
-  participantBId   String
-  participantB     Profile                   @relation("ConversationB", fields: [participantBId], references: [id])
-  lastMessageAt    DateTime?
-  blockedById      String?
-  blockedAt        DateTime?
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime                  @updatedAt
-  messages         Message[]
-  participants     ConversationParticipant[]
-  callRooms        CallRoom[]
-  listingEnquiries ListingEnquiry[]
+  id                  String                    @id @default(cuid())
+  participantAId      String
+  participantA        Profile                   @relation("ConversationA", fields: [participantAId], references: [id])
+  participantAActorId String?
+  participantAActor   SocialActor?              @relation("ConversationActorA", fields: [participantAActorId], references: [id], onDelete: SetNull)
+  participantBId      String
+  participantB        Profile                   @relation("ConversationB", fields: [participantBId], references: [id])
+  participantBActorId String?
+  participantBActor   SocialActor?              @relation("ConversationActorB", fields: [participantBActorId], references: [id], onDelete: SetNull)
+  lastMessageAt       DateTime?
+  blockedById         String?
+  blockedAt           DateTime?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  messages            Message[]
+  participants        ConversationParticipant[]
+  callRooms           CallRoom[]
+  listingEnquiries    ListingEnquiry[]
 
-  @@unique([participantAId, participantBId])
+  @@unique([participantAId, participantBId, participantAActorId, participantBActorId], map: "Conversation_profile_actor_pair_key")
   @@index([participantAId])
   @@index([participantBId])
+  @@index([participantAActorId])
+  @@index([participantBActorId])
   @@index([lastMessageAt])
 }
 
@@ -1584,6 +1780,8 @@ model ConversationParticipant {
   conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   profileId         String
   profile           Profile      @relation(fields: [profileId], references: [id])
+  actorId           String?
+  actor             SocialActor? @relation(fields: [actorId], references: [id], onDelete: SetNull)
   role              String       @default("member")
   joinedAt          DateTime     @default(now())
   lastReadMessageId String?
@@ -1594,6 +1792,7 @@ model ConversationParticipant {
 
   @@unique([conversationId, profileId])
   @@index([profileId, archivedAt, updatedAt])
+  @@index([actorId, archivedAt, updatedAt])
   @@index([lastReadMessageId])
 }
 
@@ -1673,43 +1872,56 @@ model MessageModerationAction {
 }
 
 model FeedTopic {
-  id        String     @id @default(cuid())
-  slug      String     @unique
+  id        String             @id @default(cuid())
+  slug      String             @unique
   name      String
   rules     String?
-  sortOrder Int        @default(0)
-  active    Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  sortOrder Int                @default(0)
+  active    Boolean            @default(true)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
   posts     FeedPost[]
+  followers ActorTopicFollow[]
 
   @@index([active, sortOrder])
 }
 
 model FeedPost {
-  id              String          @id @default(cuid())
-  authorProfileId String
-  author          Profile         @relation(fields: [authorProfileId], references: [id])
-  authorPageId    String? // posted "as" an owned CustomPage identity
-  authorPage      CustomPage?     @relation("CustomPageFeedPosts", fields: [authorPageId], references: [id], onDelete: SetNull)
-  topicId         String?
-  topic           FeedTopic?      @relation(fields: [topicId], references: [id], onDelete: SetNull)
-  body            String
-  visibility      String          @default("public")
-  status          String          @default("active")
-  pinnedAt        DateTime?
-  reportCount     Int             @default(0)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  media           FeedPostMedia[]
-  comments        FeedComment[]
-  reactions       FeedReaction[]
+  id                String          @id @default(cuid())
+  authorProfileId   String
+  author            Profile         @relation(fields: [authorProfileId], references: [id])
+  authorPageId      String? // posted "as" an owned CustomPage identity
+  authorPage        CustomPage?     @relation("CustomPageFeedPosts", fields: [authorPageId], references: [id], onDelete: SetNull)
+  authorActorId     String?
+  authorActor       SocialActor?    @relation("FeedPostActor", fields: [authorActorId], references: [id], onDelete: SetNull)
+  topicId           String?
+  topic             FeedTopic?      @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  body              String
+  visibility        String          @default("public")
+  status            String          @default("active")
+  pinnedAt          DateTime?
+  reportCount       Int             @default(0)
+  editedAt          DateTime?
+  deletedAt         DateTime?
+  publishedAt       DateTime?
+  linkPreviewUrl    String?
+  linkPreviewStatus String? // pending | ready | failed
+  linkPreviewJson   String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  media             FeedPostMedia[]
+  comments          FeedComment[]
+  reactions         FeedReaction[]
+  savedBy           SavedFeedPost[]
+  mentions          FeedMention[]
+  shares            FeedShare[]
 
   @@index([status, createdAt])
   @@index([status, visibility, pinnedAt, createdAt])
   @@index([topicId, status, createdAt])
   @@index([authorProfileId, createdAt])
   @@index([authorPageId, createdAt])
+  @@index([authorActorId, status, createdAt])
   @@index([pinnedAt])
 }
 
@@ -1732,18 +1944,24 @@ model FeedComment {
   post            FeedPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
   authorProfileId String
   author          Profile        @relation(fields: [authorProfileId], references: [id])
+  authorActorId   String?
+  authorActor     SocialActor?   @relation("FeedCommentActor", fields: [authorActorId], references: [id], onDelete: SetNull)
   parentCommentId String?
   parentComment   FeedComment?   @relation("FeedCommentReplies", fields: [parentCommentId], references: [id], onDelete: SetNull)
   replies         FeedComment[]  @relation("FeedCommentReplies")
   body            String
   status          String         @default("active")
   reportCount     Int            @default(0)
+  editedAt        DateTime?
+  deletedAt       DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   reactions       FeedReaction[]
+  mentions        FeedMention[]
 
   @@index([postId, status, createdAt])
   @@index([authorProfileId, createdAt])
+  @@index([authorActorId, createdAt])
   @@index([parentCommentId])
 }
 
@@ -1755,12 +1973,15 @@ model FeedReaction {
   comment      FeedComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
   profileId    String
   profile      Profile      @relation(fields: [profileId], references: [id])
+  actorId      String?
+  actor        SocialActor? @relation("FeedReactionActor", fields: [actorId], references: [id], onDelete: SetNull)
   reactionType String       @default("like")
   createdAt    DateTime     @default(now())
 
   @@unique([postId, profileId, reactionType])
   @@unique([commentId, profileId, reactionType])
   @@index([profileId, createdAt])
+  @@index([actorId, createdAt])
 }
 
 model CallRoom {
@@ -1816,6 +2037,7 @@ model CallInvite {
 
   @@index([toProfileId, status, expiresAt])
   @@index([fromProfileId, createdAt])
+  @@index([callRoomId, toProfileId, status, createdAt])
 }
 
 model CallEvent {
@@ -2032,6 +2254,7 @@ model Report {
   @@index([status, createdAt])
   @@index([targetType, targetId])
   @@index([reporterId, targetType, targetId, createdAt])
+  @@index([reportedId, createdAt])
 }
 
 // ponytail: fixed-window counters shared across Cloud Run instances; UNLOGGED table, crash-loss acceptable

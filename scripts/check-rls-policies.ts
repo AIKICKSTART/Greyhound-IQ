@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { PrismaClient } from "@prisma/client";
 
 const migrationPath = join(
   process.cwd(),
@@ -401,6 +402,28 @@ const actorFoundationSql = readFileSync(
   ),
   "utf8"
 );
+
+const actorUpsertRlsFixSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710140000_fix_social_actor_upsert_rls",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  "ALTER POLICY giq_social_actor_select",
+  "public.giq_is_system()",
+  "public.giq_is_moderator()",
+  '"ownerProfileId" = public.giq_current_profile_id()',
+  "public.giq_actor_visible(id)",
+]) {
+  if (!actorUpsertRlsFixSql.includes(needle)) {
+    findings.push(`SocialActor upsert RLS fix missing: ${needle}`);
+  }
+}
 for (const table of [
   "SocialActor",
   "ActorFollow",
@@ -699,6 +722,15 @@ async function checkDatabaseState() {
       if (role.rolbypassrls) findings.push(`${role.rolname} must be NOBYPASSRLS`);
     }
 
+    const actorProbeRole = roles.some((role) => role.rolname === "greyhoundiq_app")
+      ? "greyhoundiq_app"
+      : roles.some((role) => role.rolname === "greyhoundiq_runtime")
+        ? "greyhoundiq_runtime"
+        : null;
+    if (actorProbeRole) {
+      await checkSocialActorUpsertRls(prisma, actorProbeRole);
+    }
+
     const directRoles = await prisma.$queryRaw<
       {
         rolname: string;
@@ -777,6 +809,95 @@ async function checkDatabaseState() {
     );
   } finally {
     await prisma.$disconnect();
+  }
+}
+
+async function checkSocialActorUpsertRls(
+  prisma: PrismaClient,
+  role: "greyhoundiq_app" | "greyhoundiq_runtime",
+) {
+  const marker = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const rollbackMessage = "social-actor-upsert-rls-probe.rollback";
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(`SET LOCAL ROLE ${role}`);
+      await tx.$executeRaw`SELECT
+        set_config('app.system', 'true', true),
+        set_config('app.current_user_id', '', true),
+        set_config('app.current_profile_id', '', true),
+        set_config('app.current_actor_id', '', true),
+        set_config('app.current_tier', 'system', true),
+        set_config('app.current_role', 'system', true)`;
+
+      const user = await tx.user.create({
+        data: {
+          email: `actor-rls-${marker}@example.invalid`,
+          workosUserId: `actor-rls-${marker}`,
+          subscriptionTier: "free",
+        },
+        select: { id: true },
+      });
+      const profile = await tx.profile.create({
+        data: {
+          userId: user.id,
+          displayName: "Actor RLS probe",
+          role: "member",
+        },
+        select: { id: true },
+      });
+      const actor = await tx.socialActor.upsert({
+        where: { profileId: profile.id },
+        create: {
+          kind: "personal",
+          profileId: profile.id,
+          ownerProfileId: profile.id,
+          handle: `actor-rls-${marker}`,
+          displayName: "Actor RLS probe",
+          profileVisibility: "members",
+          contactVisibility: "only_me",
+          published: true,
+        },
+        update: { displayName: "Actor RLS probe" },
+        select: { id: true },
+      });
+      if (!actor.id) throw new Error("SocialActor upsert returned no actor");
+
+      const updatedActor = await tx.socialActor.upsert({
+        where: { profileId: profile.id },
+        create: {
+          kind: "personal",
+          profileId: profile.id,
+          ownerProfileId: profile.id,
+          handle: `actor-rls-${marker}`,
+          displayName: "Actor RLS probe updated",
+          profileVisibility: "members",
+          contactVisibility: "only_me",
+          published: true,
+        },
+        update: { displayName: "Actor RLS probe updated" },
+        select: { id: true, displayName: true },
+      });
+      if (
+        updatedActor.id !== actor.id ||
+        updatedActor.displayName !== "Actor RLS probe updated"
+      ) {
+        throw new Error("SocialActor conflict upsert was not stable");
+      }
+
+      throw new Error(rollbackMessage);
+    });
+    findings.push("SocialActor upsert RLS probe committed unexpectedly");
+  } catch (err) {
+    if (!(err instanceof Error) || err.message !== rollbackMessage) {
+      const code =
+        err && typeof err === "object" && "code" in err
+          ? ` (${String(err.code)})`
+          : "";
+      findings.push(
+        `SocialActor upsert fails under ${role} system context${code}`,
+      );
+    }
   }
 }
 

@@ -46,7 +46,7 @@ export function ListingCardMediaCarousel({
       return (
         <Link
           href={listingHref}
-          className="giq-listing-media flex h-40 items-center justify-center gap-2 px-4 text-center text-[12px] font-semibold text-[hsl(215_14%_80%)]"
+          className="giq-listing-media flex aspect-[16/10] items-center justify-center gap-2 px-4 text-center text-[12px] font-semibold text-[hsl(215_14%_80%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary-bright))]"
         >
           <Paperclip className="h-4 w-4 shrink-0 text-[hsl(var(--primary-bright))]" />
           <span className="truncate">
@@ -58,7 +58,10 @@ export function ListingCardMediaCarousel({
 
     if (fallbackImage) {
       return (
-        <Link href={listingHref} className="giq-listing-media block h-40">
+        <Link
+          href={listingHref}
+          className="giq-listing-media block aspect-[16/10] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary-bright))]"
+        >
           <Image
             src={fallbackImage.src}
             alt={fallbackImage.alt}
@@ -74,7 +77,7 @@ export function ListingCardMediaCarousel({
     return (
       <Link
         href={listingHref}
-        className="giq-listing-media flex h-40 flex-col items-center justify-center gap-2 text-[12px] font-semibold text-[hsl(215_14%_72%)]"
+        className="giq-listing-media flex aspect-[16/10] flex-col items-center justify-center gap-2 text-[12px] font-semibold text-[hsl(215_14%_72%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary-bright))]"
       >
         <ImageIcon className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
         <span>No image uploaded</span>
@@ -101,12 +104,11 @@ export function ListingCardMediaCarousel({
   };
 
   return (
-    <div
-      className={`giq-listing-media group relative overflow-hidden bg-black/20 ${
-        isPortrait ? "aspect-[2/3]" : "h-40"
-      }`}
-    >
-      <Link href={listingHref} className="block h-full">
+    <div className="giq-listing-media group relative aspect-[16/10] overflow-hidden bg-black/20">
+      <Link
+        href={listingHref}
+        className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary-bright))]"
+      >
         <Image
           key={activeImage.id}
           src={activeImage.src}
@@ -150,9 +152,9 @@ export function ListingCardMediaCarousel({
               event.stopPropagation();
               showPreviousImage();
             }}
-            className="absolute left-3 top-1/2 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-black/75 text-white shadow-xl shadow-black/35 backdrop-blur transition hover:bg-black/90 active:scale-95"
+            className="absolute left-2 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-black/75 text-white shadow-xl shadow-black/35 backdrop-blur transition hover:bg-black/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-95"
           >
-            <ChevronLeft className="h-7 w-7" />
+            <ChevronLeft className="h-6 w-6" />
           </button>
           <button
             type="button"
@@ -162,9 +164,9 @@ export function ListingCardMediaCarousel({
               event.stopPropagation();
               showNextImage();
             }}
-            className="absolute right-3 top-1/2 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-black/75 text-white shadow-xl shadow-black/35 backdrop-blur transition hover:bg-black/90 active:scale-95"
+            className="absolute right-2 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-black/75 text-white shadow-xl shadow-black/35 backdrop-blur transition hover:bg-black/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-95"
           >
-            <ChevronRight className="h-7 w-7" />
+            <ChevronRight className="h-6 w-6" />
           </button>
           <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg shadow-black/25">
             <span aria-live="polite">

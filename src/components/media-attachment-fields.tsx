@@ -90,9 +90,13 @@ export function MediaAttachmentFields({
   const acceptedMediaTypes =
     mediaContext === "avatars"
       ? ACCEPTED_MEDIA_TYPES.filter((type) => type.startsWith("image/"))
+      : mediaContext === "listings"
+        ? ACCEPTED_MEDIA_TYPES.filter(
+            (type) => type.startsWith("image/") || type.startsWith("video/")
+          )
       : mediaContext === "feed"
-      ? ACCEPTED_MEDIA_TYPES.filter((type) => type !== "application/pdf")
-      : ACCEPTED_MEDIA_TYPES;
+        ? ACCEPTED_MEDIA_TYPES.filter((type) => type !== "application/pdf")
+        : ACCEPTED_MEDIA_TYPES;
 
   useEffect(() => {
     const contexts = ctxRef.current;

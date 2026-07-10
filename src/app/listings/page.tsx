@@ -3,13 +3,16 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock3,
-  DollarSign,
   MapPin,
+  Plus,
   Search,
+  SearchX,
+  ShieldCheck,
   ShoppingBag,
 } from "lucide-react";
 import { ListingCardMediaCarousel } from "@/components/listing-card-media-carousel";
 import { PageHero } from "@/components/page-hero";
+import { getCurrentUser } from "@/lib/auth";
 import { getDemoListingImages } from "@/lib/demo-listing-media";
 import { mediaDeliveryUrl } from "@/lib/media-service";
 import {
@@ -58,44 +61,91 @@ function formatDate(date: Date | null): string {
   });
 }
 
-export default function ListingsPage({
+export default async function ListingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; category?: string; submitted?: string }>;
 }) {
+  const user = await getCurrentUser();
+  const signedIn = Boolean(user);
+
   return (
     <div>
-      <PageHero
-        image="/images/wentworth-gate-hero.webp"
-        title={
-          <>
-            Marketplace.
-            <br />
-            <span className="gradient-text">Verified context.</span>
-          </>
-        }
-        subtitle="Browse pups, dogs, stud services, and wanted ads with dog records and seller context connected to the racing database."
-      >
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            href="/groups"
-            className="giq-button giq-button-glass px-5 text-[13px] font-semibold"
-          >
-            Discuss in Groups
-          </Link>
-          <Link
-            href="/marketplace/new"
-            className="giq-button giq-button-primary px-5 text-[13px] font-semibold"
-          >
-            Create marketplace item
-          </Link>
-        </div>
-      </PageHero>
+      {signedIn ? <MarketplaceMemberHeader /> : <MarketplaceMarketingHero />}
 
       <Suspense fallback={<ListingsFallback q="" />}>
         <ListingsContent searchParams={searchParams} />
       </Suspense>
     </div>
+  );
+}
+
+function MarketplaceMarketingHero() {
+  return (
+    <PageHero
+      image="/images/wentworth-gate-hero.webp"
+      title={
+        <>
+          Marketplace.
+          <br />
+          <span className="gradient-text">Verified context.</span>
+        </>
+      }
+      subtitle="Browse pups, dogs, stud services, and wanted ads with dog records and seller context connected to the racing database."
+    >
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Link
+          href="/groups"
+          className="giq-button giq-button-glass px-5 text-[13px] font-semibold"
+        >
+          Discuss in Groups
+        </Link>
+        <Link
+          href="/marketplace/new"
+          className="giq-button giq-button-primary px-5 text-[13px] font-semibold"
+        >
+          Create marketplace item
+        </Link>
+      </div>
+    </PageHero>
+  );
+}
+
+function MarketplaceMemberHeader() {
+  return (
+    <section className="relative overflow-hidden border-b border-white/[0.07] bg-[linear-gradient(135deg,hsl(var(--card)/0.92),hsl(var(--background))_72%)]">
+      <div
+        aria-hidden="true"
+        className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[hsl(var(--primary-bright)/0.12)] blur-3xl"
+      />
+      <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:py-8">
+        <div className="max-w-2xl">
+          <p className="program-label">Member marketplace</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+            Marketplace
+          </h1>
+          <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
+            Browse pups, dogs, stud services, and wanted ads with seller and
+            racing context in one place.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/groups"
+            className="giq-button giq-button-glass min-h-11 px-5 text-[13px] font-semibold"
+          >
+            Discuss in Groups
+          </Link>
+          <Link
+            href="/marketplace/new"
+            className="giq-button giq-button-primary min-h-11 px-5 text-[13px] font-semibold"
+          >
+            <Plus className="h-4 w-4" />
+            Create item
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -131,17 +181,27 @@ async function ListingsResults({
     getMarketplaceListings(24, { q, categorySlug: category || null }),
     getMarketplaceCategories(),
   ]);
+  const hasFilters = Boolean(q || category);
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-12">
+    <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       {submitted && (
-        <div className="giq-panel mb-6 border border-[hsl(var(--primary-bright)/0.35)] p-4">
-          <p className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
-            Marketplace item submitted for review.
-          </p>
-          <p className="mt-1 text-[12px] text-[hsl(var(--muted-foreground))]">
-            It will appear in the marketplace after moderator approval.
-          </p>
+        <div
+          role="status"
+          aria-live="polite"
+          className="giq-panel mb-6 flex items-start gap-3 border border-[hsl(var(--primary-bright)/0.35)] p-4"
+        >
+          <span className="giq-icon-plate flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+            <CheckCircle2 className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+          </span>
+          <div>
+            <p className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
+              Marketplace item submitted for review.
+            </p>
+            <p className="mt-1 text-[12px] leading-5 text-[hsl(var(--muted-foreground))]">
+              It will appear in the marketplace after moderator approval.
+            </p>
+          </div>
         </div>
       )}
 
@@ -153,17 +213,48 @@ async function ListingsResults({
       />
 
       {listings.length === 0 ? (
-        <div className="giq-empty-state p-12 text-center">
-          <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
-            No marketplace items loaded yet.
+        <div className="giq-empty-state px-6 py-14 text-center">
+          <span className="giq-icon-plate mx-auto flex h-12 w-12 items-center justify-center rounded-2xl">
+            {hasFilters ? (
+              <SearchX className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+            ) : (
+              <ShoppingBag className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
+            )}
+          </span>
+          <h3 className="mt-4 text-[18px] font-semibold text-[hsl(var(--foreground))]">
+            {hasFilters
+              ? "No items match these filters"
+              : "No marketplace items yet"}
+          </h3>
+          <p className="mx-auto mt-2 max-w-md text-[13px] leading-6 text-[hsl(var(--muted-foreground))]">
+            {hasFilters
+              ? "Clear the current filters to browse every active item, or create a new listing."
+              : "Be the first member to create a marketplace item for the community."}
           </p>
+          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+            {hasFilters && (
+              <Link
+                href="/marketplace"
+                className="giq-button giq-button-glass min-h-11 px-5 text-[13px] font-semibold"
+              >
+                Clear filters
+              </Link>
+            )}
+            <Link
+              href="/marketplace/new"
+              className="giq-button giq-button-primary min-h-11 px-5 text-[13px] font-semibold"
+            >
+              <Plus className="h-4 w-4" />
+              Create marketplace item
+            </Link>
+          </div>
         </div>
       ) : (
-        <div className="giq-stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="giq-stagger grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => (
             <article
               key={listing.id}
-              className="giq-panel giq-panel-hover giq-listing-card flex min-h-[360px] flex-col"
+              className="giq-panel giq-panel-hover giq-listing-card flex min-h-[430px] flex-col"
             >
               {(() => {
                 const demoImage = getDemoListingImages(listing, 1)[0];
@@ -186,14 +277,11 @@ async function ListingsResults({
                   </div>
                 );
               })()}
-              <div className="flex flex-1 flex-col p-5">
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div>
-                    <p className="program-label">Marketplace</p>
-                    <span className="giq-badge giq-badge-purple mt-2">
-                      {TYPE_LABEL[listing.type] ?? listing.type}
-                    </span>
-                  </div>
+              <div className="flex flex-1 flex-col p-5 pt-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <span className="giq-badge giq-badge-purple">
+                    {TYPE_LABEL[listing.type] ?? listing.type}
+                  </span>
                   <span
                     className={`giq-badge ${
                       listing.status === "active"
@@ -205,37 +293,34 @@ async function ListingsResults({
                   </span>
                 </div>
 
-                <h3 className="text-[18px] font-semibold leading-snug text-[hsl(var(--foreground))]">
+                <p className="giq-listing-price text-[21px] font-semibold tracking-[-0.025em] text-[hsl(var(--secondary))]">
+                  {formatPrice(listing.price)}
+                </p>
+                <h3 className="mt-1 text-[18px] font-semibold leading-snug text-[hsl(var(--foreground))]">
                   <Link
                     href={`/marketplace/${listing.id}`}
-                    className="transition-colors hover:text-[hsl(var(--primary-bright))]"
+                    className="rounded-sm transition-colors hover:text-[hsl(var(--primary-bright))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--card))]"
                   >
                     {listing.title}
                   </Link>
                 </h3>
+                <p className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-[hsl(var(--muted-foreground))]">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--primary-bright))]" />
+                  {listing.state ?? "Australia"}
+                </p>
                 <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-[hsl(215_14%_68%)]">
                   {listing.description}
                 </p>
 
-                <div className="mt-5 grid grid-cols-2 gap-3 text-[12px] text-[hsl(var(--muted-foreground))]">
-                  <span className="giq-listing-price inline-flex items-center gap-1.5">
-                    <DollarSign className="h-3.5 w-3.5 text-[hsl(var(--secondary))]" />
-                    {formatPrice(listing.price)}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5 text-[hsl(var(--primary-bright))]" />
-                    {listing.state ?? "Australia"}
-                  </span>
-                  <span className="col-span-2 inline-flex items-center gap-1.5">
-                    <Clock3 className="h-3.5 w-3.5 text-[hsl(var(--muted-foreground))]" />
-                    Expires {formatDate(listing.expiresAt)}
-                  </span>
-                </div>
+                <p className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  Expires {formatDate(listing.expiresAt)}
+                </p>
 
                 {listing.dog && (
                   <Link
                     href={`/dogs/${listing.dog.id}`}
-                    className="giq-subpanel mt-4 block p-3 transition-colors hover:bg-white/[0.04]"
+                    className="giq-subpanel mt-4 block p-3 transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))]"
                   >
                     <p className="text-[12px] font-semibold text-[hsl(var(--foreground))]">
                       {listing.dog.name}
@@ -248,18 +333,30 @@ async function ListingsResults({
                 )}
 
                 <div className="mt-auto border-t border-white/[0.05] pt-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <span className="inline-flex items-center gap-1.5 text-[12px] text-[hsl(var(--muted-foreground))]">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-[hsl(var(--primary-bright))]" />
-                      {listing.profile.verified ? "Verified seller" : "Community seller"}
+                  <div className="mb-3 flex items-center gap-2.5">
+                    <span className="giq-icon-plate flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+                      <ShieldCheck
+                        className={`h-4 w-4 ${
+                          listing.profile.verified
+                            ? "text-[hsl(var(--secondary))]"
+                            : "text-[hsl(var(--primary-bright))]"
+                        }`}
+                      />
                     </span>
-                    <span className="text-[12px] text-[hsl(var(--subtle-foreground))]">
-                      {listing.profile.displayName}
-                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[12px] font-semibold text-[hsl(var(--foreground))]">
+                        {listing.profile.displayName}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-[hsl(var(--muted-foreground))]">
+                        {listing.profile.verified
+                          ? "Verified seller"
+                          : "Community seller"}
+                      </p>
+                    </div>
                   </div>
                   <Link
                     href={`/marketplace/${listing.id}`}
-                    className="giq-outline-action w-full text-[12px]"
+                    className="giq-outline-action min-h-11 w-full justify-center text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))]"
                   >
                     View marketplace item
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -282,16 +379,16 @@ function ListingsFallback({
   category?: string;
 }) {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-12">
+    <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <ListingsToolbar q={q} category={category} categories={[]} />
       <SkeletonGroup label="Loading marketplace">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((item) => (
             <SkeletonPanel
               key={item}
               className="giq-listing-card flex min-h-[360px] flex-col"
             >
-              <Skeleton className="h-40 w-full rounded-[10px]" />
+              <Skeleton className="aspect-[16/10] w-full rounded-[10px]" />
               <div className="mt-4 flex items-start justify-between gap-3">
                 <Skeleton className="h-5 w-24 rounded-full" />
                 <Skeleton className="h-5 w-14 rounded-full" />
@@ -320,6 +417,8 @@ function ListingsToolbar({
   categories: Array<{ slug: string; name: string }>;
   count?: number;
 }) {
+  const hasFilters = Boolean(q || category);
+
   return (
     <>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -330,7 +429,9 @@ function ListingsToolbar({
           </h2>
           <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
             {typeof count === "number"
-              ? `${count} active marketplace items${q ? ` matching "${q}".` : "."}`
+              ? `${count} marketplace item${count === 1 ? "" : "s"} shown${
+                  q ? ` matching "${q}".` : "."
+                }`
               : "Loading marketplace items."}
           </p>
         </div>
@@ -339,38 +440,54 @@ function ListingsToolbar({
         </div>
       </div>
 
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <form
-          action="/marketplace"
-          className="flex min-w-0 flex-1 gap-2 md:max-w-md"
-        >
+      <form
+        action="/marketplace"
+        className="giq-panel mb-6 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_15rem_auto_auto] lg:items-end"
+      >
+        <label className="min-w-0">
+          <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[hsl(var(--muted-foreground))]">
+            Search
+          </span>
           <input
             name="q"
             defaultValue={q}
-            placeholder="Search title or description"
-            className="giq-form-control min-w-0 flex-1 px-3 py-2 text-[13px]"
+            placeholder="Title or description"
+            className="giq-form-control min-h-11 w-full min-w-0 px-3 py-2 text-[13px]"
           />
+        </label>
+        <label className="min-w-0">
+          <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[hsl(var(--muted-foreground))]">
+            Category
+          </span>
           <select
             name="category"
             defaultValue={category}
-            className="giq-form-control w-36 px-3 py-2 text-[13px]"
+            className="giq-form-control min-h-11 w-full px-3 py-2 text-[13px]"
           >
-            <option value="">All</option>
+            <option value="">All categories</option>
             {categories.map((item) => (
               <option key={item.slug} value={item.slug}>
                 {item.name}
               </option>
             ))}
           </select>
-          <button
-            type="submit"
-            aria-label="Search marketplace"
-            className="giq-button giq-button-glass giq-icon-button text-[hsl(215_14%_84%)]"
+        </label>
+        <button
+          type="submit"
+          className="giq-button giq-button-primary min-h-11 w-full px-5 text-[13px] font-semibold sm:col-span-2 lg:col-span-1 lg:w-auto"
+        >
+          <Search className="h-4 w-4" />
+          Show results
+        </button>
+        {hasFilters && (
+          <Link
+            href="/marketplace"
+            className="giq-button giq-button-glass min-h-11 w-full px-5 text-[13px] font-semibold sm:col-span-2 lg:col-span-1 lg:w-auto"
           >
-            <Search className="h-4 w-4" />
-          </button>
-        </form>
-      </div>
+            Clear
+          </Link>
+        )}
+      </form>
     </>
   );
 }

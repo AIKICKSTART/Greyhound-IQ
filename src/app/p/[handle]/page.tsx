@@ -165,6 +165,7 @@ function PersonalProfileView({
               src={profile.actor.coverUrl}
               alt=""
               fill
+              unoptimized={profile.actor.coverUrl.startsWith("/api/media/")}
               sizes="(max-width:768px) 100vw, 1024px"
               className="object-cover"
               style={{
@@ -183,6 +184,7 @@ function PersonalProfileView({
                 alt={profile.actor.displayName}
                 width={96}
                 height={96}
+                unoptimized={avatarUrl.startsWith("/api/media/")}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -277,6 +279,7 @@ function PersonalProfileView({
                       }
                       width={300}
                       height={300}
+                      unoptimized={item.url.startsWith("/api/media/")}
                       className="aspect-square w-full object-cover"
                     />
                   </div>
@@ -548,6 +551,7 @@ function FriendAvatar({
       alt=""
       width={32}
       height={32}
+      unoptimized={friend.avatarUrl.startsWith("/api/media/")}
       className="h-8 w-8 shrink-0 rounded-full object-cover"
     />
   ) : (
@@ -607,6 +611,7 @@ function ManagedPageView({
               src={bannerUrl}
               alt=""
               fill
+              unoptimized={bannerUrl.startsWith("/api/media/")}
               sizes="(max-width:768px) 100vw, 1024px"
               className="object-cover"
               style={{
@@ -628,6 +633,7 @@ function ManagedPageView({
                 alt={page.title}
                 width={96}
                 height={96}
+                unoptimized={avatarUrl.startsWith("/api/media/")}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -718,6 +724,7 @@ function ManagedPageView({
               alt=""
               width={56}
               height={56}
+              unoptimized={media.logoUrl.startsWith("/api/media/")}
               className="h-14 w-14 rounded-lg object-contain"
             />
           )}
@@ -745,6 +752,7 @@ function ManagedPageView({
                 alt={`${page.dog?.name ?? "Dog"} trading card`}
                 width={340}
                 height={510}
+                unoptimized={media.cardUrl.startsWith("/api/media/")}
                 className="w-64 rounded-xl border border-white/10 shadow-2xl sm:w-72"
                 priority
               />
@@ -779,6 +787,7 @@ function ManagedPageView({
                       alt={`${page.title} gallery image ${i + 1}`}
                       width={300}
                       height={300}
+                      unoptimized={url.startsWith("/api/media/")}
                       className="aspect-square w-full object-cover"
                     />
                   </div>
@@ -885,6 +894,7 @@ async function StorefrontBody({ profileId }: { profileId: string }) {
                     alt={listing.title}
                     width={240}
                     height={240}
+                    unoptimized={img.startsWith("/api/media/")}
                     className="h-full w-full object-cover transition group-hover:scale-[1.03]"
                   />
                 )}

@@ -590,6 +590,41 @@ if (realtimeService.includes("realtimeTopicGrant")) {
   findings.push("private Realtime grants must not be written to the Prisma application database");
 }
 
+const aggregateRefreshSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260710139000_secure_aggregate_matview_refresh",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  "FUNCTION public.giq_refresh_aggregate_matview(",
+  "SECURITY DEFINER",
+  "SET search_path = ''",
+  "requested_name IS NULL OR NOT requested_name = ANY",
+  "REFRESH MATERIALIZED VIEW CONCURRENTLY public.%I",
+  "REVOKE ALL ON FUNCTION public.giq_refresh_aggregate_matview(text) FROM PUBLIC",
+  "GRANT EXECUTE ON FUNCTION public.giq_refresh_aggregate_matview(text)",
+]) {
+  if (!aggregateRefreshSql.includes(needle)) {
+    findings.push(`aggregate refresh authorization missing: ${needle}`);
+  }
+}
+
+const liveSyncService = readFileSync(
+  join(process.cwd(), "src", "lib", "live", "sync.ts"),
+  "utf8"
+);
+if (!liveSyncService.includes("public.giq_refresh_aggregate_matview(${view})")) {
+  findings.push("live sync must call the allowlisted aggregate refresh function");
+}
+if (liveSyncService.includes("REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}")) {
+  findings.push("live sync must not refresh materialized views directly as the runtime role");
+}
+
 const freeCallReceiversSql = readFileSync(
   join(
     process.cwd(),

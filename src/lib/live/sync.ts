@@ -228,8 +228,8 @@ const AGGREGATE_MATVIEWS = [
 async function refreshSireLeaderboard() {
   for (const view of AGGREGATE_MATVIEWS) {
     try {
-      await prisma.$executeRawUnsafe(
-        `REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`
+      await prisma.$queryRaw(
+        Prisma.sql`SELECT public.giq_refresh_aggregate_matview(${view})`
       );
       console.log(`[live-sync] Refreshed ${view}.`);
     } catch (err) {

@@ -251,6 +251,13 @@ SELECT
 FROM "CustomPage" p
 ON CONFLICT ("pageId") DO NOTHING;
 
+-- These actor-only backfills update rows protected by legacy entitlement
+-- triggers. Disable only those named triggers inside this migration transaction;
+-- PostgreSQL keeps the table locks until they are re-enabled below and committed.
+ALTER TABLE "FeedPost" DISABLE TRIGGER giq_feed_post_pro_write;
+ALTER TABLE "Message" DISABLE TRIGGER giq_message_pro_write;
+ALTER TABLE "Conversation" DISABLE TRIGGER giq_conversation_pro_write;
+
 UPDATE "FeedPost" p
 SET "authorActorId" = a.id,
     "publishedAt" = CASE WHEN p.status = 'active' THEN p."createdAt" ELSE NULL END
@@ -271,6 +278,11 @@ UPDATE "Conversation" c SET "participantAActorId" = a.id
 FROM "SocialActor" a WHERE c."participantAActorId" IS NULL AND a."profileId" = c."participantAId";
 UPDATE "Conversation" c SET "participantBActorId" = a.id
 FROM "SocialActor" a WHERE c."participantBActorId" IS NULL AND a."profileId" = c."participantBId";
+
+ALTER TABLE "FeedPost" ENABLE TRIGGER giq_feed_post_pro_write;
+ALTER TABLE "Message" ENABLE TRIGGER giq_message_pro_write;
+ALTER TABLE "Conversation" ENABLE TRIGGER giq_conversation_pro_write;
+
 UPDATE "ConversationParticipant" c SET "actorId" = a.id
 FROM "SocialActor" a WHERE c."actorId" IS NULL AND a."profileId" = c."profileId";
 UPDATE "Notification" n SET "actorId" = a.id

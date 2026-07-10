@@ -445,6 +445,18 @@ for (const needle of [
     findings.push(`actor/privacy RLS missing: ${needle}`);
   }
 }
+for (const [table, trigger] of [
+  ["FeedPost", "giq_feed_post_pro_write"],
+  ["Message", "giq_message_pro_write"],
+  ["Conversation", "giq_conversation_pro_write"],
+]) {
+  for (const action of ["DISABLE", "ENABLE"]) {
+    const statement = `ALTER TABLE "${table}" ${action} TRIGGER ${trigger};`;
+    if (!actorFoundationSql.includes(statement)) {
+      findings.push(`actor backfill trigger guard missing: ${statement}`);
+    }
+  }
+}
 for (const functionName of [
   "giq_social_actor_identity_valid",
   "giq_actor_can_act",

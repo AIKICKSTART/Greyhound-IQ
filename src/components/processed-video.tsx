@@ -9,12 +9,14 @@ export function ProcessedVideo({
   posterUrl,
   captionUrl,
   label,
+  compact = false,
 }: {
   playbackUrl: string;
   hlsUrl: string | null;
   posterUrl: string | null;
   captionUrl: string | null;
   label: string;
+  compact?: boolean;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const usingHlsRef = useRef(false);
@@ -76,14 +78,22 @@ export function ProcessedVideo({
   }
 
   return (
-    <div className="relative grid min-h-[240px] w-full place-items-center overflow-hidden rounded-xl border border-white/[0.08] bg-black sm:min-h-[360px]">
+    <div
+      className={`giq-social-video relative grid w-full place-items-center overflow-hidden rounded-xl border border-white/[0.08] bg-black ${
+        compact ? "min-h-[140px]" : "min-h-[240px] sm:min-h-[360px]"
+      }`}
+    >
       <video
         ref={ref}
         controls
         playsInline
         preload="metadata"
         poster={posterUrl ?? undefined}
-        className="max-h-[70vh] min-h-[240px] w-full bg-black object-contain sm:min-h-[360px]"
+        className={`giq-social-video-element w-full bg-black object-contain ${
+          compact
+            ? "max-h-[220px] min-h-[140px]"
+            : "max-h-[70vh] min-h-[240px] sm:min-h-[360px]"
+        }`}
         aria-label={label}
         onLoadStart={() => setLoading(true)}
         onWaiting={() => setLoading(true)}

@@ -49,13 +49,13 @@ export function HubMessengerPanel({
   const outgoing = requests.filter((request) => request.direction === "outgoing");
 
   return (
-    <div className="max-h-[calc(100dvh-105px)] space-y-4 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
+    <div className="giq-social-messenger max-h-[calc(100dvh-105px)] space-y-4 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
       {invites.map((invite) => (
         <HubIncomingCall key={invite.inviteId} invite={invite} />
       ))}
 
       {incoming.length > 0 && (
-        <section className="giq-panel p-4" aria-label="Friend requests">
+        <section className="giq-social-messenger-section giq-panel p-4" aria-label="Friend requests">
           <h2 className="mb-3 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
             <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
             Requests
@@ -67,7 +67,7 @@ export function HubMessengerPanel({
             {incoming.map((request) => (
               <li
                 key={request.friendshipId}
-                className="flex min-h-11 items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2.5 py-2"
+                className="giq-social-messenger-row flex min-h-11 items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2.5 py-2"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13px] font-semibold text-[hsl(var(--foreground))]">
@@ -83,7 +83,7 @@ export function HubMessengerPanel({
                   <button
                     type="submit"
                     aria-label={`Accept friend request from ${request.displayName}`}
-                    className="giq-button giq-button-primary min-h-8 w-8 justify-center px-0"
+                    className="giq-button giq-button-primary h-11 w-11 justify-center px-0"
                   >
                     <Check className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
@@ -94,7 +94,7 @@ export function HubMessengerPanel({
                   <button
                     type="submit"
                     aria-label={`Decline friend request from ${request.displayName}`}
-                    className="giq-button giq-button-glass min-h-8 w-8 justify-center px-0"
+                    className="giq-button giq-button-glass h-11 w-11 justify-center px-0"
                   >
                     <X className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
@@ -105,7 +105,7 @@ export function HubMessengerPanel({
         </section>
       )}
 
-      <section className="giq-panel p-4" aria-label="Friends">
+      <section className="giq-social-messenger-section giq-panel p-4" aria-label="Friends">
         <h2 className="mb-3 flex items-center justify-between gap-2 text-[13px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
           <span className="flex items-center gap-2">
             <Users className="h-3.5 w-3.5" aria-hidden="true" />
@@ -133,7 +133,7 @@ export function HubMessengerPanel({
         )}
       </section>
 
-      <section className="giq-panel p-4" aria-label="Recent conversations">
+      <section className="giq-social-messenger-section giq-panel p-4" aria-label="Recent conversations">
         <h2 className="mb-3 flex items-center justify-between gap-2 text-[13px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
           <span className="flex items-center gap-2">
             <Inbox className="h-3.5 w-3.5" aria-hidden="true" />
@@ -161,7 +161,7 @@ export function HubMessengerPanel({
         )}
       </section>
 
-      <section className="giq-panel p-4" aria-label="Find people">
+      <section className="giq-social-messenger-section giq-panel p-4" aria-label="Find people">
         <h2 className="mb-3 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
           <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
           Find people

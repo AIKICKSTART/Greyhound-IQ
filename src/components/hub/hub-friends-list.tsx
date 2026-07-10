@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Lock, MessageSquare, Phone, Video } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, Lock, MessageSquare, Phone, Video } from "lucide-react";
 import { startChatAction } from "@/app/actions";
 import {
   ensureBrowserRealtimeAuthorization,
   getBrowserRealtimeClient,
 } from "@/components/realtime-refresh";
+import {
+  createClientCallRoom,
+  type ClientCallType,
+} from "@/lib/call-client-actions";
 
 export type HubFriend = {
   friendshipId: string;
@@ -34,7 +39,37 @@ export function HubFriendsList({
   canStartCall: boolean;
   senderActorId?: string | null;
 }) {
+  const router = useRouter();
   const [onlineIds, setOnlineIds] = useState<ReadonlySet<string>>(new Set());
+  const [pendingCall, setPendingCall] = useState<{
+    friendshipId: string;
+    callType: ClientCallType;
+  } | null>(null);
+  const [callError, setCallError] = useState<{
+    conversationId: string;
+    message: string;
+  } | null>(null);
+
+  async function placeCall(friend: HubFriend, callType: ClientCallType) {
+    if (!friend.conversationId) return;
+    setPendingCall({ friendshipId: friend.friendshipId, callType });
+    setCallError(null);
+    let navigating = false;
+    try {
+      const created = await createClientCallRoom(friend.conversationId, callType);
+      navigating = true;
+      router.push(
+        `/pulse/${encodeURIComponent(friend.conversationId)}?call=${created.callType}`
+      );
+    } catch (error) {
+      setCallError({
+        conversationId: friend.conversationId,
+        message: error instanceof Error ? error.message : "Could not start call",
+      });
+    } finally {
+      if (!navigating) setPendingCall(null);
+    }
+  }
 
   useEffect(() => {
     const client = getBrowserRealtimeClient();
@@ -85,15 +120,22 @@ export function HubFriendsList({
   }
 
   return (
-    <ul className="space-y-1">
+    <>
+    <ul className="giq-social-friends-list space-y-1">
       {friends.map((friend) => {
         const online = onlineIds.has(friend.profileId);
+        const pendingVoice =
+          pendingCall?.friendshipId === friend.friendshipId &&
+          pendingCall.callType === "voice";
+        const pendingVideo =
+          pendingCall?.friendshipId === friend.friendshipId &&
+          pendingCall.callType === "video";
         return (
           <li
             key={friend.friendshipId}
-            className="flex min-h-11 items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.04]"
+            className="giq-social-messenger-row flex min-h-12 items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.04]"
           >
-            <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/[0.1] bg-[hsl(var(--surface-2))] text-[12px] font-bold text-white/70">
+            <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/[0.1] bg-[hsl(var(--surface-2))] text-[12px] font-bold text-white/70">
               {friend.displayName.slice(0, 1).toUpperCase()}
               <span
                 aria-hidden="true"
@@ -113,7 +155,7 @@ export function HubFriendsList({
                 <Link
                   href={`/pulse/${friend.conversationId}`}
                   aria-label={`Message ${friend.displayName}`}
-                  className="giq-outline-action min-h-8 w-8 justify-center px-0"
+                  className="giq-social-rail-action giq-outline-action h-11 w-11 justify-center px-0"
                 >
                   <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
                 </Link>
@@ -126,7 +168,7 @@ export function HubFriendsList({
                   <button
                     type="submit"
                     aria-label={`Start chat with ${friend.displayName}`}
-                    className="giq-outline-action min-h-8 w-8 justify-center px-0"
+                    className="giq-social-rail-action giq-outline-action h-11 w-11 justify-center px-0"
                   >
                     <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
@@ -135,33 +177,55 @@ export function HubFriendsList({
                 <Link
                   href="/pricing"
                   aria-label="Starting chats is a Pro feature"
-                  className="giq-outline-action min-h-8 w-8 justify-center px-0 opacity-60"
+                  className="giq-social-rail-action giq-outline-action h-11 w-11 justify-center px-0 opacity-60"
                 >
                   <Lock className="h-3.5 w-3.5" aria-hidden="true" />
                 </Link>
               )}
               {friend.conversationId && canStartCall ? (
                 <>
-                  <Link
-                    href={`/pulse/${friend.conversationId}`}
-                    aria-label={`Voice call ${friend.displayName}`}
-                    className="giq-outline-action min-h-8 w-8 justify-center px-0"
+                  <button
+                    type="button"
+                    onClick={() => void placeCall(friend, "voice")}
+                    disabled={pendingCall !== null}
+                    aria-busy={pendingVoice}
+                    aria-label={
+                      pendingVoice
+                        ? `Starting voice call with ${friend.displayName}`
+                        : `Voice call ${friend.displayName}`
+                    }
+                    className="giq-social-rail-action giq-outline-action h-11 w-11 justify-center px-0 disabled:cursor-wait disabled:opacity-60"
                   >
-                    <Phone className="h-3.5 w-3.5" aria-hidden="true" />
-                  </Link>
-                  <Link
-                    href={`/pulse/${friend.conversationId}`}
-                    aria-label={`Video call ${friend.displayName}`}
-                    className="giq-outline-action min-h-8 w-8 justify-center px-0"
+                    {pendingVoice ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Phone className="h-3.5 w-3.5" aria-hidden="true" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void placeCall(friend, "video")}
+                    disabled={pendingCall !== null}
+                    aria-busy={pendingVideo}
+                    aria-label={
+                      pendingVideo
+                        ? `Starting video call with ${friend.displayName}`
+                        : `Video call ${friend.displayName}`
+                    }
+                    className="giq-social-rail-action giq-outline-action h-11 w-11 justify-center px-0 disabled:cursor-wait disabled:opacity-60"
                   >
-                    <Video className="h-3.5 w-3.5" aria-hidden="true" />
-                  </Link>
+                    {pendingVideo ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Video className="h-3.5 w-3.5" aria-hidden="true" />
+                    )}
+                  </button>
                 </>
               ) : friend.conversationId ? (
                 <Link
                   href="/pricing"
                   aria-label="Calls are a Pro feature"
-                  className="giq-outline-action min-h-8 w-8 justify-center px-0 opacity-60"
+                  className="giq-social-rail-action giq-outline-action h-11 w-11 justify-center px-0 opacity-60"
                 >
                   <Lock className="h-3.5 w-3.5" aria-hidden="true" />
                 </Link>
@@ -171,5 +235,17 @@ export function HubFriendsList({
         );
       })}
     </ul>
+    {callError && (
+      <p role="alert" className="mt-2 text-[12px] text-red-200">
+        {callError.message}{" "}
+        <Link
+          href={`/pulse/${callError.conversationId}`}
+          className="font-semibold underline underline-offset-2"
+        >
+          Open chat
+        </Link>
+      </p>
+    )}
+    </>
   );
 }

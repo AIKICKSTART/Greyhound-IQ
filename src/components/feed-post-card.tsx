@@ -85,10 +85,10 @@ export function FeedPostCard({
   return (
     <article
       id={post.reshare ? `share-${post.reshare.id}` : `post-${post.id}`}
-      className="giq-panel giq-panel-popovers scroll-mt-24 p-0"
+      className="giq-social-post giq-panel giq-panel-popovers scroll-mt-24 p-0"
     >
       {post.reshare && (
-        <div className="border-b border-white/[0.06] px-5 py-3 text-[12px] text-[hsl(var(--muted-foreground))]">
+        <div className="giq-social-reshare border-b border-white/[0.06] px-5 py-3 text-[12px] text-[hsl(var(--muted-foreground))]">
           <p>
             {resharer ? (
               <Link
@@ -109,11 +109,11 @@ export function FeedPostCard({
           )}
         </div>
       )}
-      <header className="flex items-start justify-between gap-3 px-5 pb-3 pt-5">
+      <header className="giq-social-post-header flex items-start justify-between gap-3 px-5 pb-3 pt-5">
         <div className="flex min-w-0 items-center gap-3">
           <span
             aria-hidden="true"
-            className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/[0.08] bg-[hsl(var(--surface-2))] text-[14px] font-bold text-white/70"
+            className="giq-social-post-avatar grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border border-white/[0.08] bg-[hsl(var(--surface-2))] text-[14px] font-bold text-white/70"
             style={
               page?.accentColor ? { borderColor: page.accentColor } : undefined
             }
@@ -231,7 +231,7 @@ export function FeedPostCard({
         </div>
       </header>
 
-      <div className="px-5">
+      <div className="giq-social-post-copy px-5">
         <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-[hsl(215_14%_82%)]">
           {post.body}
         </p>
@@ -253,7 +253,7 @@ export function FeedPostCard({
           href={linkPreview.url}
           target="_blank"
           rel="noopener noreferrer nofollow"
-          className="giq-subpanel mx-5 mt-4 block p-4 transition hover:border-white/[0.12]"
+          className="giq-social-link-preview giq-subpanel mx-5 mt-4 block p-4 transition hover:border-white/[0.12]"
         >
           <p className="text-[11px] uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
             {linkPreview.siteName ?? new URL(linkPreview.url).hostname}
@@ -280,7 +280,7 @@ export function FeedPostCard({
         />
       )}
 
-      <div className="mt-4 flex items-center justify-between gap-3 px-5 pb-2 text-[11px] text-[hsl(var(--subtle-foreground))]">
+      <div className="giq-social-post-metrics mt-4 flex items-center justify-between gap-3 px-5 pb-2 text-[11px] text-[hsl(var(--subtle-foreground))]">
         <span>
           {post._count.reactions} reaction{post._count.reactions === 1 ? "" : "s"}
         </span>
@@ -296,7 +296,7 @@ export function FeedPostCard({
         </span>
       </div>
 
-      <div className="mx-3 grid grid-cols-4 border-y border-white/[0.07]">
+      <div className="giq-social-post-actions mx-3 grid grid-cols-4 border-y border-white/[0.07]">
         <InstantFeedReactionButton
           postId={post.id}
           initialCount={post._count.reactions}
@@ -331,7 +331,7 @@ export function FeedPostCard({
         )}
       </div>
 
-      <div className="px-5 pb-5">
+      <div className="giq-social-post-comments px-5 pb-5">
         <FeedCommentsPanel
           postId={post.id}
           initialComments={post.comments}
@@ -374,7 +374,7 @@ function FeedMediaGallery({
 
   return (
     <div
-      className={`mx-3 mt-4 grid gap-1.5 overflow-hidden rounded-xl ${
+      className={`giq-social-media-gallery mx-3 mt-4 grid gap-1.5 overflow-hidden rounded-xl ${
         single ? "grid-cols-1" : "grid-cols-2"
       }`}
     >
@@ -509,7 +509,7 @@ function FeedMedia({
         href={playbackUrl}
         target="_blank"
         rel="noreferrer"
-        className={`giq-listing-media block h-full bg-black/25 ${
+        className={`giq-social-media-item giq-listing-media block h-full bg-black/25 ${
           featured ? "min-h-[240px]" : "min-h-[180px] sm:min-h-[220px]"
         }`}
       >
@@ -556,7 +556,7 @@ function FeedMedia({
 
   if (media.mimeType.startsWith("audio/")) {
     return (
-      <div className="giq-listing-media flex min-h-28 items-center bg-black/25 p-4">
+      <div className="giq-social-media-item giq-listing-media flex min-h-28 items-center bg-black/25 p-4">
         <audio
           controls
           preload="metadata"

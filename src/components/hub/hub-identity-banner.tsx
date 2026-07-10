@@ -41,6 +41,9 @@ export function HubIdentityBanner({
   const bannerUrl = actor.coverUrl ?? page?.media.bannerUrl ?? null;
   const coverImageUrl =
     bannerUrl ?? "/images/wentworth-track-banner-landscape.webp";
+  const mediaHref = page
+    ? `/account/pages/${page.id}#page-media`
+    : "/account#profile-media";
   const subtitle = page
     ? page.tagline ??
       `${CUSTOM_PAGE_TYPE_LABELS[page.pageType as CustomPageType] ?? page.pageType} page`
@@ -48,8 +51,8 @@ export function HubIdentityBanner({
       "Member profile";
 
   return (
-    <header className="overflow-hidden rounded-2xl border border-white/[0.09] bg-[hsl(var(--surface-1))] shadow-[0_18px_55px_rgba(0,0,0,0.32)]">
-      <div className="relative aspect-[16/5] min-h-36 w-full overflow-hidden bg-black sm:min-h-44">
+    <header className="giq-hub-identity-banner overflow-hidden rounded-2xl border border-white/[0.09] bg-[hsl(var(--surface-1))] shadow-[0_18px_55px_rgba(0,0,0,0.32)]">
+      <div className="giq-hub-identity-cover relative aspect-[16/5] min-h-36 w-full overflow-hidden bg-black sm:min-h-44">
         <Image
           src={coverImageUrl}
           alt=""
@@ -62,13 +65,14 @@ export function HubIdentityBanner({
           }}
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+        <div className="giq-hub-identity-cover-shade absolute inset-0" />
         <Link
-          href={page ? `/account/pages/${page.id}#page-media` : "/account#profile-media"}
-          className="giq-button giq-button-glass min-h-10 border-black/20 bg-black/65 px-3 text-[12px] font-semibold backdrop-blur-md"
+          href={mediaHref}
+          aria-label={`Edit cover photo for ${title}`}
+          className="giq-hub-cover-edit giq-button giq-button-glass min-h-11 border-black/20 bg-black/65 px-3 text-[12px] font-semibold backdrop-blur-md"
           style={{ position: "absolute", right: 12, top: 12, zIndex: 10 }}
         >
-          <Camera className="h-4 w-4" aria-hidden="true" />
+          <Pencil className="h-4 w-4" aria-hidden="true" />
           Edit cover
         </Link>
         <div className="absolute inset-x-0 bottom-0 flex h-1" aria-hidden="true">
@@ -80,24 +84,33 @@ export function HubIdentityBanner({
         </div>
       </div>
       <div className="flex flex-wrap items-end gap-4 px-5 pb-5 sm:px-6">
-        <div
-          className="-mt-12 h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-black shadow-xl"
-          style={{ borderColor: accent }}
-        >
-          {avatarUrl ? (
-            <Image
-              src={avatarUrl}
-              alt={title}
-              width={96}
-              height={96}
-              unoptimized={avatarUrl.startsWith("/api/media/")}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="grid h-full w-full place-items-center text-xl font-bold text-white/70">
-              {title.slice(0, 1).toUpperCase()}
-            </div>
-          )}
+        <div className="giq-hub-avatar-wrap relative -mt-12 h-24 w-24 shrink-0 sm:h-28 sm:w-28">
+          <div
+            className="giq-hub-avatar h-full w-full overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-black shadow-xl"
+            style={{ borderColor: accent }}
+          >
+            {avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt={title}
+                width={112}
+                height={112}
+                unoptimized={avatarUrl.startsWith("/api/media/")}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="grid h-full w-full place-items-center text-xl font-bold text-white/70">
+                {title.slice(0, 1).toUpperCase()}
+              </div>
+            )}
+          </div>
+          <Link
+            href={mediaHref}
+            aria-label={`Edit profile picture for ${title}`}
+            className="giq-hub-avatar-edit absolute -bottom-1 -right-1 grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-[hsl(var(--surface-2)/0.96)] text-[hsl(var(--foreground))] shadow-xl backdrop-blur-md"
+          >
+            <Camera className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
         <div className="min-w-0 flex-1 pb-1">
           <div className="flex flex-wrap items-center gap-2">

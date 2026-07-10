@@ -5011,6 +5011,337 @@ h2,
     0 0 30px -18px hsl(var(--primary-light) / 0.72);
 }
 
+/* Signed-in social hub: shared chrome for Option A without affecting the
+   signed-out marketing surface. */
+.giq-social-feed-scroll,
+.giq-social-messenger,
+.giq-social-chat-messages {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary-light) / 0.48) hsl(var(--surface-2) / 0.48);
+}
+
+.giq-social-feed-scroll:focus-visible {
+  outline: 2px solid hsl(var(--primary-light) / 0.68);
+  outline-offset: 3px;
+}
+
+.giq-hub-identity-banner {
+  isolation: isolate;
+  border-color: hsl(var(--metal-silver) / 0.22);
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.045), transparent 36%),
+    hsl(var(--surface-1) / 0.92);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.14),
+    0 24px 64px hsl(0 0% 0% / 0.38),
+    0 0 34px -24px hsl(var(--primary-light) / 0.76);
+}
+
+.giq-hub-identity-cover-shade {
+  background:
+    linear-gradient(90deg, hsl(0 0% 0% / 0.18), transparent 55%),
+    linear-gradient(180deg, transparent 30%, hsl(var(--surface-1) / 0.96) 100%);
+}
+
+.giq-hub-cover-edit {
+  border-color: hsl(var(--metal-silver-bright) / 0.26) !important;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.16),
+    0 10px 26px hsl(0 0% 0% / 0.38);
+}
+
+.giq-hub-avatar {
+  box-shadow:
+    0 0 0 3px hsl(var(--surface-1)),
+    0 16px 34px hsl(0 0% 0% / 0.52),
+    0 0 28px -12px hsl(var(--primary-light) / 0.82);
+}
+
+.giq-hub-avatar-edit {
+  transition:
+    transform var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease),
+    background-color var(--duration-fast) var(--ease),
+    box-shadow var(--duration-fast) var(--ease);
+}
+
+.giq-hub-avatar-edit:hover,
+.giq-hub-avatar-edit:focus-visible {
+  transform: translateY(-2px);
+  border-color: hsl(var(--secondary-light) / 0.72);
+  background: hsl(var(--primary) / 0.92);
+  box-shadow:
+    0 14px 30px hsl(0 0% 0% / 0.48),
+    0 0 22px -8px hsl(var(--primary-bright) / 0.78);
+  outline: none;
+}
+
+.giq-social-feed-tabs {
+  border-color: hsl(var(--metal-silver) / 0.18);
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.045), hsl(0 0% 100% / 0.012)),
+    hsl(var(--surface-1) / 0.76);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.12),
+    0 12px 28px hsl(0 0% 0% / 0.24);
+}
+
+.giq-social-feed-tabs a[aria-current="page"] {
+  box-shadow:
+    inset 0 -2px 0 hsl(var(--primary-bright)),
+    0 0 24px -12px hsl(var(--primary-bright) / 0.9);
+}
+
+.giq-social-composer-shell {
+  border-color: hsl(var(--primary-light) / 0.22);
+  background:
+    radial-gradient(ellipse 62% 80% at 12% -22%, hsl(var(--primary) / 0.18), transparent 68%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.045), hsl(0 0% 100% / 0.012)),
+    hsl(var(--surface-1) / 0.76);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.14),
+    0 20px 44px hsl(0 0% 0% / 0.3),
+    0 0 32px -24px hsl(var(--primary-light) / 0.82);
+}
+
+.giq-social-composer-avatar,
+.giq-social-post-avatar {
+  box-shadow:
+    0 0 0 2px hsl(var(--surface-1)),
+    0 6px 18px hsl(0 0% 0% / 0.42),
+    0 0 18px -8px hsl(var(--secondary-light) / 0.68);
+}
+
+.giq-social-composer-prompt {
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.08),
+    inset 0 0 20px hsl(var(--primary) / 0.04);
+}
+
+.giq-social-composer-prompt:focus-visible {
+  border-color: hsl(var(--primary-light) / 0.62);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.18);
+  outline: none;
+}
+
+.giq-social-composer-media {
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.045), transparent);
+}
+
+.giq-social-post {
+  border-color: hsl(var(--metal-silver) / 0.18);
+  background:
+    radial-gradient(ellipse 56% 32% at 8% 0%, hsl(var(--primary) / 0.1), transparent 70%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.03), transparent 22%),
+    hsl(var(--surface-1) / 0.8);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.11),
+    0 22px 48px hsl(0 0% 0% / 0.3);
+  transition:
+    border-color var(--duration-base) var(--ease),
+    box-shadow var(--duration-base) var(--ease);
+}
+
+.giq-social-post:hover {
+  border-color: hsl(var(--metal-silver-bright) / 0.28);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.13),
+    0 26px 56px hsl(0 0% 0% / 0.34),
+    0 0 30px -24px hsl(var(--primary-light) / 0.7);
+}
+
+.giq-social-post-header {
+  background: linear-gradient(180deg, hsl(0 0% 100% / 0.024), transparent);
+}
+
+.giq-social-reshare {
+  background: hsl(var(--primary) / 0.045);
+}
+
+.giq-social-link-preview {
+  background:
+    linear-gradient(135deg, hsl(var(--primary) / 0.07), transparent 62%),
+    hsl(var(--surface-2) / 0.58);
+}
+
+.giq-social-media-gallery,
+.giq-social-video {
+  border: 1px solid hsl(var(--metal-silver) / 0.18);
+  background: hsl(0 0% 0% / 0.72);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.09),
+    0 18px 38px hsl(0 0% 0% / 0.34);
+}
+
+.giq-social-media-item img {
+  transition: transform var(--duration-slow) var(--ease);
+}
+
+.giq-social-media-item:hover img {
+  transform: scale(1.012);
+}
+
+.giq-social-video-element {
+  color-scheme: dark;
+}
+
+.giq-social-post-metrics {
+  font-variant-numeric: tabular-nums;
+}
+
+.giq-social-post-actions {
+  border-radius: 12px;
+  background: hsl(var(--surface-2) / 0.46);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.055);
+}
+
+.giq-social-messenger-section {
+  border-color: hsl(var(--metal-silver) / 0.18);
+  background:
+    radial-gradient(ellipse 68% 54% at 12% -12%, hsl(var(--primary) / 0.12), transparent 68%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.032), transparent 28%),
+    hsl(var(--surface-1) / 0.76);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.11),
+    0 18px 38px hsl(0 0% 0% / 0.28);
+}
+
+.giq-social-messenger-row {
+  border: 1px solid transparent;
+  transition:
+    border-color var(--duration-fast) var(--ease),
+    background-color var(--duration-fast) var(--ease),
+    box-shadow var(--duration-fast) var(--ease);
+}
+
+.giq-social-messenger-row:hover,
+.giq-social-messenger-row:focus-within {
+  border-color: hsl(var(--metal-silver) / 0.16);
+  background: hsl(0 0% 100% / 0.048);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.07);
+}
+
+.giq-social-messenger-row:focus-visible {
+  border-color: hsl(var(--primary-light) / 0.72);
+  background: hsl(var(--primary) / 0.1);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.1),
+    0 0 0 3px hsl(var(--primary) / 0.22);
+  outline: 2px solid hsl(var(--primary-bright));
+  outline-offset: 2px;
+}
+
+.giq-social-rail-action {
+  border-radius: 50%;
+}
+
+.giq-social-quick-chat {
+  border-color: hsl(var(--primary-light) / 0.28);
+  background: hsl(var(--surface-1) / 0.96);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.14),
+    0 28px 70px hsl(0 0% 0% / 0.52),
+    0 0 38px -18px hsl(var(--primary-light) / 0.72);
+}
+
+.giq-social-quick-chat-header,
+.giq-social-quick-chat-composer,
+.giq-social-message-composer {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.045), hsl(0 0% 100% / 0.012)),
+    hsl(var(--surface-1) / 0.9);
+}
+
+.giq-social-chat-messages {
+  background:
+    radial-gradient(circle at 12% 8%, hsl(var(--primary) / 0.08), transparent 34%),
+    hsl(var(--background) / 0.62);
+}
+
+.giq-social-chat-bubble {
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.08),
+    0 8px 20px hsl(0 0% 0% / 0.2);
+}
+
+.giq-social-incoming-call {
+  background:
+    radial-gradient(circle at 10% 0%, hsl(var(--primary-bright) / 0.18), transparent 45%),
+    hsl(var(--primary) / 0.12);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.12),
+    0 16px 38px hsl(0 0% 0% / 0.34),
+    0 0 34px -18px hsl(var(--primary-bright) / 0.88);
+}
+
+.giq-social-thread-header,
+.giq-social-thread-search,
+.giq-social-thread-panel {
+  border-color: hsl(var(--metal-silver) / 0.18);
+  background:
+    radial-gradient(ellipse 60% 46% at 10% -8%, hsl(var(--primary) / 0.11), transparent 68%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.032), transparent 28%),
+    hsl(var(--surface-1) / 0.76);
+}
+
+.giq-social-thread-panel {
+  overflow: visible;
+}
+
+.giq-social-call-panel {
+  border-color: hsl(var(--primary-light) / 0.24);
+  background:
+    radial-gradient(ellipse 70% 70% at 15% 0%, hsl(var(--primary) / 0.16), transparent 66%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.035), transparent 26%),
+    hsl(0 0% 0% / 0.34);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.11),
+    0 18px 46px hsl(0 0% 0% / 0.36);
+}
+
+.giq-social-call-stage {
+  padding: 3px;
+  border-radius: 16px;
+  background: hsl(0 0% 0% / 0.42);
+}
+
+.giq-social-call-video {
+  box-shadow:
+    inset 0 0 0 1px hsl(0 0% 100% / 0.035),
+    0 16px 36px hsl(0 0% 0% / 0.38);
+}
+
+.giq-social-call-video video {
+  background: hsl(0 0% 2%);
+}
+
+.giq-social-call-devices,
+.giq-social-call-controls {
+  border-color: hsl(var(--metal-silver) / 0.16);
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.05), hsl(0 0% 100% / 0.014)),
+    hsl(var(--surface-1) / 0.92);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.1);
+}
+
+@media (max-width: 639.98px) {
+  .giq-hub-cover-edit {
+    right: 8px !important;
+    top: 8px !important;
+  }
+
+  .giq-social-post-header,
+  .giq-social-post-copy,
+  .giq-social-post-comments {
+    padding-inline: 16px;
+  }
+
+  .giq-social-media-gallery,
+  .giq-social-post-actions {
+    margin-inline: 8px;
+  }
+}
+
 .giq-subpanel {
   border: 1px solid hsl(var(--metal-silver) / 0.12);
   border-radius: 10px;

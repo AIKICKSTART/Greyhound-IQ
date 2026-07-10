@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
+import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import {
   AudioLines,
@@ -55,11 +56,13 @@ export function InstantFeedPostComposer({
   topics,
   pageId = null,
   identityLabel,
+  identityAvatarUrl,
 }: {
   topics: FeedTopicOption[];
   // Owned CustomPage id to post as (server re-verifies ownership).
   pageId?: string | null;
   identityLabel?: string;
+  identityAvatarUrl?: string | null;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -154,26 +157,37 @@ export function InstantFeedPostComposer({
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="space-y-3">
+    <form ref={formRef} onSubmit={onSubmit} className="giq-social-composer space-y-3">
       <div className="flex items-center gap-3">
         <span
           aria-hidden="true"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[hsl(var(--secondary)/0.45)] bg-[hsl(var(--primary)/0.16)] text-[13px] font-bold text-[hsl(var(--primary-light))]"
+          className="giq-social-composer-avatar grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full border border-[hsl(var(--secondary)/0.45)] bg-[hsl(var(--primary)/0.16)] text-[13px] font-bold text-[hsl(var(--primary-light))]"
         >
-          {(identityLabel ?? "You").slice(0, 1).toUpperCase()}
+          {identityAvatarUrl ? (
+            <NextImage
+              src={identityAvatarUrl}
+              alt=""
+              width={44}
+              height={44}
+              unoptimized={identityAvatarUrl.startsWith("/api/media/")}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            (identityLabel ?? "You").slice(0, 1).toUpperCase()
+          )}
         </span>
         <button
           type="button"
           onClick={() => setExpanded(true)}
           aria-expanded={expanded}
           aria-controls="feed-composer-details"
-          className="min-h-11 min-w-0 flex-1 rounded-full border border-white/[0.09] bg-white/[0.035] px-4 text-left text-[13px] text-[hsl(var(--muted-foreground))] transition hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-[hsl(var(--foreground))]"
+          className="giq-social-composer-prompt min-h-11 min-w-0 flex-1 rounded-full border border-white/[0.09] bg-white/[0.035] px-4 text-left text-[13px] text-[hsl(var(--muted-foreground))] transition hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-[hsl(var(--foreground))]"
         >
           Share an update...
         </button>
       </div>
 
-      <div className="grid grid-cols-3 divide-x divide-white/[0.07] border-y border-white/[0.07]">
+      <div className="giq-social-composer-media grid grid-cols-3 divide-x divide-white/[0.07] border-y border-white/[0.07]">
         <ComposerMediaButton
           label="Photo"
           icon={ImageIcon}

@@ -66,6 +66,7 @@ export default async function MessageThreadPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{
     before?: string | string[];
+    call?: string | string[];
     q?: string | string[];
   }>;
 }) {
@@ -82,6 +83,12 @@ export default async function MessageThreadPage({
     tier: user.tier,
   };
   const before = typeof query.before === "string" ? query.before : undefined;
+  const callIntent =
+    query.call === "voice" ||
+    query.call === "video" ||
+    query.call === "answer"
+      ? query.call
+      : null;
   const messageQuery =
     typeof query.q === "string"
       ? query.q.trim().replace(/\s+/g, " ").slice(0, 100)
@@ -180,7 +187,7 @@ export default async function MessageThreadPage({
       : null;
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
+    <div className="giq-social-thread mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
       <Link
         href="/pulse"
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
@@ -189,7 +196,7 @@ export default async function MessageThreadPage({
         Pulse inbox
       </Link>
 
-      <header className="giq-panel mb-6 p-6">
+      <header className="giq-social-thread-header giq-panel mb-6 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[hsl(var(--primary-bright))]">
@@ -276,7 +283,7 @@ export default async function MessageThreadPage({
         )}
       </header>
 
-      <section className="giq-panel mb-6 p-5" aria-label="Search this conversation">
+      <section className="giq-social-thread-search giq-panel mb-6 p-5" aria-label="Search this conversation">
         <form className="flex flex-wrap gap-2" action={`/pulse/${conversation.id}`}>
           <label className="sr-only" htmlFor="message-search">
             Search messages in this conversation
@@ -341,7 +348,7 @@ export default async function MessageThreadPage({
         )}
       </section>
 
-      <section className="giq-panel">
+      <section className="giq-social-thread-panel giq-panel">
         <div className="space-y-4 p-5">
           {(hasEarlierPage || before) && (
             <div className="flex flex-wrap items-center justify-center gap-2 pb-1">
@@ -407,7 +414,7 @@ export default async function MessageThreadPage({
               return (
                 <article
                   key={message.id}
-                  className={`rounded-lg border p-4 ${
+                  className={`giq-social-chat-bubble rounded-2xl border p-4 ${
                     isMine
                       ? "ml-auto max-w-[82%] border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--primary)/0.08)]"
                       : "mr-auto max-w-[82%] border-white/[0.06] bg-white/[0.03]"
@@ -471,7 +478,7 @@ export default async function MessageThreadPage({
                       <form action={reactionAction}>
                         <SubmitButton
                           pendingLabel="..."
-                          className={`giq-outline-action min-h-8 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60 ${
+                          className={`giq-outline-action min-h-11 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60 ${
                             reactedByMe
                               ? "border-[hsl(var(--primary)/0.35)] bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary-bright))]"
                               : ""
@@ -484,7 +491,7 @@ export default async function MessageThreadPage({
                       <form action={deleteAction}>
                         <SubmitButton
                           pendingLabel="Deleting..."
-                          className="giq-outline-action min-h-8 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
+                          className="giq-outline-action min-h-11 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <Trash2 className="h-3 w-3" />
                           Delete
@@ -496,7 +503,7 @@ export default async function MessageThreadPage({
                             name="reason"
                             defaultValue="other"
                             aria-label="Report reason"
-                            className="giq-form-control h-8 w-32 px-2 py-1 text-[11px]"
+                            className="giq-form-control min-h-11 w-32 px-2 py-1 text-[11px]"
                           >
                             <option value="spam">Spam</option>
                             <option value="harassment">Harassment</option>
@@ -506,7 +513,7 @@ export default async function MessageThreadPage({
                           </select>
                           <SubmitButton
                             pendingLabel="..."
-                            className="giq-outline-action min-h-8 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="giq-outline-action min-h-11 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <Flag className="h-3 w-3" />
                             Report
@@ -551,6 +558,7 @@ export default async function MessageThreadPage({
             blocked={Boolean(conversation.blockedAt)}
             otherName={otherLabel}
             canStartCall={hasTier(user.tier, "pro") && !isPageConversation}
+            autoCallIntent={isPageConversation ? null : callIntent}
           />
         </div>
 

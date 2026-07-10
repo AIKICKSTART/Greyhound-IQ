@@ -194,6 +194,8 @@ export default async function FeedPage({
     state: profile?.state ?? null,
     tierLabel: TIER_LABELS[user.tier] ?? "Free",
   };
+  const activeIdentityAvatarUrl =
+    activeActor.avatarUrl ?? activePage?.media.avatarUrl ?? personal.avatarUrl;
 
   const actorConversations = conversations.filter((conversation) => {
     const belongsToActiveActor =
@@ -238,8 +240,8 @@ export default async function FeedPage({
   }));
 
   return (
-    <div className="mx-auto w-full max-w-[1680px] px-2 py-4 sm:px-4 lg:px-5 2xl:px-6">
-      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_300px] 2xl:grid-cols-[260px_minmax(0,1fr)_340px]">
+    <div className="giq-social-hub mx-auto w-full max-w-[1680px] px-2 py-4 sm:px-4 lg:px-5 2xl:px-6">
+      <div className="giq-social-hub-grid grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_300px] 2xl:grid-cols-[260px_minmax(0,1fr)_340px]">
         <aside className="hidden lg:block" aria-label="Hub navigation">
           <div className="sticky top-[84px] max-h-[calc(100dvh-105px)] overflow-y-auto pr-1">
             <HubLeftSidebar
@@ -256,7 +258,7 @@ export default async function FeedPage({
           data-feed-scroll
           aria-label="Community feed"
           tabIndex={0}
-          className="min-w-0 space-y-4 lg:h-[calc(100dvh-105px)] lg:overflow-y-auto lg:overscroll-contain lg:pb-8 lg:pr-1 [scrollbar-gutter:stable]"
+          className="giq-social-feed-scroll min-w-0 space-y-4 lg:h-[calc(100dvh-105px)] lg:overflow-y-auto lg:overscroll-contain lg:pb-8 lg:pr-1 [scrollbar-gutter:stable]"
         >
           {/* Ringing card surfaces above the feed on mobile where the right
               messenger column is hidden. */}
@@ -309,7 +311,7 @@ export default async function FeedPage({
 
           <nav
             aria-label="Feed order"
-            className="giq-panel flex min-h-11 items-center gap-1 p-1"
+            className="giq-social-feed-tabs giq-panel flex min-h-11 items-center gap-1 p-1"
           >
             <Link
               href="/feed?mode=for-you"
@@ -338,12 +340,13 @@ export default async function FeedPage({
           {canUseFeedAsActiveIdentity ? (
             <section
               id="feed-composer"
-              className="giq-panel scroll-mt-24 p-4"
+              className="giq-social-composer-shell giq-panel scroll-mt-24 p-4"
             >
               <InstantFeedPostComposer
                 topics={topics}
                 pageId={activePage?.id ?? null}
                 identityLabel={activePage ? activePage.title : personal.displayName}
+                identityAvatarUrl={activeIdentityAvatarUrl}
               />
             </section>
           ) : (
@@ -381,7 +384,7 @@ export default async function FeedPage({
           />
         </main>
 
-        <aside className="hidden xl:block" aria-label="Messenger">
+        <aside className="giq-social-messenger-rail hidden xl:block" aria-label="Messenger">
           <div className="sticky top-[84px] max-h-[calc(100dvh-105px)]">
             <HubMessengerPanel
               presenceChannel={membersPresenceChannel()}

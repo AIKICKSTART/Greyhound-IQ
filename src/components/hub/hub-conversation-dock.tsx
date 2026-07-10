@@ -1,5 +1,6 @@
 "use client";
 
+import NextImage from "next/image";
 import Link from "next/link";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
@@ -9,10 +10,13 @@ import {
   Paperclip,
   RotateCcw,
   Send,
+  ShieldAlert,
   X,
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
+import { MediaAttachmentFields } from "@/components/media-attachment-fields";
+import { ProcessedVideo } from "@/components/processed-video";
 import {
   ensureBrowserRealtimeAuthorization,
   getBrowserRealtimeClient,
@@ -35,8 +39,18 @@ type QuickMessage = {
   media?: Array<{
     mediaId: string;
     media?: {
+      id: string;
       mimeType?: string | null;
       originalName?: string | null;
+      widthPx?: number | null;
+      heightPx?: number | null;
+      scanStatus?: string | null;
+      processingStatus?: string | null;
+      playbackPath?: string | null;
+      posterPath?: string | null;
+      hlsPath?: string | null;
+      altText?: string | null;
+      captionPath?: string | null;
     };
   }>;
   pending?: boolean;
@@ -67,20 +81,20 @@ export function HubConversationDock({
 
   return (
     <>
-      <ul className="space-y-1">
+      <ul className="giq-social-chat-list space-y-1">
         {conversations.map((conversation) => (
           <li key={conversation.id}>
             <button
               type="button"
               onClick={() => openConversation(conversation.id)}
-              className="hidden min-h-11 w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.04] lg:flex"
+              className="giq-social-messenger-row hidden min-h-12 w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.04] lg:flex"
               aria-label={`Open quick chat with ${conversation.otherName}`}
             >
               <ConversationSummary conversation={conversation} />
             </button>
             <Link
               href={`/pulse/${conversation.id}`}
-              className="flex min-h-11 items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.04] lg:hidden"
+              className="giq-social-messenger-row flex min-h-12 items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.04] lg:hidden"
             >
               <ConversationSummary conversation={conversation} />
             </Link>
@@ -120,7 +134,7 @@ function ConversationSummary({
 
   return (
     <>
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/[0.1] bg-[hsl(var(--surface-2))] text-[12px] font-bold text-white/70">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/[0.1] bg-[hsl(var(--surface-2))] text-[12px] font-bold text-white/70">
         {conversation.otherName.slice(0, 1).toUpperCase()}
       </span>
       <span className="min-w-0 flex-1">
@@ -159,6 +173,7 @@ function QuickChatWindow({
   const [messages, setMessages] = useState<QuickMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [attachmentResetKey, setAttachmentResetKey] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
 
@@ -225,7 +240,12 @@ function QuickChatWindow({
     event.preventDefault();
     if (sending) return;
     const form = event.currentTarget;
-    const body = String(new FormData(form).get("body") ?? "").trim();
+    const formData = new FormData(form);
+    const body = String(formData.get("body") ?? "").trim();
+    const mediaIds = formData
+      .getAll("mediaIds")
+      .map(String)
+      .filter(Boolean);
     if (!body) return;
     const optimisticId = `pending-${crypto.randomUUID()}`;
     setMessages((current) => [
@@ -240,17 +260,18 @@ function QuickChatWindow({
     ]);
     setSending(true);
     setSendError(null);
-    form.reset();
     try {
       const response = await fetch(
         `/api/conversations/${conversation.id}/messages`,
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ body, mediaIds: [] }),
+          body: JSON.stringify({ body, mediaIds }),
         }
       );
       if (!response.ok) throw new Error("Could not send message");
+      form.reset();
+      setAttachmentResetKey((current) => current + 1);
       await loadMessages();
     } catch (err) {
       setMessages((current) =>
@@ -265,8 +286,8 @@ function QuickChatWindow({
   }
 
   return (
-    <section className="flex h-[440px] w-[320px] flex-col overflow-hidden rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] shadow-2xl backdrop-blur-xl">
-      <header className="flex min-h-12 items-center gap-2 border-b border-white/[0.08] px-3">
+    <section className="giq-social-quick-chat flex h-[440px] w-[320px] flex-col overflow-hidden rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] shadow-2xl backdrop-blur-xl">
+      <header className="giq-social-quick-chat-header flex min-h-12 items-center gap-2 border-b border-white/[0.08] px-3">
         <MessageSquare className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
         <h2 className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[hsl(var(--foreground))]">
           {conversation.otherName}
@@ -290,7 +311,7 @@ function QuickChatWindow({
 
       <div
         ref={messagesViewportRef}
-        className="flex-1 space-y-2 overflow-y-auto p-3"
+        className="giq-social-chat-messages flex-1 space-y-2 overflow-y-auto p-3"
         aria-busy={loading}
         aria-live="polite"
       >
@@ -321,14 +342,14 @@ function QuickChatWindow({
             return (
               <article
                 key={message.id}
-                className={`max-w-[84%] rounded-lg px-3 py-2 text-[12px] ${
+                className={`giq-social-chat-bubble max-w-[84%] rounded-xl px-3 py-2 text-[12px] ${
                   mine
                     ? "ml-auto bg-[hsl(var(--primary)/0.16)] text-[hsl(var(--foreground))]"
                     : "mr-auto bg-white/[0.05] text-[hsl(var(--muted-foreground))]"
                 }`}
               >
                 <p className="whitespace-pre-wrap break-words">{message.body}</p>
-                <MessageAttachmentSummary attachments={message.media ?? []} />
+                <MessageAttachments attachments={message.media ?? []} />
                 <span className="mt-1 block text-[10px] opacity-70">
                   {message.pending ? (
                     "Sending..."
@@ -344,7 +365,7 @@ function QuickChatWindow({
         )}
       </div>
 
-      <form onSubmit={sendMessage} className="border-t border-white/[0.08] p-2">
+      <form onSubmit={sendMessage} className="giq-social-quick-chat-composer border-t border-white/[0.08] p-2">
         <label className="sr-only" htmlFor={`quick-chat-${conversation.id}`}>
           Message {conversation.otherName}
         </label>
@@ -372,6 +393,9 @@ function QuickChatWindow({
             )}
           </button>
         </div>
+        <div className="mt-2 max-h-44 overflow-y-auto overscroll-contain pr-1">
+          <MediaAttachmentFields key={attachmentResetKey} compact />
+        </div>
         {sendError && (
           <p role="alert" className="mt-1 text-[11px] text-red-200">
             {sendError}
@@ -382,29 +406,138 @@ function QuickChatWindow({
   );
 }
 
-function MessageAttachmentSummary({
+function MessageAttachments({
   attachments,
 }: {
   attachments: NonNullable<QuickMessage["media"]>;
 }) {
   if (attachments.length === 0) return null;
   return (
-    <p className="mt-1.5 flex items-center gap-1 text-[11px] opacity-80">
-      <Paperclip className="h-3 w-3 shrink-0" aria-hidden="true" />
-      <span className="truncate">{attachmentLabel(attachments)}</span>
-    </p>
+    <div className="mt-2 grid gap-2">
+      {attachments.map((attachment) => (
+        <MessageAttachment key={attachment.mediaId} attachment={attachment} />
+      ))}
+    </div>
   );
 }
 
-function attachmentLabel(attachments: NonNullable<QuickMessage["media"]>) {
-  if (attachments.length > 1) return `${attachments.length} attachments`;
-  const attachment = attachments[0]?.media;
-  if (attachment?.originalName) return attachment.originalName;
-  const mimeType = attachment?.mimeType ?? "";
-  if (mimeType.startsWith("image/")) return "Photo";
-  if (mimeType.startsWith("video/")) return "Video";
-  if (mimeType.startsWith("audio/")) return "Audio";
-  return "Attachment";
+function MessageAttachment({
+  attachment,
+}: {
+  attachment: NonNullable<QuickMessage["media"]>[number];
+}) {
+  const media = attachment.media;
+  if (!media) {
+    return <AttachmentStatus label="Attachment unavailable" />;
+  }
+  if (media.scanStatus === "pending") {
+    return <AttachmentStatus label="Scanning attachment…" loading />;
+  }
+  if (media.scanStatus !== "clean") {
+    return <AttachmentStatus label="Attachment removed by safety scan" failed />;
+  }
+  if (media.processingStatus !== "ready") {
+    return (
+      <AttachmentStatus
+        label={
+          media.processingStatus === "failed"
+            ? "Attachment processing failed"
+            : "Preparing attachment…"
+        }
+        loading={media.processingStatus !== "failed"}
+        failed={media.processingStatus === "failed"}
+      />
+    );
+  }
+
+  const originalUrl = `/api/media/${media.id}/blob`;
+  const playbackUrl = media.playbackPath
+    ? `${originalUrl}?variant=playback`
+    : originalUrl;
+  const label = media.altText ?? media.originalName ?? "Message attachment";
+
+  if (media.mimeType?.startsWith("image/")) {
+    return (
+      <a
+        href={playbackUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="giq-listing-media block overflow-hidden rounded-lg"
+      >
+        <NextImage
+          src={playbackUrl}
+          alt={label}
+          width={media.widthPx ?? 420}
+          height={media.heightPx ?? 280}
+          unoptimized
+          className="max-h-44 w-full object-cover"
+        />
+      </a>
+    );
+  }
+
+  if (media.mimeType?.startsWith("video/")) {
+    return (
+      <ProcessedVideo
+        playbackUrl={playbackUrl}
+        hlsUrl={media.hlsPath ? `${originalUrl}?variant=hls` : null}
+        posterUrl={media.posterPath ? `${originalUrl}?variant=poster` : null}
+        captionUrl={media.captionPath ? `${originalUrl}?variant=caption` : null}
+        label={label}
+        compact
+      />
+    );
+  }
+
+  if (media.mimeType?.startsWith("audio/")) {
+    return (
+      <audio
+        controls
+        preload="metadata"
+        src={playbackUrl}
+        className="min-h-11 w-full"
+        aria-label={label}
+      />
+    );
+  }
+
+  return (
+    <a
+      href={originalUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="giq-outline-action min-h-11 max-w-full px-3 py-2 text-[11px]"
+    >
+      <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      <span className="truncate">{media.originalName ?? "Open attachment"}</span>
+    </a>
+  );
+}
+
+function AttachmentStatus({
+  label,
+  loading = false,
+  failed = false,
+}: {
+  label: string;
+  loading?: boolean;
+  failed?: boolean;
+}) {
+  return (
+    <span
+      role="status"
+      className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.025] px-3 py-2 text-[11px] text-[hsl(var(--muted-foreground))]"
+    >
+      {loading ? (
+        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
+      ) : failed ? (
+        <ShieldAlert className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      ) : (
+        <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      )}
+      <span>{label}</span>
+    </span>
+  );
 }
 
 function conversationPreview(value: string, attachmentCount: number) {

@@ -22,6 +22,11 @@ import {
   type LocalTrackPublication,
   type RemoteTrack,
 } from "livekit-client";
+import {
+  createClientCallRoom,
+  respondToClientCallInvite,
+  type ClientCallType,
+} from "@/lib/call-client-actions";
 import { callMediaErrorMessage } from "@/lib/call-client-errors";
 
 type CallTokenResponse = {
@@ -30,7 +35,8 @@ type CallTokenResponse = {
   token: string;
 };
 
-export type CallType = "voice" | "video";
+export type CallType = ClientCallType;
+export type CallIntent = CallType | "answer";
 
 export type ActiveCallRoom = {
   id: string;
@@ -71,7 +77,7 @@ type RetryTarget =
   | { kind: "connect"; roomId: string; callType: CallType };
 
 const VIDEO_CELL_CLASS =
-  "aspect-video overflow-hidden rounded-md border border-white/[0.06] bg-white/[0.03]";
+  "giq-social-call-video aspect-video overflow-hidden rounded-xl border border-white/[0.08] bg-black";
 
 export function ConversationCallPanel({
   conversationId,
@@ -80,6 +86,7 @@ export function ConversationCallPanel({
   blocked,
   otherName,
   canStartCall = true,
+  autoCallIntent = null,
 }: {
   conversationId: string;
   activeRoom: ActiveCallRoom | null;
@@ -89,6 +96,7 @@ export function ConversationCallPanel({
   // Free members cannot START calls (server-gated too); they can still join
   // an active room and accept/decline invites.
   canStartCall?: boolean;
+  autoCallIntent?: CallIntent | null;
 }) {
   const [localRoom, setLocalRoom] = useState<ActiveCallRoom | null>(null);
   const [dismissedRoomId, setDismissedRoomId] = useState<string | null>(null);
@@ -120,6 +128,7 @@ export function ConversationCallPanel({
   const roomRef = useRef<Room | null>(null);
   const connectedAtRef = useRef<number | null>(null);
   const retryRef = useRef<RetryTarget | null>(null);
+  const autoCallIntentRef = useRef(autoCallIntent);
 
   const currentRoom =
     localRoom ?? (activeRoom && activeRoom.id !== dismissedRoomId ? activeRoom : null);
@@ -277,7 +286,7 @@ export function ConversationCallPanel({
     setError(null);
     setStatus("starting");
     try {
-      const created = await createRoom(conversationId, callType);
+      const created = await createClientCallRoom(conversationId, callType);
       setDismissedRoomId(null);
       setLocalRoom(created);
       await connectToRoom(created.id, created.callType);
@@ -306,7 +315,7 @@ export function ConversationCallPanel({
     setInviteBusy("accept");
     setError(null);
     try {
-      await respondToInvite(invite.roomId, "accept");
+      await respondToClientCallInvite(invite.roomId, "accept");
       setDismissedInviteId(invite.id);
       setDismissedRoomId(null);
       setLocalRoom({ id: invite.roomId, callType: invite.callType });
@@ -322,7 +331,7 @@ export function ConversationCallPanel({
     setInviteBusy("decline");
     setError(null);
     try {
-      await respondToInvite(invite.roomId, "decline");
+      await respondToClientCallInvite(invite.roomId, "decline");
       setDismissedInviteId(invite.id);
       setDismissedRoomId(invite.roomId);
     } catch (err) {
@@ -331,6 +340,41 @@ export function ConversationCallPanel({
       setInviteBusy(null);
     }
   }
+
+  useEffect(() => {
+    const intent = autoCallIntentRef.current;
+    autoCallIntentRef.current = null;
+    if (!intent) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("call");
+    window.history.replaceState(window.history.state, "", url);
+
+    if (blocked) {
+      setError("Unblock this conversation before calling.");
+      return;
+    }
+    if (intent === "answer") {
+      if (incomingInvite && !inviteExpired) {
+        void acceptInvite(incomingInvite);
+      } else if (currentRoom) {
+        joinCall(currentRoom);
+      } else {
+        setError("This call is no longer available.");
+      }
+      return;
+    }
+    if (currentRoom) {
+      joinCall(currentRoom);
+    } else if (canStartCall) {
+      void startCall(intent);
+    } else {
+      setError("Calls are a Pro feature.");
+    }
+    // The URL intent is deliberately consumed once on mount. The ref prevents
+    // React Strict Mode from placing or accepting the same call twice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function toggleMic() {
     if (!room) return;
@@ -415,8 +459,8 @@ export function ConversationCallPanel({
   }
 
   return (
-    <section className="mt-5 rounded-lg border border-white/[0.08] bg-black/20 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section className="giq-social-call-panel mt-5 rounded-xl border border-white/[0.08] bg-black/20 p-4">
+      <div className="giq-social-call-header flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
             Audio/video call
@@ -544,7 +588,10 @@ export function ConversationCallPanel({
       )}
 
       {error && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2">
+        <div
+          role="alert"
+          className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2"
+        >
           <p className="text-[12px] text-red-100">{error}</p>
           {status === "error" && retryRef.current && (
             <button
@@ -559,9 +606,11 @@ export function ConversationCallPanel({
       )}
 
       <div
-        className={
-          showVideoGrid ? "mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2" : undefined
-        }
+          className={
+            showVideoGrid
+              ? "giq-social-call-stage mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"
+              : undefined
+          }
       >
         <div
           ref={localVideoRef}
@@ -578,7 +627,7 @@ export function ConversationCallPanel({
       </div>
 
       {connected && devicesOpen && (
-        <div className="mt-4 rounded-md border border-white/[0.08] bg-white/[0.03] p-3">
+        <div className="giq-social-call-devices mt-4 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-[12px] font-medium text-[hsl(var(--muted-foreground))]">
               Microphone
@@ -641,7 +690,7 @@ export function ConversationCallPanel({
       )}
 
       {connected && (
-        <div className="sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex flex-wrap items-center gap-2 rounded-b-lg border-t border-white/[0.08] bg-black/60 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-md sm:pb-3">
+        <div className="giq-social-call-controls sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex flex-wrap items-center gap-2 rounded-b-xl border-t border-white/[0.08] bg-black/60 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-md sm:pb-3">
           <button
             type="button"
             onClick={() => void toggleMic()}
@@ -742,42 +791,11 @@ function formatCallDuration(totalSeconds: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-async function createRoom(
-  conversationId: string,
-  callType: CallType
-): Promise<ActiveCallRoom> {
-  const response = await fetch("/api/calls/rooms", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ conversationId, callType }),
-  });
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload?.error?.message ?? "Could not create call");
-  return {
-    id: payload.item.id as string,
-    // Server may return an existing active room whose type wins.
-    callType: payload.item.callType === "voice" ? "voice" : "video",
-  };
-}
-
 async function createToken(roomId: string): Promise<CallTokenResponse> {
   const response = await fetch(`/api/calls/${roomId}/token`, { method: "POST" });
   const payload = await response.json();
   if (!response.ok) throw new Error(payload?.error?.message ?? "Could not join call");
   return payload as CallTokenResponse;
-}
-
-async function respondToInvite(roomId: string, action: "accept" | "decline") {
-  const response = await fetch(`/api/calls/${roomId}/invite`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ action }),
-  });
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload?.error?.message ?? "Could not respond to call invite");
-  }
-  return payload.item as { id: string; status: string };
 }
 
 async function endRoom(roomId: string) {

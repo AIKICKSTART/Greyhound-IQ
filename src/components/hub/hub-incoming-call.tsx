@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Phone, PhoneIncoming, PhoneOff, Video } from "lucide-react";
+import { respondToClientCallInvite } from "@/lib/call-client-actions";
 
 export type IncomingCallInvite = {
   inviteId: string;
@@ -12,28 +14,41 @@ export type IncomingCallInvite = {
   fromName: string;
 };
 
-// Ringing card for the hub. Accept navigates to the thread (the existing
-// ConversationCallPanel owns the actual LiveKit join); decline hits the same
-// authed invite API the panel uses.
+// Ringing card for the hub. The protected invite response happens here, then
+// the thread call panel consumes a one-shot intent to join LiveKit.
 export function HubIncomingCall({ invite }: { invite: IncomingCallInvite }) {
   const router = useRouter();
+  const [answering, setAnswering] = useState(false);
   const [declining, setDeclining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [navigating, startTransition] = useTransition();
+
+  async function answer() {
+    if (!invite.conversationId) return;
+    setError(null);
+    setAnswering(true);
+    let navigatingToCall = false;
+    try {
+      await respondToClientCallInvite(invite.roomId, "accept");
+      navigatingToCall = true;
+      startTransition(() =>
+        router.push(`/pulse/${invite.conversationId}?call=answer`)
+      );
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not accept the call.");
+    } finally {
+      if (!navigatingToCall) setAnswering(false);
+    }
+  }
 
   async function decline() {
     setError(null);
     setDeclining(true);
     try {
-      const response = await fetch(`/api/calls/${invite.roomId}/invite`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ inviteId: invite.inviteId, action: "decline" }),
-      });
-      if (!response.ok) throw new Error(`Decline failed (${response.status})`);
+      await respondToClientCallInvite(invite.roomId, "decline");
       startTransition(() => router.refresh());
-    } catch {
-      setError("Could not decline the call.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not decline the call.");
     } finally {
       setDeclining(false);
     }
@@ -44,7 +59,7 @@ export function HubIncomingCall({ invite }: { invite: IncomingCallInvite }) {
   return (
     <div
       role="alert"
-      className="rounded-xl border border-[hsl(var(--primary)/0.45)] bg-[hsl(var(--primary)/0.12)] p-4"
+      className="giq-social-incoming-call rounded-xl border border-[hsl(var(--primary)/0.45)] bg-[hsl(var(--primary)/0.12)] p-4"
     >
       <div className="flex items-center gap-3">
         <span className="grid h-10 w-10 shrink-0 animate-pulse place-items-center rounded-full bg-[hsl(var(--primary)/0.25)]">
@@ -69,15 +84,13 @@ export function HubIncomingCall({ invite }: { invite: IncomingCallInvite }) {
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button
           type="button"
-          disabled={declining || navigating || !invite.conversationId}
-          onClick={() =>
-            startTransition(() =>
-              router.push(`/pulse/${invite.conversationId}`)
-            )
-          }
-          className="giq-button giq-button-primary min-h-10 px-3 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={answering || declining || navigating || !invite.conversationId}
+          onClick={() => void answer()}
+          aria-busy={answering || navigating}
+          aria-label={`Answer ${invite.callType} call from ${invite.fromName}`}
+          className="giq-button giq-button-primary min-h-11 px-3 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {navigating ? (
+          {answering || navigating ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
           ) : (
             <Phone className="h-3.5 w-3.5" aria-hidden="true" />
@@ -86,9 +99,9 @@ export function HubIncomingCall({ invite }: { invite: IncomingCallInvite }) {
         </button>
         <button
           type="button"
-          disabled={declining || navigating}
+          disabled={answering || declining || navigating}
           onClick={decline}
-          className="giq-button giq-button-glass min-h-10 px-3 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+          className="giq-button giq-button-glass min-h-11 px-3 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
         >
           {declining ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -100,7 +113,15 @@ export function HubIncomingCall({ invite }: { invite: IncomingCallInvite }) {
       </div>
       {error && (
         <p role="alert" className="mt-2 text-[12px] text-red-200">
-          {error}
+          {error}{" "}
+          {invite.conversationId && (
+            <Link
+              href={`/pulse/${invite.conversationId}`}
+              className="font-semibold underline underline-offset-2"
+            >
+              Open chat
+            </Link>
+          )}
         </p>
       )}
     </div>

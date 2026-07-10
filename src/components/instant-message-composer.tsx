@@ -77,7 +77,7 @@ export function InstantMessageComposer({
     <>
       {pendingBody && (
         <div className="px-5 pb-4" role="status">
-          <article className="ml-auto max-w-[82%] rounded-lg border border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--primary)/0.08)] p-4">
+          <article className="giq-social-chat-bubble ml-auto max-w-[82%] rounded-2xl border border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--primary)/0.08)] p-4">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
               <span className="text-[12px] font-semibold text-[hsl(var(--foreground))]">
                 You
@@ -92,7 +92,7 @@ export function InstantMessageComposer({
           </article>
         </div>
       )}
-      <form ref={formRef} onSubmit={onSubmit} className="border-t border-white/[0.06] p-5">
+      <form ref={formRef} onSubmit={onSubmit} className="giq-social-message-composer border-t border-white/[0.06] p-5">
       <label className="block">
         <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
           Reply

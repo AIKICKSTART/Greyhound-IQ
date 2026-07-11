@@ -83,12 +83,6 @@ const actorProfileSelect = {
       website: true,
       phone: true,
       createdAt: true,
-      user: {
-        select: {
-          isBanned: true,
-          deletionRequestedAt: true,
-        },
-      },
     },
   },
   page: {
@@ -186,9 +180,7 @@ export async function getSocialActorProfileByHandle(
     }
     if (
       actor.kind === "personal" &&
-      (!actor.profile ||
-        actor.profile.user.isBanned ||
-        actor.profile.user.deletionRequestedAt)
+      !actor.profile
     ) {
       return null;
     }

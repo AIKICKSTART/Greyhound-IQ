@@ -33,6 +33,16 @@ type MediaContext =
 type ActiveStep = "signing" | "uploading" | "finalizing";
 type UploadStep = ActiveStep | "done" | "error";
 
+type SubmitControl = HTMLButtonElement | HTMLInputElement;
+
+const blockedUploadForms = new WeakMap<
+  HTMLFormElement,
+  {
+    owners: Set<symbol>;
+    disabledBefore: Map<SubmitControl, boolean>;
+  }
+>();
+
 interface UploadItem {
   key: string;
   filename: string;
@@ -74,6 +84,52 @@ function uploadUrlNeedsRefresh(context: UploadContext) {
   );
 }
 
+export function mediaUploadSubmissionMessage(steps: readonly UploadStep[]) {
+  if (steps.some((step) => step === "error")) {
+    return "Retry or remove the failed upload before saving.";
+  }
+  if (steps.some((step) => step !== "done")) {
+    return "Wait for the media upload to finish before saving.";
+  }
+  return null;
+}
+
+export function setFormUploadBlocked(
+  form: HTMLFormElement,
+  owner: symbol,
+  blocked: boolean,
+) {
+  const current = blockedUploadForms.get(form);
+  if (blocked) {
+    if (current) {
+      current.owners.add(owner);
+      return;
+    }
+
+    const controls = form.querySelectorAll<SubmitControl>(
+      'button:not([type]), button[type="submit"], input[type="submit"], input[type="image"]',
+    );
+    const disabledBefore = new Map<SubmitControl, boolean>();
+    for (const control of controls) {
+      disabledBefore.set(control, control.disabled);
+      control.disabled = true;
+    }
+    blockedUploadForms.set(form, {
+      owners: new Set([owner]),
+      disabledBefore,
+    });
+    return;
+  }
+
+  if (!current) return;
+  current.owners.delete(owner);
+  if (current.owners.size > 0) return;
+  for (const [control, wasDisabled] of current.disabledBefore) {
+    control.disabled = wasDisabled;
+  }
+  blockedUploadForms.delete(form);
+}
+
 export function MediaAttachmentFields({
   mediaContext = "messages",
   maxFiles = 4,
@@ -81,6 +137,8 @@ export function MediaAttachmentFields({
   fieldName = "mediaIds",
   onPrimaryReadyPreviewChange,
 }: MediaAttachmentFieldsProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const formBlockOwnerRef = useRef(Symbol("media-upload"));
   const inputRef = useRef<HTMLInputElement | null>(null);
   const ctxRef = useRef<Map<string, UploadContext>>(new Map());
   const xhrsRef = useRef<Map<string, XMLHttpRequest>>(new Map());
@@ -110,10 +168,30 @@ export function MediaAttachmentFields({
   const primaryReadyPreview =
     items.find((item) => item.step === "done" && item.mediaId)?.previewUrl ??
     null;
+  const submissionBlockMessage = mediaUploadSubmissionMessage(
+    items.map((item) => item.step),
+  );
 
   useEffect(() => {
     onPrimaryReadyPreviewChange?.(primaryReadyPreview);
   }, [onPrimaryReadyPreviewChange, primaryReadyPreview]);
+
+  useEffect(() => {
+    const form = rootRef.current?.closest("form");
+    if (!form || !submissionBlockMessage) return;
+
+    const owner = formBlockOwnerRef.current;
+    const blockSubmission = (event: SubmitEvent) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    setFormUploadBlocked(form, owner, true);
+    form.addEventListener("submit", blockSubmission, true);
+    return () => {
+      form.removeEventListener("submit", blockSubmission, true);
+      setFormUploadBlocked(form, owner, false);
+    };
+  }, [submissionBlockMessage]);
 
   function patchItem(key: string, patch: Partial<UploadItem>) {
     setItems((current) =>
@@ -334,7 +412,7 @@ export function MediaAttachmentFields({
   }
 
   return (
-    <div className={compact ? "space-y-2" : "space-y-3"}>
+    <div ref={rootRef} className={compact ? "space-y-2" : "space-y-3"}>
       {items
         .filter((item) => item.step === "done" && item.mediaId)
         .map((item) => (
@@ -487,7 +565,20 @@ export function MediaAttachmentFields({
         </div>
       )}
 
-      {formError && <p className="text-[11px] text-red-200">{formError}</p>}
+      {submissionBlockMessage ? (
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-[11px] text-amber-100"
+        >
+          {submissionBlockMessage}
+        </p>
+      ) : null}
+      {formError && (
+        <p role="alert" className="text-[11px] text-red-200">
+          {formError}
+        </p>
+      )}
     </div>
   );
 }

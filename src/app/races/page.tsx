@@ -17,10 +17,8 @@ import {
   Timer,
 } from "lucide-react";
 import { getRaceExplorerData } from "@/lib/queries";
-import { getLiveFeedStatus } from "@/lib/live/status";
 import {
   formatRaceDateInput,
-  formatRaceDateTime,
   formatRaceDayLabel,
   formatRaceTime,
   formatShortRaceDayLabel,
@@ -58,16 +56,13 @@ const statusOptions = [
 
 export default async function RacesPage({ searchParams }: RacesPageProps) {
   const params = await searchParams;
-  const [data, liveStatus] = await Promise.all([
-    getRaceExplorerData({
-      date: firstParam(params.date),
-      state: firstParam(params.state),
-      q: firstParam(params.q),
-      status: firstParam(params.status),
-      sort: firstParam(params.sort),
-    }),
-    getLiveFeedStatus(),
-  ]);
+  const data = await getRaceExplorerData({
+    date: firstParam(params.date),
+    state: firstParam(params.state),
+    q: firstParam(params.q),
+    status: firstParam(params.status),
+    sort: firstParam(params.sort),
+  });
   const summary = data.dateSummary;
   const selectedState = data.selectedState;
   const hasMeetings = data.meetings.length > 0;
@@ -312,7 +307,6 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
           </div>
 
           <aside className="giq-races-side-rail">
-            <LiveStatusPanel liveStatus={liveStatus} />
             <UpcomingQueue items={nextToGo} now={now} />
           </aside>
         </section>
@@ -643,62 +637,6 @@ function UpcomingQueue({ items, now }: { items: NextRaceItem[]; now: Date }) {
   );
 }
 
-function LiveStatusPanel({
-  liveStatus,
-}: {
-  liveStatus: Awaited<ReturnType<typeof getLiveFeedStatus>>;
-}) {
-  const configured = liveStatus.status === "configured";
-
-  return (
-    <aside className="giq-panel giq-live-status-panel p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="program-label">Live feed</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
-            {configured ? "Configured" : "Waiting for credentials"}
-          </h2>
-        </div>
-        <span
-          className={`grid h-11 w-11 place-items-center rounded-full border ${
-            configured
-              ? "border-[hsl(var(--primary-light)/0.34)] bg-[hsl(var(--primary)/0.16)] text-[hsl(var(--primary-light))]"
-              : "border-[hsl(var(--secondary)/0.34)] bg-[hsl(var(--secondary)/0.12)] text-[hsl(var(--secondary))]"
-          }`}
-        >
-          <Radio className="h-5 w-5" />
-        </span>
-      </div>
-
-      <div className="mt-5 grid gap-2">
-        <StatusRow label="Provider" value={liveStatus.activeProvider ?? "none"} />
-        <StatusRow
-          label="Sync cadence"
-          value={liveStatus.scheduler.primarySchedule}
-        />
-        <StatusRow
-          label="Upcoming races"
-          value={formatCount(liveStatus.data.upcomingRaces)}
-        />
-        <StatusRow
-          label="Latest race"
-          value={
-            liveStatus.data.latestRaceTime
-              ? formatRaceDateTime(new Date(liveStatus.data.latestRaceTime))
-              : "None"
-          }
-        />
-      </div>
-
-      {liveStatus.blockers.length > 0 && (
-        <div className="mt-4 rounded-lg border border-[hsl(var(--secondary)/0.18)] bg-[hsl(var(--secondary)/0.08)] p-3 text-[12px] text-[hsl(var(--secondary-light))]">
-          {liveStatus.blockers.join(", ")}
-        </div>
-      )}
-    </aside>
-  );
-}
-
 function MetricCard({
   label,
   value,
@@ -727,17 +665,6 @@ function MetricCard({
       <p className="mt-1 font-mono text-2xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
         {formatCount(value)}
       </p>
-    </div>
-  );
-}
-
-function StatusRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="giq-subpanel flex items-center justify-between gap-3 px-3 py-2">
-      <span className="text-[12px] text-[hsl(var(--subtle-foreground))]">{label}</span>
-      <span className="text-right text-[12px] font-semibold text-[hsl(var(--foreground))]">
-        {value}
-      </span>
     </div>
   );
 }

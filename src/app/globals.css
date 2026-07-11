@@ -4347,7 +4347,7 @@ h2,
 
   .giq-races-side-rail {
     position: static;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .giq-next-to-go-grid {

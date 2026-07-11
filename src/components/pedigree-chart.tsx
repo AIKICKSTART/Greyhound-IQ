@@ -8,30 +8,31 @@ interface PedigreeChartProps {
 }
 
 /**
- * Professional horizontal pedigree chart. The subject sits at the left; each ancestor
- * branches rightward, sire (purple) above dam (gold), with connector lines. Renders a
- * balanced bracket to `generations` deep, filling absent ancestors with muted placeholders
- * so the lineage stays readable. Pure server component — links only, no client JS.
+ * Horizontal pedigree chart. The subject stays compact at the left while each
+ * fixed-width ancestor generation branches rightward inside a contained scroller.
  */
-export function PedigreeChart({ root, generations = 5 }: PedigreeChartProps) {
+export function PedigreeChart({ root, generations = 4 }: PedigreeChartProps) {
   return (
-    <section className="giq-panel mb-6 p-6" aria-label={`Pedigree of ${root.name}`}>
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <section
+      className="giq-panel mb-6 min-w-0 max-w-full p-4 sm:p-6"
+      aria-label={`Pedigree of ${root.name}`}
+    >
+      <div className="mb-5 flex items-center justify-between gap-3">
         <h3 className="text-[15px] font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))]">
           Pedigree
         </h3>
-        <div className="flex items-center gap-3 text-[11px] tracking-[-0.01em] text-[hsl(var(--subtle-foreground))]">
+        <div className="flex shrink-0 items-center gap-3 text-[11px] tracking-[-0.01em] text-[hsl(var(--subtle-foreground))]">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[hsl(var(--primary-bright))]" /> Sire line
+            <span className="h-2 w-2 rounded-full bg-[hsl(var(--secondary))]" /> Sire line
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[hsl(var(--secondary))]" /> Dam line
+            <span className="h-2 w-2 rounded-full bg-[hsl(var(--primary-bright))]" /> Dam line
           </span>
         </div>
       </div>
 
-      <div className="overflow-x-auto pb-2">
-        <div className="min-w-[720px]">
+      <div className="max-w-full touch-pan-x overflow-x-auto overscroll-x-contain pb-3">
+        <div className="w-max min-w-[720px] pr-1 sm:min-w-[1008px]">
           <Branch node={root} depth={generations - 1} lineage="root" />
         </div>
       </div>
@@ -53,14 +54,29 @@ function Branch({
   const hasChildren = depth > 0 && (node.sire || node.dam);
 
   return (
-    <div className="flex items-stretch">
-      <div className="flex min-w-[150px] flex-1 items-center">
+    <div
+      className={`relative flex items-stretch ${
+        lineage === "root"
+          ? ""
+          : "before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-[hsl(var(--border))] before:content-[''] sm:before:-left-7 sm:before:w-7"
+      }`}
+    >
+      <div
+        className={`relative z-10 flex shrink-0 items-center ${
+          lineage === "root"
+            ? "w-[120px] sm:w-[180px]"
+            : "w-[150px] sm:w-[220px]"
+        }`}
+      >
         <NodeCard node={node} lineage={lineage} />
       </div>
 
       {hasChildren && (
-        <div className="relative flex flex-1 flex-col justify-center gap-2 pl-5">
-          {/* vertical spine linking the two ancestor branches */}
+        <div className="relative ml-3 flex flex-col justify-center gap-2 pl-3 sm:ml-7 sm:pl-7">
+          <span
+            aria-hidden
+            className="absolute -left-3 top-1/2 h-px w-3 bg-[hsl(var(--border))] sm:-left-7 sm:w-7"
+          />
           <span
             aria-hidden
             className="absolute left-0 top-1/4 bottom-1/4 w-px bg-[hsl(var(--border))]"
@@ -92,7 +108,7 @@ const UNKNOWN: PedigreeNode = {
 function NodeCard({ node, lineage }: { node: PedigreeNode; lineage: Lineage }) {
   const isUnknown = node.name === "Unknown" && !node.id;
   const accent =
-    lineage === "dam"
+    lineage === "sire"
       ? "before:bg-[hsl(var(--secondary))]"
       : "before:bg-[hsl(var(--primary-bright))]";
 
@@ -103,11 +119,11 @@ function NodeCard({ node, lineage }: { node: PedigreeNode; lineage: Lineage }) {
   const inner = (
     <div
       className={[
-        "relative w-full rounded-[10px] border px-3 py-2 pl-4 transition-colors",
-        "before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-full before:content-['']",
+        "relative flex min-h-[56px] w-full flex-col justify-center rounded-[8px] border px-3 py-2 pl-4 transition-colors sm:min-h-[64px] sm:px-4 sm:pl-5",
+        "before:absolute before:bottom-2 before:left-2 before:top-2 before:w-[3px] before:rounded-full before:content-['']",
         isUnknown
           ? "border-dashed border-[hsl(var(--border-subtle))] before:bg-[hsl(var(--border))]"
-          : `border-[hsl(var(--border))] bg-[hsl(var(--foreground)/0.02)] hover:bg-[hsl(var(--foreground)/0.05)] ${accent}`,
+          : `border-[hsl(var(--border))] bg-[hsl(var(--foreground)/0.025)] hover:bg-[hsl(var(--foreground)/0.05)] ${accent}`,
       ].join(" ")}
     >
       <p
@@ -131,7 +147,10 @@ function NodeCard({ node, lineage }: { node: PedigreeNode; lineage: Lineage }) {
 
   if (node.id && !isUnknown) {
     return (
-      <Link href={`/dogs/${node.id}`} className="block w-full">
+      <Link
+        href={`/dogs/${node.id}`}
+        className="block w-full rounded-[8px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-bright))]"
+      >
         {inner}
       </Link>
     );

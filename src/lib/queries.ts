@@ -392,6 +392,28 @@ export const getDogById = cache(async (id: string) => {
             orderBy: { date: "desc" },
             include: { track: true },
           },
+          profileForms: {
+            orderBy: { date: "desc" },
+            take: 20,
+            select: {
+              id: true,
+              sourceProvider: true,
+              raceUrl: true,
+              date: true,
+              trackCode: true,
+              trackName: true,
+              finishingPosition: true,
+              boxNumber: true,
+              weight: true,
+              distance: true,
+              grade: true,
+              runningTime: true,
+              firstSectional: true,
+              margin: true,
+              winnerDogName: true,
+              hasVideo: true,
+            },
+          },
           runners: {
             include: {
               race: {

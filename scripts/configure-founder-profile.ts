@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { prisma } from "../src/lib/db";
 import { withDbSystemContext } from "../src/lib/db-context";
 
-const FOUNDER_EMAIL = "daniel.j.fleuren@gmail.com";
+const FOUNDER_EMAIL = "daniel.fleuren@aikickstart.com.au";
 const FOUNDER = {
   displayName: "Daniel Fleuren",
   bio: "Founder of GreyhoundIQ, building Australia’s most connected greyhound racing intelligence and community platform.",

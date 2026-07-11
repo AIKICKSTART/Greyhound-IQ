@@ -19,6 +19,7 @@ const migration = readFileSync(
   ),
   "utf8"
 );
+const proxy = readFileSync(join(__dirname, "..", "proxy.ts"), "utf8");
 
 assert.ok(
   !profileSelect.includes("user:"),
@@ -28,6 +29,12 @@ assert.ok(
   migration.includes('account."isBanned" = false') &&
     migration.includes('account."deletionRequestedAt" IS NULL'),
   "The RLS visibility helper must hide inactive personal accounts"
+);
+assert.ok(
+  proxy.includes("prisma.socialActor.count") &&
+    proxy.includes('kind: "personal"') &&
+    proxy.includes("personalActorCount + customPageCount === 0"),
+  "The /p soft-404 guard must recognize public personal actors"
 );
 
 console.log("social actor visibility tests passed");

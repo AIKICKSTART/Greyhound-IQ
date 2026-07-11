@@ -122,7 +122,8 @@ function securedErrorResponse(
 
 // Public detail routes that call notFound() on a missing record. The existence
 // check runs anonymously; RLS scopes each read to what a public visitor sees, so
-// it matches the page's own visibility (the /p page only serves published pages).
+// it matches the page's own visibility (the /p page serves personal actors and
+// published managed pages).
 // Listings/marketplace are excluded: their visibility is viewer-dependent.
 const DETAIL_ROUTE = /^\/(dogs|races|tracks|p)\/([^/]+)\/?$/;
 
@@ -142,8 +143,15 @@ async function isMissingDetailResource(pathname: string): Promise<boolean> {
         return (await prisma.race.count({ where: { id: param } })) === 0;
       case "tracks":
         return (await prisma.track.count({ where: { id: param } })) === 0;
-      case "p":
-        return (await prisma.customPage.count({ where: { handle: param } })) === 0;
+      case "p": {
+        const [personalActorCount, customPageCount] = await Promise.all([
+          prisma.socialActor.count({
+            where: { handle: param, kind: "personal", published: true },
+          }),
+          prisma.customPage.count({ where: { handle: param } }),
+        ]);
+        return personalActorCount + customPageCount === 0;
+      }
       default:
         return false;
     }

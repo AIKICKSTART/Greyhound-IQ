@@ -55,7 +55,17 @@ assert.ok(pedigree.includes('generations = 4'));
 assert.ok(pedigree.includes('lineage === "sire"'));
 assert.ok(pedigree.includes('before:bg-[hsl(var(--secondary))]'));
 assert.ok(pedigree.includes('before:bg-[hsl(var(--primary-bright))]'));
-assert.ok(pedigree.includes('min-w-[1008px]'));
+assert.ok(pedigree.includes('min-w-[448px]'));
+assert.ok(pedigree.includes('lg:min-w-[1008px]'));
+assert.ok(pedigree.includes('w-[84px] lg:w-[180px]'));
+assert.ok(pedigree.includes('w-[96px] lg:w-[220px]'));
+assert.ok(pedigree.includes('generation === 0'));
+assert.ok(pedigree.includes('min-h-[64px]'));
+assert.ok(pedigree.includes('min-h-[56px]'));
+assert.ok(pedigree.includes('min-h-[52px]'));
+assert.ok(pedigree.includes('min-h-[48px]'));
+assert.ok(pedigree.includes('giq-pedigree-heading'));
+assert.ok(pedigree.includes('var(--metal-silver)/0.42'));
 assert.ok(pedigree.includes('overflow-x-auto'));
 
 console.log("dog detail fix-record contract passed");

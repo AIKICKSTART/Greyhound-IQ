@@ -138,7 +138,7 @@ export function MobileBottomDock({
             aria-hidden="true"
             className="mx-auto mt-2.5 h-1 w-9 rounded-full bg-white/20"
           />
-          <div className="grid grid-cols-3 gap-2 p-4">
+          <div className="giq-mobile-dock-menu-grid grid grid-cols-3 gap-2 p-4">
             {MENU_ENTRIES.map((entry) => {
               const Icon = entry.icon;
               return (
@@ -152,7 +152,7 @@ export function MobileBottomDock({
                     className="h-5 w-5 text-[hsl(var(--primary-bright))]"
                     aria-hidden="true"
                   />
-                  {entry.label}
+                  <span className="text-center leading-tight">{entry.label}</span>
                 </MobileMenuLink>
               );
             })}

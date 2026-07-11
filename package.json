@@ -39,6 +39,7 @@
     "db:local:import:dog-normalized": "tsx scripts/local-database.ts import-dog-normalized",
     "set-tier": "tsx scripts/set-tier.ts",
     "admin:bootstrap": "tsx --conditions=react-server scripts/bootstrap-admin.ts",
+    "founder:configure": "tsx --conditions=react-server scripts/configure-founder-profile.ts",
     "sync:live": "tsx scripts/sync-live.ts",
     "backfill:thedogs": "tsx scripts/backfill-thedogs-history.ts",
     "backfill:thedogs:shards": "tsx scripts/backfill-thedogs-shards.ts",

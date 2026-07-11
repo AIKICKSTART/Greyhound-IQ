@@ -28,6 +28,7 @@ import {
 import { getDogPrizeMoney, getActiveListingsForProfile } from "@/lib/queries";
 import { mediaDeliveryUrl } from "@/lib/media-service";
 import { FinishBadge } from "@/components/finish-badge";
+import { ActorMediaImage } from "@/components/actor-media-image";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
 import type { DbContextUser } from "@/lib/db-context";
@@ -157,7 +158,9 @@ function PersonalProfileView({
   const personal = profile.profile;
   if (!personal) return null;
   const avatarUrl = profile.actor.avatarUrl ?? personal.avatarUrl;
-  const details = [personal.kennelName, personal.state]
+  const details = (personal.isFounder
+    ? ["Founder, GreyhoundIQ", "New South Wales, Australia"]
+    : [personal.kennelName, personal.state])
     .filter((value): value is string => Boolean(value))
     .join(" · ");
 
@@ -166,23 +169,23 @@ function PersonalProfileView({
       <header className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[hsl(var(--surface-1))] shadow-[0_24px_70px_hsl(0_0%_0%/0.32)]">
         <div className="relative aspect-[3/1] min-h-36 w-full bg-gradient-to-br from-[hsl(var(--surface-2))] via-[hsl(var(--primary)/0.18)] to-black sm:aspect-[16/5] sm:min-h-0">
           {profile.actor.coverUrl ? (
-            <Image
+            <ActorMediaImage
               src={profile.actor.coverUrl}
               alt=""
               fill
-              unoptimized={profile.actor.coverUrl.startsWith("/api/media/")}
               sizes="(max-width:768px) 100vw, 1024px"
               className="object-cover"
-              style={{
-                objectPosition: `${profile.actor.coverFocalX * 100}% ${profile.actor.coverFocalY * 100}%`,
-              }}
+              focalX={profile.actor.coverFocalX}
+              focalY={profile.actor.coverFocalY}
+              zoom={profile.actor.coverZoom}
+              rotation={profile.actor.coverRotation}
               priority
             />
           ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent" />
           {profile.viewer.isOwner ? (
             <Link
-              href="/account#cover-image-editor"
+              href="/account/profile#cover-image-editor"
               className="absolute right-3 top-3 z-10 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/20 bg-black/70 px-3 text-[12px] font-semibold text-white shadow-lg backdrop-blur-md transition hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:right-4 sm:top-4"
             >
               <Pencil className="h-4 w-4" aria-hidden="true" />
@@ -194,17 +197,17 @@ function PersonalProfileView({
           <div className="relative -mt-20 h-40 w-40 shrink-0 sm:-mt-24 sm:h-52 sm:w-52 lg:-mt-[150px] lg:h-[300px] lg:w-[300px]">
             <div className="h-full w-full overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-black shadow-[0_14px_35px_hsl(0_0%_0%/0.45)] ring-2 ring-[hsl(var(--primary-bright)/0.75)] lg:border-[6px]">
               {avatarUrl ? (
-                <Image
+                <ActorMediaImage
                   src={avatarUrl}
                   alt={profile.actor.displayName}
                   width={300}
                   height={300}
                   sizes="(min-width: 1024px) 300px, (min-width: 640px) 208px, 160px"
-                  unoptimized={avatarUrl.startsWith("/api/media/")}
                   className="h-full w-full object-cover"
-                  style={{
-                    objectPosition: `${profile.actor.avatarFocalX * 100}% ${profile.actor.avatarFocalY * 100}%`,
-                  }}
+                  focalX={profile.actor.avatarFocalX}
+                  focalY={profile.actor.avatarFocalY}
+                  zoom={profile.actor.avatarZoom}
+                  rotation={profile.actor.avatarRotation}
                 />
               ) : (
                 <div className="grid h-full w-full place-items-center text-4xl font-bold text-white/70 sm:text-5xl lg:text-7xl">
@@ -214,7 +217,7 @@ function PersonalProfileView({
             </div>
             {profile.viewer.isOwner ? (
               <Link
-                href="/account#profile-picture-editor"
+                href="/account/profile#profile-picture-editor"
                 aria-label="Edit profile picture"
                 className="absolute bottom-0 right-0 z-10 grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-[hsl(var(--primary)/0.95)] text-white shadow-xl transition hover:bg-[hsl(var(--primary-bright))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
               >
@@ -233,8 +236,8 @@ function PersonalProfileView({
                   aria-label="Verified member"
                 />
               ) : null}
-              <span className="rounded-full bg-[hsl(var(--primary)/0.18)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--primary-bright))]">
-                Member
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${personal.isFounder ? "border border-[hsl(var(--secondary)/0.55)] bg-[hsl(var(--secondary)/0.15)] text-[hsl(var(--secondary))]" : "bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary-bright))]"}`}>
+                {personal.isFounder ? "Founder" : "Member"}
               </span>
             </div>
             {details ? (
@@ -268,7 +271,9 @@ function PersonalProfileView({
                   Role
                 </dt>
                 <dd className="mt-1 capitalize text-[hsl(var(--foreground))]">
-                  {personal.role.replaceAll("_", " ")}
+                  {personal.isFounder
+                    ? "Founder, GreyhoundIQ"
+                    : personal.role.replaceAll("_", " ")}
                 </dd>
               </div>
               <div>

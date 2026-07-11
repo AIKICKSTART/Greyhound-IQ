@@ -4,7 +4,7 @@ import { jsonError } from "@/lib/api-errors";
 import { checkRateLimit } from "@/lib/rate-limit";
 import {
   deleteMediaForCurrentUser,
-  getMediaForCurrentUser,
+  getMediaStatusForCurrentUser,
   updateMediaMetadataForCurrentUser,
 } from "@/lib/media-service";
 import { mediaMetadataUpdateSchema } from "@/lib/media-validation";
@@ -23,7 +23,7 @@ export async function GET(
       params,
       requireCurrentUserProfile(),
     ]);
-    const item = await getMediaForCurrentUser(current, id);
+    const item = await getMediaStatusForCurrentUser(current, id);
 
     return NextResponse.json({ item });
   } catch (err) {

@@ -5,6 +5,7 @@ import type { SupabaseStorageBucket } from "@/lib/storage-paths";
 
 let adminClient: SupabaseClient | null = null;
 const STORAGE_PROCESSING_DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000;
+const STORAGE_HEAD_DOWNLOAD_TIMEOUT_MS = 15 * 1000;
 
 export function getSupabaseAdminClient() {
   if (adminClient) return adminClient;
@@ -135,36 +136,60 @@ export async function downloadStorageObjectToFile(
   }
 }
 
-/**
- * Downloads only the leading bytes of an object via an HTTP Range request, so
- * signature sniffing on a large video doesn't pull the whole file. Falls back
- * to a full download if the storage backend ignores the Range header.
- */
 export async function downloadStorageObjectHead(
   bucket: SupabaseStorageBucket,
   objectPath: string,
   bytes: number
 ) {
-  const stream = await streamStorageObject(bucket, objectPath, {
-    start: 0,
-    end: Math.max(0, bytes - 1),
-  });
-  const reader = stream.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
   try {
-    while (total < bytes) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const chunk = value.subarray(0, bytes - total);
-      chunks.push(chunk);
-      total += chunk.byteLength;
-    }
-  } finally {
-    await reader.cancel().catch(() => undefined);
-    reader.releaseLock();
+    const signedUrl = await createSignedStorageDownloadUrl(bucket, objectPath, 60);
+    return await fetchStorageObjectHead(signedUrl, bytes);
+  } catch {
+    throw new Error("media.storage_unavailable");
   }
-  return Buffer.concat(chunks, total);
+}
+
+/** @internal Exported for the bounded storage-response regression check. */
+export async function fetchStorageObjectHead(
+  signedUrl: string,
+  bytes: number,
+  options: {
+    timeoutMs?: number;
+    fetchImpl?: (input: string | URL, init?: RequestInit) => Promise<Response>;
+  } = {}
+) {
+  if (!Number.isSafeInteger(bytes) || bytes <= 0) {
+    throw new Error("storage.invalid_head_size");
+  }
+
+  const response = await (options.fetchImpl ?? fetch)(signedUrl, {
+    headers: { Range: `bytes=0-${bytes - 1}` },
+    cache: "no-store",
+    signal: AbortSignal.timeout(
+      options.timeoutMs ?? STORAGE_HEAD_DOWNLOAD_TIMEOUT_MS
+    ),
+  });
+  const contentLength = Number(response.headers.get("content-length"));
+  const contentRange = response.headers.get("content-range");
+  const rangeMatch = /^bytes 0-(\d+)\/(?:\d+|\*)$/i.exec(contentRange ?? "");
+
+  if (
+    response.status !== 206 ||
+    !response.body ||
+    !Number.isSafeInteger(contentLength) ||
+    contentLength <= 0 ||
+    contentLength > bytes ||
+    !rangeMatch ||
+    Number(rangeMatch[1]) + 1 !== contentLength
+  ) {
+    throw new Error("storage.invalid_head_response");
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  if (buffer.byteLength === 0 || buffer.byteLength > bytes) {
+    throw new Error("storage.invalid_head_response");
+  }
+  return buffer;
 }
 
 export async function removeStorageObject(

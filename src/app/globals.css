@@ -5543,6 +5543,9 @@ select.giq-form-control option:checked {
 .giq-mobile-dock-link.is-active,
 .giq-mobile-dock-link.is-active:hover,
 .giq-mobile-dock-link.is-active:focus-visible,
+.giq-mobile-dock-link[data-popup-open],
+.giq-mobile-dock-link[data-popup-open]:hover,
+.giq-mobile-dock-link[data-popup-open]:focus-visible,
 .giq-chip-active,
 .giq-segment-active {
   border-color: hsl(var(--primary-light) / 0.70);
@@ -6046,6 +6049,52 @@ select.giq-form-control option:checked {
 .giq-mobile-dock-link[data-tone="create"]:focus-visible {
   color: hsl(45 35% 8%);
   transform: translateY(-8px);
+}
+
+/* Signed-in dock: one navigation model through tablet landscape. */
+@media (max-width: 1023.98px) {
+  body.giq-member-shell,
+  body.giq-member-shell #main-content {
+    padding-bottom: var(--giq-mobile-dock-clearance);
+  }
+
+  .giq-mobile-dock {
+    display: grid !important;
+    grid-template-columns: repeat(5, 52px);
+    width: max-content;
+    max-width: calc(100vw - 16px);
+    gap: 4px;
+    padding: 6px;
+  }
+
+  .giq-mobile-dock-link {
+    width: 52px;
+    min-height: 52px;
+    aspect-ratio: 1;
+  }
+
+  .giq-mobile-dock-sheet {
+    bottom: var(--giq-mobile-dock-clearance) !important;
+    max-height: calc(100dvh - var(--giq-mobile-dock-clearance) - max(12px, env(safe-area-inset-top, 0px)));
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+}
+
+@media (max-width: 359.98px) {
+  .giq-mobile-dock-menu-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .giq-mobile-dock {
+    display: none !important;
+  }
+}
+
+.giq-pedigree-heading {
+  font-family: var(--font-display);
 }
 
 /* Admin app shell: /admin marks its layout with data-admin-shell; hide the

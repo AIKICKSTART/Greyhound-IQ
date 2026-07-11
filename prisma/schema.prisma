@@ -1065,6 +1065,7 @@ model Profile {
   kennelPrefix String?
   role         String   @default("member") // member | breeder | trainer | admin
   verified     Boolean  @default(false)
+  isFounder    Boolean  @default(false)
   website      String?
   phone        String?
   createdAt    DateTime @default(now())
@@ -1166,9 +1167,13 @@ model SocialActor {
   avatarUrl         String?
   avatarFocalX      Float       @default(0.5)
   avatarFocalY      Float       @default(0.5)
+  avatarZoom        Float       @default(1)
+  avatarRotation    Int         @default(0)
   coverUrl          String?
   coverFocalX       Float       @default(0.5)
   coverFocalY       Float       @default(0.5)
+  coverZoom         Float       @default(1)
+  coverRotation     Int         @default(0)
   profileVisibility String      @default("members") // public | members | connections | only_me
   contactVisibility String      @default("only_me") // public | members | connections | only_me
   published         Boolean     @default(false)

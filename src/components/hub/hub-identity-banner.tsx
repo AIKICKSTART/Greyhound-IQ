@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { BadgeCheck, Camera, ExternalLink, Pencil } from "lucide-react";
+import { ActorMediaImage } from "@/components/actor-media-image";
 import type { ActiveIdentity } from "@/lib/identity";
 import { CUSTOM_PAGE_TYPE_LABELS } from "@/lib/custom-page-service";
 import type { CustomPageType } from "@/lib/custom-page-validation";
@@ -28,9 +28,13 @@ export function HubIdentityBanner({
     avatarUrl: string | null;
     avatarFocalX: number;
     avatarFocalY: number;
+    avatarZoom: number;
+    avatarRotation: number;
     coverUrl: string | null;
     coverFocalX: number;
     coverFocalY: number;
+    coverZoom: number;
+    coverRotation: number;
   };
   identity: ActiveIdentity;
   personal: PersonalIdentitySummary;
@@ -45,7 +49,7 @@ export function HubIdentityBanner({
     bannerUrl ?? "/images/wentworth-track-banner-landscape.webp";
   const mediaHref = page
     ? `/account/pages/${page.id}#page-media`
-    : "/account#profile-media";
+    : "/account/profile";
   const subtitle = page
     ? page.tagline ??
       `${CUSTOM_PAGE_TYPE_LABELS[page.pageType as CustomPageType] ?? page.pageType} page`
@@ -55,16 +59,16 @@ export function HubIdentityBanner({
   return (
     <header className="giq-hub-identity-banner overflow-hidden rounded-2xl border border-white/[0.09] bg-[hsl(var(--surface-1))] shadow-[0_18px_55px_rgba(0,0,0,0.32)]">
       <div className="giq-hub-identity-cover relative aspect-[16/5] min-h-36 w-full overflow-hidden bg-black sm:min-h-44">
-        <Image
+        <ActorMediaImage
           src={coverImageUrl}
           alt=""
           fill
-          unoptimized={coverImageUrl.startsWith("/api/media/")}
           sizes="(max-width:768px) 100vw, 980px"
           className="object-cover"
-          style={{
-            objectPosition: `${actor.coverFocalX * 100}% ${actor.coverFocalY * 100}%`,
-          }}
+          focalX={actor.coverFocalX}
+          focalY={actor.coverFocalY}
+          zoom={actor.coverZoom}
+          rotation={actor.coverRotation}
           priority
         />
         <div className="giq-hub-identity-cover-shade absolute inset-0" />
@@ -92,16 +96,16 @@ export function HubIdentityBanner({
             style={{ borderColor: accent }}
           >
             {avatarUrl ? (
-              <Image
+              <ActorMediaImage
                 src={avatarUrl}
                 alt={title}
                 width={112}
                 height={112}
-                unoptimized={avatarUrl.startsWith("/api/media/")}
                 className="h-full w-full object-cover"
-                style={{
-                  objectPosition: `${actor.avatarFocalX * 100}% ${actor.avatarFocalY * 100}%`,
-                }}
+                focalX={actor.avatarFocalX}
+                focalY={actor.avatarFocalY}
+                zoom={actor.avatarZoom}
+                rotation={actor.avatarRotation}
               />
             ) : (
               <div className="grid h-full w-full place-items-center text-xl font-bold text-white/70">
@@ -176,7 +180,7 @@ export function HubIdentityBanner({
           ) : (
             <>
               <Link
-                href="/account"
+                href="/account/profile"
                 className="giq-button giq-button-glass min-h-9 px-3 text-[12px] font-semibold"
               >
                 <Pencil className="h-3.5 w-3.5" aria-hidden="true" />

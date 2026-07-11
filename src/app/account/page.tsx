@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { ReactNode } from "react";
 import {
   Camera,
@@ -18,10 +17,9 @@ import {
 } from "lucide-react";
 import {
   requestAccountDeletion,
-  updatePersonalIdentityMedia,
   updateProfile,
 } from "@/app/actions";
-import { MediaAlignmentUpload } from "@/components/media-alignment-upload";
+import { ActorMediaImage } from "@/components/actor-media-image";
 import { PageHero } from "@/components/page-hero";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser, hasTier, isModeratorRole } from "@/lib/auth";
@@ -166,8 +164,6 @@ async function SignedInAccount({
           verified: profile?.verified ?? false,
         })
       : null;
-  const profileCoverUrl =
-    personalMedia?.coverUrl ?? "/images/wentworth-track-banner-landscape.webp";
   const profileAvatarUrl = personalMedia?.avatarUrl ?? profile?.avatarUrl ?? null;
   const ownedDogs = profile?.dogsOwned ?? [];
   const deletionRequestedAt = user.deletionRequestedAt;
@@ -176,140 +172,43 @@ async function SignedInAccount({
 
   return (
     <div className="grid gap-5 sm:gap-6 lg:grid-cols-12">
-      <section
-        id="profile-media"
-        className={`${PANEL_CLASS} scroll-mt-24 lg:col-span-12`}
-      >
-        <div className="mb-5 flex items-start gap-3">
-          <Camera className="mt-1 h-5 w-5 text-[hsl(var(--primary-bright))]" />
-          <div>
-            <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
-              Profile picture and cover
-            </h2>
-            <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
-              These appear across your Feed identity and public profile.
-            </p>
-          </div>
-        </div>
-
-        <form action={updatePersonalIdentityMedia} className="space-y-5">
-          <input
-            type="hidden"
-            name="avatarMediaId"
-            value={personalMedia?.avatarMediaId ?? ""}
-          />
-          <input
-            type="hidden"
-            name="coverMediaId"
-            value={personalMedia?.coverMediaId ?? ""}
-          />
-
-          <div className="relative aspect-[16/5] min-h-40 overflow-hidden rounded-2xl border border-white/[0.1] bg-black shadow-[0_22px_50px_hsl(0_0%_0%/0.34)] sm:min-h-[220px]">
-            <Image
-              src={profileCoverUrl}
-              alt="Current profile cover"
-              fill
-              unoptimized={profileCoverUrl.startsWith("/api/media/")}
-              sizes="(max-width: 1024px) 100vw, 960px"
-              className="object-cover"
-              style={{
-                objectPosition: `${(personalMedia?.coverFocalX ?? 0.5) * 100}% ${(personalMedia?.coverFocalY ?? 0.5) * 100}%`,
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <Link
-              href="#cover-image-editor"
-              className="giq-hub-cover-edit absolute right-3 top-3 z-20 inline-flex min-h-11 items-center gap-2 rounded-xl border bg-black/70 px-3 text-[12px] font-semibold text-white backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:right-4 sm:top-4"
-            >
-              <Pencil className="h-4 w-4" aria-hidden="true" />
-              Edit cover
-            </Link>
-            <div className="giq-hub-avatar absolute bottom-4 left-4 h-24 w-24 overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-[hsl(var(--surface-2))] sm:h-28 sm:w-28">
+      <section id="profile-media" className={`${PANEL_CLASS} scroll-mt-24 lg:col-span-12`}>
+        <div className="grid items-center gap-5 md:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-[hsl(var(--surface-2))] shadow-xl">
               {profileAvatarUrl ? (
-                <Image
+                <ActorMediaImage
                   src={profileAvatarUrl}
-                  alt="Current profile picture"
+                  alt=""
                   fill
-                  unoptimized={profileAvatarUrl.startsWith("/api/media/")}
-                  sizes="112px"
-                  className="object-cover"
-                  style={{
-                    objectPosition: `${(personalMedia?.avatarFocalX ?? 0.5) * 100}% ${(personalMedia?.avatarFocalY ?? 0.5) * 100}%`,
-                  }}
+                  sizes="96px"
+                  focalX={personalMedia?.avatarFocalX}
+                  focalY={personalMedia?.avatarFocalY}
+                  zoom={personalMedia?.avatarZoom}
+                  rotation={personalMedia?.avatarRotation}
                 />
               ) : (
-                <div className="grid h-full place-items-center text-2xl font-semibold text-white/80">
+                <div className="grid h-full place-items-center text-2xl font-semibold text-white/75">
                   {(profile?.displayName ?? user.name).slice(0, 1).toUpperCase()}
                 </div>
               )}
-              <Link
-                href="#profile-picture-editor"
-                aria-label="Edit profile picture"
-                className="giq-hub-avatar-edit absolute bottom-0 right-0 z-20 grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-[hsl(var(--primary)/0.94)] text-white shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
-              >
-                <Pencil className="h-4 w-4" aria-hidden="true" />
-              </Link>
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <Camera className="h-5 w-5 text-[hsl(var(--primary-bright))]" aria-hidden="true" />
+                <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
+                  Profile media
+                </h2>
+              </div>
+              <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                Position your photo and cover, preview mobile safe zones, then publish both from the dedicated studio.
+              </p>
             </div>
           </div>
-
-          <div className="grid gap-5 md:grid-cols-2">
-            <fieldset
-              id="profile-picture-editor"
-              className="giq-subpanel scroll-mt-28 p-4 sm:p-5"
-            >
-              <legend className="px-1 text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-                Profile picture
-              </legend>
-              <MediaAlignmentUpload
-                currentSrc={profileAvatarUrl}
-                alt="Profile picture alignment preview"
-                shape="circle"
-                mediaContext="avatars"
-                fieldName="avatarMediaIdNew"
-                xName="avatarFocalX"
-                yName="avatarFocalY"
-                defaultX={personalMedia?.avatarFocalX ?? 0.5}
-                defaultY={personalMedia?.avatarFocalY ?? 0.5}
-              />
-              {personalMedia?.avatarUrl ? (
-                <label className="mt-3 flex min-h-11 items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
-                  <input type="checkbox" name="removeAvatar" value="true" />
-                  Remove current profile picture
-                </label>
-              ) : null}
-            </fieldset>
-
-            <fieldset
-              id="cover-image-editor"
-              className="giq-subpanel scroll-mt-28 p-4 sm:p-5"
-            >
-              <legend className="px-1 text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-                Cover image
-              </legend>
-              <MediaAlignmentUpload
-                currentSrc={personalMedia?.coverUrl ?? null}
-                alt="Cover image alignment preview"
-                shape="banner"
-                mediaContext="avatars"
-                fieldName="coverMediaIdNew"
-                xName="coverFocalX"
-                yName="coverFocalY"
-                defaultX={personalMedia?.coverFocalX ?? 0.5}
-                defaultY={personalMedia?.coverFocalY ?? 0.5}
-              />
-              {personalMedia?.coverUrl ? (
-                <label className="mt-3 flex min-h-11 items-center gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
-                  <input type="checkbox" name="removeCover" value="true" />
-                  Remove current cover image
-                </label>
-              ) : null}
-            </fieldset>
-          </div>
-
-          <SubmitButton pendingLabel="Saving media...">
-            Save profile media
-          </SubmitButton>
-        </form>
+          <Link href="/account/profile" className="giq-button giq-button-gold min-h-11 px-5 text-[13px] font-semibold">
+            Open Profile Studio
+          </Link>
+        </div>
       </section>
 
       <section className={`${PANEL_CLASS} lg:col-span-7`}>

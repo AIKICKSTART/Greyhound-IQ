@@ -108,6 +108,16 @@ type ProcessingMetadata = {
   imageVariants?: ImageVariant[];
   hlsRenditions?: HlsRendition[];
   source?: { width?: number; height?: number; durationSec?: number };
+  profileMedia?: ProfileMediaLink;
+};
+
+type ProfileMediaLink = {
+  actorId: string;
+  kind: "avatar" | "cover";
+  focalX: number;
+  focalY: number;
+  zoom: number;
+  rotation: number;
 };
 
 type ProcessedMedia = {
@@ -377,7 +387,39 @@ export async function getMediaForCurrentUser(
   current: CurrentUserProfile,
   mediaId: string
 ) {
-  return findAuthorizedMedia(mediaId, current);
+  const media = await withDbRequestContext(current, (tx) =>
+    tx.mediaAsset.findFirst({
+      where: ownedMediaWhere(current.dbUserId, mediaId),
+    })
+  );
+  if (!media) throw new Error("media.not_found");
+  return media;
+}
+
+export function ownedMediaWhere(dbUserId: string, mediaId: string) {
+  return { id: mediaId, uploaderId: dbUserId, deletedAt: null } as const;
+}
+
+export async function getMediaStatusForCurrentUser(
+  current: CurrentUserProfile,
+  mediaId: string
+) {
+  const media = await withDbRequestContext(current, (tx) =>
+    tx.mediaAsset.findFirst({
+      where: ownedMediaWhere(current.dbUserId, mediaId),
+      select: {
+        id: true,
+        originalName: true,
+        scanStatus: true,
+        processingStatus: true,
+        processingError: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+  );
+  if (!media) throw new Error("media.not_found");
+  return media;
 }
 
 export async function updateMediaMetadataForCurrentUser(
@@ -749,7 +791,11 @@ export async function runMediaMaintenance() {
 
   for (const media of scanCandidates) {
     if (Date.now() >= maintenanceDeadline) break;
-    const claimed = await claimPendingMedia(media.id, leaseCutoff);
+    const claimed = await claimPendingMedia(
+      media.id,
+      leaseCutoff,
+      profileMediaOnlyMetadataJson(media.metadataJson),
+    );
     if (!claimed) continue;
     scanClaimed += 1;
     let scanPassed = false;
@@ -1127,6 +1173,58 @@ function parseProcessingMetadata(value: string | null): ProcessingMetadata {
   } catch {
     return {};
   }
+}
+
+function mergeProcessingMetadataJson(
+  currentValue: string | null,
+  processedValue: string | null,
+) {
+  const current = parseProcessingMetadata(currentValue);
+  const processed = parseProcessingMetadata(processedValue);
+  const merged: ProcessingMetadata = { ...current, ...processed };
+  if (current.profileMedia) merged.profileMedia = current.profileMedia;
+  return Object.keys(merged).length > 0 ? JSON.stringify(merged) : null;
+}
+
+function parseProfileMediaLink(value: string | null): ProfileMediaLink | null {
+  const link = parseProcessingMetadata(value).profileMedia as unknown;
+  if (!link || typeof link !== "object" || Array.isArray(link)) return null;
+  const candidate = link as Record<string, unknown>;
+  const focalX = Number(candidate.focalX);
+  const focalY = Number(candidate.focalY);
+  const zoom = Number(candidate.zoom);
+  const rotation = Number(candidate.rotation);
+  if (
+    typeof candidate.actorId !== "string" ||
+    !candidate.actorId ||
+    (candidate.kind !== "avatar" && candidate.kind !== "cover") ||
+    !Number.isFinite(focalX) ||
+    focalX < 0 ||
+    focalX > 1 ||
+    !Number.isFinite(focalY) ||
+    focalY < 0 ||
+    focalY > 1 ||
+    !Number.isFinite(zoom) ||
+    zoom < 1 ||
+    zoom > 3 ||
+    !Number.isInteger(rotation) ||
+    ![0, 90, 180, 270].includes(rotation)
+  ) {
+    return null;
+  }
+  return {
+    actorId: candidate.actorId,
+    kind: candidate.kind,
+    focalX,
+    focalY,
+    zoom,
+    rotation,
+  };
+}
+
+function profileMediaOnlyMetadataJson(value: string | null) {
+  const profileMedia = parseProfileMediaLink(value);
+  return profileMedia ? JSON.stringify({ profileMedia }) : null;
 }
 
 function processedPlaybackMimeType(mimeType: string) {
@@ -1520,7 +1618,11 @@ function startOfCurrentUtcMonth() {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 }
 
-async function claimPendingMedia(mediaId: string, leaseCutoff: Date) {
+async function claimPendingMedia(
+  mediaId: string,
+  leaseCutoff: Date,
+  metadataJson: string | null,
+) {
   const claimedAt = new Date();
   const result = await withDbSystemContext((tx) => tx.mediaAsset.updateMany({
     where: {
@@ -1550,7 +1652,7 @@ async function claimPendingMedia(mediaId: string, leaseCutoff: Date) {
       posterPath: null,
       hlsPath: null,
       waveformJson: null,
-      metadataJson: null,
+      metadataJson,
     },
   }));
   return result.count === 1;
@@ -1587,6 +1689,15 @@ async function completeMediaProcessing(
 ) {
   return withDbSystemContext(async (tx) => {
     const completedAt = new Date();
+    const current = await tx.mediaAsset.findFirst({
+      where: {
+        id: mediaId,
+        deletedAt: null,
+        processingStatus: "processing",
+      },
+      select: { metadataJson: true },
+    });
+    if (!current) throw new Error("media.processing_state_conflict");
     const result = await tx.mediaAsset.updateMany({
       where: {
         id: mediaId,
@@ -1601,7 +1712,10 @@ async function completeMediaProcessing(
         posterPath: processed.posterPath,
         hlsPath: processed.hlsPath,
         waveformJson: processed.waveformJson,
-        metadataJson: processed.metadataJson,
+        metadataJson: mergeProcessingMetadataJson(
+          current.metadataJson,
+          processed.metadataJson,
+        ),
         widthPx: processed.widthPx,
         heightPx: processed.heightPx,
         durationSec: processed.durationSec,
@@ -1610,8 +1724,141 @@ async function completeMediaProcessing(
     if (result.count !== 1) {
       throw new Error("media.processing_state_conflict");
     }
+    await promoteReadyPersonalActorMediaWithTx(tx, mediaId);
     return reconcileLinkedFeedPosts(tx, mediaId, completedAt);
   });
+}
+
+export function isNewestProfileMediaCandidate(
+  mediaId: string,
+  candidates: ReadonlyArray<{ id: string; createdAt: Date | string }>,
+) {
+  let newest: { id: string; createdAt: Date | string } | undefined;
+  for (const candidate of candidates) {
+    if (!newest) {
+      newest = candidate;
+      continue;
+    }
+    const candidateTime = new Date(candidate.createdAt).getTime();
+    const newestTime = new Date(newest.createdAt).getTime();
+    if (
+      candidateTime > newestTime ||
+      (candidateTime === newestTime && candidate.id.localeCompare(newest.id) > 0)
+    ) {
+      newest = candidate;
+    }
+  }
+  return newest?.id === mediaId;
+}
+
+export async function promoteReadyPersonalActorMedia(mediaId: string) {
+  return withDbSystemContext((tx) =>
+    promoteReadyPersonalActorMediaWithTx(tx, mediaId),
+  );
+}
+
+async function promoteReadyPersonalActorMediaWithTx(tx: Tx, mediaId: string) {
+  const media = await tx.mediaAsset.findFirst({
+    where: {
+      id: mediaId,
+      deletedAt: null,
+      scanStatus: "clean",
+      processingStatus: "ready",
+      linkedEntityType: {
+        in: ["social_actor_avatar", "social_actor_cover"],
+      },
+      linkedEntityId: { not: null },
+    },
+  });
+  if (!media?.linkedEntityId || !media.linkedEntityType) return false;
+
+  const link = parseProfileMediaLink(media.metadataJson);
+  const kind = media.linkedEntityType === "social_actor_avatar"
+    ? "avatar"
+    : "cover";
+  if (!link || link.actorId !== media.linkedEntityId || link.kind !== kind) {
+    return false;
+  }
+
+  const actor = await tx.socialActor.findFirst({
+    where: { id: link.actorId, kind: "personal" },
+    select: {
+      id: true,
+      profileId: true,
+      ownerProfile: { select: { userId: true } },
+    },
+  });
+  if (
+    !actor?.profileId ||
+    actor.ownerProfile.userId !== media.uploaderId
+  ) {
+    return false;
+  }
+
+  const candidates = await tx.mediaAsset.findMany({
+    where: {
+      linkedEntityType: media.linkedEntityType,
+      linkedEntityId: actor.id,
+      deletedAt: null,
+    },
+    select: { id: true, createdAt: true },
+  });
+  if (!isNewestProfileMediaCandidate(media.id, candidates)) return false;
+
+  const url = mediaDeliveryUrl(media);
+  const position = kind === "avatar" ? -2 : -1;
+  await tx.actorGalleryMedia.deleteMany({
+    where: {
+      actorId: actor.id,
+      OR: [{ position }, { mediaId: media.id }],
+    },
+  });
+  await tx.actorGalleryMedia.create({
+    data: {
+      actorId: actor.id,
+      mediaId: media.id,
+      position,
+      altText: media.altText ?? (kind === "avatar" ? "Profile picture" : "Profile cover"),
+    },
+  });
+
+  if (kind === "avatar") {
+    await tx.profile.update({
+      where: { id: actor.profileId },
+      data: { avatarUrl: url },
+    });
+    await tx.socialActor.update({
+      where: { id: actor.id },
+      data: {
+        avatarUrl: url,
+        avatarFocalX: link.focalX,
+        avatarFocalY: link.focalY,
+        avatarZoom: link.zoom,
+        avatarRotation: link.rotation,
+      },
+    });
+  } else {
+    await tx.socialActor.update({
+      where: { id: actor.id },
+      data: {
+        coverUrl: url,
+        coverFocalX: link.focalX,
+        coverFocalY: link.focalY,
+        coverZoom: link.zoom,
+        coverRotation: link.rotation,
+      },
+    });
+  }
+
+  await tx.mediaAsset.updateMany({
+    where: {
+      id: { not: media.id },
+      linkedEntityType: media.linkedEntityType,
+      linkedEntityId: actor.id,
+    },
+    data: { linkedEntityType: null, linkedEntityId: null },
+  });
+  return true;
 }
 
 async function failMediaProcessing(

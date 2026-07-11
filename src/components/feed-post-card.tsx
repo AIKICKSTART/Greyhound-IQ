@@ -24,6 +24,7 @@ import {
   type FeedReactionType,
 } from "@/components/instant-feed-controls";
 import { FeedCommentsPanel } from "@/components/feed-comments-panel";
+import { ActorMediaImage } from "@/components/actor-media-image";
 import { ProcessedVideo } from "@/components/processed-video";
 import type { CustomPageType } from "@/lib/custom-page-validation";
 import type { getFeedPostsForViewer } from "@/lib/feed-service";
@@ -119,15 +120,16 @@ export function FeedPostCard({
             }
           >
             {pageAvatarUrl ?? post.authorActor?.avatarUrl ? (
-              <NextImage
+              <ActorMediaImage
                 src={(pageAvatarUrl ?? post.authorActor?.avatarUrl)!}
                 alt=""
                 width={40}
                 height={40}
-                unoptimized={(pageAvatarUrl ?? post.authorActor?.avatarUrl)!.startsWith(
-                  "/api/media/",
-                )}
                 className="h-full w-full object-cover"
+                focalX={post.authorActor?.avatarFocalX}
+                focalY={post.authorActor?.avatarFocalY}
+                zoom={post.authorActor?.avatarZoom}
+                rotation={post.authorActor?.avatarRotation}
               />
             ) : (
               authorName.slice(0, 1).toUpperCase()

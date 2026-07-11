@@ -61,6 +61,13 @@ const optionalMediaId = z
   .nullable()
   .transform((value) => value || null);
 
+const mediaRotation = z.coerce
+  .number()
+  .int()
+  .refine((value) => [0, 90, 180, 270].includes(value), {
+    message: "Rotation must be 0, 90, 180, or 270 degrees",
+  });
+
 export const personalActorMediaUpdateSchema = z.object({
   avatarMediaId: optionalMediaId,
   coverMediaId: optionalMediaId,
@@ -68,8 +75,12 @@ export const personalActorMediaUpdateSchema = z.object({
   removeCover: z.boolean().default(false),
   avatarFocalX: z.coerce.number().min(0).max(1).optional(),
   avatarFocalY: z.coerce.number().min(0).max(1).optional(),
+  avatarZoom: z.coerce.number().min(1).max(3).default(1),
+  avatarRotation: mediaRotation.default(0),
   coverFocalX: z.coerce.number().min(0).max(1).default(0.5),
   coverFocalY: z.coerce.number().min(0).max(1).default(0.5),
+  coverZoom: z.coerce.number().min(1).max(3).default(1),
+  coverRotation: mediaRotation.default(0),
 });
 
 export type PersonalActorMediaUpdateInput = z.infer<

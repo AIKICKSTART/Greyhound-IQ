@@ -13,6 +13,7 @@ import type { PersonalActorMediaUpdateInput } from "@/lib/account-validation";
 import {
   assertMediaAttachable,
   mediaDeliveryUrl,
+  promoteReadyPersonalActorMedia,
 } from "@/lib/media-service";
 import { createInAppNotification } from "@/lib/notification-service";
 import {
@@ -29,9 +30,13 @@ export type SocialActorSummary = {
   avatarUrl: string | null;
   avatarFocalX: number;
   avatarFocalY: number;
+  avatarZoom: number;
+  avatarRotation: number;
   coverUrl: string | null;
   coverFocalX: number;
   coverFocalY: number;
+  coverZoom: number;
+  coverRotation: number;
   profileVisibility: string;
   contactVisibility: string;
   published: boolean;
@@ -48,9 +53,13 @@ const actorSelect = {
   avatarUrl: true,
   avatarFocalX: true,
   avatarFocalY: true,
+  avatarZoom: true,
+  avatarRotation: true,
   coverUrl: true,
   coverFocalX: true,
   coverFocalY: true,
+  coverZoom: true,
+  coverRotation: true,
   profileVisibility: true,
   contactVisibility: true,
   published: true,
@@ -70,6 +79,7 @@ const actorProfileSelect = {
       kennelName: true,
       role: true,
       verified: true,
+      isFounder: true,
       website: true,
       phone: true,
       createdAt: true,
@@ -108,6 +118,7 @@ export type SocialActorProfileView = {
     kennelName: string | null;
     role: string;
     verified: boolean;
+    isFounder: boolean;
     createdAt: Date;
   } | null;
   page: {
@@ -416,6 +427,7 @@ export async function getSocialActorProfileByHandle(
             kennelName: actor.profile.kennelName,
             role: actor.profile.role,
             verified: actor.profile.verified,
+            isFounder: actor.profile.isFounder,
             createdAt: actor.profile.createdAt,
           }
         : null,
@@ -576,9 +588,13 @@ function pickActorSummary(actor: {
   avatarUrl: string | null;
   avatarFocalX: number;
   avatarFocalY: number;
+  avatarZoom: number;
+  avatarRotation: number;
   coverUrl: string | null;
   coverFocalX: number;
   coverFocalY: number;
+  coverZoom: number;
+  coverRotation: number;
   profileVisibility: string;
   contactVisibility: string;
   published: boolean;
@@ -594,9 +610,13 @@ function pickActorSummary(actor: {
     avatarUrl: actor.avatarUrl,
     avatarFocalX: actor.avatarFocalX,
     avatarFocalY: actor.avatarFocalY,
+    avatarZoom: actor.avatarZoom,
+    avatarRotation: actor.avatarRotation,
     coverUrl: actor.coverUrl,
     coverFocalX: actor.coverFocalX,
     coverFocalY: actor.coverFocalY,
+    coverZoom: actor.coverZoom,
+    coverRotation: actor.coverRotation,
     profileVisibility: actor.profileVisibility,
     contactVisibility: actor.contactVisibility,
     published: actor.published,
@@ -619,15 +639,29 @@ export async function ensurePersonalActor(
 const PERSONAL_AVATAR_MEDIA = "social_actor_avatar";
 const PERSONAL_COVER_MEDIA = "social_actor_cover";
 
+export type PendingPersonalActorMedia = {
+  id: string;
+  originalName: string | null;
+  scanStatus: string;
+  processingStatus: string;
+  processingError: string | null;
+};
+
 export type PersonalActorMedia = {
   avatarMediaId: string | null;
   coverMediaId: string | null;
+  pendingAvatar: PendingPersonalActorMedia | null;
+  pendingCover: PendingPersonalActorMedia | null;
   avatarUrl: string | null;
   coverUrl: string | null;
   avatarFocalX: number;
   avatarFocalY: number;
+  avatarZoom: number;
+  avatarRotation: number;
   coverFocalX: number;
   coverFocalY: number;
+  coverZoom: number;
+  coverRotation: number;
 };
 
 export async function getPersonalActorMedia(
@@ -645,7 +679,15 @@ export async function getPersonalActorMedia(
           },
           deletedAt: null,
         },
-        select: { id: true, linkedEntityType: true },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        select: {
+          id: true,
+          linkedEntityType: true,
+          originalName: true,
+          scanStatus: true,
+          processingStatus: true,
+          processingError: true,
+        },
       }),
       tx.actorGalleryMedia.findMany({
         where: {
@@ -656,25 +698,82 @@ export async function getPersonalActorMedia(
         select: { mediaId: true, position: true },
       }),
     ]);
+    const ready = (item: (typeof media)[number]) =>
+      item.scanStatus === "clean" && item.processingStatus === "ready";
+    const avatarMediaId =
+      gallerySlots.find((item) => item.position === -2)?.mediaId ??
+      media.find(
+        (item) =>
+          item.linkedEntityType === PERSONAL_AVATAR_MEDIA && ready(item),
+      )?.id ??
+      null;
+    const coverMediaId =
+      gallerySlots.find((item) => item.position === -1)?.mediaId ??
+      media.find(
+        (item) => item.linkedEntityType === PERSONAL_COVER_MEDIA && ready(item),
+      )?.id ??
+      null;
+    const pending = (
+      linkedEntityType: string,
+      currentMediaId: string | null,
+    ): PendingPersonalActorMedia | null => {
+      const item = media.find(
+        (candidate) =>
+          candidate.linkedEntityType === linkedEntityType &&
+          candidate.id !== currentMediaId,
+      );
+      return item
+        ? {
+            id: item.id,
+            originalName: item.originalName,
+            scanStatus: item.scanStatus,
+            processingStatus: item.processingStatus,
+            processingError: item.processingError,
+          }
+        : null;
+    };
     return {
-      avatarMediaId:
-        media.find((item) => item.linkedEntityType === PERSONAL_AVATAR_MEDIA)
-          ?.id ??
-        gallerySlots.find((item) => item.position === -2)?.mediaId ??
-        null,
-      coverMediaId:
-        media.find((item) => item.linkedEntityType === PERSONAL_COVER_MEDIA)
-          ?.id ??
-        gallerySlots.find((item) => item.position === -1)?.mediaId ??
-        null,
+      avatarMediaId,
+      coverMediaId,
+      pendingAvatar: pending(PERSONAL_AVATAR_MEDIA, avatarMediaId),
+      pendingCover: pending(PERSONAL_COVER_MEDIA, coverMediaId),
       avatarUrl: actor.avatarUrl,
       coverUrl: actor.coverUrl,
       avatarFocalX: actor.avatarFocalX,
       avatarFocalY: actor.avatarFocalY,
+      avatarZoom: actor.avatarZoom,
+      avatarRotation: actor.avatarRotation,
       coverFocalX: actor.coverFocalX,
       coverFocalY: actor.coverFocalY,
+      coverZoom: actor.coverZoom,
+      coverRotation: actor.coverRotation,
     };
   });
+}
+
+type PersonalMediaLink = {
+  actorId: string;
+  kind: "avatar" | "cover";
+  focalX: number;
+  focalY: number;
+  zoom: number;
+  rotation: number;
+};
+
+function withPersonalMediaLink(
+  metadataJson: string | null,
+  profileMedia: PersonalMediaLink,
+) {
+  let metadata: Record<string, unknown> = {};
+  try {
+    const parsed = JSON.parse(metadataJson ?? "{}") as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      metadata = parsed as Record<string, unknown>;
+    }
+  } catch {
+    // Invalid processing metadata is replaced when derivatives complete.
+  }
+  return JSON.stringify({ ...metadata, profileMedia });
 }
 
 export async function updatePersonalActorMedia(
@@ -698,112 +797,142 @@ export async function updatePersonalActorMedia(
     ? byId.get(input.coverMediaId) ?? null
     : null;
 
-  return withDbRequestContext(current, async (tx) => {
+  const staged = await withDbRequestContext(current, async (tx) => {
     const actor = await ensurePersonalActor(current, tx);
-    const previous = await tx.mediaAsset.findMany({
-      where: {
-        uploaderId: current.dbUserId,
-        linkedEntityId: actor.id,
-        linkedEntityType: {
-          in: [PERSONAL_AVATAR_MEDIA, PERSONAL_COVER_MEDIA],
-        },
-      },
-      select: { id: true },
-    });
-    const touchedIds = [
-      ...new Set([...previous.map((item) => item.id), ...requestedIds]),
-    ];
-
-    await tx.actorGalleryMedia.deleteMany({
+    const gallerySlots = await tx.actorGalleryMedia.findMany({
       where: {
         actorId: actor.id,
-        OR: [
-          { position: { in: [-2, -1] } },
-          ...(touchedIds.length > 0 ? [{ mediaId: { in: touchedIds } }] : []),
-        ],
+        position: { in: [-2, -1] },
       },
+      select: { mediaId: true, position: true },
     });
-    if (previous.length > 0) {
+    const currentAvatarId =
+      gallerySlots.find((item) => item.position === -2)?.mediaId ?? null;
+    const currentCoverId =
+      gallerySlots.find((item) => item.position === -1)?.mediaId ?? null;
+    const actorUpdate: Prisma.SocialActorUpdateInput = {};
+    const readyIds: string[] = [];
+
+    if (input.removeAvatar) {
+      await tx.actorGalleryMedia.deleteMany({
+        where: { actorId: actor.id, position: -2 },
+      });
       await tx.mediaAsset.updateMany({
-        where: { id: { in: previous.map((item) => item.id) } },
+        where: {
+          uploaderId: current.dbUserId,
+          linkedEntityId: actor.id,
+          linkedEntityType: PERSONAL_AVATAR_MEDIA,
+        },
         data: { linkedEntityType: null, linkedEntityId: null },
       });
-    }
-    if (avatar) {
+      await tx.profile.update({
+        where: { id: current.profileId },
+        data: { avatarUrl: null },
+      });
+      Object.assign(actorUpdate, {
+        avatarUrl: null,
+        avatarFocalX: 0.5,
+        avatarFocalY: 0.5,
+        avatarZoom: 1,
+        avatarRotation: 0,
+      });
+    } else if (avatar && avatar.id !== currentAvatarId) {
       await tx.mediaAsset.update({
         where: { id: avatar.id },
         data: {
           linkedEntityType: PERSONAL_AVATAR_MEDIA,
           linkedEntityId: actor.id,
+          metadataJson: withPersonalMediaLink(avatar.metadataJson, {
+            actorId: actor.id,
+            kind: "avatar",
+            focalX: input.avatarFocalX ?? actor.avatarFocalX,
+            focalY: input.avatarFocalY ?? actor.avatarFocalY,
+            zoom: input.avatarZoom,
+            rotation: input.avatarRotation,
+          }),
         },
       });
-    }
-    if (cover) {
-      await tx.mediaAsset.update({
-        where: { id: cover.id },
-        data: {
-          linkedEntityType: PERSONAL_COVER_MEDIA,
-          linkedEntityId: actor.id,
-        },
-      });
-    }
-    const attachments = [
-      ...(avatar
-        ? [
-            {
-              actorId: actor.id,
-              mediaId: avatar.id,
-              position: -2,
-              altText: avatar.altText ?? "Profile picture",
-            },
-          ]
-        : []),
-      ...(cover
-        ? [
-            {
-              actorId: actor.id,
-              mediaId: cover.id,
-              position: -1,
-              altText: cover.altText ?? "Profile cover",
-            },
-          ]
-        : []),
-    ];
-    if (attachments.length > 0) {
-      await tx.actorGalleryMedia.createMany({ data: attachments });
-    }
-
-    const avatarUrl = avatar
-      ? mediaDeliveryUrl(avatar)
-      : input.removeAvatar
-        ? null
-        : actor.avatarUrl;
-    const coverUrl = cover
-      ? mediaDeliveryUrl(cover)
-      : input.removeCover
-        ? null
-        : actor.coverUrl;
-    await tx.profile.update({
-      where: { id: current.profileId },
-      data: { avatarUrl },
-    });
-    return tx.socialActor.update({
-      where: { id: actor.id },
-      data: {
-        avatarUrl,
-        coverUrl,
+      if (avatar.scanStatus === "clean" && avatar.processingStatus === "ready") {
+        readyIds.push(avatar.id);
+      }
+    } else {
+      Object.assign(actorUpdate, {
         ...(input.avatarFocalX === undefined
           ? {}
           : { avatarFocalX: input.avatarFocalX }),
         ...(input.avatarFocalY === undefined
           ? {}
           : { avatarFocalY: input.avatarFocalY }),
+        avatarZoom: input.avatarZoom,
+        avatarRotation: input.avatarRotation,
+      });
+    }
+
+    if (input.removeCover) {
+      await tx.actorGalleryMedia.deleteMany({
+        where: { actorId: actor.id, position: -1 },
+      });
+      await tx.mediaAsset.updateMany({
+        where: {
+          uploaderId: current.dbUserId,
+          linkedEntityId: actor.id,
+          linkedEntityType: PERSONAL_COVER_MEDIA,
+        },
+        data: { linkedEntityType: null, linkedEntityId: null },
+      });
+      Object.assign(actorUpdate, {
+        coverUrl: null,
+        coverFocalX: 0.5,
+        coverFocalY: 0.5,
+        coverZoom: 1,
+        coverRotation: 0,
+      });
+    } else if (cover && cover.id !== currentCoverId) {
+      await tx.mediaAsset.update({
+        where: { id: cover.id },
+        data: {
+          linkedEntityType: PERSONAL_COVER_MEDIA,
+          linkedEntityId: actor.id,
+          metadataJson: withPersonalMediaLink(cover.metadataJson, {
+            actorId: actor.id,
+            kind: "cover",
+            focalX: input.coverFocalX,
+            focalY: input.coverFocalY,
+            zoom: input.coverZoom,
+            rotation: input.coverRotation,
+          }),
+        },
+      });
+      if (cover.scanStatus === "clean" && cover.processingStatus === "ready") {
+        readyIds.push(cover.id);
+      }
+    } else {
+      Object.assign(actorUpdate, {
         coverFocalX: input.coverFocalX,
         coverFocalY: input.coverFocalY,
-      },
-      select: actorSelect,
-    });
+        coverZoom: input.coverZoom,
+        coverRotation: input.coverRotation,
+      });
+    }
+
+    if (Object.keys(actorUpdate).length > 0) {
+      await tx.socialActor.update({
+        where: { id: actor.id },
+        data: actorUpdate,
+      });
+    }
+    return { actorId: actor.id, readyIds };
   });
+
+  for (const mediaId of staged.readyIds) {
+    await promoteReadyPersonalActorMedia(mediaId);
+  }
+  return withDbRequestContext(current, (tx) =>
+    tx.socialActor.findUniqueOrThrow({
+      where: { id: staged.actorId },
+      select: actorSelect,
+    }),
+  );
 }
 
 export async function ensureOwnedPageActor(

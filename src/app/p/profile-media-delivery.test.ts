@@ -3,9 +3,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const source = readFileSync(join(__dirname, "[handle]", "page.tsx"), "utf8");
+const actorMediaSource = readFileSync(
+  join(__dirname, "..", "..", "components", "actor-media-image.tsx"),
+  "utf8"
+);
 
 const guards = [
-  'unoptimized={profile.actor.coverUrl.startsWith("/api/media/")}',
   'unoptimized={item.url.startsWith("/api/media/")}',
   'unoptimized={friend.avatarUrl.startsWith("/api/media/")}',
   'unoptimized={bannerUrl.startsWith("/api/media/")}',
@@ -22,16 +25,22 @@ for (const guard of guards) {
   );
 }
 
+assert.ok(
+  source.includes("<ActorMediaImage") &&
+    actorMediaSource.includes('unoptimized: props.src.startsWith("/api/media/")'),
+  "Personal actor media must use the authenticated shared renderer"
+);
+
 assert.equal(
   source.match(/unoptimized=\{avatarUrl\.startsWith\("\/api\/media\/"\)\}/g)
     ?.length,
-  2,
-  "Personal and managed-page avatars must both preserve viewer authentication"
+  1,
+  "Managed-page avatars must preserve viewer authentication"
 );
 
 assert.ok(
-  source.includes('href="/account#cover-image-editor"') &&
-    source.includes('href="/account#profile-picture-editor"'),
+  source.includes('href="/account/profile#cover-image-editor"') &&
+    source.includes('href="/account/profile#profile-picture-editor"'),
   "Personal profile owners must have separate cover and avatar edit controls"
 );
 assert.ok(
@@ -51,8 +60,14 @@ assert.equal(
 );
 assert.equal(
   source.match(/profile\.actor\.avatarFocalX \* 100/g)?.length,
-  2,
-  "Personal and managed-page profile pictures must use their saved alignment"
+  1,
+  "Managed-page profile pictures must use their saved alignment"
+);
+assert.ok(
+  source.includes("focalX={profile.actor.avatarFocalX}") &&
+    source.includes("zoom={profile.actor.avatarZoom}") &&
+    source.includes("rotation={profile.actor.avatarRotation}"),
+  "Personal profile media must use all shared transforms"
 );
 
 console.log("profile media delivery tests passed");

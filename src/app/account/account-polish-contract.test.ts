@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const accountSource = readFileSync(join(__dirname, "page.tsx"), "utf8");
+const profileStudioSource = readFileSync(
+  join(__dirname, "profile", "page.tsx"),
+  "utf8"
+);
 const pagesSource = readFileSync(join(__dirname, "pages", "page.tsx"), "utf8");
 const pageEditorSource = readFileSync(
   join(__dirname, "pages", "[id]", "page.tsx"),
@@ -42,19 +46,25 @@ for (const signedOutContract of [
   );
 }
 for (const identityContract of [
-  'href="#cover-image-editor"',
-  'href="#profile-picture-editor"',
+  'id="cover-image-editor"',
+  'id="profile-picture-editor"',
   "action={updatePersonalIdentityMedia}",
   'fieldName="avatarMediaIdNew"',
   'fieldName="coverMediaIdNew"',
-  'unoptimized={profileCoverUrl.startsWith("/api/media/")}',
-  'unoptimized={profileAvatarUrl.startsWith("/api/media/")}',
+  'zoomName="avatarZoom"',
+  'rotationName="coverRotation"',
+  "Publish profile",
 ]) {
   assert.ok(
-    accountSource.includes(identityContract),
-    `Personal identity editor must preserve: ${identityContract}`
+    profileStudioSource.includes(identityContract),
+    `Profile Studio must preserve: ${identityContract}`
   );
 }
+assert.ok(
+  accountSource.includes('href="/account/profile"') &&
+    accountSource.includes("Open Profile Studio"),
+  "Account must link to the dedicated Profile Studio"
+);
 
 assert.ok(
   pagesSource.includes("resolvePageAvatarUrls") &&
@@ -136,7 +146,7 @@ assert.ok(
   "Managed-page image slots must not accept unrenderable audio or documents"
 );
 assert.ok(
-  accountSource.includes("MediaAlignmentUpload") &&
+  profileStudioSource.includes("MediaAlignmentUpload") &&
     pageEditorSource.includes("MediaAlignmentUpload"),
   "Personal and managed-page uploads must support drag alignment before save"
 );

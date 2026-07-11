@@ -423,8 +423,8 @@ export async function SiteHeader({
         <header className="giq-member-header sticky top-0 z-50 w-full border-b border-white/[0.10] bg-[hsl(var(--surface-1)/0.92)] shadow-[0_12px_32px_hsl(0_0%_0%/0.28)] backdrop-blur-xl">
           <div className="mx-auto flex min-h-[68px] max-w-[1680px] items-center gap-3 px-3 sm:px-5 lg:px-6">
             <Link
-              href="/"
-              aria-label="GreyhoundIQ home"
+              href="/feed"
+              aria-label="GreyhoundIQ feed"
               className="group flex min-w-0 shrink items-center transition-transform hover:-translate-y-px"
             >
               <span className="relative block h-9 w-[172px] max-w-[48vw] shrink-0 overflow-hidden sm:w-[190px]">
@@ -509,23 +509,6 @@ export async function SiteHeader({
                 <AccountNavigationMenu user={user} canAccessAdmin={canAccessAdmin} />
               </Sheet>
 
-              <Sheet>
-                <SheetTrigger
-                  aria-label="Open navigation menu"
-                  className="giq-mobile-menu-button lg:hidden"
-                >
-                  <span className="giq-premium-hamburger" aria-hidden="true">
-                    <span />
-                    <span />
-                    <span />
-                  </span>
-                </SheetTrigger>
-                <MobileNavigationMenu
-                  user={user}
-                  badge={badge}
-                  canAccessAdmin={canAccessAdmin}
-                />
-              </Sheet>
             </div>
           </div>
           <div aria-hidden="true" className="race-box-strip h-[2px] rounded-none opacity-80" />

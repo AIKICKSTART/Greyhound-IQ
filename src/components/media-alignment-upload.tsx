@@ -15,6 +15,10 @@ type MediaAlignmentUploadProps = {
   yName: string;
   defaultX: number;
   defaultY: number;
+  zoomName?: string;
+  rotationName?: string;
+  defaultZoom?: number;
+  defaultRotation?: number;
 };
 
 export function effectiveAlignmentPreview(
@@ -34,6 +38,10 @@ export function MediaAlignmentUpload({
   yName,
   defaultX,
   defaultY,
+  zoomName,
+  rotationName,
+  defaultZoom = 1,
+  defaultRotation = 0,
 }: MediaAlignmentUploadProps) {
   const [pendingSrc, setPendingSrc] = useState<string | null>(null);
   const handleReadyPreview = useCallback((previewUrl: string | null) => {
@@ -68,6 +76,10 @@ export function MediaAlignmentUpload({
             yName={yName}
             defaultX={defaultX}
             defaultY={defaultY}
+            zoomName={zoomName}
+            rotationName={rotationName}
+            defaultZoom={defaultZoom}
+            defaultRotation={defaultRotation}
           />
         </div>
       ) : null}

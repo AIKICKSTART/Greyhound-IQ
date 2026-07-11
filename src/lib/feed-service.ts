@@ -348,7 +348,16 @@ export async function getFeedCommentsForViewer(
       include: {
         author: { select: { displayName: true } },
         authorActor: {
-          select: { id: true, handle: true, displayName: true, avatarUrl: true },
+          select: {
+            id: true,
+            handle: true,
+            displayName: true,
+            avatarUrl: true,
+            avatarFocalX: true,
+            avatarFocalY: true,
+            avatarZoom: true,
+            avatarRotation: true,
+          },
         },
         replies: {
           where: { status: "active", deletedAt: null },
@@ -356,7 +365,16 @@ export async function getFeedCommentsForViewer(
           include: {
             author: { select: { displayName: true } },
             authorActor: {
-              select: { id: true, handle: true, displayName: true, avatarUrl: true },
+              select: {
+                id: true,
+                handle: true,
+                displayName: true,
+                avatarUrl: true,
+                avatarFocalX: true,
+                avatarFocalY: true,
+                avatarZoom: true,
+                avatarRotation: true,
+              },
             },
             reactions: {
               where: {
@@ -1282,6 +1300,10 @@ function feedPostInclude(
         handle: true,
         displayName: true,
         avatarUrl: true,
+        avatarFocalX: true,
+        avatarFocalY: true,
+        avatarZoom: true,
+        avatarRotation: true,
       },
     },
     authorPage: {
@@ -1336,7 +1358,16 @@ function feedPostInclude(
       include: {
         author: { select: { displayName: true } },
         authorActor: {
-          select: { id: true, handle: true, displayName: true, avatarUrl: true },
+          select: {
+            id: true,
+            handle: true,
+            displayName: true,
+            avatarUrl: true,
+            avatarFocalX: true,
+            avatarFocalY: true,
+            avatarZoom: true,
+            avatarRotation: true,
+          },
         },
         reactions: {
           where: {

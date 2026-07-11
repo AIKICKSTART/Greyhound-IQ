@@ -4,6 +4,7 @@ import { Heart, Loader2, MessageSquare, Pencil, Trash2 } from "lucide-react";
 import { FormEvent, useState } from "react";
 
 import { InstantFeedCommentForm } from "@/components/instant-feed-controls";
+import { ActorMediaImage } from "@/components/actor-media-image";
 
 export type FeedCommentItem = {
   id: string;
@@ -16,6 +17,10 @@ export type FeedCommentItem = {
     handle: string;
     displayName: string;
     avatarUrl: string | null;
+    avatarFocalX?: number;
+    avatarFocalY?: number;
+    avatarZoom?: number;
+    avatarRotation?: number;
   } | null;
   replies?: FeedCommentItem[];
   reactions?: Array<{ profileId: string; reactionType: string }>;
@@ -208,9 +213,20 @@ function CommentCard({
         <p className="flex items-center gap-2 text-[12px] font-semibold text-[hsl(var(--foreground))]">
           <span
             aria-hidden="true"
-            className="grid h-7 w-7 place-items-center rounded-full bg-[hsl(var(--primary)/0.15)] text-[10px] font-bold text-[hsl(var(--primary-light))]"
+            className="grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-[hsl(var(--primary)/0.15)] text-[10px] font-bold text-[hsl(var(--primary-light))]"
           >
-            {authorName.slice(0, 1).toUpperCase()}
+            {comment.authorActor?.avatarUrl ? (
+              <ActorMediaImage
+                src={comment.authorActor.avatarUrl}
+                alt=""
+                width={28}
+                height={28}
+                focalX={comment.authorActor.avatarFocalX}
+                focalY={comment.authorActor.avatarFocalY}
+                zoom={comment.authorActor.avatarZoom}
+                rotation={comment.authorActor.avatarRotation}
+              />
+            ) : authorName.slice(0, 1).toUpperCase()}
           </span>
           {authorName}
         </p>

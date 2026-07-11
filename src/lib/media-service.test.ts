@@ -5,7 +5,9 @@ import {
   canAccessActorMediaAudience,
   clamAvDefinitionsNeedRefresh,
   feedPostStatusForMedia,
+  isNewestProfileMediaCandidate,
   MediaRangeNotSatisfiableError,
+  ownedMediaWhere,
   parseClamAvDefinitionDate,
   parseMediaByteRange,
   parseMediaDeliveryVariant,
@@ -55,6 +57,25 @@ for (const variant of [
 }
 assert.throws(() => parseMediaDeliveryVariant("../../private-object"));
 assert.throws(() => parseMediaDeliveryVariant("hls-segment-360-0/../../x"));
+
+assert.deepEqual(ownedMediaWhere("owner-user", "media-1"), {
+  id: "media-1",
+  uploaderId: "owner-user",
+  deletedAt: null,
+});
+const profileCandidates = [
+  { id: "older", createdAt: "2026-07-11T00:00:00.000Z" },
+  { id: "newer", createdAt: "2026-07-11T00:00:01.000Z" },
+];
+assert.equal(isNewestProfileMediaCandidate("older", profileCandidates), false);
+assert.equal(isNewestProfileMediaCandidate("newer", profileCandidates), true);
+assert.equal(
+  isNewestProfileMediaCandidate("b", [
+    { id: "a", createdAt: "2026-07-11T00:00:00.000Z" },
+    { id: "b", createdAt: "2026-07-11T00:00:00.000Z" },
+  ]),
+  true,
+);
 
 const clamDefinitionDate = parseClamAvDefinitionDate(
   "ClamAV 1.4.3/27812/Fri Jul 10 12:00:00 2026"

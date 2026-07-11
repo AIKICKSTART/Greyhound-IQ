@@ -1092,15 +1092,20 @@ export async function updatePersonalIdentityMedia(formData: FormData) {
     removeCover: field(formData, "removeCover") === "true",
     avatarFocalX: field(formData, "avatarFocalX") || undefined,
     avatarFocalY: field(formData, "avatarFocalY") || undefined,
+    avatarZoom: field(formData, "avatarZoom") || 1,
+    avatarRotation: field(formData, "avatarRotation") || 0,
     coverFocalX: field(formData, "coverFocalX") || 0.5,
     coverFocalY: field(formData, "coverFocalY") || 0.5,
+    coverZoom: field(formData, "coverZoom") || 1,
+    coverRotation: field(formData, "coverRotation") || 0,
   });
   const actor = await updatePersonalActorMedia(current, parsed);
 
   revalidatePath("/account");
+  revalidatePath("/account/profile");
   revalidatePath("/feed");
   revalidatePath(`/p/${actor.handle}`);
-  redirect("/account#profile-media");
+  redirect("/account/profile");
 }
 
 export async function claimDogOwnership(dogId: string, formData: FormData) {

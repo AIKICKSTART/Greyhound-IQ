@@ -58,7 +58,7 @@ const completedRequirementIds = [
 ];
 
 assert.equal(GENERIC_SECURITY_PLACEHOLDER_EXPECTED_GAIN, 10);
-assert.equal(SECURITY_CONTROL_REFERENCE_EXPECTED_GAIN, 7);
+assert.equal(SECURITY_CONTROL_REFERENCE_EXPECTED_GAIN, 8);
 assert.equal(sectionRequirements.length, 19);
 assert.deepEqual(
   [
@@ -155,6 +155,16 @@ for (const trace of SECURITY_TRACES) {
   for (const evidence of trace.evidence) {
     assertEvidence(trace.traceId, evidence);
   }
+  assertExactSchema(trace.traceId, "request", trace.server.requestValidationSchema);
+  assertExactSchema(trace.traceId, "output", trace.server.outputSchema);
+  assertExactSchema(trace.traceId, "response", trace.response.responseSchema);
+  for (const operation of trace.backgroundOperations) {
+    assertExactSchema(trace.traceId, "background payload", operation.payloadSchema);
+  }
+  for (const operation of trace.externalOperations) {
+    assertExactSchema(trace.traceId, "external request", operation.requestSchema);
+    assertExactSchema(trace.traceId, "external response", operation.responseSchema);
+  }
 }
 
 for (const operation of DATABASE_OPERATIONS) {
@@ -162,6 +172,7 @@ for (const operation of DATABASE_OPERATIONS) {
   assert.ok(trace, `${operation.queryId}: linked trace missing`);
   assertExactFile(operation.queryId, operation.sourceFile);
   assertNamed(operation.queryId, "function", operation.sourceSymbol);
+  assertExactSchema(operation.queryId, "database", operation.schemaName);
   assertNamed(operation.queryId, "database role", operation.databaseRole);
   assert.ok(operation.tests.length > 0, `${operation.queryId}: test missing`);
   assert.ok(operation.evidence.length > 0, `${operation.queryId}: evidence missing`);
@@ -172,6 +183,36 @@ for (const operation of DATABASE_OPERATIONS) {
     assertEvidence(operation.queryId, evidence);
   }
 }
+
+const designLabTrace = tracesById.get("DESIGN_LAB.SCREEN.REVIEW");
+assert.ok(designLabTrace);
+assert.match(designLabTrace.server.requestValidationSchema, /DesignLabSearchParams/);
+assert.match(
+  readFileSync("src/app/design-lab/page.tsx", "utf8"),
+  /type DesignLabSearchParams = \{\s*area\?: string \| string\[\];\s*route\?: string \| string\[\];\s*\}/,
+);
+assert.match(readFileSync("src/app/design-lab/page.tsx", "utf8"), /resolveDesignLabArea\(query\.area\)/);
+
+const authkitTrace = tracesById.get("AUTH.CALLBACK.COMPLETE");
+assert.ok(authkitTrace);
+assert.match(authkitTrace.server.requestValidationSchema, /StateSchema/);
+assert.match(authkitTrace.externalOperations[0]?.requestSchema ?? "", /code=<string>&state=<string>/);
+assert.match(readFileSync("package-lock.json", "utf8"), /authkit-nextjs-4\.1\.4\.tgz/);
+const authkitCallbackSource = readFileSync(
+  "node_modules/@workos-inc/authkit-nextjs/src/authkit-callback-route.ts",
+  "utf8",
+);
+assert.match(authkitCallbackSource, /searchParams\.get\('code'\)/);
+assert.match(authkitCallbackSource, /searchParams\.get\('state'\)/);
+assert.match(authkitCallbackSource, /if \(!code \|\| !state\)/);
+assert.match(
+  authkitCallbackSource,
+  /const \{ accessToken, refreshToken, user, impersonator, oauthTokens, authenticationMethod, organizationId \} =\s*await getWorkOS\(\)\.userManagement\.authenticateWithCode\(/,
+);
+assert.match(
+  readFileSync("node_modules/@workos-inc/authkit-nextjs/src/interfaces.ts", "utf8"),
+  /export const StateSchema = v\.object\(\{\s*nonce: v\.string\(\),\s*customState: v\.optional\(v\.string\(\)\),\s*returnPathname: v\.optional\(v\.string\(\)\),\s*codeVerifier: v\.string\(\),\s*\}\)/,
+);
 
 for (const phrase of phrases.values()) {
   assert.equal(isGenericPlaceholderDirective(phrase, phrase), true);
@@ -184,7 +225,7 @@ for (const phrase of phrases.values()) {
 }
 
 console.log(
-  `Security placeholder evidence passed: ${completedRequirementIds.length}/19 requirements across ${scannedFiles.length} owned files, ${SECURITY_TRACES.length} canonical traces and ${DATABASE_OPERATIONS.length} database controls; exact-schema and exact-query remain open.`,
+  `Security placeholder evidence passed: ${completedRequirementIds.length}/19 requirements across ${scannedFiles.length} owned files, ${SECURITY_TRACES.length} canonical traces and ${DATABASE_OPERATIONS.length} database controls; exact-query remains open.`,
 );
 
 function walkFiles(directory: string): string[] {
@@ -227,6 +268,15 @@ function assertExactFile(controlId: string, sourceFile: string) {
 function assertNamed(controlId: string, field: string, value: string) {
   assert.ok(value.trim().length > 0, `${controlId}: ${field} missing`);
   assert.doesNotMatch(value, /\b(?:unknown|not verified|not captured)\b/i, `${controlId}: ${field} is not exact`);
+}
+
+function assertExactSchema(controlId: string, field: string, value: string) {
+  assertNamed(controlId, `${field} schema`, value);
+  assert.doesNotMatch(
+    value,
+    /\b(?:not applicable|missing|unverified|incomplete)\b/i,
+    `${controlId}: ${field} schema is not exact`,
+  );
 }
 
 function assertEvidence(controlId: string, value: string) {

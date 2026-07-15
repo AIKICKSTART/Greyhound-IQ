@@ -15,6 +15,7 @@ export const SECURITY_CONTROL_REFERENCE_REQUIREMENT_IDS = [
   "security.placeholder-prohibition.exact-file",
   "security.placeholder-prohibition.exact-function",
   "security.placeholder-prohibition.exact-policy",
+  "security.placeholder-prohibition.exact-schema",
   "security.placeholder-prohibition.exact-role",
   "security.placeholder-prohibition.exact-test",
   "security.placeholder-prohibition.exact-evidence",
@@ -22,7 +23,6 @@ export const SECURITY_CONTROL_REFERENCE_REQUIREMENT_IDS = [
 ] as const;
 
 export const OPEN_EXACT_CONTROL_REFERENCE_REQUIREMENT_IDS = [
-  "security.placeholder-prohibition.exact-schema",
   "security.placeholder-prohibition.exact-query",
 ] as const;
 
@@ -33,7 +33,7 @@ export const SECURITY_CONTROL_REFERENCE_EXPECTED_GAIN =
   SECURITY_CONTROL_REFERENCE_REQUIREMENT_IDS.length;
 
 export const GENERIC_SECURITY_PLACEHOLDER_EVIDENCE_SCOPE =
-  "Source-static absence of the ten exact generic placeholder directives in owned repository files, plus exhaustive registry proof that every canonical security trace and its linked database operation names exact source files, functions, policies, database roles, tests, evidence and owners. This does not verify control implementation, runtime behavior, provider or deployment boundaries; exact schemas and queries remain open because their required captures are incomplete.";
+  "Source-static absence of the ten exact generic placeholder directives in owned repository files, plus exhaustive registry proof that every canonical security trace and its linked database operation names exact source files, functions, policies, schemas, database roles, tests, evidence and owners. The two previously incomplete schema references are bound to the local DesignLabSearchParams source and package-lock-pinned AuthKit 4.1.4 callback source. This does not verify control implementation, runtime behavior, provider or deployment boundaries; exact queries remain open because their required captures are incomplete.";
 
 const GENERIC_SECURITY_PLACEHOLDER_EVIDENCE = [
   "security/placeholder-prohibition-evidence.ts",

@@ -528,9 +528,9 @@ const SECURITY_TRACE_RECORDS = [
       propertyAuthorizationPolicy:
         "Server maps fixed AuthIdentity fields and derives free tier, member role, actor defaults, outbox status and idempotency key",
       requestValidationSchema:
-        "AuthKit callback contract; local returnTo and recovery reason/reference use independent allowlists",
+        "AuthKit handleAuth callback: query { code: string, state: string }; state-bound PKCE cookie carries StateSchema { nonce: string, codeVerifier: string, customState?: string, returnPathname?: string }; local recovery query { error?: string }",
       outputSchema:
-        "AuthKit redirect after local transaction commit, or fixed-origin /auth/error redirect",
+        "AuthKit success: 3xx redirect with cache-prevention headers and state-bound PKCE-cookie deletion after syncAuthUser; local error: 3xx fixed-origin /auth/error?reason=<allowlist>&ref=<UUID>",
       businessService:
         "syncAuthUser / recordSignupAccepted / processSignupAcceptanceBatch",
       repositoryMethods: [
@@ -567,8 +567,10 @@ const SECURITY_TRACE_RECORDS = [
         provider: "WorkOS",
         operation: "validate the callback and establish or resume the AuthKit session",
         credentialScope: "server WorkOS credentials; exact grants and rotation evidence are not captured",
-        requestSchema: "AuthKit callback state/code/cookies; exact SDK schema is not captured",
-        responseSchema: "AuthKit user plus SDK-managed session and redirect; cookie schema is not captured",
+        requestSchema:
+          "GET /callback?code=<string>&state=<string> plus the state-bound PKCE cookie containing AuthKit StateSchema { nonce: string, codeVerifier: string, customState?: string, returnPathname?: string }",
+        responseSchema:
+          "AuthKit authenticateWithCode result { accessToken: string, refreshToken: string, user: @workos-inc/node.User, impersonator?: { email: string, reason: string | null }, oauthTokens?: OauthTokens, authenticationMethod?: AuthenticationResponse[\"authenticationMethod\"], organizationId?: string }",
         timeoutPolicy: "SDK/provider defaults; not captured",
         retryPolicy: "fresh user-initiated sign-in only",
         webhookFollowUp: "Not applicable; this is a browser authentication callback",
@@ -1136,7 +1138,8 @@ const SECURITY_TRACE_RECORDS = [
       ],
       authenticationFunction: "requireDesignLabReviewer -> requireAdminProfile when required",
       authorizationPolicy: "POLICY.DESIGN_LAB.PRODUCTION_FLAG",
-      requestValidationSchema: "selector parsing is owned by Design Lab components; complete schema not captured",
+      requestValidationSchema:
+        "DesignLabSearchParams { area?: string | string[]; route?: string | string[] }; resolveDesignLabArea allowlists area and firstValue selects the first route value",
       outputSchema: "server-rendered Design Lab HTML",
       businessService: "DemoExperienceScreenMap",
       repositoryMethods: [],

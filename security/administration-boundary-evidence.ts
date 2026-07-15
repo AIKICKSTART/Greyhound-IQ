@@ -18,6 +18,7 @@ const VERIFIED_ADMINISTRATION_BOUNDARY_IDS = [
   "security.administration-control.server-permission",
   "security.administration-control.role-boundaries",
   "security.administration-control.self-lockout",
+  "security.administration-control.no-admin-all",
 ] as const;
 
 export const ADMINISTRATION_BOUNDARY_MASTER_EVIDENCE = Object.fromEntries(

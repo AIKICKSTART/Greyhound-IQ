@@ -24,17 +24,17 @@ const expectedClosedIds = [
   "REG.ROUTE.field-forms",
   "REG.ROUTE.field-supported-states",
   "REG.ROUTE.field-fixtures",
+  "REG.ROUTE.field-feature-flags",
+  "REG.ROUTE.field-entry-points",
+  "REG.ROUTE.field-tour",
 ] as const;
 const expectedOpenIds = [
   "REG.ROUTE.drives-navigation",
   "REG.ROUTE.drives-onboarding",
   "REG.ROUTE.drives-access",
   "REG.ROUTE.drives-fixtures",
-  "REG.ROUTE.field-feature-flags",
-  "REG.ROUTE.field-entry-points",
   "REG.ROUTE.field-secondary-actions",
   "REG.ROUTE.field-data-dependencies",
-  "REG.ROUTE.field-tour",
 ] as const;
 
 assert.deepEqual(
@@ -91,9 +91,11 @@ assert.equal(new Set(SCREEN_CONTRACTS.map(({ route }) => route)).size, 97);
 
 const metadataFields = [
   "queryParameters",
+  "entryPoints",
   "primaryActions",
   "forms",
   "supportedStates",
+  "featureFlags",
   "designLabFixtureIds",
 ] as const;
 for (const contract of SCREEN_CONTRACTS) {
@@ -108,6 +110,48 @@ for (const contract of SCREEN_CONTRACTS) {
   }
   assert.ok(contract.supportedStates.length > 0, contract.route);
   assert.ok(contract.designLabFixtureIds.length > 0, contract.route);
+  assert.ok(contract.entryPoints.length > 0, contract.route);
+  assert.ok(
+    contract.entryPoints.includes("Design Lab screen explorer"),
+    contract.route,
+  );
+}
+
+const featureFlaggedRoutes = SCREEN_CONTRACTS.filter(
+  ({ featureFlags }) => featureFlags.length > 0,
+);
+assert.deepEqual(
+  featureFlaggedRoutes.map(({ route }) => route),
+  [
+    "/design-lab",
+    "/design-lab/demo-experience",
+    "/design-lab/dock-skins",
+    "/design-lab/role-blueprints",
+    "/feed/device-preview",
+    "/marketplace/design-lab",
+  ],
+);
+for (const contract of featureFlaggedRoutes) {
+  assert.deepEqual(contract.featureFlags, ["ENABLE_DEVICE_PREVIEWS"]);
+}
+
+const onboardingExclusions = SCREEN_CONTRACTS.filter(
+  ({ onboardingTourId }) => !onboardingTourId,
+);
+assert.equal(onboardingExclusions.length, 10);
+for (const contract of SCREEN_CONTRACTS) {
+  if (contract.onboardingTourId) {
+    assert.equal(contract.onboardingTourId, contract.onboardingTourId.trim());
+    assert.match(contract.onboardingTourId, /^tour:[a-z-]+:v1$/);
+    continue;
+  }
+  assert.equal(contract.coverage.onboarding.status, "excluded", contract.route);
+  assert.ok(
+    contract.coverage.onboarding.evidence.includes(
+      "src/components/screen-contracts/production-screen-onboarding-exclusions.test.ts",
+    ),
+    contract.route,
+  );
 }
 
 const checklist = new Map(
@@ -129,5 +173,5 @@ assert.deepEqual(
 );
 
 console.log(
-  "Route-registry metadata evidence passed: 97 contracts, 5 structural closures, 9 explicit residuals.",
+  "Route-registry metadata evidence passed: 97 contracts, 8 structural closures, 6 explicit residuals.",
 );

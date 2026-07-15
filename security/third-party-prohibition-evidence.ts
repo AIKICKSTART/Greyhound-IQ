@@ -65,12 +65,44 @@ const THIRD_PARTY_PROHIBITION_EVIDENCE = [
   "src/lib/notification-webhook.test.ts",
 ] as const;
 
+export const THIRD_PARTY_CREDENTIAL_TRANSPORT_BINDINGS = [
+  binding("Stripe SDK credential", "src/lib/billing/stripe-client.ts", [
+    "new Stripe(secretKey",
+  ]),
+  binding("Supabase storage credential", "src/lib/supabase-storage.ts", [
+    "createClient(url, serviceRoleKey",
+  ]),
+  binding("OpenAI credential", "src/lib/dog-card-service.ts", [
+    "Authorization: `Bearer ${apiKey}`",
+  ]),
+  binding("LiveKit token credential", "src/lib/call-token.ts", [
+    "new AccessToken(config.apiKey, config.apiSecret",
+  ]),
+  binding("LiveKit administration credential", "src/lib/livekit-admin.ts", [
+    "config.apiKey,",
+    "config.apiSecret",
+  ]),
+  binding("notification webhook credential", "src/lib/notification-webhook-policy.ts", [
+    '"x-notification-secret": config.secret',
+  ]),
+  binding("Topaz credential", "src/lib/live/topaz.ts", [
+    'headers: { "X-API-Key": this.apiKey }',
+  ]),
+  binding("Lago credential", "src/lib/billing/lago-client.ts", [
+    "Authorization: `Bearer ${apiKey}`",
+  ]),
+] as const satisfies readonly ThirdPartyRetryBinding[];
+
 export const THIRD_PARTY_PROHIBITION_MASTER_EVIDENCE = {
   "security.third-party-prohibition.non-idempotent-retry": {
     status: "verified" as const,
     evidence: THIRD_PARTY_PROHIBITION_EVIDENCE,
   },
   "security.third-party-prohibition.metadata-permission": {
+    status: "verified" as const,
+    evidence: THIRD_PARTY_PROHIBITION_EVIDENCE,
+  },
+  "security.third-party-prohibition.url-secret": {
     status: "verified" as const,
     evidence: THIRD_PARTY_PROHIBITION_EVIDENCE,
   },

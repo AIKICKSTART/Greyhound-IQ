@@ -26,6 +26,7 @@ const EXPECTED_REQUIREMENT_IDS = [
   "security.endpoint-test-error.storage-unavailable",
   "security.endpoint-test-error.authentication-provider-unavailable",
   "security.endpoint-test-error.racing-provider-unavailable",
+  "security.endpoint-test-error.malformed-provider-response",
   "security.endpoint-test-error.internal-exception",
   "security.endpoint-test-error.logging-failure",
 ] as const;
@@ -36,8 +37,8 @@ async function main() {
     Object.keys(ENDPOINT_ERROR_MASTER_EVIDENCE),
     EXPECTED_REQUIREMENT_IDS,
   );
-  assert.equal(ENDPOINT_ERROR_EXPECTED_GAIN, 6);
-  assert.equal(new Set(EXPECTED_REQUIREMENT_IDS).size, 6);
+  assert.equal(ENDPOINT_ERROR_EXPECTED_GAIN, 7);
+  assert.equal(new Set(EXPECTED_REQUIREMENT_IDS).size, 7);
   assert.match(ENDPOINT_ERROR_EVIDENCE_SCOPE, /provider-free fault injection/);
   assert.match(ENDPOINT_ERROR_EVIDENCE_SCOPE, /does not claim cache, queue/);
   assert.doesNotMatch(
@@ -104,7 +105,7 @@ async function main() {
   );
 
   console.log(
-    "Endpoint error evidence passed: six provider-free production fault classes handled safely",
+    "Endpoint error evidence passed: seven provider-free production fault classes handled safely",
   );
 }
 

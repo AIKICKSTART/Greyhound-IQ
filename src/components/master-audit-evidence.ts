@@ -27,6 +27,7 @@ import { PRODUCT_GLOBAL_ACCESSIBILITY_INTERACTION_MASTER_EVIDENCE } from "./prod
 import { PRODUCT_GLOBAL_FOCUS_ORDER_MASTER_EVIDENCE } from "./product-global-focus-order-evidence";
 import { PRODUCT_FOCUS_VISIBLE_SOURCE_MASTER_EVIDENCE } from "./product-focus-visible-source-evidence";
 import { PRODUCT_PRODUCTION_CRAWL_LOCAL_PARITY_MASTER_EVIDENCE } from "./product-production-crawl-local-parity-evidence";
+import { PRODUCT_PRODUCTION_CRAWL_OBSERVATION_MASTER_EVIDENCE } from "./product-production-crawl-observation-evidence";
 import { PRODUCT_REDUCED_MOTION_SOURCE_MASTER_EVIDENCE } from "./product-reduced-motion-source-evidence";
 import { PRODUCT_ONBOARDING_VIEWPORT_SOURCE_MASTER_EVIDENCE } from "./product-onboarding-viewport-source-evidence";
 import { PRODUCT_SYSTEM_STATE_MASTER_EVIDENCE } from "./product-system-state-evidence";
@@ -65,6 +66,7 @@ import { PRODUCT_RACING_FIXTURE_MASTER_EVIDENCE } from "./product-racing-fixture
 import { PRODUCT_SCREEN_CONTRACT_COMPLETENESS_MASTER_EVIDENCE } from "./product-screen-contract-completeness-evidence";
 import { PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE } from "./product-form-contract-core-evidence";
 import { PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE } from "./product-form-operational-contract-evidence";
+import { PRODUCT_GLOBAL_FORM_DESTINATION_MASTER_EVIDENCE } from "./product-global-form-destination-evidence";
 import { PRODUCT_FIELD_CONTRACT_SOURCE_MASTER_EVIDENCE } from "./product-field-contract-source-evidence";
 import { PRODUCT_DYNAMIC_ROUTE_MISSING_RECORD_MASTER_EVIDENCE } from "./product-dynamic-route-missing-record-evidence";
 import { PRODUCT_ACTION_PURPOSE_MASTER_EVIDENCE } from "./product-action-purpose-evidence";
@@ -89,6 +91,7 @@ import { PRODUCT_AI_TRUTH_MASTER_EVIDENCE } from "./product-ai-truth-evidence";
 import { PRODUCT_AI_ROUTE_INVENTORY_MASTER_EVIDENCE } from "./product-ai-route-inventory-evidence";
 import { PRODUCT_AGENT_RUN_LIFECYCLE_MASTER_EVIDENCE } from "./product-agent-run-lifecycle-evidence";
 import { PRODUCT_ONBOARDING_CAPABILITY_MASTER_EVIDENCE } from "./product-onboarding-capability-evidence";
+import { PRODUCT_LOCAL_COMPLETION_MASTER_EVIDENCE } from "./product-local-completion-evidence";
 import { PRODUCT_DOCUMENTATION_AUTHORITY_MASTER_EVIDENCE } from "./product-documentation-authority-evidence";
 import { PRODUCT_E2E_JOURNEY_MASTER_EVIDENCE } from "./product-e2e-journey-evidence";
 import { API_SURFACE_MASTER_EVIDENCE } from "../../security/api-surface-evidence";
@@ -161,6 +164,7 @@ import { DOWNLOAD_CONTROL_MASTER_EVIDENCE } from "../../security/download-contro
 import { UPLOAD_UNTRUSTED_CLAIM_MASTER_EVIDENCE } from "../../security/upload-untrusted-claim-evidence";
 import { CORS_CONTROL_MASTER_EVIDENCE } from "../../security/cors-control-evidence";
 import { CSRF_CONTROL_MASTER_EVIDENCE } from "../../security/csrf-control-evidence";
+import { ENDPOINT_AUTHENTICATION_NEGATIVE_MASTER_EVIDENCE } from "../../security/endpoint-authentication-negative-evidence";
 import { HTTP_CONTROL_MASTER_EVIDENCE } from "../../security/http-control-evidence";
 import { WEBHOOK_CONTROL_MASTER_EVIDENCE } from "../../security/webhook-control-evidence";
 import { BILLING_LIFECYCLE_MASTER_EVIDENCE } from "../../security/billing-lifecycle-evidence";
@@ -182,6 +186,9 @@ import { FRONTEND_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/frontend-
 import { PROPERTY_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/property-authorization-evidence";
 import { LISTING_OBJECT_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/listing-object-authorization-evidence";
 import { CONVERSATION_OBJECT_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/conversation-object-authorization-evidence";
+import { SUPPORT_TICKET_OBJECT_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/support-ticket-object-authorization-evidence";
+import { MEMBER_OBJECT_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/member-object-authorization-evidence";
+import { PAGE_OBJECT_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/page-object-authorization-evidence";
 import { ORGANIZATION_TEAM_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/organization-team-authorization-evidence";
 import { DENY_BY_DEFAULT_MASTER_EVIDENCE } from "../../security/deny-by-default-evidence";
 import { TENANT_ISOLATION_MASTER_EVIDENCE } from "../../security/tenant-isolation-evidence";
@@ -248,6 +255,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_GLOBAL_FOCUS_ORDER_MASTER_EVIDENCE,
   ...PRODUCT_FOCUS_VISIBLE_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_PRODUCTION_CRAWL_LOCAL_PARITY_MASTER_EVIDENCE,
+  ...PRODUCT_PRODUCTION_CRAWL_OBSERVATION_MASTER_EVIDENCE,
   ...PRODUCT_REDUCED_MOTION_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_ONBOARDING_VIEWPORT_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_SYSTEM_STATE_MASTER_EVIDENCE,
@@ -288,6 +296,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_SCREEN_CONTRACT_COMPLETENESS_MASTER_EVIDENCE,
   ...PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE,
   ...PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE,
+  ...PRODUCT_GLOBAL_FORM_DESTINATION_MASTER_EVIDENCE,
   ...PRODUCT_FIELD_CONTRACT_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_DYNAMIC_ROUTE_MISSING_RECORD_MASTER_EVIDENCE,
   ...PRODUCT_ACTION_PURPOSE_MASTER_EVIDENCE,
@@ -312,6 +321,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_AI_ROUTE_INVENTORY_MASTER_EVIDENCE,
   ...PRODUCT_AGENT_RUN_LIFECYCLE_MASTER_EVIDENCE,
   ...PRODUCT_ONBOARDING_CAPABILITY_MASTER_EVIDENCE,
+  ...PRODUCT_LOCAL_COMPLETION_MASTER_EVIDENCE,
   ...PRODUCT_E2E_JOURNEY_MASTER_EVIDENCE,
   ...PRODUCT_DOCUMENTATION_AUTHORITY_MASTER_EVIDENCE,
   ...PRODUCT_SOURCE_AUDIT_MASTER_EVIDENCE,
@@ -382,10 +392,6 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
     ],
   },
   "DISC.CRAWL.destination": {
-    status: "captured",
-    evidence: ["output/product-audit/production-link-audit.json"],
-  },
-  "DISC.CRAWL.http-status": {
     status: "captured",
     evidence: ["output/product-audit/production-link-audit.json"],
   },
@@ -1262,6 +1268,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...UPLOAD_UNTRUSTED_CLAIM_MASTER_EVIDENCE,
   ...CORS_CONTROL_MASTER_EVIDENCE,
   ...CSRF_CONTROL_MASTER_EVIDENCE,
+  ...ENDPOINT_AUTHENTICATION_NEGATIVE_MASTER_EVIDENCE,
   ...HTTP_CONTROL_MASTER_EVIDENCE,
   ...WEBHOOK_CONTROL_MASTER_EVIDENCE,
   ...BILLING_LIFECYCLE_MASTER_EVIDENCE,
@@ -1279,6 +1286,9 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...FRONTEND_AUTHORIZATION_MASTER_EVIDENCE,
   ...PROPERTY_AUTHORIZATION_MASTER_EVIDENCE,
   ...LISTING_OBJECT_AUTHORIZATION_MASTER_EVIDENCE,
+  ...SUPPORT_TICKET_OBJECT_AUTHORIZATION_MASTER_EVIDENCE,
+  ...MEMBER_OBJECT_AUTHORIZATION_MASTER_EVIDENCE,
+  ...PAGE_OBJECT_AUTHORIZATION_MASTER_EVIDENCE,
   ...ORGANIZATION_TEAM_AUTHORIZATION_MASTER_EVIDENCE,
   ...DENY_BY_DEFAULT_MASTER_EVIDENCE,
   ...TENANT_ISOLATION_MASTER_EVIDENCE,
@@ -1360,8 +1370,13 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   },
   "security.endpoint-test-authorization.administrator-only-action-as-moderator":
     {
-      status: "partially-verified",
-      evidence: ["src/app/admin/admin-nav-data.test.ts"],
+      status: "verified",
+      evidence: [
+        "src/app/admin/mutations.ts",
+        "src/lib/admin-service.ts",
+        "src/lib/admin-service-authorization.test.ts",
+        "src/components/product-admin-server-authorization-evidence.test.ts",
+      ],
     },
   "security.authentication-control.redirect-allowlist": {
     status: "verified",

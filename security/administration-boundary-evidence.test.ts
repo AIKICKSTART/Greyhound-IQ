@@ -11,7 +11,9 @@ import {
   type AdminAuthorizationSurface,
 } from "../src/app/admin/admin-authorization-inventory";
 import { adminNavForRole } from "../src/app/admin/admin-nav-data";
-import { assertAdminSelfAccessChange } from "../src/lib/admin-access-contract";
+import {
+  assertAdminSelfAccessChange,
+} from "../src/lib/admin-access-contract";
 import { isAdminRole, isModeratorRole } from "../src/lib/auth-roles";
 import { ADMINISTRATION_BOUNDARY_MASTER_EVIDENCE } from "./administration-boundary-evidence";
 
@@ -54,6 +56,24 @@ assert.throws(
     }),
   /admin\.self_lockout_forbidden/,
 );
+
+const adminServiceSource = readFileSync("src/lib/admin-service.ts", "utf8");
+const resourceUnion = new Set(
+  sourceBetween(adminServiceSource, "export type AdminResource =", ";")
+    .match(/"[A-Za-z]+"/g)
+    ?.map((value) => value.slice(1, -1)) ?? [],
+);
+const resourceCases = new Set(
+  sourceBetween(adminServiceSource, "async function updateAllowedResource", "\n}\n\nasync function logAdminMutation")
+    .match(/case "([A-Za-z]+)"/g)
+    ?.map((value) => value.slice(6, -1)) ?? [],
+);
+assert.ok(resourceUnion.size > 0, "administrator resource allowlist is empty");
+assert.deepEqual(
+  [...resourceCases].toSorted(),
+  [...resourceUnion].toSorted(),
+  "every generic administrator resource must be explicitly reviewed in the switch allowlist",
+);
 assert.throws(
   () =>
     assertAdminSelfAccessChange({
@@ -86,7 +106,7 @@ for (const requirementId of Object.keys(
 }
 
 console.log(
-  "Administration boundary passed: four source/local controls verified; request-level denial remains unverified",
+  "Administration boundary passed: five source/local controls verified; request-level denial remains unverified",
 );
 
 function assertSurfaceGuard(
@@ -108,4 +128,12 @@ function exportedAsyncFunction(source: string, name: string) {
   const index = starts.findIndex((match) => match[1] === name);
   if (index < 0) return null;
   return source.slice(starts[index].index, starts[index + 1]?.index ?? source.length);
+}
+
+function sourceBetween(source: string, startMarker: string, endMarker: string) {
+  const start = source.indexOf(startMarker);
+  assert.notEqual(start, -1, `missing start marker: ${startMarker}`);
+  const end = source.indexOf(endMarker, start + startMarker.length);
+  assert.notEqual(end, -1, `missing end marker: ${endMarker}`);
+  return source.slice(start, end);
 }

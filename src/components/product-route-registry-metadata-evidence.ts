@@ -6,7 +6,7 @@ export const PRODUCT_ROUTE_REGISTRY_METADATA_TEST_FILE =
   "src/components/product-route-registry-metadata-evidence.test.ts" as const;
 
 export const PRODUCT_ROUTE_REGISTRY_METADATA_EVIDENCE_SCOPE =
-  "Source-static verification of five metadata fields on the current 97 screen contracts. Tested means the registry records source-declared query parameters, primary actions, forms, supported states, and Design Lab fixture IDs; it does not establish rendered or runtime behaviour, state completeness, hydrated fixtures, production parity, or release readiness.";
+  "Source-static verification of eight metadata fields on the current 97 screen contracts. Tested means the registry records source-declared query parameters, entry points, primary actions, forms, supported states, relevant feature flags, Design Lab fixture IDs, and either an onboarding tour ID or a tested exclusion; it does not establish rendered or runtime behaviour, state completeness, hydrated fixtures, production parity, or release readiness.";
 
 export const PRODUCT_ROUTE_REGISTRY_METADATA_REQUIREMENT_IDS = [
   "REG.ROUTE.field-query-parameters",
@@ -14,6 +14,9 @@ export const PRODUCT_ROUTE_REGISTRY_METADATA_REQUIREMENT_IDS = [
   "REG.ROUTE.field-forms",
   "REG.ROUTE.field-supported-states",
   "REG.ROUTE.field-fixtures",
+  "REG.ROUTE.field-feature-flags",
+  "REG.ROUTE.field-entry-points",
+  "REG.ROUTE.field-tour",
 ] as const;
 
 export const PRODUCT_ROUTE_REGISTRY_METADATA_OPEN_REQUIREMENTS = {
@@ -25,16 +28,10 @@ export const PRODUCT_ROUTE_REGISTRY_METADATA_OPEN_REQUIREMENTS = {
     "Runtime role and tier enforcement does not consume the screen-contract registry.",
   "REG.ROUTE.drives-fixtures":
     "The registry records fixture IDs but does not drive fixture execution.",
-  "REG.ROUTE.field-feature-flags":
-    "The registry does not yet include every route-level demo and preview feature flag.",
-  "REG.ROUTE.field-entry-points":
-    "The generic direct and Design Lab entries do not catalogue every meaningful entry point.",
   "REG.ROUTE.field-secondary-actions":
     "Secondary actions remain empty even where screens expose secondary controls.",
   "REG.ROUTE.field-data-dependencies":
     "Data dependencies remain empty despite production screens reading data.",
-  "REG.ROUTE.field-tour":
-    "Screen contracts do not currently populate an onboarding tour ID.",
 } as const;
 
 type ProductRouteRegistryMetadataEvidenceRecord = {

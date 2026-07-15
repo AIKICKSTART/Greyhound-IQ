@@ -4,13 +4,14 @@ export const ENDPOINT_ERROR_TEST_FILE =
   "security/endpoint-error-evidence.test.ts" as const;
 
 export const ENDPOINT_ERROR_EVIDENCE_SCOPE =
-  "Representative executable, provider-free fault injection for six endpoint error classes. The tests exercise the production database fail-closed wrapper, storage error normalization, authentication recovery screen, bounded racing-provider retry exhaustion, generic internal-error response, and diagnostic-sink failure containment. This evidence does not claim cache, queue, payment-provider, AI-provider, malformed-provider-response, or mutation-audit failure behavior.";
+  "Representative executable, provider-free fault injection for seven endpoint error classes. The tests exercise the production database fail-closed wrapper, storage error normalization, authentication recovery screen, bounded racing-provider retry exhaustion, malformed racing-provider response rejection, generic internal-error response, and diagnostic-sink failure containment. This evidence does not claim cache, queue, payment-provider, AI-provider or mutation-audit failure behavior.";
 
 export const ENDPOINT_ERROR_REQUIREMENT_IDS = [
   "security.endpoint-test-error.database-unavailable",
   "security.endpoint-test-error.storage-unavailable",
   "security.endpoint-test-error.authentication-provider-unavailable",
   "security.endpoint-test-error.racing-provider-unavailable",
+  "security.endpoint-test-error.malformed-provider-response",
   "security.endpoint-test-error.internal-exception",
   "security.endpoint-test-error.logging-failure",
 ] as const;
@@ -57,6 +58,11 @@ export const ENDPOINT_ERROR_MASTER_EVIDENCE = {
     "src/lib/live/topaz.test.ts",
     "src/app/api/internal/live-sync/route.ts",
     "src/lib/api-errors.ts",
+  ),
+  "security.endpoint-test-error.malformed-provider-response": verified(
+    "src/lib/live/provider-response-validation.test.ts",
+    "src/lib/live/watchdog-response.ts",
+    "src/lib/remote-response.ts",
   ),
   "security.endpoint-test-error.internal-exception": verified(
     "src/lib/api-errors.ts",

@@ -8,6 +8,7 @@ import {
 import { SECURITY_MASTER_EVIDENCE } from "../src/components/master-audit-evidence";
 import { THIRD_PARTIES } from "./third-parties";
 import {
+  THIRD_PARTY_CREDENTIAL_TRANSPORT_BINDINGS,
   THIRD_PARTY_PERMISSION_BINDINGS,
   THIRD_PARTY_PROHIBITION_MASTER_EVIDENCE,
   THIRD_PARTY_RETRY_BINDINGS,
@@ -16,6 +17,7 @@ import {
 for (const binding of [
   ...THIRD_PARTY_RETRY_BINDINGS,
   ...THIRD_PARTY_PERMISSION_BINDINGS,
+  ...THIRD_PARTY_CREDENTIAL_TRANSPORT_BINDINGS,
 ]) {
   const source = readFile(binding.sourceFile);
   for (const marker of binding.requiredMarkers) {
@@ -24,6 +26,15 @@ for (const binding of [
       `${binding.surface}: required marker drifted: ${marker}`,
     );
   }
+}
+
+for (const binding of THIRD_PARTY_CREDENTIAL_TRANSPORT_BINDINGS) {
+  const source = readFile(binding.sourceFile);
+  assert.doesNotMatch(
+    source,
+    /(?:searchParams\.set|URLSearchParams|[?&][^\s"'`]{0,40}=)[\s\S]{0,120}(?:apiKey|apiSecret|secretKey|serviceRoleKey|config\.secret)/i,
+    `${binding.surface}: credential must not enter a URL`,
+  );
 }
 
 assert.equal(
@@ -88,6 +99,7 @@ const expectedIds = Object.keys(THIRD_PARTY_PROHIBITION_MASTER_EVIDENCE);
 assert.deepEqual(expectedIds.toSorted(), [
   "security.third-party-prohibition.metadata-permission",
   "security.third-party-prohibition.non-idempotent-retry",
+  "security.third-party-prohibition.url-secret",
 ]);
 for (const requirementId of expectedIds) {
   assert.deepEqual(
@@ -104,7 +116,7 @@ for (const requirementId of expectedIds) {
 }
 
 console.log(
-  "Third-party prohibitions passed: mutating retries are idempotency-bound and provider metadata cannot grant local authority",
+  "Third-party prohibitions passed: retries are idempotency-bound, provider metadata cannot grant authority, and credentials stay out of URLs",
 );
 
 function sourceBetween(

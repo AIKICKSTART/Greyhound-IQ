@@ -6,7 +6,10 @@ import {
   MASTER_AUDIT_REQUIREMENTS,
   isMasterRequirementComplete,
 } from "../src/components/master-audit-requirements";
-import { AUTHORIZATION_ACTOR_MASTER_EVIDENCE } from "./authorization-actor-evidence";
+import {
+  AUTHORIZATION_ACTOR_MASTER_EVIDENCE,
+  SERVER_AUTHORITY_REQUIREMENT_IDS,
+} from "./authorization-actor-evidence";
 import {
   AUTHORIZATION_ACTOR_RECORDS,
   AUTHORIZATION_ACTOR_STATUSES,
@@ -17,7 +20,10 @@ assert.equal(AUTHORIZATION_ACTOR_RECORDS.length, 24);
 assert.deepEqual(validateAuthorizationActorMatrix(), []);
 assert.deepEqual(
   Object.keys(AUTHORIZATION_ACTOR_MASTER_EVIDENCE).toSorted(),
-  AUTHORIZATION_ACTOR_RECORDS.map((record) => record.requirementId).toSorted(),
+  [
+    ...AUTHORIZATION_ACTOR_RECORDS.map((record) => record.requirementId),
+    ...SERVER_AUTHORITY_REQUIREMENT_IDS,
+  ].toSorted(),
 );
 
 for (const record of AUTHORIZATION_ACTOR_RECORDS) {

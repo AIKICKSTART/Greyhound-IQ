@@ -286,10 +286,6 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
     ],
   },
   ...PRODUCT_ACTION_INVENTORY_MASTER_EVIDENCE,
-  "OUT.form-field-registry": {
-    status: "captured",
-    evidence: ["docs/product/form-field-registry.md"],
-  },
   "OUT.state-matrix": {
     status: "captured",
     evidence: ["docs/product/state-matrix.md"],

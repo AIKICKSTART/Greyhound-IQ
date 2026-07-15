@@ -6,7 +6,7 @@ export const PRODUCT_FIELD_CONTRACT_SOURCE_TEST_FILE =
   "src/components/product-field-contract-source-evidence.test.ts" as const;
 
 export const PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE =
-  "Deterministic source-static field inventory across all 97 registered screen routes and their complete reachable local source closures, with an exact one-to-one record for every discovered route/source/control identifier. Every record explicitly captures registry name, submitted name or absence, visible and accessible label source or absence, input and inferred data type, required/default/placeholder/help metadata, character and numeric constraints, file type and tier-owned file-size policy, source classification, route or field-specific onboarding, mobile input, autofill, read-only/disabled state, conditional visibility and the hidden/generated-id/consent/media/disclosure/billing/dependent categories. Null and false values are explicit observations, not claims that a visible label or accessible name exists. This batch does not promote validation, sanitisation, per-field error, persistence or privacy requirements because the current route registry does not prove those five properties end to end; it also does not prove hydration, submission, browser accessibility or deployed parity.";
+  "Deterministic source-static field inventory across all 97 registered screen routes and their complete reachable local source closures, with an exact one-to-one record for every discovered route/source/control identifier. Every record explicitly captures registry name, submitted name or absence, visible and accessible label source or absence, input and inferred data type, required/default/placeholder/help metadata, character and numeric constraints, file type and tier-owned file-size policy, source classification, route or field-specific onboarding, mobile input, autofill, read-only/disabled state, conditional visibility and the hidden/generated-id/consent/media/disclosure/billing/dependent categories. Combined with the separately tested exact route/form operational register, this provides the complete source-static form and field registry output. Null and false values are explicit observations, not claims that a visible label or accessible name exists. This batch does not promote validation, sanitisation, per-field error, persistence or privacy requirements because the current route registry does not prove those five properties end to end; it also does not prove hydration, submission, browser accessibility or deployed parity.";
 
 export const PRODUCT_FIELD_CONTRACT_SOURCE_REQUIREMENT_IDS = [
   "FIELD.FIELD.name",
@@ -45,11 +45,20 @@ export const PRODUCT_FIELD_CONTRACT_SOURCE_OPEN_REQUIREMENT_IDS = [
   "FIELD.FIELD.privacy",
 ] as const;
 
+export const PRODUCT_FORM_FIELD_REGISTRY_OUTPUT_REQUIREMENT_IDS = [
+  "OUT.form-field-registry",
+] as const;
+
 export type ProductFieldContractSourceRequirementId =
   (typeof PRODUCT_FIELD_CONTRACT_SOURCE_REQUIREMENT_IDS)[number];
 
+type ProductFieldContractSourceMasterRequirementId =
+  | ProductFieldContractSourceRequirementId
+  | (typeof PRODUCT_FORM_FIELD_REGISTRY_OUTPUT_REQUIREMENT_IDS)[number];
+
 export const PRODUCT_FIELD_CONTRACT_SOURCE_EXPECTED_GAIN =
-  PRODUCT_FIELD_CONTRACT_SOURCE_REQUIREMENT_IDS.length;
+  PRODUCT_FIELD_CONTRACT_SOURCE_REQUIREMENT_IDS.length +
+  PRODUCT_FORM_FIELD_REGISTRY_OUTPUT_REQUIREMENT_IDS.length;
 
 type ProductFieldContractSourceEvidenceRecord = {
   status: ProductMasterRequirementStatus;
@@ -65,6 +74,14 @@ const EVIDENCE = [
   "src/components/screen-contracts/production-screen-coverage.ts",
   "src/components/media-attachment-fields.tsx",
   "src/lib/billing/entitlements.ts",
+] as const;
+
+const FORM_FIELD_REGISTRY_OUTPUT_EVIDENCE = [
+  ...EVIDENCE,
+  "src/components/product-form-operational-contract-evidence.ts",
+  "src/components/product-form-operational-contract-evidence.test.ts",
+  "src/components/product-form-operational-contract-registry.ts",
+  "docs/product/form-field-registry.md",
 ] as const;
 
 function tested(): ProductFieldContractSourceEvidenceRecord {
@@ -98,9 +115,13 @@ export const PRODUCT_FIELD_CONTRACT_SOURCE_MASTER_EVIDENCE = {
   "FIELD.FIELD.disclosures": tested(),
   "FIELD.FIELD.billing-intent": tested(),
   "FIELD.FIELD.dependent-fields": tested(),
+  "OUT.form-field-registry": {
+    status: "tested",
+    evidence: FORM_FIELD_REGISTRY_OUTPUT_EVIDENCE,
+  },
 } as const satisfies Readonly<
   Record<
-    ProductFieldContractSourceRequirementId,
+    ProductFieldContractSourceMasterRequirementId,
     ProductFieldContractSourceEvidenceRecord
   >
 >;

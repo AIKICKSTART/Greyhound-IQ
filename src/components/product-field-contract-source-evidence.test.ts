@@ -10,6 +10,7 @@ import {
   PRODUCT_FIELD_CONTRACT_SOURCE_REQUIREMENT_IDS,
   PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE,
   PRODUCT_FIELD_CONTRACT_SOURCE_TEST_FILE,
+  PRODUCT_FORM_FIELD_REGISTRY_OUTPUT_REQUIREMENT_IDS,
 } from "./product-field-contract-source-evidence";
 import {
   PRODUCT_FIELD_CONTROL_TAGS,
@@ -54,6 +55,7 @@ const EXPECTED_OPEN_IDS = [
   "FIELD.FIELD.persistence",
   "FIELD.FIELD.privacy",
 ] as const;
+const EXPECTED_OUTPUT_IDS = ["OUT.form-field-registry"] as const;
 
 assert.deepEqual(
   PRODUCT_FIELD_CONTRACT_SOURCE_REQUIREMENT_IDS,
@@ -63,10 +65,14 @@ assert.deepEqual(
   PRODUCT_FIELD_CONTRACT_SOURCE_OPEN_REQUIREMENT_IDS,
   EXPECTED_OPEN_IDS,
 );
-assert.equal(PRODUCT_FIELD_CONTRACT_SOURCE_EXPECTED_GAIN, 26);
+assert.deepEqual(
+  PRODUCT_FORM_FIELD_REGISTRY_OUTPUT_REQUIREMENT_IDS,
+  EXPECTED_OUTPUT_IDS,
+);
+assert.equal(PRODUCT_FIELD_CONTRACT_SOURCE_EXPECTED_GAIN, 27);
 assert.deepEqual(
   Object.keys(PRODUCT_FIELD_CONTRACT_SOURCE_MASTER_EVIDENCE),
-  EXPECTED_CLOSED_IDS,
+  [...EXPECTED_CLOSED_IDS, ...EXPECTED_OUTPUT_IDS],
 );
 
 const promptFieldIds = PRODUCT_MASTER_REQUIREMENTS.filter(({ section }) =>
@@ -91,6 +97,20 @@ for (const [requirementId, record] of Object.entries(
   record.evidence.forEach((evidencePath) =>
     assert.equal(existsSync(evidencePath), true, `${requirementId}: ${evidencePath}`),
   );
+}
+
+const formFieldOutputEvidence =
+  PRODUCT_FIELD_CONTRACT_SOURCE_MASTER_EVIDENCE["OUT.form-field-registry"]
+    .evidence;
+const formFieldOutputEvidencePaths: readonly string[] = formFieldOutputEvidence;
+for (const evidencePath of [
+  "src/components/product-form-operational-contract-evidence.ts",
+  "src/components/product-form-operational-contract-evidence.test.ts",
+  "src/components/product-form-operational-contract-registry.ts",
+  "src/components/product-field-contract-source-registry.ts",
+  "docs/product/form-field-registry.md",
+]) {
+  assert.ok(formFieldOutputEvidencePaths.includes(evidencePath), evidencePath);
 }
 
 const clientSafeEvidenceSource = readFileSync(
@@ -240,12 +260,13 @@ assert.match(entitlementSource, /upload_file_size_bytes/);
 
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /all 97 registered screen routes/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /exact one-to-one record/i);
+assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /complete source-static form and field registry output/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /Null and false values are explicit observations/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /does not promote validation/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /does not prove hydration/i);
 
 console.log(
-  `Product field contract source evidence passed: exact ${registry.records.length}-record field inventory closes 26/31 source-record requirements; validation, sanitisation, error, persistence and privacy remain open.`,
+  `Product field contract source evidence passed: exact ${registry.records.length}-record field inventory closes 26/31 source-record requirements plus the complete form/field registry output; validation, sanitisation, error, persistence and privacy remain open.`,
 );
 
 function assertNonEmpty(value: string, label: string) {

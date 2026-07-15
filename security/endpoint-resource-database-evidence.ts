@@ -4,7 +4,7 @@ export const ENDPOINT_RESOURCE_DATABASE_TEST_FILE =
   "security/endpoint-resource-database-evidence.test.ts" as const;
 
 export const ENDPOINT_RESOURCE_DATABASE_EVIDENCE_SCOPE =
-  "Provider-free source, unit, and source-bound disposable-loopback evidence for the shared resource and database controls used by GreyhoundIQ endpoints. The evidence exercises bounded collections, limiter denial, export overflow, worker backpressure, provider deadlines, database predicates, forced RLS, runtime-role denials, constraints, affected-row outcomes, rollback, query deadlines, explicit projections, tombstone filters, cost-plan indexes, and migration-source compatibility. It does not claim production load testing, deployed-cloud verification, or endpoints and states outside these 25 exact requirements.";
+  "Provider-free source, unit, and source-bound disposable-loopback evidence for the shared resource and database controls used by GreyhoundIQ endpoints. The evidence exercises bounded collections, limiter denial, actor, object and trusted-IP limiter keys, export overflow, worker backpressure, provider deadlines, database predicates, forced RLS, runtime-role denials, constraints, affected-row outcomes, rollback, query deadlines, explicit projections, tombstone filters, cost-plan indexes, and migration-source compatibility. It does not claim production load testing, deployed-cloud verification, or endpoints and states outside these 31 exact requirements.";
 
 export const ENDPOINT_RESOURCE_REQUIREMENT_IDS = [
   "security.endpoint-test-resource-abuse.pagination-maximum",
@@ -19,6 +19,12 @@ export const ENDPOINT_RESOURCE_REQUIREMENT_IDS = [
   "security.endpoint-test-resource-abuse.queue-backpressure",
   "security.endpoint-test-resource-abuse.provider-timeout",
   "security.endpoint-test-resource-abuse.database-timeout",
+  "security.resource-control.per-user-rate-limit",
+  "security.resource-control.per-ip-rate-limit-where-appropriate",
+  "security.resource-control.per-object-rate-limit-where-appropriate",
+  "security.abuse-control.actor-based-limits",
+  "security.abuse-control.object-based-limits",
+  "security.abuse-control.not-global-ip-only",
 ] as const;
 
 export const ENDPOINT_DATABASE_REQUIREMENT_IDS = [
@@ -196,6 +202,24 @@ export const ENDPOINT_RESOURCE_DATABASE_MASTER_EVIDENCE = {
   ),
   "security.endpoint-test-resource-abuse.database-timeout": verified(
     ...QUERY_DEADLINE_EVIDENCE,
+  ),
+  "security.resource-control.per-user-rate-limit": verified(
+    ...RATE_LIMIT_EVIDENCE,
+  ),
+  "security.resource-control.per-ip-rate-limit-where-appropriate": verified(
+    ...RATE_LIMIT_EVIDENCE,
+  ),
+  "security.resource-control.per-object-rate-limit-where-appropriate": verified(
+    ...RATE_LIMIT_EVIDENCE,
+  ),
+  "security.abuse-control.actor-based-limits": verified(
+    ...RATE_LIMIT_EVIDENCE,
+  ),
+  "security.abuse-control.object-based-limits": verified(
+    ...RATE_LIMIT_EVIDENCE,
+  ),
+  "security.abuse-control.not-global-ip-only": verified(
+    ...RATE_LIMIT_EVIDENCE,
   ),
   "security.endpoint-test-database.tenant-predicate": verified(
     ...RLS_ROLE_EVIDENCE,

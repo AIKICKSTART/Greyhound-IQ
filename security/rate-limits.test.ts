@@ -178,6 +178,29 @@ for (const entry of RATE_LIMITS) {
   );
 }
 
+const userRateLimits = RATE_LIMITS.filter((entry) =>
+  entry.keyShape.includes("<db-user-id>"),
+);
+const objectRateLimits = userRateLimits.filter((entry) =>
+  /<db-user-id>:<[^>]+>/.test(entry.keyShape),
+);
+const trustedIpRateLimits = RATE_LIMITS.filter((entry) =>
+  /<(?:trusted-)?client-ip-or-missing-forwarded-for>/.test(entry.keyShape),
+);
+assert.ok(userRateLimits.length >= 50, "per-user limits must remain broadly applied");
+assert.ok(
+  objectRateLimits.length >= 20,
+  "high-risk object mutations must retain per-user, per-object limits",
+);
+assert.ok(
+  trustedIpRateLimits.length >= 5,
+  "anonymous and webhook operations must retain trusted-IP limits where appropriate",
+);
+assert.ok(
+  userRateLimits.length > trustedIpRateLimits.length,
+  "actor and object limits must remain primary rather than one global IP bucket",
+);
+
 const replayRateLimit = registeredByOperation.get("GET /api/replay/stream");
 assert.ok(replayRateLimit, "GET /api/replay/stream must remain registered");
 assert.equal(

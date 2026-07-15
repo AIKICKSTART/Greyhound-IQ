@@ -51,6 +51,12 @@ const EXPECTED_RESOURCE_IDS = [
   "security.endpoint-test-resource-abuse.queue-backpressure",
   "security.endpoint-test-resource-abuse.provider-timeout",
   "security.endpoint-test-resource-abuse.database-timeout",
+  "security.resource-control.per-user-rate-limit",
+  "security.resource-control.per-ip-rate-limit-where-appropriate",
+  "security.resource-control.per-object-rate-limit-where-appropriate",
+  "security.abuse-control.actor-based-limits",
+  "security.abuse-control.object-based-limits",
+  "security.abuse-control.not-global-ip-only",
 ] as const;
 
 const EXPECTED_DATABASE_IDS = [
@@ -78,8 +84,8 @@ async function main() {
     ...EXPECTED_RESOURCE_IDS,
     ...EXPECTED_DATABASE_IDS,
   ]);
-  assert.equal(ENDPOINT_RESOURCE_DATABASE_EXPECTED_GAIN, 25);
-  assert.equal(new Set(ENDPOINT_RESOURCE_DATABASE_REQUIREMENT_IDS).size, 25);
+  assert.equal(ENDPOINT_RESOURCE_DATABASE_EXPECTED_GAIN, 31);
+  assert.equal(new Set(ENDPOINT_RESOURCE_DATABASE_REQUIREMENT_IDS).size, 31);
   assert.deepEqual(
     Object.keys(ENDPOINT_RESOURCE_DATABASE_MASTER_EVIDENCE),
     ENDPOINT_RESOURCE_DATABASE_REQUIREMENT_IDS,

@@ -147,6 +147,12 @@ export const ENDPOINT_VALIDATION_IDENTIFIER_REQUIREMENT_IDS = [
   "security.deny-by-default.identifier",
 ] as const;
 
+export const ENDPOINT_VALIDATION_REQUEST_BOUNDARY_REQUIREMENT_IDS = [
+  "security.external-input-surface.request-bodies",
+  "security.input-validation.error",
+  "security.resource-control.request-size-limit",
+] as const;
+
 export const ENDPOINT_VALIDATION_MASTER_EVIDENCE = {
   ...Object.fromEntries(
     ENDPOINT_VALIDATION_HOSTILE_REQUIREMENT_IDS.map((requirementId) => [
@@ -171,6 +177,14 @@ export const ENDPOINT_VALIDATION_MASTER_EVIDENCE = {
       requirementId,
       { status: "verified" as const, evidence: INVALID_IDENTIFIER_EVIDENCE },
     ]),
+  ),
+  ...Object.fromEntries(
+    ENDPOINT_VALIDATION_REQUEST_BOUNDARY_REQUIREMENT_IDS.map(
+      (requirementId) => [
+        requirementId,
+        { status: "verified" as const, evidence: BOUNDED_REQUEST_EVIDENCE },
+      ],
+    ),
   ),
   "security.endpoint-test-validation.unsupported-method": {
     status: "verified" as const,

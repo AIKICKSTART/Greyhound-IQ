@@ -29,6 +29,7 @@ import {
   ENDPOINT_VALIDATION_IDENTIFIER_REQUIREMENT_IDS,
   ENDPOINT_VALIDATION_JSON_ROUTES,
   ENDPOINT_VALIDATION_MASTER_EVIDENCE,
+  ENDPOINT_VALIDATION_REQUEST_BOUNDARY_REQUIREMENT_IDS,
 } from "./endpoint-validation-evidence";
 
 const verifiedRequirementIds = [
@@ -37,6 +38,7 @@ const verifiedRequirementIds = [
   "security.endpoint-test-validation.unexpected-content-type",
   "security.endpoint-test-validation.oversized-request",
   ...ENDPOINT_VALIDATION_IDENTIFIER_REQUIREMENT_IDS,
+  ...ENDPOINT_VALIDATION_REQUEST_BOUNDARY_REQUIREMENT_IDS,
   "security.endpoint-test-validation.unsupported-method",
   "security.endpoint-test-validation.invalid-date",
 ] as const;
@@ -241,6 +243,16 @@ for (const marker of [
   );
 }
 
+const apiErrorSource = readFileSync("src/lib/api-errors.ts", "utf8");
+for (const marker of [
+  "err instanceof ZodError",
+  'code: "validation.invalid"',
+  'message: "Invalid request body"',
+  "400,",
+]) {
+  assert.ok(apiErrorSource.includes(marker), `validation error policy: ${marker}`);
+}
+
 const webhookBodySource = readFileSync(
   "src/lib/webhook-request-body.ts",
   "utf8",
@@ -278,7 +290,7 @@ assert.match(
 );
 
 console.log(
-  "Endpoint validation evidence passed: 16 exact hostile-input, date, identifier, method, invalid-file, content-type, and request-size gates cover all API routes plus 33 JSON/form routes and specialized uploads/webhooks",
+  "Endpoint validation evidence passed: 19 exact hostile-input, request-boundary, date, identifier, method, invalid-file, content-type, and request-size gates cover all API routes plus 33 JSON/form routes and specialized uploads/webhooks",
 );
 
 function namedFunctionBody(source: string, file: string, name: string) {

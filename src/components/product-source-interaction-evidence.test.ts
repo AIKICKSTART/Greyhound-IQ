@@ -8,6 +8,7 @@ import { PRODUCT_MASTER_REQUIREMENTS } from "./product-master-requirements";
 import {
   PRODUCT_SOURCE_INTERACTION_EVIDENCE_FILE,
   PRODUCT_SOURCE_INTERACTION_EVIDENCE_SCOPE,
+  PRODUCT_SOURCE_INTERACTION_COMPLETION_REQUIREMENT_IDS,
   PRODUCT_SOURCE_INTERACTION_INVENTORY_SNAPSHOTS,
   PRODUCT_SOURCE_INTERACTION_MASTER_EVIDENCE,
   PRODUCT_SOURCE_INTERACTION_REQUIREMENT_IDS,
@@ -47,6 +48,9 @@ const expectedRequirementIds = [
   "DISC.SRC.role-gated-routes",
   "DISC.SRC.tier-gated-routes",
 ] as const;
+const expectedCompletionRequirementIds = [
+  "COMPLETE.EVIDENCE.navigation-inspected",
+] as const;
 
 type SourceMatch = {
   path: string;
@@ -67,15 +71,22 @@ assert.deepEqual(
   "The source-interaction registry must close exactly the reviewed 26 IDs",
 );
 assert.deepEqual(
+  [...PRODUCT_SOURCE_INTERACTION_COMPLETION_REQUIREMENT_IDS],
+  expectedCompletionRequirementIds,
+);
+assert.deepEqual(
   Object.keys(PRODUCT_SOURCE_INTERACTION_MASTER_EVIDENCE).toSorted(),
-  [...expectedRequirementIds].toSorted(),
-  "The evidence mapping must contain exactly the reviewed inspection batch",
+  [...expectedRequirementIds, ...expectedCompletionRequirementIds].toSorted(),
+  "The evidence mapping must contain the reviewed inventory and its source-inspection completion claim",
 );
 
 const productRequirementIds = new Set(
   PRODUCT_MASTER_REQUIREMENTS.map((requirement) => requirement.id),
 );
-for (const requirementId of expectedRequirementIds) {
+for (const requirementId of [
+  ...expectedRequirementIds,
+  ...expectedCompletionRequirementIds,
+]) {
   assert.ok(
     productRequirementIds.has(requirementId),
     `${requirementId} must remain a durable product requirement`,
@@ -171,7 +182,7 @@ const absentIds = expectedRequirementIds.filter(
 assert.equal(presentIds.length + absentIds.length, expectedRequirementIds.length);
 
 console.log(
-  `Product source interaction inventory passed: ${reachableFiles.length} reachable files, ${presentIds.length} present categories, ${absentIds.length} inspected-absent categories, 26 discovery closures.`,
+  `Product source interaction inventory passed: ${reachableFiles.length} reachable files, ${presentIds.length} present categories, ${absentIds.length} inspected-absent categories, 26 discovery closures and one source-inspection completion claim.`,
 );
 
 function emptyInventory(): SourceInteractionInventory {

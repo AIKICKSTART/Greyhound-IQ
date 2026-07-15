@@ -1,4 +1,8 @@
 import type { ProductMasterRequirementStatus } from "./product-master-requirements";
+import {
+  PRODUCT_FIELD_CONTRACT_SOURCE_EVIDENCE_FILE,
+  PRODUCT_FIELD_CONTRACT_SOURCE_TEST_FILE,
+} from "./product-field-contract-source-evidence";
 
 export const PRODUCT_FORM_OPERATIONAL_CONTRACT_EVIDENCE_FILE =
   "src/components/product-form-operational-contract-evidence.ts" as const;
@@ -26,11 +30,20 @@ export const PRODUCT_FORM_OPERATIONAL_CONTRACT_REQUIREMENT_IDS = [
   "FORM.FIELD.analytics",
 ] as const;
 
+export const PRODUCT_FORM_MAPPING_COMPLETION_REQUIREMENT_IDS = [
+  "COMPLETE.EVIDENCE.forms-mapped",
+] as const;
+
 export type ProductFormOperationalContractRequirementId =
   (typeof PRODUCT_FORM_OPERATIONAL_CONTRACT_REQUIREMENT_IDS)[number];
 
+type ProductFormOperationalContractMasterRequirementId =
+  | ProductFormOperationalContractRequirementId
+  | (typeof PRODUCT_FORM_MAPPING_COMPLETION_REQUIREMENT_IDS)[number];
+
 export const PRODUCT_FORM_OPERATIONAL_CONTRACT_EXPECTED_GAIN =
-  PRODUCT_FORM_OPERATIONAL_CONTRACT_REQUIREMENT_IDS.length;
+  PRODUCT_FORM_OPERATIONAL_CONTRACT_REQUIREMENT_IDS.length +
+  PRODUCT_FORM_MAPPING_COMPLETION_REQUIREMENT_IDS.length;
 
 type ProductFormOperationalContractEvidenceRecord = {
   status: ProductMasterRequirementStatus;
@@ -45,6 +58,13 @@ const EVIDENCE = [
   "src/components/screen-contracts/types.ts",
   "src/components/screen-contracts/production-screen-coverage.ts",
   "src/components/screen-contracts/screen-contract-source-audit.ts",
+] as const;
+
+const FORM_AND_FIELD_MAPPING_EVIDENCE = [
+  ...EVIDENCE,
+  PRODUCT_FIELD_CONTRACT_SOURCE_EVIDENCE_FILE,
+  PRODUCT_FIELD_CONTRACT_SOURCE_TEST_FILE,
+  "src/components/product-field-contract-source-registry.ts",
 ] as const;
 
 function tested(): ProductFormOperationalContractEvidenceRecord {
@@ -67,9 +87,13 @@ export const PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE = {
   "FORM.FIELD.failure": tested(),
   "FORM.FIELD.audit": tested(),
   "FORM.FIELD.analytics": tested(),
+  "COMPLETE.EVIDENCE.forms-mapped": {
+    status: "tested",
+    evidence: FORM_AND_FIELD_MAPPING_EVIDENCE,
+  },
 } as const satisfies Readonly<
   Record<
-    ProductFormOperationalContractRequirementId,
+    ProductFormOperationalContractMasterRequirementId,
     ProductFormOperationalContractEvidenceRecord
   >
 >;

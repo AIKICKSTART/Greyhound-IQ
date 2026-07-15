@@ -37,6 +37,10 @@ export const PRODUCT_SOURCE_INTERACTION_REQUIREMENT_IDS = [
   "DISC.SRC.tier-gated-routes",
 ] as const;
 
+export const PRODUCT_SOURCE_INTERACTION_COMPLETION_REQUIREMENT_IDS = [
+  "COMPLETE.EVIDENCE.navigation-inspected",
+] as const;
+
 export type ProductSourceInteractionRequirementId =
   (typeof PRODUCT_SOURCE_INTERACTION_REQUIREMENT_IDS)[number];
 
@@ -199,7 +203,10 @@ const SHARED_EVIDENCE = [
 ] as const;
 
 export const PRODUCT_SOURCE_INTERACTION_MASTER_EVIDENCE = Object.fromEntries(
-  PRODUCT_SOURCE_INTERACTION_REQUIREMENT_IDS.map((requirementId) => [
+  [
+    ...PRODUCT_SOURCE_INTERACTION_REQUIREMENT_IDS,
+    ...PRODUCT_SOURCE_INTERACTION_COMPLETION_REQUIREMENT_IDS,
+  ].map((requirementId) => [
     requirementId,
     { status: "tested" as const, evidence: SHARED_EVIDENCE },
   ]),

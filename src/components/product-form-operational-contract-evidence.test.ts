@@ -9,7 +9,12 @@ import {
   PRODUCT_FORM_OPERATIONAL_CONTRACT_REQUIREMENT_IDS,
   PRODUCT_FORM_OPERATIONAL_CONTRACT_SCOPE,
   PRODUCT_FORM_OPERATIONAL_CONTRACT_TEST_FILE,
+  PRODUCT_FORM_MAPPING_COMPLETION_REQUIREMENT_IDS,
 } from "./product-form-operational-contract-evidence";
+import {
+  PRODUCT_FIELD_CONTRACT_SOURCE_EVIDENCE_FILE,
+  PRODUCT_FIELD_CONTRACT_SOURCE_TEST_FILE,
+} from "./product-field-contract-source-evidence";
 import {
   PRODUCT_FORM_OPERATIONAL_SIGNAL_KINDS,
   buildProductFormOperationalContractRegistry,
@@ -40,15 +45,22 @@ const CORE_FORM_REQUIREMENT_IDS = [
   "FORM.FIELD.route",
   "FORM.FIELD.destination",
 ] as const;
+const EXPECTED_COMPLETION_REQUIREMENT_IDS = [
+  "COMPLETE.EVIDENCE.forms-mapped",
+] as const;
 
 assert.deepEqual(
   PRODUCT_FORM_OPERATIONAL_CONTRACT_REQUIREMENT_IDS,
   EXPECTED_REQUIREMENT_IDS,
 );
-assert.equal(PRODUCT_FORM_OPERATIONAL_CONTRACT_EXPECTED_GAIN, 15);
+assert.deepEqual(
+  PRODUCT_FORM_MAPPING_COMPLETION_REQUIREMENT_IDS,
+  EXPECTED_COMPLETION_REQUIREMENT_IDS,
+);
+assert.equal(PRODUCT_FORM_OPERATIONAL_CONTRACT_EXPECTED_GAIN, 16);
 assert.deepEqual(
   Object.keys(PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE),
-  EXPECTED_REQUIREMENT_IDS,
+  [...EXPECTED_REQUIREMENT_IDS, ...EXPECTED_COMPLETION_REQUIREMENT_IDS],
 );
 
 const promptFormIds = PRODUCT_MASTER_REQUIREMENTS.filter(
@@ -74,6 +86,22 @@ for (const [requirementId, evidence] of Object.entries(
     assert.equal(existsSync(evidencePath), true, `${requirementId}: ${evidencePath}`),
   );
 }
+
+const mappingCompletionEvidence =
+  PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE[
+    "COMPLETE.EVIDENCE.forms-mapped"
+  ].evidence;
+assert.ok(
+  mappingCompletionEvidence.includes(PRODUCT_FIELD_CONTRACT_SOURCE_EVIDENCE_FILE),
+);
+assert.ok(
+  mappingCompletionEvidence.includes(PRODUCT_FIELD_CONTRACT_SOURCE_TEST_FILE),
+);
+assert.ok(
+  mappingCompletionEvidence.includes(
+    "src/components/product-field-contract-source-registry.ts",
+  ),
+);
 
 const clientSafeEvidenceSource = readFileSync(
   PRODUCT_FORM_OPERATIONAL_CONTRACT_EVIDENCE_FILE,
@@ -188,7 +216,7 @@ assert.match(PRODUCT_FORM_OPERATIONAL_CONTRACT_SCOPE, /does not prove hydrated s
 assert.match(PRODUCT_FORM_OPERATIONAL_CONTRACT_SCOPE, /production readiness/i);
 
 console.log(
-  `Product form operational contract evidence passed: exact ${registry.records.length}-form register across ${registry.auditedRoutes.length} form routes closes the remaining 15/18 record requirements without claiming runtime enforcement.`,
+  `Product form operational contract evidence passed: exact ${registry.records.length}-form register across ${registry.auditedRoutes.length} form routes closes the remaining 15/18 form requirements and, with the field register, one source-mapping completion claim without asserting runtime enforcement.`,
 );
 
 function assertNonEmpty(value: string, label: string) {

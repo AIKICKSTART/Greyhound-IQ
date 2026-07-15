@@ -550,19 +550,25 @@ export const DESIGN_LAB_PREPRODUCTION_REQUIREMENTS: readonly DesignLabPreproduct
     id: "PREPROD.PG_DURABLE.EVALUATION",
     system: "durable-sql",
     requirement:
-      "PG Durable SQL may be adopted only for database-heavy workflows after a version-compatible isolated spike proves identity, RLS, retries, idempotency, restart recovery and operations.",
+      "Do not adopt PG Durable SQL for the GreyhoundIQ MVP; retain Prisma and PostgreSQL as the production source of truth.",
     simulationContract:
-      "Run a separate PG17-compatible experimental lane with fixed server-defined workflows; do not alter the canonical Prisma/Postgres lane or call production.",
-    status: "blocked",
+      "The MVP adds no PG Durable dependency, extension, background worker, schema object, queue or provider call. Any future evaluation must use a separate disposable lane and leave the canonical Prisma/PostgreSQL path unchanged.",
+    status: "verified",
     owner: "Database architecture owner",
     evidence: [
-      "PG Durable SQL plugin v0.1.0 skill snapshot at microsoft/pg_durable commit 188b2d34ad10907d5d8ccff7d4ce84009adb9e3b",
       "docs/architecture/pg-durable-design-lab-evaluation.md",
+      "package.json",
+      "package-lock.json",
+      "prisma/schema.prisma",
+      "src/lib/db.ts",
+      "docker-compose.local-db.yml",
     ],
-    tests: [],
-    operatorCommands: [],
+    tests: ["src/components/design-lab-preproduction-requirements.test.ts"],
+    operatorCommands: [
+      "npx tsx src/components/design-lab-preproduction-requirements.test.ts",
+    ],
     remainingEvidence:
-      "Current local PostgreSQL is 15, CI is 16 and production is unverified while pg_durable is preview and currently targets PostgreSQL 17. Complete the isolated spike and architecture review first.",
+      "No PG Durable evidence remains for MVP because non-adoption is the approved outcome. Future adoption remains post-MVP and requires a separate version-compatible spike proving identity, RLS, retries, idempotency, restart recovery and operations before a new architecture decision.",
     releaseBlocking: true,
   },
   ...DATABASE_NORMALIZATION_RELEASE_REQUIREMENTS,

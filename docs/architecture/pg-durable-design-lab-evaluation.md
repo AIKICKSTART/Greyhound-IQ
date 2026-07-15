@@ -1,14 +1,20 @@
-# PG Durable SQL Design Lab evaluation
+# PG Durable SQL MVP non-adoption decision
 
-Status: **blocked from the canonical release lane**  
-Decision owner: Database architecture owner  
-Review date: 2026-07-13
+Status: **verified non-adoption for MVP**
+
+Decision owner: Database architecture owner
+
+Review date: 2026-07-15
 
 ## Decision
 
-PG Durable SQL is a useful candidate for a separate, disposable experiment. It
-is not approved for GreyhoundIQ production or the canonical Design Lab database
-lane yet.
+PG Durable SQL is not adopted for the GreyhoundIQ MVP. Prisma and PostgreSQL
+remain the production source of truth. The MVP adds no PG Durable dependency,
+extension, background worker, schema object, queue or provider call.
+
+This decision closes the MVP evaluation item through tested non-adoption. It
+does not verify PG Durable itself or approve it for production. A future
+evaluation remains a separate post-MVP architecture decision.
 
 The local plugin is a reference skill generated from the Microsoft
 `pg_durable` project snapshot at commit
@@ -75,10 +81,12 @@ Required evidence:
 - Backup/restore and extension-upgrade rehearsal.
 - A measured comparison against the existing queue/worker approach.
 
-## Approval gate
+## Future adoption gate
 
-The Design Lab item `PREPROD.PG_DURABLE.EVALUATION` remains blocked until all
-spike evidence is reviewed, the production PostgreSQL topology is verified, and
-a written architecture decision identifies a clear reliability benefit that
-outweighs the additional database privilege and operational surface. Failure of
-the experiment leaves the canonical Prisma/PostgreSQL implementation unchanged.
+The Design Lab item `PREPROD.PG_DURABLE.EVALUATION` is verified only for the MVP
+non-adoption decision. Adoption remains prohibited until all spike evidence is
+reviewed, the production PostgreSQL topology is verified, and a new written
+architecture decision identifies a clear reliability benefit that outweighs
+the additional database privilege and operational surface. Failure of any
+future experiment leaves the canonical Prisma/PostgreSQL implementation
+unchanged.

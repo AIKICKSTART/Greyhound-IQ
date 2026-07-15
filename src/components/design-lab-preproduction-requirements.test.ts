@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   DESIGN_LAB_PREPRODUCTION_REQUIREMENTS,
@@ -33,11 +34,37 @@ assert.equal(
     .length,
 );
 assert.equal(DESIGN_LAB_PREPRODUCTION_SUMMARY.postMvpTotal, 5);
-assert.ok(
-  DESIGN_LAB_PREPRODUCTION_REQUIREMENTS.some(
-    (item) => item.system === "durable-sql" && item.status === "blocked"
-  )
+const durableSqlRequirement = DESIGN_LAB_PREPRODUCTION_REQUIREMENTS.find(
+  (item) => item.id === "PREPROD.PG_DURABLE.EVALUATION",
 );
+assert.equal(durableSqlRequirement?.status, "verified");
+assert.equal(
+  durableSqlRequirement
+    ? isDesignLabPreproductionRequirementComplete(durableSqlRequirement)
+    : false,
+  true,
+);
+assert.match(durableSqlRequirement?.requirement ?? "", /Do not adopt PG Durable SQL/);
+assert.match(durableSqlRequirement?.requirement ?? "", /Prisma and PostgreSQL/);
+assert.match(durableSqlRequirement?.simulationContract ?? "", /no PG Durable dependency/);
+assert.match(durableSqlRequirement?.remainingEvidence ?? "", /Future adoption remains post-MVP/);
+
+const pgDurableRuntimeSurfaces = [
+  "package.json",
+  "package-lock.json",
+  "prisma/schema.prisma",
+  "src/lib/db.ts",
+  "docker-compose.local-db.yml",
+] as const;
+for (const file of pgDurableRuntimeSurfaces) {
+  assert.doesNotMatch(
+    readFileSync(file, "utf8"),
+    /\bpg[_-]durable\b/i,
+    `${file} must not adopt PG Durable for MVP.`,
+  );
+}
+assert.match(readFileSync("prisma/schema.prisma", "utf8"), /provider\s*=\s*"postgresql"/);
+assert.match(readFileSync("src/lib/db.ts", "utf8"), /PrismaClient/);
 
 const normalizationReleaseRequirements =
   DESIGN_LAB_DATABASE_NORMALIZATION_REQUIREMENTS.filter(

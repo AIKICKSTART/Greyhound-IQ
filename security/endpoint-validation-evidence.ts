@@ -141,6 +141,12 @@ export const ENDPOINT_VALIDATION_HOSTILE_REQUIREMENT_IDS = [
   "security.endpoint-test-validation.invalid-url",
 ] as const;
 
+export const ENDPOINT_VALIDATION_IDENTIFIER_REQUIREMENT_IDS = [
+  "security.endpoint-test-validation.invalid-identifier",
+  "security.external-input-surface.path-parameters",
+  "security.deny-by-default.identifier",
+] as const;
+
 export const ENDPOINT_VALIDATION_MASTER_EVIDENCE = {
   ...Object.fromEntries(
     ENDPOINT_VALIDATION_HOSTILE_REQUIREMENT_IDS.map((requirementId) => [
@@ -160,10 +166,12 @@ export const ENDPOINT_VALIDATION_MASTER_EVIDENCE = {
     status: "verified" as const,
     evidence: BOUNDED_REQUEST_EVIDENCE,
   },
-  "security.endpoint-test-validation.invalid-identifier": {
-    status: "verified" as const,
-    evidence: INVALID_IDENTIFIER_EVIDENCE,
-  },
+  ...Object.fromEntries(
+    ENDPOINT_VALIDATION_IDENTIFIER_REQUIREMENT_IDS.map((requirementId) => [
+      requirementId,
+      { status: "verified" as const, evidence: INVALID_IDENTIFIER_EVIDENCE },
+    ]),
+  ),
   "security.endpoint-test-validation.unsupported-method": {
     status: "verified" as const,
     evidence: UNSUPPORTED_METHOD_EVIDENCE,

@@ -18,10 +18,15 @@ import {
   hasInvalidApiPathSegment,
   isUnsupportedHttpMethod,
 } from "../src/lib/request-security";
-import { MASTER_AUDIT_REQUIREMENTS } from "../src/components/master-audit-requirements";
+import {
+  MASTER_AUDIT_REQUIREMENTS,
+  isMasterRequirementComplete,
+} from "../src/components/master-audit-requirements";
+import { SECURITY_MASTER_EVIDENCE } from "../src/components/master-audit-evidence";
 import { discoverRouteHandlers } from "./endpoints";
 import {
   ENDPOINT_VALIDATION_HOSTILE_REQUIREMENT_IDS,
+  ENDPOINT_VALIDATION_IDENTIFIER_REQUIREMENT_IDS,
   ENDPOINT_VALIDATION_JSON_ROUTES,
   ENDPOINT_VALIDATION_MASTER_EVIDENCE,
 } from "./endpoint-validation-evidence";
@@ -31,18 +36,32 @@ const verifiedRequirementIds = [
   "security.endpoint-test-validation.invalid-file",
   "security.endpoint-test-validation.unexpected-content-type",
   "security.endpoint-test-validation.oversized-request",
-  "security.endpoint-test-validation.invalid-identifier",
+  ...ENDPOINT_VALIDATION_IDENTIFIER_REQUIREMENT_IDS,
   "security.endpoint-test-validation.unsupported-method",
   "security.endpoint-test-validation.invalid-date",
 ] as const;
+const mergedMasterEvidence = SECURITY_MASTER_EVIDENCE as Record<
+  string,
+  unknown
+>;
+const endpointValidationEvidence = ENDPOINT_VALIDATION_MASTER_EVIDENCE as Record<
+  string,
+  unknown
+>;
 assert.deepEqual(
   Object.keys(ENDPOINT_VALIDATION_MASTER_EVIDENCE).toSorted(),
   [...verifiedRequirementIds].toSorted(),
 );
 for (const id of verifiedRequirementIds) {
-  assert.ok(
-    MASTER_AUDIT_REQUIREMENTS.some((requirement) => requirement.id === id),
+  const requirement = MASTER_AUDIT_REQUIREMENTS.find(
+    (candidate) => candidate.id === id,
   );
+  assert.ok(requirement, `${id}: missing immutable requirement`);
+  assert.deepEqual(
+    mergedMasterEvidence[id],
+    endpointValidationEvidence[id],
+  );
+  assert.equal(isMasterRequirementComplete(requirement), true);
 }
 
 for (const input of [
@@ -157,8 +176,14 @@ for (const marker of [
   assert.ok(adminMutationSource.includes(marker), marker);
 }
 const proxySource = readFileSync("src/proxy.ts", "utf8");
+const proxyBody = namedFunctionBody(proxySource, "src/proxy.ts", "proxy");
 assert.match(proxySource, /hasInvalidApiPathSegment\(request\.nextUrl\.pathname\)/);
 assert.match(proxySource, /400, "request\.invalid_identifier"/);
+assert.ok(
+  proxyBody.indexOf("hasInvalidApiPathSegment(request.nextUrl.pathname)") <
+    proxyBody.indexOf("authkitProxy("),
+  "invalid API identifiers must fail before authentication and routing",
+);
 assert.match(proxySource, /isUnsupportedHttpMethod\(request\)/);
 assert.match(proxySource, /405,[\s\S]*"request\.method_not_allowed"/);
 const optionalJsonRoutes = new Set([

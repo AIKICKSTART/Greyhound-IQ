@@ -18,6 +18,10 @@ import {
   canRemoveTeamMember,
   resolveTeamAuthority,
 } from "../lib/organization-team-policy";
+import {
+  assertAdminSelfAccessChange,
+  assertLastAdminAccessChange,
+} from "../lib/admin-access-contract";
 
 // screen-evidence-test-id: PRODUCT-ACCOUNT-TEAM
 
@@ -32,13 +36,15 @@ const EXPECTED_REQUIREMENTS = {
     "Enforce least privilege for team role changes.",
   "ROUTE.ACCOUNT.last-owner":
     "Prevent removal of the last required owner or administrator without safe transfer.",
+  "ROUTE.ADMIN.last-owner-admin":
+    "Enforce last-owner and last-administrator protections.",
 } as const;
 
 assert.deepEqual(
   PRODUCT_ACCOUNT_TEAM_REQUIREMENT_IDS,
   Object.keys(EXPECTED_REQUIREMENTS),
 );
-assert.equal(PRODUCT_ACCOUNT_TEAM_EXPECTED_GAIN, 8);
+assert.equal(PRODUCT_ACCOUNT_TEAM_EXPECTED_GAIN, 9);
 assert.deepEqual(
   Object.keys(PRODUCT_ACCOUNT_TEAM_MASTER_EVIDENCE),
   Object.keys(EXPECTED_REQUIREMENTS),
@@ -69,6 +75,7 @@ for (const assertion of [
   /SHA-256 email and token hashes/i,
   /locked, single-use transaction/i,
   /atomically transfer ownerId/i,
+  /sole active administrator/i,
   /database-rate-limited with fail-closed behavior/i,
   /audited inside the mutation transaction/i,
   /does not prove browser hydration/i,
@@ -78,6 +85,48 @@ for (const assertion of [
 ]) {
   assert.match(PRODUCT_ACCOUNT_TEAM_SCOPE, assertion);
 }
+
+assert.throws(
+  () =>
+    assertLastAdminAccessChange({
+      targetCurrentRole: "admin",
+      targetCurrentlyActive: true,
+      nextRole: "moderator",
+      nextBanned: false,
+      activeAdminCount: 1,
+    }),
+  /admin\.last_admin_forbidden/,
+);
+assert.throws(
+  () =>
+    assertLastAdminAccessChange({
+      targetCurrentRole: "admin",
+      targetCurrentlyActive: true,
+      nextRole: "admin",
+      nextBanned: true,
+      activeAdminCount: 1,
+    }),
+  /admin\.last_admin_forbidden/,
+);
+assert.doesNotThrow(() =>
+  assertLastAdminAccessChange({
+    targetCurrentRole: "admin",
+    targetCurrentlyActive: true,
+    nextRole: "moderator",
+    nextBanned: false,
+    activeAdminCount: 2,
+  }),
+);
+assert.throws(
+  () =>
+    assertAdminSelfAccessChange({
+      actingUserId: "admin-1",
+      targetUserId: "admin-1",
+      nextRole: "member",
+      banned: false,
+    }),
+  /admin\.self_lockout_forbidden/,
+);
 
 assert.equal(
   resolveTeamAuthority({
@@ -293,7 +342,7 @@ assert.doesNotMatch(evidenceSource, /from ["']node:/);
 assert.doesNotMatch(evidenceSource, /\breadFileSync\b|\bprocess\.cwd\b/);
 
 console.log(
-  "Account-team evidence passed in isolation: eight account requirements have source and policy proof with explicit runtime limitations; exact +8 central wiring is ready.",
+  "Account-team evidence passed in isolation: eight account requirements plus the combined last-owner/last-administrator requirement have source and policy proof with explicit runtime limitations; exact +9 central wiring is ready.",
 );
 
 function source(path: string) {

@@ -536,16 +536,6 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
       "src/app/admin/admin-nav-data.test.ts",
     ],
   },
-  "ROUTE.ADMIN.last-owner-admin": {
-    status: "captured",
-    evidence: [
-      "src/lib/admin-access-contract.ts",
-      "src/lib/admin-access-contract.test.ts",
-      "src/lib/admin-service.ts",
-      "src/lib/account-service.ts",
-      "src/lib/account-deletion.test.ts",
-    ],
-  },
   "DL.ROUTE.master": {
     status: "tested",
     evidence: [

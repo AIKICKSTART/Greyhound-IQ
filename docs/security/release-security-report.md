@@ -36,9 +36,9 @@ The status block is checked directly against the live security master registry b
 <!-- design-lab-security-status:start -->
 | Master security status | Count |
 | --- | ---: |
-| Verified | 1821 |
+| Verified | 1823 |
 | Partially Verified | 6 |
-| Not Assessed | 428 |
+| Not Assessed | 426 |
 <!-- design-lab-security-status:end -->
 
 | Metric | Current evidence | Interpretation |

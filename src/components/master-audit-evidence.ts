@@ -72,6 +72,7 @@ import { PRODUCT_SCREEN_CONTRACT_COMPLETENESS_MASTER_EVIDENCE } from "./product-
 import { PRODUCT_SCREEN_LOCATION_MASTER_EVIDENCE } from "./product-screen-location-evidence";
 import { PRODUCT_INFORMATION_UNDERSTANDING_MASTER_EVIDENCE } from "./product-information-understanding-evidence";
 import { PRODUCT_SOURCE_CRAWL_PROVENANCE_MASTER_EVIDENCE } from "./product-source-crawl-provenance-evidence";
+import { PRODUCT_CRAWL_ACCESS_METADATA_MASTER_EVIDENCE } from "./product-crawl-access-metadata-evidence";
 import { PRODUCT_NON_NAVIGATION_LINK_MASTER_EVIDENCE } from "./product-non-navigation-link-inclusion-evidence";
 import { PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE } from "./product-form-contract-core-evidence";
 import { PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE } from "./product-form-operational-contract-evidence";
@@ -146,6 +147,8 @@ import { ARCHITECTURE_ADAPTATION_MASTER_EVIDENCE } from "../../security/architec
 import { DATABASE_INVENTORY_MASTER_EVIDENCE } from "../../security/database-inventory-evidence";
 import { DATABASE_CONSTRAINT_INVENTORY_MASTER_EVIDENCE } from "../../security/database-constraint-inventory-evidence";
 import { MIGRATION_DATA_LOSS_REVIEW_MASTER_EVIDENCE } from "../../security/migration-data-loss-review-evidence";
+import { MIGRATION_NULLABILITY_REVIEW_MASTER_EVIDENCE } from "../../security/migration-nullability-review-evidence";
+import { MIGRATION_TABLE_REWRITE_REVIEW_MASTER_EVIDENCE } from "../../security/migration-table-rewrite-review-evidence";
 import { SQL_INJECTION_CONTROL_MASTER_EVIDENCE } from "../../security/sql-injection-control-evidence";
 import { INJECTION_SURFACE_CONTROL_MASTER_EVIDENCE } from "../../security/injection-surface-control-evidence";
 import { COMMAND_INJECTION_CONTROL_MASTER_EVIDENCE } from "../../security/command-injection-control-evidence";
@@ -328,6 +331,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_SCREEN_LOCATION_MASTER_EVIDENCE,
   ...PRODUCT_INFORMATION_UNDERSTANDING_MASTER_EVIDENCE,
   ...PRODUCT_SOURCE_CRAWL_PROVENANCE_MASTER_EVIDENCE,
+  ...PRODUCT_CRAWL_ACCESS_METADATA_MASTER_EVIDENCE,
   ...PRODUCT_NON_NAVIGATION_LINK_MASTER_EVIDENCE,
   ...PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE,
   ...PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE,
@@ -1278,6 +1282,8 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...DATABASE_INVENTORY_MASTER_EVIDENCE,
   ...DATABASE_CONSTRAINT_INVENTORY_MASTER_EVIDENCE,
   ...MIGRATION_DATA_LOSS_REVIEW_MASTER_EVIDENCE,
+  ...MIGRATION_NULLABILITY_REVIEW_MASTER_EVIDENCE,
+  ...MIGRATION_TABLE_REWRITE_REVIEW_MASTER_EVIDENCE,
   ...SQL_INJECTION_CONTROL_MASTER_EVIDENCE,
   ...INJECTION_SURFACE_CONTROL_MASTER_EVIDENCE,
   ...COMMAND_INJECTION_CONTROL_MASTER_EVIDENCE,

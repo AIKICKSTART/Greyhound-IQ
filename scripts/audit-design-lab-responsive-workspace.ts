@@ -34,9 +34,8 @@ export const DESIGN_LAB_RESPONSIVE_ARCHITECTURE_BUILD_PATH =
   "scripts/build-architecture-report.mjs";
 export const DESIGN_LAB_RESPONSIVE_EVIDENCE_BOUNDARY =
   "Isolated loopback Chrome viewport evidence for local source and the hashed architecture report; not deployed-image or production evidence.";
-export const DESIGN_LAB_RESPONSIVE_TABLE_COMPACT_MAX_WIDTH = 1200;
+export const DESIGN_LAB_RESPONSIVE_TABLE_COMPACT_MAX_WIDTH = 1320;
 export const DESIGN_LAB_RESPONSIVE_DESKTOP_TABLE_TEXT_FLOOR_PX = 10;
-export const DESIGN_LAB_RESPONSIVE_DIAGRAM_COMPACT_MAX_WIDTH = 820;
 export const DESIGN_LAB_RESPONSIVE_DESKTOP_DIAGRAM_TEXT_FLOOR_PX = 12;
 export const DESIGN_LAB_RESPONSIVE_EMBEDDED_REPORT_MIN_WIDTH = 1024;
 export const DESIGN_LAB_RESPONSIVE_VIEWPORTS = [
@@ -123,6 +122,8 @@ type DiagramMeasurement = {
   mobileFlowOverflow: boolean;
   minimumMobileTextPx: number;
   minimumDesktopLabelTextPx: number;
+  labelBoundaryFailures: number;
+  overlappingBoxPairs: number;
   viewportClientWidth: number;
   viewportScrollWidth: number;
   horizontalScrollAvailable: boolean;
@@ -341,9 +342,6 @@ export function findResponsiveCaseFailures(
     result.width >= DESIGN_LAB_RESPONSIVE_EMBEDDED_REPORT_MIN_WIDTH;
   const requiresTables = surface.requiresTables || embeddedReportRequired;
   const requiresDiagrams = surface.requiresDiagrams || embeddedReportRequired;
-  const reportViewportWidth = embeddedReportRequired
-    ? result.snapshot.architectureEmbed.contentClientWidth
-    : result.width;
   if (architectureWorkspace && embeddedReportRequired) {
     if (!result.snapshot.architectureEmbed.framePresent) {
       failures.push("Design Lab architecture report iframe is missing");
@@ -368,47 +366,40 @@ export function findResponsiveCaseFailures(
       failures.push(`Design Lab mobile architecture handoff is hidden at ${result.width}px`);
     }
   }
-  const compactTables =
-    requiresTables &&
-    reportViewportWidth <= DESIGN_LAB_RESPONSIVE_TABLE_COMPACT_MAX_WIDTH;
-  const compactDiagrams =
-    requiresDiagrams &&
-    reportViewportWidth <= DESIGN_LAB_RESPONSIVE_DIAGRAM_COMPACT_MAX_WIDTH;
   for (const table of result.snapshot.tables) {
     if (table.visible && table.widerThanContainer) {
-      if (!table.horizontalScrollAvailable) {
-        failures.push(
-          `table ${table.selector} is ${table.tableWidth}px wide inside a ${table.containerWidth}px container without contained scrolling`,
-        );
-      } else if (!table.keyboardScrollable) {
-        failures.push(`table ${table.selector} scroll region is not keyboard focusable`);
-      }
+      failures.push(
+        `table ${table.selector} is ${table.tableWidth}px wide inside a ${table.containerWidth}px container; tables must fit without horizontal scrolling`,
+      );
     }
     if (requiresTables && !table.mobileCardsPresent) {
       failures.push(`table ${table.selector} has no responsive mobile record collection`);
-    } else if (requiresTables && !table.mobileSemanticParity) {
+    }
+    if (requiresTables && !table.mobileSemanticParity) {
       failures.push(
         `table ${table.selector} mobile records do not preserve ${table.bodyRowCount} rows and their header labels`,
       );
-    } else if (compactTables && table.visible) {
-      failures.push(`desktop table ${table.selector} remains visible at ${reportViewportWidth}px`);
-    } else if (compactTables && !table.mobileCardsVisible) {
-      failures.push(`table ${table.selector} mobile record collection is not visible`);
-    } else if (compactTables && table.mobileCardsOverflow) {
+    }
+    if (requiresTables && !table.visible && !table.mobileCardsVisible) {
+      failures.push(`table ${table.selector} has no visible responsive representation`);
+    } else if (requiresTables && table.visible && table.mobileCardsVisible) {
+      failures.push(`table ${table.selector} exposes duplicate responsive representations`);
+    }
+    if (requiresTables && table.mobileCardsVisible && table.mobileCardsOverflow) {
       failures.push(
         `table ${table.selector} mobile records are ${table.mobileCardsWidth}px wide inside a ${table.containerWidth}px container`,
       );
-    } else if (compactTables && table.minimumMobileTextPx < 11) {
+    } else if (
+      requiresTables &&
+      table.mobileCardsVisible &&
+      table.minimumMobileTextPx < 11
+    ) {
       failures.push(
         `table ${table.selector} mobile labels are ${table.minimumMobileTextPx}px; expected at least 11px`,
       );
-    } else if (requiresTables && !compactTables && !table.visible) {
-      failures.push(`desktop table ${table.selector} is hidden at ${reportViewportWidth}px`);
-    } else if (requiresTables && !compactTables && table.mobileCardsVisible) {
-      failures.push(`table ${table.selector} mobile records remain visible at ${reportViewportWidth}px`);
     } else if (
       requiresTables &&
-      !compactTables &&
+      table.visible &&
       table.minimumDesktopTextPx <
         DESIGN_LAB_RESPONSIVE_DESKTOP_TABLE_TEXT_FLOOR_PX
     ) {
@@ -423,13 +414,25 @@ export function findResponsiveCaseFailures(
         `diagram ${diagram.selector} is clipped; every diagram must fit the viewport in full`,
       );
     }
-    if (compactDiagrams) {
-      if (!diagram.mobileFlowPresent) {
-        failures.push(`diagram ${diagram.selector} has no semantic mobile flow`);
-      } else if (!diagram.mobileFlowVisible) {
-        failures.push(`diagram ${diagram.selector} semantic mobile flow is not visible`);
-      } else if (diagram.mobileFlowStepCount === 0) {
-        failures.push(`diagram ${diagram.selector} semantic mobile flow has no steps`);
+    if (requiresDiagrams && !diagram.mobileFlowPresent) {
+      failures.push(`diagram ${diagram.selector} has no semantic responsive flow`);
+    }
+    if (
+      requiresDiagrams &&
+      !diagram.diagramViewportVisible &&
+      !diagram.mobileFlowVisible
+    ) {
+      failures.push(`diagram ${diagram.selector} has no visible responsive representation`);
+    } else if (
+      requiresDiagrams &&
+      diagram.diagramViewportVisible &&
+      diagram.mobileFlowVisible
+    ) {
+      failures.push(`diagram ${diagram.selector} exposes duplicate responsive representations`);
+    }
+    if (requiresDiagrams && diagram.mobileFlowVisible) {
+      if (diagram.mobileFlowStepCount === 0) {
+        failures.push(`diagram ${diagram.selector} semantic responsive flow has no steps`);
       } else if (diagram.mobileFlowOverflow) {
         failures.push(
           `diagram ${diagram.selector} semantic mobile flow is ${diagram.mobileFlowWidth}px wide inside a ${diagram.clientWidth}px diagram`,
@@ -439,32 +442,30 @@ export function findResponsiveCaseFailures(
           `diagram ${diagram.selector} mobile text is ${diagram.minimumMobileTextPx}px; expected at least 12px`,
         );
       }
-      if (diagram.diagramViewportVisible) {
-        failures.push(`diagram ${diagram.selector} exposes the dense desktop SVG at ${reportViewportWidth}px`);
-      }
-    } else if (requiresDiagrams) {
-      if (!diagram.diagramViewportVisible) {
-        failures.push(`diagram ${diagram.selector} desktop visual viewport is not visible`);
-      } else if (diagram.mobileFlowVisible) {
-        failures.push(`diagram ${diagram.selector} compact flow remains visible at ${reportViewportWidth}px`);
-      } else if (
+    }
+    if (requiresDiagrams && diagram.diagramViewportVisible) {
+      if (
         diagram.minimumDesktopLabelTextPx <
         DESIGN_LAB_RESPONSIVE_DESKTOP_DIAGRAM_TEXT_FLOOR_PX
       ) {
         failures.push(
           `diagram ${diagram.selector} desktop label text renders at ${diagram.minimumDesktopLabelTextPx}px; expected at least ${DESIGN_LAB_RESPONSIVE_DESKTOP_DIAGRAM_TEXT_FLOOR_PX}px`,
         );
-      } else if (
-        diagram.viewportScrollWidth > diagram.viewportClientWidth + 1 &&
-        !diagram.horizontalScrollAvailable
-      ) {
-        failures.push(`diagram ${diagram.selector} has wide visual content without a contained scroll region`);
-      } else if (
-        diagram.viewportScrollWidth > diagram.viewportClientWidth + 1 &&
-        !diagram.keyboardScrollable
-      ) {
-        failures.push(`diagram ${diagram.selector} scroll region is not keyboard focusable`);
+      } else if (diagram.viewportScrollWidth > diagram.viewportClientWidth + 1) {
+        failures.push(
+          `diagram ${diagram.selector} requires horizontal scrolling; every visible diagram must fit in full`,
+        );
       }
+    }
+    if (requiresDiagrams && diagram.labelBoundaryFailures > 0) {
+      failures.push(
+        `diagram ${diagram.selector} has ${diagram.labelBoundaryFailures} labels outside their boxes`,
+      );
+    }
+    if (requiresDiagrams && diagram.overlappingBoxPairs > 0) {
+      failures.push(
+        `diagram ${diagram.selector} has ${diagram.overlappingBoxPairs} overlapping box pairs`,
+      );
     }
   }
   if (surface.kind === "workspace-area" && result.snapshot.activeArea !== surface.area) {
@@ -999,6 +1000,7 @@ function responsiveSnapshotExpression() {
         )
       );
       const diagramViewport = diagram.querySelector(".diagram-viewport, [data-diagram-viewport]");
+      const diagramViewportVisible = Boolean(diagramViewport && isVisible(diagramViewport));
       const mobileFlow = diagram.querySelector(".diagram-mobile-flow");
       const mobileFlowPresent = Boolean(mobileFlow);
       const mobileFlowVisible = Boolean(mobileFlow && isVisible(mobileFlow));
@@ -1033,6 +1035,49 @@ function responsiveSnapshotExpression() {
             .map((element) => Number.parseFloat(element.ownerDocument.defaultView.getComputedStyle(element).fontSize) * svgScale)
             .filter((value) => Number.isFinite(value) && value > 0)
         : [];
+      let labelBoundaryFailures = 0;
+      const visibleBoxRects = [];
+      const contains = (outer, inner, boundaryTolerance) =>
+        inner.left >= outer.left - boundaryTolerance &&
+        inner.right <= outer.right + boundaryTolerance &&
+        inner.top >= outer.top - boundaryTolerance &&
+        inner.bottom <= outer.bottom + boundaryTolerance;
+      if (diagramViewportVisible && svg) {
+        for (const node of svg.querySelectorAll(".node")) {
+          const shape = node.querySelector("rect, polygon, circle, ellipse, path");
+          const label = node.querySelector("foreignObject, .nodeLabel, .label");
+          if (!shape || !label || !label.textContent?.trim() || !isVisible(label)) continue;
+          const box = shape.getBoundingClientRect();
+          const text = label.getBoundingClientRect();
+          visibleBoxRects.push(box);
+          if (!contains(box, text, 3)) labelBoundaryFailures += 1;
+        }
+      }
+      if (mobileFlowVisible && mobileFlow) {
+        for (const step of mobileFlow.querySelectorAll(".diagram-mobile-step")) {
+          if (!isVisible(step)) continue;
+          const box = step.getBoundingClientRect();
+          visibleBoxRects.push(box);
+          for (const label of step.querySelectorAll(".diagram-mobile-step-number, .diagram-mobile-route strong, .diagram-mobile-action")) {
+            if (!isVisible(label) || !label.textContent?.trim()) continue;
+            if (!contains(box, label.getBoundingClientRect(), tolerance)) {
+              labelBoundaryFailures += 1;
+            }
+          }
+        }
+      }
+      let overlappingBoxPairs = 0;
+      for (let leftIndex = 0; leftIndex < visibleBoxRects.length; leftIndex += 1) {
+        for (let rightIndex = leftIndex + 1; rightIndex < visibleBoxRects.length; rightIndex += 1) {
+          const left = visibleBoxRects[leftIndex];
+          const right = visibleBoxRects[rightIndex];
+          const overlapWidth = Math.min(left.right, right.right) - Math.max(left.left, right.left);
+          const overlapHeight = Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top);
+          if (overlapWidth > tolerance && overlapHeight > tolerance) {
+            overlappingBoxPairs += 1;
+          }
+        }
+      }
       const rect = diagram.getBoundingClientRect();
       return {
         index: index + 1,
@@ -1042,7 +1087,7 @@ function responsiveSnapshotExpression() {
         clientWidth: diagram.clientWidth,
         scrollWidth: Math.max(diagram.scrollWidth, Math.ceil(rect.width)),
         clipped,
-        diagramViewportVisible: Boolean(diagramViewport && isVisible(diagramViewport)),
+        diagramViewportVisible,
         mobileFlowPresent,
         mobileFlowVisible,
         mobileFlowStepCount: mobileFlow?.querySelectorAll(".diagram-mobile-step").length || 0,
@@ -1052,6 +1097,8 @@ function responsiveSnapshotExpression() {
         minimumDesktopLabelTextPx: desktopLabelTextSizes.length > 0
           ? Math.min(...desktopLabelTextSizes)
           : 0,
+        labelBoundaryFailures,
+        overlappingBoxPairs,
         viewportClientWidth: diagramViewport?.clientWidth || 0,
         viewportScrollWidth: diagramViewport?.scrollWidth || 0,
         horizontalScrollAvailable: Boolean(
@@ -1415,6 +1462,8 @@ function isDiagramMeasurement(value: unknown): value is DiagramMeasurement {
     typeof value.mobileFlowOverflow === "boolean" &&
     typeof value.minimumMobileTextPx === "number" &&
     typeof value.minimumDesktopLabelTextPx === "number" &&
+    typeof value.labelBoundaryFailures === "number" &&
+    typeof value.overlappingBoxPairs === "number" &&
     typeof value.viewportClientWidth === "number" &&
     typeof value.viewportScrollWidth === "number" &&
     typeof value.horizontalScrollAvailable === "boolean" &&

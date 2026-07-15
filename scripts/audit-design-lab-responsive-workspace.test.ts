@@ -19,7 +19,6 @@ import {
 import {
   DESIGN_LAB_RESPONSIVE_DESKTOP_DIAGRAM_TEXT_FLOOR_PX,
   DESIGN_LAB_RESPONSIVE_DESKTOP_TABLE_TEXT_FLOOR_PX,
-  DESIGN_LAB_RESPONSIVE_DIAGRAM_COMPACT_MAX_WIDTH,
   DESIGN_LAB_RESPONSIVE_EMBEDDED_REPORT_MIN_WIDTH,
   DESIGN_LAB_RESPONSIVE_EVIDENCE_BOUNDARY,
   DESIGN_LAB_RESPONSIVE_SURFACES,
@@ -35,8 +34,8 @@ import {
 } from "./audit-design-lab-responsive-workspace";
 
 const expectedResponsiveWidths = [
-  320, 360, 375, 390, 430, 768, 820, 821, 1024, 1152, 1279, 1280, 1440,
-  1535, 1536, 1680, 1920,
+  320, 360, 375, 390, 430, 768, 820, 821, 1024, 1152, 1279, 1280, 1440, 1535,
+  1536, 1680, 1920,
 ];
 
 const expectedAreas = [
@@ -60,9 +59,8 @@ assert.deepEqual(
   DESIGN_LAB_RESPONSIVE_VIEWPORTS.map((viewport) => viewport.width),
   expectedResponsiveWidths,
 );
-assert.equal(DESIGN_LAB_RESPONSIVE_TABLE_COMPACT_MAX_WIDTH, 1200);
+assert.equal(DESIGN_LAB_RESPONSIVE_TABLE_COMPACT_MAX_WIDTH, 1320);
 assert.equal(DESIGN_LAB_RESPONSIVE_DESKTOP_TABLE_TEXT_FLOOR_PX, 10);
-assert.equal(DESIGN_LAB_RESPONSIVE_DIAGRAM_COMPACT_MAX_WIDTH, 820);
 assert.equal(DESIGN_LAB_RESPONSIVE_DESKTOP_DIAGRAM_TEXT_FLOOR_PX, 12);
 assert.equal(DESIGN_LAB_RESPONSIVE_EMBEDDED_REPORT_MIN_WIDTH, 1024);
 assert.equal(
@@ -169,6 +167,21 @@ assert.deepEqual(
   [],
 );
 
+for (const representationVariant of responsiveRepresentationVariants()) {
+  const caseInput = structuredClone(
+    representationVariant,
+  ) as Partial<ResponsiveCaseResult>;
+  delete caseInput.failures;
+  delete caseInput.passed;
+  assert.deepEqual(
+    findResponsiveCaseFailures(
+      caseInput as Omit<ResponsiveCaseResult, "failures" | "passed">,
+    ),
+    [],
+    representationVariant.id,
+  );
+}
+
 const failureCases: Array<{
   name: string;
   mutate: (value: ResponsiveCaseResult) => void;
@@ -178,7 +191,8 @@ const failureCases: Array<{
     name: "document overflow",
     mutate: (value) => {
       value.snapshot.document.horizontalOverflow = true;
-      value.snapshot.document.scrollWidth = value.snapshot.document.clientWidth + 20;
+      value.snapshot.document.scrollWidth =
+        value.snapshot.document.clientWidth + 20;
     },
     expected: /document horizontal overflow/,
   },
@@ -229,6 +243,8 @@ const failureCases: Array<{
           mobileFlowOverflow: false,
           minimumMobileTextPx: 12,
           minimumDesktopLabelTextPx: 0,
+          labelBoundaryFailures: 0,
+          overlappingBoxPairs: 0,
           viewportClientWidth: 0,
           viewportScrollWidth: 0,
           horizontalScrollAvailable: false,
@@ -264,6 +280,8 @@ const failureCases: Array<{
           mobileFlowOverflow: false,
           minimumMobileTextPx: 8,
           minimumDesktopLabelTextPx: 0,
+          labelBoundaryFailures: 0,
+          overlappingBoxPairs: 0,
           viewportClientWidth: 0,
           viewportScrollWidth: 0,
           horizontalScrollAvailable: false,
@@ -277,17 +295,61 @@ const failureCases: Array<{
     name: "illegible desktop diagram",
     mutate: (value) => {
       setArchitectureReportCase(value, 821);
+      value.snapshot.diagrams[0].diagramViewportVisible = true;
+      value.snapshot.diagrams[0].mobileFlowVisible = false;
+      value.snapshot.diagrams[0].minimumMobileTextPx = 0;
       value.snapshot.diagrams[0].minimumDesktopLabelTextPx = 11;
+      value.snapshot.diagrams[0].viewportClientWidth = 741;
+      value.snapshot.diagrams[0].viewportScrollWidth = 741;
     },
     expected: /desktop label text renders at 11px/,
   },
   {
-    name: "non-keyboard diagram scroll region",
+    name: "scrolling diagram representation",
     mutate: (value) => {
       setArchitectureReportCase(value, 821);
-      value.snapshot.diagrams[0].keyboardScrollable = false;
+      value.snapshot.diagrams[0].diagramViewportVisible = true;
+      value.snapshot.diagrams[0].mobileFlowVisible = false;
+      value.snapshot.diagrams[0].minimumMobileTextPx = 0;
+      value.snapshot.diagrams[0].minimumDesktopLabelTextPx = 12;
+      value.snapshot.diagrams[0].viewportClientWidth = 741;
+      value.snapshot.diagrams[0].viewportScrollWidth = 1200;
     },
-    expected: /scroll region is not keyboard focusable/,
+    expected: /requires horizontal scrolling/,
+  },
+  {
+    name: "diagram label outside box",
+    mutate: (value) => {
+      setArchitectureReportCase(value, 390);
+      value.snapshot.diagrams[0].labelBoundaryFailures = 1;
+    },
+    expected: /1 labels outside their boxes/,
+  },
+  {
+    name: "overlapping diagram boxes",
+    mutate: (value) => {
+      setArchitectureReportCase(value, 390);
+      value.snapshot.diagrams[0].overlappingBoxPairs = 2;
+    },
+    expected: /2 overlapping box pairs/,
+  },
+  {
+    name: "duplicate table representations",
+    mutate: (value) => {
+      setArchitectureReportCase(value, 1440);
+      value.snapshot.tables[0].mobileCardsVisible = true;
+      value.snapshot.tables[0].minimumMobileTextPx = 11;
+    },
+    expected: /duplicate responsive representations/,
+  },
+  {
+    name: "missing diagram representation",
+    mutate: (value) => {
+      setArchitectureReportCase(value, 390);
+      value.snapshot.diagrams[0].diagramViewportVisible = false;
+      value.snapshot.diagrams[0].mobileFlowVisible = false;
+    },
+    expected: /no visible responsive representation/,
   },
   {
     name: "missing mobile table records",
@@ -400,7 +462,7 @@ const failureCases: Array<{
   {
     name: "illegible desktop table",
     mutate: (value) => {
-      setArchitectureReportCase(value, 1280);
+      setArchitectureReportCase(value, 1440);
       value.snapshot.tables[0].minimumDesktopTextPx = 9;
     },
     expected: /desktop text renders at 9px/,
@@ -479,7 +541,9 @@ for (const mutate of [
 ]) {
   const invalid = structuredClone(validAudit);
   mutate(invalid);
-  assert.ok(findDesignLabResponsiveWorkspaceAuditIssues(invalid, binding).length > 0);
+  assert.ok(
+    findDesignLabResponsiveWorkspaceAuditIssues(invalid, binding).length > 0,
+  );
 }
 assert.ok(
   findDesignLabResponsiveWorkspaceAuditIssues(
@@ -513,8 +577,7 @@ function validSnapshot(
     : width;
   const compactTable =
     hasReport && reportWidth <= DESIGN_LAB_RESPONSIVE_TABLE_COMPACT_MAX_WIDTH;
-  const compactDiagram =
-    hasReport && reportWidth <= DESIGN_LAB_RESPONSIVE_DIAGRAM_COMPACT_MAX_WIDTH;
+  const compactDiagram = hasReport;
   const diagramViewportWidth = Math.max(reportWidth - 80, 0);
   const diagramScrollWidth = compactDiagram
     ? 0
@@ -585,6 +648,8 @@ function validSnapshot(
             mobileFlowOverflow: false,
             minimumMobileTextPx: compactDiagram ? 12 : 0,
             minimumDesktopLabelTextPx: compactDiagram ? 0 : 12,
+            labelBoundaryFailures: 0,
+            overlappingBoxPairs: 0,
             viewportClientWidth: compactDiagram ? 0 : diagramViewportWidth,
             viewportScrollWidth: diagramScrollWidth,
             horizontalScrollAvailable: !compactDiagram,
@@ -595,10 +660,7 @@ function validSnapshot(
   };
 }
 
-function setArchitectureReportCase(
-  value: ResponsiveCaseResult,
-  width: number,
-) {
+function setArchitectureReportCase(value: ResponsiveCaseResult, width: number) {
   value.surfaceId = "architecture-report";
   value.kind = "architecture-report";
   value.area = null;
@@ -632,6 +694,41 @@ function setWorkspaceArchitectureCase(
   );
 }
 
+function responsiveRepresentationVariants() {
+  const desktopCards = structuredClone(
+    validResults.find((result) => result.id === "architecture-report@1440")!,
+  );
+  desktopCards.id = "architecture-report@1440-cards";
+  desktopCards.snapshot.tables[0].visible = false;
+  desktopCards.snapshot.tables[0].minimumDesktopTextPx = 0;
+  desktopCards.snapshot.tables[0].mobileCardsVisible = true;
+  desktopCards.snapshot.tables[0].minimumMobileTextPx = 11;
+
+  const compactTable = structuredClone(
+    validResults.find((result) => result.id === "architecture-report@390")!,
+  );
+  compactTable.id = "architecture-report@390-table";
+  compactTable.snapshot.tables[0].visible = true;
+  compactTable.snapshot.tables[0].tableWidth = 350;
+  compactTable.snapshot.tables[0].containerWidth = 350;
+  compactTable.snapshot.tables[0].mobileCardsVisible = false;
+  compactTable.snapshot.tables[0].minimumMobileTextPx = 0;
+  compactTable.snapshot.tables[0].minimumDesktopTextPx = 10;
+
+  const compactSvg = structuredClone(
+    validResults.find((result) => result.id === "architecture-report@390")!,
+  );
+  compactSvg.id = "architecture-report@390-svg";
+  compactSvg.snapshot.diagrams[0].diagramViewportVisible = true;
+  compactSvg.snapshot.diagrams[0].mobileFlowVisible = false;
+  compactSvg.snapshot.diagrams[0].minimumMobileTextPx = 0;
+  compactSvg.snapshot.diagrams[0].minimumDesktopLabelTextPx = 12;
+  compactSvg.snapshot.diagrams[0].viewportClientWidth = 310;
+  compactSvg.snapshot.diagrams[0].viewportScrollWidth = 310;
+
+  return [desktopCards, compactTable, compactSvg];
+}
+
 async function assertAtomicWriter() {
   const temporaryRoot = realpathSync(tmpdir());
   const testDirectory = mkdtempSync(
@@ -646,7 +743,9 @@ async function assertAtomicWriter() {
 
     const invalidTarget = path.join(testDirectory, "directory-target");
     mkdirSync(invalidTarget);
-    await assert.rejects(() => writeResponsiveReport(invalidTarget, "rejected\n"));
+    await assert.rejects(() =>
+      writeResponsiveReport(invalidTarget, "rejected\n"),
+    );
     assert.equal(readFileSync(outputPath, "utf8"), "replacement\n");
     assert.deepEqual(temporaryFiles(testDirectory), []);
   } finally {

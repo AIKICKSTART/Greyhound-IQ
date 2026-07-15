@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "auditKind": "design-lab-hydrated-wave2",
   "evidenceBoundary": "Isolated loopback full-access-read-only interaction evidence for the role, Feed-device and Marketplace review routes; not deployed-image identity or production approval.",
-  "generatedAt": "2026-07-15T13:36:59.105Z",
+  "generatedAt": "2026-07-15T18:52:48.162Z",
   "baseUrl": "http://localhost:3000",
   "browser": {
     "product": "Chrome/150.0.7871.115",
@@ -11,8 +11,8 @@
   "companionHttpAudit": {
     "path": "output/demo-route-audit/design-lab-user-stories.json",
     "auditKind": "design-lab-user-stories",
-    "sha256": "c872680ce8e7080809594d41b6a4df89815db5a5a89664369f9fbd29a6e6713c",
-    "sourceSha256": "bd926f88e8a169444d69aeaa5e33ec27542dd68a7053ef800b21a0bc92ad8246",
+    "sha256": "1b3b97f75bd95c02b235f30bc0407c5f5a2265ae9649d1bbab4f9a1e6241b9c2",
+    "sourceSha256": "5807b2f6aedd7ae67841344ad33816b0ea6cefa54813dd1bc6ebecc4ed3599df",
     "expectedScenarios": 13,
     "passedScenarios": 13
   },
@@ -683,9 +683,9 @@
       "fixtureIds": []
     }
   ],
-  "testedCommitSha": "f4e0d0554bb268c7bc98273e036764800f70e6dd",
-  "sourceSha256": "c91c566bf9b27e1e004f2444c03e4ecd3850e84f72d0da9acbb5209850d90bb6",
-  "sourceFileCount": 132,
+  "testedCommitSha": "b6651bd1e8463ee528e9fd969625040d4d0a52ff",
+  "sourceSha256": "9ec8351abef8a72970ab73c502927891b590a7b6bb8f8938f2e995d1a134af9e",
+  "sourceFileCount": 133,
   "sourceFiles": [
     "next.config.ts",
     "scripts/audit-design-lab-hydrated-wave2.ts",
@@ -801,6 +801,7 @@
     "src/lib/notification-service.ts",
     "src/lib/notification-webhook-policy.ts",
     "src/lib/notification-webhook.ts",
+    "src/lib/object-storage-provider.ts",
     "src/lib/object-storage.ts",
     "src/lib/public-network.ts",
     "src/lib/realtime-service.ts",
@@ -829,9 +830,9 @@
       "requestPath": "/design-lab/role-blueprints",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "2afea2b4-5556-417d-b7f4-abbb09f9a5c1",
+      "requestId": "b690455f-8473-4432-abde-711c76d5e533",
       "demoMode": "full-access-read-only",
-      "durationMs": 1584,
+      "durationMs": 1341,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints",
@@ -871,9 +872,9 @@
       "requestPath": "/design-lab/role-blueprints?role=trainer&variant=A1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "42ba9721-00a2-4d61-84c4-73ae22089aec",
+      "requestId": "589d0f5e-1100-4040-8361-783f7ffb374a",
       "demoMode": "full-access-read-only",
-      "durationMs": 1291,
+      "durationMs": 1435,
       "observed": {
         "transition": {
           "from": {
@@ -928,9 +929,9 @@
       "requestPath": "/design-lab/role-blueprints?role=business&variant=A2",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "0e1b00c4-605e-411c-979c-862befed1524",
+      "requestId": "ab4f75dc-42a5-4276-9d92-b205c0d1272e",
       "demoMode": "full-access-read-only",
-      "durationMs": 1277,
+      "durationMs": 1268,
       "observed": {
         "transition": {
           "from": {
@@ -985,9 +986,9 @@
       "requestPath": "/design-lab/role-blueprints?role=business&variant=B1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "36d976d0-a7a4-4d1c-9842-499661a13d44",
+      "requestId": "a7a72edf-aaa2-4f3b-acad-784861a7940b",
       "demoMode": "full-access-read-only",
-      "durationMs": 1332,
+      "durationMs": 1269,
       "observed": {
         "transition": {
           "from": {
@@ -1042,9 +1043,9 @@
       "requestPath": "/design-lab/role-blueprints?role=business&variant=B2",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "3c7022d5-b89e-4847-a4fd-15b91995df13",
+      "requestId": "9d67c630-925e-45b3-abec-5efe14e41288",
       "demoMode": "full-access-read-only",
-      "durationMs": 1232,
+      "durationMs": 1347,
       "observed": {
         "transition": {
           "from": {
@@ -1099,9 +1100,9 @@
       "requestPath": "/design-lab/role-blueprints?role=trainer&variant=A2",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "1c95b3a0-1030-4c0b-86e3-121ab2f28dbd",
+      "requestId": "63b2f965-d0b0-4eb5-9aae-6434e7d77926",
       "demoMode": "full-access-read-only",
-      "durationMs": 1243,
+      "durationMs": 1228,
       "observed": {
         "transition": {
           "from": {
@@ -1156,9 +1157,9 @@
       "requestPath": "/design-lab/role-blueprints?role=owner&variant=A1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "e279b6a8-10cf-429c-a3ab-e6b32d6e8713",
+      "requestId": "7856c2b6-ea40-4971-92bc-36716229a233",
       "demoMode": "full-access-read-only",
-      "durationMs": 1256,
+      "durationMs": 1316,
       "observed": {
         "transition": {
           "from": {
@@ -1213,9 +1214,9 @@
       "requestPath": "/design-lab/role-blueprints?role=punter&variant=A1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "5ebf17ce-ad64-441e-82f0-22e842d46af8",
+      "requestId": "444e8eb3-0aae-49dd-8e83-00539a8e230b",
       "demoMode": "full-access-read-only",
-      "durationMs": 1295,
+      "durationMs": 1231,
       "observed": {
         "transition": {
           "from": {
@@ -1270,9 +1271,9 @@
       "requestPath": "/design-lab/role-blueprints?role=business&variant=A1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "4c34567b-d20c-4265-a8a8-4e686c56feb8",
+      "requestId": "b67ac2c1-c760-430d-855f-15c15dd32346",
       "demoMode": "full-access-read-only",
-      "durationMs": 1364,
+      "durationMs": 1269,
       "observed": {
         "transition": {
           "from": {
@@ -1327,9 +1328,9 @@
       "requestPath": "/design-lab/role-blueprints?role=business&variant=A1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "afe95042-02a9-4a83-b06f-5a6db88c6856",
+      "requestId": "dbba459e-e5ae-4c96-b0bc-d033b87b9f04",
       "demoMode": "full-access-read-only",
-      "durationMs": 1307,
+      "durationMs": 1215,
       "observed": {
         "transition": {
           "from": {
@@ -1384,9 +1385,9 @@
       "requestPath": "/design-lab/role-blueprints?role=business&variant=A1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "b242f7f1-294c-4752-8938-440254dc6a72",
+      "requestId": "9f6c0a80-073d-4dbf-97ff-840e7b8f2844",
       "demoMode": "full-access-read-only",
-      "durationMs": 1285,
+      "durationMs": 1251,
       "observed": {
         "transition": {
           "from": {
@@ -1441,9 +1442,9 @@
       "requestPath": "/design-lab/role-blueprints?role=business&variant=A2",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "9e08fb95-2cbf-4172-9529-2177294c9117",
+      "requestId": "d6edebbc-a759-45c3-8989-d7dd45682d4a",
       "demoMode": "full-access-read-only",
-      "durationMs": 990,
+      "durationMs": 919,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=business&variant=A2",
@@ -1483,9 +1484,9 @@
       "requestPath": "/design-lab/role-blueprints?role=business&variant=B1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "dd7d6553-8c03-45d8-8e6a-915e0406bc7d",
+      "requestId": "ea400f6e-e18c-483e-a2d1-552168dda398",
       "demoMode": "full-access-read-only",
-      "durationMs": 935,
+      "durationMs": 903,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=business&variant=B1",
@@ -1525,9 +1526,9 @@
       "requestPath": "/design-lab/role-blueprints?role=trainer&variant=B1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "16a0e7d7-63f3-4f62-9509-a4c21025af07",
+      "requestId": "845cc66e-de96-4d98-86eb-7c782fbe17fd",
       "demoMode": "full-access-read-only",
-      "durationMs": 911,
+      "durationMs": 952,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=trainer&variant=B1",
@@ -1567,9 +1568,9 @@
       "requestPath": "/design-lab/role-blueprints?role=trainer&variant=B2",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "b5cf2070-683f-446f-87c8-e91a968d197a",
+      "requestId": "f74a37be-4205-4455-b325-c4e976627426",
       "demoMode": "full-access-read-only",
-      "durationMs": 970,
+      "durationMs": 1075,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=trainer&variant=B2",
@@ -1609,9 +1610,9 @@
       "requestPath": "/design-lab/role-blueprints?role=trainer&variant=C1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "dfc02779-5cc3-487e-82d0-5f3bab59a785",
+      "requestId": "66e3b3a5-9152-4167-952c-8d573bea1bff",
       "demoMode": "full-access-read-only",
-      "durationMs": 1575,
+      "durationMs": 969,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=trainer&variant=C1",
@@ -1651,9 +1652,9 @@
       "requestPath": "/design-lab/role-blueprints?role=trainer&variant=C2",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "af54adcf-388d-430f-b72a-858a84abbbd0",
+      "requestId": "8bbd89d9-3142-4f9e-bf4a-7148f5ba39cf",
       "demoMode": "full-access-read-only",
-      "durationMs": 1343,
+      "durationMs": 2226,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=trainer&variant=C2",
@@ -1693,9 +1694,9 @@
       "requestPath": "/design-lab/role-blueprints?role=owner&variant=A1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "5fef67db-6582-43a0-a7ba-e010854b1f64",
+      "requestId": "b05543ce-db74-4c3e-b593-431e6610192e",
       "demoMode": "full-access-read-only",
-      "durationMs": 907,
+      "durationMs": 8844,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=owner&variant=A1",
@@ -1735,9 +1736,9 @@
       "requestPath": "/design-lab/role-blueprints?role=owner&variant=B2",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "6d378a2e-7350-4c16-8d56-07502a26d6b3",
+      "requestId": "5390e492-b3c5-4ab5-a98c-f7a08a40ebfc",
       "demoMode": "full-access-read-only",
-      "durationMs": 940,
+      "durationMs": 2012,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=owner&variant=B2",
@@ -1777,9 +1778,9 @@
       "requestPath": "/design-lab/role-blueprints?role=owner&variant=C1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "781ed917-a063-4b73-9f61-434962daf48d",
+      "requestId": "064163d9-18f3-4091-a3b6-9f81f0e6dc33",
       "demoMode": "full-access-read-only",
-      "durationMs": 913,
+      "durationMs": 863,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=owner&variant=C1",
@@ -1819,9 +1820,9 @@
       "requestPath": "/design-lab/role-blueprints?role=owner&variant=C2",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "57bcda14-0783-48cb-89ab-d8f3c0a9e1bd",
+      "requestId": "89a1262e-750e-4854-a8e2-bd4b54c6115d",
       "demoMode": "full-access-read-only",
-      "durationMs": 878,
+      "durationMs": 943,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=owner&variant=C2",
@@ -1861,9 +1862,9 @@
       "requestPath": "/design-lab/role-blueprints?role=punter&variant=A1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "2b5130bf-c277-4318-8a72-69f8f3a0877c",
+      "requestId": "62958eb1-3f15-47e4-83e7-bc3b912565cf",
       "demoMode": "full-access-read-only",
-      "durationMs": 909,
+      "durationMs": 961,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=punter&variant=A1",
@@ -1903,9 +1904,9 @@
       "requestPath": "/design-lab/role-blueprints?role=punter&variant=A2",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "88ed1071-f393-49b0-8257-c41354f83f73",
+      "requestId": "af61685e-f9ca-47d4-a09f-ac74ff4cb8d2",
       "demoMode": "full-access-read-only",
-      "durationMs": 960,
+      "durationMs": 931,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=punter&variant=A2",
@@ -1945,9 +1946,9 @@
       "requestPath": "/design-lab/role-blueprints?role=punter&variant=C1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "7aa96527-f73c-488c-b6bd-fb1fdae0ff7f",
+      "requestId": "083f43ca-6619-4b90-ae4c-66417f757bc4",
       "demoMode": "full-access-read-only",
-      "durationMs": 913,
+      "durationMs": 1007,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=punter&variant=C1",
@@ -1987,9 +1988,9 @@
       "requestPath": "/design-lab/role-blueprints?role=punter&variant=C2",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "5e5231e8-5ef4-448d-8c56-d20847b2ebfb",
+      "requestId": "df65b7a6-6ce2-48a1-930c-afdeace5e3c4",
       "demoMode": "full-access-read-only",
-      "durationMs": 907,
+      "durationMs": 971,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=punter&variant=C2",
@@ -2029,9 +2030,9 @@
       "requestPath": "/design-lab/role-blueprints?role=unsupported&variant=Z9",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "66b6f40f-43db-4c8a-be4b-1a325c62ee1e",
+      "requestId": "b2202389-ce81-4b8b-af7c-d08f84d85cfe",
       "demoMode": "full-access-read-only",
-      "durationMs": 961,
+      "durationMs": 1011,
       "observed": {
         "view": {
           "currentPath": "/design-lab/role-blueprints?role=unsupported&variant=Z9",
@@ -2071,9 +2072,9 @@
       "requestPath": "/feed/device-preview",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "98ce9435-d93b-46d9-8ff3-cca4ed59eb68",
+      "requestId": "35bca26b-da35-4188-bbc4-e482f8f2612f",
       "demoMode": "full-access-read-only",
-      "durationMs": 1573,
+      "durationMs": 2066,
       "observed": {
         "view": {
           "currentPath": "/feed/device-preview",
@@ -2137,9 +2138,9 @@
       "requestPath": "/feed/device-preview?device=tablet&variant=A1&dock=D1&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "309856b3-e283-42f1-875f-e18a9c968f53",
+      "requestId": "2262feef-6694-4358-a444-308df3d0e53b",
       "demoMode": "full-access-read-only",
-      "durationMs": 2208,
+      "durationMs": 2099,
       "observed": {
         "transition": {
           "from": {
@@ -2222,9 +2223,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "1c063700-aaa0-4a8f-b1bc-a22c7864b1d5",
+      "requestId": "3f5c2bde-05ac-403f-8bb7-27b0a076750d",
       "demoMode": "full-access-read-only",
-      "durationMs": 2182,
+      "durationMs": 2017,
       "observed": {
         "transition": {
           "from": {
@@ -2307,9 +2308,9 @@
       "requestPath": "/feed/device-preview?device=desktop&variant=A1&dock=D1&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "2bb3b0ea-9bae-465a-953a-2f7611b33b39",
+      "requestId": "c133fcc9-e417-49ae-867d-5d323b953270",
       "demoMode": "full-access-read-only",
-      "durationMs": 2112,
+      "durationMs": 2275,
       "observed": {
         "transition": {
           "from": {
@@ -2392,9 +2393,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=A2&dock=D1&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "786ac036-e84d-4d43-8ad5-8d743cef895a",
+      "requestId": "9c60c212-8872-44e9-baee-98ab948a63ee",
       "demoMode": "full-access-read-only",
-      "durationMs": 2156,
+      "durationMs": 2241,
       "observed": {
         "transition": {
           "from": {
@@ -2477,9 +2478,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=B1&dock=D1&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "a132f1ed-96c4-4e41-8e42-b7c1ded08268",
+      "requestId": "b223092c-dac7-4565-8304-8d034451e9a7",
       "demoMode": "full-access-read-only",
-      "durationMs": 2196,
+      "durationMs": 2249,
       "observed": {
         "transition": {
           "from": {
@@ -2562,9 +2563,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=B2&dock=D1&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "9b79d5a4-3a74-405c-b4da-d019bf8ce52a",
+      "requestId": "d1857a60-39f3-4c78-814c-08b69f212595",
       "demoMode": "full-access-read-only",
-      "durationMs": 2398,
+      "durationMs": 1886,
       "observed": {
         "transition": {
           "from": {
@@ -2647,7 +2648,7 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=C1&dock=D1&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "b492c850-e696-4a19-9d61-f5eea0c36a6d",
+      "requestId": "a1b27cd4-9c71-4579-bf65-cd4e6524f1bf",
       "demoMode": "full-access-read-only",
       "durationMs": 2203,
       "observed": {
@@ -2732,9 +2733,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=C2&dock=D1&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "74303222-b97f-4aa4-abdd-0bd80a84428a",
+      "requestId": "460a3674-aa58-47fc-9cfd-5d9a76e9659a",
       "demoMode": "full-access-read-only",
-      "durationMs": 2328,
+      "durationMs": 2022,
       "observed": {
         "transition": {
           "from": {
@@ -2817,9 +2818,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "8e24dcd6-6705-4ba3-a23a-59a388d4f431",
+      "requestId": "f4bbabde-4959-40b7-9e35-2880d648f95f",
       "demoMode": "full-access-read-only",
-      "durationMs": 2277,
+      "durationMs": 2397,
       "observed": {
         "transition": {
           "from": {
@@ -2902,9 +2903,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D2&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "62d042ae-1067-4d63-9238-11e817767d96",
+      "requestId": "d1774f2c-460e-4051-8080-cdbb91c13004",
       "demoMode": "full-access-read-only",
-      "durationMs": 3040,
+      "durationMs": 2419,
       "observed": {
         "transition": {
           "from": {
@@ -2987,9 +2988,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D3&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "4276640d-1e0d-4e1a-8b9c-15a00fc5e639",
+      "requestId": "f7e9fa66-8a8c-416c-b73c-bdb271215576",
       "demoMode": "full-access-read-only",
-      "durationMs": 2219,
+      "durationMs": 2302,
       "observed": {
         "transition": {
           "from": {
@@ -3072,9 +3073,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D4&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "6fc1df08-1fd5-4208-a6ea-2aff0cc5ddfb",
+      "requestId": "578854ea-ebfd-4a89-a732-4d2c78faf5ba",
       "demoMode": "full-access-read-only",
-      "durationMs": 2378,
+      "durationMs": 2346,
       "observed": {
         "transition": {
           "from": {
@@ -3157,9 +3158,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D5&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "9bcabe6d-d226-4e87-92fa-3a12f3180071",
+      "requestId": "ebb801ff-63e0-4a73-b1f3-57f3c75ccfe2",
       "demoMode": "full-access-read-only",
-      "durationMs": 2314,
+      "durationMs": 1955,
       "observed": {
         "transition": {
           "from": {
@@ -3242,9 +3243,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D6&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "304b0c27-18d8-4511-ae9d-1d4e072e179a",
+      "requestId": "f8c801ba-851f-4320-b377-4fd6708a5e5e",
       "demoMode": "full-access-read-only",
-      "durationMs": 2359,
+      "durationMs": 3640,
       "observed": {
         "transition": {
           "from": {
@@ -3327,9 +3328,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "3094c8df-002b-4280-b2d1-b16cd9df3500",
+      "requestId": "82d1ff87-0f16-415b-a274-43322a3f9194",
       "demoMode": "full-access-read-only",
-      "durationMs": 2288,
+      "durationMs": 10184,
       "observed": {
         "transition": {
           "from": {
@@ -3412,9 +3413,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "f8a740d7-d721-408a-8f36-2697271d9013",
+      "requestId": "7d397bc2-6b50-480d-9a2d-9e02114564fc",
       "demoMode": "full-access-read-only",
-      "durationMs": 1950,
+      "durationMs": 2166,
       "observed": {
         "view": {
           "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
@@ -3478,9 +3479,9 @@
       "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=off",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "37c1b4ee-171e-4c74-9892-2fc9fb46804d",
+      "requestId": "c1dfe94c-1757-461d-b5f7-6406465fccfa",
       "demoMode": "full-access-read-only",
-      "durationMs": 1921,
+      "durationMs": 1943,
       "observed": {
         "view": {
           "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=off",
@@ -3544,9 +3545,9 @@
       "requestPath": "/feed/device-preview?device=tablet&variant=C2&dock=D6&sponsored=off",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "9682e1e8-beef-4cc7-b3cc-f9e1a330cfdb",
+      "requestId": "26bc4c18-2767-42d0-9278-ae156d91093b",
       "demoMode": "full-access-read-only",
-      "durationMs": 1875,
+      "durationMs": 1976,
       "observed": {
         "view": {
           "currentPath": "/feed/device-preview?device=tablet&variant=C2&dock=D6&sponsored=off",
@@ -3610,9 +3611,9 @@
       "requestPath": "/feed/device-preview?device=unsupported&variant=Z9&dock=D9&sponsored=unexpected",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "f41e581a-4a15-4c2d-8fda-c911f05c9c7c",
+      "requestId": "10207b39-5643-4d0b-b8fa-26203ed69055",
       "demoMode": "full-access-read-only",
-      "durationMs": 1987,
+      "durationMs": 2114,
       "observed": {
         "view": {
           "currentPath": "/feed/device-preview?device=unsupported&variant=Z9&dock=D9&sponsored=unexpected",
@@ -3676,9 +3677,9 @@
       "requestPath": "/marketplace/design-lab",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "20dab48f-5ef3-4338-8494-1a5ecee669d8",
+      "requestId": "0aff44bc-b234-473f-b8f4-991eca0285d7",
       "demoMode": "full-access-read-only",
-      "durationMs": 1031,
+      "durationMs": 1027,
       "observed": {
         "view": {
           "currentPath": "/marketplace/design-lab",
@@ -3717,9 +3718,9 @@
       "requestPath": "/marketplace/design-lab?template=M2",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "2b83c6e6-c9df-40ab-8947-c2de234c6f03",
+      "requestId": "034448f2-ba5a-490e-9bdd-bc9a3b6c6abe",
       "demoMode": "full-access-read-only",
-      "durationMs": 1495,
+      "durationMs": 1431,
       "observed": {
         "transition": {
           "from": {
@@ -3771,9 +3772,9 @@
       "requestPath": "/marketplace/design-lab?template=M3",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "56a89863-c12c-4bdd-a590-cdf04ec0835a",
+      "requestId": "b5a859b2-3cbc-4cef-ab72-956e3da41d0b",
       "demoMode": "full-access-read-only",
-      "durationMs": 1364,
+      "durationMs": 1360,
       "observed": {
         "transition": {
           "from": {
@@ -3825,9 +3826,9 @@
       "requestPath": "/marketplace/design-lab?template=M4",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "99159364-e558-4e1c-b9b8-6f36dc2c39e7",
+      "requestId": "9293dcc9-4e39-47ed-9c75-68d8cd38d077",
       "demoMode": "full-access-read-only",
-      "durationMs": 1424,
+      "durationMs": 1418,
       "observed": {
         "transition": {
           "from": {
@@ -3879,9 +3880,9 @@
       "requestPath": "/marketplace/design-lab?template=M5",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "d817f77a-3734-4ce8-9039-0ab15b547bf6",
+      "requestId": "95025a20-c060-42f6-8072-a7e833dd754f",
       "demoMode": "full-access-read-only",
-      "durationMs": 1381,
+      "durationMs": 1451,
       "observed": {
         "transition": {
           "from": {
@@ -3933,9 +3934,9 @@
       "requestPath": "/marketplace/design-lab?template=M6",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "f0dbda12-62f5-40ba-a52e-25b70a2c2940",
+      "requestId": "f6029dbc-197d-4200-b2ac-002bc0349947",
       "demoMode": "full-access-read-only",
-      "durationMs": 1478,
+      "durationMs": 1486,
       "observed": {
         "transition": {
           "from": {
@@ -3987,9 +3988,9 @@
       "requestPath": "/marketplace/design-lab?template=M1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "709e989b-9e37-4224-90d7-3596d143e59b",
+      "requestId": "31ae5a8f-6ff5-45db-ba8a-cad3534592d7",
       "demoMode": "full-access-read-only",
-      "durationMs": 1401,
+      "durationMs": 1329,
       "observed": {
         "transition": {
           "from": {
@@ -4041,9 +4042,9 @@
       "requestPath": "/marketplace/design-lab?template=unsupported",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "aa1af632-c782-43e3-a411-b463c76bf3eb",
+      "requestId": "b2a4ddc8-d006-4799-b48c-1937e775b0c2",
       "demoMode": "full-access-read-only",
-      "durationMs": 1126,
+      "durationMs": 1064,
       "observed": {
         "view": {
           "currentPath": "/marketplace/design-lab?template=unsupported",
@@ -4082,9 +4083,9 @@
       "requestPath": "/marketplace/design-lab?template=M1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "eb96c266-793a-48b7-9378-16889c12fe8a",
+      "requestId": "dce2257a-9eaf-4851-9b97-bb507f2c973c",
       "demoMode": "full-access-read-only",
-      "durationMs": 1836,
+      "durationMs": 1756,
       "observed": {
         "transition": {
           "from": {

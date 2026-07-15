@@ -142,12 +142,15 @@ assert.doesNotMatch(report, /class="diagram-scroll-hint"/);
 assert.doesNotMatch(report, /data-readable-width="[0-9]+"/);
 assert.match(canonicalReport, /\.mobile-table-cards\{display:grid;gap:8px\}/);
 assert.match(canonicalReport, /@media\(max-width:480px\)\{\.mobile-table-field\{grid-template-columns:1fr/);
-assert.match(canonicalReport, /\.diagram-mobile-flow\{display:grid;gap:8px\}/);
-assert.match(canonicalReport, /\.diagram-viewport\{[^}]*overflow:hidden/);
+assert.match(
+  canonicalReport,
+  /\.diagram-mobile-flow\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:8px/,
+);
+assert.match(canonicalReport, /\.diagram-viewport\{display:none;[^}]*overflow:hidden/);
 assert.doesNotMatch(canonicalReport, /--diagram-readable-width/);
 assert.match(canonicalReport, /viewport\.tabIndex = 0/);
-assert.match(canonicalReport, /@media\(max-width:1320px\)[\s\S]*\.diagram-viewport\{display:none\}/);
 assert.match(canonicalReport, /@media\(max-width:1320px\)[\s\S]*\.table table\{display:none\}/);
+assert.match(canonicalReport, /@media\(max-width:820px\)[\s\S]*\.diagram-mobile-flow\{grid-template-columns:1fr\}/);
 assert.match(canonicalReport, /th\{[^}]*font:900 10px/);
 assert.match(canonicalReport, /td\{[^}]*font-size:11px/);
 assert.match(canonicalReport, /\.diagram-mobile-route strong\{[^}]*font-size:12px/);

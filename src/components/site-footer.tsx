@@ -12,9 +12,6 @@ const FOOTER_SECTIONS = [
       { href: "/breeding", label: "Breeding" },
       { href: "/agents", label: "Agents" },
       { href: "/marketplace", label: "Marketplace" },
-      { href: "/groups", label: "Groups" },
-      { href: "/feed", label: "Feed" },
-      { href: "/pulse", label: "Pulse" },
     ],
   },
   {
@@ -30,7 +27,7 @@ const FOOTER_SECTIONS = [
     links: [
       { href: "/privacy", label: "Privacy" },
       { href: "/terms", label: "Terms" },
-      { href: "/terms#responsible-use", label: "Responsible use" },
+      { href: "/responsible-use", label: "Responsible use" },
     ],
   },
 ];
@@ -38,9 +35,9 @@ const FOOTER_SECTIONS = [
 const MOBILE_FOOTER_LINKS = [
   { href: "/races", label: "Races" },
   { href: "/marketplace", label: "Marketplace" },
-  { href: "/pulse", label: "Pulse" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
+  { href: "/responsible-use", label: "Responsible use" },
 ];
 
 const FOOTER_BG_DESKTOP = siteAssetUrl("/images/site-footer-finish-line-cinematic.webp");

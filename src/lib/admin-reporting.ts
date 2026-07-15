@@ -27,20 +27,14 @@ const sydneyDay = new Intl.DateTimeFormat("en-CA", {
 });
 
 // Buckets weighted timestamps into Sydney-local days over the trailing window.
-function buildSeries(stamps: Array<{ at: Date; weight: number }>): DailySeries {
+function buildSeries(rows: Array<{ day: string; value: bigint }>): DailySeries {
   const now = Date.now();
   const days: string[] = [];
   for (let i = WINDOW_DAYS - 1; i >= 0; i -= 1) {
     days.push(sydneyDay.format(new Date(now - i * DAY_MS)));
   }
-  const index = new Map(days.map((day, i) => [day, i]));
-  const values = days.map(() => 0);
-  for (const { at, weight } of stamps) {
-    const i = index.get(sydneyDay.format(at));
-    if (i !== undefined) {
-      values[i] += weight;
-    }
-  }
+  const byDay = new Map(rows.map((row) => [row.day, Number(row.value)]));
+  const values = days.map((day) => byDay.get(day) ?? 0);
   return { days, values, total: values.reduce((sum, v) => sum + v, 0) };
 }
 
@@ -52,14 +46,24 @@ export async function getAdminReporting() {
       () =>
         withDbSystemContext(async (tx) => {
           const [signups, payments] = await Promise.all([
-            tx.user.findMany({
-              where: { createdAt: { gte: since } },
-              select: { createdAt: true },
-            }),
-            tx.paymentRecord.findMany({
-              where: { status: "succeeded", occurredAt: { gte: since } },
-              select: { occurredAt: true, amountCents: true },
-            }),
+            tx.$queryRaw<Array<{ day: string; value: bigint }>>`
+              SELECT
+                to_char("createdAt" AT TIME ZONE 'Australia/Sydney', 'YYYY-MM-DD') AS "day",
+                COUNT(*)::bigint AS "value"
+              FROM "User"
+              WHERE "createdAt" >= ${since}
+              GROUP BY 1
+              ORDER BY 1
+            `,
+            tx.$queryRaw<Array<{ day: string; value: bigint }>>`
+              SELECT
+                to_char("occurredAt" AT TIME ZONE 'Australia/Sydney', 'YYYY-MM-DD') AS "day",
+                COALESCE(SUM("amountCents"), 0)::bigint AS "value"
+              FROM "PaymentRecord"
+              WHERE "status" = 'succeeded' AND "occurredAt" >= ${since}
+              GROUP BY 1
+              ORDER BY 1
+            `,
           ]);
           return { signups, payments };
         }),
@@ -69,9 +73,16 @@ export async function getAdminReporting() {
       () =>
         withDbSystemContext(async (tx) => {
           const [listings, tiers] = await Promise.all([
-            tx.listing.groupBy({ by: ["status"], _count: { _all: true } }),
+            tx.listing.groupBy({
+              by: ["status"],
+              orderBy: { status: "asc" },
+              take: 20,
+              _count: { _all: true },
+            }),
             tx.user.groupBy({
               by: ["subscriptionTier"],
+              orderBy: { subscriptionTier: "asc" },
+              take: 20,
               _count: { _all: true },
             }),
           ]);
@@ -96,6 +107,7 @@ export async function getAdminReporting() {
           const [sources, jobs, latestWebhook] = await Promise.all([
             tx.dataSourceHealth.findMany({
               orderBy: { sourceProvider: "asc" },
+              take: 100,
               select: {
                 sourceProvider: true,
                 status: true,
@@ -127,16 +139,9 @@ export async function getAdminReporting() {
 
   return {
     seriesAvailable: series !== null,
-    signupsByDay: buildSeries(
-      (series?.signups ?? []).map((row) => ({ at: row.createdAt, weight: 1 }))
-    ),
+    signupsByDay: buildSeries(series?.signups ?? []),
     // ponytail: sums cents across currencies; fine while billing is AUD-only.
-    revenueCentsByDay: buildSeries(
-      (series?.payments ?? []).map((row) => ({
-        at: row.occurredAt,
-        weight: row.amountCents,
-      }))
-    ),
+    revenueCentsByDay: buildSeries(series?.payments ?? []),
     listingsByStatus: (breakdowns?.listings ?? [])
       .map((row) => ({ label: row.status, value: row._count._all }))
       .sort((a, b) => b.value - a.value),

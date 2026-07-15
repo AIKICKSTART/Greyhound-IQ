@@ -1,5 +1,6 @@
 import demoRouteAuditEvidence from "../../output/demo-route-audit/latest.json";
 
+import { DEMO_PROVIDER_ROUTE_PATHS } from "../lib/demo-route-sample-contract";
 import { evaluateDemoRouteAuditEvidence } from "./demo-route-audit-evidence";
 import { DESIGN_LAB_USER_STORY_MANIFESTS } from "./screen-contracts/design-lab-user-stories";
 import { productionScreenCoverage } from "./screen-contracts/production-screen-coverage";
@@ -440,10 +441,10 @@ export const DEMO_SCREEN_FAMILIES: readonly DemoScreenFamily[] = [
       },
       {
         route: "/dogs/[id]",
-        href: "/dogs/cmr0fg5ki00a4ephcaj4sdctc",
+        href: DEMO_PROVIDER_ROUTE_PATHS.dog,
         userStory: productionBaselineStory(
           "/dogs/[id]",
-          "/dogs/cmr0fg5ki00a4ephcaj4sdctc",
+          DEMO_PROVIDER_ROUTE_PATHS.dog,
           {
             id: "RACING.STORY.DOG-DETAIL",
             actor: "Racing visitor",
@@ -484,10 +485,10 @@ export const DEMO_SCREEN_FAMILIES: readonly DemoScreenFamily[] = [
       },
       {
         route: "/meetings/[id]",
-        href: "/meetings/d2c28701-919b-429e-828d-c55dc1d80b54",
+        href: DEMO_PROVIDER_ROUTE_PATHS.meeting,
         userStory: productionBaselineStory(
           "/meetings/[id]",
-          "/meetings/d2c28701-919b-429e-828d-c55dc1d80b54",
+          DEMO_PROVIDER_ROUTE_PATHS.meeting,
           {
             id: "RACING.STORY.MEETING-DETAIL",
             actor: "Racing visitor",
@@ -509,10 +510,10 @@ export const DEMO_SCREEN_FAMILIES: readonly DemoScreenFamily[] = [
       },
       {
         route: "/races/[id]",
-        href: "/races/c842cd06-5f44-461c-be14-94439ebee1eb",
+        href: DEMO_PROVIDER_ROUTE_PATHS.race,
         userStory: productionBaselineStory(
           "/races/[id]",
-          "/races/c842cd06-5f44-461c-be14-94439ebee1eb",
+          DEMO_PROVIDER_ROUTE_PATHS.race,
           {
             id: "RACING.STORY.RACE-DETAIL",
             actor: "Racing visitor",
@@ -591,10 +592,10 @@ export const DEMO_SCREEN_FAMILIES: readonly DemoScreenFamily[] = [
       },
       {
         route: "/tracks/[id]",
-        href: "/tracks/ce9ee26f-b678-4a19-9aa7-58185d2a3719",
+        href: DEMO_PROVIDER_ROUTE_PATHS.track,
         userStory: productionBaselineStory(
           "/tracks/[id]",
-          "/tracks/ce9ee26f-b678-4a19-9aa7-58185d2a3719",
+          DEMO_PROVIDER_ROUTE_PATHS.track,
           {
             id: "RACING.STORY.TRACK-DETAIL",
             actor: "Racing visitor",
@@ -715,10 +716,10 @@ export const DEMO_SCREEN_FAMILIES: readonly DemoScreenFamily[] = [
       },
       {
         route: "/forum/threads/[id]",
-        href: "/forum/threads/80c27107-5f87-493f-93a6-91bf46609af0",
+        href: "/forum/threads/demo-route-audit-thread",
         userStory: communityBaselineStory(
           "/forum/threads/[id]",
-          "/forum/threads/80c27107-5f87-493f-93a6-91bf46609af0",
+          "/forum/threads/demo-route-audit-thread",
           {
             id: "COMMUNITY.STORY.FORUM-THREAD",
             actor: "Community visitor or signed-in member",
@@ -785,10 +786,10 @@ export const DEMO_SCREEN_FAMILIES: readonly DemoScreenFamily[] = [
       },
       {
         route: "/groups/threads/[id]",
-        href: "/groups/threads/80c27107-5f87-493f-93a6-91bf46609af0",
+        href: "/groups/threads/demo-route-audit-thread",
         userStory: communityBaselineStory(
           "/groups/threads/[id]",
-          "/groups/threads/80c27107-5f87-493f-93a6-91bf46609af0",
+          "/groups/threads/demo-route-audit-thread",
           {
             id: "COMMUNITY.STORY.GROUPS-THREAD",
             actor: "Community visitor using a Groups thread URL",

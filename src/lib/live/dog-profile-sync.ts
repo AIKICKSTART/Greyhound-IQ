@@ -9,6 +9,7 @@ import {
   type TheDogsDogProfile,
 } from "@/lib/live/thedogs-profile";
 import { sanitizeRawJson } from "@/lib/live/raw-sanitizer";
+import { logRequestError } from "@/lib/logger";
 
 const DEFAULT_LIMIT = 15;
 const MAX_LIMIT = 50;
@@ -59,7 +60,7 @@ export async function syncDogProfilesBatch(
         profileUrl: true,
       },
       orderBy: { createdAt: "asc" },
-      take: limit,
+      take: Math.min(Math.max(1, Math.trunc(limit)), MAX_LIMIT),
     }),
   );
 
@@ -76,10 +77,10 @@ export async function syncDogProfilesBatch(
       synced += 1;
     } catch (err) {
       failed += 1;
-      console.error(
-        `[dog-profile-sync] ${dog.name} (${dog.id}) failed:`,
-        err instanceof Error ? err.message : String(err),
-      );
+      await logRequestError("dog_profile_sync.profile_failed", {
+        provider: "thedogs",
+        dogId: dog.id,
+      }, err);
     }
     if (PAUSE_MS > 0) await sleep(PAUSE_MS);
   }

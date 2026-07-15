@@ -16,6 +16,7 @@ import {
   promoteReadyPersonalActorMedia,
 } from "@/lib/media-service";
 import { createInAppNotification } from "@/lib/notification-service";
+import { resolveDemoProfilePortrait } from "@/lib/demo-profile-media";
 import {
   canViewAudience,
   defaultActorVisibility,
@@ -159,6 +160,7 @@ export type SocialActorProfileView = {
     isOwner: boolean;
     isConnected: boolean;
     isFollowing: boolean;
+    canViewProfile: boolean;
     canViewContact: boolean;
   };
 };
@@ -244,6 +246,38 @@ export async function getSocialActorProfileByHandle(
     const isConnected =
       isOwner ||
       (actor.kind === "page" ? isFollowing : Boolean(personalConnection));
+    const profileAudience = isSocialAudience(actor.profileVisibility)
+      ? actor.profileVisibility
+      : "only_me";
+    const canViewProfile = canViewAudience(profileAudience, {
+      authenticated: Boolean(viewer),
+      owner: isOwner,
+      connected: isConnected,
+    });
+    if (!canViewProfile) {
+      return {
+        actor: {
+          ...pickActorSummary(actor),
+          avatarUrl: null,
+          coverUrl: null,
+        },
+        profile: null,
+        page: null,
+        contact: null,
+        timeline: [],
+        gallery: [],
+        friends: [],
+        friendCount: null,
+        followerCount: 0,
+        viewer: {
+          isOwner,
+          isConnected,
+          isFollowing,
+          canViewProfile: false,
+          canViewContact: false,
+        },
+      };
+    }
     const contactAudience = isSocialAudience(actor.contactVisibility)
       ? actor.contactVisibility
       : "only_me";
@@ -383,7 +417,10 @@ export async function getSocialActorProfileByHandle(
             ? other.socialActor.handle
             : null,
           displayName: other.displayName,
-          avatarUrl: other.avatarUrl,
+          avatarUrl: resolveDemoProfilePortrait(
+            other.displayName,
+            other.avatarUrl,
+          ),
           verified: other.verified,
         };
       });
@@ -409,12 +446,18 @@ export async function getSocialActorProfileByHandle(
       : null;
 
     return {
-      actor: pickActorSummary(actor),
+      actor: {
+        ...pickActorSummary(actor),
+        avatarUrl: resolveDemoProfilePortrait(actor.displayName, actor.avatarUrl),
+      },
       profile: actor.profile
         ? {
             id: actor.profile.id,
             bio: actor.profile.bio,
-            avatarUrl: actor.profile.avatarUrl,
+            avatarUrl: resolveDemoProfilePortrait(
+              actor.displayName,
+              actor.profile.avatarUrl,
+            ),
             state: actor.profile.state,
             kennelName: actor.profile.kennelName,
             role: actor.profile.role,
@@ -480,6 +523,7 @@ export async function getSocialActorProfileByHandle(
         isOwner,
         isConnected,
         isFollowing,
+        canViewProfile: true,
         canViewContact,
       },
     };
@@ -672,6 +716,7 @@ export async function getPersonalActorMedia(
           deletedAt: null,
         },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 100,
         select: {
           id: true,
           linkedEntityType: true,
@@ -687,6 +732,7 @@ export async function getPersonalActorMedia(
           position: { in: [-2, -1] },
           media: { uploaderId: current.dbUserId, deletedAt: null },
         },
+        take: 2,
         select: { mediaId: true, position: true },
       }),
     ]);
@@ -796,6 +842,7 @@ export async function updatePersonalActorMedia(
         actorId: actor.id,
         position: { in: [-2, -1] },
       },
+      take: 2,
       select: { mediaId: true, position: true },
     });
     const currentAvatarId =

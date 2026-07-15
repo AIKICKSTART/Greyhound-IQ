@@ -18,6 +18,14 @@ export const feedCommentWriteSchema = z.object({
   actorId: z.string().trim().min(1).max(120).optional().nullable(),
 });
 
+export const feedCommentEditSchema = z.object({
+  body: z.string().trim().min(2).max(2000).transform(cleanText),
+});
+
+export const feedActorSelectionSchema = z.object({
+  actorId: z.string().trim().min(1).max(120).optional().nullable(),
+});
+
 export const feedReactionWriteSchema = z.object({
   reactionType: z
     .enum(["like", "love", "celebrate", "insightful", "support"])

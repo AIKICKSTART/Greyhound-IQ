@@ -13,6 +13,11 @@
  */
 import { spawnSync } from "node:child_process";
 
+import {
+  assertLocalDatabaseUrl,
+  maskDatabaseUrl,
+} from "./local-database-policy";
+
 const COMPOSE_FILE = "docker-compose.local-db.yml";
 const LOCAL_DATABASE_URL =
   process.env.LOCAL_DATABASE_URL ??
@@ -28,6 +33,7 @@ type Command =
   | "preflight"
   | "status"
   | "analyze"
+  | "sync-live"
   | "import-race-archive"
   | "import-race-normalized"
   | "import-dog-archive"
@@ -35,6 +41,7 @@ type Command =
 
 async function main() {
   const [command = "help", ...forwardedArgs] = process.argv.slice(2);
+  assertLocalDatabaseUrl(LOCAL_DATABASE_URL);
   switch (command as Command | "help") {
     case "up":
       runDockerCompose(["up", "-d"]);
@@ -68,6 +75,9 @@ async function main() {
       break;
     case "analyze":
       await analyzeDatabase();
+      break;
+    case "sync-live":
+      runNpm(["run", "sync:live", "--", ...forwardedArgs]);
       break;
     case "import-race-archive":
       await ensureDatabaseTimezone();
@@ -319,16 +329,6 @@ async function analyzeDatabase() {
   }
 }
 
-function maskDatabaseUrl(value: string) {
-  try {
-    const url = new URL(value);
-    if (url.password) url.password = "***";
-    return url.toString();
-  } catch {
-    return "<invalid-url>";
-  }
-}
-
 function databaseNameFromUrl(value: string) {
   const url = new URL(value);
   const databaseName = decodeURIComponent(url.pathname.replace(/^\/+/u, ""));
@@ -391,6 +391,7 @@ Commands:
   preflight                Validate env, Prisma schema, and migration status
   status                   Print local row counts
   analyze                  Refresh Postgres planner statistics
+  sync-live                Sync current racing data into local Postgres
   import-race-archive      Load raw day JSON into RaceDayArchive
   import-race-normalized   Replay raw day JSON into Meeting/Race/Runner/Result
   import-dog-archive       Load dog profile JSON into DogProfileArchive only

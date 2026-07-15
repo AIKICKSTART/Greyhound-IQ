@@ -13,15 +13,30 @@ import { resolveDemoProviderRouteId } from "@/lib/demo-route-samples";
 import { getPreviousRaceVideoRunners, getRaceById } from "@/lib/queries";
 import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
 import { RaceReplayPlayer } from "@/components/race-replay-player";
+import { RaceMeetingNavigation } from "@/components/race-meeting-navigation";
+import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
 import { RunnerRow } from "@/components/runner-row";
 import type { ResolvedRaceReplay } from "@/lib/live/race-replay";
 import {
+  embedUrlFromReplayPage,
   resolveProviderRaceReplay,
   resolveRaceVideoReplay,
 } from "@/lib/live/race-replay";
 import { absoluteTheDogsUrl } from "@/lib/live/thedogs-replay";
 import { proxiedStreamPath } from "@/lib/live/replay-proxy";
-import { formatRaceDetailTime } from "@/lib/race-time";
+import {
+  buildRaceDetailHref,
+  buildRaceListReturnHref,
+  normaliseRaceListContext,
+  parseRaceListContext,
+  resolveMeetingRaceNavigation,
+} from "@/lib/race-navigation";
+import { formatRaceDateInput, formatRaceDetailTime } from "@/lib/race-time";
+import {
+  getRacePresentationStatus,
+  normaliseRaceSourceStatus,
+  raceSchemaEventStatus,
+} from "@/lib/race-status";
 import { orderRunners } from "@/lib/runner-order";
 
 export const dynamic = "force-dynamic";
@@ -84,15 +99,40 @@ export async function generateMetadata({
 
 export default async function RacePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { id: routeId } = await params;
+  const [{ id: routeId }, detailSearchParams] = await Promise.all([params, searchParams]);
   const id = await resolveDemoProviderRouteId("race", routeId);
   const race = await getRaceById(id);
   if (!race) notFound();
 
   const track = race.meeting.track;
+  const meetingRaceNavigation = resolveMeetingRaceNavigation(
+    race.meeting.races,
+    race.id,
+  );
+  const listContext =
+    parseRaceListContext(detailSearchParams) ??
+    normaliseRaceListContext({
+      date: formatRaceDateInput(race.meeting.meetingDate),
+      state: track.state,
+      meetingId: race.meeting.id,
+    });
+  const previousRaceTarget = meetingRaceNavigation.previous
+    ? {
+        ...meetingRaceNavigation.previous,
+        href: buildRaceDetailHref(meetingRaceNavigation.previous.id, listContext),
+      }
+    : null;
+  const nextRaceTarget = meetingRaceNavigation.next
+    ? {
+        ...meetingRaceNavigation.next,
+        href: buildRaceDetailHref(meetingRaceNavigation.next.id, listContext),
+      }
+    : null;
   const streamVideo = race.videos.find((video) => video.streamUrl);
   const primaryVideo = streamVideo ?? race.videos[0] ?? null;
   const storedReplay = primaryVideo ? await resolveRaceVideoReplay(primaryVideo) : null;
@@ -120,9 +160,21 @@ export default async function RacePage({
   const activeRunnerCount = race.runners.filter((runner) => !runner.scratched).length;
   const expectedResultCount = activeRunnerCount || race.runners.length;
   const hasResults = resultCount > 0;
+  const sourceRaceStatus = normaliseRaceSourceStatus(race.resultStatus);
+  const racePresentationStatus = getRacePresentationStatus({
+    resultStatus: race.resultStatus,
+    raceTime: race.raceTime,
+    now: new Date(),
+    hasResults,
+    hasReplay: hasPlayableReplay,
+  });
   const resultStatusLabel =
     resultCount === 0
-      ? "Pending"
+      ? sourceRaceStatus === "abandoned"
+        ? "Not run - abandoned"
+        : sourceRaceStatus === "postponed"
+          ? "Pending - postponed"
+          : "Pending"
       : resultCount < expectedResultCount
         ? `Partial ${resultCount}/${expectedResultCount}`
         : "Resulted";
@@ -144,9 +196,7 @@ export default async function RacePage({
     url: `https://greyhoundsiq.com.au/races/${race.id}`,
     sport: "Greyhound racing",
     startDate: race.raceTime.toISOString(),
-    eventStatus: hasResults
-      ? "https://schema.org/EventScheduled"
-      : "https://schema.org/EventScheduled",
+    eventStatus: raceSchemaEventStatus(race.resultStatus),
     location: {
       "@type": "SportsActivityLocation",
       name: track.name,
@@ -176,6 +226,7 @@ export default async function RacePage({
           raceEventSchema,
         ]}
       />
+      <RacingDataDisclosure className="mb-6" />
       <div className="mb-6">
         <div className="mb-3 flex flex-wrap items-center gap-3 text-[12px] tracking-[-0.013em] text-[hsl(220_7%_52%)]">
           <span className="flex items-center gap-1.5">
@@ -187,7 +238,7 @@ export default async function RacePage({
             <Clock className="h-3.5 w-3.5" />
             {raceTimeLabel}
           </span>
-          {race.prizeMoney && (
+          {race.prizeMoney !== null && (
             <>
               <span className="text-white/[0.1]">/</span>
               <span className="flex items-center gap-1.5">
@@ -205,6 +256,14 @@ export default async function RacePage({
               </span>
             </>
           )}
+          <span className="text-white/[0.1]">/</span>
+          <span
+            className={`giq-detail-race-status giq-detail-race-status-${racePresentationStatus.key}`}
+            data-race-status={racePresentationStatus.key}
+          >
+            <Activity className="h-3.5 w-3.5" />
+            {racePresentationStatus.label}
+          </span>
         </div>
         <h1 className="text-3xl font-semibold tracking-[-0.04em] text-[hsl(var(--foreground))] md:text-5xl">
           Race {race.raceNumber}
@@ -220,6 +279,34 @@ export default async function RacePage({
           </p>
         )}
       </div>
+
+      {(sourceRaceStatus === "abandoned" ||
+        sourceRaceStatus === "postponed") && (
+        <div
+          className={`giq-race-status-notice giq-race-status-notice-${sourceRaceStatus}`}
+          role="status"
+          data-race-source-status={sourceRaceStatus}
+        >
+          <Activity className="h-5 w-5" aria-hidden="true" />
+          <div>
+            <strong>{racePresentationStatus.label}</strong>
+            <p>
+              The loaded race source marks this race as {sourceRaceStatus}.
+              Its scheduled time remains visible for reference; it is excluded
+              from live and next-to-go queues.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <RaceMeetingNavigation
+        previous={previousRaceTarget}
+        next={nextRaceTarget}
+        position={meetingRaceNavigation.position}
+        total={meetingRaceNavigation.total}
+        meetingHref={buildRaceListReturnHref(listContext)}
+        trackName={track.name}
+      />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,430px)]">
         <section className="min-w-0 space-y-5">
@@ -352,9 +439,14 @@ export default async function RacePage({
                 tone={hasPlayableReplay ? "gold" : "primary"}
               />
               <SummaryTile
+                label="Race status"
+                value={racePresentationStatus.label}
+                icon={<Activity className="h-4 w-4" />}
+              />
+              <SummaryTile
                 label="Results"
                 value={resultStatusLabel}
-                icon={<Activity className="h-4 w-4" />}
+                icon={<Trophy className="h-4 w-4" />}
               />
             </div>
           </section>
@@ -706,16 +798,20 @@ function ReplayEmbed({
   raceLabel: string;
   raceTimeLabel: string;
 }) {
+  const trustedEmbed = embedUrlFromReplayPage(embedUrl);
+  if (!trustedEmbed) return <ReplayFallback hasVideoRecord />;
+
   return (
     <section className="race-panel overflow-hidden">
       <div className="relative aspect-video w-full max-w-full bg-black">
         <iframe
-          src={embedUrl}
+          src={trustedEmbed.embedUrl}
           title={`${raceLabel} replay at ${trackName}`}
           className="absolute inset-0 h-full w-full border-0"
           loading="lazy"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          referrerPolicy="strict-origin-when-cross-origin"
+          referrerPolicy="no-referrer"
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
           allowFullScreen
         />
       </div>

@@ -3,61 +3,33 @@ import "./load-env";
 import { pathToFileURL } from "node:url";
 
 import { prisma } from "../src/lib/db";
-import { trackMediaPathForName } from "../src/lib/track-media";
+import { DEMO_PROVIDER_ROUTE_PATHS } from "../src/lib/demo-route-sample-contract";
+import { findDemoProviderRouteSamples } from "../src/lib/demo-route-samples";
 
 async function main() {
-  const [dog, race, trackCandidates, thread] = await Promise.all([
-    prisma.dog.findFirst({
-      where: { formEntries: { some: {} } },
-      orderBy: [
-        { careerStarts: { sort: "desc", nulls: "last" } },
-        { name: "asc" },
-        { id: "asc" },
-      ],
-      select: { id: true, name: true },
-    }),
-    prisma.race.findFirst({
-      where: { runners: { some: {} } },
-      orderBy: [{ raceTime: "desc" }, { id: "asc" }],
-      select: {
-        id: true,
-        name: true,
-        raceNumber: true,
-        meeting: { select: { track: { select: { name: true } } } },
-      },
-    }),
-    prisma.track.findMany({
-      where: { meetings: { some: { races: { some: {} } } } },
-      orderBy: [{ name: "asc" }, { id: "asc" }],
-      select: { id: true, name: true },
-      take: 100,
-    }),
+  const [provider, thread] = await Promise.all([
+    findDemoProviderRouteSamples(prisma),
     prisma.thread.findFirst({
       where: { category: { slug: "general" }, posts: { some: {} } },
       orderBy: [{ pinned: "desc" }, { createdAt: "asc" }, { id: "asc" }],
       select: { id: true, title: true },
     }),
   ]);
-  const track = trackCandidates.find((candidate) =>
-    trackMediaPathForName(candidate.name)
-  );
 
-  if (!dog || !race || !track || !thread) {
+  if (!provider || !thread) {
     throw new Error("demo_route_samples.unresolved");
   }
 
   console.log(
     JSON.stringify(
       {
-        dog: { ...dog, path: `/dogs/${dog.id}` },
-        race: {
-          id: race.id,
-          name: race.name,
-          raceNumber: race.raceNumber,
-          trackName: race.meeting.track.name,
-          path: `/races/${race.id}`,
+        dog: { ...provider.dog, path: DEMO_PROVIDER_ROUTE_PATHS.dog },
+        meeting: {
+          ...provider.meeting,
+          path: DEMO_PROVIDER_ROUTE_PATHS.meeting,
         },
-        track: { ...track, path: `/tracks/${track.id}` },
+        race: { ...provider.race, path: DEMO_PROVIDER_ROUTE_PATHS.race },
+        track: { ...provider.track, path: DEMO_PROVIDER_ROUTE_PATHS.track },
         thread: { ...thread, path: `/groups/threads/${thread.id}` },
       },
       null,

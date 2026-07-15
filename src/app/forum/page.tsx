@@ -30,7 +30,7 @@ export default async function ForumPage() {
         />
       ) : (
         <PageHero
-          image="/images/wentworth-gate-hero.webp"
+          image="/images/feed/posts/lisa-community-night.webp"
           title={
             <>
               GreyhoundIQ Groups.

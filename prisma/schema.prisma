@@ -354,6 +354,7 @@ model User {
   billingEvents               BillingEvent[]
   usageEvents                 UsageEvent[]
   usageOutboxItems            UsageOutbox[]
+  signupOutboxItem            SignupOutbox?
   usageAggregates             UsageAggregate[]
   supportTickets              SupportTicket[]
   supportMessages             SupportMessage[]
@@ -373,6 +374,29 @@ model User {
   targetDeletionJobs          DeletionJob[]            @relation("DeletionJobTargetUser")
   exportArtifacts             ExportArtifact[]         @relation("ExportArtifactTargetUser")
   requestedExportArtifacts    ExportArtifact[]         @relation("ExportArtifactRequestedBy")
+
+  @@index([isBanned, deletionRequestedAt, id])
+}
+
+model SignupOutbox {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  idempotencyKey String    @unique
+  correlationId  String?   @db.VarChar(128)
+  status         String    @default("pending")
+  retryCount     Int       @default(0)
+  lastAttemptAt  DateTime?
+  nextRetryAt    DateTime  @default(now())
+  leaseExpiresAt DateTime?
+  leaseToken     String?
+  sentAt         DateTime?
+  deadLetteredAt DateTime?
+  lastErrorCode  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status, nextRetryAt, createdAt])
 }
 
 model TermsAcceptance {
@@ -779,27 +803,29 @@ model EntitlementSnapshot {
 }
 
 model WebhookEvent {
-  id          String    @id @default(cuid())
-  provider    String    @default("lago")
-  lagoEventId String?   @unique
-  eventType   String
-  status      String    @default("received")
-  payloadHash String?
-  payloadJson String
-  headersJson String?
-  retryCount  Int       @default(0)
-  receivedAt  DateTime  @default(now())
-  processedAt DateTime?
-  error       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  provider        String    @default("lago")
+  lagoEventId     String?   @unique
+  eventType       String
+  status          String    @default("received")
+  processingToken String?
+  payloadHash     String?
+  payloadJson     String
+  headersJson     String?
+  retryCount      Int       @default(0)
+  receivedAt      DateTime  @default(now())
+  processedAt     DateTime?
+  error           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  billingEvents BillingEvent[]
+  billingEvent BillingEvent?
 
   @@unique([provider, payloadHash])
   @@index([eventType, receivedAt])
   @@index([provider, eventType, payloadHash])
   @@index([status, receivedAt])
+  @@index([status, updatedAt])
   @@index([receivedAt])
 }
 
@@ -941,7 +967,7 @@ model BillingEvent {
   subscription      Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   invoiceRecordId   String?
   invoiceRecord     InvoiceRecord?   @relation(fields: [invoiceRecordId], references: [id], onDelete: SetNull)
-  webhookEventId    String?
+  webhookEventId    String?          @unique
   webhookEvent      WebhookEvent?    @relation(fields: [webhookEventId], references: [id], onDelete: SetNull)
   lagoEventId       String?
   eventType         String
@@ -1013,7 +1039,11 @@ model UsageOutbox {
   retryCount        Int              @default(0)
   lastAttemptAt     DateTime?
   nextRetryAt       DateTime?
+  leaseExpiresAt    DateTime?
+  leaseToken        String?
   sentAt            DateTime?
+  deadLetteredAt    DateTime?
+  lastErrorCode     String?
   failedAt          DateTime?
   error             String?
   createdAt         DateTime         @default(now())
@@ -1025,6 +1055,7 @@ model UsageOutbox {
   @@index([billingCustomerId, occurredAt])
   @@index([subscriptionId, occurredAt])
   @@index([status, nextRetryAt])
+  @@index([status, leaseExpiresAt])
   @@index([occurredAt])
 }
 

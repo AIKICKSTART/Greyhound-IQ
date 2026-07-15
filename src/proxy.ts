@@ -10,11 +10,28 @@ import {
   resolveWorkosRedirectUri,
 } from "@/lib/workos-redirect";
 import { contentSecurityPolicy } from "@/lib/csp";
-import { deriveRequestId, REQUEST_ID_HEADER } from "@/lib/request-id";
+import { applyAuthRedirectContract } from "@/lib/auth-redirect-contract";
+import { createRequestId, REQUEST_ID_HEADER } from "@/lib/request-id";
 import {
+  hasUnsupportedApiBodyContentType,
   hasEncodedPathSeparator,
+  hasInvalidApiPathSegment,
+  isBrowserCorsPreflight,
   isCrossOriginBrowserMutation,
+  isUnsupportedHttpMethod,
+  shouldDisableSharedApiCaching,
 } from "@/lib/request-security";
+import {
+  DEMO_SUPPRESS_OVERLAYS_HEADER,
+  isDemoOverlayRequest,
+  isDemoReadMethod,
+  isFullAccessDemo,
+} from "@/lib/demo-access";
+import { isEmergencyControlActive } from "@/lib/emergency-controls";
+import {
+  isMaintenanceBypassPath,
+  maintenanceModeResponse,
+} from "@/lib/maintenance-mode";
 
 export async function proxy(request: NextRequest, event: NextFetchEvent) {
   // Cloud Run terminates TLS and forwards the client scheme + public host here.
@@ -34,7 +51,9 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.redirect(httpsUrl, 308);
   }
 
-  const requestId = deriveRequestId(request.headers);
+  // Never let a caller choose an ID that will be trusted for GreyhoundIQ log
+  // correlation. Trace propagation remains separate in the application logger.
+  const requestId = createRequestId();
   // Per-request nonce so script-src drops 'unsafe-inline'. Next parses the CSP
   // from the *request* header and stamps the nonce onto its own <script> tags
   // during SSR, so it must be present on the request authkit forwards to render.
@@ -42,12 +61,52 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
   const csp = contentSecurityPolicy(nonce);
 
   const requestHeaders = new Headers(request.headers);
+  const demo = isFullAccessDemo();
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set(REQUEST_ID_HEADER, requestId);
   requestHeaders.set("Content-Security-Policy", csp);
+  if (
+    demo &&
+    isDemoOverlayRequest(
+      request.headers.get("sec-fetch-dest"),
+      request.nextUrl.searchParams.get("view")
+    )
+  ) {
+    requestHeaders.set(DEMO_SUPPRESS_OVERLAYS_HEADER, "1");
+  }
 
   if (hasEncodedPathSeparator(request.url)) {
     return securedErrorResponse(400, "request.invalid_path", csp, requestId);
+  }
+  if (hasInvalidApiPathSegment(request.nextUrl.pathname)) {
+    return securedErrorResponse(400, "request.invalid_identifier", csp, requestId);
+  }
+  if (isUnsupportedHttpMethod(request)) {
+    const response = securedErrorResponse(
+      405,
+      "request.method_not_allowed",
+      csp,
+      requestId
+    );
+    response.headers.set("Allow", "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS");
+    return response;
+  }
+  if (
+    request.nextUrl.pathname.startsWith("/api/") &&
+    isBrowserCorsPreflight(request)
+  ) {
+    return securedErrorResponse(403, "cors.not_allowed", csp, requestId);
+  }
+  if (
+    request.nextUrl.pathname.startsWith("/api/") &&
+    hasUnsupportedApiBodyContentType(request)
+  ) {
+    return securedErrorResponse(
+      415,
+      "request.unsupported_media_type",
+      csp,
+      requestId
+    );
   }
   if (
     isCrossOriginBrowserMutation(
@@ -58,29 +117,68 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
     return securedErrorResponse(403, "auth.forbidden", csp, requestId);
   }
 
+  if (
+    isEmergencyControlActive(process.env.MAINTENANCE_MODE) &&
+    !isMaintenanceBypassPath(request.nextUrl.pathname)
+  ) {
+    const response = maintenanceModeResponse(request);
+    response.headers.set("Content-Security-Policy", csp);
+    response.headers.set(REQUEST_ID_HEADER, requestId);
+    return response;
+  }
+
   // authkitProxy rebuilds forwarded request headers from `request.headers`
   // (partitionAuthkitHeaders), so the clone carries x-nonce/x-request-id into
   // render. Cookies and nextUrl survive because input is a Request instance.
   const authRequest = new NextRequest(request, { headers: requestHeaders });
 
-  const handler = authkitProxy({
-    redirectUri: resolveWorkosRedirectUri(request.url),
-  });
-  const response = (await handler(authRequest, event)) ?? NextResponse.next();
+  if (demo && !isDemoReadMethod(request.method)) {
+    return securedErrorResponse(403, "demo.read_only", csp, requestId);
+  }
+
+  const response = demo
+    ? NextResponse.next({ request: { headers: requestHeaders } })
+    : (await authkitProxy({
+        redirectUri: resolveWorkosRedirectUri(request.url),
+      })(authRequest, event)) ?? NextResponse.next();
+
+  if (
+    ["/callback", "/sign-in"].includes(request.nextUrl.pathname) &&
+    !applyAuthRedirectContract(
+      response,
+      resolveWorkosBaseUrl(request.url) ?? new URL(request.url).origin
+    )
+  ) {
+    return securedErrorResponse(
+      502,
+      "auth.redirect_contract_invalid",
+      csp,
+      requestId
+    );
+  }
 
   // Response CSP is not in authkit's forward allowlist, so set it here for the
   // browser (redirect or next alike). X-Request-ID surfaces the id to the LB.
   response.headers.set("Content-Security-Policy", csp);
   response.headers.set(REQUEST_ID_HEADER, requestId);
+  if (demo) response.headers.set("X-GreyhoundIQ-Demo", "full-access-read-only");
+  if (shouldDisableSharedApiCaching(request, request.nextUrl.pathname)) {
+    response.headers.set("Cache-Control", "private, no-store");
+    appendVary(response.headers, "Cookie");
+    appendVary(response.headers, "Authorization");
+  }
 
   // Dynamic detail routes stream (a loading.tsx Suspense boundary commits HTTP
-  // 200 before the page's notFound() runs), so a missing dog/race/track/custom
-  // page returns 200 + not-found UI, which search engines can index as a soft
-  // 404. Do a fast existence check here — before render, where the status can
-  // still be set — and rewrite misses to an unmatched path so Next serves the
-  // branded not-found UI with a real 404. Runs anonymously; RLS enforces the
-  // same public visibility the pages use (published, non-removed custom pages).
-  if (await isMissingDetailResource(request.nextUrl.pathname)) {
+  // 200 before the page's notFound() runs), so missing public records otherwise
+  // become indexable soft 404s. Check public existence before rendering and
+  // rewrite misses to an unmatched path so Next returns its branded real 404.
+  const sessionCookieName = process.env.WORKOS_COOKIE_NAME || "wos-session";
+  if (
+    await isMissingDetailResource(
+      request.nextUrl.pathname,
+      request.cookies.has(sessionCookieName)
+    )
+  ) {
     const rw = NextResponse.rewrite(new URL("/_not-found-404", request.url), {
       request: { headers: requestHeaders },
     });
@@ -120,29 +218,60 @@ function securedErrorResponse(
   return response;
 }
 
-// Public detail routes that call notFound() on a missing record. The existence
-// check runs anonymously; RLS scopes each read to what a public visitor sees, so
-// it matches the page's own visibility (the /p page serves personal actors and
-// published managed pages).
-// Listings/marketplace are excluded: their visibility is viewer-dependent.
-const DETAIL_ROUTE = /^\/(dogs|races|tracks|p)\/([^/]+)\/?$/;
+function appendVary(headers: Headers, field: string) {
+  const fields = new Set(
+    (headers.get("Vary") ?? "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+  fields.add(field);
+  headers.set("Vary", [...fields].join(", "));
+}
 
-async function isMissingDetailResource(pathname: string): Promise<boolean> {
-  const match = DETAIL_ROUTE.exec(pathname);
+// Detail routes that call notFound() on a missing record. Public lookups happen
+// before rendering so streamed pages retain a real HTTP 404 status.
+const DETAIL_ROUTE =
+  /^\/(dogs|races|tracks|p|forum|groups|listings|marketplace)\/([^/]+)\/?$/;
+const FORUM_THREAD_ROUTE = /^\/(forum|groups)\/threads\/([^/]+)\/?$/;
+const NON_LISTING_DETAIL_SEGMENTS = new Set(["new", "design-lab"]);
+
+async function isMissingDetailResource(
+  pathname: string,
+  hasAuthenticatedSession: boolean
+): Promise<boolean> {
+  const threadMatch = FORUM_THREAD_ROUTE.exec(pathname);
+  const match = threadMatch ?? DETAIL_ROUTE.exec(pathname);
   if (!match) return false;
-  const [, kind, rawParam] = match;
+  const [, routeKind, rawParam] = match;
+  const kind = threadMatch ? "forum-thread" : routeKind;
 
   try {
     const param = decodeURIComponent(rawParam);
     // Load Prisma lazily so it stays off the request path for non-detail routes.
     const { prisma } = await import("@/lib/db");
     switch (kind) {
-      case "dogs":
-        return (await prisma.dog.count({ where: { id: param } })) === 0;
-      case "races":
-        return (await prisma.race.count({ where: { id: param } })) === 0;
-      case "tracks":
-        return (await prisma.track.count({ where: { id: param } })) === 0;
+      case "dogs": {
+        const { resolveDemoProviderRouteId } = await import(
+          "@/lib/demo-route-samples"
+        );
+        const id = await resolveDemoProviderRouteId("dog", param);
+        return (await prisma.dog.count({ where: { id } })) === 0;
+      }
+      case "races": {
+        const { resolveDemoProviderRouteId } = await import(
+          "@/lib/demo-route-samples"
+        );
+        const id = await resolveDemoProviderRouteId("race", param);
+        return (await prisma.race.count({ where: { id } })) === 0;
+      }
+      case "tracks": {
+        const { resolveDemoProviderRouteId } = await import(
+          "@/lib/demo-route-samples"
+        );
+        const id = await resolveDemoProviderRouteId("track", param);
+        return (await prisma.track.count({ where: { id } })) === 0;
+      }
       case "p": {
         const [personalActorCount, customPageCount] = await Promise.all([
           prisma.socialActor.count({
@@ -152,6 +281,32 @@ async function isMissingDetailResource(pathname: string): Promise<boolean> {
         ]);
         return personalActorCount + customPageCount === 0;
       }
+      case "forum":
+      case "groups":
+        return (
+          (await prisma.forumCategory.count({ where: { slug: param } })) === 0
+        );
+      case "forum-thread":
+        return (await prisma.thread.count({ where: { id: param } })) === 0;
+      case "listings":
+      case "marketplace":
+        if (
+          hasAuthenticatedSession ||
+          NON_LISTING_DETAIL_SEGMENTS.has(param)
+        ) {
+          return false;
+        }
+        return (
+          (await prisma.listing.count({
+            where: {
+              id: param,
+              status: "active",
+              moderationStatus: "approved",
+              archivedAt: null,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+            },
+          })) === 0
+        );
       default:
         return false;
     }

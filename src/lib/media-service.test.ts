@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import {
   buildWaveform,
   canAccessActorMediaAudience,
+  canAccessMediaByOwnership,
   clamAvDefinitionsNeedRefresh,
+  entitlementLimitExceeded,
   feedPostStatusForMedia,
   isNewestProfileMediaCandidate,
   MediaRangeNotSatisfiableError,
@@ -15,6 +19,8 @@ import {
 import {
   mediaFinalizeSchema,
   mediaMetadataUpdateSchema,
+  mediaSignUploadSchema,
+  normalizeUploadFilename,
 } from "./media-validation";
 
 assert.deepEqual(parseMediaByteRange(null, 1000), null);
@@ -63,6 +69,18 @@ assert.deepEqual(ownedMediaWhere("owner-user", "media-1"), {
   uploaderId: "owner-user",
   deletedAt: null,
 });
+assert.equal(
+  canAccessMediaByOwnership("owner-user", { dbUserId: "owner-user" }),
+  true
+);
+assert.equal(
+  canAccessMediaByOwnership("owner-user", { dbUserId: "moderator-user" }),
+  false,
+  "a moderator must not receive private media solely because of their role"
+);
+assert.equal(entitlementLimitExceeded(10_000, 1_000, -1), false);
+assert.equal(entitlementLimitExceeded(9, 1, 10), false);
+assert.equal(entitlementLimitExceeded(10, 1, 10), true);
 const profileCandidates = [
   { id: "older", createdAt: "2026-07-11T00:00:00.000Z" },
   { id: "newer", createdAt: "2026-07-11T00:00:01.000Z" },
@@ -110,6 +128,29 @@ assert.equal(
   "Race winner"
 );
 assert.throws(() => mediaMetadataUpdateSchema.parse({}));
+assert.equal(normalizeUploadFilename("../../race-card.jpg"), "race-card.jpg");
+assert.equal(normalizeUploadFilename("..."), "upload.bin");
+assert.equal(
+  mediaSignUploadSchema.parse({
+    filename: "..\\private\\race card.jpg",
+    mimeType: "image/jpeg",
+    sizeBytes: 1024,
+  }).filename,
+  "race-card.jpg",
+);
+assert.equal(
+  mediaSignUploadSchema.safeParse({
+    filename: "race-card.jpg",
+    mimeType: "image/jpeg",
+    sizeBytes: 1024,
+    storagePath: "attacker/chosen/path.jpg",
+  }).success,
+  false,
+);
+assert.equal(
+  mediaFinalizeSchema.safeParse({ scanStatus: "clean" }).success,
+  false,
+);
 
 assert.equal(
   feedPostStatusForMedia([
@@ -197,4 +238,71 @@ assert.equal(
   false
 );
 
+const mediaServiceSource = readFileSync(
+  join(__dirname, "media-service.ts"),
+  "utf8",
+);
+assert.doesNotMatch(mediaServiceSource, /@\/lib\/supabase-storage/);
+
+const signedUploadSource =
+  /export async function createSignedUploadIntent\([\s\S]*?(?=\nexport async function finalizeMediaUpload)/.exec(
+    mediaServiceSource,
+  )?.[0];
+assert.ok(signedUploadSource);
+assertCallOrder(
+  signedUploadSource,
+  "assertUploadAllowedForContext",
+  "objectStorage.createSignedUpload",
+  "upload authorization must run before issuing a provider grant",
+);
+assertCallOrder(
+  signedUploadSource,
+  "assertStorageQuotaAvailable",
+  "objectStorage.createSignedUpload",
+  "quota enforcement must run before issuing a provider grant",
+);
+
+const signedDownloadSource =
+  /export async function createMediaDownloadUrl\([\s\S]*?(?=\nexport async function deleteMediaForCurrentUser)/.exec(
+    mediaServiceSource,
+  )?.[0];
+assert.ok(signedDownloadSource);
+assertCallOrder(
+  signedDownloadSource,
+  "getMediaForCurrentUser",
+  "objectStorage.createSignedDownload",
+  "owner authorization must run before issuing a private download URL",
+);
+
+const mediaBlobSource =
+  /export async function getMediaBlob\([\s\S]*?(?=\nexport async function assertMediaAttachable)/.exec(
+    mediaServiceSource,
+  )?.[0];
+assert.ok(mediaBlobSource);
+assertCallOrder(
+  mediaBlobSource,
+  "findAuthorizedMedia",
+  "objectStorage.getObjectInfo",
+  "audience authorization must run before reading provider metadata",
+);
+assertCallOrder(
+  mediaBlobSource,
+  "findAuthorizedMedia",
+  "objectStorage.streamObject",
+  "audience authorization must run before streaming provider bytes",
+);
+
 console.log("media-service tests passed");
+
+function assertCallOrder(
+  source: string,
+  before: string,
+  after: string,
+  message: string,
+) {
+  const beforeIndex = source.indexOf(before);
+  const afterIndex = source.indexOf(after);
+  assert.ok(beforeIndex >= 0, `${message}: missing ${before}`);
+  assert.ok(afterIndex >= 0, `${message}: missing ${after}`);
+  assert.ok(beforeIndex < afterIndex, message);
+}

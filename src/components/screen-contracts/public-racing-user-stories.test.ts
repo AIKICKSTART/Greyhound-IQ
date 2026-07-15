@@ -34,20 +34,20 @@ const EXPECTED_STORIES = [
   [
     "racing",
     "/dogs/[id]",
-    "/dogs/cmr0fg5ki00a4ephcaj4sdctc",
+    "/dogs/demo-provider-dog",
     "RACING.STORY.DOG-DETAIL",
   ],
   ["racing", "/races", "/races", "RACING.STORY.RACE-EXPLORER"],
   [
     "racing",
     "/meetings/[id]",
-    "/meetings/d2c28701-919b-429e-828d-c55dc1d80b54",
+    "/meetings/demo-provider-meeting",
     "RACING.STORY.MEETING-DETAIL",
   ],
   [
     "racing",
     "/races/[id]",
-    "/races/c842cd06-5f44-461c-be14-94439ebee1eb",
+    "/races/demo-provider-race",
     "RACING.STORY.RACE-DETAIL",
   ],
   ["racing", "/results", "/results", "RACING.STORY.RESULTS"],
@@ -56,7 +56,7 @@ const EXPECTED_STORIES = [
   [
     "racing",
     "/tracks/[id]",
-    "/tracks/ce9ee26f-b678-4a19-9aa7-58185d2a3719",
+    "/tracks/demo-provider-track",
     "RACING.STORY.TRACK-DETAIL",
   ],
 ] as const;

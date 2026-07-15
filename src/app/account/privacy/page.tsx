@@ -31,6 +31,7 @@ const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-AU", {
   hour: "2-digit",
   minute: "2-digit",
   month: "short",
+  timeZone: "Australia/Sydney",
   timeZoneName: "short",
   year: "numeric",
 });
@@ -223,6 +224,7 @@ async function getPrivacyRecords(
         await Promise.all([
           tx.termsAcceptance.findMany({
             orderBy: [{ acceptedAt: "desc" }],
+            take: 100,
             select: {
               acceptedAt: true,
               createdAt: true,
@@ -232,6 +234,7 @@ async function getPrivacyRecords(
           }),
           tx.consentEvent.findMany({
             orderBy: [{ occurredAt: "desc" }],
+            take: 100,
             select: {
               action: true,
               consentType: true,
@@ -244,6 +247,7 @@ async function getPrivacyRecords(
           }),
           tx.marketingPreference.findMany({
             orderBy: [{ updatedAt: "desc" }],
+            take: 20,
             select: {
               channel: true,
               createdAt: true,

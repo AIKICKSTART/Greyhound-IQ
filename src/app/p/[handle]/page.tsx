@@ -29,6 +29,7 @@ import { getDogPrizeMoney, getActiveListingsForProfile } from "@/lib/queries";
 import { mediaDeliveryUrl } from "@/lib/media-service";
 import { FinishBadge } from "@/components/finish-badge";
 import { ActorMediaImage } from "@/components/actor-media-image";
+import { FriendshipRemovalControl } from "@/components/friendship-removal-control";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
 import type { DbContextUser } from "@/lib/db-context";
@@ -54,6 +55,14 @@ export async function generateMetadata({
   const profile = await getSocialActorProfileByHandle(handle, viewer);
   if (!profile) {
     return { title: "Page not found - GreyhoundsIQ" };
+  }
+  if (!profile.viewer.canViewProfile) {
+    return {
+      title: "Private profile - GreyhoundIQ",
+      description: "This GreyhoundIQ member profile is private.",
+      alternates: { canonical: `/p/${handle}` },
+      robots: { index: false, follow: false },
+    };
   }
   const label = profile.page
     ? CUSTOM_PAGE_TYPE_LABELS[
@@ -93,6 +102,10 @@ export default async function SocialActorPage({
   const profile = await getSocialActorProfileByHandle(handle, viewer);
   if (!profile) notFound();
 
+  if (!profile.viewer.canViewProfile) {
+    return <PrivateProfileView profile={profile} viewer={viewer} />;
+  }
+
   if (profile.actor.kind === "personal") {
     const friendship =
       viewer && profile.profile && !profile.viewer.isOwner
@@ -124,6 +137,77 @@ export default async function SocialActorPage({
       profile={profile}
       viewer={viewer}
     />
+  );
+}
+
+function PrivateProfileView({
+  profile,
+  viewer,
+}: {
+  profile: SocialActorProfileView;
+  viewer: DbContextUser | null;
+}) {
+  const connectionOnly = profile.actor.profileVisibility === "connections";
+  const membersOnly = profile.actor.profileVisibility === "members";
+
+  return (
+    <main
+      className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-16 lg:px-8"
+      data-private-profile="true"
+    >
+      <section className="giq-panel px-5 py-10 text-center sm:px-8 sm:py-14">
+        <span className="giq-icon-plate mx-auto flex h-14 w-14 items-center justify-center rounded-2xl">
+          <Lock
+            className="h-7 w-7 text-[hsl(var(--primary-bright))]"
+            aria-hidden="true"
+          />
+        </span>
+        <p className="program-label mt-5">Private member profile</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-[-0.025em] text-[hsl(var(--foreground))] sm:text-3xl">
+          {profile.actor.displayName}
+        </h1>
+        <p className="mx-auto mt-3 max-w-xl text-[13px] leading-6 text-[hsl(var(--muted-foreground))]">
+          {!viewer && membersOnly
+            ? "Sign in to view this member profile."
+            : connectionOnly
+              ? "This member shares their profile with accepted connections only."
+              : "This member has chosen to keep their profile private."}
+        </p>
+        <p className="mx-auto mt-2 max-w-xl text-[12px] leading-5 text-[hsl(var(--subtle-foreground))]">
+          Timeline posts, media, contact details, friends, and follower counts are hidden.
+        </p>
+
+        <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          {!viewer ? (
+            <Link
+              href="/sign-in"
+              className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px] font-semibold sm:w-auto"
+            >
+              <UserPlus className="h-4 w-4" aria-hidden="true" />
+              Sign in
+            </Link>
+          ) : connectionOnly && profile.actor.profileId ? (
+            <form action={sendFriendRequestAction} className="w-full sm:w-auto">
+              <input
+                type="hidden"
+                name="profileId"
+                value={profile.actor.profileId}
+              />
+              <SubmitButton
+                pendingLabel="Connecting..."
+                className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px] font-semibold sm:w-auto"
+              >
+                <UserPlus className="h-4 w-4" aria-hidden="true" />
+                Connect to request access
+              </SubmitButton>
+            </form>
+          ) : null}
+          <Link href="/feed" className="giq-outline-action min-h-11 w-full sm:w-auto">
+            Back to Feed
+          </Link>
+        </div>
+      </section>
+    </main>
   );
 }
 
@@ -386,10 +470,11 @@ function PersonalProfileActions({
   return (
     <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
       {friendship?.status === "accepted" ? (
-        <span className="giq-button giq-button-glass min-h-11 flex-1 px-4 text-[13px] font-semibold sm:flex-none">
-          <UserRoundCheck className="h-4 w-4" aria-hidden="true" />
-          Connected
-        </span>
+        <FriendshipRemovalControl
+          friendshipId={friendship.friendshipId}
+          otherName={profile.actor.displayName}
+          variant="remove-friend"
+        />
       ) : friendship?.status === "pending" ? (
         friendship.direction === "incoming" ? (
           <Link
@@ -400,10 +485,11 @@ function PersonalProfileActions({
             Respond
           </Link>
         ) : (
-          <span className="giq-button giq-button-glass min-h-11 flex-1 px-4 text-[13px] font-semibold sm:flex-none">
-            <UserRoundCheck className="h-4 w-4" aria-hidden="true" />
-            Request sent
-          </span>
+          <FriendshipRemovalControl
+            friendshipId={friendship.friendshipId}
+            otherName={profile.actor.displayName}
+            variant="cancel-request"
+          />
         )
       ) : (
         <form action={sendFriendRequestAction} className="flex-1 sm:flex-none">

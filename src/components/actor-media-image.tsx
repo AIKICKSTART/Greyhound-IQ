@@ -1,5 +1,9 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
+import {
+  DANIEL_DEMO_PROFILE_ALIGNMENT,
+  DANIEL_DEMO_PROFILE_PORTRAIT,
+} from "@/lib/demo-profile-media";
 
 type ActorMediaImageProps = {
   src: string;
@@ -34,13 +38,17 @@ export function actorMediaStyle({
 }
 
 export function ActorMediaImage(props: ActorMediaImageProps) {
+  const alignment =
+    props.src === DANIEL_DEMO_PROFILE_PORTRAIT
+      ? DANIEL_DEMO_PROFILE_ALIGNMENT
+      : props;
   const common = {
     src: props.src,
     sizes: props.sizes,
     priority: props.priority,
     unoptimized: props.src.startsWith("/api/media/"),
     className: props.className ?? "h-full w-full object-cover",
-    style: actorMediaStyle(props),
+    style: actorMediaStyle(alignment),
   };
 
   return props.fill ? (

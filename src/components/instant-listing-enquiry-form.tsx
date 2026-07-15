@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, MessageSquare } from "lucide-react";
 
@@ -9,6 +9,7 @@ export function InstantListingEnquiryForm({ listingId }: { listingId: string }) 
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const errorId = useId();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,7 +41,12 @@ export function InstantListingEnquiryForm({ listingId }: { listingId: string }) 
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="mt-5 space-y-3">
+    <form
+      ref={formRef}
+      onSubmit={onSubmit}
+      data-purpose-id="MARKETPLACE-DETAIL.ACTION.ENQUIRY.SEND MARKETPLACE-DETAIL.FORM.ENQUIRY"
+      className="mt-5 space-y-3"
+    >
       <label className="block">
         <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
           Pulse enquiry
@@ -52,12 +58,15 @@ export function InstantListingEnquiryForm({ listingId }: { listingId: string }) 
           maxLength={2000}
           rows={4}
           disabled={submitting}
+          aria-invalid={Boolean(error)}
+          aria-errormessage={error ? errorId : undefined}
           className="giq-form-control giq-textarea mt-2 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Ask the seller about this marketplace item."
         />
       </label>
       {error && (
         <p
+          id={errorId}
           role="alert"
           className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] text-red-100"
         >

@@ -4,7 +4,7 @@ import {
   AdminStatusForm,
 } from "@/app/admin/form-controls";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
-import { requireModeratorProfile } from "@/lib/auth";
+import { requireAdminProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
 
@@ -41,7 +41,7 @@ type PlanCatalogRow = {
 };
 
 export default async function AdminPlansPage() {
-  await requireModeratorProfile();
+  await requireAdminProfile();
   const plans = await getPlans();
 
   return (
@@ -112,6 +112,7 @@ function getPlans() {
       withDbSystemContext((tx) =>
         tx.plan.findMany({
           orderBy: { code: "asc" },
+          take: 100,
           select: {
             code: true,
             id: true,
@@ -119,6 +120,7 @@ function getPlans() {
             status: true,
             prices: {
               orderBy: [{ interval: "asc" }, { currency: "asc" }],
+              take: 100,
               select: {
                 id: true,
                 interval: true,
@@ -129,6 +131,7 @@ function getPlans() {
             },
             entitlements: {
               orderBy: { featureKey: "asc" },
+              take: 100,
               select: {
                 id: true,
                 featureKey: true,

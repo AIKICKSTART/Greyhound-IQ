@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { withDbRequestContext } from "@/lib/db-context";
 import { memorySupersedeSchema } from "@/lib/memory-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const MEMORY_SUPERSEDE_RATE_LIMIT = 5;
 const MEMORY_SUPERSEDE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -23,18 +25,14 @@ export async function POST(
       MEMORY_SUPERSEDE_RATE_LIMIT_WINDOW_MS
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        MEMORY_SUPERSEDE_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const parsed = memorySupersedeSchema.parse(await request.json());
+    const parsed = memorySupersedeSchema.parse(await readBoundedJsonRequest(request));
     const item = await withDbRequestContext(current, async (tx) => {
       const existing = await tx.memoryEntry.findFirst({
         where: { id, userId: current.dbUserId, deletedAt: null },

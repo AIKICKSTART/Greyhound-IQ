@@ -1,14 +1,36 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 import {
   databaseUrlConfigurationError,
   runtimeDatabaseUrl,
 } from "@/lib/database-url";
-import { logError, logWarn } from "@/lib/logger";
+import { logExecutionWarn, logRequestError } from "@/lib/logger";
+import { isFullAccessDemo } from "@/lib/demo-access";
 
 // Slow-query threshold. Above this a single WARNING line is emitted per query so
 // pathological queries surface in Cloud Logging without flooding it.
 const SLOW_QUERY_MS = 500;
+const DEVELOPMENT_DATABASE_CONNECTION_LIMIT = "10";
+const DISPOSABLE_REPLAY_QUERY_EVIDENCE_MODE =
+  "capture-sanitized-statements-on-disposable-loopback-55734";
+const ENDPOINT_OVERRIDE_PARAMETERS = new Set([
+  "database",
+  "dbname",
+  "host",
+  "hostaddr",
+  "port",
+  "socket",
+]);
+
+export type DisposableReplayQueryEvent = Pick<
+  Prisma.QueryEvent,
+  "query" | "params" | "duration" | "target"
+>;
+
+let disposableReplayQuerySink:
+  | ((event: DisposableReplayQueryEvent) => void)
+  | null = null;
+let disposableReplayQueryCaptureConfigured = false;
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -19,13 +41,37 @@ const prismaConfigurationError = databaseConfigurationError();
 function makePrisma(): PrismaClient | null {
   if (prismaConfigurationError) return null;
   try {
+    const queryEvidenceEnabled = isDisposableReplayQueryEvidenceEnabled();
     const client = new PrismaClient({
       datasources: {
         db: {
-          url: runtimeDatabaseUrl(process.env.DATABASE_URL ?? ""),
+          url: runtimeDatabaseUrl(process.env.DATABASE_URL ?? "", {
+            connectionLimit:
+              process.env.NODE_ENV === "development"
+                ? DEVELOPMENT_DATABASE_CONNECTION_LIMIT
+                : undefined,
+          }),
         },
       },
+      ...(queryEvidenceEnabled
+        ? { log: [{ emit: "event", level: "query" }] as const }
+        : {}),
     });
+    if (queryEvidenceEnabled) {
+      const onQuery = client.$on as unknown as (
+        eventType: "query",
+        callback: (event: Prisma.QueryEvent) => void,
+      ) => void;
+      onQuery.call(client, "query", (event) => {
+        disposableReplayQuerySink?.({
+          query: event.query,
+          params: event.params,
+          duration: event.duration,
+          target: event.target,
+        });
+      });
+      disposableReplayQueryCaptureConfigured = true;
+    }
     // $extends returns a structurally-wider client; callers only use the
     // PrismaClient surface, so cast back for the existing export contract.
     return client.$extends(slowQueryLogger) as unknown as PrismaClient;
@@ -53,7 +99,7 @@ const slowQueryLogger = {
       } finally {
         const durationMs = Math.round(performance.now() - start);
         if (durationMs > SLOW_QUERY_MS) {
-          logWarn("db.slow_query", {
+          await logExecutionWarn("db.slow_query", {
             model: model ?? "raw",
             operation,
             durationMs,
@@ -68,6 +114,7 @@ export function databaseConfigurationError() {
   const error = databaseUrlConfigurationError(process.env.DATABASE_URL, {
     production: process.env.NODE_ENV === "production",
     required: process.env.NODE_ENV === "production",
+    allowManagedSupabase: isFullAccessDemo(),
   });
 
   return error ? `DATABASE_URL ${error}.` : null;
@@ -119,6 +166,55 @@ const stub = new Proxy({} as PrismaClient, {
 
 export const prisma: PrismaClient = (realPrisma as PrismaClient) ?? (stub as PrismaClient);
 
+export async function captureDisposableReplayQueries<T>(
+  operation: () => Promise<T>,
+) {
+  if (
+    !isDisposableReplayQueryEvidenceEnabled() ||
+    !disposableReplayQueryCaptureConfigured
+  ) {
+    throw new Error("database.disposable_query_evidence_disabled");
+  }
+  if (disposableReplayQuerySink) {
+    throw new Error("database.disposable_query_evidence_capture_active");
+  }
+
+  const queries: DisposableReplayQueryEvent[] = [];
+  disposableReplayQuerySink = (event) => queries.push(event);
+  try {
+    const result = await operation();
+    return { result, queries } as const;
+  } finally {
+    disposableReplayQuerySink = null;
+  }
+}
+
+function isDisposableReplayQueryEvidenceEnabled() {
+  if (
+    process.env.NODE_ENV === "production" ||
+    process.env.DEMO_FIXTURE_QUERY_EVIDENCE_MODE !==
+      DISPOSABLE_REPLAY_QUERY_EVIDENCE_MODE
+  ) {
+    return false;
+  }
+  try {
+    const url = new URL(process.env.DATABASE_URL ?? "");
+    return (
+      url.protocol === "postgresql:" &&
+      url.hostname === "127.0.0.1" &&
+      url.port === "55734" &&
+      url.pathname === "/greyhoundiq" &&
+      decodeURIComponent(url.username) === "greyhoundiq_runtime" &&
+      url.password === "" &&
+      [...url.searchParams.keys()].every(
+        (key) => !ENDPOINT_OVERRIDE_PARAMETERS.has(key.toLowerCase()),
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
 function summarizeDatabaseError(err: unknown) {
   const maybeRecord = err && typeof err === "object" ? err as Record<string, unknown> : null;
   const name = err instanceof Error ? err.name : "DatabaseError";
@@ -153,7 +249,7 @@ export async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T
   } catch (err) {
     if (process.env.NODE_ENV === "production") {
       // Summarized only: raw Prisma errors can embed connection strings.
-      logError("db.safe_query_failed", {
+      await logRequestError("db.safe_query_failed", {
         summary: `DB error, failing closed: ${summarizeDatabaseError(err)}`,
       });
       throw err;

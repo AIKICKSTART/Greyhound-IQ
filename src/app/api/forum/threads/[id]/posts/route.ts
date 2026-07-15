@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { assertPaidFeatureAccess, requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { cleanText } from "@/lib/content";
 import { withDbRequestContext, withDbSystemContext } from "@/lib/db-context";
+import { forumPostCreateSchema } from "@/lib/forum-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
-const createPostSchema = z.object({
-  body: z.string().trim().min(20).max(20_000),
-});
+const createPostSchema = forumPostCreateSchema;
 
 const POST_CREATE_RATE_LIMIT = 5;
 const POST_CREATE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -53,21 +53,18 @@ export async function POST(
     const rateLimit = await checkRateLimit(
       `forum:post:create:${current.dbUserId}:${id}`,
       POST_CREATE_RATE_LIMIT,
-      POST_CREATE_RATE_LIMIT_WINDOW_MS
+      POST_CREATE_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true },
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        POST_CREATE_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const parsed = createPostSchema.parse(await request.json());
+    const parsed = createPostSchema.parse(await readBoundedJsonRequest(request));
     const thread = await withDbRequestContext(current, (tx) =>
       tx.thread.findUnique({ where: { id } })
     );

@@ -12,6 +12,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { PageHero } from "@/components/page-hero";
+import { RateLimitRecoveryCard } from "@/components/rate-limit-recovery-card";
 import { getCurrentUser } from "@/lib/auth";
 import { getEntitlementLimitsForCurrentUser } from "@/lib/billing/entitlement-service";
 import type {
@@ -20,6 +21,7 @@ import type {
 } from "@/lib/billing/entitlements";
 import { safeQuery } from "@/lib/db";
 import { withDbRequestContext, type DbContextUser } from "@/lib/db-context";
+import { BILLING_RATE_LIMIT_RECOVERY_SECONDS } from "@/lib/rate-limit-recovery";
 
 export const dynamic = "force-dynamic";
 
@@ -53,13 +55,18 @@ const STATUS_BANNER_TONE_CLASS = {
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-AU", {
   day: "2-digit",
   month: "short",
+  timeZone: "Australia/Sydney",
   year: "numeric",
 });
 
 type BillingUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
+type BillingPageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
 
-export default async function BillingPage() {
+export default async function BillingPage({ searchParams }: BillingPageProps) {
   const user = await getCurrentUser();
+  const query = await searchParams;
 
   return (
     <div>
@@ -67,7 +74,7 @@ export default async function BillingPage() {
         <BillingMemberHeader tier={user.tier} />
       ) : (
         <PageHero
-          image="/images/wentworth-gate-hero.webp"
+          image="/images/feature-pricing-product.webp"
           title={
             <>
               Account
@@ -86,6 +93,7 @@ export default async function BillingPage() {
             : "mx-auto max-w-5xl px-6 py-12"
         }
       >
+        <BillingOutcomeBanner query={query} />
         {user ? (
           <SignedInBilling user={user} />
         ) : (
@@ -100,6 +108,166 @@ export default async function BillingPage() {
       </section>
     </div>
   );
+}
+
+function BillingOutcomeBanner({
+  query,
+}: {
+  query: { [key: string]: string | string[] | undefined };
+}) {
+  const checkout = singleQueryValue(query.checkout);
+  const portal = singleQueryValue(query.portal);
+  const billing = singleQueryValue(query.billing);
+  const interval =
+    query.interval === "monthly" || query.interval === "yearly"
+      ? query.interval
+      : null;
+
+  if (checkout === "success") {
+    return (
+      <div
+        aria-live="polite"
+        className="mb-6 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.08] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          Returned from Stripe Checkout
+        </p>
+        <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+          {query.plan === "pro"
+            ? `Your Pro${interval ? ` ${interval}` : ""} checkout return was received. `
+            : "Your checkout return was received. "}
+          The local plan only changes after the signed Stripe webhook is
+          verified, which may take a moment.
+        </p>
+        <Link href="/account/billing" className={`${ACTION_CLASS} mt-3 w-fit`}>
+          Refresh billing status
+        </Link>
+      </div>
+    );
+  }
+
+  if (checkout === "cancelled") {
+    const retryQuery = new URLSearchParams({ checkout: "cancelled" });
+    if (query.plan === "pro") retryQuery.set("plan", "pro");
+    if (interval) retryQuery.set("interval", interval);
+    return (
+      <div
+        aria-live="polite"
+        className="mb-6 rounded-xl border border-amber-300/30 bg-amber-300/[0.08] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          Checkout cancelled — no plan change was made
+        </p>
+        <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+          Your current tier is unchanged. Return to pricing to retry securely.
+        </p>
+        <Link
+          href={`/pricing?${retryQuery.toString()}`}
+          className={`${ACTION_CLASS} mt-3 w-fit`}
+        >
+          Retry checkout
+        </Link>
+      </div>
+    );
+  }
+
+  if (billing === "failed") {
+    return (
+      <div
+        role="alert"
+        className="mb-6 rounded-xl border border-rose-400/30 bg-rose-400/[0.08] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          Secure billing portal could not be opened
+        </p>
+        <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+          Your subscription and payment method were not changed. Retry the
+          secure Stripe portal when you are ready.
+        </p>
+        <BillingPortalAction className="mt-3">
+          Retry secure billing portal
+        </BillingPortalAction>
+      </div>
+    );
+  }
+
+  if (billing === "rate-limited") {
+    return (
+      <div className="mb-6">
+        <RateLimitRecoveryCard
+          title="Billing portal paused briefly"
+          detail="We limited repeated portal attempts to protect your account. Your subscription and payment method were not changed."
+          retryAfterSeconds={BILLING_RATE_LIMIT_RECOVERY_SECONDS}
+          action={
+            <BillingPortalAction>Retry secure billing portal</BillingPortalAction>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (portal === "returned") {
+    return (
+      <div
+        aria-live="polite"
+        className="mb-6 rounded-xl border border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          Returned from the secure Stripe billing portal
+        </p>
+        <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+          Any subscription or payment-method changes may take a moment to appear
+          while the signed webhook updates this read-only snapshot.
+        </p>
+      </div>
+    );
+  }
+
+  if (portal === "no_customer" || billing === "not_started") {
+    return (
+      <div
+        aria-live="polite"
+        className="mb-6 rounded-xl border border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          No Stripe billing profile yet
+        </p>
+        <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+          Start a paid plan before opening the billing portal.
+        </p>
+        <Link href="/pricing" className={`${ACTION_CLASS} mt-3 w-fit`}>
+          View plans
+        </Link>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function BillingPortalAction({
+  children,
+  className = "",
+  showIcon = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  showIcon?: boolean;
+}) {
+  return (
+    <form action="/api/billing/portal" method="post" className={className}>
+      <button type="submit" className={`${ACTION_CLASS} w-full sm:w-auto`}>
+        {showIcon ? (
+          <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
+        ) : null}
+        {children}
+      </button>
+    </form>
+  );
+}
+
+function singleQueryValue(value: string | string[] | undefined) {
+  return typeof value === "string" ? value : undefined;
 }
 
 function BillingMemberHeader({ tier }: { tier: BillingUser["tier"] }) {
@@ -174,16 +342,12 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
         </div>
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <form
-            action="/api/billing/portal"
-            method="post"
+          <BillingPortalAction
             className="w-full sm:w-auto"
+            showIcon
           >
-            <button className={`${ACTION_CLASS} w-full`} type="submit">
-              <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
-              Manage billing
-            </button>
-          </form>
+            Manage billing
+          </BillingPortalAction>
           <Link href="/pricing" className={`${ACTION_CLASS} w-full sm:w-auto`}>
             Change plan
           </Link>

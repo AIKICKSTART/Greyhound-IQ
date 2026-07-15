@@ -7,6 +7,7 @@ import {
   withDbAnonymousContext,
   withDbRequestContext,
 } from "@/lib/db-context";
+import { resolveDemoProfilePortrait } from "@/lib/demo-profile-media";
 
 const DISCOVERY_GROUP_LIMIT = 8;
 
@@ -72,13 +73,21 @@ export async function discoverSocialActorsAndDogs(
         }),
       ]);
 
+    const withDemoPortraits = <T extends { displayName: string; avatarUrl: string | null }>(
+      actors: T[],
+    ) =>
+      actors.map((actor) => ({
+        ...actor,
+        avatarUrl: resolveDemoProfilePortrait(actor.displayName, actor.avatarUrl),
+      }));
+
     return {
       query,
-      people,
-      trainers,
-      dogPages,
-      businesses,
-      punters,
+      people: withDemoPortraits(people),
+      trainers: withDemoPortraits(trainers),
+      dogPages: withDemoPortraits(dogPages),
+      businesses: withDemoPortraits(businesses),
+      punters: withDemoPortraits(punters),
       dogs,
     };
   };

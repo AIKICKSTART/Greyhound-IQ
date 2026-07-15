@@ -6,7 +6,8 @@ import {
   withDbSystemContext,
   type DbContextUser,
 } from "@/lib/db-context";
-import { logWarn } from "@/lib/logger";
+import { logRequestWarn } from "@/lib/logger";
+import { resolveDemoProfilePortrait } from "@/lib/demo-profile-media";
 import { assertMediaAttachable } from "@/lib/media-service";
 import { findBannedPhraseMatch } from "@/lib/moderation-service";
 import {
@@ -16,6 +17,7 @@ import {
 import {
   broadcastConversationRealtimeEvent,
   broadcastProfileRealtimeEvent,
+  revokeConversationRealtimeGrants,
 } from "@/lib/realtime-service";
 import {
   requireOwnedActor,
@@ -39,10 +41,10 @@ const CONVERSATION_ACTOR_SELECT = {
 
 const CONVERSATION_INCLUDE = {
   participantA: {
-    select: { id: true, displayName: true, kennelName: true, state: true },
+    select: { id: true, displayName: true, avatarUrl: true, kennelName: true, state: true },
   },
   participantB: {
-    select: { id: true, displayName: true, kennelName: true, state: true },
+    select: { id: true, displayName: true, avatarUrl: true, kennelName: true, state: true },
   },
   participantAActor: { select: CONVERSATION_ACTOR_SELECT },
   participantBActor: { select: CONVERSATION_ACTOR_SELECT },
@@ -50,6 +52,46 @@ const CONVERSATION_INCLUDE = {
     include: { actor: { select: CONVERSATION_ACTOR_SELECT } },
   },
 } as const;
+
+function withDemoConversationPortraits<
+  T extends Prisma.ConversationGetPayload<{ include: typeof CONVERSATION_INCLUDE }>,
+>(conversation: T) {
+  return {
+    ...conversation,
+    participantA: {
+      ...conversation.participantA,
+      avatarUrl: resolveDemoProfilePortrait(
+        conversation.participantA.displayName,
+        conversation.participantA.avatarUrl,
+      ),
+    },
+    participantB: {
+      ...conversation.participantB,
+      avatarUrl: resolveDemoProfilePortrait(
+        conversation.participantB.displayName,
+        conversation.participantB.avatarUrl,
+      ),
+    },
+    participantAActor: conversation.participantAActor
+      ? {
+          ...conversation.participantAActor,
+          avatarUrl: resolveDemoProfilePortrait(
+            conversation.participantAActor.displayName,
+            conversation.participantAActor.avatarUrl,
+          ),
+        }
+      : null,
+    participantBActor: conversation.participantBActor
+      ? {
+          ...conversation.participantBActor,
+          avatarUrl: resolveDemoProfilePortrait(
+            conversation.participantBActor.displayName,
+            conversation.participantBActor.avatarUrl,
+          ),
+        }
+      : null,
+  };
+}
 
 // The conversation list only renders the last message's sender/body/read state
 // and whether it carried media — not the full thread of receipts/reactions.
@@ -88,8 +130,8 @@ export function canonicalProfilePair(profileAId: string, profileBId: string) {
 }
 
 export async function listConversationsForProfile(current: DbContextUser) {
-  return withDbRequestContext(current, (tx) =>
-    tx.conversation.findMany({
+  return withDbRequestContext(current, async (tx) => {
+    const conversations = await tx.conversation.findMany({
       where: {
         OR: [
           { participantAId: current.profileId },
@@ -107,8 +149,9 @@ export async function listConversationsForProfile(current: DbContextUser) {
         },
       },
       take: 50,
-    })
-  );
+    });
+    return conversations.map(withDemoConversationPortraits);
+  });
 }
 
 export async function getConversationForProfile(
@@ -144,12 +187,12 @@ export async function getConversationForProfile(
     const messages = await tx.message.findMany({
       where: messageWhere,
       orderBy: { createdAt: "desc" },
-      take: Math.min(opts?.limit ?? 50, 50),
+      take: Math.min(Math.max(1, Math.trunc(opts?.limit ?? 50)), 50),
       include: MESSAGE_INCLUDE,
     });
     messages.reverse();
 
-    return { ...conversation, messages };
+    return { ...withDemoConversationPortraits(conversation), messages };
   });
 }
 
@@ -200,7 +243,7 @@ export async function searchConversationMessages(
         ],
       },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: limit + 1,
+      take: Math.min(Math.max(1, limit + 1), 51),
       include: MESSAGE_INCLUDE,
     });
     const items = rows.slice(0, limit);
@@ -457,6 +500,7 @@ export async function markConversationRead(
         deletedByRecipientAt: null,
       },
       orderBy: { createdAt: "asc" },
+      take: 200,
       select: { id: true },
     });
     if (unread.length === 0) return 0;
@@ -542,6 +586,8 @@ export async function markConversationDelivered(
           deletedByRecipientAt: null,
           deliveryReceipts: { none: { profileId: current.profileId } },
         },
+        orderBy: { createdAt: "asc" },
+        take: 200,
         select: { id: true },
       });
       if (undelivered.length === 0) {
@@ -582,6 +628,8 @@ export async function countUnreadMessagesByConversation(current: DbContextUser) 
           deletedByRecipientAt: null,
         },
         _count: { _all: true },
+        orderBy: { conversationId: "asc" },
+        take: 5_000,
       })
     );
     const counts = new Map<string, number>();
@@ -707,6 +755,13 @@ export async function setConversationBlock(
     }
     return nextConversation;
   });
+
+  if (blocked) {
+    await revokeConversationRealtimeGrants(conversation.id, [
+      current.profileId,
+      blockedProfileId,
+    ]);
+  }
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -951,6 +1006,7 @@ async function resolveConversationActorsForSender(
           ],
         },
         select: CONVERSATION_ACTOR_SELECT,
+        take: 4,
       })
     );
     participantAActor ??=
@@ -1079,7 +1135,7 @@ async function touchPresence(profileId: string) {
       })
     );
   } catch (err) {
-    logWarn("presence.upsert_failed", { profileId }, err);
+    await logRequestWarn("presence.upsert_failed", { profileId }, err);
   }
 }
 

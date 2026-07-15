@@ -16,11 +16,13 @@ import {
   withDbRequestContext,
   withDbSystemContext,
 } from "@/lib/db-context";
-import { logError } from "@/lib/logger";
+import { logRequestError } from "@/lib/logger";
 import {
   mediaMaxBytes,
+  normalizeUploadFilename,
   resolveMediaBucket,
   resolveMediaContext,
+  validateDecodedMediaMetadata,
   validateWebVttCaption,
   type MediaContext,
   type MediaMimeType,
@@ -35,25 +37,13 @@ import {
   PRIVATE_USER_MEDIA_BUCKET,
   PUBLIC_USER_MEDIA_BUCKET,
   SITE_ASSETS_BUCKET,
-  isSupabaseStorageBucket,
+  isObjectStorageBucket,
   isPublicStorageBucket,
   mediaTypeForMimeType,
   publicStorageUrl,
-  type SupabaseStorageBucket,
+  type ObjectStorageBucket,
 } from "@/lib/storage-paths";
-import {
-  createSignedStorageDownloadUrl,
-  createSignedStorageUploadUrl,
-  downloadStorageObjectHead,
-  downloadStorageObjectToFile,
-  getStorageObjectInfo,
-  listStorageObjectPaths,
-  removeStorageObject,
-  removeStorageObjects,
-  streamStorageObject,
-  uploadStorageObject,
-  uploadStorageObjectFromFile,
-} from "@/lib/supabase-storage";
+import { objectStorage } from "@/lib/object-storage";
 import { sniffMatchesMimeType } from "@/lib/media-sniff";
 import {
   canViewAudience,
@@ -62,8 +52,15 @@ import {
 
 const UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
 const DOWNLOAD_URL_TTL_SECONDS = 15 * 60;
+export const MEDIA_DOWNLOAD_REVOCATION_POLICY = Object.freeze({
+  signedUrlTtlSeconds: DOWNLOAD_URL_TTL_SECONDS,
+  newAccessAfterDeletion: "denied" as const,
+  issuedUrlBehavior:
+    "An issued provider URL can remain usable until its 15-minute expiry; emergency containment requires provider or signing-key revocation.",
+});
 const MEDIA_MAINTENANCE_LIMIT = 100;
 const MEDIA_PROCESSING_LIMIT = 5;
+const FEED_POST_MEDIA_LIMIT = 10;
 const MEDIA_MAINTENANCE_BUDGET_MS = 12 * 60 * 1000;
 const MEDIA_MAINTENANCE_SHUTDOWN_BUFFER_MS = 30 * 1000;
 const CLAMSCAN_TIMEOUT_MS = 2 * 60 * 1000;
@@ -72,6 +69,7 @@ const CLAMAV_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const FRESHCLAM_TIMEOUT_MS = 2 * 60 * 1000;
 const FRESHCLAM_RETRY_COOLDOWN_MS = 60 * 60 * 1000;
 const FFMPEG_TIMEOUT_MS = 10 * 60 * 1000;
+const IMAGE_PROCESSING_TIMEOUT_MS = 2 * 60 * 1000;
 const MEDIA_PROCESSING_LEASE_MS = 20 * 60 * 1000;
 const IMAGE_VARIANT_WIDTHS = [640, 1280, 1920] as const;
 const HLS_RENDITIONS = [360, 720] as const;
@@ -169,7 +167,6 @@ export interface FinalizeMediaInput {
   heightPx?: number;
   durationSec?: number;
   altText?: string;
-  scanStatus?: "clean" | "infected" | "error";
 }
 
 export interface UpdateMediaMetadataInput {
@@ -211,7 +208,10 @@ export async function createSignedUploadIntent(
     linkedEntityId: input.linkedEntityId,
     filename: input.filename,
   });
-  const signedUpload = await createSignedStorageUploadUrl(bucket, objectPath);
+  const signedUpload = await objectStorage.createSignedUpload({
+    bucket,
+    key: objectPath,
+  });
   const publicUrl =
     bucket === SITE_ASSETS_BUCKET ? publicUrlForMedia(bucket, objectPath) : null;
   const expiresAt = new Date(Date.now() + UPLOAD_URL_TTL_MS);
@@ -253,7 +253,7 @@ export async function createSignedUploadIntent(
     mediaId: media.id,
     bucket,
     objectPath,
-    uploadUrl: signedUpload.signedUrl,
+    uploadUrl: signedUpload.url,
     uploadToken: signedUpload.token,
     publicUrl,
     expiresAt: expiresAt.toISOString(),
@@ -294,7 +294,10 @@ export async function finalizeMediaUpload(
   if (media.processingStatus === "pending") {
     await assertStoredBytesMatchMimeType(bucket, media);
 
-    const objectInfo = await getStorageObjectInfo(bucket, media.storagePath);
+    const objectInfo = await objectStorage.getObjectInfo({
+      bucket,
+      key: media.storagePath,
+    });
     const sizeBytes = storageObjectSize(objectInfo, media.sizeBytes);
     const entitlementLimits = await getEntitlementLimitsForCurrentUser(current);
     const mediaLimits = mediaEntitlementLimits(entitlementLimits);
@@ -361,7 +364,7 @@ export async function finalizeMediaUpload(
       quantity: finalized.sizeBytes,
     });
   } catch (err) {
-    logError("media.usage_record_failed", { mediaId: finalized.id }, err);
+    await logRequestError("media.usage_record_failed", { mediaId: finalized.id }, err);
   }
 
   await createAuditLog({
@@ -484,12 +487,14 @@ export async function replaceMediaCaptionForCurrentUser(
   const media = await findOwnedVideoForCaption(current, mediaId);
   const captionPath = `${derivativeBasePath(media)}/caption-${randomUUID()}.vtt`;
 
-  await uploadStorageObject(
-    PRIVATE_USER_MEDIA_BUCKET,
-    captionPath,
-    bytes,
-    "text/vtt; charset=utf-8"
-  );
+  await objectStorage.putObject({
+    bucket: PRIVATE_USER_MEDIA_BUCKET,
+    key: captionPath,
+    body: bytes,
+    contentType: "text/vtt; charset=utf-8",
+    cacheControl: "31536000",
+    upsert: true,
+  });
 
   let item: MediaAsset;
   try {
@@ -509,9 +514,12 @@ export async function replaceMediaCaptionForCurrentUser(
       });
     });
   } catch (err) {
-    await removeStorageObject(PRIVATE_USER_MEDIA_BUCKET, captionPath).catch(
+    await objectStorage.deleteObject({
+      bucket: PRIVATE_USER_MEDIA_BUCKET,
+      key: captionPath,
+    }).catch(
       (cleanupError) =>
-        logError("media.caption_rollback_failed", { mediaId }, cleanupError)
+        logRequestError("media.caption_rollback_failed", { mediaId }, cleanupError)
     );
     throw err;
   }
@@ -519,9 +527,12 @@ export async function replaceMediaCaptionForCurrentUser(
   if (media.captionPath) {
     try {
       assertDerivativePath(media, media.captionPath);
-      await removeStorageObject(PRIVATE_USER_MEDIA_BUCKET, media.captionPath);
+      await objectStorage.deleteObject({
+        bucket: PRIVATE_USER_MEDIA_BUCKET,
+        key: media.captionPath,
+      });
     } catch (err) {
-      logError("media.caption_replaced_cleanup_failed", { mediaId }, err);
+      await logRequestError("media.caption_replaced_cleanup_failed", { mediaId }, err);
     }
   }
 
@@ -561,9 +572,12 @@ export async function deleteMediaCaptionForCurrentUser(
 
   try {
     assertDerivativePath(media, media.captionPath);
-    await removeStorageObject(PRIVATE_USER_MEDIA_BUCKET, media.captionPath);
+    await objectStorage.deleteObject({
+      bucket: PRIVATE_USER_MEDIA_BUCKET,
+      key: media.captionPath,
+    });
   } catch (err) {
-    logError("media.caption_delete_cleanup_failed", { mediaId }, err);
+    await logRequestError("media.caption_delete_cleanup_failed", { mediaId }, err);
   }
 
   await createAuditLog({
@@ -602,11 +616,11 @@ export async function createMediaDownloadUrl(
     };
   }
 
-  const signedUrl = await createSignedStorageDownloadUrl(
+  const signedUrl = await objectStorage.createSignedDownload({
     bucket,
-    delivery.storagePath,
-    DOWNLOAD_URL_TTL_SECONDS
-  );
+    key: delivery.storagePath,
+    expiresInSeconds: DOWNLOAD_URL_TTL_SECONDS,
+  });
   const expiresAt = new Date(Date.now() + DOWNLOAD_URL_TTL_SECONDS * 1000);
 
   return {
@@ -625,14 +639,7 @@ export async function deleteMediaForCurrentUser(
   const deletedAt = new Date();
   const deletion = await withDbRequestContext(current, async (tx) => {
     const media = await tx.mediaAsset.findFirst({
-      where: {
-        id: mediaId,
-        deletedAt: null,
-        OR: [
-          { uploaderId: current.dbUserId },
-          ...(isModeratorRole(current.profileRole) ? [{}] : []),
-        ],
-      },
+      where: ownedMediaWhere(current.dbUserId, mediaId),
     });
     if (!media) throw new Error("media.not_found");
     const posts = await tx.feedPost.findMany({
@@ -640,6 +647,8 @@ export async function deleteMediaForCurrentUser(
         deletedAt: null,
         media: { some: { mediaId: media.id } },
       },
+      orderBy: { id: "asc" },
+      take: 1_000,
       select: { id: true, status: true, visibility: true },
     });
     const tombstoned = await tx.mediaAsset.updateMany({
@@ -658,6 +667,8 @@ export async function deleteMediaForCurrentUser(
       if (post.status !== "processing" && post.status !== "failed") continue;
       const remaining = await tx.feedPostMedia.findMany({
         where: { postId: post.id },
+        orderBy: { position: "asc" },
+        take: FEED_POST_MEDIA_LIMIT,
         select: {
           media: {
             select: { processingStatus: true, scanStatus: true },
@@ -686,19 +697,26 @@ export async function deleteMediaForCurrentUser(
   const { media, feedTransitions } = deletion;
   const bucket = assertKnownBucket(media.storageBucket);
 
-  const processingPaths = await listStorageObjectPaths(
+  const processingPaths = await objectStorage.listObjectKeys({
     bucket,
-    derivativeBasePath(media)
-  ).catch((err) => {
-    logError("media.delete_derivative_list_failed", { mediaId: media.id }, err);
+    prefix: derivativeBasePath(media),
+  }).catch(async (err) => {
+    await logRequestError(
+      "media.delete_derivative_list_failed",
+      { mediaId: media.id },
+      err,
+    );
     return [];
   });
-  await removeStorageObjects(bucket, [...new Set([
-    media.storagePath,
-    ...derivativeStoragePaths(media),
-    ...processingPaths,
-  ])]).catch((err) =>
-    logError("media.delete_storage_failed", { mediaId: media.id }, err)
+  await objectStorage.deleteObjects({
+    bucket,
+    keys: [...new Set([
+      media.storagePath,
+      ...derivativeStoragePaths(media),
+      ...processingPaths,
+    ])],
+  }).catch((err) =>
+    logRequestError("media.delete_storage_failed", { mediaId: media.id }, err)
   );
   const deleted = { ...media, deletedAt };
 
@@ -741,13 +759,16 @@ export async function runMediaMaintenance() {
   let expiredDeleted = 0;
   let expiredDeleteErrors = 0;
   for (const media of expired) {
-    if (!isSupabaseStorageBucket(media.storageBucket)) {
+    if (!isObjectStorageBucket(media.storageBucket)) {
       expiredDeleteErrors += 1;
       continue;
     }
 
     try {
-      await removeStorageObject(media.storageBucket, media.storagePath);
+      await objectStorage.deleteObject({
+        bucket: media.storageBucket,
+        key: media.storagePath,
+      });
       await withDbSystemContext((tx) => tx.mediaAsset.update({
         where: { id: media.id },
         data: { deletedAt: now },
@@ -819,8 +840,11 @@ export async function runMediaMaintenance() {
             "infected",
             "media.infected"
           );
-          await removeStorageObject(bucket, media.storagePath).catch((err) =>
-            logError("media.infected_purge_failed", { mediaId: media.id }, err)
+          await objectStorage.deleteObject({
+            bucket,
+            key: media.storagePath,
+          }).catch((err) =>
+            logRequestError("media.infected_purge_failed", { mediaId: media.id }, err)
           );
           await notifyMediaProcessingVerdict(media, "failed", transitions);
           scanInfected += 1;
@@ -847,9 +871,12 @@ export async function runMediaMaintenance() {
     } catch (err) {
       if (processed?.uploadedPaths.length) {
         const bucket = assertKnownBucket(media.storageBucket);
-        await removeStorageObjects(bucket, processed.uploadedPaths).catch(
+        await objectStorage.deleteObjects({
+          bucket,
+          keys: processed.uploadedPaths,
+        }).catch(
           (cleanupErr) =>
-            logError(
+            logRequestError(
               "media.derivative_cleanup_failed",
               { mediaId: media.id },
               cleanupErr
@@ -857,7 +884,11 @@ export async function runMediaMaintenance() {
         );
       }
       const errorCode = mediaProcessingError(err);
-      logError("media.processing_failed", { mediaId: media.id, errorCode }, err);
+      await logRequestError(
+        "media.processing_failed",
+        { mediaId: media.id, errorCode },
+        err,
+      );
       const transitions = await failMediaProcessing(
         media.id,
         scanPassed ? "clean" : "error",
@@ -896,17 +927,12 @@ export async function runMediaMaintenance() {
 export async function getMediaBlob(
   mediaId: string,
   current: CurrentUser | null,
-  _expires: string | null,
-  _token: string | null,
   options?: {
     variant?: string | null;
     range?: string | null;
     signal?: AbortSignal;
   }
 ) {
-  void _expires;
-  void _token;
-
   const viewer = current?.profileId
     ? {
         dbUserId: current.dbUserId ?? "",
@@ -920,18 +946,27 @@ export async function getMediaBlob(
   const bucket = assertKnownBucket(media.storageBucket);
   const variant = parseMediaDeliveryVariant(options?.variant);
   const delivery = resolveMediaDelivery(media, variant);
-  const objectInfo = await getStorageObjectInfo(bucket, delivery.storagePath);
+  const objectInfo = await objectStorage.getObjectInfo({
+    bucket,
+    key: delivery.storagePath,
+  });
   const sizeBytes = storageObjectSize(
     objectInfo,
     variant === "original" ? media.sizeBytes : null
   );
+  if (
+    sizeBytes >
+    mediaMaxBytes(bucket, media.mimeType as MediaMimeType)
+  ) {
+    throw new Error("media.too_large");
+  }
   const range = parseMediaByteRange(options?.range ?? null, sizeBytes);
-  const body = await streamStorageObject(
+  const body = await objectStorage.streamObject({
     bucket,
-    delivery.storagePath,
-    range ?? undefined,
-    options?.signal
-  );
+    key: delivery.storagePath,
+    range: range ?? undefined,
+    signal: options?.signal,
+  });
 
   return {
     media,
@@ -955,7 +990,8 @@ export async function assertMediaAttachable(
   opts?: { allowPending?: boolean }
 ) {
   const uniqueIds = [...new Set(mediaIds)];
-  if (uniqueIds.length > max) throw new Error("media.too_many");
+  const boundedMax = Math.min(Math.max(1, Math.trunc(max)), 100);
+  if (uniqueIds.length > boundedMax) throw new Error("media.too_many");
   if (uniqueIds.length !== mediaIds.length) throw new Error("media.duplicate");
   if (uniqueIds.length === 0) return [];
 
@@ -965,6 +1001,7 @@ export async function assertMediaAttachable(
       uploaderId: current.dbUserId,
       deletedAt: null,
     },
+    take: Math.min(Math.max(1, boundedMax), 100),
   }));
 
   if (media.length !== uniqueIds.length) throw new Error("media.not_found");
@@ -1310,12 +1347,7 @@ async function canViewerAccessMedia(
   viewer: MediaViewer | null
 ) {
   if (media.storageBucket === SITE_ASSETS_BUCKET) return true;
-  if (viewer && (
-    viewer.dbUserId === media.uploaderId ||
-    isModeratorRole(viewer.profileRole)
-  )) {
-    return true;
-  }
+  if (canAccessMediaByOwnership(media.uploaderId, viewer)) return true;
 
   if (viewer && await viewerCanAccessMessageMedia(media.id, viewer.profileId)) {
     return true;
@@ -1330,6 +1362,14 @@ async function canViewerAccessMedia(
   );
 }
 
+/** @internal Exported for the private-media authorization regression test. */
+export function canAccessMediaByOwnership(
+  uploaderId: string,
+  viewer: { dbUserId: string } | null
+) {
+  return viewer?.dbUserId === uploaderId;
+}
+
 async function viewerCanAccessActorMedia(
   mediaId: string,
   viewer: MediaViewer | null
@@ -1337,6 +1377,8 @@ async function viewerCanAccessActorMedia(
   return withDbSystemContext(async (tx) => {
     const attachments = await tx.actorGalleryMedia.findMany({
       where: { mediaId },
+      orderBy: [{ actorId: "asc" }, { mediaId: "asc" }],
+      take: 100,
       select: {
         actor: {
           select: {
@@ -1379,6 +1421,7 @@ async function viewerCanAccessActorMedia(
             },
           ],
         },
+        take: 200,
         select: { blockerProfileId: true, blockedProfileId: true },
       }),
       tx.actorFollow.findMany({
@@ -1386,6 +1429,7 @@ async function viewerCanAccessActorMedia(
           followedActorId: { in: actorIds },
           followerActor: { ownerProfileId: viewer.profileId },
         },
+        take: 100,
         select: { followedActorId: true },
       }),
       tx.friendship.findMany({
@@ -1402,6 +1446,7 @@ async function viewerCanAccessActorMedia(
             },
           ],
         },
+        take: 200,
         select: { profileAId: true, profileBId: true },
       }),
     ]);
@@ -1535,7 +1580,7 @@ function publicListingMediaWhere() {
 }
 
 function assertUploadAllowedForContext(
-  bucket: SupabaseStorageBucket,
+  bucket: ObjectStorageBucket,
   context: MediaContext,
   current: CurrentUserProfile
 ) {
@@ -1552,13 +1597,16 @@ function assertUploadAllowedForContext(
 }
 
 function assertMediaSize(
-  bucket: SupabaseStorageBucket,
+  bucket: ObjectStorageBucket,
   mimeType: MediaMimeType,
   sizeBytes: number,
   uploadFileSizeBytes: number
 ) {
   const maxBytes = mediaMaxBytes(bucket, mimeType);
-  if (sizeBytes > maxBytes || sizeBytes > uploadFileSizeBytes) {
+  if (
+    sizeBytes > maxBytes ||
+    entitlementLimitExceeded(0, sizeBytes, uploadFileSizeBytes)
+  ) {
     throw new Error("media.too_large");
   }
 }
@@ -1567,13 +1615,14 @@ async function assertMonthlyUploadsAvailable(
   current: CurrentUserProfile,
   uploadsPerMonth: number
 ) {
+  if (uploadsPerMonth === -1) return;
   const uploadsThisMonth = await withDbRequestContext(current, (tx) => tx.mediaAsset.count({
     where: {
       uploaderId: current.dbUserId,
       createdAt: { gte: startOfCurrentUtcMonth() },
     },
   }));
-  if (uploadsThisMonth >= uploadsPerMonth) {
+  if (entitlementLimitExceeded(uploadsThisMonth, 1, uploadsPerMonth)) {
     throw new Error("media.quota_exceeded");
   }
 }
@@ -1583,6 +1632,7 @@ async function assertStorageQuotaAvailable(
   candidateBytes: number,
   storageBytes: number
 ) {
+  if (storageBytes === -1) return;
   const usage = await withDbRequestContext(current, (tx) => tx.mediaAsset.aggregate({
     where: {
       uploaderId: current.dbUserId,
@@ -1591,9 +1641,18 @@ async function assertStorageQuotaAvailable(
     _sum: { sizeBytes: true },
   }));
   const usedBytes = usage._sum.sizeBytes ?? 0;
-  if (usedBytes + candidateBytes > storageBytes) {
+  if (entitlementLimitExceeded(usedBytes, candidateBytes, storageBytes)) {
     throw new Error("media.quota_exceeded");
   }
+}
+
+/** @internal Exported for entitlement quota regression tests. */
+export function entitlementLimitExceeded(
+  currentUsage: number,
+  requestedUsage: number,
+  limit: number
+) {
+  return limit !== -1 && currentUsage + requestedUsage > limit;
 }
 
 function mediaEntitlementLimits(limits: EntitlementLimits) {
@@ -1801,6 +1860,8 @@ async function promoteReadyPersonalActorMediaWithTx(tx: Tx, mediaId: string) {
       linkedEntityId: actor.id,
       deletedAt: null,
     },
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    take: 1_000,
     select: { id: true, createdAt: true },
   });
   if (!isNewestProfileMediaCandidate(media.id, candidates)) return false;
@@ -1904,11 +1965,15 @@ async function reconcileLinkedFeedPosts(
       deletedAt: null,
       media: { some: { mediaId } },
     },
+    orderBy: { id: "asc" },
+    take: 1_000,
     select: {
       id: true,
       authorProfileId: true,
       visibility: true,
       media: {
+        orderBy: { position: "asc" },
+        take: FEED_POST_MEDIA_LIMIT,
         select: {
           media: {
             select: { processingStatus: true, scanStatus: true },
@@ -2018,7 +2083,11 @@ async function notifyMediaProcessingVerdict(
       }
     }
   } catch (err) {
-    logError("media.processing_notify_failed", { mediaId: media.id }, err);
+    await logRequestError(
+      "media.processing_notify_failed",
+      { mediaId: media.id },
+      err,
+    );
   }
 }
 
@@ -2041,22 +2110,25 @@ function assertPrivateProcessingBucket(media: ProcessingMedia) {
 const SNIFF_HEAD_BYTES = 4100;
 
 async function assertStoredBytesMatchMimeType(
-  bucket: SupabaseStorageBucket,
+  bucket: ObjectStorageBucket,
   media: { id: string; storagePath: string; mimeType: string },
   options?: { markFailure?: boolean }
 ) {
-  const head = await downloadStorageObjectHead(
+  const head = await objectStorage.readObjectHead({
     bucket,
-    media.storagePath,
-    SNIFF_HEAD_BYTES
-  );
+    key: media.storagePath,
+    bytes: SNIFF_HEAD_BYTES,
+  });
   if (sniffMatchesMimeType(head, media.mimeType as MediaMimeType)) return;
 
   if (options?.markFailure !== false) {
     await failMediaProcessing(media.id, "error", "media.invalid_type");
   }
-  await removeStorageObject(bucket, media.storagePath).catch((err) =>
-    logError("media.invalid_type_purge_failed", { mediaId: media.id }, err)
+  await objectStorage.deleteObject({
+    bucket,
+    key: media.storagePath,
+  }).catch((err) =>
+    logRequestError("media.invalid_type_purge_failed", { mediaId: media.id }, err)
   );
   throw new Error("media.invalid_type");
 }
@@ -2068,7 +2140,10 @@ async function verifyStorageObjectForScan(media: {
   sizeBytes: number;
 }) {
   const bucket = assertKnownBucket(media.storageBucket);
-  const objectInfo = await getStorageObjectInfo(bucket, media.storagePath);
+  const objectInfo = await objectStorage.getObjectInfo({
+    bucket,
+    key: media.storagePath,
+  });
   const sizeBytes = storageObjectSize(objectInfo, media.sizeBytes);
   assertMediaSize(
     bucket,
@@ -2092,12 +2167,14 @@ async function processMediaDerivatives(
     storagePath: string,
     contentType: string
   ) => {
-    await uploadStorageObjectFromFile(
+    await objectStorage.putObjectFromFile({
       bucket,
-      storagePath,
-      localPath,
-      contentType
-    );
+      key: storagePath,
+      filePath: localPath,
+      contentType,
+      cacheControl: "31536000",
+      upsert: true,
+    });
     uploadedPaths.push(storagePath);
   };
   const uploadBytes = async (
@@ -2105,15 +2182,32 @@ async function processMediaDerivatives(
     storagePath: string,
     contentType: string
   ) => {
-    await uploadStorageObject(bucket, storagePath, bytes, contentType);
+    await objectStorage.putObject({
+      bucket,
+      key: storagePath,
+      body: bytes,
+      contentType,
+      cacheControl: "31536000",
+      upsert: true,
+    });
     uploadedPaths.push(storagePath);
   };
 
   try {
-    await downloadStorageObjectToFile(bucket, media.storagePath, inputPath);
+    await objectStorage.downloadObjectToFile({
+      bucket,
+      key: media.storagePath,
+      destinationPath: inputPath,
+    });
 
     const processed = media.mimeType.startsWith("image/")
-      ? await processImageMedia(media, inputPath, tempDir, uploadFile)
+      ? await processImageMedia(
+          media,
+          inputPath,
+          tempDir,
+          uploadFile,
+          deadlineAt
+        )
       : media.mimeType.startsWith("video/")
         ? await processVideoMedia(
             media,
@@ -2134,8 +2228,11 @@ async function processMediaDerivatives(
           : emptyProcessedMedia();
     return { ...processed, uploadedPaths };
   } catch (err) {
-    await removeStorageObjects(bucket, uploadedPaths).catch((cleanupErr) =>
-      logError(
+    await objectStorage.deleteObjects({
+      bucket,
+      keys: uploadedPaths,
+    }).catch((cleanupErr) =>
+      logRequestError(
         "media.derivative_cleanup_failed",
         { mediaId: media.id },
         cleanupErr
@@ -2166,22 +2263,32 @@ async function processImageMedia(
     localPath: string,
     storagePath: string,
     contentType: string
-  ) => Promise<void>
+  ) => Promise<void>,
+  deadlineAt: number
 ) {
   const sharp = (await import("sharp")).default;
-  const sourceMetadata = await sharp(inputPath).metadata();
-  if (!sourceMetadata.width || !sourceMetadata.height) {
-    throw new Error("media.image_metadata_invalid");
-  }
+  const sourceMetadata = await sharp(inputPath)
+    .timeout({ seconds: imageProcessingTimeoutSeconds(deadlineAt) })
+    .metadata();
+  const source = validateDecodedMediaMetadata(
+    "image",
+    { width: sourceMetadata.width, height: sourceMetadata.height },
+    {
+      width: media.widthPx,
+      height: media.heightPx,
+      durationSec: media.durationSec,
+    },
+  );
   const targetWidths = [...new Set([
-    ...IMAGE_VARIANT_WIDTHS.filter((width) => width < sourceMetadata.width!),
-    sourceMetadata.width,
+    ...IMAGE_VARIANT_WIDTHS.filter((width) => width < source.width),
+    source.width,
   ])].sort((a, b) => a - b);
   const variants: ImageVariant[] = [];
 
   for (const targetWidth of targetWidths) {
     const outputPath = path.join(tempDir, `image-${targetWidth}.webp`);
     const output = await sharp(inputPath)
+      .timeout({ seconds: imageProcessingTimeoutSeconds(deadlineAt) })
       .rotate()
       .resize({ width: targetWidth, withoutEnlargement: true })
       .webp({ quality: 82, effort: 4 })
@@ -2203,8 +2310,8 @@ async function processImageMedia(
   const metadata: ProcessingMetadata = {
     imageVariants: variants,
     source: {
-      width: sourceMetadata.width,
-      height: sourceMetadata.height,
+      width: source.width,
+      height: source.height,
     },
   };
   return {
@@ -2232,10 +2339,15 @@ async function processVideoMedia(
   ) => Promise<void>,
   deadlineAt: number
 ) {
-  const source = await probeMedia(inputPath);
-  if (!source.width || !source.height) {
-    throw new Error("media.video_metadata_invalid");
-  }
+  const source = validateDecodedMediaMetadata(
+    "video",
+    await probeMedia(inputPath, deadlineAt),
+    {
+      width: media.widthPx,
+      height: media.heightPx,
+      durationSec: media.durationSec,
+    },
+  );
   const basePath = derivativeBasePath(media);
   const playbackLocal = path.join(tempDir, "playback.mp4");
   const playbackPath = `${basePath}/video/playback.mp4`;
@@ -2422,7 +2534,15 @@ async function processAudioMedia(
   ) => Promise<void>,
   deadlineAt: number
 ) {
-  const source = await probeMedia(inputPath);
+  const source = validateDecodedMediaMetadata(
+    "audio",
+    await probeMedia(inputPath, deadlineAt),
+    {
+      width: media.widthPx,
+      height: media.heightPx,
+      durationSec: media.durationSec,
+    },
+  );
   const basePath = `${derivativeBasePath(media)}/audio`;
   const playbackLocal = path.join(tempDir, "playback.mp3");
   const playbackPath = `${basePath}/playback.mp3`;
@@ -2477,7 +2597,8 @@ export function buildWaveform(bytes: Uint8Array, points = 100) {
   return waveform;
 }
 
-async function probeMedia(inputPath: string) {
+async function probeMedia(inputPath: string, deadlineAt: number) {
+  const remainingMs = remainingProcessingMs(deadlineAt);
   const { stdout } = await execFileAsync(
     ffprobeBinary(),
     [
@@ -2486,7 +2607,10 @@ async function probeMedia(inputPath: string) {
       "-of", "json",
       inputPath,
     ],
-    { timeout: ffmpegTimeoutMs(), maxBuffer: 1024 * 1024 }
+    {
+      timeout: Math.min(ffmpegTimeoutMs(), remainingMs),
+      maxBuffer: 1024 * 1024,
+    }
   );
   const parsed = JSON.parse(stdout) as {
     streams?: Array<{ width?: number; height?: number }>;
@@ -2507,12 +2631,25 @@ async function probeMedia(inputPath: string) {
 }
 
 async function runFfmpeg(args: string[], deadlineAt: number) {
-  const remainingMs = deadlineAt - Date.now();
-  if (remainingMs <= 1000) throw new Error("media.processing_deadline_exceeded");
+  const remainingMs = remainingProcessingMs(deadlineAt);
   await execFileAsync(ffmpegBinary(), args, {
     timeout: Math.min(ffmpegTimeoutMs(), remainingMs),
     maxBuffer: 4 * 1024 * 1024,
   });
+}
+
+function imageProcessingTimeoutSeconds(deadlineAt: number) {
+  const timeoutMs = Math.min(
+    IMAGE_PROCESSING_TIMEOUT_MS,
+    remainingProcessingMs(deadlineAt),
+  );
+  return Math.max(1, Math.floor(timeoutMs / 1000));
+}
+
+function remainingProcessingMs(deadlineAt: number) {
+  const remainingMs = deadlineAt - Date.now();
+  if (remainingMs <= 1000) throw new Error("media.processing_deadline_exceeded");
+  return remainingMs;
 }
 
 function ffmpegBinary() {
@@ -2540,7 +2677,7 @@ function mediaVariantUrl(mediaId: string, variant: MediaDeliveryVariant) {
 }
 
 async function scanStorageObjectWithClamAv(
-  bucket: SupabaseStorageBucket,
+  bucket: ObjectStorageBucket,
   objectPath: string,
   mediaId: string
 ) {
@@ -2548,7 +2685,11 @@ async function scanStorageObjectWithClamAv(
   const tempFile = path.join(tempDir, "upload.bin");
 
   try {
-    await downloadStorageObjectToFile(bucket, objectPath, tempFile);
+    await objectStorage.downloadObjectToFile({
+      bucket,
+      key: objectPath,
+      destinationPath: tempFile,
+    });
 
     try {
       await execFileAsync(clamScanBinary(), [...clamScanArgs(), tempFile], {
@@ -2562,7 +2703,7 @@ async function scanStorageObjectWithClamAv(
           ? (err as { code: number }).code
           : null;
       if (exitCode === 1) return "infected" as const;
-      logError("media.scan_failed", { mediaId }, err);
+      await logRequestError("media.scan_failed", { mediaId }, err);
       return "error" as const;
     }
   } finally {
@@ -2585,7 +2726,7 @@ async function assertClamAvReady() {
     try {
       await refreshClamAvDefinitions();
     } catch (err) {
-      logError("media.clamav_refresh_failed", {}, err);
+      await logRequestError("media.clamav_refresh_failed", {}, err);
     }
     definitionDate = await readClamAvDefinitionDate();
   }
@@ -2602,7 +2743,7 @@ async function readClamAvDefinitionDate() {
       maxBuffer: 64 * 1024,
     }));
   } catch (err) {
-    logError("media.clamav_readiness_failed", {}, err);
+    await logRequestError("media.clamav_readiness_failed", {}, err);
     throw new Error("media.clamav_unavailable");
   }
   const definitionDate = parseClamAvDefinitionDate(String(stdout));
@@ -2754,13 +2895,13 @@ async function findOwnedVideoForCaption(
 }
 
 function buildObjectPath(input: {
-  bucket: SupabaseStorageBucket;
+  bucket: ObjectStorageBucket;
   context: MediaContext;
   userId: string;
   linkedEntityId?: string;
   filename: string;
 }) {
-  const filename = `${randomUUID()}-${sanitizeFilename(input.filename)}`;
+  const filename = `${randomUUID()}-${normalizeUploadFilename(input.filename)}`;
   const entityId = sanitizePathSegment(input.linkedEntityId ?? "pending");
 
   if (input.bucket === SITE_ASSETS_BUCKET) {
@@ -2768,18 +2909,6 @@ function buildObjectPath(input: {
   }
 
   return `users/${sanitizePathSegment(input.userId)}/quarantine/${input.context}/${entityId}/${filename}`;
-}
-
-function sanitizeFilename(filename: string) {
-  const safe = filename
-    .replace(/\\/g, "/")
-    .split("/")
-    .pop()
-    ?.trim()
-    .replace(/[^a-zA-Z0-9._-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^\.+/, "");
-  return safe || "upload.bin";
 }
 
 function sanitizeMediaAltText(value: string) {
@@ -2845,13 +2974,13 @@ function derivativeStoragePaths(media: ProcessingMedia) {
 }
 
 function publicUrlForMedia(
-  bucket: SupabaseStorageBucket,
+  bucket: ObjectStorageBucket,
   objectPath: string
 ) {
   return isPublicStorageBucket(bucket) ? publicStorageUrl(bucket, objectPath) : null;
 }
 
-function assertKnownBucket(bucket: string): SupabaseStorageBucket {
+function assertKnownBucket(bucket: string): ObjectStorageBucket {
   if (
     bucket === SITE_ASSETS_BUCKET ||
     bucket === PUBLIC_USER_MEDIA_BUCKET ||

@@ -10,6 +10,18 @@ const uploaderSource = readFileSync(
   join(__dirname, "..", "..", "components", "media-attachment-fields.tsx"),
   "utf8"
 );
+const playerCardSource = readFileSync(
+  join(__dirname, "..", "..", "components", "marketplace-dog-player-card.tsx"),
+  "utf8"
+);
+const listingMediaSource = readFileSync(
+  join(__dirname, "..", "..", "components", "listing-card-media-carousel.tsx"),
+  "utf8"
+);
+const queriesSource = readFileSync(
+  join(__dirname, "..", "..", "lib", "queries.ts"),
+  "utf8"
+);
 
 assert.ok(
   indexSource.includes(
@@ -18,7 +30,7 @@ assert.ok(
   "Marketplace must keep distinct member and signed-out headers"
 );
 for (const marketingContract of [
-  'image="/images/wentworth-gate-hero.webp"',
+  'image="/images/demo-listing-dog-for-sale.webp"',
   "Verified context.",
   "Discuss in Groups",
   "Create marketplace item",
@@ -121,5 +133,81 @@ assert.ok(
   !detailSource.includes("lg:overflow-y-auto"),
   "Sticky marketplace actions must not create a nested desktop scrollbar"
 );
+
+assert.ok(
+  indexSource.includes("<MarketplaceDogListingPlayerCard") &&
+    indexSource.includes("listing.dog ?"),
+  "Dog-linked Marketplace items must use the shared player-card treatment"
+);
+for (const playerCardContract of [
+  "aspect-[5/7]",
+  "rotateY(180deg)",
+  "resolveMarketplaceCardGesture",
+  "size-11 shrink-0",
+  "min-h-11 items-center justify-center",
+  "text-[clamp(9px,2vw,10px)]",
+  "View full listing",
+  "Phone and email remain private",
+]) {
+  assert.ok(
+    playerCardSource.includes(playerCardContract),
+    `Marketplace player card must preserve: ${playerCardContract}`
+  );
+}
+assert.equal(
+  playerCardSource.match(/style=\{\{ minHeight: 44 \}\}/g)?.length,
+  4,
+  "Marketplace player-card controls must preserve a 44px touch target"
+);
+for (const undersizedContract of [
+  "min-h-7",
+  "min-h-9",
+  "text-[clamp(6px",
+  "text-[clamp(7px",
+  "text-[clamp(8px",
+]) {
+  assert.equal(
+    playerCardSource.includes(undersizedContract),
+    false,
+    `Marketplace player card must not regress to ${undersizedContract}`
+  );
+}
+assert.ok(
+  indexSource.includes("data-marketplace-item-media") &&
+    indexSource.includes("relative order-first w-full p-2 pb-0"),
+  "General marketplace media must remain the first full-width card section"
+);
+for (const mediaContract of [
+  "LISTING_MEDIA_FRAME_CLASS",
+  "aspect-[16/10]",
+  "LISTING_MEDIA_IMAGE_CLASS",
+  "h-full w-full object-cover",
+  "data-listing-card-media-frame",
+  "No image uploaded",
+  "Image unavailable",
+]) {
+  assert.ok(
+    listingMediaSource.includes(mediaContract),
+    `General marketplace media must preserve: ${mediaContract}`
+  );
+}
+assert.equal(
+  listingMediaSource.includes("object-contain"),
+  false,
+  "Every general marketplace item image must fill the shared frame"
+);
+for (const publicDogStat of [
+  "careerStarts",
+  "careerWins",
+  "careerSeconds",
+  "careerThirds",
+  "prizeMoney",
+  "winPercentage",
+]) {
+  assert.ok(
+    queriesSource.includes(`${publicDogStat}: true`),
+    `Marketplace card query must include ${publicDogStat}`
+  );
+}
 
 console.log("Marketplace polish contract tests passed");

@@ -8,6 +8,7 @@ import {
   queryParamsObject,
 } from "@/lib/query-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 export async function GET(
   request: NextRequest,
@@ -24,9 +25,10 @@ export async function GET(
       60 * 1000
     );
     if (!rate.allowed) {
-      return NextResponse.json(
-        { error: { code: "rate_limit.exceeded", message: "Too many requests" } },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rate,
+        30,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
     const query = messageSearchQuerySchema.parse(

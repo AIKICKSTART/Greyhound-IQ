@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { respondToCallInviteForCurrentUser } from "@/lib/call-service";
 import { callInviteActionSchema, callRoomIdSchema } from "@/lib/call-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const CALL_INVITE_RATE_LIMIT = 20;
 const CALL_INVITE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -21,21 +23,18 @@ export async function POST(
     const rateLimit = await checkRateLimit(
       `call:invite:${current.dbUserId}:${parsedRoomId}`,
       CALL_INVITE_RATE_LIMIT,
-      CALL_INVITE_RATE_LIMIT_WINDOW_MS
+      CALL_INVITE_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true },
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        CALL_INVITE_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const parsed = callInviteActionSchema.parse(await request.json());
+    const parsed = callInviteActionSchema.parse(await readBoundedJsonRequest(request));
     const invite = await respondToCallInviteForCurrentUser(
       current,
       parsedRoomId,

@@ -156,7 +156,10 @@ export default async function AdminListingsPage() {
                   )}
                   className="mt-3"
                 >
-                  <button className="giq-outline-action min-h-11 px-3 text-[12px]">
+                  <button
+                    data-purpose-id="ADMIN-LISTINGS.ACTION.CATEGORY.ACTIVE.SET ADMIN-LISTINGS.FORM.CATEGORY-ACTIVE"
+                    className="giq-outline-action min-h-11 px-3 text-[12px]"
+                  >
                     {category.active ? "Deactivate" : "Activate"}
                   </button>
                 </form>
@@ -257,21 +260,27 @@ function ListingActions({ listing }: { listing: ListingRow }) {
     return (
       <div className="flex min-w-[280px] flex-wrap gap-2">
         <form action={approveAction}>
-          <button className="giq-button giq-button-primary min-h-11 px-3 text-[12px]">
+          <button
+            data-purpose-id="ADMIN-LISTINGS.ACTION.LISTING.APPROVE ADMIN-LISTINGS.FORM.APPROVE"
+            className="giq-button giq-button-primary min-h-11 px-3 text-[12px]"
+          >
             Approve
           </button>
         </form>
         <form action={rejectAction} className="flex gap-2">
           <input
             name="reason"
+            aria-label="Rejection reason"
             required
             minLength={3}
             maxLength={500}
             placeholder="Reason"
             className="giq-form-control min-h-11 w-36 px-2 py-1 text-[12px]"
           />
-            aria-label="Rejection reason"
-          <button className="giq-button giq-button-glass min-h-11 px-3 text-[12px]">
+          <button
+            data-purpose-id="ADMIN-LISTINGS.ACTION.LISTING.REJECT ADMIN-LISTINGS.FORM.REJECT"
+            className="giq-button giq-button-glass min-h-11 px-3 text-[12px]"
+          >
             Reject
           </button>
         </form>
@@ -281,19 +290,34 @@ function ListingActions({ listing }: { listing: ListingRow }) {
 
   if (listing.status === "active") {
     return (
-      <form action={removeAction} className="flex min-w-[220px] gap-2">
-        <input
-          name="reason"
-          required
-          minLength={3}
-          maxLength={500}
-          placeholder="Reason"
-          className="giq-form-control min-h-11 w-36 px-2 py-1 text-[12px]"
-        />
-        <button className="giq-button giq-button-glass min-h-11 px-3 text-[12px]">
-          Remove
-        </button>
-          aria-label="Removal reason"
+      <form action={removeAction} className="grid min-w-[220px] gap-2">
+        <label className="flex items-start gap-2 text-[11px] leading-4 text-[hsl(var(--muted-foreground))]">
+          <input
+            type="checkbox"
+            name="confirmation"
+            value="remove"
+            required
+            className="mt-0.5 size-4 shrink-0 accent-[hsl(var(--primary))]"
+          />
+          Confirm this listing should be removed from the marketplace.
+        </label>
+        <div className="flex gap-2">
+          <input
+            name="reason"
+            aria-label="Removal reason"
+            required
+            minLength={3}
+            maxLength={500}
+            placeholder="Reason"
+            className="giq-form-control min-h-11 w-36 px-2 py-1 text-[12px]"
+          />
+          <button
+            data-purpose-id="ADMIN-LISTINGS.ACTION.LISTING.REMOVE ADMIN-LISTINGS.FORM.REMOVE"
+            className="giq-button giq-button-glass min-h-11 px-3 text-[12px]"
+          >
+            Remove
+          </button>
+        </div>
       </form>
     );
   }

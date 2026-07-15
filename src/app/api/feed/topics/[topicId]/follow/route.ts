@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedOptionalJsonRequest } from "@/lib/json-request";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { toggleActorTopicFollowForCurrentUser } from "@/lib/feed-service";
+import { feedActorSelectionSchema } from "@/lib/feed-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
-const followSchema = z.object({
-  actorId: z.string().trim().min(1).max(120).optional().nullable(),
-});
+const followSchema = feedActorSelectionSchema;
 
 export async function POST(
   request: Request,
@@ -22,11 +22,17 @@ export async function POST(
     const rate = await checkRateLimit(
       `feed:topic-follow:${current.dbUserId}`,
       30,
-      60 * 1000
+      60 * 1000,
+      { failClosed: true },
     );
-    if (!rate.allowed) throw new Error("rate_limit.exceeded");
-    const raw = await request.text();
-    const input = followSchema.parse(raw ? JSON.parse(raw) : {});
+    if (!rate.allowed) {
+      return rateLimitExceededResponse(
+        rate,
+        30,
+        { code: "rate_limit.exceeded", message: "rate_limit.exceeded" }
+      );
+    }
+    const input = followSchema.parse(await readBoundedOptionalJsonRequest(request));
     const item = await toggleActorTopicFollowForCurrentUser(
       current,
       topicId,

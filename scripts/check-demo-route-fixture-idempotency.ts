@@ -41,7 +41,7 @@ const ENDPOINT_OVERRIDE_PARAMETERS = new Set([
   "socket",
 ]);
 const PROVIDER = "fixture-provider-sentinel";
-const PROVIDER_MEETING_ID = "fixture-provider-meeting-route-audit";
+const PROVIDER_MEETING_ID = DEMO_FIXTURE_MANIFEST.providerSamples.meetingId;
 const PROVIDER_MEETING_DATE = new Date("2026-07-12T09:00:00.000Z");
 const PROVIDER_RACE_TIME = new Date("2026-07-12T10:00:00.000Z");
 const PUBLIC_RACING_DETAIL_PROBE = {
@@ -57,6 +57,7 @@ const PUBLIC_RACING_DETAIL_PROBE = {
   profileFormId: "fixture-provider-profile-form-route-audit",
   previousRaceTime: new Date("2026-07-12T09:30:00.000Z"),
 } as const;
+const PROVIDER_RUNNER_ID = PUBLIC_RACING_DETAIL_PROBE.currentRunnerId;
 const USER_COLLISION_PROBE_ID = "demo-probe-user-collision";
 const SIGNUP_OUTBOX_CLAIM_PROBE_ID = "demo-signup-outbox-claim-operation-proof";
 const SIGNUP_OUTBOX_CLAIM_IDEMPOTENCY_KEY =
@@ -561,6 +562,35 @@ async function setupProviderSamples(tx: DbContextClient) {
     update: providerRaceData(),
     create: { id: raceId, ...providerRaceData() },
   });
+
+  const providerRunner = {
+    raceId,
+    dogId,
+    boxNumber: 1,
+    weight: 31.2,
+    trainerId: null,
+    startingPrice: null,
+    sourceProvider: PROVIDER,
+    sourceId: "route-audit-runner",
+    sourceRawJson: null,
+    createdAt: PROVIDER_MEETING_DATE,
+  };
+  const runnerCollisions = await tx.runner.findMany({
+    where: {
+      OR: [
+        { id: PROVIDER_RUNNER_ID },
+        { raceId, boxNumber: providerRunner.boxNumber },
+        { sourceProvider: PROVIDER, sourceId: providerRunner.sourceId },
+      ],
+    },
+    select: { id: true },
+  });
+  assertOwnedCollision(runnerCollisions, PROVIDER_RUNNER_ID, "provider runner");
+  await tx.runner.upsert({
+    where: { id: PROVIDER_RUNNER_ID },
+    update: providerRunner,
+    create: { id: PROVIDER_RUNNER_ID, ...providerRunner },
+  });
 }
 
 async function setupDogOwnershipOperationProbe(
@@ -697,7 +727,7 @@ async function setupPublicRacingDetailOperationProbe(tx: DbContextClient) {
     {
       trainers: 0,
       races: 0,
-      runners: 0,
+      runners: 1,
       results: 0,
       videos: 0,
       formEntries: 0,
@@ -779,33 +809,27 @@ async function setupPublicRacingDetailOperationProbe(tx: DbContextClient) {
       updatedAt: PROVIDER_MEETING_DATE,
     },
   });
-  await tx.runner.createMany({
-    data: [
-      {
-        id: probe.currentRunnerId,
-        raceId,
-        dogId,
-        boxNumber: 1,
-        weight: 31.2,
-        trainerId: probe.trainerId,
-        startingPrice: 2.5,
-        sourceProvider: PROVIDER,
-        sourceId: "route-audit-runner-current",
-        createdAt: PROVIDER_MEETING_DATE,
-      },
-      {
-        id: probe.previousRunnerId,
-        raceId: probe.previousRaceId,
-        dogId,
-        boxNumber: 1,
-        weight: 31.2,
-        trainerId: probe.trainerId,
-        startingPrice: 2.2,
-        sourceProvider: PROVIDER,
-        sourceId: "route-audit-runner-previous",
-        createdAt: PROVIDER_MEETING_DATE,
-      },
-    ],
+  await tx.runner.update({
+    where: { id: probe.currentRunnerId },
+    data: {
+      trainerId: probe.trainerId,
+      startingPrice: 2.5,
+      sourceId: "route-audit-runner-current",
+    },
+  });
+  await tx.runner.create({
+    data: {
+      id: probe.previousRunnerId,
+      raceId: probe.previousRaceId,
+      dogId,
+      boxNumber: 1,
+      weight: 31.2,
+      trainerId: probe.trainerId,
+      startingPrice: 2.2,
+      sourceProvider: PROVIDER,
+      sourceId: "route-audit-runner-previous",
+      createdAt: PROVIDER_MEETING_DATE,
+    },
   });
   await tx.result.createMany({
     data: [

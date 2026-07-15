@@ -46,7 +46,7 @@
 |--------|------|------|-------------|
 | GET | `/api/users/me` | session | Returns `User` + `Profile` |
 | PATCH | `/api/users/me` | session | Update profile fields |
-| GET | `/api/users/me/export` | session | Request data export (APP 12) |
+| POST | `/api/users/me/export` | session | Request data export (APP 12) |
 | POST | `/api/users/me/delete` | session | Trigger account deletion |
 | GET | `/api/users/:handle` | public | Public profile (respects `showEmail`) |
 | GET | `/api/users/:handle/dogs` | public | Owned dogs (respects `showOwnedDogs`) |

@@ -354,6 +354,7 @@ export async function runCommunityFlowProbe({
     const webhookParticipants = await withDbSystemContext((tx) =>
       tx.callParticipant.findMany({
         where: { callRoomId: webhookRoom.id },
+        take: 100,
       }),
     );
     assert.ok(
@@ -619,6 +620,7 @@ async function cleanupCommunityFlowProbeRows({
         ],
       },
       select: { id: true, profile: { select: { id: true } } },
+      take: 500,
     }),
   );
   const userIds = unique([...trackedUserIds, ...users.map((user) => user.id)]);
@@ -636,6 +638,7 @@ async function cleanupCommunityFlowProbeRows({
         ],
       },
       select: { id: true },
+      take: 500,
     }),
   );
   const categoryIds = unique([
@@ -654,6 +657,7 @@ async function cleanupCommunityFlowProbeRows({
         ],
       },
       select: { id: true },
+      take: 500,
     }),
   );
   const conversationIds = unique([
@@ -684,6 +688,7 @@ async function cleanupCommunityFlowProbeRows({
         ],
       },
       select: { id: true },
+      take: 500,
     }),
   );
   const callRoomIds = unique([
@@ -729,6 +734,7 @@ async function cleanupCommunityFlowProbeRows({
         ],
       },
       select: { id: true },
+      take: 500,
     }),
   );
   const listingIds = unique([
@@ -747,6 +753,7 @@ async function cleanupCommunityFlowProbeRows({
         ],
       },
       select: { id: true },
+      take: 500,
     }),
   );
   const feedPostIds = unique([

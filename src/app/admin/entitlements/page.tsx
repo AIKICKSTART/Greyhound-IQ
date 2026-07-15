@@ -1,6 +1,6 @@
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
-import { requireModeratorProfile } from "@/lib/auth";
+import { requireAdminProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
 
@@ -34,7 +34,7 @@ type EntitlementSnapshotRow = Omit<
 const textEncoder = new TextEncoder();
 
 export default async function AdminEntitlementsPage() {
-  await requireModeratorProfile();
+  await requireAdminProfile();
   const snapshots = await getEntitlementSnapshots();
 
   return (

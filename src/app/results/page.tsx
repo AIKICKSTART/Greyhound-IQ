@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Filter, MapPin, Trophy } from "lucide-react";
 import { RunnerRow } from "@/components/runner-row";
+import { AutoSubmitSelect } from "@/components/auto-submit-select";
+import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
 import {
   WebsitePageHeader,
   WebsiteSection,
@@ -110,6 +112,10 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
         </span>
       </WebsitePageHeader>
 
+      <div className="mx-auto mt-6 max-w-6xl px-6">
+        <RacingDataDisclosure />
+      </div>
+
       <WebsiteSection
         title="Results"
         sub={`${displayResults.length} races - ${sortLabel(selectedSort)}${selectedDate ? ` / ${formatShortRaceDayLabel(selectedDate)}` : ""}`}
@@ -157,7 +163,7 @@ function ResultsFilters({
 }) {
   return (
     <form action="/results" className="flex flex-wrap items-center gap-2.5">
-      <select
+      <AutoSubmitSelect
         aria-label="Results order"
         className="giq-form-control min-h-11 min-w-[150px]"
         name="sort"
@@ -166,8 +172,8 @@ function ResultsFilters({
         <option value="newest">Newest first</option>
         <option value="oldest">Oldest first</option>
         <option value="track">Track A-Z</option>
-      </select>
-      <select
+      </AutoSubmitSelect>
+      <AutoSubmitSelect
         aria-label="Results date"
         className="giq-form-control min-h-11 min-w-[178px]"
         name="date"
@@ -179,8 +185,8 @@ function ResultsFilters({
             {formatShortRaceDayLabel(row.date)} / {row.races}
           </option>
         ))}
-      </select>
-      <select
+      </AutoSubmitSelect>
+      <AutoSubmitSelect
         aria-label="Results track"
         className="giq-form-control min-h-11 min-w-[168px]"
         name="trackId"
@@ -192,7 +198,7 @@ function ResultsFilters({
             {track.name}, {track.state}
           </option>
         ))}
-      </select>
+      </AutoSubmitSelect>
       <button
         type="submit"
         className="giq-button giq-button-carbon min-h-11 px-4 text-[13px] font-bold"

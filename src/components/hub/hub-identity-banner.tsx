@@ -123,9 +123,9 @@ export function HubIdentityBanner({
         </div>
         <div className="min-w-0 flex-1 pb-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-xl font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))] sm:text-2xl">
+            <h2 className="truncate text-xl font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))] sm:text-2xl">
               {title}
-            </h1>
+            </h2>
             {page ? (
               <span
                 className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-black"

@@ -19,7 +19,12 @@ import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
 import { getDogById, getMyDogOwnership } from "@/lib/queries";
 import { getDogPedigree } from "@/lib/pedigree";
 import { PedigreeChart } from "@/components/pedigree-chart";
+import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
 import { getBoxColourStyle } from "@/lib/box-colours";
+import {
+  formatDogPrizeMoney,
+  formatDogWinRate,
+} from "@/lib/dog-statistic-presentation";
 import { absoluteTheDogsUrl } from "@/lib/live/thedogs-replay";
 
 export const dynamic = "force-dynamic";
@@ -83,12 +88,10 @@ export default async function DogProfilePage({
       : null;
   const claimAction = claimDogOwnership.bind(null, dog.id);
 
-  const wins = dog.formEntries.filter((e) => e.finish === 1).length;
-  const total = dog.formEntries.length;
-  const winPct = total > 0 ? ((wins / total) * 100).toFixed(1) : "0";
-  const placings = dog.formEntries.filter(
-    (e) => e.finish && e.finish <= 3
-  ).length;
+  const wins = dog.careerStats.wins;
+  const total = dog.careerStats.starts;
+  const winRate = formatDogWinRate({ wins, starts: total });
+  const placings = dog.careerStats.placings;
 
   const recentForm = buildRecentForm(dog);
 
@@ -118,6 +121,7 @@ export default async function DogProfilePage({
           dogSchema,
         ]}
       />
+      <RacingDataDisclosure className="mb-8" />
       {/* Header */}
       <div className="mb-8">
         <h1
@@ -146,11 +150,15 @@ export default async function DogProfilePage({
       <div className="giq-dog-stat-grid grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         {[
           { label: "Starts", value: total, color: "text-[hsl(var(--foreground))]" },
-          { label: `Wins (${winPct}%)`, value: wins, color: "text-[hsl(var(--primary-bright))]" },
+          {
+            label: `Wins (${winRate.text})`,
+            value: wins,
+            color: "text-[hsl(var(--primary-bright))]",
+          },
           { label: "Placings", value: placings, color: "text-[hsl(var(--foreground))]" },
           {
             label: "Prize Money",
-            value: dog.prizeMoney == null ? "—" : formatPrize(dog.prizeMoney),
+            value: formatDogPrizeMoney(dog.prizeMoney).text,
             color: "text-[hsl(var(--secondary))]",
           },
         ].map((stat) => (
@@ -503,14 +511,6 @@ function OwnershipBadge({ status }: { status: string }) {
       Pending
     </span>
   );
-}
-
-function formatPrize(value: number) {
-  return new Intl.NumberFormat("en-AU", {
-    style: "currency",
-    currency: "AUD",
-    maximumFractionDigits: 0,
-  }).format(value);
 }
 
 type DogDetail = NonNullable<Awaited<ReturnType<typeof getDogById>>>;

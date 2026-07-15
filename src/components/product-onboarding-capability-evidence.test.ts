@@ -275,7 +275,7 @@ const rolePaths = [
   ["/races", false, "visitor", "tour:racing-intelligence:v1"],
   ["/dogs/example", true, "member", "tour:racing-intelligence:v1"],
   [
-    "/meetings/d2c28701-919b-429e-828d-c55dc1d80b54",
+    "/meetings/demo-provider-meeting",
     false,
     "visitor",
     "tour:racing-intelligence:v1",

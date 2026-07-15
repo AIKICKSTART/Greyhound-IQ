@@ -1,6 +1,8 @@
 import { Dna, Sparkles, GitBranch, Layers, TrendingUp, Calendar } from "lucide-react";
 import Link from "next/link";
 import { PageHero } from "@/components/page-hero";
+import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
+import { RacingDataEmptyState } from "@/components/racing-data-empty-state";
 import { getSireLeaderboard } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +34,7 @@ export default async function BreedingPage() {
   return (
     <div>
       <PageHero
-        image="/images/wentworth-gate-hero.webp"
+        image="/images/feature-breeding-analytics-gold.webp"
         badge="BREEDING ANALYTICS"
         badgeIcon={<Dna className="h-3 w-3 text-[hsl(var(--primary-bright))]" />}
         badgeColor="primary"
@@ -62,6 +64,7 @@ export default async function BreedingPage() {
       </PageHero>
 
       <section className="mx-auto max-w-6xl px-6 py-16">
+        <RacingDataDisclosure className="mb-8" />
         <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] mb-2 tracking-[-0.03em]">
           What ships in Phase 2
         </h2>
@@ -104,13 +107,14 @@ export default async function BreedingPage() {
                 Top Active Sires
               </h2>
               <p className="text-[13px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
-                Live from current data — ranked by progeny winners
+                Ranked by progeny winners in the current read-only aggregate
               </p>
             </div>
             <TrendingUp className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
           </div>
 
-          <div className="giq-table-shell">
+          {SIRE_LEADERS.length > 0 ? (
+            <div className="giq-table-shell">
             <table className="w-full">
               <thead>
                 <tr className="giq-table-head">
@@ -145,13 +149,24 @@ export default async function BreedingPage() {
                     </td>
                     <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{s.progeny}</td>
                     <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{s.winners}</td>
-                    <td className="p-4 text-right text-[13px] font-mono font-semibold text-[hsl(var(--primary-bright))]">{s.strike}%</td>
+                    <td
+                      className="p-4 text-right text-[13px] font-mono font-semibold text-[hsl(var(--primary-bright))]"
+                      data-metric-state={s.strike === null ? "missing" : "measured"}
+                    >
+                      {s.strike === null ? "Not available" : `${s.strike}%`}
+                    </td>
                     <td className="p-4 text-right text-[13px] text-[hsl(var(--foreground))] font-mono">{s.earnings}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          ) : (
+            <RacingDataEmptyState
+              title="Sire statistics are not available"
+              description="No sire-leaderboard rows are present in the current read-only snapshot. GreyhoundIQ does not invent rankings or strike rates."
+            />
+          )}
         </section>
       </div>
 

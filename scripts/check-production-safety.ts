@@ -7,6 +7,7 @@ import {
   SITE_ASSETS_BUCKET,
   isPublicStorageBucket,
 } from "../src/lib/storage-paths";
+import { validateGcpArchitectureContract } from "./gcp-architecture-policy";
 
 const root = process.cwd();
 const workflowDir = join(root, ".github", "workflows");
@@ -18,6 +19,19 @@ const workflows = readdirSync(workflowDir)
   }));
 
 const findings: string[] = [];
+
+try {
+  const architectureContract = JSON.parse(
+    readFileSync(join(root, "config", "gcp-architecture.json"), "utf8"),
+  );
+  for (const finding of validateGcpArchitectureContract(architectureContract)) {
+    findings.push(`gcp-architecture.json: ${finding}`);
+  }
+} catch (error) {
+  findings.push(
+    `gcp-architecture.json: unreadable or invalid JSON (${error instanceof Error ? error.message : "unknown error"})`,
+  );
+}
 
 for (const context of MEDIA_CONTEXTS) {
   const expected = context === "site" ? SITE_ASSETS_BUCKET : PRIVATE_USER_MEDIA_BUCKET;
@@ -210,6 +224,9 @@ for (const publicSupabaseSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUP
     findings.push(`cloud-run-deploy.yml: missing ${publicSupabaseSecret} runtime secret mapping`);
   }
 }
+if (!cloudRunDeploy.includes("REPLAY_PROXY_SECRET=greyhoundiq-$env_name-REPLAY_PROXY_SECRET:latest")) {
+  findings.push("cloud-run-deploy.yml: missing REPLAY_PROXY_SECRET runtime secret mapping");
+}
 
 const cloudRunDeployPs1 = readFileSync(
   join(root, "scripts", "gcp-cloud-run-deploy.ps1"),
@@ -229,11 +246,57 @@ const webDeployArgsBlock =
 if (!webDeployArgsBlock.includes('"--timeout=900"')) {
   findings.push("gcp-cloud-run-deploy.ps1: web timeout must cover aggregate maintenance");
 }
+
+const monitoringSetup = readFileSync(
+  join(root, "scripts", "gcp-monitoring-setup.sh"),
+  "utf8",
+);
+for (const monitoringNeedle of [
+  '${PROJECT:?Set PROJECT to the approved production Google Cloud project ID}',
+  '${NOTIFICATION_CHANNEL:?Set NOTIFICATION_CHANNEL to the reviewed Cloud Monitoring channel resource name}',
+  '[[ ! "$PROJECT" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]]',
+  '[[ ! "$PROD_HOST" =~ ^[A-Za-z0-9.-]+$ ]]',
+  '[[ ! "$PROD_SERVICE" =~ ^[a-z]([a-z0-9-]{0,47}[a-z0-9])?$ ]]',
+  'channel_prefix="projects/$PROJECT/notificationChannels/"',
+  'channel_id="${CHANNEL#"$channel_prefix"}"',
+  '[[ ! "$channel_id" =~ ^[A-Za-z0-9_-]+$ ]]',
+  'GCP_MONITORING_VALIDATE_ONLY',
+  'if ! uptime_inventory="$(gcloud monitoring uptime list-configs',
+  'if ! metric_names="$(gcloud logging metrics list',
+  'if ! policy_inventory="$(gcloud beta monitoring policies list',
+  "refusing monitoring mutations",
+  'gcloud logging metrics "$action" "$name"',
+  'gcloud beta monitoring policies update "$policy_names"',
+  "Duplicate alert policies require operator review",
+  "greyhoundiq_prod_rate_limit_prune_attention",
+  'jsonPayload.event=\\"aggregate_refresh.rate_limit_prune_attention\\"',
+  "greyhoundiq_prod_aggregate_refresh_completed",
+  'jsonPayload.event=\\"aggregate_refresh.run_completed\\"',
+  "greyhoundiq_prod_aggregate_scheduler_failures",
+  "google.cloud.scheduler.logging.AttemptFinished",
+  '"conditionAbsent"',
+  '"duration": "5400s"',
+  "GreyhoundIQ prod rate-limit cleanup needs attention",
+  "GreyhoundIQ prod aggregate refresh completion missing",
+  "GreyhoundIQ prod aggregate Scheduler attempt failed",
+  '"owner": "sre"',
+  "incident-response-controls.md#rate-limit-cleanup-backlog",
+  "for f in 5xx latency instances dbfail ratelimit-prune aggregate-missing aggregate-scheduler-failure scheduled-task-attention scheduler-failure uptime",
+]) {
+  if (!monitoringSetup.includes(monitoringNeedle)) {
+    findings.push(
+      `gcp-monitoring-setup.sh: aggregate cleanup monitoring missing ${monitoringNeedle}`,
+    );
+  }
+}
+if (monitoringSetup.includes("Policy already exists, skipping")) {
+  findings.push("gcp-monitoring-setup.sh: alert policy drift must not be silently skipped");
+}
 for (const schedulerNeedle of [
   'Name = "greyhoundiq-$Environment-aggregate-refresh"',
   'Schedule = "20 * * * *"',
   'Uri = "$baseUrl/api/internal/aggregate-refresh"',
-  'AttemptDeadline = "900s"',
+  'AttemptDeadline = "840s"',
 ]) {
   if (!cloudRunDeployPs1.includes(schedulerNeedle)) {
     findings.push(`gcp-cloud-run-deploy.ps1: aggregate scheduler missing ${schedulerNeedle}`);
@@ -258,6 +321,9 @@ if (!cloudRunDeployPs1.includes('$NextPublicSupabaseAnonKey = Required-Value $Ne
 }
 const deployRequiredSecretsBlock =
   cloudRunDeployPs1.match(/\$requiredSecrets = @\([\s\S]*?\)/)?.[0] ?? "";
+if (!deployRequiredSecretsBlock.includes('"REPLAY_PROXY_SECRET"')) {
+  findings.push("gcp-cloud-run-deploy.ps1: REPLAY_PROXY_SECRET must be a required web secret");
+}
 for (const supabaseSecret of [
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
@@ -283,6 +349,9 @@ const cloudRunBootstrapPs1 = readFileSync(
   join(root, "scripts", "gcp-cloud-run-bootstrap.ps1"),
   "utf8",
 );
+if (!cloudRunBootstrapPs1.includes('"REPLAY_PROXY_SECRET"')) {
+  findings.push("gcp-cloud-run-bootstrap.ps1: must create REPLAY_PROXY_SECRET secret shell");
+}
 if (!cloudRunBootstrapPs1.includes("--public-access-prevention")) {
   findings.push("gcp-cloud-run-bootstrap.ps1: GCS buckets must enforce public access prevention");
 }
@@ -296,6 +365,9 @@ const cloudRunBootstrapSh = readFileSync(
   join(root, "scripts", "gcp-cloud-run-bootstrap.sh"),
   "utf8",
 );
+if (!/^\s*REPLAY_PROXY_SECRET\s*$/m.test(cloudRunBootstrapSh)) {
+  findings.push("gcp-cloud-run-bootstrap.sh: must create REPLAY_PROXY_SECRET secret shell");
+}
 for (const publicSupabaseSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) {
   if (!cloudRunBootstrapSh.includes(publicSupabaseSecret)) {
     findings.push(`gcp-cloud-run-bootstrap.sh: must create ${publicSupabaseSecret} secret shell`);

@@ -2,6 +2,8 @@ import "server-only";
 
 import { createAuditLog } from "@/lib/account-service";
 import type { CurrentUserProfile } from "@/lib/auth-types";
+import { isFullAccessDemo } from "@/lib/demo-access";
+import { resolveDemoProfilePortrait } from "@/lib/demo-profile-media";
 import {
   assertProfilesCanInteract,
   canonicalProfilePair,
@@ -10,9 +12,14 @@ import { withDbRequestContext, type DbContextUser } from "@/lib/db-context";
 import { createInAppNotificationDeduped } from "@/lib/notification-service";
 import { broadcastProfileRealtimeEvent } from "@/lib/realtime-service";
 
+const DEMO_FRIEND_DISPLAY_NAME = "Patricia Pro";
+const DEMO_FRIENDSHIP_ID = "demo-friendship-admin-pro-read-fallback";
+const DEMO_FRIEND_CONVERSATION_ID = "demo-conversation-admin-pro";
+
 const FRIEND_PROFILE_SELECT = {
   id: true,
   displayName: true,
+  avatarUrl: true,
   state: true,
   kennelName: true,
   role: true,
@@ -23,6 +30,7 @@ export type FriendListItem = {
   friendshipId: string;
   profileId: string;
   displayName: string;
+  avatarUrl: string | null;
   state: string | null;
   kennelName: string | null;
   role: string;
@@ -41,6 +49,7 @@ export async function listFriendsForProfile(current: DbContextUser) {
         ],
       },
       orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+      take: 500,
       include: {
         profileA: { select: FRIEND_PROFILE_SELECT },
         profileB: { select: FRIEND_PROFILE_SELECT },
@@ -63,6 +72,7 @@ export async function listFriendsForProfile(current: DbContextUser) {
       pairs.length > 0
         ? await tx.conversation.findMany({
             where: { OR: pairs.map((item) => item.pair) },
+            take: 500,
             select: {
               id: true,
               participantAId: true,
@@ -77,16 +87,48 @@ export async function listFriendsForProfile(current: DbContextUser) {
       ])
     );
 
-    return pairs.map(({ friendship, friend, pair }): FriendListItem => ({
+    const friends = pairs.map(({ friendship, friend, pair }): FriendListItem => ({
       friendshipId: friendship.id,
       profileId: friend.id,
       displayName: friend.displayName,
+      avatarUrl: resolveDemoProfilePortrait(friend.displayName, friend.avatarUrl),
       state: friend.state,
       kennelName: friend.kennelName,
       role: friend.role,
       verified: friend.verified,
       conversationId: conversationByPair.get(conversationKey(pair)) ?? null,
     }));
+
+    if (
+      !isFullAccessDemo() ||
+      friends.some((friend) => friend.displayName === DEMO_FRIEND_DISPLAY_NAME)
+    ) {
+      return friends;
+    }
+
+    const demoFriend = await tx.profile.findFirst({
+      where: { displayName: DEMO_FRIEND_DISPLAY_NAME },
+      select: FRIEND_PROFILE_SELECT,
+    });
+    if (!demoFriend || demoFriend.id === current.profileId) return friends;
+
+    return [
+      ...friends,
+      {
+        friendshipId: DEMO_FRIENDSHIP_ID,
+        profileId: demoFriend.id,
+        displayName: demoFriend.displayName,
+        avatarUrl: resolveDemoProfilePortrait(
+          demoFriend.displayName,
+          demoFriend.avatarUrl,
+        ),
+        state: demoFriend.state,
+        kennelName: demoFriend.kennelName,
+        role: demoFriend.role,
+        verified: demoFriend.verified,
+        conversationId: DEMO_FRIEND_CONVERSATION_ID,
+      },
+    ];
   });
 }
 
@@ -102,6 +144,7 @@ export type FriendRequestItem = {
   direction: "incoming" | "outgoing";
   profileId: string;
   displayName: string;
+  avatarUrl: string | null;
   state: string | null;
   kennelName: string | null;
   verified: boolean;
@@ -122,6 +165,7 @@ function friendshipPair(profileAId: string, profileBId: string) {
 const REQUEST_PROFILE_SELECT = {
   id: true,
   displayName: true,
+  avatarUrl: true,
   state: true,
   kennelName: true,
   verified: true,
@@ -315,6 +359,7 @@ export async function listFriendRequestsForProfile(current: DbContextUser) {
         ],
       },
       orderBy: { createdAt: "desc" },
+      take: 100,
       include: {
         profileA: { select: REQUEST_PROFILE_SELECT },
         profileB: { select: REQUEST_PROFILE_SELECT },
@@ -334,6 +379,7 @@ export async function listFriendRequestsForProfile(current: DbContextUser) {
             : "incoming",
         profileId: other.id,
         displayName: other.displayName,
+        avatarUrl: resolveDemoProfilePortrait(other.displayName, other.avatarUrl),
         state: other.state,
         kennelName: other.kennelName,
         verified: other.verified,

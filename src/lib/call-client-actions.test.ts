@@ -5,13 +5,18 @@ import {
 } from "./call-client-actions";
 
 const originalFetch = globalThis.fetch;
-const requests: Array<{ url: string; body: unknown }> = [];
+const requests: Array<{
+  url: string;
+  method: string | undefined;
+  body: unknown;
+}> = [];
 
 async function main() {
   try {
     globalThis.fetch = async (input, init) => {
       requests.push({
         url: String(input),
+        method: init?.method,
         body: JSON.parse(String(init?.body ?? "null")),
       });
       return Response.json({ item: { id: "room-1", callType: "voice" } });
@@ -22,14 +27,22 @@ async function main() {
       callType: "voice",
     });
     await respondToClientCallInvite("room-1", "accept");
+    await respondToClientCallInvite("room-2", "decline");
     assert.deepEqual(requests, [
       {
         url: "/api/calls/rooms",
+        method: "POST",
         body: { conversationId: "conversation-1", callType: "voice" },
       },
       {
         url: "/api/calls/room-1/invite",
+        method: "POST",
         body: { action: "accept" },
+      },
+      {
+        url: "/api/calls/room-2/invite",
+        method: "POST",
+        body: { action: "decline" },
       },
     ]);
 
@@ -40,6 +53,10 @@ async function main() {
       );
     await assert.rejects(
       () => createClientCallRoom("conversation-1", "video"),
+      /Calls require Pro/
+    );
+    await assert.rejects(
+      () => respondToClientCallInvite("room-1", "accept"),
       /Calls require Pro/
     );
   } finally {

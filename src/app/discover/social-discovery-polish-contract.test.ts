@@ -57,7 +57,7 @@ assert.ok(
   "Groups must keep compact member and cinematic signed-out headers"
 );
 for (const signedOutContract of [
-  'image="/images/wentworth-gate-hero.webp"',
+  'image="/images/feed/posts/lisa-community-night.webp"',
   "GreyhoundIQ Groups.",
   "Signal over noise.",
   "Join public community groups for races, breeding, ownership, marketplace discussion, and track intelligence with the same clean, data-first experience as the racing tools.",

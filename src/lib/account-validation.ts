@@ -105,4 +105,15 @@ export const dogOwnershipClaimSchema = z.object({
   evidence: optionalText(1000),
 });
 
+export const accountDeletionRequestSchema = z.object({
+  confirm: z.literal("DELETE"),
+});
+
+export const MARKETING_EMAIL_CHANNEL = "email";
+
+export const accountMarketingPreferenceSchema = z.object({
+  channel: z.literal(MARKETING_EMAIL_CHANNEL).optional(),
+  optedIn: z.boolean(),
+});
+
 export type DogOwnershipRole = z.infer<typeof dogOwnershipRoleSchema>;

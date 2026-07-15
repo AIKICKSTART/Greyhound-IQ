@@ -27,6 +27,7 @@ import { UserDataExportForm } from "@/components/user-data-export-form";
 import { getCurrentUser, hasTier, isModeratorRole } from "@/lib/auth";
 import { getAccountSummary, getMessagesForUserEmail } from "@/lib/queries";
 import { getPersonalActorMedia } from "@/lib/social-actor-service";
+import { isFullAccessDemo } from "@/lib/demo-access";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,7 @@ const PENDING_PLAN_LABELS = {
 } as const;
 
 type PendingPlan = keyof typeof PENDING_PLAN_LABELS;
+type PendingInterval = "monthly" | "yearly";
 
 type AccountPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -57,7 +59,12 @@ type AccountPageProps = {
 
 export default async function AccountPage({ searchParams }: AccountPageProps) {
   const user = await getCurrentUser();
-  const pendingPlan = parsePendingPlan((await searchParams).plan);
+  const query = await searchParams;
+  const pendingPlan = parsePendingPlan(query.plan);
+  const pendingInterval =
+    pendingPlan === "pro" && query.checkout === "continue"
+      ? parsePendingInterval(query.interval)
+      : null;
 
   return (
     <div>
@@ -65,7 +72,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
         <AccountMemberHeader tier={user.tier} />
       ) : (
         <PageHero
-          image="/images/wentworth-gate-hero.webp"
+          image="/images/feed/founder-race-night-cover.webp"
           title={
             <>
               Your GreyhoundIQ
@@ -85,9 +92,15 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
         }
       >
         {!user ? (
-          <SignedOutAccount />
+          <SignedOutAccount
+            returnTo={accountReturnTo(pendingPlan, pendingInterval)}
+          />
         ) : (
-          <SignedInAccount user={user} pendingPlan={pendingPlan} />
+          <SignedInAccount
+            user={user}
+            pendingPlan={pendingPlan}
+            pendingInterval={pendingInterval}
+          />
         )}
       </section>
     </div>
@@ -126,9 +139,11 @@ function AccountMemberHeader({ tier }: { tier: "free" | "pro" | "pro_plus" }) {
 }
 
 async function SignedInAccount({
+  pendingInterval,
   pendingPlan,
   user,
 }: {
+  pendingInterval: PendingInterval | null;
   pendingPlan: PendingPlan | null;
   user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
 }) {
@@ -147,6 +162,9 @@ async function SignedInAccount({
       ])
     : [null, []];
   const profile = summary?.profile;
+  const displayName = isFullAccessDemo()
+    ? user.name
+    : profile?.displayName ?? user.name;
   const personalMedia =
     user.dbUserId && user.profileId
       ? await getPersonalActorMedia({
@@ -162,7 +180,7 @@ async function SignedInAccount({
           tier: user.tier,
           isBanned: user.isBanned,
           deletionRequestedAt: user.deletionRequestedAt,
-          displayName: profile?.displayName ?? user.name,
+          displayName,
           verified: profile?.verified ?? false,
         })
       : null;
@@ -174,6 +192,7 @@ async function SignedInAccount({
 
   return (
     <div className="grid gap-5 sm:gap-6 lg:grid-cols-12">
+      <AccountMutationFeedback />
       <section id="profile-media" className={`${PANEL_CLASS} scroll-mt-24 lg:col-span-12`}>
         <div className="grid items-center gap-5 md:grid-cols-[minmax(0,1fr)_auto]">
           <div className="flex min-w-0 items-center gap-4">
@@ -183,7 +202,7 @@ async function SignedInAccount({
                   src={profileAvatarUrl}
                   alt=""
                   fill
-                  sizes="96px"
+                  sizes="192px"
                   focalX={personalMedia?.avatarFocalX}
                   focalY={personalMedia?.avatarFocalY}
                   zoom={personalMedia?.avatarZoom}
@@ -191,8 +210,7 @@ async function SignedInAccount({
                 />
               ) : (
                 <div className="grid h-full place-items-center text-2xl font-semibold text-white/75">
-      <AccountMutationFeedback />
-                  {(profile?.displayName ?? user.name).slice(0, 1).toUpperCase()}
+                  {displayName.slice(0, 1).toUpperCase()}
                 </div>
               )}
             </div>
@@ -231,7 +249,7 @@ async function SignedInAccount({
               required
               minLength={2}
               maxLength={80}
-              defaultValue={profile?.displayName ?? user.name}
+              defaultValue={displayName}
               className={INPUT_CLASS}
             />
           </label>
@@ -401,7 +419,9 @@ async function SignedInAccount({
           <Metric label="Saved" value={profile?._count.savedListings ?? 0} />
           <Metric label="Owned dogs" value={profile?._count.dogsOwned ?? 0} />
         </div>
-        {pendingPlan && <PendingPlanBanner plan={pendingPlan} />}
+        {pendingPlan && (
+          <PendingPlanBanner interval={pendingInterval} plan={pendingPlan} />
+        )}
         <div className="mt-5 grid gap-4">
           <ActionGroup label="Membership">
             <Link
@@ -441,6 +461,10 @@ async function SignedInAccount({
             <Link href="/account/saved-listings" className={ACTION_CLASS}>
               <Bookmark className="h-3.5 w-3.5" />
               Saved marketplace
+            </Link>
+            <Link href="/account/listings" className={ACTION_CLASS}>
+              <ShoppingBag className="h-3.5 w-3.5" />
+              My listings
             </Link>
             <Link href="/account/team" className={ACTION_CLASS}>
               <Users className="h-3.5 w-3.5" />
@@ -531,7 +555,7 @@ async function SignedInAccount({
             body={
               deletionRequestedAt
                 ? `Deletion requested ${deletionRequestedAt.toLocaleDateString("en-AU")}.`
-                : "Request account deletion with a 30-day grace window before hard deletion processing."
+                : "Request account deletion with a 30-day grace window. Profile data is then de-identified and storage removal is queued; provider and backup retention may take longer."
             }
             action={
               deletionRequestedAt ? (
@@ -574,57 +598,6 @@ async function SignedInAccount({
   );
 }
 
-function PendingPlanBanner({ plan }: { plan: PendingPlan }) {
-  return (
-    <div className="mt-4 rounded-lg border border-[hsl(var(--primary)/0.24)] bg-[hsl(var(--primary)/0.08)] p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-[12px] font-semibold uppercase text-[hsl(var(--primary-bright))]">
-            Plan intent received
-          </p>
-          <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-            You selected {PENDING_PLAN_LABELS[plan]} before sign-in. This query
-            flag is only intent; your active tier stays unchanged until a plan
-            change is completed.
-          </p>
-        </div>
-        <Link
-          href="/pricing"
-          className={`${ACTION_CLASS} shrink-0`}
-        >
-          Review plans
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function SignedOutAccount() {
-  return (
-    <div className="grid gap-6">
-      <div className="giq-panel p-8">
-        <Lock className="mb-4 h-7 w-7 text-[hsl(var(--primary-bright))]" />
-        <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
-          Sign in to manage your account
-        </h2>
-        <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Account state is backed by the local user row created after the WorkOS
-          AuthKit callback.
-        </p>
-        <a
-          href="/sign-in"
-          className="giq-liquid-purple-button mt-6 px-5 text-[13px] font-semibold"
-        >
-          Sign in
-        </a>
-      </div>
-      {DEMO_ACCOUNT_ENABLED && <DemoAccountPreview />}
-    </div>
-  );
-}
-
-function DemoAccountPreview() {
-  return (
 function AccountMutationFeedback() {
   const outcomes = [
     {
@@ -678,6 +651,84 @@ function AccountMutationFeedback() {
   ));
 }
 
+function PendingPlanBanner({
+  interval,
+  plan,
+}: {
+  interval: PendingInterval | null;
+  plan: PendingPlan;
+}) {
+  const checkoutReady = plan === "pro" && interval;
+
+  return (
+    <div
+      aria-live="polite"
+      className="mt-4 rounded-lg border border-[hsl(var(--primary)/0.24)] bg-[hsl(var(--primary)/0.08)] p-4"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[12px] font-semibold uppercase text-[hsl(var(--primary-bright))]">
+            {checkoutReady ? "Checkout ready" : "Plan intent received"}
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+            You selected {PENDING_PLAN_LABELS[plan]}
+            {checkoutReady ? ` billed ${interval}` : ""} before sign-in. Your
+            active tier stays unchanged until Stripe confirms a completed
+            checkout.
+          </p>
+        </div>
+        {checkoutReady ? (
+          <form action="/api/billing/checkout" method="post" className="shrink-0">
+            <input name="plan" type="hidden" value="pro" />
+            <input name="interval" type="hidden" value={interval} />
+            <SubmitButton
+              pendingLabel="Opening Stripe..."
+              className="giq-liquid-purple-button min-h-11 px-4 text-[13px] font-semibold"
+            >
+              Continue to secure checkout
+            </SubmitButton>
+          </form>
+        ) : (
+          <Link href="/pricing" className={`${ACTION_CLASS} shrink-0`}>
+            Review plans
+          </Link>
+        )}
+      </div>
+      {checkoutReady ? (
+        <p className="mt-3 text-[12px] text-[hsl(var(--subtle-foreground))]">
+          This button opens Stripe Checkout. Signing in never starts a payment.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function SignedOutAccount({ returnTo }: { returnTo: string }) {
+  return (
+    <div className="grid gap-6">
+      <div className="giq-panel p-8">
+        <Lock className="mb-4 h-7 w-7 text-[hsl(var(--primary-bright))]" />
+        <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+          Sign in to manage your account
+        </h2>
+        <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+          Account state is backed by the local user row created after the WorkOS
+          AuthKit callback.
+        </p>
+        <a
+          href={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`}
+          className="giq-liquid-purple-button mt-6 px-5 text-[13px] font-semibold"
+        >
+          Sign in
+        </a>
+      </div>
+      {DEMO_ACCOUNT_ENABLED && <DemoAccountPreview />}
+    </div>
+  );
+}
+
+function DemoAccountPreview() {
+  return (
     <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
       <section className={PANEL_CLASS}>
         <div className="mb-5 flex items-center gap-3">
@@ -836,6 +887,25 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 function parsePendingPlan(value: string | string[] | undefined) {
   if (typeof value !== "string") return null;
   return value in PENDING_PLAN_LABELS ? (value as PendingPlan) : null;
+}
+
+function parsePendingInterval(
+  value: string | string[] | undefined
+): PendingInterval | null {
+  return value === "monthly" || value === "yearly" ? value : null;
+}
+
+function accountReturnTo(
+  plan: PendingPlan | null,
+  interval: PendingInterval | null
+) {
+  if (!plan) return "/account";
+  const params = new URLSearchParams({ plan });
+  if (plan === "pro" && interval) {
+    params.set("interval", interval);
+    params.set("checkout", "continue");
+  }
+  return `/account?${params.toString()}`;
 }
 
 function demoAccountEnabled() {

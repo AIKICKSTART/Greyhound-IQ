@@ -1,7 +1,7 @@
 {
   "schemaVersion": 16,
   "auditKind": "synthetic-private-fixture-idempotency",
-  "generatedAt": "2026-07-15T06:00:50.151Z",
+  "generatedAt": "2026-07-15T14:14:05.110Z",
   "safety": {
     "scope": "literal-loopback-disposable-replay-only",
     "host": "127.0.0.1",
@@ -26,7 +26,7 @@
   },
   "sourceBinding": {
     "files": {
-      "package.json": "f711a484843be82df110c4a0aaff39023a166ae1ded4d19f5d963a459cb0664c",
+      "package.json": "5fe570044f267a5f511167b614fb84d95c504a3ef6e4ee2cc6d92578b2c4b5ae",
       "package-lock.json": "6754e3392765cce4f646108bf5ae330c8341aa455cdba390a28e723cd705d259",
       "prisma/schema.prisma": "b0e50aa4850eebd5e3095bba619c87370b78f249fbeabf5b8691e169f3c02b22",
       "prisma/migrations/20260630093000_baseline/migration.sql": "1c3bf7960da1a93de65bac113d53524392fd10c48e0bb519f07b21ca38dfb759",
@@ -35,12 +35,12 @@
       "prisma/migrations/20260708230000_dog_ownership_verification/migration.sql": "47193c42d9c7fd8c5942f8f22a78354a3dd7afff18b1204c095a147a31b2b75f",
       "prisma/migrations/20260713173000_allow_owned_user_export_artifacts/migration.sql": "6c9c33e8d210ca022d394e5e1ef86244f233016c3fd0a32835ccd2ae62eae71d",
       "scripts/load-env.ts": "78abbbe541df43b32fd555ad127a17b91fe835484e3aabda47e26dc9e03c3a7f",
-      "scripts/demo-route-fixture-contract.ts": "b78e87608f0b70593e6a6e3d2948961d5b020dcbc1e9e099dc8112b3b51e3168",
-      "scripts/demo-route-fixture-evidence.ts": "0a20cb52241bf50b7a491b3f359d2e14816edd904634bd0a8cba855eaa28ed83",
-      "scripts/check-demo-route-fixture-idempotency.ts": "4fa97839c986abefaf85eeb684d2397a34ff234deae3d16db4207d9e3a0384d2",
-      "scripts/seed-demo-route-fixtures.ts": "45201cb49df2693ffcecfa2a3d5ed288f135ee70dcd49b9b9653ea9bc3c998dd",
-      "security/database-operations.ts": "2f2d5bea38c56edc089f0466bb8e1c1474b63b173fc12316973be047ba97cefe",
-      "security/mandatory-public-racing-database-operations.ts": "1b8cae222b61a93357758bff91491625c19f6f6bbe8f2cb17066de39e3c6e68e",
+      "scripts/demo-route-fixture-contract.ts": "43d1feb53e84af4913c33f9f6360d2f98a1b9e706bf8a832f590eaf96f2f8052",
+      "scripts/demo-route-fixture-evidence.ts": "fbacae452db563426caa3faaf86824661746db8e98e1394a8f12054199d42f58",
+      "scripts/check-demo-route-fixture-idempotency.ts": "c2ca0575a70b274f7d1b54f6d2ce362388cae486853a737c446ad1e51168c04d",
+      "scripts/seed-demo-route-fixtures.ts": "39b8f398bed8c2bed3ec9335620ff5184060211fdc11c2726fa8727627eb883e",
+      "security/database-operations.ts": "ed32b2c91f41b2608ebb7f3797c79361cf6b07e54b2d1e4587893bc96d6f52e7",
+      "security/mandatory-public-racing-database-operations.ts": "5857024ce844716a381f9a011b3a872cf5ead98d2ec62138eb7f1704f065c8af",
       "security/data-classification.ts": "daba3575e8f2aa730b22248e21ba2c579157d640c862c3e0978478ff500e4543",
       "security/local-data-policy.ts": "81c4e906442c2b9efbdcf426dac019c56a86726b429ec2276eb76cce19ee62fb",
       "docs/security/data-classification.md": "d9e6fc063b769cf26ae4b4165fcaff1799546da5fe1d38cad43447ecac3aaf89",
@@ -52,6 +52,8 @@
       "src/lib/billing/stripe-webhooks.ts": "2ee6917bc852f7090ec29fe91a095617e75637de4a3393d101f907fc9a81867e",
       "src/lib/demo-access.ts": "03f2973d35dd54b4c2c7805b5e13c1f07c104cbc947742c0014a6f28412cb1fc",
       "src/lib/demo-profile-media.ts": "c56ff3537cb4a7e3d88d41c82114c9dcf98dd08f0471ad9fe226bc3c7757532f",
+      "src/lib/demo-route-sample-contract.ts": "9b762de12416a584da8554aa78de98a1ece820b4a68ac12b1c6e32a83ab22d4b",
+      "src/lib/demo-route-samples.ts": "384f5e319ea2357e8e0f490cef78e62b5072d70de6ee87a94023d2ff50c3c7ce",
       "src/lib/custom-page-service.ts": "eadc204baadea54b834900d8fb970aa787f508df383cf899f49af7a48eacfda7",
       "src/lib/conversation-service.ts": "ae9a79650a1d596055e0b10765222b2c5eef9e5d99faf2d3f9e5f27769ef8542",
       "src/lib/db.ts": "3f2df86c14ebb983246293aee66fb14a40b2fe09da1c70908b6d2ea547ade5f0",
@@ -122,7 +124,7 @@
         "provenanceId": "prov-control-room-gallery-ai-v1"
       }
     },
-    "combinedSha256": "16970efce1ec0749fadecc3cdab50eb7d66779a8d7e0e5b685cfc1dd5c4c5992"
+    "combinedSha256": "1fe9bef21fe6db75a07ef375786eb6a15ddb504914f1a857ac3f8714e03ad449"
   },
   "collisionRollbackProbes": [
     {
@@ -2467,7 +2469,7 @@
           "joinType": null,
           "scanDirection": null,
           "estimatedRows": 1,
-          "totalCost": 1,
+          "totalCost": 2.28,
           "children": [
             {
               "nodeType": "Seq Scan",
@@ -2476,12 +2478,12 @@
               "joinType": null,
               "scanDirection": null,
               "estimatedRows": 1,
-              "totalCost": 1,
+              "totalCost": 2.28,
               "children": []
             }
           ]
         },
-        "planSha256": "6aefdeee94d42abbdd45615aaae299f034fde281d00a913a03d06e5b15c4f011"
+        "planSha256": "f1b43ce7e4566c4ecd777fa08f634ca8b995084c62584033005502bafee944c8"
       },
       "variants": [],
       "status": "verified"
@@ -3377,7 +3379,7 @@
       "Meeting": 1,
       "Race": 1
     },
-    "rowsSha256": "827d987a06a9ecfb33520dd945ac08c5a3701427e146ee5cbd50f2e4f439d199"
+    "rowsSha256": "7156bbc85ea2ed6be73d15521c897a0d6bdf04affb878751c1ce5ec841e16d4b"
   },
   "providerAfter": {
     "counts": {
@@ -3386,7 +3388,7 @@
       "Meeting": 1,
       "Race": 1
     },
-    "rowsSha256": "827d987a06a9ecfb33520dd945ac08c5a3701427e146ee5cbd50f2e4f439d199"
+    "rowsSha256": "7156bbc85ea2ed6be73d15521c897a0d6bdf04affb878751c1ce5ec841e16d4b"
   },
   "cleanup": {
     "role": "postgres",

@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ComponentPropsWithoutRef, MouseEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  type ComponentPropsWithoutRef,
+  type MouseEvent,
+} from "react";
 import { cn } from "@/lib/utils";
 
 type LinkProps = ComponentPropsWithoutRef<typeof Link>;
@@ -18,6 +23,25 @@ function closeContainingSheet(target: HTMLElement) {
     ?.querySelector<HTMLElement>('[data-slot="sheet-close"]');
 
   window.setTimeout(() => closeButton?.click(), 0);
+}
+
+export function MobileMenuViewportClose() {
+  const markerRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const closeOnDesktop = () => {
+      if (desktop.matches && markerRef.current) {
+        closeContainingSheet(markerRef.current);
+      }
+    };
+
+    closeOnDesktop();
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
+
+  return <span ref={markerRef} hidden aria-hidden="true" />;
 }
 
 function isActivePath(pathname: string, href: LinkProps["href"]) {

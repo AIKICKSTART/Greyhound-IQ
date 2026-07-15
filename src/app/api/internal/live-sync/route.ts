@@ -2,14 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { jsonError } from "@/lib/api-errors";
 import { requireInternalRequest } from "@/lib/internal-auth";
 import { syncLiveData, type SyncScope } from "@/lib/live/sync";
+import { executeScheduledTask } from "@/lib/scheduled-task-control";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
-
-export async function GET(request: NextRequest) {
-  return runLiveSync(request);
-}
 
 export async function POST(request: NextRequest) {
   return runLiveSync(request);
@@ -19,7 +16,13 @@ async function runLiveSync(request: NextRequest) {
   try {
     requireInternalRequest(request);
     const scope = scopeFromRequest(request);
-    const result = await syncLiveData(daysFromRequest(request, scope), scope);
+    const execution = await executeScheduledTask("live-sync", () =>
+      syncLiveData(daysFromRequest(request, scope), scope),
+    );
+    if (execution.status === "overlap") {
+      return NextResponse.json({ ok: true, skipped: "overlap" });
+    }
+    const result = execution.value;
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
     return jsonError(err, "Could not sync live racing data");

@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
 const root = process.cwd();
@@ -44,6 +45,27 @@ if (existsSync(join(root, ".env.example"))) {
   for (const key of ["DATABASE_URL", "SUPABASE_URL", "WORKOS_CLIENT_ID", "INTERNAL_API_SECRET"]) {
     if (!envExample.includes(key)) failures.push(`.env.example missing: ${key}`);
   }
+}
+
+const counterCheck = spawnSync(
+  process.execPath,
+  [
+    join(root, "node_modules", "tsx", "dist", "cli.mjs"),
+    join(root, "scripts", "check-design-lab-doc-counters.ts"),
+  ],
+  { cwd: root, encoding: "utf8" },
+);
+if (counterCheck.status !== 0) {
+  failures.push(
+    [
+      "Design Lab documentation counters are out of sync.",
+      counterCheck.stdout,
+      counterCheck.stderr,
+    ]
+      .filter(Boolean)
+      .join("\n")
+      .trim(),
+  );
 }
 
 if (failures.length) {

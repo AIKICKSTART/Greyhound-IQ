@@ -22,6 +22,10 @@
 - User media is private by default and must move through the `pending -> scanning -> processing -> ready|failed` contract before protected delivery.
 - Social, media, messaging, and realtime migrations must preserve viewer-context RLS and accountable-human ownership checks.
 - Managed-page media backfills and writes must validate `MediaAsset.uploaderId` against the actor owner before populating `ActorGalleryMedia`.
+- `SignupOutbox` is a system-only, one-row-per-user acceptance record. Keep it free of email/provider payloads, permit only the normalized request correlation ID, preserve atomic creation with the initial user/profile transaction, and require an expiring ownership token for every `processing` lease.
+- `UsageOutbox` is the delivery queue for the immutable local `UsageEvent` ledger. Preserve one row per idempotency key, nullable forward-compatible lease fields, fenced settlement by lease token, bounded terminal dead-letter state, and indexes for both due retries and expired-lease recovery.
+- Keep the `User(isBanned, deletionRequestedAt, id)` index aligned with the bounded oldest-first account-deletion candidate selector; build replacements concurrently so maintenance hardening does not block production writes.
+- Member-authored `SupportMessage` inserts must bind both `userId` and the referenced `SupportTicket.userId` to the request-context user; moderator and system contexts retain their explicit policy access.
 
 # Work Guidance
 

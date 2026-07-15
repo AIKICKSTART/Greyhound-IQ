@@ -8,6 +8,11 @@ import {
 import { isAdminRole, isModeratorRole } from "@/lib/auth-roles";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
+import {
+  DEMO_ADMIN_DISPLAY_NAME,
+  DEMO_ADMIN_EMAIL,
+  isFullAccessDemo,
+} from "@/lib/demo-access";
 
 // Subscription tiers, ordered. Pricing: Free / Pro ($12) / Pro+ ($29).
 export type Tier = "free" | "pro" | "pro_plus";
@@ -49,6 +54,8 @@ export interface CurrentUserProfile extends CurrentUser {
 // Bridges the WorkOS session to the local User row that carries the
 // subscription tier. Returns null when no user is signed in.
 export async function getCurrentUser(): Promise<CurrentUser | null> {
+  if (isFullAccessDemo()) return getDemoCurrentUserProfile();
+
   const { user } = await withAuth();
   if (!user) return null;
 
@@ -78,6 +85,8 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 }
 
 export async function requireCurrentUserProfile(): Promise<CurrentUserProfile> {
+  if (isFullAccessDemo()) return getDemoCurrentUserProfile();
+
   const { user } = await withAuth();
   if (!user) {
     throw new Error("auth.unauthorized");
@@ -116,6 +125,58 @@ export async function requireCurrentUserProfile(): Promise<CurrentUserProfile> {
     displayName: profile.displayName,
     profileRole: profile.role,
     verified: profile.verified,
+  };
+}
+
+async function getDemoCurrentUserProfile(): Promise<CurrentUserProfile> {
+  const dbUser = await withDbSystemContext((tx) =>
+    tx.user.findUnique({
+      where: { email: DEMO_ADMIN_EMAIL },
+      select: {
+        id: true,
+        email: true,
+        workosUserId: true,
+        subscriptionTier: true,
+        isBanned: true,
+        profile: {
+          select: {
+            id: true,
+            displayName: true,
+            role: true,
+            verified: true,
+          },
+        },
+      },
+    })
+  );
+  const profile = dbUser?.profile;
+  if (
+    !dbUser ||
+    !profile ||
+    dbUser.isBanned ||
+    dbUser.subscriptionTier !== "pro_plus" ||
+    profile.role !== "admin" ||
+    !profile.verified
+  ) {
+    throw new Error("demo_auth.identity_invalid");
+  }
+
+  const [firstName, ...lastNameParts] = DEMO_ADMIN_DISPLAY_NAME.split(/\s+/);
+  return {
+    id: dbUser.workosUserId ?? `demo-${dbUser.id}`,
+    dbUserId: dbUser.id,
+    profileId: profile.id,
+    email: dbUser.email,
+    firstName: firstName || null,
+    lastName: lastNameParts.join(" ") || null,
+    name: DEMO_ADMIN_DISPLAY_NAME,
+    tier: "pro_plus",
+    role: "admin",
+    isBanned: false,
+    deletionRequestedAt: null,
+    displayName: DEMO_ADMIN_DISPLAY_NAME,
+    profileRole: "admin",
+    verified: true,
   };
 }
 

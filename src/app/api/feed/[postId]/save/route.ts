@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedOptionalJsonRequest } from "@/lib/json-request";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { toggleSavedFeedPostForCurrentUser } from "@/lib/feed-service";
-import { feedReactionWriteSchema } from "@/lib/feed-validation";
+import { feedActorSelectionSchema } from "@/lib/feed-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
-const actorSchema = feedReactionWriteSchema.pick({ actorId: true });
+const actorSchema = feedActorSelectionSchema;
 
 export async function POST(
   request: Request,
@@ -22,9 +24,16 @@ export async function POST(
       60,
       60 * 1000
     );
-    if (!rate.allowed) throw new Error("rate_limit.exceeded");
-    const raw = await request.text();
-    const { actorId } = actorSchema.parse(raw ? JSON.parse(raw) : {});
+    if (!rate.allowed) {
+      return rateLimitExceededResponse(
+        rate,
+        60,
+        { code: "rate_limit.exceeded", message: "rate_limit.exceeded" }
+      );
+    }
+    const { actorId } = actorSchema.parse(
+      await readBoundedOptionalJsonRequest(request),
+    );
     const item = await toggleSavedFeedPostForCurrentUser(
       current,
       postId,

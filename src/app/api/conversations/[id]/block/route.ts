@@ -3,6 +3,7 @@ import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { setConversationBlock } from "@/lib/conversation-service";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const CONVERSATION_BLOCK_RATE_LIMIT = 5;
 const CONVERSATION_BLOCK_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -22,14 +23,10 @@ export async function POST(
       CONVERSATION_BLOCK_RATE_LIMIT_WINDOW_MS
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        CONVERSATION_BLOCK_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
@@ -55,14 +52,10 @@ export async function DELETE(
       CONVERSATION_BLOCK_RATE_LIMIT_WINDOW_MS
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        CONVERSATION_BLOCK_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 

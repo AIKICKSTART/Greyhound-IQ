@@ -229,6 +229,7 @@ foreach ($envName in $Environments) {
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     "NEXTAUTH_SECRET",
     "AUTH_SECRET",
+    "REPLAY_PROXY_SECRET",
     "WORKOS_CLIENT_ID",
     "WORKOS_API_KEY",
     "WORKOS_COOKIE_PASSWORD",

@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedOptionalJsonRequest } from "@/lib/json-request";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { toggleActorMuteForCurrentUser } from "@/lib/feed-service";
+import { feedActorSelectionSchema } from "@/lib/feed-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
-const muteSchema = z.object({
-  actorId: z.string().trim().min(1).max(120).optional().nullable(),
-});
+const muteSchema = feedActorSelectionSchema;
 
 export async function POST(
   request: Request,
@@ -24,9 +24,14 @@ export async function POST(
       30,
       60 * 1000
     );
-    if (!rate.allowed) throw new Error("rate_limit.exceeded");
-    const raw = await request.text();
-    const input = muteSchema.parse(raw ? JSON.parse(raw) : {});
+    if (!rate.allowed) {
+      return rateLimitExceededResponse(
+        rate,
+        30,
+        { code: "rate_limit.exceeded", message: "rate_limit.exceeded" }
+      );
+    }
+    const input = muteSchema.parse(await readBoundedOptionalJsonRequest(request));
     const item = await toggleActorMuteForCurrentUser(
       current,
       actorId,

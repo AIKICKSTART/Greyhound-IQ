@@ -32,6 +32,29 @@ const GATE_CATEGORY_SUMMARY = [
     ),
 }));
 
+const RELEASE_EVIDENCE_COUNTERS = [
+  {
+    id: "fresh-verified",
+    label: "Fresh verified",
+    value: DESIGN_LAB_SYNC_SNAPSHOT.release.evidence.freshVerified,
+  },
+  {
+    id: "stale-captured",
+    label: "Stale captures",
+    value: DESIGN_LAB_SYNC_SNAPSHOT.release.evidence.staleCaptured,
+  },
+  {
+    id: "open",
+    label: "Open",
+    value: DESIGN_LAB_SYNC_SNAPSHOT.release.evidence.open,
+  },
+  {
+    id: "blocked",
+    label: "Blocked",
+    value: DESIGN_LAB_SYNC_SNAPSHOT.release.evidence.blocked,
+  },
+] as const;
+
 export function DesignLabDeliveryProgressPanel() {
   return (
     <section
@@ -59,7 +82,7 @@ export function DesignLabDeliveryProgressPanel() {
         </div>
         <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
           <Metric
-            label="Gate"
+            label="Registry"
             value={`${DESIGN_LAB_SYNC_SNAPSHOT.release.completedChecks}/${DESIGN_LAB_SYNC_SNAPSHOT.release.totalChecks}`}
           />
           <Metric label="Verified" value={DESIGN_LAB_DELIVERY_PROGRESS_SUMMARY.verified} />
@@ -78,7 +101,7 @@ export function DesignLabDeliveryProgressPanel() {
         data-design-lab-gate-explainer
       >
         <p className="text-[10px] font-black uppercase tracking-[0.12em] text-sky-100">
-          Verified evidence coverage — not a launch-readiness percentage
+          Registry completion and release-evidence freshness
         </p>
         <dl className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
           {GATE_CATEGORY_SUMMARY.map((category) => (
@@ -92,6 +115,30 @@ export function DesignLabDeliveryProgressPanel() {
               </dt>
               <dd className="mt-1 text-sm font-semibold text-[hsl(var(--foreground))]">
                 {category.completed}/{category.checks}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-4 text-[10px] leading-5 text-[hsl(var(--muted-foreground))]">
+          Verified evidence coverage — not a launch-readiness percentage. Historical
+          captures remain evidence, but stale captures do not count as fresh candidate
+          verification and cannot unlock production.
+        </p>
+        <dl
+          className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4"
+          data-design-lab-release-evidence-counters
+        >
+          {RELEASE_EVIDENCE_COUNTERS.map((counter) => (
+            <div
+              key={counter.id}
+              className="rounded-lg border border-white/[0.07] bg-black/10 px-3 py-2"
+              data-design-lab-release-evidence-counter={counter.id}
+            >
+              <dt className="text-[9px] text-[hsl(var(--muted-foreground))]">
+                {counter.label}
+              </dt>
+              <dd className="mt-1 text-sm font-semibold text-[hsl(var(--foreground))]">
+                {counter.value}
               </dd>
             </div>
           ))}

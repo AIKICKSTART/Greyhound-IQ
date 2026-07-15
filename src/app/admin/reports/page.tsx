@@ -257,6 +257,7 @@ async function getReports() {
       withDbSystemContext((tx) =>
         tx.message.findMany({
           where: { id: { in: messageIds } },
+          take: 50,
           select: {
             id: true,
             conversationId: true,

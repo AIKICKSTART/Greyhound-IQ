@@ -26,6 +26,7 @@ import {
   unblockConversation,
 } from "@/app/actions";
 import { ConversationCallPanel } from "@/components/conversation-call-panel";
+import { ConversationDeliveryAcknowledger } from "@/components/conversation-delivery-acknowledger";
 import { InstantMessageComposer } from "@/components/instant-message-composer";
 import { ProcessedVideo } from "@/components/processed-video";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
@@ -38,7 +39,6 @@ import {
 } from "@/lib/call-service";
 import {
   getConversationForProfile,
-  markConversationDelivered,
   searchConversationMessages,
 } from "@/lib/conversation-service";
 import { withDbRequestContext } from "@/lib/db-context";
@@ -116,6 +116,7 @@ export default async function MessageThreadPage({
     : conversation.participantAActor;
   const selfLabel = selfActor?.displayName ?? user.name;
   const otherLabel = otherActor?.displayName ?? other.displayName;
+  const otherAvatarUrl = otherActor?.avatarUrl ?? other.avatarUrl;
   const isPageConversation =
     conversation.participantAActor?.kind === "page" ||
     conversation.participantBActor?.kind === "page";
@@ -138,8 +139,6 @@ export default async function MessageThreadPage({
           select: { lastSeenAt: true },
         })
       ),
-      // Recipient viewing the thread = messages delivered.
-      markConversationDelivered(callContext, conversation.id),
     ] as const);
   const activeCallRoom =
     activeCallRoomResult.status === "fulfilled"
@@ -229,6 +228,7 @@ export default async function MessageThreadPage({
 
   return (
     <div className="giq-social-thread mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
+      <ConversationDeliveryAcknowledger conversationId={conversation.id} />
       <Link
         href="/pulse"
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
@@ -239,17 +239,33 @@ export default async function MessageThreadPage({
 
       <header className="giq-social-thread-header giq-panel mb-6 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[hsl(var(--primary-bright))]">
-              Private Pulse conversation
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
-              {otherLabel}
-            </h1>
-            <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">
-              {other.kennelName ? `${other.kennelName} · ` : ""}
-              {other.state ?? "Australia"}
-            </p>
+          <div className="flex min-w-0 items-center gap-4">
+            <span className="relative grid size-16 shrink-0 place-items-center rounded-full border border-white/12 bg-[hsl(var(--primary)/0.14)] text-[18px] font-semibold text-[hsl(var(--primary-light))]">
+              {otherAvatarUrl ? (
+                <NextImage
+                  src={otherAvatarUrl}
+                  alt=""
+                  fill
+                  className="rounded-full object-cover"
+                  sizes="64px"
+                  unoptimized={otherAvatarUrl.startsWith("/api/media/")}
+                />
+              ) : (
+                otherLabel.trim().charAt(0).toUpperCase() || "G"
+              )}
+            </span>
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[hsl(var(--primary-bright))]">
+                Private Pulse conversation
+              </p>
+              <h1 className="mt-2 truncate text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
+                {otherLabel}
+              </h1>
+              <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">
+                {other.kennelName ? `${other.kennelName} · ` : ""}
+                {other.state ?? "Australia"}
+              </p>
+            </div>
             {realtimeChannel && (
               <RealtimeRefresh
                 channels={[
@@ -530,7 +546,17 @@ export default async function MessageThreadPage({
                           {message.reactions.length}
                         </SubmitButton>
                       </form>
-                      <form action={deleteAction}>
+                      <form action={deleteAction} className="grid gap-1.5">
+                        <label className="flex items-center gap-1.5 text-[11px] text-[hsl(var(--muted-foreground))]">
+                          <input
+                            type="checkbox"
+                            name="confirmation"
+                            value="delete"
+                            required
+                            className="size-4 shrink-0 accent-[hsl(var(--primary))]"
+                          />
+                          Confirm delete
+                        </label>
                         <SubmitButton
                           pendingLabel="Deleting..."
                           className="giq-outline-action min-h-11 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"

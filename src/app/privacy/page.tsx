@@ -120,6 +120,7 @@ export default function PrivacyPage() {
             href="https://www.gamblinghelponline.org.au"
             target="_blank"
             rel="noopener noreferrer"
+            data-purpose-id="PRIVACY.ACTION.GAMBLING-HELP.OPEN"
             className="text-[hsl(var(--primary-bright))] hover:underline"
           >
             Gambling Help Online

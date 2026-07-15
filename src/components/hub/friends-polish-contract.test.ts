@@ -29,7 +29,7 @@ assert.ok(
 );
 for (const friendContract of [
   'aria-label="Verified member"',
-  "Online now",
+  "Friend",
   'role="group"',
   "createClientCallRoom(",
   'name="profileId"',
@@ -38,6 +38,16 @@ for (const friendContract of [
   assert.ok(
     friendsSource.includes(friendContract),
     `Friend rail must preserve: ${friendContract}`
+  );
+}
+for (const prohibitedPresenceContract of [
+  "Online now",
+  "presenceState",
+  "ensureBrowserRealtimeAuthorization",
+]) {
+  assert.ok(
+    !friendsSource.includes(prohibitedPresenceContract),
+    `Friend rail must not claim or subscribe to global presence: ${prohibitedPresenceContract}`
   );
 }
 

@@ -350,12 +350,17 @@ async function countRepeatOffenders() {
   return safeQuery<number | null>(
     () =>
       withDbSystemContext(async (tx) => {
-        const rows = await tx.report.groupBy({
-          by: ["reportedId"],
-          where: { reportedId: { not: null } },
-          _count: { _all: true },
-        });
-        return rows.filter((row) => row._count._all >= 2).length;
+        const rows = await tx.$queryRaw<Array<{ count: bigint }>>`
+          SELECT COUNT(*)::bigint AS "count"
+          FROM (
+            SELECT "reportedId"
+            FROM "Report"
+            WHERE "reportedId" IS NOT NULL
+            GROUP BY "reportedId"
+            HAVING COUNT(*) >= 2
+          ) AS "repeatOffenders"
+        `;
+        return Number(rows[0]?.count ?? 0);
       }),
     null
   );

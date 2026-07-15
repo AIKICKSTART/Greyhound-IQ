@@ -26,6 +26,7 @@ import {
 export type HubDockConversation = {
   id: string;
   otherName: string;
+  otherAvatarUrl: string | null;
   preview: string;
   unread: number;
   attachmentCount?: number;
@@ -59,38 +60,69 @@ type QuickMessage = {
 };
 
 const MAX_OPEN_WINDOWS = 2;
+const OPEN_CHAT_EVENT = "giq:open-chat";
+export const TOGGLE_CHAT_DOCK_EVENT = "giq:toggle-chat-dock";
 const CHAT_TIME_FORMATTER = new Intl.DateTimeFormat("en-AU", {
   hour: "numeric",
   minute: "2-digit",
+  timeZone: "Australia/Sydney",
+  timeZoneName: "short",
 });
 
 export function HubConversationDock({
   conversations,
   selfProfileId,
   canStartCall,
+  mode = "list",
+  externalLauncher = false,
 }: {
   conversations: HubDockConversation[];
   selfProfileId: string;
   canStartCall: boolean;
+  mode?: "list" | "floating";
+  externalLauncher?: boolean;
 }) {
   const [openIds, setOpenIds] = useState<string[]>([]);
+  const [launcherOpen, setLauncherOpen] = useState(false);
 
-  function openConversation(id: string) {
+  const openConversation = useCallback((id: string) => {
     setOpenIds((current) =>
       current.includes(id)
         ? current
         : [...current, id].slice(-MAX_OPEN_WINDOWS)
     );
-  }
+    setLauncherOpen(false);
+  }, []);
 
-  return (
-    <>
+  useEffect(() => {
+    if (mode !== "floating") return;
+    const handleOpenChat = (event: Event) => {
+      const id = (event as CustomEvent<{ id?: string }>).detail?.id;
+      if (id) openConversation(id);
+    };
+    const handleToggleDock = () => setLauncherOpen((current) => !current);
+    window.addEventListener(OPEN_CHAT_EVENT, handleOpenChat);
+    window.addEventListener(TOGGLE_CHAT_DOCK_EVENT, handleToggleDock);
+    return () => {
+      window.removeEventListener(OPEN_CHAT_EVENT, handleOpenChat);
+      window.removeEventListener(TOGGLE_CHAT_DOCK_EVENT, handleToggleDock);
+    };
+  }, [mode, openConversation]);
+
+  if (mode === "list") {
+    return (
       <ul className="giq-social-chat-list space-y-1">
         {conversations.map((conversation) => (
           <li key={conversation.id}>
             <button
               type="button"
-              onClick={() => openConversation(conversation.id)}
+              onClick={() =>
+                window.dispatchEvent(
+                  new CustomEvent(OPEN_CHAT_EVENT, {
+                    detail: { id: conversation.id },
+                  })
+                )
+              }
               className="giq-social-messenger-row hidden min-h-12 w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.04] lg:flex"
               aria-label={`Open quick chat with ${conversation.otherName}`}
             >
@@ -105,25 +137,106 @@ export function HubConversationDock({
           </li>
         ))}
       </ul>
+    );
+  }
 
-      <div className="fixed bottom-4 right-4 z-[60] hidden items-end gap-3 lg:flex">
-        {openIds.map((id) => {
-          const conversation = conversations.find((item) => item.id === id);
-          if (!conversation) return null;
-          return (
-            <QuickChatWindow
-              key={id}
-              conversation={conversation}
-              selfProfileId={selfProfileId}
-              canStartCall={canStartCall}
-              onClose={() =>
-                setOpenIds((current) => current.filter((item) => item !== id))
-              }
-            />
-          );
-        })}
+  const unreadTotal = conversations.reduce(
+    (total, conversation) => total + conversation.unread,
+    0
+  );
+
+  return (
+    <div className={`fixed right-4 z-[60] hidden items-end gap-3 lg:flex ${externalLauncher ? "bottom-[96px]" : "bottom-4"}`}>
+      {openIds.map((id) => {
+        const conversation = conversations.find((item) => item.id === id);
+        if (!conversation) return null;
+        return (
+          <QuickChatWindow
+            key={id}
+            conversation={conversation}
+            selfProfileId={selfProfileId}
+            canStartCall={canStartCall}
+            onClose={() =>
+              setOpenIds((current) => current.filter((item) => item !== id))
+            }
+          />
+        );
+      })}
+
+      <div className="relative flex flex-col items-end">
+        {launcherOpen && (
+          <section
+            aria-label="Chat dock"
+            className={`absolute right-0 max-h-[min(520px,calc(100dvh-120px))] w-[320px] overflow-hidden rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] shadow-2xl backdrop-blur-xl ${externalLauncher ? "bottom-0" : "bottom-[calc(100%+0.75rem)]"}`}
+          >
+            <header className="flex min-h-12 items-center gap-2 border-b border-white/[0.08] px-3">
+              <MessageSquare className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
+              <h2 className="flex-1 text-[13px] font-semibold text-[hsl(var(--foreground))]">
+                Chat
+              </h2>
+              <Link
+                href="/pulse"
+                className="grid min-h-11 w-11 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05]"
+                aria-label="Open full Chat inbox"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </header>
+            <div className="max-h-[430px] overflow-y-auto p-2">
+              {conversations.length > 0 ? (
+                <ul className="space-y-1">
+                  {conversations.map((conversation) => (
+                    <li key={conversation.id}>
+                      <button
+                        type="button"
+                        onClick={() => openConversation(conversation.id)}
+                        className="giq-social-messenger-row flex min-h-12 w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.04]"
+                        aria-label={`Open quick chat with ${conversation.otherName}`}
+                      >
+                        <ConversationSummary conversation={conversation} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="p-4 text-center">
+                  <p className="text-[13px] text-[hsl(var(--muted-foreground))]">
+                    No conversations yet.
+                  </p>
+                  <Link
+                    href="/discover"
+                    className="giq-button giq-button-primary mt-3 min-h-11 px-4 text-[12px]"
+                  >
+                    Find people
+                  </Link>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {!externalLauncher && (
+          <button
+            type="button"
+            onClick={() => setLauncherOpen((current) => !current)}
+            className="giq-button giq-button-carbon relative h-14 w-14 justify-center rounded-xl border-[hsl(var(--primary-bright)/0.5)] px-0 shadow-2xl focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
+            aria-label={launcherOpen ? "Close Chat dock" : "Open Chat dock"}
+            aria-expanded={launcherOpen}
+          >
+            {launcherOpen ? (
+              <X className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <MessageSquare className="h-5 w-5 text-[hsl(var(--primary-bright))]" aria-hidden="true" />
+            )}
+            {unreadTotal > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 inline-flex min-w-6 items-center justify-center rounded-full bg-[hsl(var(--accent))] px-1.5 text-[10px] font-bold leading-6 text-black">
+                {unreadTotal > 99 ? "99+" : unreadTotal}
+              </span>
+            )}
+          </button>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -139,8 +252,19 @@ function ConversationSummary({
 
   return (
     <>
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/[0.1] bg-[hsl(var(--surface-2))] text-[12px] font-bold text-white/70">
-        {conversation.otherName.slice(0, 1).toUpperCase()}
+      <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/[0.1] bg-[hsl(var(--surface-2))] text-[12px] font-bold text-white/70">
+        {conversation.otherAvatarUrl ? (
+          <NextImage
+            src={conversation.otherAvatarUrl}
+            alt=""
+            fill
+            className="rounded-full object-cover"
+            sizes="36px"
+            unoptimized={conversation.otherAvatarUrl.startsWith("/api/media/")}
+          />
+        ) : (
+          conversation.otherName.slice(0, 1).toUpperCase()
+        )}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13px] font-medium text-[hsl(var(--foreground))]">
@@ -295,7 +419,18 @@ function QuickChatWindow({
   return (
     <section className="giq-social-quick-chat flex h-[440px] w-[320px] flex-col overflow-hidden rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] shadow-2xl backdrop-blur-xl">
       <header className="giq-social-quick-chat-header flex min-h-12 items-center gap-2 border-b border-white/[0.08] px-3">
-        <MessageSquare className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
+        {conversation.otherAvatarUrl ? (
+          <NextImage
+            src={conversation.otherAvatarUrl}
+            alt=""
+            width={32}
+            height={32}
+            className="size-8 rounded-full object-cover"
+            unoptimized={conversation.otherAvatarUrl.startsWith("/api/media/")}
+          />
+        ) : (
+          <MessageSquare className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
+        )}
         <h2 className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[hsl(var(--foreground))]">
           {conversation.otherName}
         </h2>
@@ -384,6 +519,8 @@ function QuickChatWindow({
             maxLength={5000}
             rows={2}
             disabled={sending}
+            aria-invalid={Boolean(sendError)}
+            aria-errormessage={sendError ? `quick-chat-${conversation.id}-error` : undefined}
             className="giq-form-control min-h-11 flex-1 resize-none px-2 py-2 text-[12px]"
             placeholder="Write a message"
           />
@@ -425,7 +562,7 @@ function QuickChatWindow({
           </div>
         </div>
         {sendError && (
-          <p role="alert" className="mt-1 text-[11px] text-red-200">
+          <p id={`quick-chat-${conversation.id}-error`} role="alert" className="mt-1 text-[11px] text-red-200">
             {sendError}
           </p>
         )}

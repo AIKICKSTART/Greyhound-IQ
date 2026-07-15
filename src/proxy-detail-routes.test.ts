@@ -27,6 +27,9 @@ assert.match(
 assert.match(proxy, /FORUM_THREAD_ROUTE = \/\^\\\/\(forum\|groups\)/);
 assert.match(proxy, /prisma\.forumCategory\.count\(\{ where: \{ slug: param \} \}\)/);
 assert.match(proxy, /prisma\.thread\.count\(\{ where: \{ id: param \} \}\)/);
+assert.match(proxy, /resolveDemoProviderRouteId\("dog", param\)/);
+assert.match(proxy, /resolveDemoProviderRouteId\("race", param\)/);
+assert.match(proxy, /resolveDemoProviderRouteId\("track", param\)/);
 
 assert.match(proxy, /request\.cookies\.has\(sessionCookieName\)/);
 assert.match(proxy, /hasAuthenticatedSession \|\|/);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { getCurrentUser, requireCurrentUserProfile } from "@/lib/auth";
 import {
   deleteFeedPostForCurrentUser,
@@ -9,6 +10,7 @@ import {
 } from "@/lib/feed-service";
 import { feedPostEditSchema } from "@/lib/feed-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const FEED_MUTATION_LIMIT = 30;
 const FEED_MUTATION_WINDOW_MS = 60 * 1000;
@@ -50,8 +52,15 @@ export async function PATCH(
       params,
       requireCurrentUserProfile(),
     ]);
-    await assertMutationRate(current.dbUserId);
-    const input = feedPostEditSchema.parse(await request.json());
+    const rateLimit = await checkMutationRate(current.dbUserId);
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(
+        rateLimit,
+        FEED_MUTATION_LIMIT,
+        { code: "rate_limit.exceeded", message: "rate_limit.exceeded" }
+      );
+    }
+    const input = feedPostEditSchema.parse(await readBoundedJsonRequest(request));
     const item = await editFeedPostForCurrentUser(current, postId, input);
     return NextResponse.json({ item });
   } catch (err) {
@@ -68,7 +77,14 @@ export async function DELETE(
       params,
       requireCurrentUserProfile(),
     ]);
-    await assertMutationRate(current.dbUserId);
+    const rateLimit = await checkMutationRate(current.dbUserId);
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(
+        rateLimit,
+        FEED_MUTATION_LIMIT,
+        { code: "rate_limit.exceeded", message: "rate_limit.exceeded" }
+      );
+    }
     const item = await deleteFeedPostForCurrentUser(current, postId);
     return NextResponse.json({ item });
   } catch (err) {
@@ -76,11 +92,11 @@ export async function DELETE(
   }
 }
 
-async function assertMutationRate(userId: string) {
-  const result = await checkRateLimit(
+async function checkMutationRate(userId: string) {
+  return checkRateLimit(
     `feed:mutation:${userId}`,
     FEED_MUTATION_LIMIT,
-    FEED_MUTATION_WINDOW_MS
+    FEED_MUTATION_WINDOW_MS,
+    { failClosed: true },
   );
-  if (!result.allowed) throw new Error("rate_limit.exceeded");
 }

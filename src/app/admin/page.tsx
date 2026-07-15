@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowRight } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
-import { ADMIN_NAV } from "@/app/admin/admin-nav-data";
+import { adminNavForRole } from "@/app/admin/admin-nav-data";
 import { BarList, Sparkline } from "@/components/admin/charts";
 import { getAdminReporting } from "@/lib/admin-reporting";
-import { requireModeratorProfile } from "@/lib/auth";
+import { requireAdminProfile, requireModeratorProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
 import { cached } from "@/lib/ttl-cache";
@@ -55,13 +56,17 @@ const audCurrency = new Intl.NumberFormat("en-AU", {
 });
 
 export default async function AdminPage() {
-  await requireModeratorProfile();
+  const operator = await requireModeratorProfile();
+  if (operator.profileRole !== "admin") redirect("/admin/reports");
+  const current = await requireAdminProfile();
   const [counts, reporting] = await Promise.all([
     cached("admin:dashboard:counts", 120_000, getAdminCounts),
     cached("admin:dashboard:reporting", 120_000, getAdminReporting),
   ]);
 
-  const sections = ADMIN_NAV.filter((group) => group.title !== "Overview");
+  const sections = adminNavForRole(current.profileRole).filter(
+    (group) => group.title !== "Overview"
+  );
 
   // Queues an admin actually needs to work down, surfaced up top.
   const queues = [
@@ -81,7 +86,7 @@ export default async function AdminPage() {
     <main className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10 lg:px-10">
       <AdminPageHeader
         title="Dashboard"
-        description="Operational snapshot across every admin domain. Pick a section from the sidebar, or jump straight from a card below."
+        description="A role-aware operational command centre for live queues, platform health, membership and revenue. Every mutation is validated, confirmed and written to the audit trail."
       />
 
       <section aria-label="Key metrics" className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

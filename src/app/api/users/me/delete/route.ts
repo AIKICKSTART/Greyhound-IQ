@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { requestAccountDeletion } from "@/lib/account-service";
+import { accountDeletionRequestSchema } from "@/lib/account-validation";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request-ip";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
-const deletionRequestSchema = z.object({
-  confirm: z.literal("DELETE"),
-});
+const deletionRequestSchema = accountDeletionRequestSchema;
 
 const ACCOUNT_DELETE_RATE_LIMIT = 3;
 const ACCOUNT_DELETE_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
@@ -23,18 +23,14 @@ export async function POST(request: Request) {
       { failClosed: true }
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        ACCOUNT_DELETE_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    deletionRequestSchema.parse(await request.json());
+    deletionRequestSchema.parse(await readBoundedJsonRequest(request));
 
     const requestedAt = await requestAccountDeletion(current, {
       ip: getClientIp(request.headers),

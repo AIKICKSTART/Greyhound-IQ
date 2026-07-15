@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -14,10 +15,6 @@ import {
 } from "lucide-react";
 import { startChatAction } from "@/app/actions";
 import {
-  ensureBrowserRealtimeAuthorization,
-  getBrowserRealtimeClient,
-} from "@/components/realtime-refresh";
-import {
   createClientCallRoom,
   type ClientCallType,
 } from "@/lib/call-client-actions";
@@ -26,29 +23,25 @@ export type HubFriend = {
   friendshipId: string;
   profileId: string;
   displayName: string;
+  avatarUrl: string | null;
   verified: boolean;
   conversationId: string | null;
 };
 
-// Friends with live presence dots. Presence payloads carry profileId ONLY
-// (shared members channel) and are filtered to accepted friends client-side.
+// Friend controls intentionally avoid a product-wide presence subscription.
+// Messaging and calls remain available without exposing unrelated activity.
 export function HubFriendsList({
-  channelName,
-  selfProfileId,
   friends,
   canStartChat,
   canStartCall,
   senderActorId,
 }: {
-  channelName: string | null;
-  selfProfileId: string;
   friends: HubFriend[];
   canStartChat: boolean;
   canStartCall: boolean;
   senderActorId?: string | null;
 }) {
   const router = useRouter();
-  const [onlineIds, setOnlineIds] = useState<ReadonlySet<string>>(new Set());
   const [pendingCall, setPendingCall] = useState<{
     friendshipId: string;
     callType: ClientCallType;
@@ -83,46 +76,6 @@ export function HubFriendsList({
     }
   }
 
-  useEffect(() => {
-    const client = getBrowserRealtimeClient();
-    if (!client || !channelName) return;
-
-    let cancelled = false;
-    let channel: ReturnType<typeof client.channel> | null = null;
-    const subscribe = async () => {
-      await ensureBrowserRealtimeAuthorization(client, [channelName]);
-      if (cancelled) return;
-      const subscribedChannel = client.channel(channelName, {
-        config: { private: true },
-      });
-      channel = subscribedChannel;
-      const syncOnline = () => {
-        const state = subscribedChannel.presenceState<{ profileId?: string }>();
-        const ids = new Set(
-          Object.values(state)
-            .flat()
-            .map((presence) => presence.profileId)
-            .filter((id): id is string => Boolean(id)),
-        );
-        setOnlineIds(ids);
-      };
-      subscribedChannel
-        .on("presence", { event: "sync" }, syncOnline)
-        .on("presence", { event: "leave" }, syncOnline)
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") {
-            void subscribedChannel.track({ profileId: selfProfileId });
-          }
-        });
-    };
-    void subscribe().catch(() => null);
-
-    return () => {
-      cancelled = true;
-      if (channel) void client.removeChannel(channel);
-    };
-  }, [channelName, selfProfileId]);
-
   if (friends.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-white/[0.1] px-4 py-6 text-center">
@@ -144,7 +97,6 @@ export function HubFriendsList({
     <>
       <ul className="giq-social-friends-list space-y-1.5">
         {friends.map((friend) => {
-          const online = onlineIds.has(friend.profileId);
           const pendingVoice =
             pendingCall?.friendshipId === friend.friendshipId &&
             pendingCall.callType === "voice";
@@ -156,15 +108,19 @@ export function HubFriendsList({
               key={friend.friendshipId}
               className="giq-social-messenger-row flex min-h-14 items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-2 transition hover:border-white/[0.07] hover:bg-white/[0.04]"
             >
-              <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/[0.1] bg-[hsl(var(--surface-2))] text-[12px] font-bold text-white/70 shadow-sm">
-                {friend.displayName.slice(0, 1).toUpperCase()}
-                <span
-                  aria-hidden="true"
-                  className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[hsl(var(--surface-1))] ${
-                    online ? "bg-emerald-400" : "bg-white/25"
-                  }`}
-                />
-                <span className="sr-only">{online ? "Online" : "Offline"}</span>
+              <span className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border border-white/[0.1] bg-[hsl(var(--surface-2))] text-[12px] font-bold text-white/70 shadow-sm">
+                {friend.avatarUrl ? (
+                  <Image
+                    src={friend.avatarUrl}
+                    alt=""
+                    fill
+                    className="rounded-full object-cover"
+                    sizes="40px"
+                    unoptimized={friend.avatarUrl.startsWith("/api/media/")}
+                  />
+                ) : (
+                  friend.displayName.slice(0, 1).toUpperCase()
+                )}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex min-w-0 items-center gap-1.5">
@@ -178,14 +134,8 @@ export function HubFriendsList({
                     />
                   ) : null}
                 </span>
-                <span
-                  className={`mt-0.5 block text-[10px] font-medium ${
-                    online
-                      ? "text-emerald-300"
-                      : "text-[hsl(var(--subtle-foreground))]"
-                  }`}
-                >
-                  {online ? "Online now" : "Offline"}
+                <span className="mt-0.5 block text-[10px] font-medium text-[hsl(var(--subtle-foreground))]">
+                  Friend
                 </span>
               </span>
               <span

@@ -2,6 +2,7 @@ import { ArrowLeft, CheckCircle2, Clock, LifeBuoy, MessageSquare, Plus } from "l
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { AccountSupportHelpCentre } from "@/components/account-support-help-centre";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { safeQuery } from "@/lib/db";
@@ -35,14 +36,18 @@ type SupportTicketSummary = {
 };
 
 type AccountSupportPageProps = {
-  searchParams: Promise<{ ticket?: string | string[] }>;
+  searchParams: Promise<{
+    q?: string | string[];
+    ticket?: string | string[];
+  }>;
 };
 
 export default async function AccountSupportPage({
   searchParams,
 }: AccountSupportPageProps) {
   const current = await requireSupportProfile();
-  const ticketCreated = (await searchParams).ticket === "created";
+  const query = await searchParams;
+  const ticketCreated = query.ticket === "created";
   const tickets = await getSupportTicketsForUser(current);
 
   return (
@@ -70,6 +75,8 @@ export default async function AccountSupportPage({
             </div>
           </div>
         ) : null}
+
+        <AccountSupportHelpCentre query={query.q} role={current.role} />
 
         <section className={PANEL_CLASS}>
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -155,6 +162,7 @@ function getSupportTicketsForUser(current: CurrentUserProfile) {
         tx.supportTicket.findMany({
           where: { userId: current.dbUserId },
           orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+          take: 100,
           select: {
             id: true,
             category: true,
@@ -208,6 +216,12 @@ function TicketList({ tickets }: { tickets: SupportTicketSummary[] }) {
             <TicketMetric label="Created" value={formatDateTime(ticket.createdAt)} />
             <TicketMetric label="Updated" value={formatDateTime(ticket.updatedAt)} />
           </div>
+          <Link
+            href={`/account/support/${ticket.id}`}
+            className={`${ACTION_CLASS} mt-4 w-full sm:w-fit`}
+          >
+            View ticket
+          </Link>
         </article>
       ))}
     </div>

@@ -22,6 +22,16 @@ param(
   [string]$MediaScannerMode = "clamav",
   [ValidateSet("true", "false")]
   [string]$ActorConversationMultiplexEnabled = "false",
+  [ValidateSet("true", "false", IgnoreCase = $false)]
+  [string]$SearchDisabled = "false",
+  [ValidateSet("true", "false", IgnoreCase = $false)]
+  [string]$UploadDisabled = "false",
+  [ValidateSet("true", "false", IgnoreCase = $false)]
+  [string]$ExportDisabled = "false",
+  [ValidateSet("true", "false", IgnoreCase = $false)]
+  [string]$AiDisabled = "false",
+  [ValidateSet("true", "false", IgnoreCase = $false)]
+  [string]$RealtimeBroadcastDisabled = "false",
   [string]$MediaScannerMemory = "4Gi",
   [switch]$AllowMissingSecrets
 )
@@ -29,6 +39,10 @@ param(
 $ErrorActionPreference = "Stop"
 if (Get-Variable PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
   $PSNativeCommandUseErrorActionPreference = $false
+}
+
+if ($Environment -eq "prod") {
+  throw "Local production deployment is disabled. Promote an exact Design Lab-approved commit through the protected Cloud Run Deploy GitHub workflow."
 }
 
 function Add-GcloudToPath {
@@ -177,6 +191,7 @@ function Ensure-SchedulerJob {
     [string]$Description,
     [string]$CronSecret,
     [string]$AttemptDeadline = "300s",
+    [int]$MaxRetryAttempts = 3,
     [string]$OidcServiceAccount = "",
     [string]$OidcAudience = ""
   )
@@ -200,6 +215,10 @@ function Ensure-SchedulerJob {
       --http-method=POST `
       "--update-headers=x-internal-secret=$CronSecret" `
       "--attempt-deadline=$AttemptDeadline" `
+      "--max-retry-attempts=$MaxRetryAttempts" `
+      --min-backoff=30s `
+      --max-backoff=120s `
+      --max-doublings=2 `
       @oidcArgs `
       "--description=$Description" `
       --quiet
@@ -215,6 +234,10 @@ function Ensure-SchedulerJob {
     --http-method=POST `
     "--headers=x-internal-secret=$CronSecret" `
     "--attempt-deadline=$AttemptDeadline" `
+    "--max-retry-attempts=$MaxRetryAttempts" `
+    --min-backoff=30s `
+    --max-backoff=120s `
+    --max-doublings=2 `
     @oidcArgs `
     "--description=$Description" `
     --quiet
@@ -262,13 +285,25 @@ function Ensure-SchedulerJobs {
       Schedule = "20 * * * *"
       Uri = "$baseUrl/api/internal/aggregate-refresh"
       Description = "GreyhoundIQ $Environment aggregate racing view refresh"
-      AttemptDeadline = "900s"
+      AttemptDeadline = "840s"
     },
     @{
       Name = "greyhoundiq-$Environment-listing-maintenance"
       Schedule = "17 * * * *"
       Uri = "$baseUrl/api/internal/listing-expiry"
       Description = "GreyhoundIQ $Environment listing expiry maintenance"
+    },
+    @{
+      Name = "greyhoundiq-$Environment-account-deletion"
+      Schedule = "37 * * * *"
+      Uri = "$baseUrl/api/internal/account-deletion"
+      Description = "GreyhoundIQ $Environment account deletion maintenance"
+    },
+    @{
+      Name = "greyhoundiq-$Environment-agent-cleanup"
+      Schedule = "47 * * * *"
+      Uri = "$baseUrl/api/internal/agent-cleanup"
+      Description = "GreyhoundIQ $Environment stale agent-run cleanup"
     },
     @{
       Name = "greyhoundiq-$Environment-media-maintenance"
@@ -286,16 +321,36 @@ function Ensure-SchedulerJobs {
       Description = "GreyhoundIQ $Environment call room and invite maintenance"
     },
     @{
+      Name = "greyhoundiq-$Environment-community-readiness"
+      Schedule = "*/10 * * * *"
+      Uri = "$baseUrl/api/internal/community-readiness"
+      Description = "GreyhoundIQ $Environment community dependency readiness"
+      AttemptDeadline = "180s"
+    },
+    @{
       Name = "greyhoundiq-$Environment-notification-delivery"
       Schedule = "*/5 * * * *"
       Uri = "$baseUrl/api/internal/notification-delivery"
       Description = "GreyhoundIQ $Environment notification delivery maintenance"
     },
     @{
+      Name = "greyhoundiq-$Environment-usage-delivery"
+      Schedule = "* * * * *"
+      Uri = "$baseUrl/api/internal/usage-delivery"
+      Description = "GreyhoundIQ $Environment metered usage delivery"
+      AttemptDeadline = "180s"
+    },
+    @{
       Name = "greyhoundiq-$Environment-dog-profile-sync"
       Schedule = "*/2 * * * *"
       Uri = "$baseUrl/api/internal/dog-profile-sync"
       Description = "GreyhoundIQ $Environment raced-dog profile completeness sync"
+    },
+    @{
+      Name = "greyhoundiq-$Environment-memory-decay"
+      Schedule = "11 3 * * *"
+      Uri = "$baseUrl/api/internal/memory-decay"
+      Description = "GreyhoundIQ $Environment memory relevance maintenance"
     }
   )
 
@@ -392,6 +447,7 @@ $requiredSecrets = @(
   "DATABASE_URL",
   "NEXTAUTH_SECRET",
   "AUTH_SECRET",
+  "REPLAY_PROXY_SECRET",
   "WORKOS_CLIENT_ID",
   "WORKOS_API_KEY",
   "WORKOS_COOKIE_PASSWORD",
@@ -461,6 +517,7 @@ if (-not $NextPublicLivekitUrl -and $enabledOptionalSecrets -contains "LIVEKIT_U
 
 $timestamp = Get-Date -Format "yyyyMMddHHmmss"
 $image = "$Region-docker.pkg.dev/$ProjectId/$Repository/greyhoundiq-web:$Environment-$timestamp"
+$candidateTag = "candidate-$timestamp"
 $substitutions = @(
   "_IMAGE=$image",
   "_NEXT_PUBLIC_SUPABASE_URL=$NextPublicSupabaseUrl",
@@ -498,7 +555,12 @@ $plainEnvItems = @(
   "NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=false",
   "NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT=false",
   "ACTOR_CONVERSATION_MULTIPLEX_ENABLED=$ActorConversationMultiplexEnabled",
-  "MEDIA_SCAN_MODE=disabled"
+  "MEDIA_SCAN_MODE=disabled",
+  "SEARCH_DISABLED=$SearchDisabled",
+  "UPLOAD_DISABLED=$UploadDisabled",
+  "EXPORT_DISABLED=$ExportDisabled",
+  "AI_DISABLED=$AiDisabled",
+  "REALTIME_BROADCAST_DISABLED=$RealtimeBroadcastDisabled"
 )
 if ($WorkosCookieDomain) {
   $plainEnvItems += "WORKOS_COOKIE_DOMAIN=$WorkosCookieDomain"
@@ -532,6 +594,8 @@ $deployArgs = @(
   "--timeout=900",
   "--min-instances=$minInstances",
   "--max-instances=$maxInstances",
+  "--no-traffic",
+  "--tag=$candidateTag",
   "--network=default",
   "--subnet=default",
   "--vpc-egress=private-ranges-only",
@@ -542,12 +606,32 @@ if ($secretMappings) {
 }
 $deployArgs += @("--project", $ProjectId)
 Invoke-Gcloud @deployArgs
-Invoke-Gcloud run services update-traffic $ServiceName `
+
+$webRevision = Gcloud-Value run services describe $ServiceName `
   "--region=$Region" `
-  --to-latest `
+  "--format=value(status.latestCreatedRevisionName)" `
   --project $ProjectId
+if (-not $webRevision) {
+  throw "Could not resolve the candidate web revision."
+}
+$serviceJson = & $script:GcloudCmd run services describe $ServiceName `
+  "--region=$Region" `
+  --format=json `
+  --project $ProjectId 2>$null
+if ($LASTEXITCODE -ne 0 -or -not $serviceJson) {
+  throw "Could not resolve the candidate web URL."
+}
+$serviceState = $serviceJson | ConvertFrom-Json
+$candidateTraffic = $serviceState.status.traffic | Where-Object {
+  $_.tag -eq $candidateTag
+} | Select-Object -First 1
+$candidateUrl = [string]$candidateTraffic.url
+if (-not $candidateUrl.StartsWith("https://")) {
+  throw "Could not resolve a secure candidate web URL."
+}
 
 $mediaMaintenanceBaseUrl = ""
+$scannerRevision = ""
 if (-not $SkipMediaScanner) {
   $scannerEnvItems = @(
     $plainEnvItems | Where-Object { $_ -ne "MEDIA_SCAN_MODE=disabled" }
@@ -571,6 +655,7 @@ if (-not $SkipMediaScanner) {
     "--timeout=900",
     "--min-instances=0",
     "--max-instances=1",
+    "--no-traffic",
     "--network=default",
     "--subnet=default",
     "--vpc-egress=private-ranges-only",
@@ -581,6 +666,13 @@ if (-not $SkipMediaScanner) {
   }
   $scannerDeployArgs += @("--project", $ProjectId)
   Invoke-Gcloud @scannerDeployArgs
+  $scannerRevision = Gcloud-Value run services describe $MediaScannerServiceName `
+    "--region=$Region" `
+    "--format=value(status.latestCreatedRevisionName)" `
+    --project $ProjectId
+  if (-not $scannerRevision) {
+    throw "Could not resolve the candidate media-scanner revision."
+  }
   Invoke-Gcloud run services add-iam-policy-binding $MediaScannerServiceName `
     "--region=$Region" `
     "--member=serviceAccount:$runtimeServiceAccount" `
@@ -593,6 +685,25 @@ if (-not $SkipMediaScanner) {
     --project $ProjectId
 }
 
+# Smoke the tagged no-traffic candidate before any revision receives service traffic.
+$env:SMOKE_BASE_URL = $candidateUrl
+npm run test:smoke
+if ($LASTEXITCODE -ne 0) {
+  throw "Candidate smoke test failed; traffic was not changed."
+}
+
+Invoke-Gcloud run services update-traffic $ServiceName `
+  "--region=$Region" `
+  "--to-revisions=$webRevision=100" `
+  "--remove-tags=$candidateTag" `
+  --project $ProjectId
+if ($scannerRevision) {
+  Invoke-Gcloud run services update-traffic $MediaScannerServiceName `
+    "--region=$Region" `
+    "--to-revisions=$scannerRevision=100" `
+    --project $ProjectId
+}
+
 Ensure-SchedulerJobs `
   -MediaMaintenanceBaseUrl $mediaMaintenanceBaseUrl `
   -MediaMaintenanceOidcServiceAccount $(if ($mediaMaintenanceBaseUrl) { $runtimeServiceAccount } else { "" })
@@ -601,11 +712,4 @@ Write-Host "Cloud Run deploy completed for $ServiceName."
 Write-Host "Image: $image"
 if ($mediaMaintenanceBaseUrl) {
   Write-Host "Media scanner service: $MediaScannerServiceName"
-}
-
-# Post-deploy smoke test — must fail loudly per scripts/AGENTS.md
-$env:SMOKE_BASE_URL = $NextAuthUrl
-npm run test:smoke
-if ($LASTEXITCODE -ne 0) {
-  throw "Post-deploy smoke test failed against $NextAuthUrl"
 }

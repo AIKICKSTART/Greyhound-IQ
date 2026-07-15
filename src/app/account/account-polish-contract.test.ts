@@ -24,6 +24,14 @@ const billingSource = readFileSync(join(__dirname, "billing", "page.tsx"), "utf8
 const usageSource = readFileSync(join(__dirname, "usage", "page.tsx"), "utf8");
 const supportSource = readFileSync(join(__dirname, "support", "page.tsx"), "utf8");
 const teamSource = readFileSync(join(__dirname, "team", "page.tsx"), "utf8");
+const teamManagementSource = readFileSync(
+  join(__dirname, "team", "team-management.tsx"),
+  "utf8"
+);
+const teamServiceSource = readFileSync(
+  join(__dirname, "..", "..", "lib", "organization-team-service.ts"),
+  "utf8"
+);
 const savedListingsSource = readFileSync(
   join(__dirname, "saved-listings", "page.tsx"),
   "utf8"
@@ -36,7 +44,7 @@ assert.ok(
   "Account must keep compact member and cinematic signed-out headers"
 );
 for (const signedOutContract of [
-  'image="/images/wentworth-gate-hero.webp"',
+  'image="/images/feed/founder-race-night-cover.webp"',
   "Your GreyhoundIQ",
   "Profile, tier, privacy, messaging, and account controls in one place.",
 ]) {
@@ -176,7 +184,6 @@ assert.ok(
 
 for (const [source, route] of [
   [supportSource, "support"],
-  [teamSource, "team"],
   [savedListingsSource, "saved listings"],
 ] as const) {
   assert.ok(
@@ -187,10 +194,23 @@ for (const [source, route] of [
   );
 }
 assert.ok(
-  teamSource.includes('role="region"') &&
-    teamSource.includes("withDbRequestContext(current") &&
-    teamSource.includes("Organizations are temporarily unavailable"),
-  "Team polish must preserve RLS-scoped reads, failure states, and accessible table overflow"
+  teamSource.includes("requireCurrentUserProfile") &&
+    teamSource.includes(
+      'redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`)'
+    ) &&
+    teamSource.includes("<TeamMemberHeader") &&
+    !teamSource.includes("<PageHero"),
+  "Authenticated team must retain its WorkOS guard and compact member header"
+);
+assert.ok(
+  teamManagementSource.includes('role="region"') &&
+    teamSource.includes("safeQuery(") &&
+    teamSource.includes("listOrganizationTeams(current)") &&
+    teamServiceSource.includes("withDbSystemContext") &&
+    teamServiceSource.includes("{ ownerId: current.dbUserId }") &&
+    teamServiceSource.includes("userId: current.dbUserId") &&
+    teamSource.includes("Teams are temporarily unavailable"),
+  "Team polish must preserve actor-scoped reads, failure states, and accessible table overflow"
 );
 assert.ok(
   savedListingsSource.includes("ListingCardMediaCarousel") &&

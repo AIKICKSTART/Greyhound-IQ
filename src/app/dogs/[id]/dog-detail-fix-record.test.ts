@@ -10,7 +10,7 @@ const pedigree = readFileSync(
 const queries = readFileSync(join(__dirname, "../../../lib/queries.ts"), "utf8");
 
 assert.ok(page.includes('label: "Prize Money"'));
-assert.ok(page.includes("formatPrize(dog.prizeMoney)"));
+assert.ok(page.includes("formatDogPrizeMoney(dog.prizeMoney).text"));
 assert.ok(!page.includes('label: "Best Time"'));
 assert.ok(!page.includes("Career winnings"));
 assert.ok(!page.includes("getDogPrizeMoney"));

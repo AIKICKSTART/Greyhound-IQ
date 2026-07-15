@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { checkRateLimit } from "@/lib/rate-limit";
 import {
   deleteMediaForCurrentUser,
@@ -8,6 +9,7 @@ import {
   updateMediaMetadataForCurrentUser,
 } from "@/lib/media-service";
 import { mediaMetadataUpdateSchema } from "@/lib/media-validation";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const MEDIA_DELETE_RATE_LIMIT = 3;
 const MEDIA_DELETE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -46,14 +48,10 @@ export async function DELETE(
       MEDIA_DELETE_RATE_LIMIT_WINDOW_MS
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        MEDIA_DELETE_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
@@ -80,12 +78,15 @@ export async function PATCH(
       MEDIA_METADATA_RATE_LIMIT_WINDOW_MS
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: { code: "rate_limit.exceeded", message: "Too many requests" } },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        MEDIA_METADATA_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
-    const input = mediaMetadataUpdateSchema.parse(await request.json());
+    const input = mediaMetadataUpdateSchema.parse(
+      await readBoundedJsonRequest(request),
+    );
     const item = await updateMediaMetadataForCurrentUser(current, id, input);
     return NextResponse.json({ item });
   } catch (err) {

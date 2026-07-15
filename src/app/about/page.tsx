@@ -34,7 +34,7 @@ export default function AboutPage() {
   return (
     <div>
       <PageHero
-        image="/images/wentworth-gate-hero.webp"
+        image="/images/hero-greyhoundiq-brand.webp"
         badge="ABOUT"
         badgeColor="primary"
         title={

@@ -6,10 +6,11 @@ import {
   UsersRound,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 import { getCurrentUser } from "@/lib/auth";
-import { discoverSocialActorsAndDogs } from "@/lib/social-discovery";
 import { directorySearchQuerySchema } from "@/lib/query-validation";
+import { discoverSocialActorsAndDogs } from "@/lib/social-discovery";
 
 export const dynamic = "force-dynamic";
 
@@ -195,6 +196,7 @@ function DiscoveryGroup({
     id: string;
     handle: string;
     displayName: string;
+    avatarUrl: string | null;
     profile: { verified: boolean; state: string | null } | null;
     page: { tagline: string | null } | null;
   }>;
@@ -220,8 +222,19 @@ function DiscoveryGroup({
               href={`/p/${actor.handle}`}
               className="group flex min-h-16 items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-3 transition-colors hover:border-[hsl(var(--primary-bright)/0.34)] hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
             >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[hsl(var(--primary-bright)/0.26)] bg-[hsl(var(--primary)/0.14)] text-[14px] font-semibold text-[hsl(var(--primary-light))]">
-                {actor.displayName.trim().charAt(0).toUpperCase() || "G"}
+              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[hsl(var(--primary-bright)/0.26)] bg-[hsl(var(--primary)/0.14)] text-[14px] font-semibold text-[hsl(var(--primary-light))]">
+                {actor.avatarUrl ? (
+                  <Image
+                    src={actor.avatarUrl}
+                    alt=""
+                    fill
+                    className="rounded-full object-cover"
+                    sizes="44px"
+                    unoptimized={actor.avatarUrl.startsWith("/api/media/")}
+                  />
+                ) : (
+                  actor.displayName.trim().charAt(0).toUpperCase() || "G"
+                )}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-start gap-1.5 break-words text-[14px] font-semibold text-[hsl(var(--foreground))] transition-colors group-hover:text-[hsl(var(--primary-bright))]">

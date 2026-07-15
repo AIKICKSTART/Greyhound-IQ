@@ -4,10 +4,11 @@ import { jsonError } from "@/lib/api-errors";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { issueRealtimeAuthorization } from "@/lib/realtime-service";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function POST() {
   try {
     const current = await requireCurrentUserProfile();
     const rate = await checkRateLimit(
@@ -16,9 +17,10 @@ export async function GET() {
       60 * 1000
     );
     if (!rate.allowed) {
-      return NextResponse.json(
-        { error: { code: "rate_limit.exceeded", message: "Too many requests" } },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rate,
+        30,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
     const authorization = await issueRealtimeAuthorization(current);

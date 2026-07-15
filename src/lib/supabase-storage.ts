@@ -1,11 +1,23 @@
+import "server-only";
+
 import { createReadStream } from "node:fs";
 import { open } from "node:fs/promises";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { fetchPublicInternetOrigin } from "@/lib/public-network";
 import type { SupabaseStorageBucket } from "@/lib/storage-paths";
+import {
+  assertTrustedSupabaseStorageUrl,
+  shouldPinSupabaseStorageDns,
+} from "@/lib/storage-url-policy";
 
 let adminClient: SupabaseClient | null = null;
 const STORAGE_PROCESSING_DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000;
 const STORAGE_HEAD_DOWNLOAD_TIMEOUT_MS = 15 * 1000;
+
+export type StorageUploadOptions = {
+  cacheControl?: string | null;
+  upsert?: boolean;
+};
 
 export function getSupabaseAdminClient() {
   if (adminClient) return adminClient;
@@ -37,7 +49,10 @@ export async function createSignedStorageUploadUrl(
     .createSignedUploadUrl(objectPath, { upsert: false });
 
   if (error) throw new Error(`storage.sign_upload_failed:${error.message}`);
-  return data;
+  return {
+    ...data,
+    signedUrl: assertTrustedSupabaseStorageUrl(data.signedUrl).toString(),
+  };
 }
 
 export async function createSignedStorageDownloadUrl(
@@ -50,7 +65,7 @@ export async function createSignedStorageDownloadUrl(
     .createSignedUrl(objectPath, expiresInSeconds);
 
   if (error) throw new Error(`storage.sign_download_failed:${error.message}`);
-  return data.signedUrl;
+  return assertTrustedSupabaseStorageUrl(data.signedUrl).toString();
 }
 
 export async function getStorageObjectInfo(
@@ -84,7 +99,7 @@ export async function streamStorageObject(
   signal?: AbortSignal
 ) {
   const signedUrl = await createSignedStorageDownloadUrl(bucket, objectPath, 600);
-  const response = await fetch(signedUrl, {
+  const response = await fetchTrustedStorageUrl(signedUrl, {
     headers: range ? { Range: `bytes=${range.start}-${range.end}` } : undefined,
     signal,
   });
@@ -143,7 +158,9 @@ export async function downloadStorageObjectHead(
 ) {
   try {
     const signedUrl = await createSignedStorageDownloadUrl(bucket, objectPath, 60);
-    return await fetchStorageObjectHead(signedUrl, bytes);
+    return await fetchStorageObjectHead(signedUrl, bytes, {
+      fetchImpl: fetchTrustedStorageUrl,
+    });
   } catch {
     throw new Error("media.storage_unavailable");
   }
@@ -165,6 +182,7 @@ export async function fetchStorageObjectHead(
   const response = await (options.fetchImpl ?? fetch)(signedUrl, {
     headers: { Range: `bytes=0-${bytes - 1}` },
     cache: "no-store",
+    redirect: "manual",
     signal: AbortSignal.timeout(
       options.timeoutMs ?? STORAGE_HEAD_DOWNLOAD_TIMEOUT_MS
     ),
@@ -190,6 +208,21 @@ export async function fetchStorageObjectHead(
     throw new Error("storage.invalid_head_response");
   }
   return buffer;
+}
+
+async function fetchTrustedStorageUrl(
+  input: string | URL,
+  init?: RequestInit,
+) {
+  const trustedUrl = assertTrustedSupabaseStorageUrl(input.toString());
+  const fetcher = shouldPinSupabaseStorageDns(trustedUrl)
+    ? fetchPublicInternetOrigin
+    : fetch;
+  return fetcher(trustedUrl, {
+    ...init,
+    cache: "no-store",
+    redirect: "manual",
+  });
 }
 
 export async function removeStorageObject(
@@ -243,33 +276,54 @@ export async function uploadStorageObject(
   bucket: SupabaseStorageBucket,
   objectPath: string,
   body: Uint8Array | Blob,
-  contentType: string
+  contentType: string,
+  options: StorageUploadOptions = {},
 ) {
   const { data, error } = await getSupabaseAdminClient()
     .storage.from(bucket)
-    .upload(objectPath, body, {
-      cacheControl: "31536000",
-      contentType,
-      upsert: true,
-    });
+    .upload(
+      objectPath,
+      body,
+      resolveStorageUploadOptions(contentType, options),
+    );
 
   if (error) throw new Error(`storage.upload_failed:${error.message}`);
   return data;
+}
+
+/** @internal Exported for provider-compatibility characterization tests. */
+export function resolveStorageUploadOptions(
+  contentType: string,
+  options: StorageUploadOptions = {},
+) {
+  const uploadOptions: {
+    cacheControl?: string;
+    contentType: string;
+    upsert: boolean;
+  } = {
+    contentType,
+    upsert: options.upsert ?? true,
+  };
+  const cacheControl =
+    options.cacheControl === undefined ? "31536000" : options.cacheControl;
+  if (cacheControl !== null) uploadOptions.cacheControl = cacheControl;
+  return uploadOptions;
 }
 
 export async function uploadStorageObjectFromFile(
   bucket: SupabaseStorageBucket,
   objectPath: string,
   filePath: string,
-  contentType: string
+  contentType: string,
+  options: StorageUploadOptions = {},
 ) {
   const { data, error } = await getSupabaseAdminClient()
     .storage.from(bucket)
-    .upload(objectPath, createReadStream(filePath), {
-      cacheControl: "31536000",
-      contentType,
-      upsert: true,
-    });
+    .upload(
+      objectPath,
+      createReadStream(filePath),
+      resolveStorageUploadOptions(contentType, options),
+    );
 
   if (error) throw new Error(`storage.upload_failed:${error.message}`);
   return data;

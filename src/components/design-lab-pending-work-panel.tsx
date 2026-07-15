@@ -5,15 +5,23 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK,
   DESIGN_LAB_PENDING_WORK,
   DESIGN_LAB_PENDING_WORK_SOURCES,
   DESIGN_LAB_PENDING_WORK_SUMMARY,
+  DESIGN_LAB_VERIFICATION_REFRESH_WORKFLOW,
   filterDesignLabPendingWork,
+  isDesignLabWorkAwaitingVerification,
   type DesignLabPendingWorkItem,
   type DesignLabPendingWorkSource,
 } from "./design-lab-pending-work";
 
-type CompletionFilter = "all" | "pending" | "complete" | "blocked";
+type CompletionFilter =
+  | "all"
+  | "pending"
+  | "complete"
+  | "awaiting-verification"
+  | "blocked";
 
 const SOURCE_LABELS: Record<DesignLabPendingWorkSource, string> = {
   screen: "Screen contracts",
@@ -127,7 +135,7 @@ export function DesignLabPendingWorkPanel() {
             cannot hide, waive or manually mark work complete.
           </p>
         </div>
-        <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           <WorkMetric label="All" value={DESIGN_LAB_PENDING_WORK_SUMMARY.total} />
           <WorkMetric
             label="Verified"
@@ -138,11 +146,47 @@ export function DesignLabPendingWorkPanel() {
             value={DESIGN_LAB_PENDING_WORK_SUMMARY.pending}
           />
           <WorkMetric
+            label="Awaiting verification"
+            value={DESIGN_LAB_PENDING_WORK_SUMMARY.awaitingVerification}
+          />
+          <WorkMetric
             label="Blocked"
             value={DESIGN_LAB_PENDING_WORK_SUMMARY.blocked}
           />
         </dl>
       </div>
+
+      <details
+        className="mt-5 rounded-xl border border-amber-300/15 bg-amber-300/[0.035] p-4"
+        data-design-lab-verification-refresh-workflow
+      >
+        <summary className="min-h-11 cursor-pointer py-2 text-[10px] font-black uppercase tracking-[0.12em] text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light))]">
+          Final code-freeze refresh ·{" "}
+          {DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.length.toLocaleString()} complete,
+          awaiting verification
+        </summary>
+        <p className="mt-2 text-[11px] leading-5 text-[hsl(var(--muted-foreground))]">
+          Captured evidence stays visible, but none of these items can become fresh
+          verified until this workflow is rerun against one immutable candidate.
+        </p>
+        <ol className="mt-3 grid gap-2 text-[10px] leading-5 text-[hsl(var(--muted-foreground))]">
+          {DESIGN_LAB_VERIFICATION_REFRESH_WORKFLOW.steps.map((step, index) => (
+            <li key={step}>
+              <b className="mr-2 text-amber-100">{index + 1}.</b>
+              {step}
+            </li>
+          ))}
+        </ol>
+        <ul className="mt-3 grid gap-1">
+          {DESIGN_LAB_VERIFICATION_REFRESH_WORKFLOW.commands.map((command) => (
+            <li key={command}>
+              <code className="block overflow-x-auto rounded-md border border-white/[0.07] bg-black/15 px-3 py-2 text-[9px] text-[hsl(var(--subtle-foreground))]">
+                {command}
+              </code>
+            </li>
+          ))}
+        </ul>
+      </details>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <WorkSelect
@@ -151,6 +195,7 @@ export function DesignLabPendingWorkPanel() {
           onChange={(value) => setCompletion(value as CompletionFilter)}
           options={[
             ["pending", "Pending only"],
+            ["awaiting-verification", "Complete, awaiting verification"],
             ["blocked", "Blocked only"],
             ["complete", "Verified only"],
             ["all", "All states"],
@@ -270,6 +315,9 @@ function PendingWorkGroup({ group }: { group: WorkGroup }) {
         </span>
         <span className="text-[10px] font-bold text-[hsl(var(--muted-foreground))] sm:text-right">
           {group.complete}/{group.total} verified · {group.pending} remaining
+          {group.awaitingVerification
+            ? ` · ${group.awaitingVerification} awaiting verification`
+            : ""}
           {group.items.length !== group.pending
             ? ` · ${group.items.length} shown`
             : ""}
@@ -288,6 +336,7 @@ function PendingWorkGroup({ group }: { group: WorkGroup }) {
 }
 
 function PendingWorkRow({ item }: { item: DesignLabPendingWorkItem }) {
+  const awaitingVerification = isDesignLabWorkAwaitingVerification(item);
   const tags = [
     item.screen,
     ...item.roles.slice(0, 2),
@@ -299,6 +348,9 @@ function PendingWorkRow({ item }: { item: DesignLabPendingWorkItem }) {
       className="grid gap-3 border-b border-white/[0.05] px-4 py-3 last:border-b-0 lg:grid-cols-[minmax(180px,0.32fr)_minmax(0,1fr)_minmax(150px,0.25fr)]"
       data-pending-work-id={item.id}
       data-pending-work-complete={item.complete ? "true" : "false"}
+      data-pending-work-awaiting-verification={
+        awaitingVerification ? "true" : "false"
+      }
     >
       <div>
         <code className="break-all text-[10px] font-semibold text-[hsl(var(--primary-light))]">
@@ -331,7 +383,7 @@ function PendingWorkRow({ item }: { item: DesignLabPendingWorkItem }) {
           {item.complete ? (
             <CheckCircle2 className="size-3" aria-hidden="true" />
           ) : null}
-          {item.status}
+          {awaitingVerification ? "Complete, awaiting verification" : item.status}
         </span>
         <span className="text-[9px] font-bold uppercase tracking-[0.06em] text-[hsl(var(--subtle-foreground))]">
           {item.releaseBlocking ? "MVP launch blocker" : "Post-MVP / scale follow-up"}
@@ -392,7 +444,13 @@ function WorkMetric({ label, value }: { label: string; value: number }) {
 function groupWork(items: readonly DesignLabPendingWorkItem[]) {
   const canonicalStats = new Map<
     string,
-    { total: number; complete: number; pending: number; blocked: number }
+    {
+      total: number;
+      complete: number;
+      pending: number;
+      awaitingVerification: number;
+      blocked: number;
+    }
   >();
   for (const item of DESIGN_LAB_PENDING_WORK) {
     const key = `${item.source}:${item.productArea}`;
@@ -400,11 +458,15 @@ function groupWork(items: readonly DesignLabPendingWorkItem[]) {
       total: 0,
       complete: 0,
       pending: 0,
+      awaitingVerification: 0,
       blocked: 0,
     };
     stats.total += 1;
     stats.complete += item.complete ? 1 : 0;
     stats.pending += item.complete ? 0 : 1;
+    stats.awaitingVerification += isDesignLabWorkAwaitingVerification(item)
+      ? 1
+      : 0;
     stats.blocked += item.blocked ? 1 : 0;
     canonicalStats.set(key, stats);
   }
@@ -419,6 +481,7 @@ function groupWork(items: readonly DesignLabPendingWorkItem[]) {
       total: number;
       complete: number;
       pending: number;
+      awaitingVerification: number;
       blocked: number;
     }
   >();
@@ -469,6 +532,7 @@ function setOrDelete(
 function parseCompletion(value: string | null): CompletionFilter {
   return value === "all" ||
     value === "complete" ||
+    value === "awaiting-verification" ||
     value === "blocked" ||
     value === "pending"
     ? value

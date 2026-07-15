@@ -1,5 +1,9 @@
 import type { z } from "zod";
 import { createAuditLog } from "@/lib/account-service";
+import {
+  assertReportUserBanAllowed,
+  lockAdminAccessChanges,
+} from "@/lib/admin-access-contract";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { withDbRequestContext } from "@/lib/db-context";
 import { createInAppNotification } from "@/lib/notification-service";
@@ -125,6 +129,55 @@ export async function resolveReportForModerator(
       const isUserSafetyAction =
         input.action === "warn_user" || input.action === "ban_user";
 
+      if (input.action === "ban_user" && report.reportedId) {
+        await lockAdminAccessChanges(tx);
+      }
+      const freshActor =
+        input.action === "ban_user" && report.reportedId
+          ? await tx.user.findUnique({
+              where: { id: current.dbUserId },
+              select: {
+                isBanned: true,
+                deletionRequestedAt: true,
+                profile: { select: { role: true } },
+              },
+            })
+          : null;
+      const reported =
+        isUserSafetyAction && report.reportedId
+          ? await tx.user.findUnique({
+              where: { id: report.reportedId },
+              select: {
+                id: true,
+                isBanned: true,
+                deletionRequestedAt: true,
+                profile: { select: { id: true, role: true } },
+              },
+            })
+          : null;
+      if (input.action === "ban_user" && reported) {
+        const activeAdminCount = await tx.profile.count({
+          where: {
+            role: "admin",
+            user: { isBanned: false, deletionRequestedAt: null },
+          },
+        });
+        assertReportUserBanAllowed({
+          actingUserId: current.dbUserId,
+          actingRole: freshActor?.profile?.role,
+          actingCurrentlyActive: Boolean(
+            freshActor &&
+              !freshActor.isBanned &&
+              freshActor.deletionRequestedAt === null
+          ),
+          targetUserId: reported.id,
+          targetCurrentRole: reported.profile?.role,
+          targetCurrentlyActive:
+            !reported.isBanned && reported.deletionRequestedAt === null,
+          activeAdminCount,
+        });
+      }
+
       const updated = await tx.report.update({
         where: { id: report.id },
         data: {
@@ -184,34 +237,28 @@ export async function resolveReportForModerator(
         }
       }
 
-      if (isUserSafetyAction && report.reportedId) {
-        const reported = await tx.user.findUnique({
-          where: { id: report.reportedId },
-          select: { id: true, profile: { select: { id: true } } },
+      if (reported) {
+        await tx.trustSafetyFlag.create({
+          data: {
+            profileId: reported.profile?.id ?? null,
+            userId: reported.id,
+            targetType: report.targetType,
+            targetId: report.targetId,
+            flagType:
+              input.action === "ban_user"
+                ? "moderation_ban"
+                : "moderation_warning",
+            severity: input.action === "ban_user" ? "high" : "medium",
+            status: "open",
+            reason: input.notes ?? report.reason,
+          },
         });
-        if (reported) {
-          await tx.trustSafetyFlag.create({
-            data: {
-              profileId: reported.profile?.id ?? null,
-              userId: reported.id,
-              targetType: report.targetType,
-              targetId: report.targetId,
-              flagType:
-                input.action === "ban_user"
-                  ? "moderation_ban"
-                  : "moderation_warning",
-              severity: input.action === "ban_user" ? "high" : "medium",
-              status: "open",
-              reason: input.notes ?? report.reason,
-            },
-          });
 
-          if (input.action === "ban_user") {
-            await tx.user.update({
-              where: { id: reported.id },
-              data: { isBanned: true },
-            });
-          }
+        if (input.action === "ban_user") {
+          await tx.user.update({
+            where: { id: reported.id },
+            data: { isBanned: true },
+          });
         }
       }
 

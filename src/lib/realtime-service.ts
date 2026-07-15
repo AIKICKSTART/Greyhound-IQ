@@ -6,17 +6,17 @@ import "server-only";
 // grant before allowing Broadcast or Presence access. Feed remains public.
 
 import { createHmac } from "node:crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { withDbRequestContext } from "@/lib/db-context";
-import { logError } from "@/lib/logger";
+import { logExecutionError } from "@/lib/logger";
 import { getSupabaseAdminClient } from "@/lib/supabase-storage";
 
 const FEED_REALTIME_CHANNEL = "feed:public";
 const REALTIME_SECRET_ENV_KEYS = ["REALTIME_CHANNEL_SECRET"];
 const REALTIME_AUTH_TTL_SECONDS = 5 * 60;
 const REALTIME_GRANT_TTL_SECONDS = 10 * 60;
-
-let loggedMissingSecret = false;
+const REALTIME_RPC_TIMEOUT_MS = 5_000;
 
 type RealtimeEventPayload = Record<string, string | number | boolean | null>;
 
@@ -32,15 +32,6 @@ export function profileRealtimeChannel(profileId: string) {
   return scopedRealtimeChannel("profile", profileId);
 }
 
-// Single shared presence channel for the signed-in member hub. The name is
-// still HMAC-derived (unguessable to signed-out clients), but every signed-in
-// member receives the same name, so presence payloads must stay content-free:
-// profileId only. Clients filter to their accepted-friend ids. Upgrade path if
-// cross-member visibility becomes a concern: per-profile presence scopes.
-export function membersPresenceChannel() {
-  return scopedRealtimeChannel("presence", "members");
-}
-
 export function isPrivateRealtimeChannel(channelName: string) {
   return channelName !== FEED_REALTIME_CHANNEL;
 }
@@ -48,41 +39,16 @@ export function isPrivateRealtimeChannel(channelName: string) {
 export async function issueRealtimeAuthorization(
   current: CurrentUserProfile
 ) {
-  const conversations = await withDbRequestContext(current, (tx) =>
-    tx.conversation.findMany({
-      where: {
-        OR: [
-          { participantAId: current.profileId },
-          { participantBId: current.profileId },
-        ],
-      },
-      select: { id: true },
-      orderBy: { lastMessageAt: "desc" },
-      take: 100,
-    })
-  );
-  const profileTopic = profileRealtimeChannel(current.profileId);
-  const presenceTopic = membersPresenceChannel();
-  const grants = [
-    ...conversations.flatMap((conversation) => {
-      const topic = conversationRealtimeChannel(conversation.id);
-      return topic
-        ? [
-            { topic, extension: "broadcast" },
-            { topic, extension: "presence" },
-          ]
-        : [];
-    }),
-    ...(profileTopic ? [{ topic: profileTopic, extension: "broadcast" }] : []),
-    ...(presenceTopic ? [{ topic: presenceTopic, extension: "presence" }] : []),
-  ];
+  const conversations = await listRealtimeConversations(current);
+  const grants = buildRealtimeTopicGrants(current.profileId, conversations);
   if (grants.length === 0) throw new Error("realtime.not_configured");
 
   const nowSeconds = Math.floor(Date.now() / 1000);
   const grantExpiry = new Date(
     (nowSeconds + REALTIME_GRANT_TTL_SECONDS) * 1000
   );
-  const { error } = await getSupabaseAdminClient().rpc(
+  const client = getSupabaseAdminClient();
+  const { error } = await client.rpc(
     "giq_replace_realtime_topic_grants",
     {
       requested_profile_id: current.profileId,
@@ -92,8 +58,38 @@ export async function issueRealtimeAuthorization(
   );
   if (error) throw new Error("realtime.grant_sync_failed");
 
+  // A block can race the cross-database grant replacement. Re-check the app
+  // database after replacement and remove any topic that became inaccessible
+  // while the Supabase RPC was in flight.
+  const revalidatedConversations = await listRealtimeConversations(
+    current,
+    conversations.map((conversation) => conversation.id)
+  );
+  const revalidatedIds = new Set(
+    revalidatedConversations
+      .filter((conversation) =>
+        canProfileAccessConversationRealtime(current.profileId, conversation)
+      )
+      .map((conversation) => conversation.id)
+  );
+  const staleTopics = conversations.flatMap((conversation) => {
+    if (revalidatedIds.has(conversation.id)) return [];
+    const topic = conversationRealtimeChannel(conversation.id);
+    return topic ? [topic] : [];
+  });
+  if (staleTopics.length > 0) {
+    await revokeRealtimeTopicGrants([current.profileId], staleTopics, client);
+  }
+
   const expiresAt = nowSeconds + REALTIME_AUTH_TTL_SECONDS;
-  const topics = [...new Set(grants.map((grant) => grant.topic))];
+  const staleTopicSet = new Set(staleTopics);
+  const topics = [
+    ...new Set(
+      grants
+        .map((grant) => grant.topic)
+        .filter((topic) => !staleTopicSet.has(topic))
+    ),
+  ];
   return {
     token: signRealtimeJwt({
       iss: "supabase",
@@ -107,6 +103,120 @@ export async function issueRealtimeAuthorization(
     expiresAt: new Date(expiresAt * 1000).toISOString(),
     topics,
   };
+}
+
+type RealtimeTopicGrant = {
+  topic: string;
+  extension: "broadcast" | "presence";
+};
+
+/** @internal Exported for the server-side authorization regression test. */
+export function buildRealtimeTopicGrants(
+  profileId: string,
+  conversations: RealtimeConversationAccessRecord[]
+): RealtimeTopicGrant[] {
+  const profileTopic = profileRealtimeChannel(profileId);
+  return [
+    ...conversations
+      .filter((conversation) =>
+        canProfileAccessConversationRealtime(profileId, conversation)
+      )
+      .flatMap((conversation) => {
+        const topic = conversationRealtimeChannel(conversation.id);
+        return topic
+          ? [
+              { topic, extension: "broadcast" },
+              { topic, extension: "presence" },
+            ]
+          : [];
+      }),
+    ...(profileTopic ? [{ topic: profileTopic, extension: "broadcast" }] : []),
+  ] as RealtimeTopicGrant[];
+}
+
+type RealtimeConversationAccessRecord = {
+  id: string;
+  participantAId: string;
+  participantBId: string;
+  blockedById: string | null;
+};
+
+/** @internal Exported for the server-side authorization regression test. */
+export function canProfileAccessConversationRealtime(
+  profileId: string,
+  conversation: RealtimeConversationAccessRecord
+) {
+  return (
+    conversation.blockedById === null &&
+    (conversation.participantAId === profileId ||
+      conversation.participantBId === profileId)
+  );
+}
+
+function listRealtimeConversations(
+  current: CurrentUserProfile,
+  conversationIds?: string[]
+) {
+  if (conversationIds && conversationIds.length === 0) return Promise.resolve([]);
+  return withDbRequestContext(current, (tx) =>
+    tx.conversation.findMany({
+      where: {
+        ...(conversationIds ? { id: { in: conversationIds } } : {}),
+        blockedById: null,
+        OR: [
+          { participantAId: current.profileId },
+          { participantBId: current.profileId },
+        ],
+      },
+      select: {
+        id: true,
+        participantAId: true,
+        participantBId: true,
+        blockedById: true,
+      },
+      orderBy: { lastMessageAt: "desc" },
+      take: 100,
+    })
+  );
+}
+
+/**
+ * Remove an already-issued conversation grant for both participants when a
+ * block takes effect. Future token issuance independently excludes blocked
+ * conversations, so a failed/retried block cannot restore access.
+ */
+export async function revokeConversationRealtimeGrants(
+  conversationId: string,
+  profileIds: string[],
+  client?: SupabaseClient
+) {
+  const topic = conversationRealtimeChannel(conversationId);
+  const uniqueProfileIds = [
+    ...new Set(profileIds.map((profileId) => profileId.trim()).filter(Boolean)),
+  ];
+  if (!topic || uniqueProfileIds.length === 0) return;
+
+  await revokeRealtimeTopicGrants(
+    uniqueProfileIds,
+    [topic],
+    client ?? getSupabaseAdminClient(),
+  );
+}
+
+async function revokeRealtimeTopicGrants(
+  profileIds: string[],
+  topics: string[],
+  client: SupabaseClient
+) {
+  const request = client.rpc("giq_revoke_realtime_topic_grants", {
+    requested_profile_ids: profileIds,
+    requested_topics: topics,
+  });
+  const boundedRequest = request.abortSignal?.(
+    AbortSignal.timeout(REALTIME_RPC_TIMEOUT_MS),
+  ) ?? request;
+  const { error } = await boundedRequest;
+  if (error) throw new Error("realtime.grant_revoke_failed");
 }
 
 function scopedRealtimeChannel(scope: string, id: string) {
@@ -165,7 +275,11 @@ async function broadcastRealtimeEvent(
       await client.removeChannel(channel);
     }
   } catch (err) {
-    logError("realtime.broadcast_failed", { channelName, event }, err);
+    await logExecutionError(
+      "realtime.broadcast_failed",
+      { channelName, event },
+      err,
+    );
     if (process.env.REALTIME_BROADCAST_STRICT === "true") throw err;
   }
 }
@@ -191,10 +305,6 @@ function realtimeChannelSecret() {
   for (const key of REALTIME_SECRET_ENV_KEYS) {
     const value = process.env[key];
     if (value && value.trim() && !looksLikePlaceholder(value)) return value;
-  }
-  if (process.env.NODE_ENV === "production" && !loggedMissingSecret) {
-    loggedMissingSecret = true;
-    logError("realtime.secret_missing");
   }
   return null;
 }

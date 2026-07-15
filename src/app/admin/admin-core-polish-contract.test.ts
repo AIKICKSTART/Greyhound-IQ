@@ -14,11 +14,19 @@ const formControlsSource = readFileSync(
 for (const [name, source] of Object.entries({
   dashboard: dashboardSource,
   users: usersSource,
+})) {
+  assert.ok(
+    source.includes("requireAdminProfile()"),
+    `${name} must remain administrator protected`
+  );
+}
+
+for (const [name, source] of Object.entries({
   reports: reportsSource,
   safety: safetySource,
 })) {
   assert.ok(
-    source.includes("await requireModeratorProfile();"),
+    source.includes("requireModeratorProfile()"),
     `${name} must remain moderator protected`
   );
 }

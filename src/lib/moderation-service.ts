@@ -23,6 +23,7 @@ export async function listBannedPhrasesForModerator() {
       withDbSystemContext((tx) =>
         tx.bannedPhrase.findMany({
           orderBy: [{ active: "desc" }, { target: "asc" }, { phrase: "asc" }],
+          take: 1_000,
         })
       ),
     []
@@ -97,7 +98,7 @@ export async function listTrustSafetyFlagsForModerator(limit = 50) {
       withDbSystemContext((tx) =>
         tx.trustSafetyFlag.findMany({
           orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-          take: limit,
+          take: Math.min(Math.max(1, Math.trunc(limit)), 100),
         })
       ),
     []
@@ -144,8 +145,10 @@ export async function findBannedPhraseMatch(
         OR: [{ target: "all" }, { target }],
       },
       select: { id: true, phrase: true, action: true, reason: true },
+      take: 1_001,
     })
   );
+  if (phrases.length > 1_000) throw new Error("moderation.phrase_catalog_too_large");
   const normalized = text.toLowerCase();
 
   return phrases.find((item) => normalized.includes(item.phrase)) ?? null;

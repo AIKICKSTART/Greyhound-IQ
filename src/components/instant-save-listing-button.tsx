@@ -44,6 +44,7 @@ export function InstantSaveListingButton({
         type="button"
         onClick={onClick}
         disabled={submitting}
+        data-purpose-id="MARKETPLACE-DETAIL.ACTION.SAVE.TOGGLE"
         className="giq-outline-action w-full disabled:cursor-not-allowed disabled:opacity-60"
         aria-pressed={saved}
       >
@@ -54,7 +55,11 @@ export function InstantSaveListingButton({
         )}
         {saved ? "Saved marketplace item" : "Save marketplace item"}
       </button>
-      {error && <p className="mt-2 text-[11px] text-red-200">{error}</p>}
+      {error && (
+        <p role="alert" className="mt-2 text-[11px] text-red-200">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

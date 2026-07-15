@@ -45,7 +45,7 @@ const CONCRETE_ROUTE_BY_PATTERN = {
   "/breeding": "/breeding",
   "/dogs": "/dogs",
   "/dogs/[id]": "/dogs/example-dog",
-  "/meetings/[id]": "/meetings/d2c28701-919b-429e-828d-c55dc1d80b54",
+  "/meetings/[id]": "/meetings/demo-provider-meeting",
   "/races": "/races",
   "/races/[id]": "/races/example-race",
   "/results": "/results",
@@ -93,7 +93,7 @@ assert.deepEqual(
 const dynamicRoutes = [
   ["/dogs/example-dog", "/dogs/[id]"],
   [
-    "/meetings/d2c28701-919b-429e-828d-c55dc1d80b54",
+    "/meetings/demo-provider-meeting",
     "/meetings/[id]",
   ],
   ["/races/example-race", "/races/[id]"],

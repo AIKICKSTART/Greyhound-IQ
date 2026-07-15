@@ -363,7 +363,7 @@ assert.deepEqual(hydratedObserved.searchFiltered, {
   family: "all",
   routeCount: 1,
   familyKeys: ["racing"],
-  routeHrefs: ["/dogs/cmr0fg5ki00a4ephcaj4sdctc"],
+  routeHrefs: ["/dogs/demo-provider-dog"],
 });
 const emptyObserved = hydratedObserved.empty;
 assert.ok(isRecord(emptyObserved));

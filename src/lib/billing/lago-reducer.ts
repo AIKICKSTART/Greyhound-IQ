@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 
+import { assertSubscriptionStatusTransition } from "@/lib/billing/subscription-state-machine";
 import { withDbSystemContext } from "@/lib/db-context";
 
 type JsonRecord = Record<string, unknown>;
@@ -11,11 +12,15 @@ type ReduceLagoWebhookInput = {
   lagoEventId: string | null;
   eventType: string;
   payloadJson: string;
+  processingToken: string;
 };
 
 type ReduceLagoWebhookResult =
   | { reduced: true; billingEventId: string }
-  | { reduced: false; reason: "already_reduced" | "unsupported_payload" };
+  | {
+      reduced: false;
+      reason: "already_reduced" | "stale_lease" | "unsupported_payload";
+    };
 
 type SubscriptionSnapshot = {
   kind: "subscription";
@@ -58,27 +63,57 @@ export async function reduceLagoWebhook({
   lagoEventId,
   eventType,
   payloadJson,
+  processingToken,
 }: ReduceLagoWebhookInput): Promise<ReduceLagoWebhookResult> {
   const payload = parsePayload(payloadJson);
   if (!payload) {
-    await markWebhookEventIgnored(webhookEventId);
-    return { reduced: false, reason: "unsupported_payload" };
+    const ignored = await markWebhookEventIgnored(
+      webhookEventId,
+      processingToken
+    );
+    return {
+      reduced: false,
+      reason: ignored ? "unsupported_payload" : "stale_lease",
+    };
   }
 
   const effectiveEventType = deriveEventType(payload, eventType);
   const snapshot = extractSnapshot(payload, effectiveEventType);
   if (!snapshot) {
-    await markWebhookEventIgnored(webhookEventId);
-    return { reduced: false, reason: "unsupported_payload" };
+    const ignored = await markWebhookEventIgnored(
+      webhookEventId,
+      processingToken
+    );
+    return {
+      reduced: false,
+      reason: ignored ? "unsupported_payload" : "stale_lease",
+    };
   }
 
   return withDbSystemContext(async (tx) => {
-    const existing = await tx.billingEvent.findFirst({
+    // Updating the receipt under the exact lease token both proves ownership
+    // and locks the row for this transaction. A recovered worker cannot replace
+    // the token while the corresponding domain mutation is committing.
+    const fenced = await tx.webhookEvent.updateMany({
+      where: { id: webhookEventId, processingToken, status: "processing" },
+      data: { updatedAt: new Date() },
+    });
+    if (fenced.count !== 1) {
+      return { reduced: false, reason: "stale_lease" };
+    }
+
+    const existing = await tx.billingEvent.findUnique({
       where: { webhookEventId },
       select: { id: true },
     });
     if (existing) {
-      await markWebhookEventHandled(tx, webhookEventId, "processed");
+      const handled = await markWebhookEventHandled(
+        tx,
+        webhookEventId,
+        processingToken,
+        "processed"
+      );
+      if (!handled) throw new Error("lago.webhook_lease_lost");
       return { reduced: false, reason: "already_reduced" };
     }
 
@@ -99,7 +134,13 @@ export async function reduceLagoWebhook({
             snapshot,
           });
 
-    await markWebhookEventHandled(tx, webhookEventId, "processed");
+    const handled = await markWebhookEventHandled(
+      tx,
+      webhookEventId,
+      processingToken,
+      "processed"
+    );
+    if (!handled) throw new Error("lago.webhook_lease_lost");
     return result;
   });
 }
@@ -120,6 +161,14 @@ async function reduceSubscriptionWebhook(
     snapshot: SubscriptionSnapshot;
   }
 ): Promise<ReduceLagoWebhookResult> {
+  const currentSubscription = await tx.subscription.findUnique({
+    where: { lagoSubscriptionId: snapshot.lagoSubscriptionId },
+    select: { status: true },
+  });
+  const status = lagoSubscriptionStatusForUpdate(
+    currentSubscription?.status,
+    snapshot.status
+  );
   const billingCustomer = await findBillingCustomer(tx, snapshot.lagoCustomerId);
   const relationData = relationFields({
     userId: billingCustomer?.userId,
@@ -135,7 +184,7 @@ async function reduceSubscriptionWebhook(
       lagoPlanId: snapshot.lagoPlanId,
       externalId: snapshot.externalId,
       planCode: snapshot.planCode,
-      status: snapshot.status,
+      status,
       startedAt: snapshot.startedAt,
       currentPeriodStart: snapshot.currentPeriodStart,
       currentPeriodEnd: snapshot.currentPeriodEnd,
@@ -149,7 +198,7 @@ async function reduceSubscriptionWebhook(
       lagoPlanId: snapshot.lagoPlanId,
       externalId: snapshot.externalId,
       planCode: snapshot.planCode,
-      status: snapshot.status,
+      status,
       startedAt: snapshot.startedAt,
       currentPeriodStart: snapshot.currentPeriodStart,
       currentPeriodEnd: snapshot.currentPeriodEnd,
@@ -181,6 +230,18 @@ async function reduceSubscriptionWebhook(
   });
 
   return { reduced: true, billingEventId: billingEvent.id };
+}
+
+export function lagoSubscriptionStatusForUpdate(
+  previousStatus: string | null | undefined,
+  nextStatus: string
+) {
+  assertSubscriptionStatusTransition({
+    provider: "lago",
+    previousStatus,
+    nextStatus,
+  });
+  return nextStatus;
 }
 
 async function reduceInvoiceWebhook(
@@ -410,34 +471,35 @@ async function findBillingCustomer(
   });
 }
 
-async function markWebhookEventIgnored(webhookEventId: string) {
-  await withDbSystemContext((tx) =>
-    markWebhookEventHandled(tx, webhookEventId, "ignored")
+async function markWebhookEventIgnored(
+  webhookEventId: string,
+  processingToken: string
+) {
+  return withDbSystemContext((tx) =>
+    markWebhookEventHandled(
+      tx,
+      webhookEventId,
+      processingToken,
+      "ignored"
+    )
   );
 }
 
 async function markWebhookEventHandled(
   tx: Prisma.TransactionClient,
   webhookEventId: string,
+  processingToken: string,
   status: HandledWebhookStatus
 ) {
-  const webhookEvent = await tx.webhookEvent.findUnique({
-    where: { id: webhookEventId },
-    select: {
-      status: true,
-      processedAt: true,
-    },
-  });
-  if (!webhookEvent) return;
-  if (webhookEvent.status === status && webhookEvent.processedAt) return;
-
-  await tx.webhookEvent.update({
-    where: { id: webhookEventId },
+  const handled = await tx.webhookEvent.updateMany({
+    where: { id: webhookEventId, processingToken, status: "processing" },
     data: {
+      processingToken: null,
       status,
-      processedAt: webhookEvent.processedAt ?? new Date(),
+      processedAt: new Date(),
     },
   });
+  return handled.count === 1;
 }
 
 function relationFields({

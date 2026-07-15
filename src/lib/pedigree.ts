@@ -32,6 +32,8 @@ const NODE_SELECT = {
   damId: true,
 } as const;
 
+const MAX_PEDIGREE_GENERATIONS = 5;
+
 const yearOf = (d: Date | null): number | null => (d ? d.getUTCFullYear() : null);
 
 /**
@@ -65,6 +67,13 @@ async function galtdTwin(name: string, whelpDate: Date | null): Promise<DogRow |
 export const getDogPedigree = cache(
   async (rootId: string, generations = 5): Promise<PedigreeNode | null> => {
     return safeQuery(async () => {
+      const requestedGenerations = Number.isFinite(generations)
+        ? Math.trunc(generations)
+        : MAX_PEDIGREE_GENERATIONS;
+      const boundedGenerations = Math.min(
+        MAX_PEDIGREE_GENERATIONS,
+        Math.max(0, requestedGenerations),
+      );
       const root = await prisma.dog.findUnique({ where: { id: rootId }, select: NODE_SELECT });
       if (!root) return null;
 
@@ -80,7 +89,7 @@ export const getDogPedigree = cache(
         { node: rootNode, sireId: anchor.sireId, damId: anchor.damId },
       ];
 
-      for (let gen = 0; gen < generations && frontier.length > 0; gen++) {
+      for (let gen = 0; gen < boundedGenerations && frontier.length > 0; gen++) {
         const ids = [
           ...new Set(
             frontier.flatMap((f) => [f.sireId, f.damId]).filter((id): id is string => Boolean(id))
@@ -88,7 +97,11 @@ export const getDogPedigree = cache(
         ];
         if (ids.length === 0) break;
 
-        const rows = await prisma.dog.findMany({ where: { id: { in: ids } }, select: NODE_SELECT });
+        const rows = await prisma.dog.findMany({
+          where: { id: { in: ids } },
+          select: NODE_SELECT,
+          take: 64,
+        });
         const byId = new Map(rows.map((r) => [r.id, r]));
 
         const next: typeof frontier = [];

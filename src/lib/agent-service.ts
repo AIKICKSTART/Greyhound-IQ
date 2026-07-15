@@ -1,15 +1,19 @@
 import { randomUUID } from "crypto";
-import { z } from "zod";
 import { createAuditLog } from "@/lib/account-service";
+import type { AgentRunInput } from "@/lib/agent-validation";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import {
   DEFAULT_TIER_ENTITLEMENT_LIMITS,
-  type BillingTier,
 } from "@/lib/billing/entitlements";
+import {
+  AGENT_MINIMUM_TIER,
+  AGENT_OUTPUT_DISCLAIMER,
+  type AgentType,
+} from "@/lib/agent-product-catalogue";
 import { recordUsageEvent } from "@/lib/billing/usage-service";
-import { cleanText } from "@/lib/content";
 import { prisma } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
+import { isEmergencyControlActive } from "@/lib/emergency-controls";
 
 export const AGENT_TYPES = {
   "race-analyst": "race_analyst",
@@ -20,13 +24,9 @@ export const AGENT_TYPES = {
   form_reader: "form_reader",
 } as const;
 
-export type AgentType = (typeof AGENT_TYPES)[keyof typeof AGENT_TYPES];
+export type { AgentType } from "@/lib/agent-product-catalogue";
 
-export const AGENT_TIER: Record<AgentType, BillingTier> = {
-  race_analyst: "pro",
-  breeding_advisor: "pro_plus",
-  form_reader: "pro",
-};
+export const AGENT_TIER = AGENT_MINIMUM_TIER;
 
 const MEMORY_DECAY_DAYS = 30;
 const MEMORY_REINFORCE_DAYS = 14;
@@ -53,10 +53,7 @@ export interface AgentCleanupResult {
   timeoutCutoff: string;
 }
 
-export const agentRunSchema = z.object({
-  input: z.string().trim().min(10).max(5_000).transform(cleanText),
-  conversationContextId: z.string().optional().nullable(),
-});
+export { agentRunSchema } from "@/lib/agent-validation";
 
 export function normalizeAgentType(type: string) {
   return AGENT_TYPES[type as keyof typeof AGENT_TYPES] ?? null;
@@ -76,8 +73,12 @@ export function assertAgentTier(current: CurrentUserProfile, agentType: AgentTyp
 export async function runAgentForCurrentUser(
   current: CurrentUserProfile,
   agentType: AgentType,
-  input: z.infer<typeof agentRunSchema>
+  input: AgentRunInput
 ) {
+  if (isEmergencyControlActive(process.env.AI_DISABLED)) {
+    throw new Error("agent.disabled");
+  }
+
   assertAgentTier(current, agentType);
 
   const started = Date.now();
@@ -250,6 +251,8 @@ export async function runMemoryMaintenance(
         lastAccessedAt: true,
         lastMaintainedAt: true,
       },
+      orderBy: [{ lastMaintainedAt: "asc" }, { lastAccessedAt: "asc" }, { id: "asc" }],
+      take: 100,
     });
     const recentMemories = await tx.memoryEntry.findMany({
       where: {
@@ -265,6 +268,8 @@ export async function runMemoryMaintenance(
         lastAccessedAt: true,
         lastMaintainedAt: true,
       },
+      orderBy: [{ lastMaintainedAt: "asc" }, { lastAccessedAt: "desc" }, { id: "asc" }],
+      take: 100,
     });
 
     for (const memory of staleMemories) {
@@ -513,8 +518,7 @@ async function buildRaceAnalystOutput(
         resultSize: memory.top.length,
       },
     ],
-    disclaimer:
-      "AI predictions are statistical estimates, not guarantees. Verify important decisions against official race data.",
+    disclaimer: AGENT_OUTPUT_DISCLAIMER,
   };
 }
 
@@ -554,7 +558,10 @@ async function buildBreedingAdvisorOutput(
       sire: sire?.name ?? left ?? "Unmatched sire",
       dam: dam?.name ?? right ?? "Unmatched dam",
     },
-    coiEstimate: overlap.length > 0 ? "medium" : "low/unknown",
+    coiEstimate:
+      overlap.length > 0
+        ? "Not calculated; shared parent detected in the loaded pedigree window."
+        : "Not calculated; no shared sire or dam detected in the loaded pedigree window.",
     riskFlags:
       overlap.length > 0
         ? [`Shared ancestor signal: ${overlap.join(", ")}`]
@@ -564,6 +571,7 @@ async function buildBreedingAdvisorOutput(
       { name: "dog.lookup_pair", resultSize: [sire, dam].filter(Boolean).length },
       { name: "memory.load", resultSize: memory.top.length },
     ],
+    disclaimer: AGENT_OUTPUT_DISCLAIMER,
   };
 }
 
@@ -586,7 +594,7 @@ async function buildFormReaderOutput(
   const dog =
     candidates.find((candidate) =>
       lowerInput.includes(candidate.name.toLowerCase())
-    ) ?? candidates[0];
+    ) ?? null;
 
   const finishes = dog?.formEntries.map((entry) => entry.finish ?? 8) ?? [];
   const improving =
@@ -617,6 +625,7 @@ async function buildFormReaderOutput(
       { name: "dog.load_recent_form", resultSize: dog?.formEntries.length ?? 0 },
       { name: "memory.load", resultSize: memory.top.length },
     ],
+    disclaimer: AGENT_OUTPUT_DISCLAIMER,
   };
 }
 

@@ -217,6 +217,12 @@ export function RealtimeRefresh({ channels }: RealtimeRefreshProps) {
 }
 
 export function getBrowserRealtimeClient() {
+  if (
+    typeof document !== "undefined" &&
+    document.body.dataset.demoReadOnly === "true"
+  ) {
+    return null;
+  }
   if (browserRealtimeClient) return browserRealtimeClient;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -247,7 +253,7 @@ export async function ensureBrowserRealtimeAuthorization(
 
   const authorization = (async () => {
     const response = await fetch("/api/realtime/token", {
-      method: "GET",
+      method: "POST",
       credentials: "same-origin",
       cache: "no-store",
     });

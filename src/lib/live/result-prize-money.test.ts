@@ -84,9 +84,9 @@ const [watchdogMeeting] = mapWatchdogPayload({
     },
   ],
   participants: [
-    { id: 1, raceId: 20, box: 1, dogName: "Watch One", resultPlace: 1 },
-    { id: 2, raceId: 20, box: 2, dogName: "Watch Two", resultPlace: 2 },
-    { id: 3, raceId: 20, box: 3, dogName: "Watch Three", resultPlace: 3 },
+    { id: 1, raceId: 20, dogId: 101, box: 1, dogName: "Watch One", resultPlace: 1 },
+    { id: 2, raceId: 20, dogId: 102, box: 2, dogName: "Watch Two", resultPlace: 2 },
+    { id: 3, raceId: 20, dogId: 103, box: 3, dogName: "Watch Three", resultPlace: 3 },
   ],
 });
 

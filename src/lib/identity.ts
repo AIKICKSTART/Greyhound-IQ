@@ -7,14 +7,20 @@ import {
   resolveCustomPageMedia,
   type CustomPageMediaUrls,
 } from "@/lib/custom-page-service";
+import {
+  ACTIVE_IDENTITY_COOKIE,
+  resolveActiveIdentityCookie,
+} from "@/lib/identity-cookie";
+
+export {
+  ACTIVE_IDENTITY_COOKIE,
+  PERSONAL_IDENTITY,
+} from "@/lib/identity-cookie";
 
 // Active posting/acting identity for the member hub. Stored as a plain cookie
 // holding "personal" or a CustomPage id — the value is NEVER trusted: every
 // read re-validates against the pages the session actually owns and falls
 // back to personal. Posting revalidates ownership again in feed-service.
-export const ACTIVE_IDENTITY_COOKIE = "giq-identity";
-export const PERSONAL_IDENTITY = "personal";
-
 export type OwnedPageIdentity = {
   id: string;
   pageType: string;
@@ -56,7 +62,5 @@ export async function getActiveIdentity(
 ): Promise<ActiveIdentity> {
   const store = await cookies();
   const value = store.get(ACTIVE_IDENTITY_COOKIE)?.value;
-  if (!value || value === PERSONAL_IDENTITY) return { kind: "personal" };
-  const page = ownedPages.find((candidate) => candidate.id === value);
-  return page ? { kind: "page", page } : { kind: "personal" };
+  return resolveActiveIdentityCookie(value, ownedPages);
 }

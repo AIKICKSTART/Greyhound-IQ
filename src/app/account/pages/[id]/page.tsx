@@ -49,6 +49,7 @@ export default async function EditCustomPage({ params }: { params: Promise<{ id:
   if (!page) notFound();
 
   const media = await resolveCustomPageMedia(page.contentJson, page.socialActor?.id ?? "");
+  const avatarUrl = media.avatarUrl ?? page.socialActor?.avatarUrl ?? null;
   const content = JSON.parse(page.contentJson ?? "{}") as {
     avatarMediaId?: string | null;
     bannerMediaId?: string | null;
@@ -140,12 +141,12 @@ export default async function EditCustomPage({ params }: { params: Promise<{ id:
         <div className="flex flex-col gap-4 px-5 pb-5 sm:flex-row sm:items-end sm:px-7 sm:pb-7">
           <div className="relative -mt-12 h-28 w-28 shrink-0 self-start rounded-full border-4 border-[hsl(var(--surface-1))] bg-[hsl(var(--surface-2))] shadow-2xl sm:-mt-14 sm:h-32 sm:w-32">
             <div className="relative h-full w-full overflow-hidden rounded-full border border-white/[0.12]">
-              {media.avatarUrl ? (
+              {avatarUrl ? (
                 <Image
-                  src={media.avatarUrl}
+                  src={avatarUrl}
                   alt={`${page.title} profile picture`}
                   fill
-                  unoptimized={media.avatarUrl.startsWith("/api/media/")}
+                  unoptimized={avatarUrl.startsWith("/api/media/")}
                   sizes="128px"
                   className="object-cover"
                   style={{
@@ -317,7 +318,7 @@ export default async function EditCustomPage({ params }: { params: Promise<{ id:
             <MediaSlot
               id="page-avatar-editor"
               label="Profile picture"
-              current={media.avatarUrl}
+              current={avatarUrl}
               field="avatarMediaIdNew"
               removeField="removeAvatarMediaId"
               variant="avatar"
@@ -414,12 +415,25 @@ export default async function EditCustomPage({ params }: { params: Promise<{ id:
       ) : null}
 
       <section className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/[0.05] p-5 sm:p-6" aria-labelledby="danger-zone-heading">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(240px,320px)] sm:items-end">
           <div>
             <h2 id="danger-zone-heading" className="text-[15px] font-semibold text-[hsl(var(--foreground))]">Delete managed page</h2>
             <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">This permanently removes the managed page and can no longer be undone.</p>
           </div>
-          <form action={deleteAction}>
+          <form action={deleteAction} className="grid gap-2">
+            <label className={LABEL} htmlFor="delete-page-confirmation">
+              Type DELETE to confirm
+            </label>
+            <input
+              id="delete-page-confirmation"
+              name="confirmation"
+              type="text"
+              autoComplete="off"
+              required
+              pattern="DELETE"
+              spellCheck={false}
+              className={INPUT}
+            />
             <SubmitButton className={`giq-button giq-button-glass min-h-11 w-full justify-center px-4 text-[12px] text-red-300 sm:w-auto ${FOCUS_RING}`}>
               <Trash2 className="h-4 w-4" aria-hidden="true" />
               Delete this page

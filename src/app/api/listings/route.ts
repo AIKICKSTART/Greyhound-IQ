@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createListingForCurrentUser } from "@/lib/listing-service";
 import { listingWriteSchema } from "@/lib/listing-validation";
 import { getMarketplaceListings } from "@/lib/queries";
-
 import { listingApiQuerySchema, queryParamsObject } from "@/lib/query-validation";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
+
 const LISTING_CREATE_RATE_LIMIT = 3;
 const LISTING_CREATE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
@@ -37,21 +39,18 @@ export async function POST(request: Request) {
     const rateLimit = await checkRateLimit(
       `listing:create:${current.dbUserId}`,
       LISTING_CREATE_RATE_LIMIT,
-      LISTING_CREATE_RATE_LIMIT_WINDOW_MS
+      LISTING_CREATE_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true },
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        LISTING_CREATE_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const parsed = listingWriteSchema.parse(await request.json());
+    const parsed = listingWriteSchema.parse(await readBoundedJsonRequest(request));
     const listing = await createListingForCurrentUser(current, parsed);
 
     return NextResponse.json({ item: listing }, { status: 201 });

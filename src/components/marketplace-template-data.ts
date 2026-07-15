@@ -8,7 +8,7 @@ export type MarketplaceTemplateListing = MarketplaceDogCardData & {
 export const MARKETPLACE_TEMPLATE_LISTINGS: ReadonlyArray<MarketplaceTemplateListing> = [
   {
     listingId: "demo-rocket-card",
-    dogId: "cmr0fg5ki00a4ephcaj4sdctc",
+    dogId: "demo-provider-dog",
     name: "GreyhoundIQ Demo Rocket",
     colourSex: "Black dog",
     starts: 10,
@@ -23,7 +23,7 @@ export const MARKETPLACE_TEMPLATE_LISTINGS: ReadonlyArray<MarketplaceTemplateLis
       "Synthetic profile reserved for safe Design Lab navigation and interaction testing.",
     listingLabel: "Marketplace",
     listingHref: "/marketplace?q=GreyhoundIQ+Demo+Rocket",
-    profileHref: "/dogs/cmr0fg5ki00a4ephcaj4sdctc",
+    profileHref: "/dogs/demo-provider-dog",
     seller: {
       displayName: "Seller details on listing",
       verified: false,

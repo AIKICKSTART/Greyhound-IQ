@@ -1,5 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { databaseUrlConfigurationError } from "../src/lib/database-url";
+import { resolveNotificationWebhookConfig } from "../src/lib/notification-webhook-policy";
 
 loadEnvConfig(process.cwd());
 
@@ -28,7 +29,14 @@ const specs: EnvSpec[] = [
   },
   {
     names: ["NEXTAUTH_SECRET", "AUTH_SECRET"],
-    description: "server-side signing secret for sessions and media URLs",
+    description: "server-side signing secret for sessions",
+    productionOnly: true,
+    validate: (value) =>
+      value.length >= 32 ? null : "must be at least 32 characters",
+  },
+  {
+    names: ["REPLAY_PROXY_SECRET"],
+    description: "dedicated server-only HMAC secret for short-lived replay URLs",
     productionOnly: true,
     validate: (value) =>
       value.length >= 32 ? null : "must be at least 32 characters",
@@ -242,20 +250,19 @@ for (const name of optionalDatabaseUrlNames) {
   }
 }
 
+try {
+  resolveNotificationWebhookConfig();
+} catch (error) {
+  failures.push(
+    error instanceof Error ? error.message : "notification.webhook_invalid_config",
+  );
+}
+
 if (production) {
   for (const name of productionFalseFlags) {
     if (process.env[name]?.trim().toLowerCase() === "true") {
       failures.push(`${name} must be false or unset in production`);
     }
-  }
-
-  if (
-    process.env.NOTIFICATION_WEBHOOK_URL?.trim() &&
-    !process.env.NOTIFICATION_WEBHOOK_SECRET?.trim()
-  ) {
-    failures.push(
-      "NOTIFICATION_WEBHOOK_SECRET missing (required when NOTIFICATION_WEBHOOK_URL is set)"
-    );
   }
 }
 

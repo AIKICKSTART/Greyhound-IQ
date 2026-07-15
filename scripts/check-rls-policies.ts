@@ -193,6 +193,44 @@ for (const table of remainingRlsTables) {
   }
 }
 
+// A member may create only the completed, storage-free record for their own
+// immediate user export. The policy must not grant member update/delete access.
+const ownedUserExportSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260713173000_allow_owned_user_export_artifacts",
+    "migration.sql"
+  ),
+  "utf8"
+);
+const ownedUserExportPolicy = ownedUserExportSql.match(
+  /CREATE POLICY giq_export_artifact_owner_insert[\s\S]*?;/
+)?.[0];
+if (!ownedUserExportPolicy) {
+  findings.push("owned user-export artifact INSERT policy missing");
+} else {
+  for (const predicate of [
+    'FOR INSERT',
+    '"targetUserId" = public.giq_current_user_id()',
+    '"requestedByUserId" = public.giq_current_user_id()',
+    '"organizationId" IS NULL',
+    '"exportType" = \'user_data\'',
+    '"storageBucket" IS NULL',
+    '"storagePath" IS NULL',
+  ]) {
+    if (!ownedUserExportPolicy.includes(predicate)) {
+      findings.push(`owned user-export artifact policy missing: ${predicate}`);
+    }
+  }
+  if (/FOR ALL|FOR UPDATE|FOR DELETE|\bUSING\s*\(/.test(ownedUserExportPolicy)) {
+    findings.push(
+      "owned user-export artifact policy must grant INSERT only, without USING"
+    );
+  }
+}
+
 // CustomPage (user-created public pages) must be RLS+FORCE with published-only
 // public reads and owner/moderator/system writes.
 const customPageSql = readFileSync(
@@ -829,10 +867,12 @@ for (const needle of [
   "alter table public.giq_realtime_topic_grants enable row level security",
   "alter table public.giq_realtime_topic_grants force row level security",
   "create or replace function public.giq_replace_realtime_topic_grants(",
+  "create or replace function public.giq_revoke_realtime_topic_grants(",
   "create or replace function public.giq_realtime_topic_allowed(",
   "security definer",
   "set search_path = ''",
   "grant execute on function public.giq_replace_realtime_topic_grants(text, jsonb, timestamptz)",
+  "grant execute on function public.giq_revoke_realtime_topic_grants(text[], text[])",
   "to service_role",
   "grant execute on function public.giq_realtime_topic_allowed(text, text)",
   "to authenticated",
@@ -861,8 +901,10 @@ const realtimeService = readFileSync(
   "utf8"
 );
 for (const needle of [
-  'getSupabaseAdminClient().rpc(',
+  "const client = getSupabaseAdminClient();",
+  "client.rpc(",
   '"giq_replace_realtime_topic_grants"',
+  '"giq_revoke_realtime_topic_grants"',
   "requested_profile_id: current.profileId",
 ]) {
   if (!realtimeService.includes(needle)) {
@@ -945,6 +987,28 @@ if (
   )
 ) {
   findings.push("CallPermission WITH CHECK must keep the pro gate on writes");
+}
+
+const signupOutboxSql = readFileSync(
+  join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    "20260714004000_add_signup_acceptance_outbox",
+    "migration.sql"
+  ),
+  "utf8"
+);
+for (const needle of [
+  'ALTER TABLE "SignupOutbox" ENABLE ROW LEVEL SECURITY',
+  'ALTER TABLE "SignupOutbox" FORCE ROW LEVEL SECURITY',
+  "CREATE POLICY giq_signup_outbox_system",
+  "USING (public.giq_is_system())",
+  "WITH CHECK (public.giq_is_system())",
+]) {
+  if (!signupOutboxSql.includes(needle)) {
+    findings.push(`signup outbox RLS missing: ${needle}`);
+  }
 }
 
 void main();

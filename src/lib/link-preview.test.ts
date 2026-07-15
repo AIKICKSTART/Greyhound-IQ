@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { Agent, Response, type RequestInit } from "undici";
 import {
+  assertPublicHttpUrl,
   createPinnedLookup,
   extractLinkPreview,
   fetchLinkPreview,
@@ -43,10 +44,34 @@ assert.deepEqual(
 void main();
 
 async function main() {
+  await testInputPolicy();
   await testPinnedLookup();
   await testRedirectResolutionAndPinning();
   await testPrivateRedirectRejected();
+  await testResponseAndCredentialControls();
+  await testRedirectBudget();
+  await testPrivateMetadataImageRejected();
   console.log("link preview tests passed");
+}
+
+async function testInputPolicy() {
+  const publicResolver = async () => [{ address: "8.8.8.8", family: 4 }];
+  for (const value of [
+    "file:///etc/passwd",
+    "ftp://public.example/file",
+    "https://user:password@public.example/private",
+    "https://public.example:8443/private",
+  ]) {
+    await assert.rejects(() => assertPublicHttpUrl(value, publicResolver));
+  }
+  await assert.rejects(
+    () =>
+      assertPublicHttpUrl(
+        "http://metadata.google.internal/computeMetadata/v1",
+        async () => [{ address: "169.254.169.254", family: 4 }],
+      ),
+    /link_preview\.private_address/,
+  );
 }
 
 async function testPinnedLookup() {
@@ -123,4 +148,89 @@ async function testPrivateRedirectRejected() {
     /link_preview\.private_address/
   );
   assert.equal(fetchCount, 1);
+}
+
+async function testResponseAndCredentialControls() {
+  const publicResolver = async () => [{ address: "8.8.8.8", family: 4 }];
+  let capturedInit: RequestInit | undefined;
+  const preview = await fetchLinkPreview(
+    "https://public.example/story",
+    async (_input, init) => {
+      capturedInit = init;
+      return new Response("<title>Safe</title>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      });
+    },
+    publicResolver,
+  );
+  assert.equal(preview.title, "Safe");
+  assert.equal(capturedInit?.redirect, "manual");
+  assert.ok(capturedInit?.signal);
+  const headers = capturedInit?.headers as Record<string, string>;
+  assert.equal(headers.Authorization, undefined);
+  assert.equal(headers.Cookie, undefined);
+
+  await assert.rejects(
+    () =>
+      fetchLinkPreview(
+        "https://public.example/data",
+        async () =>
+          new Response("{}", {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        publicResolver,
+      ),
+    /link_preview\.invalid_content_type/,
+  );
+  await assert.rejects(
+    () =>
+      fetchLinkPreview(
+        "https://public.example/large",
+        async () =>
+          new Response("x".repeat(512 * 1024 + 1), {
+            status: 200,
+            headers: { "content-type": "text/html" },
+          }),
+        publicResolver,
+      ),
+    /link_preview\.response_too_large/,
+  );
+}
+
+async function testRedirectBudget() {
+  let fetchCount = 0;
+  await assert.rejects(
+    () =>
+      fetchLinkPreview(
+        "https://public.example/start",
+        async () => {
+          fetchCount += 1;
+          return new Response(null, {
+            status: 302,
+            headers: { location: `/redirect-${fetchCount}` },
+          });
+        },
+        async () => [{ address: "8.8.8.8", family: 4 }],
+      ),
+    /link_preview\.redirect_rejected/,
+  );
+  assert.equal(fetchCount, 4);
+}
+
+async function testPrivateMetadataImageRejected() {
+  const preview = await fetchLinkPreview(
+    "https://public.example/story",
+    async () =>
+      new Response(
+        '<meta property="og:image" content="http://127.0.0.1/admin">',
+        { status: 200, headers: { "content-type": "text/html" } },
+      ),
+    async (hostname) =>
+      hostname === "public.example"
+        ? [{ address: "8.8.8.8", family: 4 }]
+        : [{ address: "127.0.0.1", family: 4 }],
+  );
+  assert.equal(preview.imageUrl, null);
 }

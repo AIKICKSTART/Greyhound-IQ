@@ -17,8 +17,6 @@ export async function GET(
     const { body, delivery } = await getMediaBlob(
       id,
       current,
-      url.searchParams.get("expires"),
-      url.searchParams.get("token"),
       {
         variant: url.searchParams.get("variant"),
         range: request.headers.get("range"),
@@ -31,6 +29,7 @@ export async function GET(
       "Cache-Control": "private, max-age=60",
       "Content-Length": delivery.contentLength.toString(),
       "Content-Type": delivery.mimeType,
+      "Content-Disposition": "inline",
       "X-Content-Type-Options": "nosniff",
     });
     if (delivery.contentRange) {

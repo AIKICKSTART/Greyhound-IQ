@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Paperclip, Subtitles, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ImagePlus,
+  Paperclip,
+  Star,
+  Subtitles,
+  X,
+} from "lucide-react";
 
 const WEBVTT_MAX_BYTES = 256 * 1024;
 
@@ -74,7 +82,41 @@ interface MediaAttachmentFieldsProps {
   maxFiles?: number;
   compact?: boolean;
   fieldName?: string;
+  allowReorder?: boolean;
   onPrimaryReadyPreviewChange?: (previewUrl: string | null) => void;
+}
+
+export function moveMediaItem<T extends { key: string }>(
+  items: readonly T[],
+  key: string,
+  direction: -1 | 1,
+) {
+  const currentIndex = items.findIndex((item) => item.key === key);
+  const targetIndex = currentIndex + direction;
+  if (
+    currentIndex < 0 ||
+    targetIndex < 0 ||
+    targetIndex >= items.length
+  ) {
+    return [...items];
+  }
+
+  const next = [...items];
+  const [item] = next.splice(currentIndex, 1);
+  next.splice(targetIndex, 0, item);
+  return next;
+}
+
+export function promoteMediaItem<T extends { key: string }>(
+  items: readonly T[],
+  key: string,
+) {
+  const currentIndex = items.findIndex((item) => item.key === key);
+  if (currentIndex <= 0) return [...items];
+  const next = [...items];
+  const [item] = next.splice(currentIndex, 1);
+  next.unshift(item);
+  return next;
 }
 
 function uploadUrlNeedsRefresh(context: UploadContext) {
@@ -135,6 +177,7 @@ export function MediaAttachmentFields({
   maxFiles = 4,
   compact = false,
   fieldName = "mediaIds",
+  allowReorder = mediaContext === "listings",
   onPrimaryReadyPreviewChange,
 }: MediaAttachmentFieldsProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -168,6 +211,12 @@ export function MediaAttachmentFields({
   const primaryReadyPreview =
     items.find((item) => item.step === "done" && item.mediaId)?.previewUrl ??
     null;
+  const primaryImageKey = items.find(
+    (item) =>
+      item.step === "done" &&
+      item.mediaId &&
+      item.mimeType.startsWith("image/"),
+  )?.key;
   const submissionBlockMessage = mediaUploadSubmissionMessage(
     items.map((item) => item.step),
   );
@@ -449,7 +498,7 @@ export function MediaAttachmentFields({
 
       {items.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <div
               key={item.key}
               className={`overflow-hidden rounded-xl border bg-white/[0.02] ${
@@ -487,6 +536,65 @@ export function MediaAttachmentFields({
                     <X className="h-4 w-4" />
                   </button>
                 </div>
+                {allowReorder && item.step === "done" && item.mediaId ? (
+                  <div
+                    aria-label={`Ordering controls for ${item.filename}`}
+                    className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-2"
+                  >
+                    {item.mimeType.startsWith("image/") ? (
+                      item.key === primaryImageKey ? (
+                        <span className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-amber-300/25 bg-amber-300/10 px-3 text-[11px] font-semibold text-amber-100">
+                          <Star
+                            className="size-3.5 fill-current"
+                            aria-hidden="true"
+                          />
+                          Primary image
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setItems((current) =>
+                              promoteMediaItem(current, item.key),
+                            )
+                          }
+                          className="giq-outline-action min-h-11 px-3 text-[11px]"
+                        >
+                          <Star className="size-3.5" aria-hidden="true" />
+                          Make primary
+                        </button>
+                      )
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() =>
+                        setItems((current) =>
+                          moveMediaItem(current, item.key, -1),
+                        )
+                      }
+                      className="giq-outline-action min-h-11 px-3 text-[11px] disabled:cursor-not-allowed disabled:opacity-45"
+                      aria-label={`Move ${item.filename} earlier`}
+                    >
+                      <ArrowUp className="size-3.5" aria-hidden="true" />
+                      Earlier
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === items.length - 1}
+                      onClick={() =>
+                        setItems((current) =>
+                          moveMediaItem(current, item.key, 1),
+                        )
+                      }
+                      className="giq-outline-action min-h-11 px-3 text-[11px] disabled:cursor-not-allowed disabled:opacity-45"
+                      aria-label={`Move ${item.filename} later`}
+                    >
+                      <ArrowDown className="size-3.5" aria-hidden="true" />
+                      Later
+                    </button>
+                  </div>
+                ) : null}
                 {(item.mimeType.startsWith("image/") ||
                   item.mimeType.startsWith("video/") ||
                   item.mimeType.startsWith("audio/")) && (

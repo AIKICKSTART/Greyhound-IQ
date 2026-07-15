@@ -122,6 +122,7 @@ export function RaceReplayPlayer({
         {!activated && (
           <button
             type="button"
+            data-purpose-id="RACE-DETAIL.ACTION.REPLAY.PLAY"
             className="absolute inset-0 isolate flex items-end justify-center overflow-hidden text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[hsl(var(--secondary-light))]"
             onClick={() => setActivated(true)}
             aria-label={`Play ${raceLabel} replay at ${trackName}`}

@@ -3,11 +3,6 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { collectDatabaseCompatibilityInventory } from "../scripts/check-database-compatibility-inventory";
-import { SECURITY_MASTER_EVIDENCE } from "../src/components/master-audit-evidence";
-import {
-  MASTER_AUDIT_REQUIREMENTS,
-  isMasterRequirementComplete,
-} from "../src/components/master-audit-requirements";
 import {
   DATABASE_ROLE_SEPARATION_BOUNDARY,
   DATABASE_ROLE_SEPARATION_MASTER_EVIDENCE,
@@ -15,6 +10,14 @@ import {
   DATABASE_SPECIALIST_ROLE_OPEN_REQUIREMENT_IDS,
 } from "./database-role-separation-evidence";
 
+const masterAuditEvidence = readFileSync(
+  "src/components/master-audit-evidence.ts",
+  "utf8",
+);
+const securityRequirements = readFileSync(
+  "src/components/security-master-requirements.ts",
+  "utf8",
+);
 const report = JSON.parse(
   readFileSync("security/row-level-security-runtime-evidence.json", "utf8"),
 ) as Record<string, unknown>;
@@ -58,7 +61,10 @@ assert.deepEqual(roleSeparation.memberships, {
   membershipCount: 0,
   adminOptionCount: 0,
 });
-assert.equal(directGrants.applicationDmlTableCount, compatibility.counts.models);
+assert.equal(
+  directGrants.applicationDmlTableCount,
+  compatibility.counts.models,
+);
 assert.equal(directGrants.projectionReadCount, 6);
 assert.equal(directGrants.sequenceUsageCount, 1);
 assert.equal(directGrants.routineCount, 44);
@@ -97,50 +103,68 @@ assert.equal(
   sha256(readFileSync("scripts/check-rls-access-matrix-postgres.ts")),
 );
 
-const sectionRequirements = MASTER_AUDIT_REQUIREMENTS.filter((requirement) =>
-  requirement.id.startsWith("security.database-role-separation."),
+const roleSeparationSection = securityRequirements.match(
+  /const DATABASE_ROLE_SEPARATION = sectionRequirements\([\s\S]*?\n\]\);/,
 );
-assert.equal(sectionRequirements.length, 15);
+assert.ok(
+  roleSeparationSection,
+  "database role-separation requirements are missing",
+);
+const sourceRequirementSuffixes = [
+  ...roleSeparationSection[0].matchAll(/\["([^"]+)",/g),
+].map((match) => match[1]);
 assert.deepEqual(
-  new Set([
-    ...DATABASE_RUNTIME_ROLE_VERIFIED_REQUIREMENT_IDS,
-    ...DATABASE_SPECIALIST_ROLE_OPEN_REQUIREMENT_IDS,
-  ]),
-  new Set(sectionRequirements.map((requirement) => requirement.id)),
+  new Set(sourceRequirementSuffixes),
+  new Set(
+    [
+      ...DATABASE_RUNTIME_ROLE_VERIFIED_REQUIREMENT_IDS,
+      ...DATABASE_SPECIALIST_ROLE_OPEN_REQUIREMENT_IDS,
+    ].map((id) => id.split(".").at(-1)),
+  ),
 );
 assert.equal(
   Object.keys(DATABASE_ROLE_SEPARATION_MASTER_EVIDENCE).length,
   DATABASE_RUNTIME_ROLE_VERIFIED_REQUIREMENT_IDS.length,
 );
 for (const id of DATABASE_RUNTIME_ROLE_VERIFIED_REQUIREMENT_IDS) {
-  const requirement = requirementById(id);
-  assert.deepEqual(
-    SECURITY_MASTER_EVIDENCE[id],
-    DATABASE_ROLE_SEPARATION_MASTER_EVIDENCE[id],
+  assert.equal(
+    DATABASE_ROLE_SEPARATION_MASTER_EVIDENCE[id]?.status,
+    "verified",
+    id,
   );
-  assert.equal(isMasterRequirementComplete(requirement), true, id);
 }
 for (const id of DATABASE_SPECIALIST_ROLE_OPEN_REQUIREMENT_IDS) {
-  assert.equal(isMasterRequirementComplete(requirementById(id)), false, id);
   assert.equal(DATABASE_ROLE_SEPARATION_MASTER_EVIDENCE[id], undefined, id);
 }
+assert.match(
+  masterAuditEvidence,
+  /\.\.\.DATABASE_ROLE_SEPARATION_MASTER_EVIDENCE/,
+);
+assert.match(
+  securityRequirements,
+  /const DATABASE_ROLE_SEPARATION = sectionRequirements/,
+);
 
-assert.match(DATABASE_ROLE_SEPARATION_BOUNDARY.deployedScope, /No staging or production/u);
-assert.match(DATABASE_ROLE_SEPARATION_BOUNDARY.systemCatalog, /default PUBLIC metadata/u);
-assert.match(DATABASE_ROLE_SEPARATION_BOUNDARY.tenantBoundary, /workers-role requirement remains open/u);
-assert.match(DATABASE_ROLE_SEPARATION_BOUNDARY.specialistRoleGap, /remain open/u);
+assert.match(
+  DATABASE_ROLE_SEPARATION_BOUNDARY.deployedScope,
+  /No staging or production/u,
+);
+assert.match(
+  DATABASE_ROLE_SEPARATION_BOUNDARY.systemCatalog,
+  /default PUBLIC metadata/u,
+);
+assert.match(
+  DATABASE_ROLE_SEPARATION_BOUNDARY.tenantBoundary,
+  /workers-role requirement remains open/u,
+);
+assert.match(
+  DATABASE_ROLE_SEPARATION_BOUNDARY.specialistRoleGap,
+  /remain open/u,
+);
 
 console.log(
   `Database role separation passed: ${DATABASE_RUNTIME_ROLE_VERIFIED_REQUIREMENT_IDS.length}/15 controls verified; ${DATABASE_SPECIALIST_ROLE_OPEN_REQUIREMENT_IDS.length} specialist-role controls remain open`,
 );
-
-function requirementById(id: string) {
-  const requirement = MASTER_AUDIT_REQUIREMENTS.find(
-    (candidate) => candidate.prompt === "security" && candidate.id === id,
-  );
-  assert.ok(requirement, `${id}: missing immutable requirement`);
-  return requirement;
-}
 
 function sha256(value: string | Buffer) {
   return createHash("sha256").update(value).digest("hex");

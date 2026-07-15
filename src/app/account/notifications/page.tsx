@@ -36,6 +36,7 @@ const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-AU", {
   hour: "2-digit",
   minute: "2-digit",
   month: "short",
+  timeZone: "Australia/Sydney",
   timeZoneName: "short",
   year: "numeric",
 });
@@ -152,6 +153,7 @@ function getMarketingPreferences(
       const rows = await withDbRequestContext(current, (tx) =>
         tx.marketingPreference.findMany({
           orderBy: [{ updatedAt: "desc" }],
+          take: 20,
           select: {
             channel: true,
             createdAt: true,

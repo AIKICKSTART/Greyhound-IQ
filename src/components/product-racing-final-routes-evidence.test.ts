@@ -85,7 +85,7 @@ const meetingScreen = SCREEN_CONTRACT_BY_ROUTE.get("/meetings/[id]");
 assert.ok(meetingScreen);
 assert.equal(
   meetingScreen.concreteRoute,
-  "/meetings/d2c28701-919b-429e-828d-c55dc1d80b54",
+  "/meetings/demo-provider-meeting",
 );
 assert.equal(meetingScreen.productionEnabled, true);
 assert.equal(meetingScreen.authentication, "optional");
@@ -127,7 +127,7 @@ assert.deepEqual(
 assert.deepEqual(meetingInteractions.forms, []);
 assert.equal(
   getRacingOnboardingRouteTour(
-    "/meetings/d2c28701-919b-429e-828d-c55dc1d80b54",
+    "/meetings/demo-provider-meeting",
   )?.route,
   "/meetings/[id]",
 );

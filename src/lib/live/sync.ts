@@ -1,7 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
+import { withDbSystemContext } from "../db-context";
 import { notifyDogWinnersFromRecentResults } from "../dog-win-notify";
+import { pruneExpiredRateLimits } from "../rate-limit-maintenance";
+import {
+  getExecutionLogContext,
+  getRequestLogContext,
+  logCorrelatedError,
+  logCorrelatedInfo,
+  logCorrelatedWarn,
+  type LogCorrelationContext,
+} from "../logger";
 import {
   getLiveProvider,
   getLiveProviderConfig,
@@ -26,6 +36,8 @@ export type SyncCounts = {
 export type SyncScope = "upcoming" | "results" | "all";
 
 const BULK_WRITE_CHUNK_SIZE = 100;
+const LOOKUP_QUERY_CHUNK_SIZE = 500;
+const LOOKUP_QUERY_LIMIT = 5_000;
 const LIVE_SYNC_TRANSACTION_MAX_WAIT_MS = 30_000;
 const LIVE_SYNC_TRANSACTION_TIMEOUT_MS = 240_000;
 
@@ -171,15 +183,17 @@ export async function syncLiveData(
   days = 7,
   scope: SyncScope = "upcoming"
 ): Promise<SyncResult> {
+  const logContext = await getExecutionLogContext();
   const provider = getLiveProvider();
   if (!provider) {
     const providerConfig = getLiveProviderConfig();
     const missingEnv = providerConfig.feeds.flatMap((feed) =>
       feed.blocking ? feed.missingEnv : []
     );
-    console.log(
-      "[live-sync] No live provider configured. Set TOPAZ_API_KEY, enable THEDOGS_PROVIDER_ENABLED, or enable FASTTRACK_PROTOTYPE_ENABLED for prototype sync."
-    );
+    logCorrelatedInfo(logContext, "live_sync.provider_not_configured", {
+      scope,
+      missingEnv,
+    });
     return {
       synced: false,
       provider: "none",
@@ -189,27 +203,27 @@ export async function syncLiveData(
     };
   }
 
-  console.log(`[live-sync] Using provider: ${provider.name} scope=${scope}`);
+  logCorrelatedInfo(logContext, "live_sync.started", {
+    provider: provider.name,
+    scope,
+    days,
+  });
   const counts: SyncCounts = { meetings: 0, races: 0, runners: 0, results: 0 };
   if (scope === "upcoming" || scope === "all") {
     const meetings = stampMeetings(await provider.fetchUpcomingMeetings(days), provider.name);
-    addCounts(
-      counts,
-      await upsertSystemMeetings(meetings)
-    );
+    addCounts(counts, await upsertSystemMeetings(meetings, logContext));
   }
   if (scope === "results" || scope === "all") {
     const meetings = stampMeetings(await provider.fetchResults(days), provider.name);
-    addCounts(
-      counts,
-      await upsertSystemMeetings(meetings)
-    );
+    addCounts(counts, await upsertSystemMeetings(meetings, logContext));
     await notifyDogWinnersFromRecentResults();
   }
 
-  console.log(
-    `[live-sync] Synced ${counts.meetings} meetings, ${counts.races} races, ${counts.runners} runners, ${counts.results} results via ${provider.name} (${scope}).`
-  );
+  logCorrelatedInfo(logContext, "live_sync.completed", {
+    provider: provider.name,
+    scope,
+    ...counts,
+  });
   return { synced: true, provider: provider.name, scope, ...counts };
 }
 
@@ -223,24 +237,152 @@ const AGGREGATE_MATVIEWS = [
   "giq_track_records",
 ] as const;
 
+export const AGGREGATE_MAINTENANCE_BUDGET_MS = 780_000;
+export const AGGREGATE_VIEW_STATEMENT_MAX_MS = 120_000;
+const AGGREGATE_VIEW_TRANSACTION_MAX_WAIT_MS = 5_000;
+const AGGREGATE_VIEW_TRANSACTION_OVERHEAD_MS = 2_000;
+const AGGREGATE_VIEW_RESPONSE_RESERVE_MS = 10_000;
+const AGGREGATE_VIEW_LOCK_TIMEOUT = "10s";
+
+type AggregateRefreshTiming = {
+  statementTimeoutMs: number;
+  transactionMaxWaitMs: number;
+  transactionTimeoutMs: number;
+  responseReserveMs: number;
+};
+
+type AggregateViewRefreshExecutor = (
+  view: (typeof AGGREGATE_MATVIEWS)[number],
+  timing: AggregateRefreshTiming,
+) => Promise<void>;
+
 export async function refreshAggregateMaterializedViews() {
   const refreshed: string[] = [];
   const startedAt = Date.now();
+  const deadlineAt = startedAt + AGGREGATE_MAINTENANCE_BUDGET_MS;
+  const logContext = await getRequestLogContext();
+  const rateLimitPrune = await pruneExpiredRateLimits();
+
+  const pruneLogFields = {
+    status: rateLimitPrune.status,
+    deleted: rateLimitPrune.deleted,
+    batches: rateLimitPrune.batches,
+    backlog: rateLimitPrune.backlog,
+    capped: rateLimitPrune.capped,
+    stalled: rateLimitPrune.stalled,
+    batchSize: rateLimitPrune.batchSize,
+    maxBatches: rateLimitPrune.maxBatches,
+  };
+  if (rateLimitPrune.status === "drained") {
+    logCorrelatedInfo(
+      logContext,
+      "aggregate_refresh.rate_limit_prune_completed",
+      pruneLogFields,
+    );
+  } else {
+    logCorrelatedWarn(
+      logContext,
+      "aggregate_refresh.rate_limit_prune_attention",
+      pruneLogFields,
+    );
+  }
 
   for (const view of AGGREGATE_MATVIEWS) {
+    const viewStartedAt = Date.now();
     try {
-      await prisma.$queryRaw<Array<{ refreshed: string | null }>>(
-        Prisma.sql`SELECT public.giq_refresh_aggregate_matview(${view})::text AS refreshed`
-      );
+      await refreshAggregateMaterializedView(view, deadlineAt);
       refreshed.push(view);
-      console.log(`[aggregate-refresh] Refreshed ${view}.`);
+      logCorrelatedInfo(logContext, "aggregate_refresh.completed", {
+        view,
+        durationMs: Date.now() - viewStartedAt,
+      });
     } catch (err) {
-      console.error(`[aggregate-refresh] ${view} refresh failed:`, err);
+      logCorrelatedError(
+        logContext,
+        "aggregate_refresh.failed",
+        { view, durationMs: Date.now() - viewStartedAt },
+        err,
+      );
       throw err;
     }
   }
 
-  return { refreshed, durationMs: Date.now() - startedAt };
+  const durationMs = Date.now() - startedAt;
+  logCorrelatedInfo(logContext, "aggregate_refresh.run_completed", {
+    durationMs,
+    viewCount: refreshed.length,
+    pruneStatus: rateLimitPrune.status,
+  });
+
+  return {
+    refreshed,
+    durationMs,
+    rateLimitPrune,
+  };
+}
+
+export function getAggregateRefreshTiming(
+  deadlineAt: number,
+  nowMs: number,
+): AggregateRefreshTiming {
+  const availableStatementMs =
+    deadlineAt -
+    nowMs -
+    AGGREGATE_VIEW_TRANSACTION_MAX_WAIT_MS -
+    AGGREGATE_VIEW_TRANSACTION_OVERHEAD_MS -
+    AGGREGATE_VIEW_RESPONSE_RESERVE_MS;
+  if (availableStatementMs < 1_000) {
+    throw new Error("aggregate_refresh.deadline_exhausted");
+  }
+
+  const statementTimeoutMs = Math.min(
+    AGGREGATE_VIEW_STATEMENT_MAX_MS,
+    availableStatementMs,
+  );
+  return {
+    statementTimeoutMs,
+    transactionMaxWaitMs: AGGREGATE_VIEW_TRANSACTION_MAX_WAIT_MS,
+    transactionTimeoutMs:
+      statementTimeoutMs + AGGREGATE_VIEW_TRANSACTION_OVERHEAD_MS,
+    responseReserveMs: AGGREGATE_VIEW_RESPONSE_RESERVE_MS,
+  };
+}
+
+export async function refreshAggregateMaterializedView(
+  view: (typeof AGGREGATE_MATVIEWS)[number],
+  deadlineAt: number,
+  dependencies: {
+    now?: () => number;
+    execute?: AggregateViewRefreshExecutor;
+  } = {},
+) {
+  const timing = getAggregateRefreshTiming(
+    deadlineAt,
+    (dependencies.now ?? Date.now)(),
+  );
+  await (dependencies.execute ?? executeAggregateMaterializedView)(view, timing);
+}
+
+async function executeAggregateMaterializedView(
+  view: (typeof AGGREGATE_MATVIEWS)[number],
+  timing: AggregateRefreshTiming,
+) {
+  await withDbSystemContext(
+    async (tx) => {
+      await tx.$queryRaw`
+        SELECT
+          set_config('lock_timeout', ${AGGREGATE_VIEW_LOCK_TIMEOUT}, true),
+          set_config('statement_timeout', ${`${timing.statementTimeoutMs}ms`}, true)
+      `;
+      await tx.$queryRaw<Array<{ refreshed: string | null }>>(
+        Prisma.sql`SELECT public.giq_refresh_aggregate_matview(${view})::text AS refreshed`,
+      );
+    },
+    {
+      maxWait: timing.transactionMaxWaitMs,
+      timeout: timing.transactionTimeoutMs,
+    },
+  );
 }
 
 function addCounts(total: SyncCounts, next: SyncCounts) {
@@ -254,10 +396,16 @@ export async function syncLiveMeetings(
   meetings: LiveMeeting[],
   fallbackProvider: string
 ): Promise<SyncCounts> {
-  return upsertSystemMeetings(stampMeetings(meetings, fallbackProvider));
+  return upsertSystemMeetings(
+    stampMeetings(meetings, fallbackProvider),
+    await getExecutionLogContext()
+  );
 }
 
-async function upsertSystemMeetings(meetings: LiveMeeting[]) {
+async function upsertSystemMeetings(
+  meetings: LiveMeeting[],
+  logContext: LogCorrelationContext
+) {
   if (meetings.length === 0) {
     return { meetings: 0, races: 0, runners: 0, results: 0 };
   }
@@ -265,7 +413,7 @@ async function upsertSystemMeetings(meetings: LiveMeeting[]) {
   return prisma.$transaction(
     async (tx) => {
       await setLiveSyncSystemContext(tx);
-      return upsertMeetings(tx, meetings);
+      return upsertMeetings(tx, meetings, logContext);
     },
     {
       maxWait: LIVE_SYNC_TRANSACTION_MAX_WAIT_MS,
@@ -300,23 +448,32 @@ function stampMeetings(meetings: LiveMeeting[], fallbackProvider: string) {
 
 async function upsertMeetings(
   db: LiveSyncDbClient,
-  meetings: LiveMeeting[]
+  meetings: LiveMeeting[],
+  logContext: LogCorrelationContext
 ): Promise<SyncCounts> {
   const counts: SyncCounts = { meetings: 0, races: 0, runners: 0, results: 0 };
   if (meetings.length === 0) return counts;
 
   const now = new Date();
-  syncDebug("upsertMeetings start", {
-    meetings: meetings.length,
-    races: meetings.reduce((total, meeting) => total + meeting.races.length, 0),
-  });
-  const tracks = await syncStage("ensureTracks", { meetings: meetings.length }, () =>
-    ensureTracks(db, meetings)
+  syncDebug(
+    "upsertMeetings start",
+    {
+      meetings: meetings.length,
+      races: meetings.reduce((total, meeting) => total + meeting.races.length, 0),
+    },
+    logContext
+  );
+  const tracks = await syncStage(
+    "ensureTracks",
+    { meetings: meetings.length },
+    () => ensureTracks(db, meetings),
+    logContext
   );
   const meetingRows = await syncStage(
     "ensureMeetings",
     { meetings: meetings.length, tracks: tracks.size },
-    () => ensureMeetings(db, meetings, tracks, now)
+    () => ensureMeetings(db, meetings, tracks, now),
+    logContext
   );
   counts.meetings = meetings.length;
 
@@ -326,11 +483,17 @@ async function upsertMeetings(
     return meeting.races.map((race) => ({ meeting, meetingId, race }));
   });
 
-  const raceRows = await syncStage("ensureRaces", { races: raceItems.length }, () =>
-    ensureRaces(db, raceItems, now)
+  const raceRows = await syncStage(
+    "ensureRaces",
+    { races: raceItems.length },
+    () => ensureRaces(db, raceItems, now),
+    logContext
   );
-  await syncStage("ensureRaceVideos", { races: raceItems.length }, () =>
-    ensureRaceVideos(db, raceItems, raceRows, now)
+  await syncStage(
+    "ensureRaceVideos",
+    { races: raceItems.length },
+    () => ensureRaceVideos(db, raceItems, raceRows, now),
+    logContext
   );
   counts.races = raceItems.length;
 
@@ -350,27 +513,38 @@ async function upsertMeetings(
     }));
   });
 
-  const dogIds = await syncStage("ensureDogs", { runners: runnerItems.length }, () =>
-    ensureDogs(db, runnerItems.map((item) => item.runner.dog))
+  const dogIds = await syncStage(
+    "ensureDogs",
+    { runners: runnerItems.length },
+    () => ensureDogs(db, runnerItems.map((item) => item.runner.dog)),
+    logContext
   );
   const trainerIds = await syncStage(
     "ensureTrainers",
     { runners: runnerItems.length },
-    () => ensureTrainers(db, runnerItems.map((item) => item.runner.trainerName))
+    () => ensureTrainers(db, runnerItems.map((item) => item.runner.trainerName)),
+    logContext
   );
   const runnerRows = await syncStage(
     "ensureRunners",
     { runners: runnerItems.length, dogs: dogIds.size, trainers: trainerIds.size },
-    () => ensureRunners(db, runnerItems, dogIds, trainerIds)
+    () => ensureRunners(db, runnerItems, dogIds, trainerIds),
+    logContext
   );
   counts.runners = runnerItems.length;
-  counts.results = await syncStage("ensureResults", { runners: runnerItems.length }, () =>
-    ensureResults(db, runnerItems, runnerRows)
+  counts.results = await syncStage(
+    "ensureResults",
+    { runners: runnerItems.length },
+    () => ensureResults(db, runnerItems, runnerRows),
+    logContext
   );
-  await syncStage("ensureFormEntries", { runners: runnerItems.length }, () =>
-    ensureFormEntries(db, runnerItems, runnerRows)
+  await syncStage(
+    "ensureFormEntries",
+    { runners: runnerItems.length },
+    () => ensureFormEntries(db, runnerItems, runnerRows),
+    logContext
   );
-  syncDebug("upsertMeetings ok", counts);
+  syncDebug("upsertMeetings ok", counts, logContext);
 
   return counts;
 }
@@ -378,34 +552,50 @@ async function upsertMeetings(
 async function syncStage<T>(
   name: string,
   meta: Record<string, unknown>,
-  run: () => Promise<T>
+  run: () => Promise<T>,
+  logContext: LogCorrelationContext
 ): Promise<T> {
   if (!shouldDebugSync()) return run();
 
   const startedAt = Date.now();
-  syncDebug(`${name} start`, meta);
+  syncDebug(`${name} start`, meta, logContext);
   try {
     const result = await run();
-    syncDebug(`${name} ok`, {
-      ...meta,
-      durationMs: Date.now() - startedAt,
-      ...resultSummary(result),
-    });
+    syncDebug(
+      `${name} ok`,
+      {
+        ...meta,
+        durationMs: Date.now() - startedAt,
+        ...resultSummary(result),
+      },
+      logContext
+    );
     return result;
   } catch (err) {
-    syncDebug(`${name} failed`, {
-      ...meta,
-      durationMs: Date.now() - startedAt,
-      error: err instanceof Error ? err.message : String(err),
-    });
+    syncDebug(
+      `${name} failed`,
+      {
+        ...meta,
+        durationMs: Date.now() - startedAt,
+      },
+      logContext,
+      err
+    );
     throw err;
   }
 }
 
-function syncDebug(message: string, meta?: Record<string, unknown>) {
+function syncDebug(
+  message: string,
+  meta?: Record<string, unknown>,
+  logContext: LogCorrelationContext = {
+    requestId: null,
+    traceId: null,
+  },
+  err?: unknown
+) {
   if (!shouldDebugSync()) return;
-  const suffix = meta ? ` ${JSON.stringify(meta)}` : "";
-  console.log(`[live-sync:debug] ${message}${suffix}`);
+  logCorrelatedInfo(logContext, "live_sync.debug", { detail: message, ...meta }, err);
 }
 
 function shouldDebugSync() {
@@ -437,6 +627,7 @@ async function ensureTracks(db: LiveSyncDbClient, meetings: LiveMeeting[]) {
   const existing = await db.track.findMany({
     where: { name: { in: [...byName.keys()] } },
     select: { id: true, name: true, state: true },
+    take: LOOKUP_QUERY_LIMIT,
   });
   const tracks = new Map(existing.map((track) => [track.name, track]));
 
@@ -488,6 +679,7 @@ async function ensureMeetings(
   const allRows = await db.meeting.findMany({
     where: { trackId: { in: trackIds }, meetingDate: { in: dates } },
     select: { id: true, trackId: true, meetingDate: true },
+    take: LOOKUP_QUERY_LIMIT,
   });
   return new Map(
     allRows.map((row) => [naturalMeetingKey(row.trackId, row.meetingDate), row])
@@ -522,10 +714,14 @@ async function ensureRaces(db: LiveSyncDbClient, items: RaceWithMeeting[], now: 
 
   await bulkUpsertRaces(db, upserts);
 
-  const allRows = await db.race.findMany({
-    where: { meetingId: { in: meetingIds } },
-    select: { id: true, meetingId: true, raceNumber: true },
-  });
+  const allRows: RaceRow[] = [];
+  for (const meetingIdChunk of chunks(meetingIds, LOOKUP_QUERY_CHUNK_SIZE)) {
+    allRows.push(...await db.race.findMany({
+      where: { meetingId: { in: meetingIdChunk } },
+      select: { id: true, meetingId: true, raceNumber: true },
+      take: LOOKUP_QUERY_LIMIT,
+    }));
+  }
   return new Map(allRows.map((row) => [raceKey(row.meetingId, row), row]));
 }
 
@@ -687,17 +883,25 @@ async function ensureDogs(db: LiveSyncDbClient, dogs: LiveDog[]) {
 
   const values = [...byKey.values()];
   if (values.length === 0) return new Map<string, string>();
-  const names = [...new Set(values.map((dog) => dog.name).filter(Boolean))];
-  const earBrands = [
-    ...new Set(values.map((dog) => dog.earBrand).filter((value): value is string => Boolean(value))),
-  ];
-  const dogLookupClauses: Prisma.DogWhereInput[] = [];
-  if (names.length > 0) dogLookupClauses.push({ name: { in: names } });
-  if (earBrands.length > 0) dogLookupClauses.push({ earBrand: { in: earBrands } });
-  const existing = await db.dog.findMany({
-    where: { OR: dogLookupClauses },
-    select: { id: true, name: true, earBrand: true },
-  });
+  const existing: Array<{ id: string; name: string; earBrand: string | null }> = [];
+  for (const valueChunk of chunks(values, LOOKUP_QUERY_CHUNK_SIZE)) {
+    const names = [...new Set(valueChunk.map((dog) => dog.name).filter(Boolean))];
+    const earBrands = [
+      ...new Set(valueChunk
+        .map((dog) => dog.earBrand)
+        .filter((value): value is string => Boolean(value))),
+    ];
+    existing.push(...await db.dog.findMany({
+      where: {
+        OR: [
+          ...(names.length > 0 ? [{ name: { in: names } }] : []),
+          ...(earBrands.length > 0 ? [{ earBrand: { in: earBrands } }] : []),
+        ],
+      },
+      select: { id: true, name: true, earBrand: true },
+      take: LOOKUP_QUERY_LIMIT,
+    }));
+  }
   const ids = new Map<string, string>();
   for (const dog of existing) {
     if (dog.earBrand) ids.set(dog.earBrand, dog.id);
@@ -735,21 +939,25 @@ async function ensureDogs(db: LiveSyncDbClient, dogs: LiveDog[]) {
       })),
       skipDuplicates: true,
     });
-    const created = await db.dog.findMany({
-      where: {
-        OR: [
-          { name: { in: missing.map((dog) => dog.name) } },
-          {
-            earBrand: {
-              in: missing
-                .map((dog) => dog.earBrand)
-                .filter((value): value is string => Boolean(value)),
+    const created: Array<{ id: string; name: string; earBrand: string | null }> = [];
+    for (const missingChunk of chunks(missing, LOOKUP_QUERY_CHUNK_SIZE)) {
+      created.push(...await db.dog.findMany({
+        where: {
+          OR: [
+            { name: { in: missingChunk.map((dog) => dog.name) } },
+            {
+              earBrand: {
+                in: missingChunk
+                  .map((dog) => dog.earBrand)
+                  .filter((value): value is string => Boolean(value)),
+              },
             },
-          },
-        ],
-      },
-      select: { id: true, name: true, earBrand: true },
-    });
+          ],
+        },
+        select: { id: true, name: true, earBrand: true },
+        take: LOOKUP_QUERY_LIMIT,
+      }));
+    }
     for (const dog of created) {
       if (!ids.has(dog.name)) ids.set(dog.name, dog.id);
       if (dog.earBrand && !ids.has(dog.earBrand)) ids.set(dog.earBrand, dog.id);
@@ -771,10 +979,14 @@ async function ensureTrainers(db: LiveSyncDbClient, names: Array<string | undefi
   ];
   if (uniqueNames.length === 0) return new Map<string, string>();
 
-  const existing = await db.trainer.findMany({
-    where: { name: { in: uniqueNames } },
-    select: { id: true, name: true },
-  });
+  const existing: Array<{ id: string; name: string }> = [];
+  for (const nameChunk of chunks(uniqueNames, LOOKUP_QUERY_CHUNK_SIZE)) {
+    existing.push(...await db.trainer.findMany({
+      where: { name: { in: nameChunk } },
+      select: { id: true, name: true },
+      take: LOOKUP_QUERY_LIMIT,
+    }));
+  }
   const ids = new Map(existing.map((trainer) => [trainer.name, trainer.id]));
   const missing = uniqueNames.filter((name) => !ids.has(name));
 
@@ -782,10 +994,14 @@ async function ensureTrainers(db: LiveSyncDbClient, names: Array<string | undefi
     await db.trainer.createMany({
       data: missing.map((name) => ({ name })),
     });
-    const created = await db.trainer.findMany({
-      where: { name: { in: missing } },
-      select: { id: true, name: true },
-    });
+    const created: Array<{ id: string; name: string }> = [];
+    for (const nameChunk of chunks(missing, LOOKUP_QUERY_CHUNK_SIZE)) {
+      created.push(...await db.trainer.findMany({
+        where: { name: { in: nameChunk } },
+        select: { id: true, name: true },
+        take: LOOKUP_QUERY_LIMIT,
+      }));
+    }
     for (const trainer of created) {
       if (!ids.has(trainer.name)) ids.set(trainer.name, trainer.id);
     }
@@ -831,10 +1047,14 @@ async function ensureRunners(
 
   await bulkUpsertRunners(db, upserts);
 
-  const allRows = await db.runner.findMany({
-    where: { raceId: { in: raceIds } },
-    select: { id: true, raceId: true, boxNumber: true, dogId: true },
-  });
+  const allRows: RunnerRow[] = [];
+  for (const raceIdChunk of chunks(raceIds, LOOKUP_QUERY_CHUNK_SIZE)) {
+    allRows.push(...await db.runner.findMany({
+      where: { raceId: { in: raceIdChunk } },
+      select: { id: true, raceId: true, boxNumber: true, dogId: true },
+      take: LOOKUP_QUERY_LIMIT,
+    }));
+  }
   return new Map(allRows.map((row) => [runnerKey(row.raceId, row.boxNumber), row]));
 }
 
@@ -1054,6 +1274,14 @@ function uniqueBy<T>(rows: T[], keyFor: (row: T) => string) {
   const byKey = new Map<string, T>();
   for (const row of rows) byKey.set(keyFor(row), row);
   return [...byKey.values()];
+}
+
+function chunks<T>(values: readonly T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    result.push(values.slice(index, index + size));
+  }
+  return result;
 }
 
 function uniqueByPreferredSource<T extends { sourceProvider: string | null }>(

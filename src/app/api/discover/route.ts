@@ -9,6 +9,7 @@ import {
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request-ip";
 import { discoverSocialActorsAndDogs } from "@/lib/social-discovery";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,9 +24,10 @@ export async function GET(request: NextRequest) {
       60 * 1000
     );
     if (!rate.allowed) {
-      return NextResponse.json(
-        { error: { code: "rate_limit.exceeded", message: "Too many requests" } },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rate,
+        user?.dbUserId || clientIp ? 60 : 10,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
     const current = user?.dbUserId && user.profileId
@@ -38,11 +40,11 @@ export async function GET(request: NextRequest) {
           verified: false,
         }
       : null;
-    const result = await discoverSocialActorsAndDogs(
-      query.q,
     const query = directorySearchQuerySchema.parse(
       queryParamsObject(request.nextUrl.searchParams),
     );
+    const result = await discoverSocialActorsAndDogs(
+      query.q,
       current
     );
     return NextResponse.json(result, {

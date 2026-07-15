@@ -21,6 +21,8 @@ import {
 import { listBespokeRequestsForCurrentUser } from "@/lib/bespoke-service";
 import { createCustomPageAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { RateLimitRecoveryCard } from "@/components/rate-limit-recovery-card";
+import { BILLING_RATE_LIMIT_RECOVERY_SECONDS } from "@/lib/rate-limit-recovery";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My pages - GreyhoundsIQ" };
@@ -29,9 +31,14 @@ const MAIN_TYPES = ["trainer", "punter", "business"] as const;
 const FOCUS_RING =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]";
 
-export default async function MyPagesPage() {
+type MyPagesPageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function MyPagesPage({ searchParams }: MyPagesPageProps) {
   const current = await requireCurrentUserProfile();
   const isPro = hasTier(current.tier, "pro");
+  const bespokeOutcome = (await searchParams).bespoke;
 
   if (!isPro) {
     return (
@@ -99,6 +106,76 @@ export default async function MyPagesPage() {
         </div>
       </header>
 
+      {bespokeOutcome === "success" ? (
+        <div
+          aria-live="polite"
+          className="mt-6 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.08] p-4"
+        >
+          <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+            Bespoke checkout return received
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+            We are verifying the signed Stripe webhook. Your design request will
+            appear below as soon as payment is confirmed; the URL alone never
+            changes payment or request status.
+          </p>
+        </div>
+      ) : bespokeOutcome === "failed" ? (
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-rose-400/30 bg-rose-400/[0.08] p-4"
+        >
+          <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+            Bespoke checkout could not be opened
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+            No payment was taken and no design request was changed. Review the
+            package and retry secure checkout below.
+          </p>
+          <Link
+            href="#bespoke-design"
+            className={`giq-outline-action mt-3 w-fit ${FOCUS_RING}`}
+          >
+            Review and retry
+          </Link>
+        </div>
+      ) : bespokeOutcome === "rate-limited" ? (
+        <div className="mt-6">
+          <RateLimitRecoveryCard
+            title="Bespoke checkout paused briefly"
+            detail="We limited repeated checkout attempts to protect your account and payment flow. No payment was taken and no design request was changed."
+            retryAfterSeconds={BILLING_RATE_LIMIT_RECOVERY_SECONDS}
+            action={
+              <Link
+                href="#bespoke-design"
+                className={`giq-outline-action w-fit ${FOCUS_RING}`}
+              >
+                Review and retry
+              </Link>
+            }
+          />
+        </div>
+      ) : bespokeOutcome === "cancelled" ? (
+        <div
+          aria-live="polite"
+          className="mt-6 rounded-xl border border-amber-300/30 bg-amber-300/[0.08] p-4"
+        >
+          <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+            Bespoke checkout cancelled
+          </p>
+          <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+            No request was changed from this return. You can review the package
+            and retry secure checkout below.
+          </p>
+          <Link
+            href="#bespoke-design"
+            className={`giq-outline-action mt-3 w-fit ${FOCUS_RING}`}
+          >
+            Review and retry
+          </Link>
+        </div>
+      ) : null}
+
       <section className="mt-7" aria-labelledby="managed-pages-heading">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 id="managed-pages-heading" className="text-[15px] font-semibold text-[hsl(var(--foreground))]">
@@ -120,7 +197,8 @@ export default async function MyPagesPage() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {pages.map((page) => {
-              const avatarUrl = avatarUrls.get(page.id) ?? null;
+              const avatarUrl =
+                avatarUrls.get(page.id) ?? page.socialActor?.avatarUrl ?? null;
               const typeLabel = CUSTOM_PAGE_TYPE_LABELS[page.pageType as keyof typeof CUSTOM_PAGE_TYPE_LABELS];
 
               return (
@@ -255,7 +333,10 @@ export default async function MyPagesPage() {
         )}
       </section>
 
-      <section className="mt-6 overflow-hidden rounded-2xl border border-[hsl(var(--primary)/0.26)] bg-[hsl(var(--primary)/0.07)]">
+      <section
+        id="bespoke-design"
+        className="mt-6 scroll-mt-24 overflow-hidden rounded-2xl border border-[hsl(var(--primary)/0.26)] bg-[hsl(var(--primary)/0.07)]"
+      >
         <div className="p-5 sm:p-6">
           <div className="flex items-center gap-2 text-[hsl(var(--secondary))]">
             <Sparkles className="h-5 w-5" aria-hidden="true" />

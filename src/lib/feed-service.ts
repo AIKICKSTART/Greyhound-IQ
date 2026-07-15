@@ -26,6 +26,7 @@ import {
 } from "@/lib/feed-pagination";
 import { extractMentionHandles } from "@/lib/feed-mentions";
 import { firstPreviewUrl } from "@/lib/link-preview";
+import { resolveDemoProfilePortrait } from "@/lib/demo-profile-media";
 import {
   ensureOwnedPageActor,
   ensurePersonalActor,
@@ -63,6 +64,7 @@ export async function getFeedTopics() {
         tx.feedTopic.findMany({
           where: { active: true },
           orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+          take: 100,
         })
       ),
     []
@@ -75,6 +77,7 @@ export async function getFeedAdminTopics() {
       withDbSystemContext((tx) =>
         tx.feedTopic.findMany({
           orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+          take: 100,
           include: {
             _count: {
               select: { posts: true },
@@ -92,7 +95,7 @@ export async function getFeedAdminPosts(limit = 50) {
       withDbSystemContext((tx) =>
         tx.feedPost.findMany({
           orderBy: [{ pinnedAt: "desc" }, { createdAt: "desc" }],
-          take: limit,
+          take: Math.min(Math.max(1, Math.trunc(limit)), 100),
           include: {
             author: true,
             topic: true,
@@ -171,6 +174,7 @@ export async function getFeedPageForViewer({
     const posts = pageRows.length
       ? await db.feedPost.findMany({
           where: { id: { in: [...new Set(pageRows.map((row) => row.postId))] } },
+          take: 50,
           include: feedPostInclude(
             current?.profileId ?? null,
             actor?.id ?? null
@@ -183,6 +187,27 @@ export async function getFeedPageForViewer({
       if (!post) return [];
       return [{
         ...post,
+        authorActor: post.authorActor
+          ? {
+              ...post.authorActor,
+              avatarUrl: resolveDemoProfilePortrait(
+                post.authorActor.displayName,
+                post.authorActor.avatarUrl,
+              ),
+            }
+          : null,
+        comments: post.comments.map((comment) => ({
+          ...comment,
+          authorActor: comment.authorActor
+            ? {
+                ...comment.authorActor,
+                avatarUrl: resolveDemoProfilePortrait(
+                  comment.authorActor.displayName,
+                  comment.authorActor.avatarUrl,
+                ),
+              }
+            : null,
+        })),
         feedEntryId: row.id,
         reshare: row.shareId
           ? {
@@ -196,7 +221,10 @@ export async function getFeedPageForViewer({
                     kind: row.shareActorKind!,
                     handle: row.shareActorHandle!,
                     displayName: row.shareActorDisplayName!,
-                    avatarUrl: row.shareActorAvatarUrl,
+                    avatarUrl: resolveDemoProfilePortrait(
+                      row.shareActorDisplayName,
+                      row.shareActorAvatarUrl,
+                    ),
                   }
                 : null,
             }
@@ -256,6 +284,8 @@ export async function getFeedPostForViewer(
       ? (
           await tx.actorMute.findMany({
             where: { muterActorId: actor.id },
+            orderBy: { mutedActorId: "asc" },
+            take: 1_000,
             select: { mutedActorId: true },
           })
         ).map((mute) => mute.mutedActorId)
@@ -344,7 +374,7 @@ export async function getFeedCommentsForViewer(
           : {}),
       },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      take: limit + 1,
+      take: Math.min(Math.max(1, limit + 1), 51),
       include: {
         author: { select: { displayName: true } },
         authorActor: {
@@ -400,7 +430,30 @@ export async function getFeedCommentsForViewer(
         _count: { select: { reactions: true, replies: true } },
       },
     });
-    const items = rows.slice(0, limit);
+    const items = rows.slice(0, limit).map((comment) => ({
+      ...comment,
+      authorActor: comment.authorActor
+        ? {
+            ...comment.authorActor,
+            avatarUrl: resolveDemoProfilePortrait(
+              comment.authorActor.displayName,
+              comment.authorActor.avatarUrl,
+            ),
+          }
+        : null,
+      replies: comment.replies.map((reply) => ({
+        ...reply,
+        authorActor: reply.authorActor
+          ? {
+              ...reply.authorActor,
+              avatarUrl: resolveDemoProfilePortrait(
+                reply.authorActor.displayName,
+                reply.authorActor.avatarUrl,
+              ),
+            }
+          : null,
+      })),
+    }));
     return {
       items,
       nextCursor: rows.length > limit ? items.at(-1)?.id ?? null : null,
@@ -421,10 +474,14 @@ async function getFeedAffinity(
   const [follows, topics, friendships, mutes] = await Promise.all([
     mode === "for-you" ? db.actorFollow.findMany({
       where: { followerActorId: actorId },
+      orderBy: { followedActorId: "asc" },
+      take: 1_000,
       select: { followedActorId: true },
     }) : Promise.resolve([]),
     mode === "for-you" ? db.actorTopicFollow.findMany({
       where: { actorId },
+      orderBy: { topicId: "asc" },
+      take: 1_000,
       select: { topicId: true },
     }) : Promise.resolve([]),
     mode === "for-you" && actorKind === "personal"
@@ -436,11 +493,15 @@ async function getFeedAffinity(
               { profileBId: current.profileId },
             ],
           },
+          orderBy: { id: "asc" },
+          take: 1_000,
           select: { profileAId: true, profileBId: true },
         })
       : Promise.resolve([]),
     db.actorMute.findMany({
       where: { muterActorId: actorId },
+      orderBy: { mutedActorId: "asc" },
+      take: 1_000,
       select: { mutedActorId: true },
     }),
   ]);
@@ -450,8 +511,10 @@ async function getFeedAffinity(
       : friendship.profileAId
   );
   const friendActors = friendProfileIds.length
-    ? await db.socialActor.findMany({
+      ? await db.socialActor.findMany({
         where: { profileId: { in: friendProfileIds } },
+        orderBy: { id: "asc" },
+        take: 1_000,
         select: { id: true },
       })
     : [];
@@ -1728,10 +1791,11 @@ async function recordFeedMentions(
   body: string,
   target: { postId?: string; commentId?: string }
 ) {
-  const handles = extractMentionHandles(body);
+  const handles = extractMentionHandles(body).slice(0, 20);
   if (handles.length === 0) return [];
   const actors = await tx.socialActor.findMany({
     where: { handle: { in: handles }, published: true },
+    take: 20,
     select: {
       id: true,
       displayName: true,

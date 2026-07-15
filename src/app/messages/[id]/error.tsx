@@ -12,7 +12,9 @@ export default function ConversationError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Conversation page error:", error);
+    console.error("conversation.segment_error", {
+      digest: error.digest ?? "unknown",
+    });
   }, [error]);
 
   return (

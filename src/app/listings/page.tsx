@@ -2,6 +2,8 @@ import Link from "next/link";
 import {
   ArrowRight,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   MapPin,
   Plus,
@@ -11,9 +13,24 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { ListingCardMediaCarousel } from "@/components/listing-card-media-carousel";
+import { AutoSubmitSelect } from "@/components/auto-submit-select";
+import { MarketplaceDogPlayerCard } from "@/components/marketplace-dog-player-card";
+import { MARKETPLACE_TEMPLATE_LISTINGS } from "@/components/marketplace-template-data";
 import { PageHero } from "@/components/page-hero";
 import { getCurrentUser } from "@/lib/auth";
 import { getDemoListingImages } from "@/lib/demo-listing-media";
+import { getSavedListingIdsForProfile } from "@/lib/listing-service";
+import {
+  MARKETPLACE_MAX_PAGE,
+  MARKETPLACE_PAGE_SIZE,
+  marketplacePageHref,
+  marketplacePageOffset,
+  parseMarketplaceCategory,
+  parseMarketplacePage,
+  parseMarketplaceSearch,
+  parseMarketplaceSort,
+  type MarketplaceSort,
+} from "@/lib/marketplace-navigation";
 import { mediaDeliveryUrl } from "@/lib/media-service";
 import {
   getMarketplaceCategories,
@@ -43,6 +60,14 @@ const TYPE_LABEL: Record<string, string> = {
   share: "Share",
 };
 
+type MarketplaceSearchParams = {
+  q?: string;
+  category?: string;
+  sort?: string;
+  page?: string;
+  submitted?: string;
+};
+
 function formatPrice(price: number | null): string {
   if (price == null) return "POA";
   return new Intl.NumberFormat("en-AU", {
@@ -64,7 +89,7 @@ function formatDate(date: Date | null): string {
 export default async function ListingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string; submitted?: string }>;
+  searchParams: Promise<MarketplaceSearchParams>;
 }) {
   const user = await getCurrentUser();
   const signedIn = Boolean(user);
@@ -74,7 +99,10 @@ export default async function ListingsPage({
       {signedIn ? <MarketplaceMemberHeader /> : <MarketplaceMarketingHero />}
 
       <Suspense fallback={<ListingsFallback q="" />}>
-        <ListingsContent searchParams={searchParams} />
+        <ListingsContent
+          searchParams={searchParams}
+          viewerProfileId={user?.profileId ?? null}
+        />
       </Suspense>
     </div>
   );
@@ -83,7 +111,7 @@ export default async function ListingsPage({
 function MarketplaceMarketingHero() {
   return (
     <PageHero
-      image="/images/wentworth-gate-hero.webp"
+      image="/images/demo-listing-dog-for-sale.webp"
       title={
         <>
           Marketplace.
@@ -151,19 +179,25 @@ function MarketplaceMemberHeader() {
 
 async function ListingsContent({
   searchParams,
+  viewerProfileId,
 }: {
-  searchParams: Promise<{ q?: string; category?: string; submitted?: string }>;
+  searchParams: Promise<MarketplaceSearchParams>;
+  viewerProfileId: string | null;
 }) {
   const params = await searchParams;
-  const q = typeof params.q === "string" ? params.q.trim() : "";
-  const category =
-    typeof params.category === "string" ? params.category.trim() : "";
+  const q = parseMarketplaceSearch(params.q);
+  const category = parseMarketplaceCategory(params.category);
+  const sort = parseMarketplaceSort(params.sort);
+  const page = parseMarketplacePage(params.page);
 
   return (
     <ListingsResults
       q={q}
       category={category}
+      sort={sort}
+      page={page}
       submitted={params.submitted === "review"}
+      viewerProfileId={viewerProfileId}
     />
   );
 }
@@ -171,17 +205,38 @@ async function ListingsContent({
 async function ListingsResults({
   q,
   category,
+  sort,
+  page,
   submitted,
+  viewerProfileId,
 }: {
   q: string;
   category: string;
+  sort: MarketplaceSort;
+  page: number;
   submitted: boolean;
+  viewerProfileId: string | null;
 }) {
-  const [listings, categories] = await Promise.all([
-    getMarketplaceListings(24, { q, categorySlug: category || null }),
+  const [listingPage, categories] = await Promise.all([
+    getMarketplaceListings(MARKETPLACE_PAGE_SIZE + 1, {
+      q,
+      categorySlug: category || null,
+      sort: sort || null,
+      offset: marketplacePageOffset(page),
+    }),
     getMarketplaceCategories(),
   ]);
-  const hasFilters = Boolean(q || category);
+  const hasNextPage =
+    page < MARKETPLACE_MAX_PAGE && listingPage.length > MARKETPLACE_PAGE_SIZE;
+  const listings = listingPage.slice(0, MARKETPLACE_PAGE_SIZE);
+  const savedListingIds = viewerProfileId
+    ? await getSavedListingIdsForProfile(
+        viewerProfileId,
+        listings.map((listing) => listing.id)
+      )
+    : new Set<string>();
+  const hasFilters = Boolean(q || category || sort);
+  const isBeyondFirstPage = page > 1;
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
@@ -205,9 +260,12 @@ async function ListingsResults({
         </div>
       )}
 
+      {!q && !category && page === 1 ? <MarketplaceProfileShowcase /> : null}
+
       <ListingsToolbar
         q={q}
         category={category}
+        sort={sort}
         categories={categories}
         count={listings.length}
       />
@@ -215,7 +273,7 @@ async function ListingsResults({
       {listings.length === 0 ? (
         <div className="giq-empty-state px-6 py-14 text-center">
           <span className="giq-icon-plate mx-auto flex h-12 w-12 items-center justify-center rounded-2xl">
-            {hasFilters ? (
+            {hasFilters || isBeyondFirstPage ? (
               <SearchX className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
             ) : (
               <ShoppingBag className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
@@ -227,7 +285,9 @@ async function ListingsResults({
               : "No marketplace items yet"}
           </h3>
           <p className="mx-auto mt-2 max-w-md text-[13px] leading-6 text-[hsl(var(--muted-foreground))]">
-            {hasFilters
+            {isBeyondFirstPage
+              ? "Use the previous-page control to return to available marketplace inventory."
+              : hasFilters
               ? "Clear the current filters to browse every active item, or create a new listing."
               : "Be the first member to create a marketplace item for the community."}
           </p>
@@ -251,15 +311,32 @@ async function ListingsResults({
         </div>
       ) : (
         <div className="giq-stagger grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {listings.map((listing) => (
+          {listings.map((listing) =>
+            listing.dog ? (
+              <MarketplaceDogListingPlayerCard
+                key={listing.id}
+                listing={listing}
+                dog={listing.dog}
+                initiallySaved={savedListingIds.has(listing.id)}
+                canSave={Boolean(
+                  viewerProfileId && viewerProfileId !== listing.profile.id
+                )}
+              />
+            ) : (
             <article
               key={listing.id}
-              className="giq-panel giq-panel-hover giq-listing-card flex min-h-[430px] flex-col"
+              aria-label={`${listing.title} marketplace item`}
+              data-marketplace-inventory-item
+              data-marketplace-inventory-kind={listing.type}
+              className="giq-panel giq-panel-hover giq-listing-card group flex min-h-[430px] min-w-0 flex-col overflow-hidden"
             >
               {(() => {
                 const demoImage = getDemoListingImages(listing, 1)[0];
                 return (
-                  <div className="p-2 pb-0">
+                  <div
+                    data-marketplace-item-media
+                    className="relative order-first w-full p-2 pb-0"
+                  >
                     <ListingCardMediaCarousel
                       listingHref={`/marketplace/${listing.id}`}
                       listingTitle={listing.title}
@@ -274,6 +351,11 @@ async function ListingsResults({
                       }))}
                       fallbackImage={demoImage}
                     />
+                    {demoImage ? (
+                      <span className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/20 bg-black/75 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.13em] text-white/78 shadow-lg backdrop-blur">
+                        Illustrative demo media
+                      </span>
+                    ) : null}
                   </div>
                 );
               })()}
@@ -317,21 +399,6 @@ async function ListingsResults({
                   Expires {formatDate(listing.expiresAt)}
                 </p>
 
-                {listing.dog && (
-                  <Link
-                    href={`/dogs/${listing.dog.id}`}
-                    className="giq-subpanel mt-4 block p-3 transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))]"
-                  >
-                    <p className="text-[12px] font-semibold text-[hsl(var(--foreground))]">
-                      {listing.dog.name}
-                    </p>
-                    <p className="mt-1 text-[11px] text-[hsl(var(--subtle-foreground))]">
-                      {listing.dog.sire?.name ?? "Unknown sire"} x{" "}
-                      {listing.dog.dam?.name ?? "unknown dam"}
-                    </p>
-                  </Link>
-                )}
-
                 <div className="mt-auto border-t border-white/[0.05] pt-4">
                   <div className="mb-3 flex items-center gap-2.5">
                     <span className="giq-icon-plate flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
@@ -364,11 +431,230 @@ async function ListingsResults({
                 </div>
               </div>
             </article>
-          ))}
+            )
+          )}
         </div>
       )}
+
+      <MarketplacePagination
+        page={page}
+        hasNextPage={hasNextPage}
+        q={q}
+        category={category}
+        sort={sort}
+      />
     </section>
   );
+}
+
+function MarketplacePagination({
+  page,
+  hasNextPage,
+  q,
+  category,
+  sort,
+}: {
+  page: number;
+  hasNextPage: boolean;
+  q: string;
+  category: string;
+  sort: MarketplaceSort;
+}) {
+  if (page === 1 && !hasNextPage) return null;
+
+  const navigationState = { q, category, sort };
+
+  return (
+    <nav
+      aria-label="Marketplace pagination"
+      className="giq-panel mt-8 flex flex-wrap items-center justify-between gap-3 p-4"
+    >
+      <p className="text-[12px] font-semibold text-[hsl(var(--muted-foreground))]">
+        Page {page} of at most {MARKETPLACE_MAX_PAGE}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {page > 1 ? (
+          <Link
+            rel="prev"
+            href={marketplacePageHref(navigationState, page - 1)}
+            className="giq-button giq-button-glass min-h-11 px-4 text-[12px] font-semibold"
+          >
+            <ChevronLeft className="size-4" aria-hidden="true" />
+            Previous
+          </Link>
+        ) : null}
+        {hasNextPage ? (
+          <Link
+            rel="next"
+            href={marketplacePageHref(navigationState, page + 1)}
+            className="giq-button giq-button-primary min-h-11 px-4 text-[12px] font-semibold"
+          >
+            Next
+            <ChevronRight className="size-4" aria-hidden="true" />
+          </Link>
+        ) : null}
+      </div>
+    </nav>
+  );
+}
+
+function MarketplaceProfileShowcase() {
+  return (
+    <section
+      aria-labelledby="marketplace-profile-showcase-heading"
+      className="mb-10"
+      data-marketplace-profile-showcase
+    >
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div className="max-w-3xl">
+          <div className="race-box-strip mb-4 w-40" />
+          <h2
+            id="marketplace-profile-showcase-heading"
+            className="text-2xl font-semibold text-[hsl(var(--foreground))]"
+          >
+            Verified dog card showcase
+          </h2>
+          <p className="mt-2 text-[13px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[14px]">
+            Six interactive public-profile cards built from existing racing
+            records. These are demo discovery cards, not active sale
+            advertisements; browse all active marketplace items below.
+          </p>
+        </div>
+        <span className="giq-badge giq-badge-gold">
+          {MARKETPLACE_TEMPLATE_LISTINGS.length} public profiles
+        </span>
+      </div>
+
+      <div className="grid min-w-0 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {MARKETPLACE_TEMPLATE_LISTINGS.map((listing) => (
+          <article
+            key={listing.listingId}
+            data-template-player-card={listing.listingId}
+            className="giq-panel giq-panel-hover min-w-0 p-3"
+          >
+            <MarketplaceDogPlayerCard
+              dog={listing}
+              artwork={{ kind: "image", src: listing.artworkSrc }}
+              saveMode="local"
+            />
+            <Link
+              href={listing.profileHref}
+              className="giq-outline-action mt-3 min-h-11 w-full justify-center text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))]"
+            >
+              View {listing.name}&apos;s public profile
+              <ArrowRight className="size-3.5" aria-hidden="true" />
+            </Link>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+type MarketplaceListing = Awaited<
+  ReturnType<typeof getMarketplaceListings>
+>[number];
+
+function MarketplaceDogListingPlayerCard({
+  listing,
+  dog,
+  initiallySaved,
+  canSave,
+}: {
+  listing: MarketplaceListing;
+  dog: NonNullable<MarketplaceListing["dog"]>;
+  initiallySaved: boolean;
+  canSave: boolean;
+}) {
+  const primaryImage = listing.media.find(({ media }) =>
+    media.mimeType.startsWith("image/")
+  )?.media;
+  const fallbackImage = getDemoListingImages(listing, 1)[0];
+  const artworkSrc = primaryImage
+    ? mediaDeliveryUrl(primaryImage)
+    : fallbackImage?.src ?? "/images/demo-listing-dog.webp";
+  const sex = normaliseDogSex(dog.sex);
+  const colourSex = [dog.colour, sex].filter(Boolean).join(" ") || "Greyhound";
+  const location =
+    listing.location?.region ??
+    listing.state ??
+    listing.profile.state ??
+    "Australia";
+
+  return (
+    <div
+      data-marketplace-dog-listing
+      data-marketplace-inventory-item
+      data-marketplace-inventory-kind={listing.type}
+      className="giq-panel giq-panel-hover min-w-0 p-3"
+    >
+      <MarketplaceDogPlayerCard
+        dog={{
+          listingId: listing.id,
+          dogId: dog.id,
+          name: dog.name,
+          colourSex,
+          starts: dog.careerStarts,
+          wins: dog.careerWins,
+          seconds: dog.careerSeconds,
+          thirds: dog.careerThirds,
+          strikeRate: dog.winPercentage,
+          prizeMoney: formatPrice(dog.prizeMoney),
+          pedigree: `${dog.sire?.name ?? "Unknown sire"} × ${dog.dam?.name ?? "unknown dam"}`,
+          price: formatPrice(listing.price),
+          description: listing.description,
+          listingLabel: TYPE_LABEL[listing.type] ?? listing.type,
+          listingHref: `/marketplace/${listing.id}`,
+          profileHref: `/dogs/${dog.id}`,
+          seller: {
+            displayName: listing.profile.displayName,
+            verified: listing.profile.verified,
+            region: location,
+            memberSince: `Member since ${listing.profile.createdAt.getFullYear()}`,
+            responseTime: "Enquiries in Pulse",
+            history: listing.profile.verified
+              ? "Verified Marketplace seller"
+              : "Community Marketplace seller",
+          },
+        }}
+        artwork={{ kind: "image", src: artworkSrc }}
+        initiallySaved={initiallySaved}
+        saveMode={canSave ? "account" : "none"}
+      />
+
+      <div className="px-1 pb-1 pt-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-semibold text-[hsl(var(--foreground))]">
+              {listing.title}
+            </p>
+            <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-[hsl(var(--muted-foreground))]">
+              <MapPin className="size-3.5 text-[hsl(var(--primary-bright))]" aria-hidden="true" />
+              {location}
+            </p>
+          </div>
+          <span className="giq-badge giq-badge-purple shrink-0">
+            {listing.status}
+          </span>
+        </div>
+        <Link
+          href={`/marketplace/${listing.id}`}
+          className="giq-outline-action mt-3 min-h-10 w-full justify-center text-[11px]"
+        >
+          View marketplace item
+          <ArrowRight className="size-3.5" aria-hidden="true" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function normaliseDogSex(sex: string | null) {
+  const value = sex?.trim().toLowerCase();
+  if (!value) return null;
+  if (["m", "male", "dog"].includes(value)) return "dog";
+  if (["f", "female", "bitch"].includes(value)) return "bitch";
+  return sex;
 }
 
 function ListingsFallback({
@@ -380,7 +666,7 @@ function ListingsFallback({
 }) {
   return (
     <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <ListingsToolbar q={q} category={category} categories={[]} />
+      <ListingsToolbar q={q} category={category} sort="" categories={[]} />
       <SkeletonGroup label="Loading marketplace">
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((item) => (
@@ -409,15 +695,17 @@ function ListingsFallback({
 function ListingsToolbar({
   q,
   category,
+  sort,
   categories,
   count,
 }: {
   q: string;
   category: string;
+  sort: MarketplaceSort;
   categories: Array<{ slug: string; name: string }>;
   count?: number;
 }) {
-  const hasFilters = Boolean(q || category);
+  const hasFilters = Boolean(q || category || sort);
 
   return (
     <>
@@ -425,7 +713,7 @@ function ListingsToolbar({
         <div>
           <div className="race-box-strip mb-4 w-40" />
           <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
-            Current marketplace
+            All marketplace items
           </h2>
           <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
             {typeof count === "number"
@@ -433,6 +721,10 @@ function ListingsToolbar({
                   q ? ` matching "${q}".` : "."
                 }`
               : "Loading marketplace items."}
+          </p>
+          <p className="mt-1 max-w-2xl text-[11px] leading-5 text-[hsl(var(--subtle-foreground))]">
+            Where shown, illustrative fallback media demonstrates the product
+            experience and does not verify a listing or seller.
           </p>
         </div>
         <div className="giq-icon-plate flex h-10 w-10 items-center justify-center rounded-xl">
@@ -442,7 +734,7 @@ function ListingsToolbar({
 
       <form
         action="/marketplace"
-        className="giq-panel mb-6 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_15rem_auto_auto] lg:items-end"
+        className="giq-panel mb-6 grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_14rem_12rem_auto_auto] xl:items-end"
       >
         <label className="min-w-0">
           <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[hsl(var(--muted-foreground))]">
@@ -459,8 +751,9 @@ function ListingsToolbar({
           <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[hsl(var(--muted-foreground))]">
             Category
           </span>
-          <select
+          <AutoSubmitSelect
             name="category"
+            aria-label="Category"
             defaultValue={category}
             className="giq-form-control min-h-11 w-full px-3 py-2 text-[13px]"
           >
@@ -470,19 +763,35 @@ function ListingsToolbar({
                 {item.name}
               </option>
             ))}
-          </select>
+          </AutoSubmitSelect>
+        </label>
+        <label className="min-w-0">
+          <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[hsl(var(--muted-foreground))]">
+            Sort
+          </span>
+          <AutoSubmitSelect
+            name="sort"
+            aria-label="Sort listings"
+            defaultValue={sort}
+            className="giq-form-control min-h-11 w-full px-3 py-2 text-[13px]"
+          >
+            <option value="">Recommended</option>
+            <option value="created_at">Newest</option>
+            <option value="price">Price: low to high</option>
+            <option value="expires_at">Ending soon</option>
+          </AutoSubmitSelect>
         </label>
         <button
           type="submit"
-          className="giq-button giq-button-primary min-h-11 w-full px-5 text-[13px] font-semibold sm:col-span-2 lg:col-span-1 lg:w-auto"
+          className="giq-button giq-button-primary min-h-11 w-full px-5 text-[13px] font-semibold sm:col-span-2 xl:col-span-1 xl:w-auto"
         >
           <Search className="h-4 w-4" />
-          Show results
+          Search
         </button>
         {hasFilters && (
           <Link
             href="/marketplace"
-            className="giq-button giq-button-glass min-h-11 w-full px-5 text-[13px] font-semibold sm:col-span-2 lg:col-span-1 lg:w-auto"
+            className="giq-button giq-button-glass min-h-11 w-full px-5 text-[13px] font-semibold sm:col-span-2 xl:col-span-1 xl:w-auto"
           >
             Clear
           </Link>

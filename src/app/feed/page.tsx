@@ -1,6 +1,15 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { FeedInfiniteList } from "@/components/feed-infinite-list";
+import { runFeedReadTasks } from "@/app/feed/feed-read-tasks";
+import { resolveSponsoredMarketplaceVisibility } from "@/components/appearance-preview-state";
+import {
+  isDockSkinKey,
+  type DockSkinKey,
+} from "@/components/dock-skin-catalogue";
+import { FeedHeaderPlannerPrototype } from "@/components/feed-header-planner-prototype";
+import { FeedSystemPrototype } from "@/components/feed-system-prototype";
+import { HomeHero } from "@/components/home-hero";
 import { HubIdentityBanner } from "@/components/hub/hub-identity-banner";
 import { HubLeftSidebar } from "@/components/hub/hub-left-sidebar";
 import {
@@ -20,6 +29,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { getCurrentUser, hasTier } from "@/lib/auth";
+import { isFullAccessDemo } from "@/lib/demo-access";
 import { listPendingCallInvitesForProfile } from "@/lib/call-service";
 import {
   countUnreadMessagesByConversation,
@@ -38,12 +48,13 @@ import {
   getOwnedPageIdentities,
 } from "@/lib/identity";
 import {
-  membersPresenceChannel,
-} from "@/lib/realtime-service";
-import {
   ensureOwnedPageActor,
   ensurePersonalActor,
 } from "@/lib/social-actor-service";
+import {
+  isPrototypeVariant,
+  type PrototypeVariant,
+} from "@/components/prototype-variants";
 
 export const dynamic = "force-dynamic";
 
@@ -62,11 +73,64 @@ const TIER_LABELS: Record<string, string> = {
 export default async function FeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>;
+  searchParams: Promise<{
+    demo?: string | string[];
+    dock?: string | string[];
+    mode?: string;
+    sponsored?: string | string[];
+    variant?: string | string[];
+  }>;
 }) {
-  const requestedMode = (await searchParams).mode;
+  const resolvedSearchParams = await searchParams;
+  const requestedMode = resolvedSearchParams.mode;
   const mode: FeedMode = requestedMode === "latest" ? "latest" : "for-you";
+  const requestedVariant = Array.isArray(resolvedSearchParams.variant)
+    ? resolvedSearchParams.variant[0]
+    : resolvedSearchParams.variant;
+  const requestedDock = Array.isArray(resolvedSearchParams.dock)
+    ? resolvedSearchParams.dock[0]
+    : resolvedSearchParams.dock;
+  const requestedDemo = Array.isArray(resolvedSearchParams.demo)
+    ? resolvedSearchParams.demo[0]
+    : resolvedSearchParams.demo;
+  const showSponsoredMarketplace =
+    resolveSponsoredMarketplaceVisibility(resolvedSearchParams.sponsored) ===
+    "on";
+  const devicePreviewsEnabled =
+    process.env.NODE_ENV !== "production" ||
+    process.env.ENABLE_DEVICE_PREVIEWS === "true";
+  const prototypeVariant: PrototypeVariant | null =
+    devicePreviewsEnabled && isPrototypeVariant(requestedVariant)
+      ? requestedVariant
+      : null;
+  const prototypeDockSkin: DockSkinKey = isDockSkinKey(requestedDock)
+    ? requestedDock
+    : "D1";
+
+  if (prototypeVariant && requestedDemo === "1") {
+    return (
+      <FeedSystemPrototype
+        dockSkin={prototypeDockSkin}
+        variant={prototypeVariant}
+        firstName="Daniel"
+        showDemoAdvertiserConcepts={showSponsoredMarketplace}
+        showMarketplacePreview={showSponsoredMarketplace}
+        standalone
+      />
+    );
+  }
+
   const user = await getCurrentUser();
+
+  if (prototypeVariant && user && (!user.dbUserId || !user.profileId)) {
+    return (
+      <FeedSystemPrototype
+        variant={prototypeVariant}
+        firstName="Daniel"
+        showMarketplacePreview={showSponsoredMarketplace}
+      />
+    );
+  }
 
   if (!user?.dbUserId || !user.profileId) {
     const [topics, feedPage] = await Promise.all([
@@ -152,20 +216,20 @@ export default async function FeedPage({
     unreadByConversation,
     pendingInvites,
     profile,
-  ] = await Promise.all([
-    getFeedTopics(),
-    getFeedPageForViewer({
+  ] = await runFeedReadTasks([
+    () => getFeedTopics(),
+    () => getFeedPageForViewer({
       mode,
       actorId: activeActor.id,
       limit: 20,
       current,
     }),
-    listFriendsForProfile(current),
-    listFriendRequestsForProfile(current),
-    listConversationsForProfile(current),
-    countUnreadMessagesByConversation(current),
-    listPendingCallInvitesForProfile(current),
-    withDbRequestContext(current, (tx) =>
+    () => listFriendsForProfile(current),
+    () => listFriendRequestsForProfile(current),
+    () => listConversationsForProfile(current),
+    () => countUnreadMessagesByConversation(current),
+    () => listPendingCallInvitesForProfile(current),
+    () => withDbRequestContext(current, (tx) =>
       tx.profile.findUnique({
         where: { id: current.profileId },
         select: {
@@ -177,7 +241,7 @@ export default async function FeedPage({
         },
       })
     ),
-  ]);
+  ], isFullAccessDemo());
   const posts = feedPage.items;
   const canUseFeedAsActiveIdentity = !activePage || isPro;
 
@@ -226,6 +290,7 @@ export default async function FeedPage({
       return {
         id: conversation.id,
         otherName: otherActor?.displayName ?? other.displayName,
+        otherAvatarUrl: otherActor?.avatarUrl ?? other.avatarUrl,
         preview: message
           ? `${isSent ? "You: " : ""}${message.body}`
           : "Conversation started",
@@ -245,7 +310,15 @@ export default async function FeedPage({
 
   return (
     <div className="giq-social-hub mx-auto w-full max-w-[1680px] px-2 py-4 sm:px-4 lg:px-5 2xl:px-6">
-      <div className="giq-social-hub-grid grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_300px] 2xl:grid-cols-[260px_minmax(0,1fr)_340px]">
+      {prototypeVariant ? (
+        <FeedHeaderPlannerPrototype
+          variant={prototypeVariant}
+          firstName={user.firstName || user.name}
+        />
+      ) : (
+        <HomeHero compact primaryHref="/races" />
+      )}
+      <div className="giq-social-hub-grid mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_300px] 2xl:grid-cols-[260px_minmax(0,1fr)_340px]">
         <aside className="hidden lg:block" aria-label="Hub navigation">
           <div className="sticky top-[84px] max-h-[calc(100dvh-105px)] overflow-y-auto pr-1">
             <HubLeftSidebar
@@ -391,7 +464,6 @@ export default async function FeedPage({
         <aside className="giq-social-messenger-rail hidden xl:block" aria-label="Messenger">
           <div className="sticky top-[84px] max-h-[calc(100dvh-105px)]">
             <HubMessengerPanel
-              presenceChannel={membersPresenceChannel()}
               selfProfileId={user.profileId}
               invites={invites}
               requests={requests}
@@ -399,6 +471,7 @@ export default async function FeedPage({
                 friendshipId: friend.friendshipId,
                 profileId: friend.profileId,
                 displayName: friend.displayName,
+                avatarUrl: friend.avatarUrl,
                 verified: friend.verified,
                 conversationId: activePage
                   ? actorConversations.find((conversation) =>

@@ -95,11 +95,64 @@ as $$
     );
 $$;
 
+create or replace function public.giq_revoke_realtime_topic_grants(
+  requested_profile_ids text[],
+  requested_topics text[]
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if requested_profile_ids is null
+     or cardinality(requested_profile_ids) < 1
+     or cardinality(requested_profile_ids) > 10
+     or requested_topics is null
+     or cardinality(requested_topics) < 1
+     or cardinality(requested_topics) > 10
+     or exists (
+       select 1
+       from unnest(requested_profile_ids) as requested_profile(profile_id)
+       where requested_profile.profile_id is null
+          or requested_profile.profile_id = ''
+          or length(requested_profile.profile_id) > 128
+     )
+     or exists (
+       select 1
+       from unnest(requested_topics) as requested_topic(topic)
+       where requested_topic.topic is null
+          or requested_topic.topic !~ '^conversation:[0-9a-f]{48}$'
+     ) then
+    raise exception 'invalid realtime grant revocation';
+  end if;
+
+  -- Serialize against grant replacement for each affected profile. Sorting
+  -- makes multi-profile block revocations acquire locks deterministically.
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(locked_profile.profile_id, 0)
+  )
+  from (
+    select distinct requested_profile.profile_id
+    from unnest(requested_profile_ids) as requested_profile(profile_id)
+    order by requested_profile.profile_id
+  ) as locked_profile;
+
+  delete from public.giq_realtime_topic_grants
+  where profile_id = any(requested_profile_ids)
+    and topic = any(requested_topics);
+end;
+$$;
+
 revoke all on function public.giq_replace_realtime_topic_grants(text, jsonb, timestamptz)
+  from public, anon, authenticated;
+revoke all on function public.giq_revoke_realtime_topic_grants(text[], text[])
   from public, anon, authenticated;
 revoke all on function public.giq_realtime_topic_allowed(text, text)
   from public, anon, service_role;
 grant execute on function public.giq_replace_realtime_topic_grants(text, jsonb, timestamptz)
+  to service_role;
+grant execute on function public.giq_revoke_realtime_topic_grants(text[], text[])
   to service_role;
 grant execute on function public.giq_realtime_topic_allowed(text, text)
   to authenticated;

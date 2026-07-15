@@ -44,7 +44,7 @@ const NAVIGATION_SECTIONS: Array<{
       { href: "/feed", label: "Feed", icon: Home, current: true },
       { href: "/pulse/friends", label: "Friends", icon: Users },
       { href: "/account/pages", label: "Pages", icon: LayoutGrid },
-      { href: "/pulse", label: "Pulse", icon: MessageSquare },
+      { href: "/pulse", label: "Chat", icon: MessageSquare },
       { href: "/account/saved-listings", label: "Saved", icon: Bookmark },
       { href: "/account", label: "Settings", icon: Settings },
     ],

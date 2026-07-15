@@ -24,9 +24,9 @@ const CHANNELS = [
   },
   {
     icon: MessageSquare,
-    title: "Discord",
-    detail: "Coming soon",
-    description: "Community chat, real-time support, and race-night discussion.",
+    title: "Account support",
+    detail: "Signed-in tickets",
+    description: "Create an account-linked request and review its status from your support history.",
   },
   {
     icon: GitBranch,
@@ -43,7 +43,7 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
   return (
     <div>
       <PageHero
-        image="/images/wentworth-gate-hero.webp"
+        image="/images/site-header-gate-burst-landscape.webp"
         badge="CONTACT"
         badgeColor="primary"
         title={
@@ -112,13 +112,18 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
 
           {user ? (
             <form action={createSupportTicket} className="mt-6 grid gap-4">
-              <label className="block">
-                <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+              <div className="block">
+                <label
+                  htmlFor="support-category"
+                  className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]"
+                >
                   Category
-                </span>
+                </label>
                 <select
+                  id="support-category"
                   name="category"
                   required
+                  aria-describedby="support-category-help"
                   className="giq-form-control mt-2 px-3 py-2"
                   defaultValue="general"
                 >
@@ -127,22 +132,53 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
                   <option value="technical">Technical</option>
                   <option value="feedback">Feedback</option>
                 </select>
-              </label>
+                <p
+                  id="support-category-help"
+                  className="mt-2 text-[11px] leading-5 text-[hsl(var(--muted-foreground))]"
+                >
+                  Choose Billing for payments or plans, Technical for a broken
+                  workflow, Feedback for a product suggestion, or General when
+                  none of those fit.
+                </p>
+              </div>
 
-              <label className="block">
-                <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+              <div className="block">
+                <label
+                  htmlFor="support-message"
+                  className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]"
+                >
                   Message
-                </span>
+                </label>
                 <textarea
+                  id="support-message"
                   name="body"
                   required
                   minLength={20}
                   maxLength={5000}
                   rows={7}
+                  aria-describedby="support-message-help"
                   className="giq-form-control giq-textarea mt-2 px-3 py-2"
                   placeholder="Describe what you need help with."
                 />
-              </label>
+                <p
+                  id="support-message-help"
+                  className="mt-2 text-[11px] leading-5 text-[hsl(var(--muted-foreground))]"
+                >
+                  Include the page, what you expected, what happened and the
+                  approximate AEST time. Never include passwords, access tokens,
+                  API keys or payment-card details.
+                </p>
+                <details className="mt-2 rounded-lg border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-[11px] text-[hsl(var(--muted-foreground))]">
+                  <summary className="min-h-8 cursor-pointer font-semibold text-[hsl(var(--foreground))]">
+                    Show a safe example
+                  </summary>
+                  <p className="mt-2 leading-5">
+                    Example: On Account &gt; Billing at about 7:30 pm AEST, I
+                    selected yearly Pro but the checkout did not open. I expected
+                    to reach the secure payment page.
+                  </p>
+                </details>
+              </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.05] pt-4">
                 <p className="text-[12px] text-[hsl(var(--muted-foreground))]">

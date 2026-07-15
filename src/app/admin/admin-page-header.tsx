@@ -12,7 +12,10 @@ export function AdminPageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="mb-7 flex flex-col gap-4 border-b border-white/[0.07] pb-5 sm:flex-row sm:items-start sm:justify-between">
+    <div
+      data-onboarding-target="admin-page-header"
+      className="mb-7 flex flex-col gap-4 border-b border-white/[0.07] pb-5 sm:flex-row sm:items-start sm:justify-between"
+    >
       <div className="min-w-0">
         <div className="flex items-center gap-3">
           <span
@@ -30,7 +33,10 @@ export function AdminPageHeader({
         ) : null}
       </div>
       {actions ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:pt-1">
+        <div
+          data-onboarding-target="admin-page-actions"
+          className="flex shrink-0 flex-wrap items-center gap-2 sm:pt-1"
+        >
           {actions}
         </div>
       ) : null}

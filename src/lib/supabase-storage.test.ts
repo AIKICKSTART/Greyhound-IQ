@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 
-import { fetchStorageObjectHead } from "./supabase-storage";
+import {
+  fetchStorageObjectHead,
+  resolveStorageUploadOptions,
+} from "./supabase-storage";
 
 function partialResponse(bytes: Uint8Array, headers: Record<string, string> = {}) {
   return new Response(bytes.buffer as ArrayBuffer, {
@@ -14,6 +17,19 @@ function partialResponse(bytes: Uint8Array, headers: Record<string, string> = {}
 }
 
 async function main() {
+assert.deepEqual(resolveStorageUploadOptions("image/png"), {
+  cacheControl: "31536000",
+  contentType: "image/png",
+  upsert: true,
+});
+assert.deepEqual(
+  resolveStorageUploadOptions("image/png", {
+    cacheControl: null,
+    upsert: false,
+  }),
+  { contentType: "image/png", upsert: false },
+);
+
 const calls: RequestInit[] = [];
 const head = await fetchStorageObjectHead("https://storage.invalid/signed", 4, {
   fetchImpl: async (_input, init) => {

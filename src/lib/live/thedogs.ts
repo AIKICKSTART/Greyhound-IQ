@@ -1,19 +1,35 @@
 import type { LiveDataProvider, LiveMeeting, LiveRace, LiveRunner } from "./provider";
 import { raceDateTimeToUtc } from "../race-time";
+import { logExecutionWarn } from "../logger";
+import { readBoundedTextResponse } from "../remote-response";
 
 const THEDOGS_BASE =
   process.env.THEDOGS_BASE_URL ?? "https://www.thedogs.com.au";
-const THEDOGS_MAX_MEETINGS = positiveInt(
-  process.env.THEDOGS_MAX_MEETINGS,
-  80
+const THEDOGS_MAX_MEETINGS = Math.min(
+  positiveInt(process.env.THEDOGS_MAX_MEETINGS, 80),
+  160
 );
-const THEDOGS_CONCURRENCY = positiveInt(process.env.THEDOGS_CONCURRENCY, 5);
+const THEDOGS_CONCURRENCY = Math.min(
+  positiveInt(process.env.THEDOGS_CONCURRENCY, 5),
+  10
+);
 const THEDOGS_TIME_ZONE =
   process.env.THEDOGS_TIME_ZONE ?? "Australia/Sydney";
-const THEDOGS_FETCH_TIMEOUT_MS = positiveInt(
-  process.env.THEDOGS_FETCH_TIMEOUT_MS,
-  60_000
+const THEDOGS_FETCH_TIMEOUT_MS = Math.min(
+  positiveInt(process.env.THEDOGS_FETCH_TIMEOUT_MS, 60_000),
+  120_000
 );
+const THEDOGS_HTML_POLICY = {
+  maxBytes: 5 * 1024 * 1024,
+  allowedContentTypes: [
+    "text/html",
+    "application/xhtml+xml",
+    "application/json",
+    "application/javascript",
+    "text/javascript",
+    "+json",
+  ],
+} as const;
 const THEDOGS_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -77,13 +93,15 @@ export class TheDogsProvider implements LiveDataProvider {
       await mapLimit(links, THEDOGS_CONCURRENCY, async (link) => {
         try {
           const html = await this.getText(link.href);
-          return this.hydrateFallbackRaceTimes(parseTheDogsMeeting(html, link));
-        } catch (err) {
-          console.warn(
-            `[thedogs] Skipping ${link.href}: ${
-              err instanceof Error ? err.message : String(err)
-            }`
+          const meeting = await this.hydrateFallbackRaceTimes(
+            parseTheDogsMeeting(html, link)
           );
+          return meeting.races.length > 0 ? meeting : null;
+        } catch (err) {
+          await logExecutionWarn("live.thedogs.meeting_skipped", {
+            provider: this.name,
+            meetingDate: link.date,
+          }, err);
           return null;
         }
       })
@@ -114,11 +132,10 @@ export class TheDogsProvider implements LiveDataProvider {
             }),
           };
         } catch (err) {
-          console.warn(
-            `[thedogs] Could not hydrate race time for ${race.sourceId}: ${
-              err instanceof Error ? err.message : String(err)
-            }`
-          );
+          await logExecutionWarn("live.thedogs.race_time_hydration_failed", {
+            provider: this.name,
+            raceNumber: race.raceNumber,
+          }, err);
           return race;
         }
       }
@@ -151,23 +168,23 @@ export class TheDogsProvider implements LiveDataProvider {
                 });
                 return parseTheDogsRaceResult(raceHtml, raceLink, link.date);
               } catch (err) {
-                console.warn(
-                  `[thedogs] Skipping ${raceLink.href}: ${
-                    err instanceof Error ? err.message : String(err)
-                  }`
-                );
+                await logExecutionWarn("live.thedogs.result_race_skipped", {
+                  provider: this.name,
+                  meetingDate: link.date,
+                  raceNumber: raceLink.raceNumber,
+                }, err);
                 return null;
               }
             })
           ).filter((race): race is LiveRace => race != null);
 
-          return mergeResultRaces(meeting, resultRaces);
+          const merged = mergeResultRaces(meeting, resultRaces);
+          return merged.races.length > 0 ? merged : null;
         } catch (err) {
-          console.warn(
-            `[thedogs] Skipping ${link.href}: ${
-              err instanceof Error ? err.message : String(err)
-            }`
-          );
+          await logExecutionWarn("live.thedogs.result_meeting_skipped", {
+            provider: this.name,
+            meetingDate: link.date,
+          }, err);
           return null;
         }
       })
@@ -178,22 +195,33 @@ export class TheDogsProvider implements LiveDataProvider {
     path: string,
     extraHeaders: Record<string, string> = {}
   ): Promise<string> {
-    const url = new URL(path, THEDOGS_BASE);
-    const response = await this.fetchImpl(url, {
-      signal: AbortSignal.timeout(THEDOGS_FETCH_TIMEOUT_MS),
-      headers: {
-        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "accept-language": "en-US,en;q=0.9",
-        "user-agent": THEDOGS_USER_AGENT,
-        ...extraHeaders,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`${response.status} ${response.statusText} for ${url}`);
+    const normalizedUrl = normalizeTheDogsUrl(path, 512);
+    if (!normalizedUrl) throw new Error("thedogs.request_url_invalid");
+    const url = new URL(normalizedUrl);
+    const signal = AbortSignal.timeout(THEDOGS_FETCH_TIMEOUT_MS);
+    let response: Response;
+    try {
+      response = await this.fetchImpl(url, {
+        redirect: "error",
+        signal,
+        headers: {
+          accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9",
+          "user-agent": THEDOGS_USER_AGENT,
+          ...extraHeaders,
+        },
+      });
+    } catch {
+      throw new Error(
+        signal.aborted ? "thedogs.request_timeout" : "thedogs.request_failed"
+      );
     }
 
-    return response.text();
+    if (!response.ok) {
+      throw new Error(`thedogs.request_failed:${response.status}`);
+    }
+
+    return readBoundedTextResponse(response, THEDOGS_HTML_POLICY);
   }
 }
 
@@ -201,6 +229,8 @@ export function parseTheDogsMeeting(
   html: string,
   link: TheDogsMeetingLink
 ): LiveMeeting {
+  const meetingHref = normalizeTheDogsUrl(link.href, 512);
+  if (!meetingHref) throw new Error("thedogs.response_invalid");
   const venue = parseVenue(html);
   const date = link.date;
   const raceTimes = parseRaceTimes(html);
@@ -210,9 +240,9 @@ export function parseTheDogsMeeting(
     .sort((a, b) => a.raceNumber - b.raceNumber);
 
   return {
-    sourceId: link.href,
+    sourceId: meetingHref,
     sourceRawJson: JSON.stringify({
-      href: link.href,
+      href: meetingHref,
       date: link.date,
       state: link.state,
       source: "meeting_page",
@@ -230,11 +260,18 @@ export function parseMeetingLinks(html: string): TheDogsMeetingLink[] {
   for (const match of html.matchAll(/<li class="list__row">([\s\S]*?)<\/li>/gi)) {
     const row = match[1];
     if (!row) continue;
-    const href = firstMatch(row, /href="(\/racing\/[^/]+\/\d{4}-\d{2}-\d{2}\?trial=false)"/i);
+    const href = normalizeTheDogsUrl(
+      firstMatch(row, /href="(\/racing\/[^/]+\/\d{4}-\d{2}-\d{2}\?trial=false)"/i),
+      512,
+    );
     if (!href || links.has(href)) continue;
 
-    const date = href.match(/\/(\d{4}-\d{2}-\d{2})\?trial=false$/)?.[1];
-    if (!date) continue;
+    const hrefUrl = new URL(href);
+    const date = hrefUrl.pathname.match(
+      /^\/racing\/[^/]+\/(\d{4}-\d{2}-\d{2})$/,
+    )?.[1];
+    if (hrefUrl.search !== "?trial=false") continue;
+    if (!date || !isValidDateKey(date)) continue;
 
     const name = cleanHtml(
       firstMatch(row, /<div class="meeting__info__name">([\s\S]*?)<\/div>/i)
@@ -246,6 +283,7 @@ export function parseMeetingLinks(html: string): TheDogsMeetingLink[] {
     const state = cleanHtml(firstMatch(caption, /<span>([A-Z]{2,3})<\/span>/i));
 
     links.set(href, { href, name, state: state || undefined, date });
+    if (links.size >= THEDOGS_MAX_MEETINGS) break;
   }
 
   return [...links.values()];
@@ -256,6 +294,8 @@ export function parseTheDogsRaceResult(
   link: TheDogsRaceLink,
   date: string
 ): LiveRace | null {
+  const raceHref = normalizeTheDogsUrl(link.href, 512);
+  if (!raceHref) return null;
   const gradeAndDistance = cleanHtml(
     firstMatch(
       html,
@@ -277,9 +317,9 @@ export function parseTheDogsRaceResult(
   if (runners.length === 0) return null;
 
   return {
-    sourceId: link.href,
+    sourceId: raceHref,
     sourceRawJson: JSON.stringify({
-      href: link.href,
+      href: raceHref,
       resultPage: true,
       replayUrl,
       photoFinishUrl,
@@ -324,12 +364,13 @@ export function parseTheDogsRaceResult(
 function parseResultRaceLinks(html: string): TheDogsRaceLink[] {
   const links = new Map<number, TheDogsRaceLink>();
   for (const match of html.matchAll(/<a class="race-header" href="([^"]+)">([\s\S]*?)<\/a>/gi)) {
-    const href = match[1];
+    const href = normalizeTheDogsUrl(match[1], 512);
     const body = match[2] ?? "";
     if (!href || !body.includes("race-box--result")) continue;
     const raceNumber = extractRaceNumber(href);
     if (!raceNumber) continue;
     links.set(raceNumber, { href, raceNumber });
+    if (links.size >= 30) break;
   }
   return [...links.values()].sort((a, b) => a.raceNumber - b.raceNumber);
 }
@@ -377,12 +418,13 @@ function parseRaceTimes(html: string) {
   const times = new Map<number, ParsedRaceTime>();
   for (const match of html.matchAll(/<a class="race-box[^"]*"([^>]*)>/gi)) {
     const attrs = match[1] ?? "";
-    const href = firstMatch(attrs, /href="([^"]+)"/i);
+    const href = normalizeTheDogsUrl(firstMatch(attrs, /href="([^"]+)"/i), 512);
     const raceNumber = extractRaceNumber(href);
     const raceTime = firstMatch(attrs, /data-race-box="([^"]+)"/i);
     const parsed = raceTime ? validIso(raceTime) : undefined;
     if (raceNumber && parsed) {
       times.set(raceNumber, { iso: parsed, source: "provider" });
+      if (times.size >= 64) break;
     }
   }
   return times;
@@ -390,11 +432,17 @@ function parseRaceTimes(html: string) {
 
 function splitRaceSections(html: string) {
   const starts = [...html.matchAll(/<a class="race-header" href="([^"]+)">/gi)]
-    .map((match) => ({ index: match.index, href: match[1] }))
+    .map((match) => ({
+      index: match.index,
+      href: normalizeTheDogsUrl(match[1], 512),
+    }))
     .filter(
       (match): match is { index: number; href: string } =>
-        match.index != null && extractRaceNumber(match.href) != null
-    );
+        match.index != null &&
+        match.href != null &&
+        extractRaceNumber(match.href) != null
+    )
+    .slice(0, 64);
 
   return starts.map((start, index) => ({
     href: start.href,
@@ -471,6 +519,7 @@ function mergeRaceSourceRawJson(
 
 function parseRunners(section: string): LiveRunner[] {
   return [...section.matchAll(/<tr\b[^>]*class="[^"]*\brace-runner\b[^"]*"[^>]*>([\s\S]*?)<\/tr>/gi)]
+    .slice(0, 32)
     .map((match, index) => parseRunner(match[1] ?? "", index))
     .filter((runner): runner is LiveRunner => runner != null);
 }
@@ -623,12 +672,21 @@ function fallbackRaceTimeIso(date: string, raceNumber: number) {
   return raceDateTimeToUtc(date, 12, minute).toISOString();
 }
 
-function extractRaceNumber(href: string) {
-  const parsed = Number(
-    href.match(/\/racing\/[^/]+\/\d{4}-\d{2}-\d{2}\/(\d+)\//)?.[1] ??
-      href.match(/\/(\d+)\//)?.[1]
-  );
-  return Number.isInteger(parsed) && parsed > 0 && parsed <= 30 ? parsed : undefined;
+function extractRaceNumber(href?: string) {
+  if (!href) return undefined;
+  try {
+    const pathname = new URL(href, THEDOGS_BASE).pathname;
+    const parsed = Number(
+      pathname.match(
+        /^\/racing\/[^/]+\/\d{4}-\d{2}-\d{2}\/(\d+)(?:\/|$)/,
+      )?.[1],
+    );
+    return Number.isInteger(parsed) && parsed > 0 && parsed <= 30
+      ? parsed
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function parseRaceTimestamp(html: string) {
@@ -643,8 +701,13 @@ function validIso(value: string | number) {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
+function isValidDateKey(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
+}
+
 function parseReplayUrl(html: string) {
-  return (
+  return normalizeTheDogsUrl(
     firstMatch(html, /<a[^>]+data-turbolinks-action="video"[^>]+href="([^"]+)"/i) ||
     firstMatch(html, /<a[^>]+race-header__media__item--replay[^>]+href="([^"]+)"/i) ||
     firstMatch(html, /<a[^>]+href="([^"]*\/videos\/watch\/races\/\d+\/replay[^"]*)"/i) ||
@@ -657,11 +720,24 @@ function parseReplayVideoSourceId(replayUrl?: string) {
 }
 
 function parsePhotoFinishUrl(html: string) {
-  return (
+  return normalizeTheDogsUrl(
     firstMatch(html, /<a[^>]+race-header__media__item--photo[^>]+href="([^"]+)"/i) ||
     firstMatch(html, /<a class="button button--size-small" href="([^"]+)"[^>]*>\s*<sprite-svg name="icon_camera"/i) ||
     undefined
   );
+}
+
+function normalizeTheDogsUrl(value?: string, maxLength = 2_048) {
+  if (!value || value.length > maxLength) return undefined;
+  try {
+    const base = new URL(THEDOGS_BASE);
+    const candidate = new URL(value, base);
+    return candidate.origin === base.origin && !candidate.username && !candidate.password
+      ? candidate.toString()
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function parseWeatherIcon(html: string) {
@@ -747,18 +823,23 @@ function dayValue(date: string) {
 
 function parseMoney(value?: string) {
   const parsed = Number(cleanHtml(value).replace(/[$,]/g, ""));
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  return Number.isFinite(parsed) && parsed > 0 && parsed <= 100_000_000
+    ? parsed
+    : undefined;
 }
 
 function parseNumber(value?: string) {
   const cleaned = cleanHtml(value).replace(/[$,]/g, "");
   if (!cleaned || /^[-—]+$/.test(cleaned)) return undefined;
   const parsed = Number(cleaned);
-  return Number.isFinite(parsed) ? parsed : undefined;
+  return Number.isFinite(parsed) && Math.abs(parsed) <= 1_000_000_000
+    ? parsed
+    : undefined;
 }
 
 function parseSectionals(row: string) {
   return [...row.matchAll(/<td class="race-runners__sectional">([\s\S]*?)<\/td>/gi)]
+    .slice(0, 16)
     .map((match) => parseNumber(match[1]))
     .filter((value): value is number => value != null);
 }
@@ -784,14 +865,14 @@ function firstMatch(value: string, pattern: RegExp) {
   return value.match(pattern)?.[1] ?? "";
 }
 
-function cleanHtml(value = "") {
+function cleanHtml(value = "", maxLength = 500) {
   return decodeEntities(
     value
       .replace(/<br\s*\/?>/gi, " ")
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim()
-  );
+  ).slice(0, maxLength);
 }
 
 function decodeEntities(value: string) {

@@ -3,7 +3,9 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { safeQuery } from "@/lib/db";
 import {
+  withDbAnonymousQueryDeadline,
   withDbRequestContext,
+  type DbContextClient,
   type DbContextUser,
 } from "@/lib/db-context";
 import { cached } from "@/lib/ttl-cache";
@@ -14,12 +16,43 @@ import {
   raceClockTimeWindow,
   raceDateWindow,
 } from "@/lib/race-time";
+import { resolveRaceSearchDate } from "@/lib/race-search";
 import { canonicalTrackName, trackNameAliasKey } from "@/lib/live/track-name";
+import { parseMarketplaceOffset } from "@/lib/marketplace-navigation";
 
 const MARKETPLACE_CARD_MEDIA_LIMIT = 6;
+const RACE_DETAIL_RUNNER_LIMIT = 12;
+const RACE_DETAIL_VIDEO_LIMIT = 16;
+const RACE_DETAIL_MEETING_RACE_LIMIT = 24;
+const RACE_DETAIL_DOG_FORM_LIMIT = 6;
+const RACE_DETAIL_DOG_PROFILE_FORM_LIMIT = 8;
+const RACE_DETAIL_PREVIOUS_RUNNER_LIMIT = 24;
+const TRACK_DETAIL_MEETING_LIMIT = 8;
+const TRACK_DETAIL_RACE_LIMIT = 16;
+const TRACK_DETAIL_RUNNER_LIMIT = 12;
+const TRACK_DETAIL_RACE_QUERY_LIMIT =
+  TRACK_DETAIL_MEETING_LIMIT * TRACK_DETAIL_RACE_LIMIT;
+const TRACK_DETAIL_RUNNER_QUERY_LIMIT =
+  TRACK_DETAIL_RACE_QUERY_LIMIT * TRACK_DETAIL_RUNNER_LIMIT;
+const RACE_EXPLORER_MEETING_LIMIT = 128;
+const RACE_EXPLORER_RACE_LIMIT = 2_048;
+const RACE_EXPLORER_STATE_LIMIT = 16;
+const RACE_EXPLORER_REPLAY_LIMIT = 8;
+const PUBLIC_RACING_QUERY_DEADLINE = Object.freeze({
+  statementTimeoutMilliseconds: 10_000,
+  transactionTimeoutMilliseconds: 30_000,
+});
 
 const marketplaceListingCardInclude = {
-  profile: { select: { id: true, displayName: true, verified: true } },
+  profile: {
+    select: {
+      id: true,
+      displayName: true,
+      verified: true,
+      state: true,
+      createdAt: true,
+    },
+  },
   category: { select: { id: true, slug: true, name: true } },
   location: {
     select: {
@@ -51,6 +84,14 @@ const marketplaceListingCardInclude = {
     select: {
       id: true,
       name: true,
+      colour: true,
+      sex: true,
+      careerStarts: true,
+      careerWins: true,
+      careerSeconds: true,
+      careerThirds: true,
+      prizeMoney: true,
+      winPercentage: true,
       sire: { select: { name: true } },
       dam: { select: { name: true } },
     },
@@ -77,62 +118,145 @@ export async function getTodaysMeetings() {
   const meetingWhere: Prisma.MeetingWhereInput = {
     races: { some: raceWhere },
   };
-  const meetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
+  const meetings = await withDbAnonymousQueryDeadline(
+    (tx) => getRaceExplorerMeetings(meetingWhere, raceWhere, tx),
+    PUBLIC_RACING_QUERY_DEADLINE,
+  );
 
   return orderMeetingsByFirstRaceTime(meetings);
 }
 
+export const getMeetingById = cache(async (id: string) => {
+  return safeQuery(
+    () =>
+      prisma.meeting.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          meetingDate: true,
+          meetingType: true,
+          sourceProvider: true,
+          lastSyncedAt: true,
+          track: {
+            select: {
+              id: true,
+              name: true,
+              state: true,
+            },
+          },
+          races: {
+            orderBy: [{ raceNumber: "asc" }, { raceTime: "asc" }],
+            take: 24,
+            select: {
+              id: true,
+              raceNumber: true,
+              name: true,
+              raceTime: true,
+              distance: true,
+              grade: true,
+              prizeMoney: true,
+              resultStatus: true,
+              replayUrl: true,
+              _count: { select: { runners: true } },
+              runners: {
+                where: { result: { isNot: null } },
+                orderBy: [{ boxNumber: "asc" }, { id: "asc" }],
+                take: 24,
+                select: {
+                  boxNumber: true,
+                  dog: { select: { id: true, name: true } },
+                  result: {
+                    select: {
+                      finishingPosition: true,
+                      runningTime: true,
+                      margin: true,
+                    },
+                  },
+                },
+              },
+              videos: {
+                where: { streamUrl: { not: null } },
+                orderBy: { fetchedAt: "desc" },
+                take: 1,
+                select: { id: true, streamUrl: true },
+              },
+            },
+          },
+        },
+      }),
+    null,
+  );
+});
+
 export const getRaceById = cache(async (id: string) => {
   return safeQuery(
     () =>
-      prisma.race.findUnique({
+      withDbAnonymousQueryDeadline(async (tx) => {
+      const race = await tx.race.findUnique({
         where: { id },
-        include: {
-          meeting: { include: { track: true } },
+        select: {
+          id: true,
+          raceNumber: true,
+          name: true,
+          raceTime: true,
+          distance: true,
+          grade: true,
+          prizeMoney: true,
+          resultStatus: true,
+          replayUrl: true,
+          sourceProvider: true,
+          sourceId: true,
+          meeting: {
+            select: {
+              id: true,
+              meetingDate: true,
+              track: { select: { name: true, state: true } },
+              races: {
+                orderBy: [{ raceNumber: "asc" }, { raceTime: "asc" }],
+                take: RACE_DETAIL_MEETING_RACE_LIMIT,
+                select: {
+                  id: true,
+                  raceNumber: true,
+                  raceTime: true,
+                  distance: true,
+                  grade: true,
+                  name: true,
+                },
+              },
+            },
+          },
           runners: {
             orderBy: { boxNumber: "asc" },
+            take: RACE_DETAIL_RUNNER_LIMIT,
             select: {
               id: true,
               boxNumber: true,
               weight: true,
               scratched: true,
               dog: {
-                include: {
-                  trainer: true,
-                  formEntries: {
-                    where: { OR: [{ raceId: null }, { raceId: { not: id } }] },
-                    orderBy: { date: "desc" },
-                    take: 6,
-                  },
-                  profileForms: {
-                    where: { hasVideo: true },
-                    orderBy: { date: "desc" },
-                    take: 8,
-                    select: {
-                      id: true,
-                      sourceProvider: true,
-                      raceUrl: true,
-                      date: true,
-                      trackCode: true,
-                      trackName: true,
-                      raceName: true,
-                      finishText: true,
-                      finishingPosition: true,
-                      distance: true,
-                      grade: true,
-                      runningTime: true,
-                      winnerTime: true,
-                      hasVideo: true,
-                    },
-                  },
+                select: {
+                  id: true,
+                  name: true,
+                  colour: true,
+                  sex: true,
+                  trainer: { select: { name: true } },
                 },
               },
-              trainer: true,
-              result: true,
+              trainer: { select: { name: true } },
+              result: {
+                select: {
+                  finishingPosition: true,
+                  runningTime: true,
+                  margin: true,
+                  prizeMoneyWon: true,
+                  splitTime: true,
+                },
+              },
             },
           },
           videos: {
             orderBy: { fetchedAt: "desc" },
+            take: RACE_DETAIL_VIDEO_LIMIT,
             select: {
               id: true,
               sourceProvider: true,
@@ -151,31 +275,59 @@ export const getRaceById = cache(async (id: string) => {
             },
           },
         },
-      }),
+      });
+      if (!race) return null;
+
+      const dogIds = [...new Set(race.runners.map((runner) => runner.dog.id))];
+      const [formRows, profileFormRows] = await Promise.all([
+        getBoundedRaceDetailFormEntries(dogIds, id, tx),
+        getBoundedRaceDetailProfileForms(dogIds, tx),
+      ]);
+      const formEntriesByDog = groupRowsByKey(formRows, "dogId");
+      const profileFormsByDog = groupRowsByKey(profileFormRows, "dogId");
+
+      return {
+        ...race,
+        runners: race.runners.map((runner) => ({
+          ...runner,
+          dog: {
+            ...runner.dog,
+            formEntries: (formEntriesByDog.get(runner.dog.id) ?? []).map(
+              (entry) => omitGroupingKey(entry, "dogId"),
+            ),
+            profileForms: (profileFormsByDog.get(runner.dog.id) ?? []).map(
+              (entry) => omitGroupingKey(entry, "dogId"),
+            ),
+          },
+        })),
+      };
+      }, PUBLIC_RACING_QUERY_DEADLINE),
     null
   );
 });
 
 export async function getPreviousRaceVideoRunners(raceId: string) {
-  const currentRace = await safeQuery(
+  return safeQuery(
     () =>
-      prisma.race.findUnique({
+      withDbAnonymousQueryDeadline(async (tx) => {
+      const currentRace = await tx.race.findUnique({
         where: { id: raceId },
         select: {
           raceTime: true,
-          runners: { select: { dogId: true } },
+          runners: {
+            take: RACE_DETAIL_RUNNER_LIMIT,
+            select: { dogId: true },
+          },
         },
-      }),
-    null
-  );
-  if (!currentRace) return [];
+      });
+      if (!currentRace) return [];
 
-  const dogIds = [...new Set(currentRace.runners.map((runner) => runner.dogId))];
-  if (dogIds.length === 0) return [];
+      const dogIds = [
+        ...new Set(currentRace.runners.map((runner) => runner.dogId)),
+      ];
+      if (dogIds.length === 0) return [];
 
-  return safeQuery(
-    () =>
-      prisma.runner.findMany({
+      const candidates = await tx.runner.findMany({
         where: {
           dogId: { in: dogIds },
           raceId: { not: raceId },
@@ -185,38 +337,240 @@ export async function getPreviousRaceVideoRunners(raceId: string) {
           },
         },
         orderBy: { race: { raceTime: "desc" } },
-        take: 24,
+        take: RACE_DETAIL_PREVIOUS_RUNNER_LIMIT,
         select: {
           dog: { select: { name: true } },
-          result: true,
+          result: {
+            select: { finishingPosition: true, runningTime: true },
+          },
           race: {
-            include: {
-              meeting: { include: { track: true } },
-              videos: {
-                orderBy: { fetchedAt: "desc" },
-                select: {
-                  id: true,
-                  sourceProvider: true,
-                  sourceId: true,
-                  kind: true,
-                  pageUrl: true,
-                  embedSourceType: true,
-                  sourceStatus: true,
-                  sourceCode: true,
-                  streamUrl: true,
-                  streamContentType: true,
-                  title: true,
-                  description: true,
-                  fetchedAt: true,
-                  lastSyncedAt: true,
-                },
+            select: {
+              id: true,
+              raceNumber: true,
+              name: true,
+              raceTime: true,
+              distance: true,
+              grade: true,
+              replayUrl: true,
+              sourceProvider: true,
+              sourceId: true,
+              meeting: {
+                select: { track: { select: { name: true } } },
               },
             },
           },
         },
-      }),
+      });
+      const videosByRace = groupRowsByKey(
+        await getBoundedRaceDetailVideos(
+          [...new Set(candidates.map((candidate) => candidate.race.id))],
+          tx,
+        ),
+        "raceId",
+      );
+      return candidates.map((candidate) => ({
+        ...candidate,
+        race: {
+          ...candidate.race,
+          videos: (videosByRace.get(candidate.race.id) ?? []).map(
+            (video) => omitGroupingKey(video, "raceId"),
+          ),
+        },
+      }));
+      }, PUBLIC_RACING_QUERY_DEADLINE),
     []
   );
+}
+
+type RaceDetailFormEntryRow = {
+  dogId: string;
+  finish: number | null;
+  date: Date;
+  trackId: string | null;
+};
+
+type RaceDetailProfileFormRow = {
+  dogId: string;
+  id: string;
+  sourceProvider: string;
+  raceUrl: string;
+  date: Date;
+  trackCode: string | null;
+  trackName: string | null;
+  raceName: string | null;
+  finishText: string | null;
+  finishingPosition: number | null;
+  distance: number | null;
+  grade: string | null;
+  runningTime: number | null;
+  winnerTime: number | null;
+  hasVideo: boolean;
+};
+
+type RaceDetailVideoRow = {
+  raceId: string;
+  id: string;
+  sourceProvider: string;
+  sourceId: string;
+  kind: string;
+  pageUrl: string;
+  embedSourceType: string | null;
+  sourceStatus: number | null;
+  sourceCode: string | null;
+  streamUrl: string | null;
+  streamContentType: string | null;
+  title: string | null;
+  description: string | null;
+  fetchedAt: Date | null;
+  lastSyncedAt: Date | null;
+};
+
+function getBoundedRaceDetailFormEntries(
+  dogIds: string[],
+  raceId: string,
+  db: DbContextClient,
+) {
+  if (dogIds.length === 0) return Promise.resolve<RaceDetailFormEntryRow[]>([]);
+  const values = Prisma.join(dogIds.map((dogId) => Prisma.sql`(${dogId})`));
+  return db.$queryRaw<RaceDetailFormEntryRow[]>(Prisma.sql`
+    SELECT
+      bounded."dogId",
+      bounded.finish,
+      bounded.date,
+      bounded."trackId"
+    FROM (VALUES ${values}) AS selected("dogId")
+    CROSS JOIN LATERAL (
+      SELECT f."dogId", f.finish, f.date, f."trackId"
+      FROM "FormEntry" AS f
+      WHERE f."dogId" = selected."dogId"
+        AND (f."raceId" IS NULL OR f."raceId" <> ${raceId})
+      ORDER BY f.date DESC, f.id DESC
+      LIMIT ${RACE_DETAIL_DOG_FORM_LIMIT}
+    ) AS bounded
+    ORDER BY bounded."dogId" ASC, bounded.date DESC
+  `);
+}
+
+function getBoundedRaceDetailProfileForms(
+  dogIds: string[],
+  db: DbContextClient,
+) {
+  if (dogIds.length === 0) return Promise.resolve<RaceDetailProfileFormRow[]>([]);
+  const values = Prisma.join(dogIds.map((dogId) => Prisma.sql`(${dogId})`));
+  return db.$queryRaw<RaceDetailProfileFormRow[]>(Prisma.sql`
+    SELECT
+      bounded."dogId",
+      bounded.id,
+      bounded."sourceProvider",
+      bounded."raceUrl",
+      bounded.date,
+      bounded."trackCode",
+      bounded."trackName",
+      bounded."raceName",
+      bounded."finishText",
+      bounded."finishingPosition",
+      bounded.distance,
+      bounded.grade,
+      bounded."runningTime",
+      bounded."winnerTime",
+      bounded."hasVideo"
+    FROM (VALUES ${values}) AS selected("dogId")
+    CROSS JOIN LATERAL (
+      SELECT
+        p."dogId",
+        p.id,
+        p."sourceProvider",
+        p."raceUrl",
+        p.date,
+        p."trackCode",
+        p."trackName",
+        p."raceName",
+        p."finishText",
+        p."finishingPosition",
+        p.distance,
+        p.grade,
+        p."runningTime",
+        p."winnerTime",
+        p."hasVideo"
+      FROM "DogProfileForm" AS p
+      WHERE p."dogId" = selected."dogId" AND p."hasVideo" = true
+      ORDER BY p.date DESC, p.id DESC
+      LIMIT ${RACE_DETAIL_DOG_PROFILE_FORM_LIMIT}
+    ) AS bounded
+    ORDER BY bounded."dogId" ASC, bounded.date DESC
+  `);
+}
+
+function getBoundedRaceDetailVideos(
+  raceIds: string[],
+  db: DbContextClient,
+) {
+  if (raceIds.length === 0) return Promise.resolve<RaceDetailVideoRow[]>([]);
+  const values = Prisma.join(raceIds.map((raceId) => Prisma.sql`(${raceId})`));
+  return db.$queryRaw<RaceDetailVideoRow[]>(Prisma.sql`
+    SELECT
+      bounded."raceId",
+      bounded.id,
+      bounded."sourceProvider",
+      bounded."sourceId",
+      bounded.kind,
+      bounded."pageUrl",
+      bounded."embedSourceType",
+      bounded."sourceStatus",
+      bounded."sourceCode",
+      bounded."streamUrl",
+      bounded."streamContentType",
+      bounded.title,
+      bounded.description,
+      bounded."fetchedAt",
+      bounded."lastSyncedAt"
+    FROM (VALUES ${values}) AS selected("raceId")
+    CROSS JOIN LATERAL (
+      SELECT
+        v."raceId",
+        v.id,
+        v."sourceProvider",
+        v."sourceId",
+        v.kind,
+        v."pageUrl",
+        v."embedSourceType",
+        v."sourceStatus",
+        v."sourceCode",
+        v."streamUrl",
+        v."streamContentType",
+        v.title,
+        v.description,
+        v."fetchedAt",
+        v."lastSyncedAt"
+      FROM "RaceVideo" AS v
+      WHERE v."raceId" = selected."raceId"
+      ORDER BY v."fetchedAt" DESC, v.id ASC
+      LIMIT ${RACE_DETAIL_VIDEO_LIMIT}
+    ) AS bounded
+    ORDER BY bounded."raceId" ASC, bounded."fetchedAt" DESC, bounded.id ASC
+  `);
+}
+
+function groupRowsByKey<
+  TKey extends "dogId" | "raceId",
+  TRow extends Record<TKey, string>,
+>(rows: TRow[], key: TKey) {
+  const groups = new Map<string, TRow[]>();
+  for (const row of rows) {
+    const group = groups.get(row[key]) ?? [];
+    group.push(row);
+    groups.set(row[key], group);
+  }
+  return groups;
+}
+
+function omitGroupingKey<TRow extends object, TKey extends keyof TRow>(
+  row: TRow,
+  key: TKey,
+): Omit<TRow, TKey> {
+  const { [key]: omitted, ...remaining } = row;
+  void omitted;
+  return remaining;
 }
 
 // Minimal payload: only the fields the search dropdown renders. Heavy relations
@@ -244,16 +598,17 @@ export async function searchDogs(
 ): Promise<DogSearchResult[]> {
   const trimmed = query?.trim().replace(/\s+/g, " ").slice(0, 80);
   if (!trimmed) return [];
+  const dogSearchLimit = Math.min(Math.max(Math.trunc(limit), 1), 100);
 
   // 1-2 char prefixes are the hottest autocomplete keystrokes and the slowest
   // (widest match set). There are only ~a few thousand distinct short prefixes
   // and the result is identical for every user, so cache them for a minute.
   if (trimmed.length < 3) {
-    return cached(`dogsearch:${trimmed.toLowerCase()}:${limit}`, 60_000, () =>
-      runDogSearch(trimmed, limit)
+    return cached(`dogsearch:${trimmed.toLowerCase()}:${dogSearchLimit}`, 60_000, () =>
+      runDogSearch(trimmed, dogSearchLimit)
     );
   }
-  return runDogSearch(trimmed, limit);
+  return runDogSearch(trimmed, dogSearchLimit);
 }
 
 async function runDogSearch(
@@ -294,6 +649,8 @@ async function runDogSearch(
       () =>
         prisma.dog.findMany({
           where: { id: { in: ids } },
+          orderBy: { id: "asc" },
+          take: 100,
           select: dogSearchSelect,
         }),
       []
@@ -304,6 +661,8 @@ async function runDogSearch(
           by: ["dogId"],
           where: { dogId: { in: ids } },
           _count: { _all: true },
+          orderBy: { dogId: "asc" },
+          take: 100,
         }),
       []
     ),
@@ -358,11 +717,15 @@ function searchDogsTrigram(
 }
 
 const DOG_TALLY_TTL_MS = 10 * 60 * 1000;
+const DOG_DETAIL_FORM_ENTRY_LIMIT = 64;
+const DOG_DETAIL_PROFILE_FORM_LIMIT = 20;
+const DOG_DETAIL_RUNNER_LIMIT = 20;
+const DOG_DETAIL_OWNERSHIP_LIMIT = 16;
 
 export type DogSearchTallies = {
-  dogs: number;
-  races: number;
-  results: number;
+  dogs: number | null;
+  races: number | null;
+  results: number | null;
 };
 
 // Approximate row counts (pg_class.reltuples) for the dog-search landing page.
@@ -372,29 +735,48 @@ export async function getDogSearchTallies(): Promise<DogSearchTallies> {
   return cached("dog-search-tallies", DOG_TALLY_TTL_MS, async () => {
     const counts = await getApproximateTableCounts(["Dog", "Race", "Result"]);
     return {
-      dogs: counts.get("Dog") ?? 0,
-      races: counts.get("Race") ?? 0,
-      results: counts.get("Result") ?? 0,
+      dogs: counts.get("Dog") ?? null,
+      races: counts.get("Race") ?? null,
+      results: counts.get("Result") ?? null,
     };
   });
 }
 
 export const getDogById = cache(async (id: string) => {
-  return safeQuery(
-    () =>
+  return safeQuery(async () => {
+    const [dog, careerStarts, finishGroups] = await Promise.all([
       prisma.dog.findUnique({
         where: { id },
-        include: {
-          trainer: true,
-          sire: { include: { sire: true, dam: true } },
-          dam: { include: { sire: true, dam: true } },
+        select: {
+          id: true,
+          name: true,
+          earBrand: true,
+          colour: true,
+          sex: true,
+          whelpDate: true,
+          prizeMoney: true,
+          trainer: { select: { name: true } },
+          sire: { select: { name: true } },
+          dam: { select: { name: true } },
           formEntries: {
             orderBy: { date: "desc" },
-            include: { track: true },
+            take: DOG_DETAIL_FORM_ENTRY_LIMIT,
+            select: {
+              id: true,
+              raceId: true,
+              date: true,
+              boxNumber: true,
+              finish: true,
+              time: true,
+              distance: true,
+              grade: true,
+              weight: true,
+              track: { select: { name: true } },
+            },
           },
           profileForms: {
             orderBy: { date: "desc" },
-            take: 20,
+            take: DOG_DETAIL_PROFILE_FORM_LIMIT,
             select: {
               id: true,
               sourceProvider: true,
@@ -415,34 +797,75 @@ export const getDogById = cache(async (id: string) => {
             },
           },
           runners: {
-            include: {
+            select: {
+              boxNumber: true,
+              weight: true,
               race: {
-                include: { meeting: { include: { track: true } } },
+                select: {
+                  id: true,
+                  raceTime: true,
+                  distance: true,
+                  grade: true,
+                  replayUrl: true,
+                  meeting: {
+                    select: { track: { select: { name: true } } },
+                  },
+                },
               },
-              result: true,
+              result: {
+                select: {
+                  finishingPosition: true,
+                  runningTime: true,
+                  splitTime: true,
+                  margin: true,
+                },
+              },
             },
             orderBy: { createdAt: "desc" },
-            take: 20,
+            take: DOG_DETAIL_RUNNER_LIMIT,
           },
           ownership: {
+            where: { status: "approved" },
             orderBy: [{ verified: "desc" }, { createdAt: "desc" }],
-            include: {
+            take: DOG_DETAIL_OWNERSHIP_LIMIT,
+            select: {
+              id: true,
+              role: true,
+              status: true,
               profile: {
-                include: {
-                  user: {
-                    select: {
-                      email: true,
-                      subscriptionTier: true,
-                    },
-                  },
+                select: {
+                  displayName: true,
+                  kennelName: true,
+                  state: true,
                 },
               },
             },
           },
         },
       }),
-    null
-  );
+      prisma.formEntry.count({ where: { dogId: id } }),
+      prisma.formEntry.groupBy({
+        by: ["finish"],
+        where: { dogId: id, finish: { in: [1, 2, 3] } },
+        _count: { _all: true },
+        orderBy: { finish: "asc" },
+        take: 3,
+      }),
+    ]);
+    if (!dog) return null;
+    return {
+      ...dog,
+      careerStats: {
+        starts: careerStarts,
+        wins:
+          finishGroups.find((row) => row.finish === 1)?._count._all ?? 0,
+        placings: finishGroups.reduce(
+          (total, row) => total + row._count._all,
+          0,
+        ),
+      },
+    };
+  }, null);
 });
 
 // The claimant's own ownership row for a dog, at ANY status. getDogById runs on
@@ -503,6 +926,7 @@ export const getDogPrizeMoney = cache(
             _sum: { prizeMoneyWon: true },
             _count: { _all: true },
             orderBy: { finishingPosition: "asc" },
+            take: 32,
           }),
         []
       ),
@@ -528,15 +952,19 @@ type RecentResultsFilters = {
   limit?: number;
 };
 export async function getRecentResults(filters: RecentResultsFilters = {}) {
+  const boundedFilters = {
+    ...filters,
+    limit: Math.min(Math.max(Math.trunc(filters.limit ?? 50), 1), 100),
+  };
   // The unfiltered default view is identical for every visitor — cache it.
-  if (!filters.date && !filters.trackId) {
+  if (!boundedFilters.date && !boundedFilters.trackId) {
     return cached(
-      `results:recent:${filters.sort ?? "newest"}:${filters.limit ?? 50}`,
+      `results:recent:${boundedFilters.sort ?? "newest"}:${boundedFilters.limit}`,
       60_000,
-      () => fetchRecentResults(filters)
+      () => fetchRecentResults(boundedFilters)
     );
   }
-  return fetchRecentResults(filters);
+  return fetchRecentResults(boundedFilters);
 }
 
 async function fetchRecentResults(filters: RecentResultsFilters = {}) {
@@ -570,6 +998,7 @@ async function fetchRecentResults(filters: RecentResultsFilters = {}) {
           meeting: { include: { track: true } },
           runners: {
             orderBy: { boxNumber: "asc" },
+            take: 16,
             select: {
               id: true,
               boxNumber: true,
@@ -600,7 +1029,7 @@ async function fetchRecentResults(filters: RecentResultsFilters = {}) {
           },
         },
         orderBy,
-        take: filters.limit ?? 50,
+        take: Math.min(Math.max(Math.trunc(filters.limit ?? 50), 1), 100),
       }),
     []
   );
@@ -624,6 +1053,7 @@ export async function getResultFilterOptions() {
             WHERE ra."raceTime" >= now() - make_interval(days => ${RESULT_FILTER_WINDOW_DAYS}::int)
               AND EXISTS (SELECT 1 FROM "Result" res WHERE res."raceId" = ra.id)
             ORDER BY t.state ASC, t.name ASC
+            LIMIT 100
           `,
         []
       ),
@@ -648,10 +1078,11 @@ export async function getResultFilterOptions() {
 }
 
 export async function getUpcomingRaces(days = 7) {
+  const boundedDays = Math.min(Math.max(Math.trunc(days), 1), 31);
   const now = new Date();
   now.setHours(0, 0, 0, 0); // include today's meetings even after some races have run
   const until = new Date();
-  until.setDate(until.getDate() + days);
+  until.setDate(until.getDate() + boundedDays);
   until.setHours(23, 59, 59, 999);
 
   return safeQuery(
@@ -664,10 +1095,17 @@ export async function getUpcomingRaces(days = 7) {
           track: true,
           races: {
             orderBy: { raceTime: "asc" },
-            include: { runners: true },
+            take: 32,
+            include: {
+              runners: {
+                orderBy: [{ boxNumber: "asc" }, { id: "asc" }],
+                take: 16,
+              },
+            },
           },
         },
         orderBy: { meetingDate: "asc" },
+        take: 500,
       }),
     []
   );
@@ -687,27 +1125,33 @@ export async function getRaceExplorerData(filters: RaceExplorerFilters = {}) {
   // request. Any filter/search/date/state/sort bypasses the cache.
   const isDefaultView =
     !filters.date && !filters.state && !filters.q && !filters.status && !filters.sort;
-  if (isDefaultView) {
-    return cached("races:explorer:default", 60_000, () =>
-      fetchRaceExplorerData(filters)
+  const load = () =>
+    withDbAnonymousQueryDeadline(
+      (tx) => fetchRaceExplorerData(filters, tx),
+      PUBLIC_RACING_QUERY_DEADLINE,
     );
+  if (isDefaultView) {
+    return cached("races:explorer:default", 60_000, load);
   }
-  return fetchRaceExplorerData(filters);
+  return load();
 }
 
-async function fetchRaceExplorerData(filters: RaceExplorerFilters = {}) {
+async function fetchRaceExplorerData(
+  filters: RaceExplorerFilters,
+  db: DbContextClient,
+) {
   const [latestRace, states, datasetStats, recentRaceDates] = await Promise.all([
     safeQuery(
       () =>
-        prisma.race.findFirst({
+        db.race.findFirst({
           orderBy: { raceTime: "desc" },
           select: { raceTime: true },
         }),
       null
     ),
-    getRaceStates(),
-    getDatasetStats(),
-    getRecentRaceDates(),
+    getRaceStates(db),
+    getDatasetStats(db),
+    getRecentRaceDates(db),
   ]);
 
   const currentDate = formatRaceDateInput(new Date());
@@ -730,10 +1174,10 @@ async function fetchRaceExplorerData(filters: RaceExplorerFilters = {}) {
         query: searchQuery,
         selectedDate: dateScope.isGlobalSearch ? null : selectedDate,
         selectedState,
-        selectedStatus,
-        gte,
-        lt,
-      })
+      selectedStatus,
+      gte,
+      lt,
+      }, db)
     : null;
   const searchFilter: Prisma.RaceWhereInput | null = searchQuery
     ? rankedRaceIds
@@ -753,29 +1197,38 @@ async function fetchRaceExplorerData(filters: RaceExplorerFilters = {}) {
     ...(selectedState ? { track: { state: selectedState } } : {}),
   };
 
-  const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
+  const rawMeetings = await getRaceExplorerMeetings(
+    meetingWhere,
+    raceWhere,
+    db,
+  );
   const [dateSummary, replayRaces] = searchQuery
     ? await Promise.all([
-        summarizeRaceExplorerMeetings(rawMeetings),
+        summarizeRaceExplorerMeetings(rawMeetings, db),
         Promise.resolve(replayRacesFromExplorerMeetings(rawMeetings)),
       ])
     : await Promise.all([
-        getRaceDateSummary(raceWhere, meetingWhere),
+        getRaceDateSummary(raceWhere, meetingWhere, db),
         safeQuery(
           () =>
-            prisma.race.findMany({
+            db.race.findMany({
               where: {
                 ...raceWhere,
                 videos: { some: { streamUrl: { not: null } } },
               },
               orderBy: { raceTime: "desc" },
-              take: 8,
-              include: {
-                meeting: { include: { track: true } },
-                videos: {
-                  where: { streamUrl: { not: null } },
-                  orderBy: { fetchedAt: "desc" },
-                  take: 1,
+              take: RACE_EXPLORER_REPLAY_LIMIT,
+              select: {
+                id: true,
+                raceNumber: true,
+                raceTime: true,
+                distance: true,
+                grade: true,
+                meeting: {
+                  select: {
+                    id: true,
+                    track: { select: { name: true, state: true } },
+                  },
                 },
               },
             }),
@@ -824,6 +1277,7 @@ type RaceExplorerRace = {
   raceTime: Date;
   distance: number;
   grade: string | null;
+  resultStatus: string | null;
   _count: { runners: number };
   videos: {
     id: string;
@@ -834,10 +1288,11 @@ type RaceExplorerRace = {
 
 async function getRaceExplorerMeetings(
   meetingWhere: Prisma.MeetingWhereInput,
-  raceWhere: Prisma.RaceWhereInput
+  raceWhere: Prisma.RaceWhereInput,
+  db: DbContextClient,
 ) {
   return safeQuery(async (): Promise<RaceExplorerMeeting[]> => {
-    const meetings = await prisma.meeting.findMany({
+    const meetings = await db.meeting.findMany({
       where: meetingWhere,
       select: {
         id: true,
@@ -853,11 +1308,12 @@ async function getRaceExplorerMeetings(
         },
       },
       orderBy: [{ track: { state: "asc" } }, { track: { name: "asc" } }],
+      take: RACE_EXPLORER_MEETING_LIMIT,
     });
     if (meetings.length === 0) return [];
 
     const meetingIds = meetings.map((meeting) => meeting.id);
-    const races = await prisma.race.findMany({
+    const races = await db.race.findMany({
       where: { AND: [raceWhere, { meetingId: { in: meetingIds } }] },
       orderBy: { raceTime: "asc" },
       select: {
@@ -867,7 +1323,9 @@ async function getRaceExplorerMeetings(
         raceTime: true,
         distance: true,
         grade: true,
+        resultStatus: true,
       },
+      take: RACE_EXPLORER_RACE_LIMIT,
     });
     if (races.length === 0) {
       return meetings.map((meeting) => ({ ...meeting, races: [] }));
@@ -875,14 +1333,17 @@ async function getRaceExplorerMeetings(
 
     const raceIds = races.map((race) => race.id);
     const [runnerCounts, videos] = await Promise.all([
-      prisma.runner.groupBy({
+      db.runner.groupBy({
         by: ["raceId"],
         where: { raceId: { in: raceIds } },
         _count: { _all: true },
+        orderBy: { raceId: "asc" },
+        take: RACE_EXPLORER_RACE_LIMIT,
       }),
-      prisma.raceVideo.findMany({
+      db.raceVideo.findMany({
         where: { raceId: { in: raceIds } },
-        orderBy: { fetchedAt: "desc" },
+        orderBy: [{ fetchedAt: "desc" }, { id: "asc" }],
+        take: RACE_EXPLORER_RACE_LIMIT,
         select: {
           id: true,
           raceId: true,
@@ -897,13 +1358,15 @@ async function getRaceExplorerMeetings(
     );
     const videosByRace = new Map<string, RaceExplorerRace["videos"]>();
     for (const video of videos) {
-      const raceVideos = videosByRace.get(video.raceId) ?? [];
-      raceVideos.push({
-        id: video.id,
-        streamUrl: video.streamUrl,
-        sourceStatus: video.sourceStatus,
-      });
-      videosByRace.set(video.raceId, raceVideos);
+      if (!videosByRace.has(video.raceId)) {
+        videosByRace.set(video.raceId, [
+          {
+            id: video.id,
+            streamUrl: video.streamUrl,
+            sourceStatus: video.sourceStatus,
+          },
+        ]);
+      }
     }
 
     const racesByMeeting = new Map<string, RaceExplorerRace[]>();
@@ -915,6 +1378,7 @@ async function getRaceExplorerMeetings(
         raceTime: race.raceTime,
         distance: race.distance,
         grade: race.grade,
+        resultStatus: race.resultStatus,
         _count: { runners: runnersByRace.get(race.id) ?? 0 },
         videos: videosByRace.get(race.id) ?? [],
       });
@@ -928,11 +1392,11 @@ async function getRaceExplorerMeetings(
   }, []);
 }
 
-async function getRaceStates() {
+async function getRaceStates(db: DbContextClient) {
   if (raceStatesCache && raceStatesCache.expiresAt > Date.now()) {
     return raceStatesCache.value;
   }
-  const value = await loadRaceStates();
+  const value = await loadRaceStates(db);
   raceStatesCache = {
     expiresAt: Date.now() + RACE_EXPLORER_META_TTL_MS,
     value,
@@ -940,24 +1404,24 @@ async function getRaceStates() {
   return value;
 }
 
-async function loadRaceStates() {
+async function loadRaceStates(db: DbContextClient) {
   const rows = await safeQuery(
     () =>
-      prisma.track.findMany({
-        distinct: ["state"],
-        select: { state: true },
+      db.track.groupBy({
+        by: ["state"],
         orderBy: { state: "asc" },
+        take: RACE_EXPLORER_STATE_LIMIT,
       }),
     []
   );
   return rows.map((row) => row.state).filter(Boolean);
 }
 
-async function getDatasetStats() {
+async function getDatasetStats(db: DbContextClient) {
   if (datasetStatsCache && datasetStatsCache.expiresAt > Date.now()) {
     return datasetStatsCache.value;
   }
-  const value = await loadDatasetStats();
+  const value = await loadDatasetStats(db);
   datasetStatsCache = {
     expiresAt: Date.now() + RACE_EXPLORER_META_TTL_MS,
     value,
@@ -965,18 +1429,28 @@ async function getDatasetStats() {
   return value;
 }
 
-async function loadDatasetStats() {
-  const fallback = {
-    races: 0,
-    runners: 0,
-    results: 0,
-    dogs: 0,
-    dogProfileForms: 0,
-    videos: 0,
-    videosWithStream: 0,
+async function loadDatasetStats(db: DbContextClient) {
+  type DatasetStats = {
+    races: number | null;
+    runners: number | null;
+    results: number | null;
+    dogs: number | null;
+    dogProfileForms: number | null;
+    videos: number | null;
+    videosWithStream: number | null;
+    latestRaceTime: string | null;
+  };
+  const fallback: DatasetStats = {
+    races: null,
+    runners: null,
+    results: null,
+    dogs: null,
+    dogProfileForms: null,
+    videos: null,
+    videosWithStream: null,
     latestRaceTime: null as string | null,
   };
-  return safeQuery(async () => {
+  return safeQuery<DatasetStats>(async () => {
     const [tableCounts, videosWithStream, latestRace] = await Promise.all([
       getApproximateTableCounts([
         "Race",
@@ -986,31 +1460,31 @@ async function loadDatasetStats() {
         "DogProfileForm",
         "RaceVideo",
       ]),
-      prisma.raceVideo.count({ where: { streamUrl: { not: null } } }),
-      prisma.race.findFirst({
+      db.raceVideo.count({ where: { streamUrl: { not: null } } }),
+      db.race.findFirst({
         orderBy: { raceTime: "desc" },
         select: { raceTime: true },
       }),
     ]);
 
     return {
-      races: tableCounts.get("Race") ?? 0,
-      runners: tableCounts.get("Runner") ?? 0,
-      results: tableCounts.get("Result") ?? 0,
-      dogs: tableCounts.get("Dog") ?? 0,
-      dogProfileForms: tableCounts.get("DogProfileForm") ?? 0,
-      videos: tableCounts.get("RaceVideo") ?? 0,
+      races: tableCounts.get("Race") ?? null,
+      runners: tableCounts.get("Runner") ?? null,
+      results: tableCounts.get("Result") ?? null,
+      dogs: tableCounts.get("Dog") ?? null,
+      dogProfileForms: tableCounts.get("DogProfileForm") ?? null,
+      videos: tableCounts.get("RaceVideo") ?? null,
       videosWithStream,
       latestRaceTime: latestRace?.raceTime.toISOString() ?? null,
     };
   }, fallback);
 }
 
-async function getRecentRaceDates() {
+async function getRecentRaceDates(db: DbContextClient) {
   if (recentRaceDatesCache && recentRaceDatesCache.expiresAt > Date.now()) {
     return recentRaceDatesCache.value;
   }
-  const value = await loadRecentRaceDates();
+  const value = await loadRecentRaceDates(db);
   recentRaceDatesCache = {
     expiresAt: Date.now() + RACE_EXPLORER_META_TTL_MS,
     value,
@@ -1018,10 +1492,10 @@ async function getRecentRaceDates() {
   return value;
 }
 
-async function loadRecentRaceDates() {
+async function loadRecentRaceDates(db: DbContextClient) {
   const rows = await safeQuery(
     () =>
-      prisma.$queryRaw<{ date: string; races: number }[]>`
+      db.$queryRaw<{ date: string; races: number }[]>`
         SELECT to_char(((r."raceTime" AT TIME ZONE 'UTC') AT TIME ZONE 'Australia/Sydney')::date, 'YYYY-MM-DD') AS date,
                COUNT(*)::int AS races
         FROM "Race" r
@@ -1040,26 +1514,35 @@ async function loadRecentRaceDates() {
 
 async function getRaceDateSummary(
   raceWhere: Prisma.RaceWhereInput,
-  meetingWhere: Prisma.MeetingWhereInput
+  meetingWhere: Prisma.MeetingWhereInput,
+  db: DbContextClient,
 ) {
-  const fallback = {
-    meetings: 0,
-    races: 0,
-    runners: 0,
-    results: 0,
-    videos: 0,
-    videosWithStream: 0,
+  type RaceDateSummary = {
+    meetings: number | null;
+    races: number | null;
+    runners: number | null;
+    results: number | null;
+    videos: number | null;
+    videosWithStream: number | null;
+  };
+  const fallback: RaceDateSummary = {
+    meetings: null,
+    races: null,
+    runners: null,
+    results: null,
+    videos: null,
+    videosWithStream: null,
   };
 
-  return safeQuery(async () => {
+  return safeQuery<RaceDateSummary>(async () => {
     const [meetings, races, runners, results, videos, videosWithStream] =
       await Promise.all([
-        prisma.meeting.count({ where: meetingWhere }),
-        prisma.race.count({ where: raceWhere }),
-        prisma.runner.count({ where: { race: raceWhere } }),
-        prisma.result.count({ where: { runner: { race: raceWhere } } }),
-        prisma.raceVideo.count({ where: { race: raceWhere } }),
-        prisma.raceVideo.count({
+        db.meeting.count({ where: meetingWhere }),
+        db.race.count({ where: raceWhere }),
+        db.runner.count({ where: { race: raceWhere } }),
+        db.result.count({ where: { runner: { race: raceWhere } } }),
+        db.raceVideo.count({ where: { race: raceWhere } }),
+        db.raceVideo.count({
           where: { race: raceWhere, streamUrl: { not: null } },
         }),
       ]);
@@ -1072,18 +1555,19 @@ async function summarizeRaceExplorerMeetings(
   meetings: {
     races: {
       id: string;
-      _count?: { runners: number };
-      videos?: { streamUrl: string | null }[];
+      _count: { runners: number };
+      videos: { streamUrl: string | null }[];
     }[];
-  }[]
+  }[],
+  db: DbContextClient,
 ) {
   const raceIds = meetings.flatMap((meeting) =>
     meeting.races.map((race) => race.id)
   );
-  const results = raceIds.length
-    ? await safeQuery(
-        () => prisma.result.count({ where: { raceId: { in: raceIds } } }),
-        0
+  const results: number | null = raceIds.length
+    ? await safeQuery<number | null>(
+        () => db.result.count({ where: { raceId: { in: raceIds } } }),
+        null
       )
     : 0;
 
@@ -1092,10 +1576,11 @@ async function summarizeRaceExplorerMeetings(
       summary.meetings += 1;
       summary.races += meeting.races.length;
       for (const race of meeting.races) {
-        summary.runners += race._count?.runners ?? 0;
-        summary.videos += race.videos?.length ?? 0;
-        summary.videosWithStream +=
-          race.videos?.filter((video) => video.streamUrl).length ?? 0;
+        summary.runners += race._count.runners;
+        summary.videos += race.videos.length;
+        summary.videosWithStream += race.videos.filter(
+          (video) => video.streamUrl
+        ).length;
       }
       return summary;
     },
@@ -1173,18 +1658,7 @@ function normaliseRaceSearchParam(value: string | null | undefined) {
   return trimmed;
 }
 
-export function resolveRaceSearchDate(
-  value: string | null | undefined,
-  searchQuery: string | null,
-  defaultDate: string
-) {
-  const explicitDate = normaliseRaceDateInput(value);
-  return {
-    selectedDate: explicitDate ?? defaultDate,
-    dateInputValue: explicitDate ?? "",
-    isGlobalSearch: Boolean(searchQuery && !explicitDate),
-  };
-}
+export { resolveRaceSearchDate } from "@/lib/race-search";
 
 function normaliseRaceStatusParam(
   value: string | null | undefined
@@ -1273,7 +1747,7 @@ async function findRankedRaceSearchIds({
   selectedStatus: RaceStatusFilter;
   gte: Date;
   lt: Date;
-}) {
+}, db: DbContextClient) {
   const parsed = parseRaceSearchQuery(query);
   const textQuery = parsed.text ?? query;
   const likePattern = `%${escapeLikePattern(textQuery)}%`;
@@ -1304,7 +1778,7 @@ async function findRankedRaceSearchIds({
         selectedStatus,
         gte,
         lt,
-      });
+      }, db);
 
   if (globalRunnerRows?.length) {
     return globalRunnerRows;
@@ -1312,7 +1786,7 @@ async function findRankedRaceSearchIds({
 
   const fieldRows = await safeQuery(
     () =>
-      prisma.$queryRaw<{ id: string }[]>`
+      db.$queryRaw<{ id: string }[]>`
         WITH field_race AS (
           SELECT
             r.id,
@@ -1421,7 +1895,7 @@ async function findRankedRaceSearchIds({
         selectedStatus,
         gte,
         lt,
-      })
+      }, db)
     : null;
 
   if (runnerRows?.length) {
@@ -1430,7 +1904,7 @@ async function findRankedRaceSearchIds({
 
   const exactRows = await safeQuery(
     () =>
-      prisma.$queryRaw<{ id: string }[]>`
+      db.$queryRaw<{ id: string }[]>`
         WITH exact_race AS (
           SELECT
             r.id,
@@ -1528,7 +2002,7 @@ async function findRankedRaceSearchIds({
 
   const rows = await safeQuery(
     () =>
-      prisma.$queryRaw<{ id: string }[]>`
+      db.$queryRaw<{ id: string }[]>`
         WITH race_search AS (
           SELECT
             r.id,
@@ -1676,14 +2150,14 @@ async function findRunnerRaceSearchIds({
   selectedStatus: RaceStatusFilter;
   gte: Date;
   lt: Date;
-}) {
+}, db: DbContextClient) {
   if (!parsed.text) return null;
   if (parsed.clockTime && !selectedDate) return null;
 
   const insensitive = "insensitive" as const;
   const dogRows = await safeQuery(
     () =>
-      prisma.dog.findMany({
+      db.dog.findMany({
         where: {
           name: { contains: textQuery, mode: insensitive },
         },
@@ -1720,7 +2194,7 @@ async function findRunnerRaceSearchIds({
 
   const rows = await safeQuery(
     () =>
-      prisma.runner.findMany({
+      db.runner.findMany({
         where: {
           dogId: { in: dogRows.map((dog) => dog.id) },
           race: { AND: raceFilters },
@@ -1986,6 +2460,7 @@ export async function getActiveTracks() {
             include: {
               races: {
                 orderBy: { raceTime: "asc" },
+                take: 32,
                 include: {
                   videos: {
                     take: 1,
@@ -1996,6 +2471,7 @@ export async function getActiveTracks() {
             },
           },
         },
+        take: 100,
       }),
     []
   );
@@ -2007,7 +2483,7 @@ export interface BoxBiasRow {
   box: number;
   starts: number;
   wins: number;
-  winRate: number;
+  winRate: number | null;
 }
 
 export async function getBoxBias(): Promise<BoxBiasRow[]> {
@@ -2027,7 +2503,8 @@ export async function getBoxBias(): Promise<BoxBiasRow[]> {
   );
   return rows.map((r) => ({
     ...r,
-    winRate: r.starts > 0 ? parseFloat(((r.wins / r.starts) * 100).toFixed(1)) : 0,
+    winRate:
+      r.starts > 0 ? parseFloat(((r.wins / r.starts) * 100).toFixed(1)) : null,
   }));
 }
 
@@ -2091,7 +2568,7 @@ export interface SireLeaderRow {
   name: string;
   progeny: number;
   winners: number;
-  strike: number;
+  strike: number | null;
   earnings: number;
 }
 
@@ -2117,7 +2594,10 @@ export async function getSireLeaderboard(limit = 10): Promise<SireLeaderRow[]> {
     name: r.name,
     progeny: r.progeny,
     winners: r.winners,
-    strike: r.progeny > 0 ? parseFloat(((r.winners / r.progeny) * 100).toFixed(1)) : 0,
+    strike:
+      r.progeny > 0
+        ? parseFloat(((r.winners / r.progeny) * 100).toFixed(1))
+        : null,
     earnings: r.earnings,
   }));
 }
@@ -2141,29 +2621,58 @@ export async function getTrackByName(name: string) {
 
 export const getTrackById = cache(async (id: string) => {
   return safeQuery(
-    () =>
-      prisma.track.findUnique({
-        where: { id },
-        include: {
-          meetings: {
-            orderBy: { meetingDate: "desc" },
-            take: 8,
-            include: {
-              races: {
-                orderBy: { raceNumber: "asc" },
-                include: {
-                  runners: {
-                    include: {
-                      dog: true,
-                      result: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      }),
+    async () => {
+      const track = await prisma.track.findUnique({ where: { id } });
+      if (!track) return null;
+
+      const meetings = await prisma.meeting.findMany({
+        where: { trackId: id },
+        orderBy: [{ meetingDate: "desc" }, { id: "asc" }],
+        take: TRACK_DETAIL_MEETING_LIMIT,
+      });
+      const meetingIds = meetings.map((meeting) => meeting.id);
+      const races = meetingIds.length
+        ? await prisma.race.findMany({
+            where: { meetingId: { in: meetingIds } },
+            orderBy: [{ meetingId: "asc" }, { raceNumber: "asc" }, { id: "asc" }],
+            take: TRACK_DETAIL_RACE_QUERY_LIMIT,
+          })
+        : [];
+      const raceIds = races.map((race) => race.id);
+      const runners = raceIds.length
+        ? await prisma.runner.findMany({
+            where: { raceId: { in: raceIds } },
+            orderBy: [{ raceId: "asc" }, { boxNumber: "asc" }, { id: "asc" }],
+            take: TRACK_DETAIL_RUNNER_QUERY_LIMIT,
+            include: { dog: true, result: true },
+          })
+        : [];
+      const runnersByRace = new Map<string, typeof runners>();
+      for (const runner of runners) {
+        const rows = runnersByRace.get(runner.raceId) ?? [];
+        if (rows.length < TRACK_DETAIL_RUNNER_LIMIT) rows.push(runner);
+        runnersByRace.set(runner.raceId, rows);
+      }
+      const racesByMeeting = new Map<
+        string,
+        Array<(typeof races)[number] & { runners: typeof runners }>
+      >();
+      for (const race of races) {
+        const rows = racesByMeeting.get(race.meetingId) ?? [];
+        if (rows.length < TRACK_DETAIL_RACE_LIMIT) {
+          rows.push({ ...race, runners: runnersByRace.get(race.id) ?? [] });
+        }
+        racesByMeeting.set(race.meetingId, rows);
+      }
+
+      return {
+        ...track,
+        meetings: meetings.map((meeting) => ({
+          ...meeting,
+          races: racesByMeeting.get(meeting.id) ?? [],
+        })),
+      };
+    },
     null
   );
 });
@@ -2173,6 +2682,7 @@ export async function getForumOverview() {
     () =>
       prisma.forumCategory.findMany({
         orderBy: { sortOrder: "asc" },
+        take: 100,
         include: {
           _count: { select: { threads: true } },
           threads: {
@@ -2194,7 +2704,7 @@ export async function getRecentThreads(limit = 8) {
     () =>
       prisma.thread.findMany({
         orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
-        take: limit,
+        take: Math.min(Math.max(Math.trunc(limit), 1), 100),
         include: {
           category: true,
           author: true,
@@ -2213,6 +2723,7 @@ export const getForumCategoryBySlug = cache(async (slug: string) => {
         include: {
           threads: {
             orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
+            take: 100,
             include: {
               author: true,
               _count: { select: { posts: true } },
@@ -2239,6 +2750,7 @@ export const getForumThreadById = cache(async (id: string) => {
           author: true,
           posts: {
             orderBy: { createdAt: "asc" },
+            take: 500,
             include: { author: true },
           },
           _count: { select: { posts: true } },
@@ -2257,6 +2769,7 @@ export interface MarketplaceListingFilters {
   q?: string | null;
   status?: "active";
   sort?: "created_at" | "price" | "expires_at" | null;
+  offset?: number;
 }
 
 const LISTING_SEARCH_CANDIDATE_LIMIT = 500;
@@ -2273,7 +2786,7 @@ export function getActiveListingsForProfile(profileId: string, limit = 12) {
         },
         include: marketplaceListingCardInclude,
         orderBy: { createdAt: "desc" },
-        take: limit,
+        take: Math.min(Math.max(Math.trunc(limit), 1), 100),
       }),
     []
   );
@@ -2283,7 +2796,15 @@ export async function getMarketplaceListings(
   limit = 24,
   filters: MarketplaceListingFilters = {}
 ) {
-  const cacheKey = marketplaceListingsCacheKey(limit, filters);
+  const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 100);
+  const normalisedFilters = {
+    ...filters,
+    offset: parseMarketplaceOffset(filters.offset),
+  };
+  const cacheKey = marketplaceListingsCacheKey(
+    boundedLimit,
+    normalisedFilters,
+  );
   const cached = marketplaceListingsCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;
@@ -2292,15 +2813,17 @@ export async function getMarketplaceListings(
   const pending = pendingMarketplaceListings.get(cacheKey);
   if (pending) return pending;
 
-  const query = fetchMarketplaceListings(limit, filters).then((value) => {
-    marketplaceListingsCache.set(cacheKey, {
-      expiresAt: Date.now() + MARKETPLACE_LISTINGS_CACHE_MS,
-      value,
+  const query = fetchMarketplaceListings(boundedLimit, normalisedFilters)
+    .then((value) => {
+      marketplaceListingsCache.set(cacheKey, {
+        expiresAt: Date.now() + MARKETPLACE_LISTINGS_CACHE_MS,
+        value,
+      });
+      return value;
+    })
+    .finally(() => {
+      pendingMarketplaceListings.delete(cacheKey);
     });
-    return value;
-  }).finally(() => {
-    pendingMarketplaceListings.delete(cacheKey);
-  });
   pendingMarketplaceListings.set(cacheKey, query);
   return query;
 }
@@ -2310,6 +2833,7 @@ async function fetchMarketplaceListings(
   filters: MarketplaceListingFilters = {}
 ): Promise<MarketplaceListingCard[]> {
   const now = new Date();
+  const offset = parseMarketplaceOffset(filters.offset);
   const where: Prisma.ListingWhereInput = {
     status: "active",
     moderationStatus: "approved",
@@ -2328,7 +2852,7 @@ async function fetchMarketplaceListings(
   if (q) {
     searchCandidateIds = await findMarketplaceListingSearchCandidates(
       q,
-      Math.max(limit * 10, LISTING_SEARCH_CANDIDATE_LIMIT)
+      Math.max(offset + limit, LISTING_SEARCH_CANDIDATE_LIMIT)
     );
     if (searchCandidateIds) {
       if (searchCandidateIds.length === 0) return [];
@@ -2346,28 +2870,29 @@ async function fetchMarketplaceListings(
     }
   }
 
-  const orderBy: Prisma.ListingOrderByWithRelationInput =
+  const orderBy: Prisma.ListingOrderByWithRelationInput[] =
     filters.sort === "price"
-      ? { price: "asc" }
+      ? [{ price: "asc" }, { createdAt: "desc" }, { id: "asc" }]
       : filters.sort === "expires_at"
-        ? { expiresAt: "asc" }
-        : { createdAt: "desc" };
+        ? [{ expiresAt: "asc" }, { createdAt: "desc" }, { id: "asc" }]
+        : [{ createdAt: "desc" }, { id: "asc" }];
 
-  const queryLimit = q && searchCandidateIds && !filters.sort
-    ? Math.min(searchCandidateIds.length, Math.max(limit * 10, limit))
-    : limit;
+  const useRankedSearch = Boolean(q && searchCandidateIds && !filters.sort);
+  const queryLimit =
+    useRankedSearch && searchCandidateIds ? searchCandidateIds.length : limit;
   const listings = await safeQuery(
     () =>
       prisma.listing.findMany({
         where,
         orderBy,
-        take: queryLimit,
+        skip: useRankedSearch ? undefined : offset,
+        take: Math.min(Math.max(Math.trunc(queryLimit), 1), 1_000),
         include: marketplaceListingCardInclude,
       }),
     []
   );
 
-  if (q && searchCandidateIds && !filters.sort) {
+  if (useRankedSearch && searchCandidateIds) {
     const rank = new Map(
       searchCandidateIds.map((listingId, index) => [listingId, index])
     );
@@ -2377,7 +2902,7 @@ async function fetchMarketplaceListings(
           (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
           (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER)
       )
-      .slice(0, limit);
+      .slice(offset, offset + limit);
   }
 
   return listings;
@@ -2397,6 +2922,7 @@ function marketplaceListingsCacheKey(
     q: filters.q?.trim() ?? null,
     status: filters.status ?? null,
     sort: filters.sort ?? null,
+    offset: parseMarketplaceOffset(filters.offset),
   });
 }
 
@@ -2443,6 +2969,7 @@ export async function getMarketplaceCategories() {
       prisma.marketplaceCategory.findMany({
         where: { active: true },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        take: 100,
       }),
     []
   );
@@ -2453,7 +2980,7 @@ export async function getDogsForListingSelect(limit = 80) {
     () =>
       prisma.dog.findMany({
         orderBy: { name: "asc" },
-        take: limit,
+        take: Math.min(Math.max(Math.trunc(limit), 1), 200),
         select: {
           id: true,
           name: true,
@@ -2477,7 +3004,10 @@ export async function getMessagingProfiles(
       withDbRequestContext(current, (tx) => tx.profile.findMany({
         where: {
           user: {
-            ...(excludeEmail ? { email: { not: excludeEmail } } : {}),
+            AND: [
+              ...(excludeEmail ? [{ email: { not: excludeEmail } }] : []),
+              { email: { not: { endsWith: "@example.invalid" } } },
+            ],
             isBanned: false,
             deletionRequestedAt: null,
           },
@@ -2491,7 +3021,7 @@ export async function getMessagingProfiles(
             : {}),
         },
         orderBy: [{ verified: "desc" }, { displayName: "asc" }],
-        take: limit,
+        take: Math.min(Math.max(Math.trunc(limit), 1), 100),
         include: {
           user: {
             select: {
@@ -2610,7 +3140,7 @@ export async function getAgentRuns(current: DbContextUser, limit = 12) {
         tx.agentRun.findMany({
           where: { userId: current.dbUserId },
           orderBy: { createdAt: "desc" },
-          take: limit,
+          take: Math.min(Math.max(Math.trunc(limit), 1), 100),
         })
       ),
     []
@@ -2631,6 +3161,7 @@ export async function getAccountSummary(
               socialActor: true,
               dogsOwned: {
                 orderBy: [{ verified: "desc" }, { createdAt: "desc" }],
+                take: 100,
                 include: {
                   dog: {
                     select: {

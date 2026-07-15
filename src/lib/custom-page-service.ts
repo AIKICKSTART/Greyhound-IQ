@@ -11,6 +11,7 @@ import { assertPaidFeatureAccess, hasTier } from "@/lib/tier-access";
 import { findBannedPhraseMatch } from "@/lib/moderation-service";
 import { createAuditLog } from "@/lib/account-service";
 import { getPlatformFlag, PLATFORM_FLAGS } from "@/lib/platform-settings";
+import { isFullAccessDemo } from "@/lib/demo-access";
 import {
   assertMediaAttachable,
   mediaDeliveryUrl,
@@ -24,6 +25,26 @@ import type {
 // Dog pages included with Pro up to this many; beyond it needs Pro+.
 const PRO_DOG_PAGE_LIMIT = 3;
 const CUSTOM_PAGE_MEDIA_LIMIT = 17;
+const DEMO_CONTROL_ROOM_PAGE_ID = "demo-custom-page-control-room";
+const DEMO_CONTROL_ROOM_ACTOR_ID = "demo-social-actor-control-room";
+const DEMO_CONTROL_ROOM_MEDIA = {
+  avatarUrl: "/images/logo-mark-purple-gold.webp",
+  bannerUrl: "/images/site-header-gate-burst-landscape.webp",
+  logoUrl: "/images/logo-wordmark-purple-gold.webp",
+  cardUrl: null,
+  galleryUrls: [
+    "/images/feature-advanced-stats-green.webp",
+    "/images/feature-breeding-analytics-gold.webp",
+    "/images/feature-ai-predictions-blue.webp",
+  ],
+};
+
+function demoControlRoomMedia(id: string) {
+  return isFullAccessDemo() &&
+    (id === DEMO_CONTROL_ROOM_PAGE_ID || id === DEMO_CONTROL_ROOM_ACTOR_ID)
+    ? DEMO_CONTROL_ROOM_MEDIA
+    : null;
+}
 
 type CustomPageMediaInput = Pick<
   CustomPageCreateInput,
@@ -394,6 +415,7 @@ export function getOwnedCustomPage(current: CurrentUserProfile, pageId: string) 
         socialActor: {
           select: {
             id: true,
+            avatarUrl: true,
             contactVisibility: true,
             avatarFocalX: true,
             avatarFocalY: true,
@@ -410,8 +432,9 @@ export function listCustomPagesForCurrentUser(current: DbContextUser) {
   return withDbRequestContext(current, (tx) =>
     tx.customPage.findMany({
       where: { ownerProfileId: current.profileId },
-      include: { socialActor: { select: { id: true } } },
+      include: { socialActor: { select: { id: true, avatarUrl: true } } },
       orderBy: [{ pageType: "asc" }, { createdAt: "desc" }],
+      take: 100,
     })
   );
 }
@@ -471,7 +494,9 @@ export function parseCustomPageContent(contentJson: string | null): CustomPageCo
   try {
     const raw = contentJson ? (JSON.parse(contentJson) as Partial<CustomPageContent>) : {};
     return {
-      galleryMediaIds: Array.isArray(raw.galleryMediaIds) ? raw.galleryMediaIds : [],
+      galleryMediaIds: Array.isArray(raw.galleryMediaIds)
+        ? raw.galleryMediaIds.slice(0, 100)
+        : [],
       avatarMediaId: raw.avatarMediaId ?? null,
       bannerMediaId: raw.bannerMediaId ?? null,
       logoMediaId: raw.logoMediaId ?? null,
@@ -518,6 +543,7 @@ export async function resolvePageAvatarUrls(
               },
             },
           },
+          take: 500,
         })
       )
     : [];
@@ -536,7 +562,9 @@ export async function resolvePageAvatarUrls(
       const avatarId = avatarIdByPage.get(page.id);
       return [
         page.id,
-        avatarId ? urlByPageAndId.get(`${page.id}:${avatarId}`) ?? null : null,
+        (avatarId ? urlByPageAndId.get(`${page.id}:${avatarId}`) : null) ??
+          demoControlRoomMedia(page.id)?.avatarUrl ??
+          null,
       ];
     })
   );
@@ -552,11 +580,13 @@ export type CustomPageMediaUrls = {
 
 // Resolve only media attached to this actor. Protected URLs still enforce the
 // actor audience when fetched; pending, failed, deleted, or foreign ids drop.
+// The exact full-access demo Control Room may fall back to bundled public art.
 export async function resolveCustomPageMedia(
   contentJson: string | null,
   actorId: string
 ): Promise<CustomPageMediaUrls> {
   const content = parseCustomPageContent(contentJson);
+  const demoMedia = demoControlRoomMedia(actorId);
   const ids = [
     content.avatarMediaId,
     content.bannerMediaId,
@@ -565,7 +595,13 @@ export async function resolveCustomPageMedia(
     ...content.galleryMediaIds,
   ].filter((id): id is string => Boolean(id));
   if (ids.length === 0) {
-    return { avatarUrl: null, bannerUrl: null, logoUrl: null, cardUrl: null, galleryUrls: [] };
+    return demoMedia ?? {
+      avatarUrl: null,
+      bannerUrl: null,
+      logoUrl: null,
+      cardUrl: null,
+      galleryUrls: [],
+    };
   }
   const attachments = await withDbSystemContext((tx) =>
     tx.actorGalleryMedia.findMany({
@@ -589,18 +625,35 @@ export async function resolveCustomPageMedia(
           },
         },
       },
+      take: 100,
     })
   );
   const urlById = new Map(
     attachments.map(({ media }) => [media.id, mediaDeliveryUrl(media)])
   );
   return {
-    avatarUrl: content.avatarMediaId ? urlById.get(content.avatarMediaId) ?? null : null,
-    bannerUrl: content.bannerMediaId ? urlById.get(content.bannerMediaId) ?? null : null,
-    logoUrl: content.logoMediaId ? urlById.get(content.logoMediaId) ?? null : null,
-    cardUrl: content.cardMediaId ? urlById.get(content.cardMediaId) ?? null : null,
-    galleryUrls: content.galleryMediaIds
-      .map((id) => urlById.get(id))
-      .filter((u): u is string => Boolean(u)),
+    avatarUrl:
+      (content.avatarMediaId ? urlById.get(content.avatarMediaId) : null) ??
+      demoMedia?.avatarUrl ??
+      null,
+    bannerUrl:
+      (content.bannerMediaId ? urlById.get(content.bannerMediaId) : null) ??
+      demoMedia?.bannerUrl ??
+      null,
+    logoUrl:
+      (content.logoMediaId ? urlById.get(content.logoMediaId) : null) ??
+      demoMedia?.logoUrl ??
+      null,
+    cardUrl:
+      (content.cardMediaId ? urlById.get(content.cardMediaId) : null) ??
+      demoMedia?.cardUrl ??
+      null,
+    galleryUrls: content.galleryMediaIds.length
+      ? content.galleryMediaIds
+          .map((id, index) =>
+            urlById.get(id) ?? demoMedia?.galleryUrls[index]
+          )
+          .filter((url): url is string => Boolean(url))
+      : demoMedia?.galleryUrls ?? [],
   };
 }

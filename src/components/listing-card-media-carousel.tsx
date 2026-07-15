@@ -22,6 +22,10 @@ export type ListingCardFallbackImage = {
   height: number;
 };
 
+const LISTING_MEDIA_FRAME_CLASS =
+  "giq-listing-media relative aspect-[16/10] w-full overflow-hidden bg-black/20";
+const LISTING_MEDIA_IMAGE_CLASS = "h-full w-full object-cover";
+
 export function ListingCardMediaCarousel({
   listingHref,
   listingTitle,
@@ -46,7 +50,8 @@ export function ListingCardMediaCarousel({
       return (
         <Link
           href={listingHref}
-          className="giq-listing-media flex aspect-[16/10] items-center justify-center gap-2 px-4 text-center text-[12px] font-semibold text-[hsl(215_14%_80%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary-bright))]"
+          data-listing-card-media-frame
+          className={`${LISTING_MEDIA_FRAME_CLASS} flex items-center justify-center gap-2 px-4 text-center text-[12px] font-semibold text-[hsl(215_14%_80%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary-bright))]`}
         >
           <Paperclip className="h-4 w-4 shrink-0 text-[hsl(var(--primary-bright))]" />
           <span className="truncate">
@@ -60,7 +65,8 @@ export function ListingCardMediaCarousel({
       return (
         <Link
           href={listingHref}
-          className="giq-listing-media block aspect-[16/10] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary-bright))]"
+          data-listing-card-media-frame
+          className={`${LISTING_MEDIA_FRAME_CLASS} block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary-bright))]`}
         >
           <Image
             src={fallbackImage.src}
@@ -68,7 +74,7 @@ export function ListingCardMediaCarousel({
             width={fallbackImage.width}
             height={fallbackImage.height}
             sizes="(min-width: 1024px) 30vw, (min-width: 768px) 50vw, 100vw"
-            className="h-full w-full object-cover"
+            className={LISTING_MEDIA_IMAGE_CLASS}
           />
         </Link>
       );
@@ -77,7 +83,8 @@ export function ListingCardMediaCarousel({
     return (
       <Link
         href={listingHref}
-        className="giq-listing-media flex aspect-[16/10] flex-col items-center justify-center gap-2 text-[12px] font-semibold text-[hsl(215_14%_72%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary-bright))]"
+        data-listing-card-media-frame
+        className={`${LISTING_MEDIA_FRAME_CLASS} flex flex-col items-center justify-center gap-2 text-[12px] font-semibold text-[hsl(215_14%_72%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary-bright))]`}
       >
         <ImageIcon className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
         <span>No image uploaded</span>
@@ -86,10 +93,6 @@ export function ListingCardMediaCarousel({
   }
 
   const imageCount = images.length;
-  const isPortrait =
-    activeImage.widthPx != null &&
-    activeImage.heightPx != null &&
-    activeImage.heightPx > activeImage.widthPx;
 
   const showPreviousImage = () => {
     setIsLoaded(false);
@@ -104,7 +107,10 @@ export function ListingCardMediaCarousel({
   };
 
   return (
-    <div className="giq-listing-media group relative aspect-[16/10] overflow-hidden bg-black/20">
+    <div
+      data-listing-card-media-frame
+      className={`${LISTING_MEDIA_FRAME_CLASS} group`}
+    >
       <Link
         href={listingHref}
         className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary-bright))]"
@@ -124,9 +130,9 @@ export function ListingCardMediaCarousel({
             setIsLoaded(true);
             setHasLoadError(true);
           }}
-          className={`h-full w-full transition-opacity duration-300 ${
-            isPortrait ? "object-contain" : "object-cover"
-          } ${isLoaded && !hasLoadError ? "opacity-100" : "opacity-0"}`}
+          className={`${LISTING_MEDIA_IMAGE_CLASS} transition-opacity duration-300 ${
+            isLoaded && !hasLoadError ? "opacity-100" : "opacity-0"
+          }`}
         />
         {!isLoaded && (
           <div

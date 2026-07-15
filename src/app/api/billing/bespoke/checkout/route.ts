@@ -6,8 +6,18 @@ import {
   getStripeCheckoutEnv,
   type StripeCheckoutEnv,
 } from "@/lib/billing/stripe-env";
+import {
+  buildBillingFailureUrl,
+  buildBillingRateLimitUrl,
+} from "@/lib/billing/billing-return-recovery";
 import { createBespokeDesignCheckoutSession } from "@/lib/billing/stripe-service";
+import { logRequestError } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
+import {
+  prefersHtmlFormNavigation,
+  prefersHtmlRateLimitRecovery,
+} from "@/lib/rate-limit-recovery";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,15 +47,40 @@ export async function POST(request: Request) {
       { failClosed: true }
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: { code: "rate_limit.exceeded", message: "Too many requests" } },
-        { status: 429 }
+      if (prefersHtmlRateLimitRecovery(request)) {
+        return NextResponse.redirect(
+          buildBillingRateLimitUrl({
+            appUrl: env.appUrl,
+            surface: "bespoke",
+          }),
+          303,
+        );
+      }
+      return rateLimitExceededResponse(
+        rateLimit,
+        RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const session = await createBespokeDesignCheckoutSession({ current, env });
-    if (!session.url) throw new Error("billing.stripe_checkout_missing_url");
-    return NextResponse.redirect(session.url, 303);
+    try {
+      const session = await createBespokeDesignCheckoutSession({ current, env });
+      if (!session.url) throw new Error("billing.stripe_checkout_missing_url");
+      return NextResponse.redirect(session.url, 303);
+    } catch (err) {
+      await logRequestError(
+        "billing.bespoke_checkout_start_failed",
+        { surface: "bespoke" },
+        err,
+      );
+      if (prefersHtmlFormNavigation(request)) {
+        return NextResponse.redirect(
+          buildBillingFailureUrl({ appUrl: env.appUrl, surface: "bespoke" }),
+          303,
+        );
+      }
+      throw err;
+    }
   } catch (err) {
     return jsonError(err, "Could not start checkout");
   }

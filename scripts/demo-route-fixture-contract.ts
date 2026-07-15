@@ -1,5 +1,6 @@
 import { DEMO_ADMIN_DISPLAY_NAME } from "../src/lib/demo-access";
 import { DEMO_PROFILE_PORTRAITS } from "../src/lib/demo-profile-media";
+import { DEMO_PROVIDER_ROUTE_IDS } from "../src/lib/demo-route-sample-contract";
 
 export const DEMO_FIXTURE_TIMESTAMP = "2026-07-12T10:00:00.000Z";
 export const DEMO_CONTROL_ROOM_AVATAR = "/images/logo-mark-purple-gold.webp";
@@ -31,6 +32,8 @@ export const DEMO_FIXTURE_BOUND_SOURCE_FILES = [
   "src/lib/billing/stripe-webhooks.ts",
   "src/lib/demo-access.ts",
   "src/lib/demo-profile-media.ts",
+  "src/lib/demo-route-sample-contract.ts",
+  "src/lib/demo-route-samples.ts",
   "src/lib/custom-page-service.ts",
   "src/lib/conversation-service.ts",
   "src/lib/db.ts",
@@ -342,9 +345,10 @@ export const DEMO_FIXTURE_MANIFEST = {
     historyId: "demo-listing-history-approved",
   },
   providerSamples: {
-    dogId: "cmr0fg5ki00a4ephcaj4sdctc",
-    raceId: "c842cd06-5f44-461c-be14-94439ebee1eb",
-    trackId: "ce9ee26f-b678-4a19-9aa7-58185d2a3719",
+    dogId: DEMO_PROVIDER_ROUTE_IDS.dog,
+    meetingId: DEMO_PROVIDER_ROUTE_IDS.meeting,
+    raceId: DEMO_PROVIDER_ROUTE_IDS.race,
+    trackId: DEMO_PROVIDER_ROUTE_IDS.track,
   },
 } as const;
 

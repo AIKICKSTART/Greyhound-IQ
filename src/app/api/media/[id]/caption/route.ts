@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 import {
   deleteMediaCaptionForCurrentUser,
   replaceMediaCaptionForCurrentUser,
@@ -24,8 +25,7 @@ async function captionRequestContext(
     MEDIA_CAPTION_RATE_LIMIT,
     MEDIA_CAPTION_RATE_LIMIT_WINDOW_MS
   );
-  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
-  return { id, current };
+  return { id, current, rateLimit };
 }
 
 export async function PUT(
@@ -33,7 +33,17 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id, current } = await captionRequestContext(params, "replace");
+    const { id, current, rateLimit } = await captionRequestContext(
+      params,
+      "replace"
+    );
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(
+        rateLimit,
+        MEDIA_CAPTION_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "rate_limit.exceeded" }
+      );
+    }
     const bytes = await readWebVttUpload(request);
     const item = await replaceMediaCaptionForCurrentUser(current, id, bytes);
     return NextResponse.json({ item });
@@ -47,7 +57,17 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id, current } = await captionRequestContext(params, "delete");
+    const { id, current, rateLimit } = await captionRequestContext(
+      params,
+      "delete"
+    );
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(
+        rateLimit,
+        MEDIA_CAPTION_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "rate_limit.exceeded" }
+      );
+    }
     const item = await deleteMediaCaptionForCurrentUser(current, id);
     return NextResponse.json({ item });
   } catch (err) {

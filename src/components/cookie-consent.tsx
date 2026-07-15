@@ -36,6 +36,7 @@ export function CookieConsentBanner() {
           <button
             type="button"
             onClick={() => setConsent("declined")}
+            data-purpose-id="PRIVACY.ACTION.COOKIE.DECLINE"
             className="giq-button giq-button-glass px-4 text-[13px] font-semibold"
           >
             <X className="h-3.5 w-3.5" />
@@ -44,6 +45,7 @@ export function CookieConsentBanner() {
           <button
             type="button"
             onClick={() => setConsent("accepted")}
+            data-purpose-id="PRIVACY.ACTION.COOKIE.ACCEPT"
             className="giq-button giq-button-primary px-4 text-[13px] font-semibold"
           >
             <Check className="h-3.5 w-3.5" />
@@ -83,6 +85,7 @@ export function CookiePreferencePanel() {
           <button
             type="button"
             onClick={() => setConsent("declined")}
+            data-purpose-id="PRIVACY.ACTION.COOKIE.DECLINE"
             className="giq-button giq-button-glass px-4 text-[13px] font-semibold"
           >
             <X className="h-3.5 w-3.5" />
@@ -91,6 +94,7 @@ export function CookiePreferencePanel() {
           <button
             type="button"
             onClick={() => setConsent("accepted")}
+            data-purpose-id="PRIVACY.ACTION.COOKIE.ACCEPT"
             className="giq-button giq-button-primary px-4 text-[13px] font-semibold"
           >
             <Check className="h-3.5 w-3.5" />

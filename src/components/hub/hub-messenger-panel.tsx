@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Check, Inbox, UserPlus, Users, X } from "lucide-react";
 import { respondToFriendRequestAction } from "@/app/actions";
 import { AddFriendSearch } from "@/components/hub/add-friend-search";
@@ -17,6 +18,7 @@ import { conversationRealtimeChannel } from "@/lib/realtime-service";
 export type HubConversationRow = {
   id: string;
   otherName: string;
+  otherAvatarUrl: string | null;
   preview: string;
   unread: number;
   attachmentCount?: number;
@@ -26,7 +28,6 @@ export type HubConversationRow = {
 // Right-hand messenger column. Server-rendered shell with focused client
 // islands for presence, discovery, calls, and docked desktop quick chats.
 export function HubMessengerPanel({
-  presenceChannel,
   selfProfileId,
   invites,
   requests,
@@ -36,7 +37,6 @@ export function HubMessengerPanel({
   canStartCall,
   senderActorId,
 }: {
-  presenceChannel: string | null;
   selfProfileId: string;
   invites: IncomingCallInvite[];
   requests: FriendRequestItem[];
@@ -70,6 +70,20 @@ export function HubMessengerPanel({
                 key={request.friendshipId}
                 className="giq-social-messenger-row flex min-h-11 items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2.5 py-2"
               >
+                <span className="relative grid size-10 shrink-0 place-items-center rounded-full border border-white/10 bg-[hsl(var(--primary)/0.14)] text-[12px] font-bold text-[hsl(var(--primary-light))]">
+                  {request.avatarUrl ? (
+                    <Image
+                      src={request.avatarUrl}
+                      alt=""
+                      fill
+                      className="rounded-full object-cover"
+                      sizes="40px"
+                      unoptimized={request.avatarUrl.startsWith("/api/media/")}
+                    />
+                  ) : (
+                    request.displayName.trim().charAt(0).toUpperCase() || "G"
+                  )}
+                </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13px] font-semibold text-[hsl(var(--foreground))]">
                     {request.displayName}
@@ -120,8 +134,6 @@ export function HubMessengerPanel({
           </Link>
         </h2>
         <HubFriendsList
-          channelName={presenceChannel}
-          selfProfileId={selfProfileId}
           friends={friends}
           canStartChat={canStartChat}
           canStartCall={canStartCall}

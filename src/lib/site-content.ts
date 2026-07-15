@@ -85,28 +85,46 @@ export const DEFAULT_PRICING: PricingContent = {
       name: "Pro+",
       price: "$39",
       period: "/month",
-      description: "Coming soon. Not available for purchase yet.",
+      description: "Not currently offered.",
       features: [],
       notIncluded: [],
-      cta: "Coming soon",
+      cta: "Unavailable",
       highlighted: false,
     },
   ],
   yearlyNote: "GreyhoundIQ Pro yearly: $204 AUD/year. That's 15% off monthly pricing.",
 };
 
+const PROHIBITED_PLACEHOLDER_COPY = /\bcoming\s+soon\b/i;
+
+function safeEditableText(
+  value: unknown,
+  fallback: string,
+  requireNonEmpty = false,
+) {
+  if (typeof value !== "string") return fallback;
+  if (PROHIBITED_PLACEHOLDER_COPY.test(value)) return fallback;
+  return requireNonEmpty && !value.trim() ? fallback : value;
+}
+
+function safeEditableTextList(value: unknown, fallback: string[]) {
+  if (!Array.isArray(value)) return fallback;
+  return value.filter(
+    (item): item is string =>
+      typeof item === "string" && !PROHIBITED_PLACEHOLDER_COPY.test(item),
+  );
+}
+
 function normalizePlan(raw: Partial<PricingPlan>, fallback: PricingPlan): PricingPlan {
   return {
     id: fallback.id,
-    name: typeof raw.name === "string" && raw.name.trim() ? raw.name : fallback.name,
-    price: typeof raw.price === "string" ? raw.price : fallback.price,
-    period: typeof raw.period === "string" ? raw.period : fallback.period,
-    description: typeof raw.description === "string" ? raw.description : fallback.description,
-    features: Array.isArray(raw.features) ? raw.features.filter((f) => typeof f === "string") : fallback.features,
-    notIncluded: Array.isArray(raw.notIncluded)
-      ? raw.notIncluded.filter((f) => typeof f === "string")
-      : fallback.notIncluded,
-    cta: typeof raw.cta === "string" && raw.cta.trim() ? raw.cta : fallback.cta,
+    name: safeEditableText(raw.name, fallback.name, true),
+    price: safeEditableText(raw.price, fallback.price),
+    period: safeEditableText(raw.period, fallback.period),
+    description: safeEditableText(raw.description, fallback.description),
+    features: safeEditableTextList(raw.features, fallback.features),
+    notIncluded: safeEditableTextList(raw.notIncluded, fallback.notIncluded),
+    cta: safeEditableText(raw.cta, fallback.cta, true),
     highlighted: typeof raw.highlighted === "boolean" ? raw.highlighted : fallback.highlighted,
   };
 }
@@ -117,10 +135,11 @@ function normalize(raw: Partial<PricingContent>): PricingContent {
     plans: DEFAULT_PRICING.plans.map((fallback) =>
       normalizePlan((byId.get(fallback.id) ?? {}) as Partial<PricingPlan>, fallback)
     ),
-    yearlyNote:
-      typeof raw.yearlyNote === "string" && raw.yearlyNote.trim()
-        ? raw.yearlyNote
-        : DEFAULT_PRICING.yearlyNote,
+    yearlyNote: safeEditableText(
+      raw.yearlyNote,
+      DEFAULT_PRICING.yearlyNote,
+      true,
+    ),
   };
 }
 

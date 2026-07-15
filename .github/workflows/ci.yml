@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 on:
   push:
@@ -48,6 +48,7 @@ jobs:
       NEXTAUTH_URL: http://127.0.0.1:3000
       NEXTAUTH_SECRET: ci-nextauth-secret-32-characters-minimum
       AUTH_SECRET: ci-nextauth-secret-32-characters-minimum
+      REPLAY_PROXY_SECRET: ci-replay-proxy-secret-32-characters-min # gitleaks:allow - CI sentinel
       SUPABASE_URL: https://ci.supabase.co
       NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-supabase-anon-key
@@ -97,6 +98,10 @@ jobs:
           semgrep --config p/typescript --config p/owasp-top-ten --config p/secrets
           --jobs 4 --timeout 15 --max-target-bytes 1000000 --exclude "*.test.ts"
           --exclude "*.test.tsx" --error src/app src/lib scripts
+      - name: Reject unsafe production SQL construction
+        run: npm run check:production-sql-safety
+      - name: Validate dependency sources, SBOM and vulnerability policy
+        run: npm run check:supply-chain
       - name: Validate Terraform source and provider schema
         run: |
           npm run check:terraform-source
@@ -110,10 +115,12 @@ jobs:
             --entrypoint sh \
             hashicorp/terraform@sha256:96d2bc440714bf2b2f2998ac730fd4612f30746df43fca6f0892b2e2035b11bc \
             -c 'cp -R /src /tmp/tf && cd /tmp/tf && terraform fmt -check -recursive && TF_DATA_DIR=/tmp/tfdata terraform init -backend=false -lockfile=readonly && TF_DATA_DIR=/tmp/tfdata terraform validate'
-      - run: npm audit --audit-level=high
       - run: npm run check:env -- --ci --production
       - run: npx prisma validate
       - run: npm run check:production-safety
+      - run: npm run check:openapi-contract
+      - run: npm run check:openapi-static
+      - run: npm run check:security-trace-registry
       - run: npm run check:migrations
       - run: npx prisma migrate deploy
       - run: npm run db:seed
@@ -126,11 +133,14 @@ jobs:
         run: npm run check:community-flow
       - run: npm run check:marketplace-safety
       - run: npm run check:visibility-policies
+      - run: npm run check:structured-logging
       - run: npm run test:unit
       - run: npm run check:comms-security
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
+      - name: Verify built client bundles contain no configured server secrets
+        run: npm run check:secret-boundaries -- --built
 
       - name: Start production server
         run: |

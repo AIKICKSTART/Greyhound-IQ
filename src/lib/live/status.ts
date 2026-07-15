@@ -59,6 +59,8 @@ async function getDataFreshness(today: Date, nextWeek: Date) {
                 sourceProvider: { not: null },
               },
               _count: { _all: true },
+              orderBy: { sourceProvider: "asc" },
+              take: 100,
             })
           ),
         []

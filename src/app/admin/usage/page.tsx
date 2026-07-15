@@ -1,7 +1,7 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { StatusPill } from "@/components/admin/status-pill";
-import { requireModeratorProfile } from "@/lib/auth";
+import { requireAdminProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
 
@@ -49,7 +49,7 @@ type UsageAggregateRow = {
 };
 
 export default async function AdminUsagePage() {
-  await requireModeratorProfile();
+  await requireAdminProfile();
   const [events, outboxRows, aggregateRows] = await Promise.all([
     getUsageEvents(),
     getUsageOutboxRows(),

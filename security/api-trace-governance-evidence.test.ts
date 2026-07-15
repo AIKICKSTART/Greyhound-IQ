@@ -200,7 +200,7 @@ assert.ok(
 const traceIds = SECURITY_TRACES.map((trace) => trace.traceId);
 const traceIdSet = new Set(traceIds);
 const traceIdPattern = /^[A-Z][A-Z0-9_]*(?:\.[A-Z][A-Z0-9_]*){2,}$/;
-assert.equal(traceIds.length, 18);
+assert.equal(traceIds.length, 19);
 assert.equal(traceIdSet.size, traceIds.length);
 assert.ok(traceIds.every((traceId) => traceIdPattern.test(traceId)));
 assert.equal(traceIdPattern.test("not a stable trace id"), false);
@@ -209,7 +209,7 @@ assert.deepEqual(
   validateDatabaseOperationLinks(DATABASE_OPERATIONS, traceIdSet),
   [],
 );
-assert.equal(DATABASE_OPERATIONS.length, 26);
+assert.equal(DATABASE_OPERATIONS.length, 27);
 
 assert.equal(AUDIT_EVENTS.length, 22);
 assert.equal(

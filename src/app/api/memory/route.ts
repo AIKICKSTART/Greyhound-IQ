@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { withDbRequestContext } from "@/lib/db-context";
 import { memoryCreateSchema } from "@/lib/memory-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const MEMORY_CREATE_RATE_LIMIT = 10;
 const MEMORY_CREATE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -40,18 +42,14 @@ export async function POST(request: Request) {
       MEMORY_CREATE_RATE_LIMIT_WINDOW_MS
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        MEMORY_CREATE_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const parsed = memoryCreateSchema.parse(await request.json());
+    const parsed = memoryCreateSchema.parse(await readBoundedJsonRequest(request));
     const item = await withDbRequestContext(current, (tx) =>
       tx.memoryEntry.create({
         data: {

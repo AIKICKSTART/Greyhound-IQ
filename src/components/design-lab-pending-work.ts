@@ -47,7 +47,12 @@ export type DesignLabPendingWorkItem = {
 };
 
 export type DesignLabPendingWorkFilters = {
-  completion?: "all" | "pending" | "complete" | "blocked";
+  completion?:
+    | "all"
+    | "pending"
+    | "complete"
+    | "awaiting-verification"
+    | "blocked";
   source?: "all" | DesignLabPendingWorkSource;
   productArea?: string;
   owner?: string;
@@ -163,6 +168,36 @@ export const DESIGN_LAB_PENDING_WORK: readonly DesignLabPendingWorkItem[] = [
   ...databaseWork,
 ];
 
+/**
+ * Release-blocking implementation claims with captured evidence that still
+ * need an independent verification pass. These items remain incomplete in the
+ * owning release registries until that pass is accepted.
+ */
+export const DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK = Object.freeze(
+  DESIGN_LAB_PENDING_WORK.filter(isDesignLabWorkAwaitingVerification),
+);
+
+export const DESIGN_LAB_VERIFICATION_REFRESH_WORKFLOW = Object.freeze({
+  trigger: "final code freeze",
+  queueFilter: "workCompletion=awaiting-verification",
+  steps: Object.freeze([
+    "Freeze source and record the immutable candidate commit.",
+    "Open every awaiting-verification item and rerun its listed focused evidence.",
+    "Recapture all five source-bound release artifacts against that same candidate.",
+    "Run the sync gate, then the release gate, without changing source between them.",
+    "Move each queue item to verified only with accepted fresh evidence; otherwise leave it explicitly open or blocked.",
+  ]),
+  commands: Object.freeze([
+    "npx tsx scripts/audit-demo-routes.ts --base-url http://127.0.0.1:3000",
+    "npx tsx scripts/audit-design-lab-user-stories.ts --base-url http://127.0.0.1:3000",
+    "npm run audit:design-lab-hydrated-stories -- --base-url http://127.0.0.1:3000",
+    "npm run audit:design-lab-hydrated-wave2 -- --base-url http://127.0.0.1:3000",
+    "npm run audit:design-lab-responsive-workspace -- --base-url http://127.0.0.1:3000",
+    "npm run check:design-lab-sync",
+    "npm run check:design-lab-release",
+  ]),
+});
+
 const releaseWork = DESIGN_LAB_PENDING_WORK.filter(
   (item) => item.releaseBlocking,
 );
@@ -174,6 +209,7 @@ export const DESIGN_LAB_PENDING_WORK_SUMMARY = Object.freeze({
   total: DESIGN_LAB_PENDING_WORK.length,
   complete: DESIGN_LAB_PENDING_WORK.filter((item) => item.complete).length,
   pending: DESIGN_LAB_PENDING_WORK.filter((item) => !item.complete).length,
+  awaitingVerification: DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.length,
   blocked: DESIGN_LAB_PENDING_WORK.filter((item) => item.blocked).length,
   release: Object.freeze({
     total: releaseWork.length,
@@ -214,6 +250,12 @@ export function filterDesignLabPendingWork(
   return DESIGN_LAB_PENDING_WORK.filter((item) => {
     if (completion === "pending" && item.complete) return false;
     if (completion === "complete" && !item.complete) return false;
+    if (
+      completion === "awaiting-verification" &&
+      !isDesignLabWorkAwaitingVerification(item)
+    ) {
+      return false;
+    }
     if (completion === "blocked" && !item.blocked) return false;
     if (source !== "all" && item.source !== source) return false;
     if (productArea && normalize(item.productArea) !== productArea) return false;
@@ -231,6 +273,18 @@ export function filterDesignLabPendingWork(
     if (!query) return true;
     return searchableText(item).includes(query);
   });
+}
+
+export function isDesignLabWorkAwaitingVerification(
+  item: DesignLabPendingWorkItem,
+) {
+  return (
+    item.releaseBlocking &&
+    !item.complete &&
+    !item.blocked &&
+    item.status === "captured" &&
+    item.evidence.length > 0
+  );
 }
 
 /**

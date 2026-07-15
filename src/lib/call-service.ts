@@ -24,6 +24,8 @@ import {
   broadcastProfileRealtimeEvent,
 } from "@/lib/realtime-service";
 
+const CALL_MAINTENANCE_LIMIT = 100;
+
 export async function getActiveCallRoomForConversation(
   current: DbContextUser,
   conversationId: string
@@ -106,7 +108,7 @@ export function getRecentCallLogForConversation(
       callRoom: { conversationId },
     },
     orderBy: { createdAt: "desc" },
-    take: limit,
+    take: Math.min(Math.max(1, Math.trunc(limit)), 50),
     select: {
       id: true,
       eventType: true,
@@ -455,6 +457,8 @@ export async function runCallMaintenance() {
         status: "active",
         createdAt: { lt: new Date(now.getTime() - CALL_ROOM_JOIN_TTL_MS) },
       },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: CALL_MAINTENANCE_LIMIT,
     })
   );
   for (const room of staleRooms) {
@@ -469,6 +473,8 @@ export async function runCallMaintenance() {
         callRoom: true,
         toProfile: { select: { userId: true } },
       },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: CALL_MAINTENANCE_LIMIT,
     })
   );
   for (const invite of expiredInvites) {

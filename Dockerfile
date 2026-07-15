@@ -18,10 +18,12 @@ ARG NEXT_PUBLIC_SUPABASE_URL=""
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=""
 ARG NEXT_PUBLIC_WORKOS_REDIRECT_URI=""
 ARG NEXT_PUBLIC_LIVEKIT_URL=""
+ARG ENABLE_DEVICE_PREVIEWS="false"
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
   NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
   NEXT_PUBLIC_WORKOS_REDIRECT_URI=$NEXT_PUBLIC_WORKOS_REDIRECT_URI \
-  NEXT_PUBLIC_LIVEKIT_URL=$NEXT_PUBLIC_LIVEKIT_URL
+  NEXT_PUBLIC_LIVEKIT_URL=$NEXT_PUBLIC_LIVEKIT_URL \
+  ENABLE_DEVICE_PREVIEWS=$ENABLE_DEVICE_PREVIEWS
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
@@ -47,8 +49,9 @@ RUN groupadd --system --gid 1001 nodejs \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/http-method-boundary.cjs ./scripts/http-method-boundary.cjs
 
 USER nextjs
 EXPOSE 8080
 
-CMD ["node", "server.js"]
+CMD ["node", "--require", "./scripts/http-method-boundary.cjs", "server.js"]

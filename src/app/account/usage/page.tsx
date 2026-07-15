@@ -38,7 +38,7 @@ export default async function AccountUsagePage() {
         <UsageMemberHeader tier={user.tier} />
       ) : (
         <PageHero
-          image="/images/wentworth-gate-hero.webp"
+          image="/images/feature-advanced-stats-green.webp"
           title={
             <>
               Account

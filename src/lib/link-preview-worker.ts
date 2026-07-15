@@ -2,7 +2,7 @@ import "server-only";
 
 import { withDbSystemContext } from "@/lib/db-context";
 import { fetchLinkPreview } from "@/lib/link-preview";
-import { logError } from "@/lib/logger";
+import { logRequestError } from "@/lib/logger";
 import { broadcastFeedRealtimeEvent } from "@/lib/realtime-service";
 
 const LINK_PREVIEW_BATCH_SIZE = 25;
@@ -51,7 +51,7 @@ export async function runLinkPreviewMaintenance() {
       }
       ready += 1;
     } catch (err) {
-      logError("feed.link_preview_failed", { postId: candidate.id }, err);
+      await logRequestError("feed.link_preview_failed", { postId: candidate.id }, err);
       await withDbSystemContext((tx) =>
         tx.feedPost.update({
           where: { id: candidate.id },

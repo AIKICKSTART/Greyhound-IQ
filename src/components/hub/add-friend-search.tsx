@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   BadgeCheck,
@@ -14,6 +15,7 @@ import { sendFriendRequestAction } from "@/app/actions";
 type MemberOption = {
   id: string;
   displayName: string;
+  avatarUrl: string | null;
   verified?: boolean;
 };
 
@@ -118,6 +120,8 @@ export function AddFriendSearch({
             placeholder="Name or kennel"
             aria-controls="member-search-results"
             aria-busy={searching}
+            aria-invalid={Boolean(searchError)}
+            aria-errormessage={searchError ? "member-search-error" : undefined}
             className="giq-form-control min-h-11 w-full py-2 pl-10 pr-3 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
           />
         </span>
@@ -132,7 +136,7 @@ export function AddFriendSearch({
         </p>
       ) : null}
       {searchError ? (
-        <p role="alert" className="text-[12px] leading-relaxed text-red-200">
+        <p id="member-search-error" role="alert" className="text-[12px] leading-relaxed text-red-200">
           {searchError}
         </p>
       ) : null}
@@ -155,6 +159,20 @@ export function AddFriendSearch({
                 className="flex min-h-14 items-center justify-between gap-2 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2 transition hover:border-white/[0.12] hover:bg-white/[0.05]"
               >
                 <span className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-[hsl(var(--foreground))]">
+                  <span className="relative grid size-10 shrink-0 place-items-center rounded-full border border-white/10 bg-[hsl(var(--primary)/0.14)] text-[12px] font-bold text-[hsl(var(--primary-light))]">
+                    {option.avatarUrl ? (
+                      <Image
+                        src={option.avatarUrl}
+                        alt=""
+                        fill
+                        className="rounded-full object-cover"
+                        sizes="40px"
+                        unoptimized={option.avatarUrl.startsWith("/api/media/")}
+                      />
+                    ) : (
+                      option.displayName.trim().charAt(0).toUpperCase() || "G"
+                    )}
+                  </span>
                   <span className="truncate">{option.displayName}</span>
                   {option.verified ? (
                     <BadgeCheck

@@ -71,6 +71,31 @@ export type MediaBucket = SupabaseStorageBucket;
 export type MediaContext = (typeof MEDIA_CONTEXTS)[number];
 export type MediaMimeType = keyof typeof MEDIA_MIME_LIMITS;
 
+export const MEDIA_MAX_DIMENSION_PX = 20_000;
+export const MEDIA_MAX_DURATION_SEC = 60 * 60;
+export const MEDIA_DURATION_CLAIM_TOLERANCE_SEC = 1;
+
+export type DecodedMediaKind = "image" | "video" | "audio";
+export type MediaDimensionDurationMetadata = {
+  width?: number | null;
+  height?: number | null;
+  durationSec?: number | null;
+};
+
+const MEDIA_EXTENSIONS: Readonly<Record<MediaMimeType, readonly string[]>> = {
+  "image/jpeg": ["jpg", "jpeg"],
+  "image/png": ["png"],
+  "image/webp": ["webp"],
+  "image/avif": ["avif"],
+  "video/mp4": ["mp4", "m4v"],
+  "video/webm": ["webm"],
+  "video/quicktime": ["mov", "qt"],
+  "audio/mp4": ["m4a", "mp4"],
+  "audio/webm": ["webm"],
+  "audio/ogg": ["ogg", "oga"],
+  "application/pdf": ["pdf"],
+};
+
 export const WEBVTT_MAX_BYTES = 256 * 1024;
 const WEBVTT_CONTENT_TYPE = "text/vtt";
 const WEBVTT_TIMING_LINE = /^(\d{2,}:[0-5]\d:[0-5]\d\.\d{3}|[0-5]\d:[0-5]\d\.\d{3})\s+-->\s+(\d{2,}:[0-5]\d:[0-5]\d\.\d{3}|[0-5]\d:[0-5]\d\.\d{3})(?:\s+.*)?$/;
@@ -110,15 +135,132 @@ const mediaAltTextSchema = z
       .trim()
   );
 
-export const mediaSignUploadSchema = z.object({
-  filename: z.string().trim().min(1).max(160),
-  mimeType: mimeTypeSchema,
-  sizeBytes: z.number().int().positive(),
-  bucket: bucketOrLegacyContextSchema.optional(),
-  mediaContext: contextSchema.optional(),
-  linkedEntityType: z.string().trim().min(1).max(80).optional(),
-  linkedEntityId: z.string().trim().min(1).max(160).optional(),
-});
+export function normalizeUploadFilename(filename: string) {
+  const leaf = filename.replace(/\\/g, "/").split("/").pop()?.trim() ?? "";
+  const safe = leaf
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^\.+/, "")
+    .slice(0, 160);
+  return safe || "upload.bin";
+}
+
+export const mediaSignUploadSchema = z
+  .object({
+    filename: z.string().trim().min(1).max(160).transform(normalizeUploadFilename),
+    mimeType: mimeTypeSchema,
+    sizeBytes: z.number().int().positive(),
+    bucket: bucketOrLegacyContextSchema.optional(),
+    mediaContext: contextSchema.optional(),
+    linkedEntityType: z.string().trim().min(1).max(80).optional(),
+    linkedEntityId: z.string().trim().min(1).max(160).optional(),
+  })
+  .strict()
+  .refine(
+    (value) => uploadFilenameMatchesMimeType(value.filename, value.mimeType),
+    { path: ["filename"], message: "File extension does not match media type" },
+  );
+
+export function uploadFilenameMatchesMimeType(
+  filename: string,
+  mimeType: MediaMimeType,
+) {
+  const extension = filename.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];
+  const allowed = MEDIA_EXTENSIONS[mimeType];
+  return Boolean(extension && allowed?.includes(extension));
+}
+
+export function validateDecodedMediaMetadata(
+  kind: "image",
+  decoded: MediaDimensionDurationMetadata,
+  claimed?: MediaDimensionDurationMetadata,
+): { width: number; height: number };
+export function validateDecodedMediaMetadata(
+  kind: "video",
+  decoded: MediaDimensionDurationMetadata,
+  claimed?: MediaDimensionDurationMetadata,
+): {
+  width: number;
+  height: number;
+  durationSec: number;
+};
+export function validateDecodedMediaMetadata(
+  kind: "audio",
+  decoded: MediaDimensionDurationMetadata,
+  claimed?: MediaDimensionDurationMetadata,
+): { durationSec: number };
+export function validateDecodedMediaMetadata(
+  kind: DecodedMediaKind,
+  decoded: MediaDimensionDurationMetadata,
+  claimed: MediaDimensionDurationMetadata = {},
+): MediaDimensionDurationMetadata {
+  if (kind === "audio") {
+    if (claimed.width != null || claimed.height != null) {
+      throw new Error("media.metadata_mismatch");
+    }
+  } else {
+    validateDecodedDimensions(decoded);
+    if (
+      (claimed.width != null && claimed.width !== decoded.width) ||
+      (claimed.height != null && claimed.height !== decoded.height)
+    ) {
+      throw new Error("media.metadata_mismatch");
+    }
+  }
+
+  if (kind === "image") {
+    if (claimed.durationSec != null) {
+      throw new Error("media.metadata_mismatch");
+    }
+  } else {
+    validateDecodedDuration(decoded.durationSec);
+    if (
+      claimed.durationSec != null &&
+      Math.abs(claimed.durationSec - decoded.durationSec!) >
+        MEDIA_DURATION_CLAIM_TOLERANCE_SEC
+    ) {
+      throw new Error("media.metadata_mismatch");
+    }
+  }
+  if (kind === "image") {
+    return { width: decoded.width!, height: decoded.height! };
+  }
+  if (kind === "audio") {
+    return { durationSec: decoded.durationSec! };
+  }
+  return {
+    width: decoded.width!,
+    height: decoded.height!,
+    durationSec: decoded.durationSec!,
+  };
+}
+
+function validateDecodedDimensions(decoded: MediaDimensionDurationMetadata) {
+  if (
+    !Number.isSafeInteger(decoded.width) ||
+    !Number.isSafeInteger(decoded.height) ||
+    decoded.width! <= 0 ||
+    decoded.height! <= 0
+  ) {
+    throw new Error("media.decoded_metadata_invalid");
+  }
+  if (
+    decoded.width! > MEDIA_MAX_DIMENSION_PX ||
+    decoded.height! > MEDIA_MAX_DIMENSION_PX
+  ) {
+    throw new Error("media.dimensions_exceeded");
+  }
+}
+
+function validateDecodedDuration(durationSec: number | null | undefined) {
+  if (!Number.isFinite(durationSec) || durationSec! <= 0) {
+    throw new Error("media.decoded_metadata_invalid");
+  }
+  if (durationSec! > MEDIA_MAX_DURATION_SEC) {
+    throw new Error("media.duration_exceeded");
+  }
+}
 
 export const mediaFinalizeSchema = z.object({
   sha256: z
@@ -126,12 +268,11 @@ export const mediaFinalizeSchema = z.object({
     .trim()
     .regex(/^[a-f0-9]{64}$/i, "SHA-256 must be 64 hex characters")
     .optional(),
-  widthPx: z.number().int().positive().max(20_000).optional(),
-  heightPx: z.number().int().positive().max(20_000).optional(),
-  durationSec: z.number().positive().max(60 * 60).optional(),
+  widthPx: z.number().int().positive().max(MEDIA_MAX_DIMENSION_PX).optional(),
+  heightPx: z.number().int().positive().max(MEDIA_MAX_DIMENSION_PX).optional(),
+  durationSec: z.number().positive().max(MEDIA_MAX_DURATION_SEC).optional(),
   altText: mediaAltTextSchema.optional(),
-  scanStatus: z.enum(["clean", "infected", "error"]).optional(),
-});
+}).strict();
 
 export const mediaMetadataUpdateSchema = z
   .object({

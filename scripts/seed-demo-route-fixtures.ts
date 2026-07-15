@@ -18,6 +18,8 @@ import {
   withDbSystemContext,
 } from "../src/lib/db-context";
 import { getListingForViewerById } from "../src/lib/listing-service";
+import { DEMO_PROVIDER_ROUTE_PATHS } from "../src/lib/demo-route-sample-contract";
+import { findDemoProviderRouteSamples } from "../src/lib/demo-route-samples";
 import { getSocialActorProfileByHandle } from "../src/lib/social-actor-service";
 import { SITE_ASSETS_BUCKET } from "../src/lib/storage-paths";
 import {
@@ -32,8 +34,7 @@ const [ADMIN_ACCOUNT, PEER_ACCOUNT, FREE_ACCOUNT, PRO_PLUS_ACCOUNT] =
   DEMO_FIXTURE_MANIFEST.accounts;
 const { page: PAGE, conversation: CONVERSATION, listing: LISTING } =
   DEMO_FIXTURE_MANIFEST;
-const { community: COMMUNITY, providerSamples: PROVIDER_SAMPLES } =
-  DEMO_FIXTURE_MANIFEST;
+const { community: COMMUNITY } = DEMO_FIXTURE_MANIFEST;
 const DEMO_PAGE_MEDIA_ASSETS = DEMO_FIXTURE_MANIFEST.pageMedia;
 const FIXTURE_TIME = new Date(DEMO_FIXTURE_TIMESTAMP);
 
@@ -391,38 +392,13 @@ async function ensureCommunityFixtures(
 }
 
 async function resolveProviderRouteSamples(tx: DbContextClient) {
-  const [dog, race, track] = await Promise.all([
-    tx.dog.findUnique({ where: { id: PROVIDER_SAMPLES.dogId } }),
-    tx.race.findUnique({
-      where: { id: PROVIDER_SAMPLES.raceId },
-      include: { meeting: true },
-    }),
-    tx.track.findUnique({
-      where: { id: PROVIDER_SAMPLES.trackId },
-      include: {
-        meetings: {
-          where: { sourceProvider: { not: null } },
-          select: { sourceProvider: true },
-          take: 1,
-        },
-      },
-    }),
-  ]);
-  if (
-    !dog?.sourceProvider ||
-    dog.sourceProvider === "greyhoundiq-demo" ||
-    !race?.sourceProvider ||
-    race.sourceProvider === "greyhoundiq-demo" ||
-    !race.meeting.sourceProvider ||
-    race.meeting.sourceProvider === "greyhoundiq-demo" ||
-    !track?.meetings[0]?.sourceProvider ||
-    track.meetings[0].sourceProvider === "greyhoundiq-demo"
-  ) {
+  const samples = await findDemoProviderRouteSamples(tx);
+  if (!samples) {
     throw new Error(
       "demo_fixtures.provider_samples_missing: load approved provider data before private fixtures",
     );
   }
-  return { dog, race, track };
+  return samples;
 }
 
 async function loadDemoAccount(
@@ -1042,15 +1018,17 @@ export async function seedDemoRouteFixtures() {
     listing: { id: fixtures.listing.id },
     publicRoutes: {
       dogId: fixtures.publicRoutes.dog.id,
+      meetingId: fixtures.publicRoutes.meeting.id,
       raceId: fixtures.publicRoutes.race.id,
       trackId: fixtures.publicRoutes.track.id,
       categorySlug: fixtures.publicRoutes.category.slug,
       threadId: fixtures.publicRoutes.thread.id,
     },
     routes: [
-      `/dogs/${fixtures.publicRoutes.dog.id}`,
-      `/races/${fixtures.publicRoutes.race.id}`,
-      `/tracks/${fixtures.publicRoutes.track.id}`,
+      DEMO_PROVIDER_ROUTE_PATHS.dog,
+      DEMO_PROVIDER_ROUTE_PATHS.meeting,
+      DEMO_PROVIDER_ROUTE_PATHS.race,
+      DEMO_PROVIDER_ROUTE_PATHS.track,
       `/forum/${fixtures.publicRoutes.category.slug}`,
       `/forum/threads/${fixtures.publicRoutes.thread.id}`,
       `/groups/${fixtures.publicRoutes.category.slug}`,

@@ -33,6 +33,15 @@ assert.match(
 );
 
 assert.equal(
+  databaseUrlConfigurationError(managedPooler, {
+    production: true,
+    required: true,
+    allowManagedSupabase: true,
+  }),
+  null
+);
+
+assert.equal(
   databaseUrlConfigurationError(selfHosted, {
     production: true,
     required: true,

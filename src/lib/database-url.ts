@@ -7,6 +7,7 @@ type DatabaseUrlDefaults = {
 type DatabaseUrlPolicy = {
   production?: boolean;
   required?: boolean;
+  allowManagedSupabase?: boolean;
 };
 
 export function runtimeDatabaseUrl(rawUrl: string, defaults: DatabaseUrlDefaults = {}) {
@@ -70,7 +71,11 @@ export function databaseUrlConfigurationError(
 
   try {
     const host = new URL(value).hostname.toLowerCase();
-    if (policy.production && isManagedSupabaseDatabaseHost(host)) {
+    if (
+      policy.production &&
+      !policy.allowManagedSupabase &&
+      isManagedSupabaseDatabaseHost(host)
+    ) {
       return "must point at the approved PostgreSQL database, such as AlloyDB, not a managed Supabase database host";
     }
     return null;

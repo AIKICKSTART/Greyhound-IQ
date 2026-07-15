@@ -133,7 +133,7 @@ export const GREYHOUNDIQ_ARCHITECTURE_PHASES: readonly ArchitecturePhase[] = [
         title: "Block direct Cloud Run origin access",
         status: "in-progress",
         acceptance:
-          "Ingress permits only internal and load-balancer traffic, an external run.app bypass test fails, and canary, scheduler and uptime paths use reviewed protected routes instead of relying on the disabled default URL.",
+          "Public web/API/realtime services permit only internal and load-balancer traffic with disabled default URLs; internal workers retain only IAM-authenticated platform endpoints required by Google callers. External run.app bypass and unauthenticated internal invocation tests fail.",
       },
       {
         id: "ARCH-108",
@@ -219,7 +219,7 @@ export const GREYHOUNDIQ_ARCHITECTURE_PHASES: readonly ArchitecturePhase[] = [
         title: "Separate app, worker, realtime and LiveKit runtimes",
         status: "planned",
         acceptance:
-          "One stateless modular-monolith serves web/API, workers and WebSocket gateways scale independently on Cloud Run, and LiveKit runs only on dedicated Australian VM or compatible Kubernetes compute with isolated Redis; no premature domain microservices or service mesh.",
+          "One stateless modular-monolith serves web/API, workers and WebSocket gateways scale independently on Cloud Run, and LiveKit runs only in independent Sydney/Melbourne VM cells with application-persisted room home and isolated regional HA Redis; no premature domain microservices or service mesh.",
       },
       {
         id: "ARCH-302",
@@ -247,7 +247,7 @@ export const GREYHOUNDIQ_ARCHITECTURE_PHASES: readonly ArchitecturePhase[] = [
         title: "Set tested regional warm floors and media spare",
         status: "blocked",
         acceptance:
-          "At least one ready application instance per region supports service health, tested warm floors meet regional-loss SLOs, and LiveKit retains one measured spare node of capacity within the approved cost envelope.",
+          "At least one ready application instance per region supports service health, tested warm floors meet regional-loss SLOs, and each active LiveKit cell retains tested N+1 capacity within the approved cost envelope.",
       },
       {
         id: "ARCH-306",
@@ -531,7 +531,7 @@ export const GREYHOUNDIQ_ARCHITECTURE_PHASES: readonly ArchitecturePhase[] = [
         title: "Pass provider, realtime, LiveKit and queue recovery drills",
         status: "blocked",
         acceptance:
-          "WorkOS, Stripe, racing data, Pub/Sub, regional application Redis, WebSocket gateways, LiveKit node/Redis/TURN paths and optional providers fail safely without retry amplification or loss of authoritative business state.",
+          "WorkOS, Stripe, racing data, Pub/Sub, regional application Redis, WebSocket gateways, regional LiveKit node/Redis/TURN paths and optional providers fail safely without retry amplification or loss of authoritative business state; regional LiveKit loss ends calls visibly and rejoin creates a new room in the healthy cell.",
       },
       {
         id: "ARCH-706",

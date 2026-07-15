@@ -42,6 +42,18 @@ assert.match(architecture, /iframe[\s\S]*w-full/);
 assert.match(architecture, /data-architecture-mobile-report/);
 assert.match(architecture, /iframe[\s\S]*loading="lazy"/);
 assert.match(architecture, /iframe[\s\S]*hidden h-\[78vh\][\s\S]*lg:block/);
+assert.match(
+  architecture,
+  /data-architecture-primary-path[\s\S]*data-architecture-bounded-node/,
+);
+assert.match(architecture, /data-architecture-bounded-flow/);
+assert.match(architecture, /\[overflow-wrap:anywhere\]/);
+assert.match(
+  architecture,
+  /grid-cols-\[minmax\(0,1fr\)_auto_minmax\(0,1fr\)_auto_minmax\(0,1fr\)_auto_minmax\(0,1fr\)\]/,
+);
+assert.doesNotMatch(architecture, /overflow-x-(?:auto|scroll)/);
+assert.doesNotMatch(architecture, /min-w-\[\d+px\]/);
 assert.doesNotMatch(architecture, /cyan-/);
 
 console.log("Design Lab responsive source contracts passed");

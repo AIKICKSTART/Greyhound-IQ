@@ -68,31 +68,51 @@ const server = createServer((request, response) => {
 });
 await new Promise((resolveListen) => server.listen(0, "127.0.0.1", resolveListen));
 
-let dumpedDom;
+const responsiveViewportWidths = [390, 1024, 1440];
+const responsiveDoms = [];
 try {
   const address = server.address();
   assert.ok(address && typeof address !== "string");
-  const { stdout } = await execFile(
-    browserExecutable,
-    [
-      "--headless=new",
-      "--disable-gpu",
-      "--no-first-run",
-      "--incognito",
-      "--virtual-time-budget=15000",
-      "--dump-dom",
-      `http://127.0.0.1:${address.port}/report`,
-    ],
-    { encoding: "utf8", maxBuffer: 32 * 1024 * 1024, timeout: 90_000 },
-  );
-  dumpedDom = stdout;
+  for (const viewportWidth of responsiveViewportWidths) {
+    const { stdout } = await execFile(
+      browserExecutable,
+      [
+        "--headless=new",
+        "--disable-gpu",
+        "--no-first-run",
+        "--incognito",
+        `--window-size=${viewportWidth},1200`,
+        "--virtual-time-budget=15000",
+        "--dump-dom",
+        `http://127.0.0.1:${address.port}/report`,
+      ],
+      { encoding: "utf8", maxBuffer: 32 * 1024 * 1024, timeout: 90_000 },
+    );
+    responsiveDoms.push({ viewportWidth, dom: stdout });
+  }
 } finally {
   await new Promise((resolveClose, rejectClose) =>
     server.close((error) => (error ? rejectClose(error) : resolveClose())),
   );
 }
 
-const compiled = dumpedDom.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+for (const { viewportWidth, dom } of responsiveDoms) {
+  assert.match(
+    dom,
+    /data-architecture-responsive-ready="true"/,
+    `Architecture report overflow, overlap, or diagram-label containment failed at ${viewportWidth}px.`,
+  );
+  assert.doesNotMatch(
+    dom,
+    /data-architecture-responsive-failures=/,
+    `Architecture report recorded responsive failures at ${viewportWidth}px.`,
+  );
+}
+const dumpedDom = responsiveDoms.at(-1)?.dom ?? "";
+const compiled = dumpedDom
+  .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+  .replace(/\r\n?/g, "\n")
+  .replace(/[ \t]+$/gm, "");
 assert.match(
   compiled,
   new RegExp(
@@ -106,7 +126,7 @@ const compiledDiagrams = [
 ].map((match) => match[0]);
 assert.ok(compiledDiagrams.length >= 8);
 const expectedMobileStepCounts = [
-  17, 30, 10, 12, 10,
+  17, 31, 10, 12, 10,
   11, 14, 15, 12, 12,
   9, 11, 10, 16, 15,
 ];
@@ -156,7 +176,7 @@ for (const [index, diagram] of compiledDiagrams.entries()) {
 }
 assert.equal(
   expectedMobileStepCounts.reduce((total, count) => total + count, 0),
-  204,
+  205,
 );
 assert.doesNotMatch(
   compiledDiagrams.map((diagram) => diagram.match(/<ol class="diagram-mobile-flow"[\s\S]*?<\/ol>/)?.[0] ?? "").join("\n"),
@@ -165,7 +185,8 @@ assert.doesNotMatch(
 );
 assert.match(compiledDiagrams[1], /ESPv2 API gateway · australia-southeast1/);
 assert.match(compiledDiagrams[1], /ESPv2 API gateway · australia-southeast2/);
-assert.match(compiledDiagrams[8], /Verified current inventory · 13 July 2026/);
+assert.match(compiledDiagrams[8], /Verified new-account preflight · 16 July 2026/);
+assert.match(compiledDiagrams[8], /No paid upgrade or billing mutation/);
 assert.match(compiledDiagrams[9], /Design Lab · authenticated owner control layer/);
 assert.match(compiledDiagrams[9], /pass plus independent approval/);
 assert.match(compiledDiagrams[14], /Versioned CMS · pages blog news navigation SEO/);
@@ -197,9 +218,9 @@ assert.equal(
   "Every report table row must have one collapsed mobile record.",
 );
 assert.equal(
-  (compiled.match(/class="table"[^>]*tabindex="0"/g) ?? []).length,
+  (compiled.match(/class="table[^"]*"[^>]*aria-label="[^"]+"/g) ?? []).length,
   compiledTables.length,
-  "Every desktop table scroll region must remain keyboard focusable.",
+  "Every architecture table must retain an accessible label.",
 );
 assert.doesNotMatch(compiled, /<script(?:\s|>)/i);
 assert.equal(
@@ -209,8 +230,8 @@ assert.equal(
 );
 assert.doesNotMatch(
   compiled,
-  /720px|760px|diagram-pan-|keyboard pan|scroll horizontally/i,
-  "Architecture diagrams must not retain the obsolete fixed canvas or pan-control implementation.",
+  /720px|760px|diagram-pan-|keyboard pan|scroll horizontally|Pan this full-resolution|diagram-scroll-hint/i,
+  "Architecture diagrams must not retain a fixed canvas, pan control, or scroll instruction.",
 );
 for (const selectorPattern of [
   /\.diagram-mobile-step-number\{[^}]*font:900 12px\/1/,
@@ -228,25 +249,40 @@ for (const selectorPattern of [
 for (const [index, diagram] of compiledDiagrams.entries()) {
   assert.match(
     diagram,
-    /class="diagram-viewport"[^>]+tabindex="0"[^>]+aria-describedby="[^"]+"/,
-    `Architecture diagram ${index + 1} must expose a keyboard-focusable full visual.`,
+    /class="diagram-viewport"[^>]+tabindex="0"/,
+    `Architecture diagram ${index + 1} must expose a keyboard-focusable bounded visual.`,
   );
   assert.match(
     diagram,
-    /data-readable-width="([0-9]+)"/,
-    `Architecture diagram ${index + 1} is missing its calculated readable width.`,
+    /data-natural-width="([0-9]+)"/,
+    `Architecture diagram ${index + 1} is missing its rendered natural width.`,
   );
-  const readableWidth = Number(diagram.match(/data-readable-width="([0-9]+)"/)?.[1]);
+  const naturalWidth = Number(diagram.match(/data-natural-width="([0-9]+)"/)?.[1]);
   assert.ok(
-    readableWidth >= 900,
-    `Architecture diagram ${index + 1} readable width is below the 900px visual floor.`,
-  );
-  assert.match(
-    diagram,
-    /class="diagram-scroll-hint"/,
-    `Architecture diagram ${index + 1} is missing its visual navigation hint.`,
+    naturalWidth > 0,
+    `Architecture diagram ${index + 1} did not expose a valid rendered width.`,
   );
 }
+assert.match(
+  compiled,
+  /data-architecture-responsive-ready="true"/,
+  "Architecture report failed its rendered no-overflow and bounded-label audit.",
+);
+assert.match(
+  compiled,
+  /\.table\{[^}]*overflow:hidden/,
+  "Desktop architecture tables must be width-contained without scrolling.",
+);
+assert.match(
+  compiled,
+  /\.diagram-viewport\{[^}]*overflow:hidden/,
+  "Architecture diagrams must fit their container without scrolling.",
+);
+assert.match(
+  compiled,
+  /\.table-wide table\{display:none\}\.table-wide \.mobile-table-cards\{display:grid/,
+  "Overly wide tables must render as bounded records instead of cramped grids.",
+);
 assert.match(
   compiled,
   /\.mobile-table-cards,\.mobile-table-record,[^{]+\{min-width:0;max-width:100%\}/,

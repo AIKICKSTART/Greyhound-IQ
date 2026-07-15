@@ -1,7 +1,8 @@
 # GreyhoundIQ Australia production architecture
 
-Status: **selected target; not deployed or production-verified**  
-Decision date: 2026-07-15  
+Status: **selected target; not deployed or production-verified**
+
+Decision date: 2026-07-15; corrected architecture review: 2026-07-16
 Scope: Australian users, Australian application compute, and Australian persistent application data. GreyhoundIQ has no production users or production customer dataset to migrate at this decision point.
 
 Full mandate report and operational evidence ledger: [`greyhoundiq-production-architecture-report.html`](./greyhoundiq-production-architecture-report.html). It is the 30-section review authority; this Markdown file is the shorter selected-design summary.
@@ -25,10 +26,10 @@ Australian users
   -> AU dual-region Cloud Storage
 
 Voice/video signalling and media use a separate Australian LiveKit plane:
-  -> TLS signalling load balancer
-  -> at least two identical SFU nodes plus one tested spare
-  -> private highly available LiveKit Redis, isolated from application Redis
-  -> direct UDP media plus ICE/TCP and TURN/TLS fallbacks
+  -> independent Sydney and Melbourne LiveKit cells with a room-home assignment
+  -> each cell has tested N+1 SFU capacity and private regional HA LiveKit Redis
+  -> TLS signalling load balancer, direct UDP media, and ICE/TCP/TURN/TLS fallbacks
+  -> regional loss ends active calls visibly; a new room can be created in the healthy cell
 ```
 
 This is a staged hyperscale design, not a speculative microservice rewrite. The current Next.js application remains a stateless modular monolith until a measured service boundary requires independent deployment.
@@ -38,6 +39,22 @@ This is a staged hyperscale design, not a speculative microservice rewrite. The 
 The Design Lab Architecture area derives its source-static evidence from [`design-lab-architecture-inventory.ts`](../../src/components/design-lab-architecture-inventory.ts). Its fail-closed test proves 32 infrastructure-surface mappings, all 12 required fields across 25 component records, and 16 workflow-specific plus 13 structural trust-flow requirements. The rendered surface links every mapping back to this plan, the full report and the test.
 
 That completion is deliberately narrow: it proves the selected design is mapped and structurally reviewable. It does **not** prove provider deployment, runtime policy, origin isolation, IAM, capacity, load shedding, alert delivery, failover, restore, regional recovery or production validation. Those gates remain unverified until environment-bound runnable evidence passes.
+
+## 2026-07-16 architecture correction record
+
+This document is the sole production-target authority for the new Google Cloud account. The historical [`gcp-cloud-run-migration-plan.md`](../gcp-cloud-run-migration-plan.md), the current single-region Supabase deployment workflow, and the green-staging Terraform baseline are not deployment instructions for this target. They must not be applied or treated as live evidence.
+
+The review retained the Australian dual-region direction and corrected these unsafe ambiguities:
+
+- Public web, API/ESPv2, and realtime Cloud Run services use `internal-and-cloud-load-balancing` ingress with the default `run.app` URL disabled. Internal workers use `internal` ingress and authenticated Google service-to-service invocation; they retain a non-public platform endpoint only when Cloud Scheduler, Pub/Sub, Tasks, or synthetics require it. No public caller may use that endpoint.
+- A serverless NEG cannot use a conventional backend health check. Regional removal relies on Cloud Run service health, startup/readiness probes, at least one warm instance in each region, and outlier detection; the residual error window is measured in a controlled fault test.
+- A single cross-region LiveKit cluster would make its shared Redis a regional dependency. The target is therefore two independent regional cells with separate HA Redis, explicit room-home persistence, and an honest rejoin contract. It does not promise active-call migration or transparent media failover.
+- AlloyDB, object storage, Pub/Sub, realtime, monitoring, WorkOS, Stripe, and LiveKit are launch gates, not secret substitutions. The selected account currently has no deployment evidence for any of them.
+- Cloud Storage replication mode, capacity limits, RTO/RPO, alert destinations, and provider production registration remain unverified decisions. They cannot be inferred from a source document or enabled by a deployment workflow.
+
+No Google Cloud resources were created during this review.
+
+The currently linked account is to remain a non-billable Free Trial. The $300 credit can fund a time-bounded staging rehearsal, but it is not a sustainable monthly budget for the full dual-region AlloyDB, LiveKit, edge, storage and observability target. No billing-account upgrade, additional billing attachment, or automatic payment setup is authorised. Production continuity after the trial requires a separate cost decision and explicit approval; otherwise Google will stop the trial resources when the credit or trial period ends.
 
 ## Why this is the selected design
 
@@ -50,7 +67,7 @@ That completion is deliberately narrow: it proves the selected design is mapped 
 - AlloyDB preserves PostgreSQL and Prisma semantics while providing managed high availability, read pools, and cross-region replication.
 - Queues turn a sudden signup surge into bounded asynchronous work rather than synchronous third-party pressure.
 - Application realtime remains recoverable from AlloyDB truth through a transactional outbox, AU-restricted Pub/Sub, regional WebSocket gateways, per-region disposable application Redis and cursor replay.
-- Existing one-to-one voice/video is isolated on dedicated Australian LiveKit compute with at least two SFUs, separate private HA Redis, a tested spare and explicit signalling/TURN/media paths; it is never placed on Cloud Run or used as the durable business-message store.
+- Existing one-to-one voice/video is isolated into independent Sydney and Melbourne LiveKit cells on dedicated Australian compute. Each cell has its own private regional HA Redis, tested N+1 SFU capacity and explicit signalling/TURN/media paths; LiveKit is never placed on Cloud Run or used as the durable business-message store.
 
 ## National edge and CDN
 
@@ -63,7 +80,7 @@ Google currently lists network edge locations in Brisbane, Canberra, Melbourne, 
 3. The CDN serves an allowlisted cache hit without contacting an origin.
 4. A cache miss passes through the backend Cloud Armor policy.
 5. The load balancer selects the closest available Australian serverless NEG. A region is treated as safe for traffic only after Cloud Run service health/readiness, at least one minimum instance in that region, regional synthetics, and controlled failover evidence pass.
-6. Cloud Run's direct public origin is blocked so callers cannot bypass the edge controls.
+6. Public Cloud Run services accept internet traffic only from the load balancer through `internal-and-cloud-load-balancing` ingress and a disabled default URL. Internal services use `internal` ingress plus IAM-authenticated Google callers; they are never exposed through a public `run.app` URL.
 
 ### Cache allowlist
 
@@ -91,7 +108,7 @@ The consumer edge policy allows Australia. Exact webhook routes receive narrow e
 | exact provider webhook paths | ESPv2 API Cloud Run | CDN bypass and provider exception |
 | internal operations | private Cloud Run ingress | service identity only |
 
-The API gateway is Cloud Endpoints with ESPv2 in Sydney and Melbourne. It is generated from the canonical OpenAPI 3 contract and co-scales with the API cell.
+The API gateway is Cloud Endpoints with ESPv2 in Sydney and Melbourne. ESPv2 is deployed with the API cell so the public container port is the gateway; the application container is not a separately internet-reachable origin. Its configuration is generated from the canonical OpenAPI 3 contract and the two-region deployments use the same immutable image and gateway configuration digest.
 
 Gateway responsibilities:
 
@@ -118,7 +135,9 @@ Deploy the same immutable image digest to:
 - `australia-southeast1` Sydney;
 - `australia-southeast2` Melbourne.
 
-Each region initially contains a stateless modular-monolith application, an ESPv2 gateway boundary for `/api/*`, a dedicated Cloud Run WebSocket/realtime gateway, and independently capped worker Cloud Run services. A separate web/API application deployment is deferred until measured scaling, security-isolation or ownership evidence earns that additional failure boundary. Jobs carry idempotency keys and persist state outside the instance. Realtime clients reconnect with jitter and a cursor, then recover missed durable events from the application API.
+Each region initially contains a stateless modular-monolith application, an ESPv2 gateway boundary for `/api/*`, a dedicated Cloud Run WebSocket/realtime gateway, and independently capped worker Cloud Run services. Public web/API/realtime services use the load-balancer ingress profile; workers use `internal` ingress, a dedicated service identity, and OIDC-authenticated Scheduler, Pub/Sub, Task, or service callers. A separate web/API application deployment is deferred until measured scaling, security-isolation or ownership evidence earns that additional failure boundary. Jobs carry idempotency keys and persist state outside the instance. Realtime clients reconnect with jitter and a cursor, then recover missed durable events from the application API.
+
+Cloud Run startup and readiness probes establish container health but do not configure a serverless-NEG health check. The global external load balancer must use Cloud Run service health and outlier detection for functionally equivalent regional NEGs. The deployment test must prove public `run.app` denial, an internal caller's IAM denial without its service identity, and traffic movement after a deliberate 5xx/readiness fault.
 
 The initial launch floor is **proposed** at three warm web/API instances per region, then adjusted by cold-start and cost evidence. Each region must always have at least one minimum instance for health-based failover. Neither value is a passing production configuration until staging proves readiness, failover, latency and cost.
 
@@ -204,7 +223,7 @@ AlloyDB cross-region replication is asynchronous. Emergency promotion after an a
 
 ### Object storage
 
-Use a configurable `AU` dual-region Cloud Storage bucket placed in Sydney and Melbourne, with uniform bucket-level access, signed private access, versioning/soft delete where appropriate, lifecycle policy, and tested restore. Replication is asynchronous: the default replication target is 99.9% of newly written objects within one hour and 100% within 12 hours; Turbo Replication targets 100% within 15 minutes. An ADR must choose the required mode from approved object RPO, cost and recovery tests.
+Use a configurable `AU` dual-region Cloud Storage bucket placed in Sydney and Melbourne, with uniform bucket-level access, signed private access, versioning/soft delete where appropriate, lifecycle policy, and tested restore. Replication is asynchronous: the default replication target is 99.9% of newly written objects within one hour and 100% within 12 hours; Turbo Replication targets 100% within 15 minutes. The storage RPO/cost decision requires explicit approval before the bucket is created; default replication cannot be silently treated as a 15-minute recovery point.
 
 Replacing every required legacy storage journey with this controlled Cloud Storage path is an MVP launch blocker. Upload, scan, publish, signed download, deletion, retention, restore and tenant-isolation tests must pass before the affected journey is enabled.
 
@@ -217,7 +236,7 @@ Replacing every required legacy storage journey with this controlled Cloud Stora
 
 ### Cache and secret state
 
-Memorystore Standard Tier is regional and cross-zone only. Deploy a separate regional application Redis service in Sydney and Melbourne for ephemeral realtime fan-out and coordination; Redis is never the source of truth and clients recover through cursor replay from the application API. Any additional application caching must have explicit keys, TTLs, failure budgets and measured benefit. LiveKit uses a different private HA Redis deployment and identity boundary. A total cache or application-Redis loss must activate admission controls before it can overload AlloyDB.
+Memorystore Standard Tier is regional and cross-zone only. Deploy a separate regional application Redis service in Sydney and Melbourne for ephemeral realtime fan-out and coordination; Redis is never the source of truth and clients recover through cursor replay from the application API. Any additional application caching must have explicit keys, TTLs, failure budgets and measured benefit. Each independent LiveKit cell uses its own private regional HA Redis deployment and identity boundary. A total cache or application-Redis loss must activate admission controls before it can overload AlloyDB.
 
 Secret Manager user-managed Sydney and Melbourne replicas synchronously replicate secret versions, but Secret Manager remains a global service and write availability has different failure semantics from regional application compute. An ADR must approve read, write, rotation, break-glass and regional-outage behaviour; labels such as “dual replica” do not prove regional independence.
 
@@ -225,7 +244,11 @@ Secret Manager user-managed Sydney and Melbourne replicas synchronously replicat
 
 Legacy storage and application-realtime journeys are not accepted transitional production dependencies. The Cloud Storage replacement and an application-owned realtime replacement must be implemented and tested before MVP launch. Their outage must not corrupt core race data, authentication, billing or audit correctness.
 
-LiveKit remains self-hosted on dedicated Australian compute and is never a Cloud Run workload. The launch topology has at least two identical SFU nodes, one tested spare of capacity, private highly available LiveKit Redis isolated from application Redis, TLS load balancing for API/WebSocket signalling, correct L4 ICE/TCP and TURN/TLS handling, and direct public UDP media through only the required firewall ports. Native draining precedes removal or upgrade. Voice, 720p video, screen sharing, forced TURN, node loss, Redis loss, reconnect storms and regional recovery require synthetic capacity and failure evidence before the call journey is enabled.
+LiveKit remains self-hosted on dedicated Australian compute and is never a Cloud Run workload. The launch topology is two independent regional cells, one in Sydney and one in Melbourne. Each cell has a private regional HA LiveKit Redis isolated from application Redis, tested N+1 SFU capacity, TLS load balancing for API/WebSocket signalling, correct L4 ICE/TCP and TURN/TLS handling, and direct public UDP media through only the required firewall ports. The application persists a room-home region and issues that cell's endpoint to every participant; it creates a new room in the surviving cell after a regional loss. It never relies on a single cross-region Redis or promises migration of an active media session. Native draining precedes removal or upgrade. Voice, 720p video, screen sharing, forced TURN, node loss, Redis loss, reconnect storms and regional recovery require synthetic capacity and failure evidence before the call journey is enabled.
+
+### WorkOS and Stripe production boundary
+
+WorkOS authentication and Stripe payment infrastructure remain external providers. The production deployment must use final HTTPS callback/logout and webhook URLs, host-only cookie policy, narrowly allowlisted provider ingress, numeric Secret Manager versions, signature/timestamp/replay validation, and independent provider-flow tests. WorkOS client/API/cookie material, Stripe API/webhook material, and approved price IDs are never copied to source, build arguments, scheduler headers, logs, or another environment. Test-mode checkout and webhook replay are required before release; any live charge, credential rotation, or DNS cutover needs explicit approval.
 
 Native iOS/iPadOS and Android store applications remain separate codebases over the versioned backend contract, but are explicitly post-MVP and do not block the web production launch. Their signing, store, device and rollout gates become blocking only when each native release is scheduled.
 
@@ -305,7 +328,7 @@ Exit: exact contract passes, capacity assumptions are measured, and all producti
 - Create the external Application Load Balancer, AU consumer edge policy, backend WAF, CDN, and URL map in staging.
 - Move immutable assets/public media to AU dual-region Storage.
 - Complete and prove the Cloud Storage replacement for every MVP storage journey; approve default versus Turbo replication by ADR.
-- Set Cloud Run ingress to internal-and-load-balancing and prove direct-origin bypass fails.
+- Set public Cloud Run ingress to `internal-and-cloud-load-balancing`, disable its default URL, configure service health/outlier detection, and prove direct-origin bypass fails. Keep internal worker endpoints IAM-only rather than reusing the public profile.
 
 Exit: edge/cache/security tests pass and rollback to the previous staging entry point is rehearsed.
 
@@ -322,7 +345,7 @@ Exit: gateway cannot bypass application authorization and every API route has an
 - Bootstrap empty AlloyDB with forward-only Prisma migrations; load synthetic staging fixtures and rehydrate approved provider data through governed feeds.
 - Prove pooling, RLS contexts, backups, restore, asynchronous replication, fenced emergency promotion, healthy planned switchover, reconciliation and Prisma migrations.
 - Complete and prove the application-realtime replacement required by MVP: AlloyDB outbox, AU-restricted Pub/Sub, regional Cloud Run WebSocket gateways, separate per-region application Memorystore and cursor replay.
-- Provision and prove the dedicated Australian LiveKit plane: at least two identical SFUs plus one tested spare, separate private HA LiveKit Redis, TLS signalling, direct UDP, ICE/TCP, TURN/TLS, draining, metrics and failure recovery.
+- Provision and prove the dedicated Australian LiveKit plane: independent Sydney/Melbourne cells, room-home assignment, regional HA Redis per cell, tested N+1 capacity, TLS signalling, direct UDP, ICE/TCP, TURN/TLS, draining, metrics and failure recovery.
 - Queue slow signup and optional side effects; test retry/dead-letter/idempotency.
 
 Exit: restore and failover drills pass with measured RTO/RPO, and app capacity fits the database budget.

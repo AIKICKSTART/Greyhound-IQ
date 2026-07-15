@@ -55,8 +55,8 @@ Security, privacy and breach assessment also follow [the security incident-respo
 | AI disable | Repository implemented | New agent runs and OpenAI dog-card generation have pre-work guards plus the false-default deploy mapping; deployment and exercise remain unverified |
 | Queue pause | Unimplemented | Reduce available service-specific pressure; no per-class pause contract |
 | Database write protection | Unimplemented | Freeze changes and optional load; do not improvise a write fence |
-| Revision rollback | Manual, documented | Follow the reviewed rollback section in `docs/gcp-cloud-run-migration-plan.md` after identifying the immutable target |
-| Regional ejection | Unimplemented | The repository deployment remains single-region Sydney; there is no Melbourne runtime to eject to |
+| Revision rollback | Unimplemented for the new account | The retired single-region migration plan is not an operator procedure; the new immutable dual-region rollback must be implemented and exercised before launch |
+| Regional ejection | Unimplemented | The new target account has no Sydney or Melbourne runtime to eject; the selected service-health and ejection procedure remains source intent |
 | Melbourne database promotion | Unimplemented | No Melbourne database exists in deployed evidence; do not promote without a deployed secondary and exercised procedure |
 | Realtime broadcast disable | Repository implemented | The source guard and false-default deploy mapping exist; candidate smoke precedes exact revision promotion. Deployment and exercise remain unverified |
 
@@ -165,7 +165,7 @@ Trigger: scanner/storage outage, malicious content signal or uncontrolled upload
 Owner: platform SRE; fallback: incident commander.  
 Trigger: independent probes confirm Sydney regional failure or primary database loss.
 
-- First safe action: freeze changes, confirm the current single-region failure, and remain degraded or unavailable rather than improvising a Melbourne promotion; no Melbourne runtime or database is deployed in current evidence.
+- First safe action after deployment: freeze changes, confirm the regional failure, capture the database recovery point and remain degraded or unavailable rather than improvising a Melbourne promotion. The new account currently has no Sydney/Melbourne runtime or database, so this runbook remains unexercised source intent.
 - Prohibited: no unverified secondary promotion, split brain or traffic shift without N-1 capacity and dependency checks.
 - Recovery: regional journeys, recovery point and queues validate; reconciliation and failback authority are recorded before normal writes.
 - Preserve: regional health, lag, recovery point, traffic state and every ejection/promotion/load-balancer decision.

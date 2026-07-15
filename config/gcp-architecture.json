@@ -1,9 +1,21 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "status": "selected-target-unverified",
-  "description": "Repository contract for the selected Australia-only production target. This is not evidence of a live deployment.",
+  "description": "Repository contract for GreyhoundIQ's new Australia-only production account. This is selected design, not evidence of deployed infrastructure.",
+  "accountBoundary": {
+    "status": "new-account-project-unselected",
+    "projectAccess": "unverified",
+    "billingMode": "non-billable-free-trial-only",
+    "creditSpendApproval": "required-before-credit-consuming-resource",
+    "paidUpgradePolicy": "prohibited-without-explicit-approval",
+    "legacySourceArtifacts": [
+      ".github/workflows/cloud-run-deploy.yml",
+      "scripts/gcp-cloud-run-deploy.ps1",
+      "scripts/gcp-scheduler-sync.sh"
+    ]
+  },
   "currentDeployment": {
-    "status": "repository-declared-not-live-verified",
+    "status": "legacy-source-only-not-target-account",
     "evidence": [
       ".github/workflows/cloud-run-deploy.yml",
       "scripts/gcp-cloud-run-deploy.ps1"
@@ -44,16 +56,24 @@
         "city": "Melbourne"
       }
     ],
-    "ingress": "internal-and-cloud-load-balancing",
-    "defaultUrlPolicy": "disabled",
+    "publicServiceIngress": {
+      "ingress": "internal-and-cloud-load-balancing",
+      "defaultUrlPolicy": "disabled"
+    },
+    "internalServiceIngress": {
+      "ingress": "internal",
+      "platformEndpointPolicy": "enabled-for-iam-authenticated-google-callers-only"
+    },
     "databaseConnectionBudget": {
       "safeConnections": 50,
       "operatorReserve": 10,
-      "basis": "Provisional and unverified; replace with measured database and pooler evidence before deployment."
+      "basis": "Provisional and unverified; replace with measured AlloyDB and pooler evidence before deployment."
     },
     "services": {
       "app": {
         "architecture": "modular-monolith",
+        "ingressProfile": "public",
+        "gateway": "espv2",
         "cpu": 2,
         "memory": "4Gi",
         "concurrency": 20,
@@ -70,6 +90,7 @@
       },
       "worker": {
         "architecture": "separate-worker",
+        "ingressProfile": "internal",
         "cpu": 2,
         "memory": "4Gi",
         "concurrency": 1,
@@ -83,6 +104,60 @@
           "readiness": "/api/health/ready"
         },
         "evidence": "unverified"
+      },
+      "realtime": {
+        "architecture": "regional-websocket-gateway",
+        "ingressProfile": "public",
+        "cpu": 2,
+        "memory": "4Gi",
+        "concurrency": 80,
+        "minInstancesPerRegion": 1,
+        "maxInstancesPerRegion": 5,
+        "connectionLimitPerInstance": 1,
+        "requestTimeoutSeconds": 60,
+        "probes": {
+          "startup": "/api/health/ready",
+          "liveness": "/api/health",
+          "readiness": "/api/health/ready"
+        },
+        "evidence": "unverified"
+      }
+    },
+    "capabilities": {
+      "database": {
+        "engine": "alloydb-postgresql",
+        "primaryRegion": "australia-southeast1",
+        "secondaryRegion": "australia-southeast2",
+        "status": "required-unverified"
+      },
+      "storage": {
+        "engine": "cloud-storage-configurable-au-dual-region",
+        "regions": ["australia-southeast1", "australia-southeast2"],
+        "status": "required-unverified"
+      },
+      "asynchronousDelivery": {
+        "engine": "alloydb-outbox-pubsub",
+        "allowedPersistenceRegions": ["australia-southeast1", "australia-southeast2"],
+        "status": "required-unverified"
+      },
+      "applicationRealtime": {
+        "engine": "pubsub-regional-websocket-redis-cursor-replay",
+        "status": "required-unverified"
+      },
+      "livekit": {
+        "engine": "self-hosted-independent-regional-cells",
+        "regions": ["australia-southeast1", "australia-southeast2"],
+        "roomHomeAssignment": "required",
+        "status": "required-unverified"
+      },
+      "observability": {
+        "engine": "cloud-monitoring-logging-australian-regional-sinks",
+        "status": "required-unverified"
+      },
+      "externalProviders": {
+        "authentication": "workos-preserve-and-verify",
+        "payments": "stripe-preserve-and-verify",
+        "status": "required-unverified"
       }
     }
   }

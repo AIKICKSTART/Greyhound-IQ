@@ -10,6 +10,7 @@ import {
   ARCHITECTURE_COMPONENTS,
   ARCHITECTURE_EVIDENCE_SCOPE,
   ARCHITECTURE_INFRASTRUCTURE_SURFACES,
+  ARCHITECTURE_PRIMARY_PATH,
   ARCHITECTURE_TRUST_FLOWS,
 } from "./design-lab-architecture-inventory";
 import {
@@ -49,6 +50,21 @@ assert.match(
 );
 assert.match(componentSource, /data-architecture-mobile-report/);
 assert.match(componentSource, /data-architecture-report-frame/);
+assert.match(html, /data-architecture-primary-path="true"/);
+assert.equal(
+  (html.match(/data-architecture-bounded-flow="true"/g) ?? []).length,
+  ARCHITECTURE_TRUST_FLOWS.length,
+);
+assert.equal(
+  (html.match(/data-architecture-bounded-node="true"/g) ?? []).length,
+  ARCHITECTURE_PRIMARY_PATH.length +
+    ARCHITECTURE_TRUST_FLOWS.reduce(
+      (total, flow) => total + flow.path.length,
+      0,
+    ),
+);
+assert.doesNotMatch(componentSource, /overflow-x-(?:auto|scroll)/);
+assert.doesNotMatch(componentSource, /min-w-\[\d+px\]/);
 assert.match(componentSource, /loading="lazy"/);
 assert.match(componentSource, /hidden h-\[78vh\][\s\S]*lg:block/);
 assert.match(componentSource, /target="_blank"/);
@@ -97,14 +113,14 @@ assert.equal(
   (report.match(/<article class="diagram"/g) ?? []).length,
   "Every diagram must have one readable semantic mobile flow.",
 );
-assert.equal((report.match(/class="diagram-mobile-step"/g) ?? []).length, 204);
+assert.equal((report.match(/class="diagram-mobile-step"/g) ?? []).length, 205);
 assert.equal(
   (report.match(/class="diagram-mobile-step-number" aria-hidden="true"/g) ?? []).length,
-  204,
+  205,
 );
 assert.equal(
   (report.match(/class="diagram-mobile-arrow" aria-label="to"/g) ?? []).length,
-  204,
+  205,
 );
 assert.doesNotMatch(
   report,
@@ -118,25 +134,20 @@ assert.equal(
 );
 assert.ok((report.match(/class="mobile-table-record"/g) ?? []).length > 400);
 assert.equal(
-  (report.match(/class="table"[^>]*tabindex="0"/g) ?? []).length,
+  (report.match(/class="table(?: table-wide)?"[^>]*aria-label="[^"]+"/g) ?? [])
+    .length,
   (report.match(/<table\b/g) ?? []).length,
 );
-assert.equal(
-  (report.match(/class="diagram-scroll-hint"/g) ?? []).length,
-  (report.match(/<article class="diagram"/g) ?? []).length,
-);
-assert.equal(
-  (report.match(/data-readable-width="[0-9]+"/g) ?? []).length,
-  (report.match(/<article class="diagram"/g) ?? []).length,
-);
+assert.doesNotMatch(report, /class="diagram-scroll-hint"/);
+assert.doesNotMatch(report, /data-readable-width="[0-9]+"/);
 assert.match(canonicalReport, /\.mobile-table-cards\{display:grid;gap:8px\}/);
 assert.match(canonicalReport, /@media\(max-width:480px\)\{\.mobile-table-field\{grid-template-columns:1fr/);
 assert.match(canonicalReport, /\.diagram-mobile-flow\{display:grid;gap:8px\}/);
-assert.match(canonicalReport, /\.diagram-viewport\{[^}]*overflow-x:auto/);
-assert.match(canonicalReport, /--diagram-readable-width/);
+assert.match(canonicalReport, /\.diagram-viewport\{[^}]*overflow:hidden/);
+assert.doesNotMatch(canonicalReport, /--diagram-readable-width/);
 assert.match(canonicalReport, /viewport\.tabIndex = 0/);
-assert.match(canonicalReport, /@media\(max-width:820px\)[\s\S]*\.diagram-viewport\{display:none\}/);
-assert.match(canonicalReport, /@media\(max-width:1200px\)[\s\S]*\.table table\{display:none\}/);
+assert.match(canonicalReport, /@media\(max-width:1320px\)[\s\S]*\.diagram-viewport\{display:none\}/);
+assert.match(canonicalReport, /@media\(max-width:1320px\)[\s\S]*\.table table\{display:none\}/);
 assert.match(canonicalReport, /th\{[^}]*font:900 10px/);
 assert.match(canonicalReport, /td\{[^}]*font-size:11px/);
 assert.match(canonicalReport, /\.diagram-mobile-route strong\{[^}]*font-size:12px/);

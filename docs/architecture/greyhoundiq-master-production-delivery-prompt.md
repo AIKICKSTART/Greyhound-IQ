@@ -146,8 +146,9 @@ The current GreyhoundIQ implementation uses private one-to-one voice/video calls
 
 Production target:
 
-- At least two identical Australian LiveKit SFU nodes.
-- Shared private highly available Redis for LiveKit cluster state and routing.
+- Independent Sydney and Melbourne LiveKit cells; never one cross-region cluster with a single Redis dependency.
+- Application-persisted room-home region so every participant in a room receives the same cell endpoint.
+- Private regional highly available Redis in each cell for local cluster state and routing, isolated from application Redis and the other LiveKit cell.
 - TLS load balancing for API/WebSocket signalling.
 - Correct L4 handling for ICE/TCP and TURN/TLS.
 - Direct/public UDP media connectivity with only required firewall ports.
@@ -155,10 +156,11 @@ Production target:
 - Compute-optimised nodes with measured high-bandwidth networking.
 - Prometheus metrics, dashboards and alerts.
 - Native connection draining before node removal or upgrades.
-- Keep one tested spare node of capacity.
+- Keep tested N+1 SFU capacity in each active cell; node counts follow measured call/media/network limits rather than a fixed global spare.
 - Scale out around 50–60% sustained CPU or network utilisation, subject to measured results.
 - Keep recording/egress, ingress, SIP and AI-agent workers separate. Do not deploy them unless the MVP uses those functions.
 - Do not place LiveKit on Cloud Run or another serverless runtime.
+- Do not promise active-call migration across a regional failure. End the affected call visibly and create a new room in the healthy cell when capacity is safe.
 
 Reuse the existing VPS provider only if it can prove Australian residency, suitable networking, repeatable provisioning, load balancing, private Redis, monitoring and recovery. Otherwise, present the smallest compliant VM or Kubernetes alternative before implementation.
 
@@ -172,7 +174,7 @@ Test voice, 720p video, screen sharing and forced TURN separately. Run load gene
 
 Use:
 
-nodes = ceil(target concurrent calls / tested safe calls per node) + 1 spare
+nodes_per_cell = ceil(regional target calls / tested safe calls per node) + N+1 reserve
 
 Record CPU, memory, inbound/outbound bandwidth, packets, connection failures, join latency, packet loss, Redis latency, TURN usage and recovery behaviour.
 

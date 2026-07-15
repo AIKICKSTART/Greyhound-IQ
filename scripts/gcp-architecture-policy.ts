@@ -9,8 +9,32 @@ export function validateGcpArchitectureContract(value: unknown) {
   const findings: string[] = [];
   const root = objectValue(value, "contract", findings);
 
+  if (root.schemaVersion !== 2) {
+    findings.push("schemaVersion: must be 2");
+  }
   if (root.status !== "selected-target-unverified") {
     findings.push("status: must identify the contract as selected-target-unverified");
+  }
+
+  const account = objectValue(root.accountBoundary, "accountBoundary", findings);
+  if (account.status !== "new-account-project-unselected") {
+    findings.push("accountBoundary.status: target project must remain explicitly unselected");
+  }
+  if (account.projectAccess !== "unverified") {
+    findings.push("accountBoundary.projectAccess: must remain unverified until a live preflight passes");
+  }
+  if (account.billingMode !== "non-billable-free-trial-only") {
+    findings.push("accountBoundary.billingMode: must remain non-billable-free-trial-only");
+  }
+  if (account.creditSpendApproval !== "required-before-credit-consuming-resource") {
+    findings.push(
+      "accountBoundary.creditSpendApproval: must be required before a credit-consuming resource",
+    );
+  }
+  if (account.paidUpgradePolicy !== "prohibited-without-explicit-approval") {
+    findings.push(
+      "accountBoundary.paidUpgradePolicy: paid upgrade requires explicit approval",
+    );
   }
 
   const current = objectValue(root.currentDeployment, "currentDeployment", findings);
@@ -34,23 +58,56 @@ export function validateGcpArchitectureContract(value: unknown) {
     }
   }
 
-  if (target.ingress === "all") {
-    findings.push("selectedTarget.ingress: must not be all");
-  } else if (target.ingress !== "internal-and-cloud-load-balancing") {
+  const publicIngress = objectValue(
+    target.publicServiceIngress,
+    "selectedTarget.publicServiceIngress",
+    findings,
+  );
+  if (publicIngress.ingress !== "internal-and-cloud-load-balancing") {
     findings.push(
-      "selectedTarget.ingress: must be internal-and-cloud-load-balancing",
+      "selectedTarget.publicServiceIngress.ingress: must be internal-and-cloud-load-balancing",
     );
   }
-  if (target.defaultUrlPolicy !== "disabled") {
-    findings.push("selectedTarget.defaultUrlPolicy: must be disabled");
+  if (publicIngress.defaultUrlPolicy !== "disabled") {
+    findings.push("selectedTarget.publicServiceIngress.defaultUrlPolicy: must be disabled");
+  }
+  const internalIngress = objectValue(
+    target.internalServiceIngress,
+    "selectedTarget.internalServiceIngress",
+    findings,
+  );
+  if (internalIngress.ingress !== "internal") {
+    findings.push("selectedTarget.internalServiceIngress.ingress: must be internal");
+  }
+  if (
+    internalIngress.platformEndpointPolicy !==
+    "enabled-for-iam-authenticated-google-callers-only"
+  ) {
+    findings.push(
+      "selectedTarget.internalServiceIngress.platformEndpointPolicy: must require IAM-authenticated Google callers",
+    );
   }
 
   const services = objectValue(target.services, "selectedTarget.services", findings);
-  const app = validateService(services.app, "app", "modular-monolith", findings);
+  const app = validateService(
+    services.app,
+    "app",
+    "modular-monolith",
+    "public",
+    findings,
+  );
   const worker = validateService(
     services.worker,
     "worker",
     "separate-worker",
+    "internal",
+    findings,
+  );
+  const realtime = validateService(
+    services.realtime,
+    "realtime",
+    "regional-websocket-gateway",
+    "public",
     findings,
   );
   const budget = objectValue(
@@ -76,11 +133,12 @@ export function validateGcpArchitectureContract(value: unknown) {
       );
     }
 
-    if (app && worker && regionIds.length > 0) {
+    if (app && worker && realtime && regionIds.length > 0) {
       const maxPoolConnections =
         regionIds.length *
         (app.maxInstances * app.connectionLimit +
-          worker.maxInstances * worker.connectionLimit);
+          worker.maxInstances * worker.connectionLimit +
+          realtime.maxInstances * realtime.connectionLimit);
       const applicationBudget = safeConnections - operatorReserve;
       if (maxPoolConnections > applicationBudget) {
         findings.push(
@@ -90,6 +148,8 @@ export function validateGcpArchitectureContract(value: unknown) {
     }
   }
 
+  validateRequiredCapabilities(target.capabilities, findings);
+
   return findings;
 }
 
@@ -97,12 +157,16 @@ function validateService(
   value: unknown,
   name: string,
   architecture: string,
+  ingressProfile: "public" | "internal",
   findings: string[],
 ) {
   const path = `selectedTarget.services.${name}`;
   const service = objectValue(value, path, findings);
   if (service.architecture !== architecture) {
     findings.push(`${path}.architecture: must be ${architecture}`);
+  }
+  if (service.ingressProfile !== ingressProfile) {
+    findings.push(`${path}.ingressProfile: must be ${ingressProfile}`);
   }
 
   positiveNumber(service.cpu, `${path}.cpu`, findings);
@@ -148,6 +212,75 @@ function validateService(
 
   if (maxInstances === null || connectionLimit === null) return null;
   return { maxInstances, connectionLimit };
+}
+
+function validateRequiredCapabilities(value: unknown, findings: string[]) {
+  const capabilities = objectValue(value, "selectedTarget.capabilities", findings);
+  const required = [
+    ["database", "engine", "alloydb-postgresql"],
+    ["storage", "engine", "cloud-storage-configurable-au-dual-region"],
+    ["asynchronousDelivery", "engine", "alloydb-outbox-pubsub"],
+    [
+      "applicationRealtime",
+      "engine",
+      "pubsub-regional-websocket-redis-cursor-replay",
+    ],
+    ["livekit", "engine", "self-hosted-independent-regional-cells"],
+    [
+      "observability",
+      "engine",
+      "cloud-monitoring-logging-australian-regional-sinks",
+    ],
+  ] as const;
+
+  for (const [name, key, expected] of required) {
+    const capability = objectValue(
+      capabilities[name],
+      `selectedTarget.capabilities.${name}`,
+      findings,
+    );
+    if (capability[key] !== expected) {
+      findings.push(`selectedTarget.capabilities.${name}.${key}: must be ${expected}`);
+    }
+    if (capability.status !== "required-unverified") {
+      findings.push(
+        `selectedTarget.capabilities.${name}.status: must remain required-unverified`,
+      );
+    }
+  }
+
+  const database = objectValue(
+    capabilities.database,
+    "selectedTarget.capabilities.database",
+    findings,
+  );
+  if (database.primaryRegion !== AUSTRALIAN_REGIONS[0]) {
+    findings.push("selectedTarget.capabilities.database.primaryRegion: must be Sydney");
+  }
+  if (database.secondaryRegion !== AUSTRALIAN_REGIONS[1]) {
+    findings.push("selectedTarget.capabilities.database.secondaryRegion: must be Melbourne");
+  }
+
+  const providers = objectValue(
+    capabilities.externalProviders,
+    "selectedTarget.capabilities.externalProviders",
+    findings,
+  );
+  if (providers.authentication !== "workos-preserve-and-verify") {
+    findings.push(
+      "selectedTarget.capabilities.externalProviders.authentication: must preserve WorkOS",
+    );
+  }
+  if (providers.payments !== "stripe-preserve-and-verify") {
+    findings.push(
+      "selectedTarget.capabilities.externalProviders.payments: must preserve Stripe",
+    );
+  }
+  if (providers.status !== "required-unverified") {
+    findings.push(
+      "selectedTarget.capabilities.externalProviders.status: must remain required-unverified",
+    );
+  }
 }
 
 function selectedRegionIds(value: unknown, findings: string[]) {

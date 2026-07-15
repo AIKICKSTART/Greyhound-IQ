@@ -16,8 +16,9 @@ import {
   findDesignLabStoryAuditIssues,
 } from "../../scripts/audit-design-lab-user-stories";
 import {
-  getDesignLabSourceFingerprint,
+  fingerprintRepositoryFiles,
   getRepositoryHeadSha,
+  parseDesignLabSourceFiles,
 } from "../../scripts/design-lab-source-fingerprint";
 
 import {
@@ -175,39 +176,57 @@ for (const testPath of PRODUCT_VERIFICATION_GATE_MASTER_EVIDENCE[
   assert.match(readFileSync(testPath, "utf8"), /route\.ts|from ["'].+\/route["']/);
 }
 
-const fingerprint = getDesignLabSourceFingerprint(repositoryRoot);
-const browserBinding = {
-  headSha: getRepositoryHeadSha(repositoryRoot),
-  sourceSha256: fingerprint.sha256,
-  sourceFileCount: fingerprint.fileCount,
-};
 const storyBytes = readFileSync(DESIGN_LAB_STORY_AUDIT_PATH);
 const storyAudit = JSON.parse(storyBytes.toString("utf8")) as unknown;
+const storyBinding = sourceBinding(storyAudit);
 assert.deepEqual(
-  findDesignLabStoryAuditIssues(storyAudit, browserBinding),
+  findDesignLabStoryAuditIssues(storyAudit, storyBinding),
   [],
   "HTTP user-story evidence must be exact, fresh and current-source-bound",
 );
 const companionHttpAuditSha256 = createHash("sha256")
   .update(storyBytes)
   .digest("hex");
-const hydratedBinding = { ...browserBinding, companionHttpAuditSha256 };
+const hydratedAudit = JSON.parse(
+  readFileSync(DESIGN_LAB_HYDRATED_STORY_AUDIT_PATH, "utf8"),
+) as unknown;
+const hydratedBinding = {
+  ...sourceBinding(hydratedAudit),
+  companionHttpAuditSha256,
+};
 assert.deepEqual(
   findDesignLabHydratedStoryAuditIssues(
-    JSON.parse(readFileSync(DESIGN_LAB_HYDRATED_STORY_AUDIT_PATH, "utf8")),
+    hydratedAudit,
     hydratedBinding,
   ),
   [],
   "Hydrated user-story evidence must be exact, fresh and current-source-bound",
 );
+const hydratedWave2Audit = JSON.parse(
+  readFileSync(DESIGN_LAB_HYDRATED_WAVE2_AUDIT_PATH, "utf8"),
+) as unknown;
 assert.deepEqual(
   findDesignLabHydratedWave2AuditIssues(
-    JSON.parse(readFileSync(DESIGN_LAB_HYDRATED_WAVE2_AUDIT_PATH, "utf8")),
-    hydratedBinding,
+    hydratedWave2Audit,
+    {
+      ...sourceBinding(hydratedWave2Audit),
+      companionHttpAuditSha256,
+    },
   ),
   [],
   "Wave 2 hydrated evidence must be exact, fresh and current-source-bound",
 );
+
+function sourceBinding(audit: unknown) {
+  const sourceFiles = parseDesignLabSourceFiles(audit);
+  assert.ok(sourceFiles, "Audit must declare a canonical source-file set");
+  const fingerprint = fingerprintRepositoryFiles(repositoryRoot, sourceFiles);
+  return {
+    headSha: getRepositoryHeadSha(repositoryRoot),
+    sourceSha256: fingerprint.sha256,
+    sourceFileCount: fingerprint.fileCount,
+  };
+}
 for (const testPath of PRODUCT_VERIFICATION_GATE_MASTER_EVIDENCE[
   "VERIFY.LEVEL.component"
 ].evidence.slice(2)) {

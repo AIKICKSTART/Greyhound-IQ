@@ -1,18 +1,24 @@
 export const JSON_REQUEST_MAX_BYTES = 64 * 1024;
+export const JSON_REQUEST_MAX_ARRAY_ITEMS = 1_000;
+export const JSON_REQUEST_MAX_DEPTH = 32;
 
 export async function readBoundedJsonRequest(
   request: Request,
   maxBytes = JSON_REQUEST_MAX_BYTES,
 ): Promise<unknown> {
-  if (!isJsonContentType(request.headers.get("content-type"))) {
+  const contentType = request.headers.get("content-type");
+  if (!isJsonContentType(contentType)) {
     throw new Error("request.unsupported_media_type");
   }
+  assertUtf8Charset(contentType);
   assertIdentityContentEncoding(request);
 
   const text = decodeUtf8(await readBoundedRequestBytes(request, maxBytes));
 
   try {
-    return JSON.parse(text) as unknown;
+    const value = JSON.parse(text) as unknown;
+    assertJsonShape(value);
+    return value;
   } catch {
     throw new Error("request.invalid_body");
   }
@@ -39,6 +45,7 @@ export async function readBoundedJsonOrFormRequest(
   if (mediaType !== "application/x-www-form-urlencoded") {
     throw new Error("request.unsupported_media_type");
   }
+  assertUtf8Charset(request.headers.get("content-type"));
   assertIdentityContentEncoding(request);
   return Object.fromEntries(
     new URLSearchParams(
@@ -99,6 +106,50 @@ function isJsonContentType(value: string | null) {
 
 function requestMediaType(value: string | null) {
   return value?.split(";", 1)[0].trim().toLowerCase() ?? "";
+}
+
+function assertUtf8Charset(contentType: string | null) {
+  const charsets = (contentType?.split(";").slice(1) ?? []).flatMap(
+    (parameter) => {
+      const name = parameter.split("=", 1)[0].trim().toLowerCase();
+      if (name !== "charset") return [];
+      const match = /^charset\s*=\s*(?:"([^"]*)"|([^"\s]+))\s*$/i.exec(
+        parameter.trim(),
+      );
+      return match ? [(match[1] ?? match[2]).toLowerCase()] : [""];
+    },
+  );
+  if (
+    charsets.length > 1 ||
+    (charsets.length === 1 && charsets[0] !== "utf-8")
+  ) {
+    throw new Error("request.unsupported_media_type");
+  }
+}
+
+function assertJsonShape(value: unknown) {
+  const pending = [{ value, depth: 1 }];
+
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!current || current.value === null || typeof current.value !== "object") {
+      continue;
+    }
+    if (current.depth > JSON_REQUEST_MAX_DEPTH) {
+      throw new Error("request.invalid_body");
+    }
+    if (
+      Array.isArray(current.value) &&
+      current.value.length > JSON_REQUEST_MAX_ARRAY_ITEMS
+    ) {
+      throw new Error("request.invalid_body");
+    }
+    for (const child of Object.values(current.value)) {
+      if (child !== null && typeof child === "object") {
+        pending.push({ value: child, depth: current.depth + 1 });
+      }
+    }
+  }
 }
 
 function assertIdentityContentEncoding(request: Request) {

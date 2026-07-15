@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 on:
   push:
@@ -17,8 +17,8 @@ jobs:
     name: docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 24
           cache: npm
@@ -75,11 +75,11 @@ jobs:
       SMOKE_BASE_URL: http://127.0.0.1:3000
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 24
           cache: npm
@@ -97,6 +97,19 @@ jobs:
           semgrep --config p/typescript --config p/owasp-top-ten --config p/secrets
           --jobs 4 --timeout 15 --max-target-bytes 1000000 --exclude "*.test.ts"
           --exclude "*.test.tsx" --error src/app src/lib scripts
+      - name: Validate Terraform source and provider schema
+        run: |
+          npm run check:terraform-source
+          docker run --rm \
+            --mount "type=bind,source=$PWD/infra/terraform,target=/src,readonly" \
+            --entrypoint sh \
+            hashicorp/terraform@sha256:96d2bc440714bf2b2f2998ac730fd4612f30746df43fca6f0892b2e2035b11bc \
+            -c 'cp -R /src /tmp/tf && cd /tmp/tf && terraform fmt -check -recursive && TF_DATA_DIR=/tmp/tfdata terraform init -backend=false -lockfile=readonly && TF_DATA_DIR=/tmp/tfdata terraform validate'
+          docker run --rm \
+            --mount "type=bind,source=$PWD/infra/terraform-production,target=/src,readonly" \
+            --entrypoint sh \
+            hashicorp/terraform@sha256:96d2bc440714bf2b2f2998ac730fd4612f30746df43fca6f0892b2e2035b11bc \
+            -c 'cp -R /src /tmp/tf && cd /tmp/tf && terraform fmt -check -recursive && TF_DATA_DIR=/tmp/tfdata terraform init -backend=false -lockfile=readonly && TF_DATA_DIR=/tmp/tfdata terraform validate'
       - run: npm audit --audit-level=high
       - run: npm run check:env -- --ci --production
       - run: npx prisma validate

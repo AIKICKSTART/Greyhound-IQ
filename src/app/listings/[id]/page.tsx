@@ -2,6 +2,7 @@ import Link from "next/link";
 import NextImage from "next/image";
 import { notFound } from "next/navigation";
 import {
+  Archive,
   ArrowLeft,
   BadgeCheck,
   Clock3,
@@ -12,20 +13,25 @@ import {
   MapPin,
   MessageSquare,
   Paperclip,
+  Pencil,
   RefreshCw,
+  Send,
   ShieldAlert,
   ShieldCheck,
   ShoppingBag,
   Tag,
 } from "lucide-react";
 import {
+  archiveListing,
   markListingSold,
   reportListing,
   renewListing,
+  submitListingForReview,
   withdrawListing,
 } from "@/app/actions";
 import { InstantListingEnquiryForm } from "@/components/instant-listing-enquiry-form";
 import { InstantSaveListingButton } from "@/components/instant-save-listing-button";
+import { ListingShareButton } from "@/components/listing-share-button";
 import { ProcessedVideo } from "@/components/processed-video";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser, hasTier } from "@/lib/auth";
@@ -52,6 +58,7 @@ const TYPE_LABEL: Record<string, string> = {
 
 const STATUS_STYLE: Record<string, string> = {
   active: "giq-badge-purple",
+  draft: "giq-badge-neutral",
   pending_review: "giq-badge-gold",
   expired: "giq-badge-neutral",
   sold: "giq-badge-gold",
@@ -96,13 +103,23 @@ export default async function ListingDetailPage({
       : new Set<string>();
   const isSaved = savedIds.has(listing.id);
   const renewAction = renewListing.bind(null, listing.id);
+  const submitForReviewAction = submitListingForReview.bind(null, listing.id);
   const soldAction = markListingSold.bind(null, listing.id);
   const withdrawAction = withdrawListing.bind(null, listing.id);
+  const archiveAction = archiveListing.bind(null, listing.id);
   const reportAction = reportListing.bind(null, listing.id);
   const demoImages = getDemoListingImages(listing, 3);
   const canRenew =
     expired || ["expired", "sold", "withdrawn"].includes(listing.status);
   const canWithdraw = ["active", "pending_review"].includes(listing.status);
+  const canArchive = [
+    "draft",
+    "pending_review",
+    "active",
+    "expired",
+    "sold",
+    "withdrawn",
+  ].includes(listing.status);
   const locationLabel =
     [
       listing.location?.suburb,
@@ -199,6 +216,7 @@ export default async function ListingDetailPage({
               <span aria-hidden="true">·</span>
               <span>{locationLabel}</span>
             </div>
+            <ListingShareButton listingId={listing.id} title={listing.title} />
 
             <div className="mt-5 border-t border-white/[0.07] pt-5">
               <div className="flex items-start gap-3">
@@ -220,6 +238,18 @@ export default async function ListingDetailPage({
                       ? "Verified seller"
                       : "Community seller"}
                   </p>
+                  {listing.profile.socialActor?.published ? (
+                    <Link
+                      href={`/p/${listing.profile.socialActor.handle}`}
+                      className="mt-2 inline-flex min-h-11 items-center text-[12px] font-semibold text-[hsl(var(--primary-bright))] underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-bright))]"
+                    >
+                      View seller profile
+                    </Link>
+                  ) : (
+                    <p className="mt-2 text-[12px] text-[hsl(var(--subtle-foreground))]">
+                      Seller profile is not public.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -270,7 +300,32 @@ export default async function ListingDetailPage({
                       Awaiting moderator review before this listing appears publicly.
                     </p>
                   )}
+                  {listing.status === "draft" && (
+                    <p className="mt-2 text-[12px] text-[hsl(var(--muted-foreground))]">
+                      This draft is visible only to you until you submit it for review.
+                    </p>
+                  )}
+                  {listing.status !== "archived" && (
+                    <Link
+                      href={`/marketplace/${listing.id}/edit`}
+                      className="giq-button giq-button-glass mt-4 min-h-11 w-full px-4 text-[13px] font-semibold"
+                    >
+                      <Pencil className="size-4" aria-hidden="true" />
+                      Edit listing
+                    </Link>
+                  )}
                   <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                    {listing.status === "draft" && (
+                      <form action={submitForReviewAction}>
+                        <SubmitButton
+                          pendingLabel="Submitting..."
+                          className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px] font-semibold disabled:cursor-not-allowed"
+                        >
+                          <Send className="h-4 w-4" aria-hidden="true" />
+                          Submit for review
+                        </SubmitButton>
+                      </form>
+                    )}
                     {canRenew && (
                       <form action={renewAction}>
                         <SubmitButton
@@ -299,6 +354,27 @@ export default async function ListingDetailPage({
                           className="giq-button giq-button-glass min-h-11 w-full px-4 text-[13px] font-semibold disabled:cursor-not-allowed"
                         >
                           Withdraw
+                        </SubmitButton>
+                      </form>
+                    )}
+                    {canArchive && (
+                      <form action={archiveAction} className="grid gap-2">
+                        <label className="flex min-h-11 items-start gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] p-3 text-[12px] leading-5 text-[hsl(var(--muted-foreground))]">
+                          <input
+                            type="checkbox"
+                            name="confirmation"
+                            value="archive"
+                            required
+                            className="mt-0.5 size-4 shrink-0 accent-[hsl(var(--primary))]"
+                          />
+                          Confirm this listing should leave active inventory.
+                        </label>
+                        <SubmitButton
+                          pendingLabel="Archiving..."
+                          className="giq-button giq-button-glass min-h-11 w-full px-4 text-[13px] font-semibold disabled:cursor-not-allowed"
+                        >
+                          <Archive className="h-4 w-4" aria-hidden="true" />
+                          Archive
                         </SubmitButton>
                       </form>
                     )}

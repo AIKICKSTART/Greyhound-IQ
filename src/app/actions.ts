@@ -53,6 +53,7 @@ import {
   feedTopicWriteSchema,
 } from "@/lib/feed-validation";
 import {
+  archiveListingForCurrentUser,
   approveListingForModerator,
   createMarketplaceCategoryForModerator,
   createListingEnquiryForCurrentUser,
@@ -62,6 +63,7 @@ import {
   removeListingForModerator,
   renewListingForCurrentUser,
   setMarketplaceCategoryActiveForModerator,
+  submitDraftListingForCurrentUser,
   toggleSavedListingForCurrentUser,
   withdrawListingForCurrentUser,
 } from "@/lib/listing-service";
@@ -114,6 +116,10 @@ const forumReplySchema = z.object({
   body: z.string().trim().min(20).max(20_000),
 });
 
+const destructiveConfirmationSchema = z.object({
+  confirmation: z.literal("DELETE"),
+});
+
 const listingSchema = z.object({
   type: z.enum([
     "pup_for_sale",
@@ -156,6 +162,7 @@ const listingSchema = z.object({
     }),
   welfareAcknowledged: z.boolean().default(false),
   legalAcknowledged: z.boolean().default(false),
+  submissionIntent: z.enum(["draft", "review"]),
   mediaIds: z.array(z.string().trim().min(1)).max(11).default([]),
   attributes: z
     .array(
@@ -166,6 +173,10 @@ const listingSchema = z.object({
     )
     .max(8)
     .default([]),
+});
+
+const listingArchiveSchema = z.object({
+  confirmation: z.literal("archive"),
 });
 
 const listingReportSchema = z.object({
@@ -233,6 +244,10 @@ const supportTicketSchema = z.object({
 
 const SUPPORT_TICKET_RATE_LIMIT = 3;
 const SUPPORT_TICKET_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const FORUM_THREAD_RATE_LIMIT = 3;
+const FORUM_THREAD_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const FORUM_REPLY_RATE_LIMIT = 5;
+const FORUM_REPLY_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const FEED_POST_RATE_LIMIT = 5;
 const FEED_POST_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const DOG_CLAIM_RATE_LIMIT = 5;
@@ -259,8 +274,17 @@ const LISTING_REPORT_RATE_LIMIT = 10;
 const LISTING_REPORT_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const LISTING_SAVE_RATE_LIMIT = 30;
 const LISTING_SAVE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const LISTING_CREATE_RATE_LIMIT = 3;
+const LISTING_CREATE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const FEED_REPORT_RATE_LIMIT = 10;
+const FEED_REPORT_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const AGENT_RUN_RATE_LIMIT = 10;
+const AGENT_RUN_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const ACCOUNT_DELETION_RATE_LIMIT = 3;
+const ACCOUNT_DELETION_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const REPORT_RESOLVE_RATE_LIMIT = 30;
 const REPORT_RESOLVE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const FAIL_CLOSED_RATE_LIMIT = { failClosed: true } as const;
 
 function field(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -293,6 +317,13 @@ function moderationReason(formData: FormData, fallback: string) {
 export async function createForumThread(formData: FormData) {
   const current = await requireCurrentUserProfile();
   assertPaidFeatureAccess(current);
+  const rateLimit = await checkRateLimit(
+    `forum:thread:${current.dbUserId}`,
+    FORUM_THREAD_RATE_LIMIT,
+    FORUM_THREAD_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
   const parsed = forumThreadSchema.parse({
     categoryId: field(formData, "categoryId"),
     title: field(formData, "title"),
@@ -330,6 +361,13 @@ export async function createForumThread(formData: FormData) {
 export async function replyToForumThread(threadId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
   assertPaidFeatureAccess(current);
+  const rateLimit = await checkRateLimit(
+    `forum:reply:${current.dbUserId}:${threadId}`,
+    FORUM_REPLY_RATE_LIMIT,
+    FORUM_REPLY_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
   const parsed = forumReplySchema.parse({ body: field(formData, "body") });
 
   const thread = await prisma.thread.findUnique({
@@ -363,7 +401,8 @@ export async function createFeedPost(formData: FormData) {
   const rateLimit = await checkRateLimit(
     `feed:post:${current.dbUserId}`,
     FEED_POST_RATE_LIMIT,
-    FEED_POST_RATE_LIMIT_WINDOW_MS
+    FEED_POST_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -384,7 +423,8 @@ export async function replyToFeedPost(postId: string, formData: FormData) {
   const rateLimit = await checkRateLimit(
     `feed:comment:${current.dbUserId}:${postId}`,
     FEED_COMMENT_RATE_LIMIT,
-    FEED_COMMENT_RATE_LIMIT_WINDOW_MS
+    FEED_COMMENT_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -407,7 +447,8 @@ export async function toggleFeedPostReaction(
   const rateLimit = await checkRateLimit(
     `feed:reaction:${current.dbUserId}:${postId}`,
     FEED_REACTION_RATE_LIMIT,
-    FEED_REACTION_RATE_LIMIT_WINDOW_MS
+    FEED_REACTION_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -418,6 +459,13 @@ export async function toggleFeedPostReaction(
 
 export async function reportFeedPost(postId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `feed:report:${current.dbUserId}:${postId}`,
+    FEED_REPORT_RATE_LIMIT,
+    FEED_REPORT_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
   const parsed = feedReportSchema.parse({
     reason: field(formData, "reason") || "other",
     description: field(formData, "description") || null,
@@ -438,7 +486,8 @@ export async function blockFeedPostAuthor(postId: string) {
   const rateLimit = await checkRateLimit(
     `feed:block:${current.dbUserId}:${postId}`,
     FEED_BLOCK_RATE_LIMIT,
-    FEED_BLOCK_RATE_LIMIT_WINDOW_MS
+    FEED_BLOCK_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -490,6 +539,13 @@ export async function moderateFeedPost(postId: string, formData: FormData) {
 
 export async function createListing(formData: FormData) {
   const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `listing:create:${current.dbUserId}`,
+    LISTING_CREATE_RATE_LIMIT,
+    LISTING_CREATE_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
   const parsed = listingSchema.parse({
     type: field(formData, "type"),
     categoryId: field(formData, "categoryId") || undefined,
@@ -510,6 +566,7 @@ export async function createListing(formData: FormData) {
     price: field(formData, "price") || undefined,
     welfareAcknowledged: field(formData, "welfareAcknowledged") === "true",
     legalAcknowledged: field(formData, "legalAcknowledged") === "true",
+    submissionIntent: field(formData, "submissionIntent") || "review",
     mediaIds: fields(formData, "mediaIds"),
     attributes: listingAttributes(formData),
   });
@@ -540,12 +597,19 @@ export async function createListing(formData: FormData) {
     price: parsed.price,
     welfareAcknowledged: parsed.welfareAcknowledged,
     legalAcknowledged: parsed.legalAcknowledged,
+    submissionIntent: parsed.submissionIntent,
     mediaIds: parsed.mediaIds,
     attributes: parsed.attributes,
   });
 
   revalidatePath("/marketplace");
-  redirect("/marketplace?submitted=review");
+  revalidatePath("/account/listings");
+  revalidatePath("/account/listings/drafts");
+  redirect(
+    parsed.submissionIntent === "draft"
+      ? "/account/listings/drafts?created=1"
+      : "/marketplace?submitted=review",
+  );
 }
 
 export async function enquireAboutListing(
@@ -556,7 +620,8 @@ export async function enquireAboutListing(
   const rateLimit = await checkRateLimit(
     `listing:enquiry:${current.dbUserId}:${listingId}`,
     LISTING_ENQUIRY_RATE_LIMIT,
-    LISTING_ENQUIRY_RATE_LIMIT_WINDOW_MS
+    LISTING_ENQUIRY_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -580,7 +645,8 @@ export async function reportListing(listingId: string, formData: FormData) {
   const rateLimit = await checkRateLimit(
     `listing:report:${current.dbUserId}:${listingId}`,
     LISTING_REPORT_RATE_LIMIT,
-    LISTING_REPORT_RATE_LIMIT_WINDOW_MS
+    LISTING_REPORT_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -607,7 +673,8 @@ export async function toggleSavedListing(listingId: string, _formData?: FormData
   const rateLimit = await checkRateLimit(
     `listing:save:${current.dbUserId}:${listingId}`,
     LISTING_SAVE_RATE_LIMIT,
-    LISTING_SAVE_RATE_LIMIT_WINDOW_MS
+    LISTING_SAVE_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -647,6 +714,39 @@ export async function withdrawListing(listingId: string, _formData?: FormData) {
   revalidatePath("/marketplace");
   revalidatePath(`/marketplace/${listingId}`);
   redirect(`/marketplace/${listingId}`);
+}
+
+export async function submitListingForReview(
+  listingId: string,
+  _formData?: FormData,
+) {
+  void _formData;
+  const current = await requireCurrentUserProfile();
+  await submitDraftListingForCurrentUser(current, listingId);
+
+  revalidatePath("/marketplace");
+  revalidatePath("/account/listings");
+  revalidatePath("/account/listings/drafts");
+  revalidatePath(`/marketplace/${listingId}`);
+  redirect(`/marketplace/${listingId}`);
+}
+
+export async function archiveListing(
+  listingId: string,
+  formData: FormData,
+) {
+  const current = await requireCurrentUserProfile();
+  listingArchiveSchema.parse({
+    confirmation: field(formData, "confirmation"),
+  });
+  await archiveListingForCurrentUser(current, listingId);
+
+  revalidatePath("/marketplace");
+  revalidatePath("/account/listings");
+  revalidatePath("/account/listings/drafts");
+  revalidatePath("/account/listings/archived");
+  revalidatePath(`/marketplace/${listingId}`);
+  redirect("/account/listings/archived");
 }
 
 export async function approveListing(listingId: string, _formData?: FormData) {
@@ -725,7 +825,8 @@ export async function resolveReport(reportId: string, formData: FormData) {
   const rateLimit = await checkRateLimit(
     `report:resolve:${current.dbUserId}`,
     REPORT_RESOLVE_RATE_LIMIT,
-    REPORT_RESOLVE_RATE_LIMIT_WINDOW_MS
+    REPORT_RESOLVE_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -786,7 +887,8 @@ export async function sendMessage(formData: FormData) {
   const rateLimit = await checkRateLimit(
     `message:send:${current.dbUserId}`,
     MESSAGE_SEND_RATE_LIMIT,
-    MESSAGE_SEND_RATE_LIMIT_WINDOW_MS
+    MESSAGE_SEND_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -817,7 +919,8 @@ export async function replyToConversation(
   const rateLimit = await checkRateLimit(
     `message:send:${current.dbUserId}`,
     MESSAGE_SEND_RATE_LIMIT,
-    MESSAGE_SEND_RATE_LIMIT_WINDOW_MS
+    MESSAGE_SEND_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -896,7 +999,8 @@ export async function toggleMessageReaction(
   const rateLimit = await checkRateLimit(
     `message:reaction:${current.dbUserId}:${messageId}`,
     MESSAGE_REACTION_RATE_LIMIT,
-    MESSAGE_REACTION_RATE_LIMIT_WINDOW_MS
+    MESSAGE_REACTION_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -920,7 +1024,8 @@ export async function reportConversationMessage(
   const rateLimit = await checkRateLimit(
     `message:report:${current.dbUserId}:${messageId}`,
     MESSAGE_REPORT_RATE_LIMIT,
-    MESSAGE_REPORT_RATE_LIMIT_WINDOW_MS
+    MESSAGE_REPORT_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -958,6 +1063,13 @@ export async function reportConversationMessage(
 
 export async function createAgentRun(formData: FormData) {
   const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `agent-run:${current.dbUserId}`,
+    AGENT_RUN_RATE_LIMIT,
+    AGENT_RUN_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
   const parsed = agentFormSchema.parse({
     agentType: field(formData, "agentType"),
     input: field(formData, "input"),
@@ -978,7 +1090,8 @@ export async function createSupportTicket(formData: FormData) {
   const rateLimit = await checkRateLimit(
     `support:${current.dbUserId}`,
     SUPPORT_TICKET_RATE_LIMIT,
-    SUPPORT_TICKET_RATE_LIMIT_WINDOW_MS
+    SUPPORT_TICKET_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("support.rate_limit");
 
@@ -1118,7 +1231,8 @@ export async function claimDogOwnership(dogId: string, formData: FormData) {
   const rateLimit = await checkRateLimit(
     `dog:claim:${current.dbUserId}`,
     DOG_CLAIM_RATE_LIMIT,
-    DOG_CLAIM_RATE_LIMIT_WINDOW_MS
+    DOG_CLAIM_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -1164,8 +1278,18 @@ export async function claimDogOwnership(dogId: string, formData: FormData) {
   redirect(`/dogs/${dogId}`);
 }
 
-export async function requestAccountDeletion() {
+export async function requestAccountDeletion(formData: FormData) {
   const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `account:delete:${current.dbUserId}`,
+    ACCOUNT_DELETION_RATE_LIMIT,
+    ACCOUNT_DELETION_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
+  destructiveConfirmationSchema.parse({
+    confirmation: field(formData, "confirmation"),
+  });
   await requestAccountDeletionForUser(current);
 
   revalidatePath("/account");
@@ -1174,6 +1298,9 @@ export async function requestAccountDeletion() {
 
 const CUSTOM_PAGE_RATE_LIMIT = 20;
 const CUSTOM_PAGE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const customPagePublishSchema = z.object({
+  publish: z.enum(["true", "false"]),
+});
 
 function optional(formData: FormData, name: string): string | null {
   const v = field(formData, name).trim();
@@ -1208,7 +1335,8 @@ export async function createCustomPageAction(formData: FormData) {
   const rl = await checkRateLimit(
     `custom-page:create:${current.dbUserId}`,
     CUSTOM_PAGE_RATE_LIMIT,
-    CUSTOM_PAGE_RATE_LIMIT_WINDOW_MS
+    CUSTOM_PAGE_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rl.allowed) throw new Error("rate_limit.exceeded");
 
@@ -1253,7 +1381,8 @@ export async function updateCustomPageAction(pageId: string, formData: FormData)
   const rl = await checkRateLimit(
     `custom-page:update:${current.dbUserId}`,
     CUSTOM_PAGE_RATE_LIMIT,
-    CUSTOM_PAGE_RATE_LIMIT_WINDOW_MS
+    CUSTOM_PAGE_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rl.allowed) throw new Error("rate_limit.exceeded");
 
@@ -1284,14 +1413,19 @@ export async function updateCustomPageAction(pageId: string, formData: FormData)
 
 export async function publishCustomPageAction(pageId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
-  const publish = field(formData, "publish") === "true";
-  await setCustomPagePublished(current, pageId, publish);
+  const parsed = customPagePublishSchema.parse({
+    publish: field(formData, "publish"),
+  });
+  await setCustomPagePublished(current, pageId, parsed.publish === "true");
   revalidatePath("/account/pages");
   revalidatePath(`/account/pages/${pageId}`);
 }
 
-export async function deleteCustomPageAction(pageId: string) {
+export async function deleteCustomPageAction(pageId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
+  destructiveConfirmationSchema.parse({
+    confirmation: field(formData, "confirmation"),
+  });
   await deleteCustomPage(current, pageId);
   revalidatePath("/account/pages");
   redirect("/account/pages");
@@ -1302,7 +1436,8 @@ export async function generateDogCardAction(pageId: string) {
   const rl = await checkRateLimit(
     `dog-card:generate:${current.dbUserId}`,
     10,
-    60 * 60 * 1000
+    60 * 60 * 1000,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rl.allowed) throw new Error("rate_limit.exceeded");
   await generateDogCard(current, pageId);
@@ -1326,7 +1461,8 @@ export async function sendFriendRequestAction(formData: FormData) {
   const rateLimit = await checkRateLimit(
     `friend:request:${current.dbUserId}`,
     FRIEND_REQUEST_RATE_LIMIT,
-    FRIEND_REQUEST_RATE_LIMIT_WINDOW_MS
+    FRIEND_REQUEST_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -1343,7 +1479,8 @@ export async function respondToFriendRequestAction(formData: FormData) {
   const rateLimit = await checkRateLimit(
     `friend:respond:${current.dbUserId}`,
     FRIEND_RESPOND_RATE_LIMIT,
-    FRIEND_RESPOND_RATE_LIMIT_WINDOW_MS
+    FRIEND_RESPOND_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -1361,7 +1498,8 @@ export async function removeFriendAction(formData: FormData) {
   const rateLimit = await checkRateLimit(
     `friend:respond:${current.dbUserId}`,
     FRIEND_RESPOND_RATE_LIMIT,
-    FRIEND_RESPOND_RATE_LIMIT_WINDOW_MS
+    FRIEND_RESPOND_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -1379,7 +1517,8 @@ export async function startChatAction(formData: FormData) {
   const rateLimit = await checkRateLimit(
     `conversation:start:${current.dbUserId}`,
     MESSAGE_SEND_RATE_LIMIT,
-    MESSAGE_SEND_RATE_LIMIT_WINDOW_MS
+    MESSAGE_SEND_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 

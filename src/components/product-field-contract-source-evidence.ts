@@ -6,7 +6,7 @@ export const PRODUCT_FIELD_CONTRACT_SOURCE_TEST_FILE =
   "src/components/product-field-contract-source-evidence.test.ts" as const;
 
 export const PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE =
-  "Deterministic source-static field inventory across all 97 registered screen routes and their complete reachable local source closures, with an exact one-to-one record for every discovered route/source/control identifier. Every record explicitly captures registry name, submitted name or absence, visible and accessible label source or absence, input and inferred data type, required/default/placeholder/help metadata, character and numeric constraints, native source-declared validation attributes, file type and tier-owned file-size policy, source classification, route or field-specific onboarding, mobile input, autofill, read-only/disabled state, conditional visibility and the hidden/generated-id/consent/media/disclosure/billing/dependent categories. Combined with the separately tested exact route/form operational register, this provides the complete source-static form and field registry output. Null and false values are explicit observations, not claims that a visible label, accessible name or validation constraint exists; empty validation-rule values are likewise explicit. This batch does not promote sanitisation, per-field error, persistence or privacy requirements because the current route registry does not prove those four properties end to end; it does not prove hydration, submission, browser-native validation behaviour, browser accessibility or deployed parity.";
+  "Deterministic source-static field inventory across all 97 registered screen routes and their complete reachable local source closures, with an exact one-to-one record for every discovered route/source/control identifier. Every record explicitly captures registry name, submitted name or absence, visible and accessible label source or absence, input and inferred data type, required/default/placeholder/help metadata, character and numeric constraints, native source-declared validation attributes, file type and tier-owned file-size policy, source classification, source-visible persistence destination, conservative privacy classification, route or field-specific onboarding, mobile input, autofill, read-only/disabled state, conditional visibility and the hidden/generated-id/consent/media/disclosure/billing/dependent categories. Persistence distinguishes URL query, form action, caller-owned form, component state and non-submitted controls; privacy distinguishes credential, personal, user-content, identifier, billing, consent, public-racing and operational data. Combined with the separately tested exact route/form operational register, this provides the complete source-static form and field registry output. Null and false values are explicit observations, not claims that a visible label, accessible name or validation constraint exists; empty validation-rule values are likewise explicit. This batch does not promote sanitisation or per-field error requirements. It does not prove hydration, submission, browser-native validation behaviour, browser accessibility or deployed parity. It also does not prove downstream database storage or runtime data values.";
 
 export const PRODUCT_FIELD_CONTRACT_SOURCE_REQUIREMENT_IDS = [
   "FIELD.FIELD.name",
@@ -36,13 +36,13 @@ export const PRODUCT_FIELD_CONTRACT_SOURCE_REQUIREMENT_IDS = [
   "FIELD.FIELD.disclosures",
   "FIELD.FIELD.billing-intent",
   "FIELD.FIELD.dependent-fields",
+  "FIELD.FIELD.persistence",
+  "FIELD.FIELD.privacy",
 ] as const;
 
 export const PRODUCT_FIELD_CONTRACT_SOURCE_OPEN_REQUIREMENT_IDS = [
   "FIELD.FIELD.sanitisation",
   "FIELD.FIELD.error",
-  "FIELD.FIELD.persistence",
-  "FIELD.FIELD.privacy",
 ] as const;
 
 export const PRODUCT_FORM_FIELD_REGISTRY_OUTPUT_REQUIREMENT_IDS = [
@@ -116,6 +116,8 @@ export const PRODUCT_FIELD_CONTRACT_SOURCE_MASTER_EVIDENCE = {
   "FIELD.FIELD.disclosures": tested(),
   "FIELD.FIELD.billing-intent": tested(),
   "FIELD.FIELD.dependent-fields": tested(),
+  "FIELD.FIELD.persistence": tested(),
+  "FIELD.FIELD.privacy": tested(),
   "OUT.form-field-registry": {
     status: "tested",
     evidence: FORM_FIELD_REGISTRY_OUTPUT_EVIDENCE,

@@ -48,12 +48,12 @@ const EXPECTED_CLOSED_IDS = [
   "FIELD.FIELD.disclosures",
   "FIELD.FIELD.billing-intent",
   "FIELD.FIELD.dependent-fields",
+  "FIELD.FIELD.persistence",
+  "FIELD.FIELD.privacy",
 ] as const;
 const EXPECTED_OPEN_IDS = [
   "FIELD.FIELD.sanitisation",
   "FIELD.FIELD.error",
-  "FIELD.FIELD.persistence",
-  "FIELD.FIELD.privacy",
 ] as const;
 const EXPECTED_OUTPUT_IDS = ["OUT.form-field-registry"] as const;
 
@@ -69,7 +69,7 @@ assert.deepEqual(
   PRODUCT_FORM_FIELD_REGISTRY_OUTPUT_REQUIREMENT_IDS,
   EXPECTED_OUTPUT_IDS,
 );
-assert.equal(PRODUCT_FIELD_CONTRACT_SOURCE_EXPECTED_GAIN, 28);
+assert.equal(PRODUCT_FIELD_CONTRACT_SOURCE_EXPECTED_GAIN, 30);
 assert.deepEqual(
   Object.keys(PRODUCT_FIELD_CONTRACT_SOURCE_MASTER_EVIDENCE),
   [...EXPECTED_CLOSED_IDS, ...EXPECTED_OUTPUT_IDS],
@@ -82,7 +82,7 @@ assert.equal(promptFieldIds.length, 31);
 assert.deepEqual(
   [...EXPECTED_CLOSED_IDS, ...EXPECTED_OPEN_IDS].toSorted(),
   promptFieldIds.toSorted(),
-  "The +27 source batch and four preserved gaps must partition fields.contract",
+  "The +29 source batch and two preserved gaps must partition fields.contract",
 );
 
 for (const [requirementId, record] of Object.entries(
@@ -163,6 +163,8 @@ const recordKeys = [
   "acceptedFileSizePolicy",
   "validationRules",
   "dataSource",
+  "persistenceDestination",
+  "privacyClassification",
   "onboarding",
   "mobileInput",
   "autofill",
@@ -207,9 +209,50 @@ for (const record of registry.records) {
   );
   assert.equal(record.sanitisation, "not-source-proven", record.id);
   assert.equal(record.userFacingError, "not-source-proven", record.id);
-  assert.equal(record.persistenceDestination, "not-source-proven", record.id);
-  assert.equal(record.privacyClassification, "unclassified", record.id);
+  assert.doesNotMatch(record.persistenceDestination, /not-source-proven/, record.id);
+  assert.doesNotMatch(record.privacyClassification, /unclassified/, record.id);
 }
+
+assert.deepEqual(
+  new Set(registry.records.map(({ privacyClassification }) => privacyClassification)),
+  new Set([
+    "billing-data",
+    "consent-preference",
+    "credential-secret",
+    "operational-data",
+    "personal-data",
+    "persistent-identifier",
+    "public-racing-data",
+    "user-content",
+  ]),
+);
+assert.ok(
+  registry.records.some(
+    ({ name, privacyClassification }) =>
+      name === "email" && privacyClassification === "personal-data",
+  ),
+);
+assert.ok(
+  registry.records.some(
+    ({ name, privacyClassification }) =>
+      name === "token" && privacyClassification === "credential-secret",
+  ),
+);
+assert.ok(
+  registry.records.some(({ persistenceDestination }) =>
+    persistenceDestination.startsWith("form-action:"),
+  ),
+);
+assert.ok(
+  registry.records.some(({ persistenceDestination }) =>
+    persistenceDestination.startsWith("url-query:"),
+  ),
+);
+assert.ok(
+  registry.records.some(
+    ({ persistenceDestination }) => persistenceDestination === "component-state",
+  ),
+);
 
 const submittedFields = registry.records.filter(({ submittedName }) =>
   Boolean(submittedName),
@@ -286,11 +329,14 @@ assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /exact one-to-one record/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /complete source-static form and field registry output/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /Null and false values are explicit observations/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /native source-declared validation attributes/i);
+assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /source-visible persistence destination/i);
+assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /conservative privacy classification/i);
+assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /does not prove downstream database storage/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /browser-native validation behaviour/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /does not prove hydration/i);
 
 console.log(
-  `Product field contract source evidence passed: exact ${registry.records.length}-record field inventory closes 27/31 source-record requirements plus the complete form/field registry output; sanitisation, error, persistence and privacy remain open.`,
+  `Product field contract source evidence passed: exact ${registry.records.length}-record field inventory closes 29/31 source-record requirements plus the complete form/field registry output; sanitisation and error remain open.`,
 );
 
 function assertNonEmpty(value: string, label: string) {

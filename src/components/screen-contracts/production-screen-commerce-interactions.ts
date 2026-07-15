@@ -147,6 +147,16 @@ export const PRODUCTION_SCREEN_COMMERCE_INTERACTION_CONTRACTS = {
         "withdrawListingForCurrentUser resolves the listing through the current profile and rejects status transitions outside the withdrawal allowlist.",
       ),
       action(
+        "MARKETPLACE-DETAIL.ACTION.OWNER.SUBMIT-DRAFT",
+        "Submits an owned draft for moderator review.",
+        "submitDraftListingForCurrentUser resolves the listing through the current profile, accepts only draft status, requires stored acknowledgements, and records the pending-review transition.",
+      ),
+      action(
+        "MARKETPLACE-DETAIL.ACTION.OWNER.ARCHIVE",
+        "Archives an eligible owned listing after explicit confirmation.",
+        "archiveListing parses the archive confirmation, requires the current profile, and archiveListingForCurrentUser rechecks ownership plus the archive transition allowlist.",
+      ),
+      action(
         "MARKETPLACE-DETAIL.ACTION.REPORT",
         "Submits a bounded marketplace-item report for moderator review.",
         "reportListing requires the current profile, applies a per-profile/listing rate limit, parses the allowlisted reason and optional bounded context, and creates a user-scoped report.",
@@ -189,6 +199,16 @@ export const PRODUCTION_SCREEN_COMMERCE_INTERACTION_CONTRACTS = {
         "listingId:server-bound-owned-listing-id,status:active|pending_review",
       ),
       form(
+        "MARKETPLACE-DETAIL.FORM.SUBMIT-DRAFT",
+        "SERVER ACTION submitListingForReview",
+        "listingId:server-bound-owned-listing-id,status:draft",
+      ),
+      form(
+        "MARKETPLACE-DETAIL.FORM.ARCHIVE",
+        "SERVER ACTION archiveListing",
+        "listingId:server-bound-owned-listing-id,status:draft|pending_review|active|expired|sold|withdrawn,confirmation:archive",
+      ),
+      form(
         "MARKETPLACE-DETAIL.FORM.REPORT",
         "SERVER ACTION reportListing",
         "listingId:server-bound-listing-id,reason:spam|harassment|misinformation|illegal|other,description?:trimmed-string<=500",
@@ -210,6 +230,11 @@ export const PRODUCTION_SCREEN_COMMERCE_INTERACTION_CONTRACTS = {
         "createListing requires the current profile and parses listingSchema; createListingForCurrentUser enforces paid access, dog and category rules, required acknowledgements, attachable media, moderation checks, and pending-review persistence.",
       ),
       action(
+        "MARKETPLACE-CREATE.ACTION.SAVE-DRAFT",
+        "Saves the completed marketplace item as an owner-only draft.",
+        "createListing validates the draft submission intent, and createListingForCurrentUser persists draft lifecycle and moderation status with owner history and audit records.",
+      ),
+      action(
         "MARKETPLACE-CREATE.ACTION.MARKETPLACE.OPEN",
         "Returns to the marketplace directory without submitting.",
         "The fixed same-origin Link targets /marketplace.",
@@ -229,7 +254,7 @@ export const PRODUCTION_SCREEN_COMMERCE_INTERACTION_CONTRACTS = {
       form(
         "MARKETPLACE-CREATE.FORM.LISTING",
         "SERVER ACTION createListing",
-        "type:listing-type,categoryId?:known-category-id,title:trimmed-string(5..100),description:trimmed-string(20..5000),price?:nonnegative-number,mediaIds<=11,attributes<=8,welfareAcknowledged:true,legalAcknowledged:true",
+        "type:listing-type,categoryId?:known-category-id,title:trimmed-string(5..100),description:trimmed-string(20..5000),price?:nonnegative-number,mediaIds<=11,attributes<=8,welfareAcknowledged:true,legalAcknowledged:true,submissionIntent:draft|review",
       ),
     ],
   },

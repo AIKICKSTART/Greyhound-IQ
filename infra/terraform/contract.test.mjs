@@ -315,9 +315,10 @@ assert.match(readme, /backend disabled/i);
 assert.match(readme, /Linux AMD64 CI and Windows AMD64 review/i);
 assert.match(
   packageJson,
-  /"check:terraform-source": "node infra\/terraform\/contract\.test\.mjs && node infra\/terraform\/private-datastore-policy\.test\.mjs"/,
+  /"check:terraform-source": "node infra\/terraform\/contract\.test\.mjs && node infra\/terraform\/private-datastore-policy\.test\.mjs && node infra\/terraform-production\/contract\.test\.mjs"/,
 );
 assert.match(ciWorkflow, /npm run check:terraform-source/);
+assert.match(ciWorkflow, /source=\$PWD\/infra\/terraform-production/);
 assert.match(
   ciWorkflow,
   /hashicorp\/terraform@sha256:96d2bc440714bf2b2f2998ac730fd4612f30746df43fca6f0892b2e2035b11bc/,
@@ -369,7 +370,7 @@ assert.deepEqual(Object.fromEntries(statuses), {
   "ARCH-102": "in-progress",
   "ARCH-103": "in-progress",
   "ARCH-104": "in-progress",
-  "ARCH-105": "planned",
+  "ARCH-105": "in-progress",
   "ARCH-106": "planned",
   "ARCH-107": "in-progress",
   "ARCH-108": "planned",

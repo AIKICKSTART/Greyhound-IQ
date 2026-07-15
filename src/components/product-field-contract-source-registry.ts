@@ -42,8 +42,22 @@ export type ProductFieldContractSourceRecord = {
   sanitisation: "not-source-proven";
   userFacingError: "not-source-proven";
   dataSource: "browser-user-input" | "source-provided-value";
-  persistenceDestination: "not-source-proven";
-  privacyClassification: "unclassified";
+  persistenceDestination:
+    | "component-state"
+    | "consumer-form"
+    | "not-submitted"
+    | `form-action:${string}`
+    | `form-reference:${string}`
+    | `url-query:${string}`;
+  privacyClassification:
+    | "billing-data"
+    | "consent-preference"
+    | "credential-secret"
+    | "operational-data"
+    | "personal-data"
+    | "persistent-identifier"
+    | "public-racing-data"
+    | "user-content";
   onboarding: string;
   mobileInput: { inputMode: string | null; enterKeyHint: string | null };
   autofill: string;
@@ -174,6 +188,21 @@ function extractSourceFields(sourceFile: string): ExtractedField[] {
     const normalizedName = registryName
       .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
       .toLowerCase();
+    const generatedIdentifier =
+      /(?:^|[^a-z])(id|ids)(?:$|[^a-z])/.test(normalizedName) &&
+      (hidden || attributes.has("value"));
+    const consentField = /consent|marketing|privacy|terms|opt[-_]?in/.test(
+      normalizedName,
+    );
+    const mediaMetadataField =
+      /media|caption|alt(?:text)?|focal|crop|rotation|zoom/.test(
+        normalizedName,
+      );
+    const disclosureField = /disclosure|visibility|contact/.test(normalizedName);
+    const billingIntentField =
+      /plan|interval|price|amount|currency|tier|feature[-_]?key/.test(
+        normalizedName,
+      );
 
     fields.push({
       sourceFile,
@@ -220,8 +249,23 @@ function extractSourceFields(sourceFile: string): ExtractedField[] {
         attributes.has("value") || attributes.has("defaultValue")
           ? "source-provided-value"
           : "browser-user-input",
-      persistenceDestination: "not-source-proven",
-      privacyClassification: "unclassified",
+      persistenceDestination: resolvePersistenceDestination(
+        node,
+        ast,
+        attributes,
+        controlTag,
+        sourceFile,
+      ),
+      privacyClassification: resolvePrivacyClassification({
+        normalizedName,
+        inputType: type,
+        sourceFile,
+        generatedIdentifier,
+        consentField,
+        mediaMetadataField,
+        disclosureField,
+        billingIntentField,
+      }),
       onboarding: attributes.has("data-onboarding-target")
         ? "field-specific"
         : "none",
@@ -234,26 +278,126 @@ function extractSourceFields(sourceFile: string): ExtractedField[] {
       disabled: attributes.get("disabled") ?? "false",
       conditionalVisibility,
       hidden,
-      generatedIdentifier:
-        /(?:^|[^a-z])(id|ids)(?:$|[^a-z])/.test(normalizedName) &&
-        (hidden || attributes.has("value")),
-      consentField: /consent|marketing|privacy|terms|opt[-_]?in/.test(
-        normalizedName,
-      ),
-      mediaMetadataField:
-        /media|caption|alt(?:text)?|focal|crop|rotation|zoom/.test(
-          normalizedName,
-        ),
-      disclosureField: /disclosure|visibility|contact/.test(normalizedName),
-      billingIntentField:
-        /plan|interval|price|amount|currency|tier|feature[-_]?key/.test(
-          normalizedName,
-        ),
+      generatedIdentifier,
+      consentField,
+      mediaMetadataField,
+      disclosureField,
+      billingIntentField,
       dependentField: conditionalVisibility !== null,
     });
   });
 
   return fields;
+}
+
+function resolvePersistenceDestination(
+  node: ts.Node,
+  sourceFile: ts.SourceFile,
+  attributes: ReadonlyMap<string, string>,
+  controlTag: (typeof PRODUCT_FIELD_CONTROL_TAGS)[number],
+  sourcePath: string,
+): ProductFieldContractSourceRecord["persistenceDestination"] {
+  const formReference = staticAttributeValue(attributes.get("form"));
+  if (formReference) return `form-reference:${formReference}`;
+
+  const form = findWrappingForm(node, sourceFile);
+  if (form) {
+    const formAttributes = collectAttributes(form.openingElement, sourceFile);
+    const action = formAttributes.get("action");
+    const method = staticAttributeValue(formAttributes.get("method"))?.toLowerCase();
+    if (action) return `form-action:${action}`;
+    if (formAttributes.has("onSubmit")) return "component-state";
+    return method === "post" ? "form-action:current-route" : "url-query:current-route";
+  }
+
+  if (
+    controlTag === "MediaAttachmentFields" ||
+    sourcePath.endsWith("/media-attachment-fields.tsx")
+  ) {
+    return "consumer-form";
+  }
+  if (
+    controlTag === "AutoSubmitSelect" ||
+    attributes.has("onChange") ||
+    attributes.has("onInput")
+  ) {
+    return "component-state";
+  }
+  return "not-submitted";
+}
+
+function findWrappingForm(node: ts.Node, sourceFile: ts.SourceFile) {
+  let current = node.parent;
+  while (current) {
+    if (
+      ts.isJsxElement(current) &&
+      current.openingElement.tagName.getText(sourceFile) === "form"
+    ) {
+      return current;
+    }
+    if (ts.isSourceFile(current)) break;
+    current = current.parent;
+  }
+  return null;
+}
+
+function resolvePrivacyClassification({
+  normalizedName,
+  inputType,
+  sourceFile,
+  generatedIdentifier,
+  consentField,
+  mediaMetadataField,
+  disclosureField,
+  billingIntentField,
+}: {
+  normalizedName: string;
+  inputType: string;
+  sourceFile: string;
+  generatedIdentifier: boolean;
+  consentField: boolean;
+  mediaMetadataField: boolean;
+  disclosureField: boolean;
+  billingIntentField: boolean;
+}): ProductFieldContractSourceRecord["privacyClassification"] {
+  if (/password|token|secret|passcode|one[-_]?time|otp/.test(normalizedName)) {
+    return "credential-secret";
+  }
+  if (billingIntentField) return "billing-data";
+  if (
+    consentField ||
+    disclosureField ||
+    /preference|acknowledged/.test(normalizedName)
+  ) {
+    return "consent-preference";
+  }
+  if (
+    /email|phone|postcode|suburb|address|display[-_]?name|kennel|bio|website/.test(
+      normalizedName,
+    )
+  ) {
+    return "personal-data";
+  }
+  if (
+    inputType === "file" ||
+    inputType === "media-upload" ||
+    mediaMetadataField ||
+    /body|message|reply|comment|description|title|tagline|about|notes?|reason|evidence|rule|phrase/.test(
+      normalizedName,
+    )
+  ) {
+    return "user-content";
+  }
+  if (
+    generatedIdentifier ||
+    /(?:^|[-_])(id|ids)(?:$|[-_])|id$/.test(normalizedName)
+  ) {
+    return "persistent-identifier";
+  }
+  if (/^src\/app\/(races|results|tracks|dogs|breeding|statistics|meetings)\//.test(sourceFile)) {
+    return "public-racing-data";
+  }
+  return "operational-data";
 }
 
 function isProductFieldControlTag(

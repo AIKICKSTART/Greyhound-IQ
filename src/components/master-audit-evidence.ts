@@ -75,6 +75,7 @@ import { PRODUCT_ACTOR_MAP_MASTER_EVIDENCE } from "./product-actor-map-evidence"
 import { PRODUCT_MARKETPLACE_ACCESS_SAFETY_MASTER_EVIDENCE } from "./product-marketplace-access-safety-evidence";
 import { PRODUCT_ADMIN_SERVER_AUTHORIZATION_MASTER_EVIDENCE } from "./product-admin-server-authorization-evidence";
 import { PRODUCT_ADMIN_SAFE_FAILURE_MASTER_EVIDENCE } from "./product-admin-safe-failure-evidence";
+import { PRODUCT_ADMIN_SECRET_SAFETY_MASTER_EVIDENCE } from "./product-admin-secret-safety-evidence";
 import { PRODUCT_MARKETPLACE_MISSING_PRIVACY_MASTER_EVIDENCE } from "./product-marketplace-missing-privacy-evidence";
 import { PRODUCT_ACCOUNT_FORM_VALIDATION_MASTER_EVIDENCE } from "./product-account-form-validation-evidence";
 import { PRODUCT_ACCOUNT_SENSITIVE_CONFIRMATION_MASTER_EVIDENCE } from "./product-account-sensitive-confirmation-evidence";
@@ -87,6 +88,7 @@ import { PRODUCT_MARKETPLACE_MEDIA_ORDERING_MASTER_EVIDENCE } from "./product-ma
 import { PRODUCT_MARKETPLACE_EDIT_MASTER_EVIDENCE } from "./product-marketplace-edit-evidence";
 import { PRODUCT_MARKETPLACE_EDIT_ROUTE_MASTER_EVIDENCE } from "./product-marketplace-edit-route-evidence";
 import { PRODUCT_MARKETPLACE_SELLER_INVENTORY_ROUTES_MASTER_EVIDENCE } from "./product-marketplace-seller-inventory-routes-evidence";
+import { PRODUCT_MARKETPLACE_DRAFT_ARCHIVE_MASTER_EVIDENCE } from "./product-marketplace-draft-archive-evidence";
 import { PRODUCT_AI_TRUTH_MASTER_EVIDENCE } from "./product-ai-truth-evidence";
 import { PRODUCT_AI_ROUTE_INVENTORY_MASTER_EVIDENCE } from "./product-ai-route-inventory-evidence";
 import { PRODUCT_AGENT_RUN_LIFECYCLE_MASTER_EVIDENCE } from "./product-agent-run-lifecycle-evidence";
@@ -199,6 +201,7 @@ import { UPLOAD_VALIDATION_MASTER_EVIDENCE } from "../../security/upload-validat
 import { REALTIME_CONTROL_MASTER_EVIDENCE } from "../../security/realtime-control-evidence";
 import { MEDIA_BOUNDARY_MASTER_EVIDENCE } from "../../security/media-boundary-evidence";
 import { DESIGN_LAB_ISOLATION_MASTER_EVIDENCE } from "../../security/design-lab-isolation-evidence";
+import { INPUT_VALIDATION_BOUNDARY_MASTER_EVIDENCE } from "../../security/input-validation-boundary-evidence";
 import { SUPPLY_CHAIN_ADDITIONAL_MASTER_EVIDENCE } from "../../security/supply-chain-additional-evidence";
 import { SECURE_FAILURE_MASTER_EVIDENCE } from "../../security/secure-failure-evidence";
 import { ROW_LEVEL_SECURITY_MASTER_EVIDENCE } from "../../security/row-level-security-evidence";
@@ -305,6 +308,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_MARKETPLACE_ACCESS_SAFETY_MASTER_EVIDENCE,
   ...PRODUCT_ADMIN_SERVER_AUTHORIZATION_MASTER_EVIDENCE,
   ...PRODUCT_ADMIN_SAFE_FAILURE_MASTER_EVIDENCE,
+  ...PRODUCT_ADMIN_SECRET_SAFETY_MASTER_EVIDENCE,
   ...PRODUCT_MARKETPLACE_MISSING_PRIVACY_MASTER_EVIDENCE,
   ...PRODUCT_ACCOUNT_FORM_VALIDATION_MASTER_EVIDENCE,
   ...PRODUCT_ACCOUNT_SENSITIVE_CONFIRMATION_MASTER_EVIDENCE,
@@ -317,6 +321,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_MARKETPLACE_EDIT_MASTER_EVIDENCE,
   ...PRODUCT_MARKETPLACE_EDIT_ROUTE_MASTER_EVIDENCE,
   ...PRODUCT_MARKETPLACE_SELLER_INVENTORY_ROUTES_MASTER_EVIDENCE,
+  ...PRODUCT_MARKETPLACE_DRAFT_ARCHIVE_MASTER_EVIDENCE,
   ...PRODUCT_AI_TRUTH_MASTER_EVIDENCE,
   ...PRODUCT_AI_ROUTE_INVENTORY_MASTER_EVIDENCE,
   ...PRODUCT_AGENT_RUN_LIFECYCLE_MASTER_EVIDENCE,
@@ -1299,6 +1304,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...REALTIME_CONTROL_MASTER_EVIDENCE,
   ...MEDIA_BOUNDARY_MASTER_EVIDENCE,
   ...DESIGN_LAB_ISOLATION_MASTER_EVIDENCE,
+  ...INPUT_VALIDATION_BOUNDARY_MASTER_EVIDENCE,
   ...SUPPLY_CHAIN_ADDITIONAL_MASTER_EVIDENCE,
   ...SECURE_FAILURE_MASTER_EVIDENCE,
   "security.api-inventory-management.code-exists": {

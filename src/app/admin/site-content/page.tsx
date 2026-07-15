@@ -19,7 +19,7 @@ const LABEL = "block text-[12px] font-semibold text-[hsl(var(--muted-foreground)
 // Read-only: the real amount Stripe charges (from the configured price IDs). The
 // displayed /pricing number is independent, so warn admins if they diverge.
 async function getStripeAmounts(): Promise<
-  { monthly: number | null; yearly: number | null; error: string | null }
+  { monthly: number | null; yearly: number | null; unavailable: boolean }
 > {
   try {
     const env = getStripeCheckoutEnv();
@@ -31,10 +31,10 @@ async function getStripeAmounts(): Promise<
     return {
       monthly: m.unit_amount != null ? m.unit_amount / 100 : null,
       yearly: y.unit_amount != null ? y.unit_amount / 100 : null,
-      error: null,
+      unavailable: false,
     };
-  } catch (err) {
-    return { monthly: null, yearly: null, error: err instanceof Error ? err.message : "unknown" };
+  } catch {
+    return { monthly: null, yearly: null, unavailable: true };
   }
 }
 
@@ -60,9 +60,9 @@ export default async function SiteContentAdmin() {
         <h2 className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
           Actual Stripe charge (Pro)
         </h2>
-        {stripe.error ? (
+        {stripe.unavailable ? (
           <p className="mt-2 text-[12px] text-[hsl(var(--muted-foreground))]">
-            Could not read Stripe prices: {stripe.error}
+            Could not read Stripe prices. Try again later.
           </p>
         ) : (
           <p className="mt-2 text-[13px] text-[hsl(var(--foreground))] tabular-nums">

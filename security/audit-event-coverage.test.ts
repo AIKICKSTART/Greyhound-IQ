@@ -35,7 +35,7 @@ assert.match(
   /\.\.\.\(SECURITY_MASTER_EVIDENCE\[requirement\.id\] \?\? \{\}\)/,
 );
 
-assert.equal(AUDIT_EVENT_REQUIREMENT_BINDINGS.length, 18);
+assert.equal(AUDIT_EVENT_REQUIREMENT_BINDINGS.length, 20);
 assert.equal(
   new Set(
     AUDIT_EVENT_REQUIREMENT_BINDINGS.map(({ requirementId }) => requirementId),
@@ -73,9 +73,19 @@ for (const binding of AUDIT_EVENT_REQUIREMENT_BINDINGS) {
 }
 
 const sourceAssertions = {
+  "AUDIT.AUTH.CALLBACK.SUCCEEDED": [
+    /auditAuthenticationSuccess: true/,
+    /action: "auth\.login"/,
+    /metadata: JSON\.stringify\(\{ result: "success" \}\)/,
+  ],
   "AUDIT.AUTH.CALLBACK.FAILED": [
     /"auth\.callback_failed"/,
     /\{ reason, referenceId \}/,
+  ],
+  "AUDIT.AUTH.IDENTITY.CHANGED": [
+    /authIdentityChangedFields\(existing, user\)/,
+    /if \(changedIdentityFields\.length > 0\) \{[\s\S]{0,300}action: "auth\.identity\.update"/,
+    /metadata: JSON\.stringify\(\{ changedFields: changedIdentityFields \}\)/,
   ],
   "AUDIT.ACCOUNT.DELETION.REQUESTED": [
     /withDbRequestContext\(current, async \(tx\)/,
@@ -186,5 +196,5 @@ const mutation = {
 assert.equal(auditEventRequirementIsImplemented(mutation), false);
 
 console.log(
-  "audit event coverage passed: 18 implemented event requirements and one support-impersonation exclusion",
+  "audit event coverage passed: 20 implemented event requirements and one support-impersonation exclusion",
 );

@@ -51,11 +51,49 @@ resource "google_project_service" "required" {
   disable_on_destroy = false
 }
 
+resource "google_iam_workload_identity_pool" "github_production" {
+  project                   = var.production_project_id
+  workload_identity_pool_id = "greyhoundiq-prod"
+  display_name              = "GreyhoundIQ production GitHub"
+  description               = "Dedicated GitHub Actions pool for the protected production environment."
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_iam_workload_identity_pool_provider" "github_production" {
+  project                            = var.production_project_id
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github_production.workload_identity_pool_id
+  workload_identity_pool_provider_id = "github-prod"
+  display_name                       = "GreyhoundIQ protected production"
+  description                        = "Accepts only the immutable repository identity running in GitHub's prod environment."
+
+  attribute_mapping = {
+    "google.subject"                = "assertion.sub"
+    "attribute.repository"          = "assertion.repository"
+    "attribute.repository_id"       = "assertion.repository_id"
+    "attribute.repository_owner_id" = "assertion.repository_owner_id"
+  }
+  attribute_condition = "assertion.repository == '${var.source_repository}' && assertion.repository_id == '${var.github_repository_id}' && assertion.repository_owner_id == '${var.github_repository_owner_id}' && assertion.sub.endsWith(':environment:prod')"
+
+  oidc {
+    issuer_uri = "https://token.actions.githubusercontent.com"
+  }
+}
+
 resource "google_service_account" "runtime" {
   project      = var.production_project_id
   account_id   = "giq-prod-runtime"
   display_name = "GreyhoundIQ production runtime"
   description  = "Keyless production runtime identity; workload permissions are resource-scoped."
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_service_account" "build" {
+  project      = var.production_project_id
+  account_id   = "giq-prod-build"
+  display_name = "GreyhoundIQ production build"
+  description  = "Keyless production build identity; artifact permissions are resource-scoped."
 
   depends_on = [google_project_service.required]
 }
@@ -77,10 +115,21 @@ resource "google_project_iam_member" "deployer_project_roles" {
   member  = "serviceAccount:${google_service_account.deployer.email}"
 }
 
+resource "google_service_account_iam_member" "wif_can_impersonate_build" {
+  service_account_id = google_service_account.build.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_production.name}/attribute.repository_id/${var.github_repository_id}"
+
+  depends_on = [google_iam_workload_identity_pool_provider.github_production]
+}
+
 resource "google_service_account_iam_member" "wif_can_impersonate_deployer" {
   service_account_id = google_service_account.deployer.name
   role               = "roles/iam.workloadIdentityUser"
-  member             = var.wif_deployer_principal_set
+
+  member = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_production.name}/attribute.repository_id/${var.github_repository_id}"
+
+  depends_on = [google_iam_workload_identity_pool_provider.github_production]
 }
 
 resource "google_service_account_iam_member" "deployer_can_act_as_runtime" {
@@ -98,13 +147,6 @@ resource "google_secret_manager_secret_iam_member" "runtime" {
   member    = "serviceAccount:${google_service_account.runtime.email}"
 }
 
-check "wif_repository_scope_matches_source" {
-  assert {
-    condition     = endswith(var.wif_deployer_principal_set, "/attribute.repository/${var.source_repository}")
-    error_message = "The WIF repository scope must exactly match source_repository."
-  }
-}
-
 check "image_belongs_to_production_project" {
   assert {
     condition     = strcontains(lower(var.image_digest_uri), ".pkg.dev/${var.production_project_id}/")
@@ -119,7 +161,17 @@ output "production_foundation_contract" {
     domain            = trim(var.production_domain, ".")
     regions           = local.regions
     source_repository = var.source_repository
-    source_revision   = var.source_revision
-    image_digest_uri  = var.image_digest_uri
+    github_repository = {
+      id       = var.github_repository_id
+      owner_id = var.github_repository_owner_id
+    }
+    source_revision  = var.source_revision
+    image_digest_uri = var.image_digest_uri
+    wif_provider     = google_iam_workload_identity_pool_provider.github_production.name
+    service_accounts = {
+      build   = google_service_account.build.email
+      deploy  = google_service_account.deployer.email
+      runtime = google_service_account.runtime.email
+    }
   }
 }

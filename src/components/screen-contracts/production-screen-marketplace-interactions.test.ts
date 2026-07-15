@@ -79,6 +79,8 @@ const EXPECTED_MARKETPLACE_INTERACTIONS = {
       "MARKETPLACE-DETAIL.ACTION.OWNER.RENEW",
       "MARKETPLACE-DETAIL.ACTION.OWNER.SOLD",
       "MARKETPLACE-DETAIL.ACTION.OWNER.WITHDRAW",
+      "MARKETPLACE-DETAIL.ACTION.OWNER.SUBMIT-DRAFT",
+      "MARKETPLACE-DETAIL.ACTION.OWNER.ARCHIVE",
       "MARKETPLACE-DETAIL.ACTION.REPORT",
       "MARKETPLACE-DETAIL.ACTION.DOG.OPEN",
       "MARKETPLACE-DETAIL.ACTION.MARKETPLACE.OPEN",
@@ -89,6 +91,11 @@ const EXPECTED_MARKETPLACE_INTERACTIONS = {
       ["MARKETPLACE-DETAIL.FORM.RENEW", "SERVER ACTION renewListing"],
       ["MARKETPLACE-DETAIL.FORM.SOLD", "SERVER ACTION markListingSold"],
       ["MARKETPLACE-DETAIL.FORM.WITHDRAW", "SERVER ACTION withdrawListing"],
+      [
+        "MARKETPLACE-DETAIL.FORM.SUBMIT-DRAFT",
+        "SERVER ACTION submitListingForReview",
+      ],
+      ["MARKETPLACE-DETAIL.FORM.ARCHIVE", "SERVER ACTION archiveListing"],
       ["MARKETPLACE-DETAIL.FORM.REPORT", "SERVER ACTION reportListing"],
       [
         "MARKETPLACE-DETAIL.FORM.ENQUIRY",
@@ -106,12 +113,16 @@ const EXPECTED_MARKETPLACE_INTERACTIONS = {
       "renewListing.bind(null, listing.id)",
       "markListingSold.bind(null, listing.id)",
       "withdrawListing.bind(null, listing.id)",
+      "submitListingForReview.bind(null, listing.id)",
+      "archiveListing.bind(null, listing.id)",
       "reportListing.bind(null, listing.id)",
       "<InstantSaveListingButton",
       "<InstantListingEnquiryForm",
       "<form action={renewAction}>",
       "<form action={soldAction}>",
       "<form action={withdrawAction}>",
+      "<form action={submitForReviewAction}>",
+      '<form action={archiveAction} className="grid gap-2">',
       "<form action={reportAction}",
       'href={`/dogs/${listing.dog.id}`}',
     ],
@@ -120,6 +131,7 @@ const EXPECTED_MARKETPLACE_INTERACTIONS = {
     queryParameters: ["dogId", "title", "price"],
     actionIds: [
       "MARKETPLACE-CREATE.ACTION.SUBMIT",
+      "MARKETPLACE-CREATE.ACTION.SAVE-DRAFT",
       "MARKETPLACE-CREATE.ACTION.MARKETPLACE.OPEN",
       "MARKETPLACE-CREATE.ACTION.PLAN.OPEN",
       "MARKETPLACE-CREATE.ACTION.SIGN-IN.OPEN",
@@ -139,6 +151,8 @@ const EXPECTED_MARKETPLACE_INTERACTIONS = {
       "action={createListing}",
       'name="welfareAcknowledged"',
       'name="legalAcknowledged"',
+      'name="submissionIntent"',
+      'value="draft"',
       "required",
       'href="/marketplace"',
       'href="/pricing"',
@@ -329,5 +343,5 @@ for (const assertion of [
 }
 
 console.log(
-  "Marketplace interaction coverage passed: 3 canonical action routes, 3 verified form routes, 7 structured forms, canonical onboarding tested and 3 legacy redirects excluded"
+  "Marketplace interaction coverage passed: 3 canonical action routes, 3 verified form routes, 9 structured forms, canonical onboarding tested and 3 legacy redirects excluded"
 );

@@ -32,9 +32,10 @@ for (const name of [
   "production_project_id",
   "production_domain",
   "source_repository",
+  "github_repository_id",
+  "github_repository_owner_id",
   "source_revision",
   "image_digest_uri",
-  "wif_deployer_principal_set",
 ]) {
   const start = variables.indexOf(`variable "${name}"`);
   const end = variables.indexOf('\nvariable "', start + 1);
@@ -47,6 +48,8 @@ for (const name of [
 assert.ok(variables.includes("-docker\\\\.pkg\\\\.dev/"));
 assert.match(variables, /@sha256:\[0-9a-f\]\{64\}\$/);
 assert.match(variables, /\^\[0-9a-f\]\{40\}\$/);
+assert.match(variables, /variable "github_repository_id"[\s\S]*?\^\[1-9\]\[0-9\]\*\$/);
+assert.match(variables, /variable "github_repository_owner_id"[\s\S]*?\^\[1-9\]\[0-9\]\*\$/);
 assert.match(variables, /variable "runtime_secret_references"[\s\S]*?secret_id\s*=\s*string[\s\S]*?version\s*=\s*string/);
 assert.match(variables, /runtime_secret_references[\s\S]*?\^\[1-9\]\[0-9\]\*\$/);
 assert.doesNotMatch(terraform, /\bsecret_data\s*=|\bsecret_value\s*=|version\s*=\s*"latest"/i);
@@ -75,6 +78,8 @@ for (const service of [
 }
 
 const allowedResources = new Set([
+  "google_iam_workload_identity_pool",
+  "google_iam_workload_identity_pool_provider",
   "google_project_service",
   "google_project_iam_member",
   "google_service_account",
@@ -98,7 +103,20 @@ assert.deepEqual(
 assert.match(main, /role\s*=\s*"roles\/iam\.workloadIdentityUser"/);
 assert.match(main, /role\s*=\s*"roles\/iam\.serviceAccountUser"/);
 assert.match(main, /role\s*=\s*"roles\/secretmanager\.secretAccessor"/);
-assert.match(main, /wif_repository_scope_matches_source/);
+assert.match(main, /resource "google_service_account" "build"/);
+assert.match(main, /resource "google_service_account" "deployer"/);
+assert.match(main, /resource "google_service_account" "runtime"/);
+assert.match(main, /wif_can_impersonate_build/);
+assert.match(main, /wif_can_impersonate_deployer/);
+assert.match(main, /workload_identity_pool_id\s*=\s*"greyhoundiq-prod"/);
+assert.match(main, /workload_identity_pool_provider_id\s*=\s*"github-prod"/);
+assert.match(main, /"google\.subject"\s*=\s*"assertion\.sub"/);
+assert.match(main, /"attribute\.repository_id"\s*=\s*"assertion\.repository_id"/);
+assert.match(main, /assertion\.repository == '\$\{var\.source_repository\}'/);
+assert.match(main, /assertion\.repository_id == '\$\{var\.github_repository_id\}'/);
+assert.match(main, /assertion\.repository_owner_id == '\$\{var\.github_repository_owner_id\}'/);
+assert.match(main, /assertion\.sub\.endsWith\(':environment:prod'\)/);
+assert.equal((main.match(/attribute\.repository_id\/\$\{var\.github_repository_id\}/g) ?? []).length, 2);
 assert.match(main, /image_belongs_to_production_project/);
 assert.doesNotMatch(terraform, /google_billing|billing_account|:latest\b/i);
 assert.match(rootAgents, /infra\/terraform-production\/AGENTS\.md/);

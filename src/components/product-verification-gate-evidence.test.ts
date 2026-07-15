@@ -74,10 +74,10 @@ const preExistingCompletedIds = [
   "VERIFY.GATE.tour-target",
 ] as const;
 
-assert.equal(completedIds.length, 10);
+assert.equal(completedIds.length, 11);
 assert.equal(new Set(completedIds).size, completedIds.length);
-assert.equal(intentionallyOpenIds.length, 3);
-assert.equal(PRODUCT_VERIFICATION_GATE_EXPECTED_GAIN, 10);
+assert.equal(intentionallyOpenIds.length, 2);
+assert.equal(PRODUCT_VERIFICATION_GATE_EXPECTED_GAIN, 11);
 assert.deepEqual(
   Object.keys(PRODUCT_VERIFICATION_GATE_MASTER_EVIDENCE),
   completedIds,
@@ -381,7 +381,7 @@ assert.equal(
 );
 
 console.log(
-  "Product verification gate evidence passed: 10 deterministic/source-bound gates; 5 scoped gates remain open.",
+  "Product verification gate evidence passed: 11 deterministic/source-bound gates; 4 scoped gates remain open.",
 );
 
 function findPageRoutes(directory: string, segments: string[] = []): string[] {

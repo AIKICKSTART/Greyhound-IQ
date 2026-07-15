@@ -78,6 +78,8 @@ const EXPECTED_COMMERCE_INTERACTIONS = {
       "MARKETPLACE-DETAIL.ACTION.OWNER.RENEW",
       "MARKETPLACE-DETAIL.ACTION.OWNER.SOLD",
       "MARKETPLACE-DETAIL.ACTION.OWNER.WITHDRAW",
+      "MARKETPLACE-DETAIL.ACTION.OWNER.SUBMIT-DRAFT",
+      "MARKETPLACE-DETAIL.ACTION.OWNER.ARCHIVE",
       "MARKETPLACE-DETAIL.ACTION.REPORT",
       "MARKETPLACE-DETAIL.ACTION.DOG.OPEN",
       "MARKETPLACE-DETAIL.ACTION.MARKETPLACE.OPEN",
@@ -91,6 +93,11 @@ const EXPECTED_COMMERCE_INTERACTIONS = {
         "MARKETPLACE-DETAIL.FORM.WITHDRAW",
         "SERVER ACTION withdrawListing",
       ],
+      [
+        "MARKETPLACE-DETAIL.FORM.SUBMIT-DRAFT",
+        "SERVER ACTION submitListingForReview",
+      ],
+      ["MARKETPLACE-DETAIL.FORM.ARCHIVE", "SERVER ACTION archiveListing"],
       ["MARKETPLACE-DETAIL.FORM.REPORT", "SERVER ACTION reportListing"],
       [
         "MARKETPLACE-DETAIL.FORM.ENQUIRY",
@@ -104,12 +111,16 @@ const EXPECTED_COMMERCE_INTERACTIONS = {
       "renewListing.bind(null, listing.id)",
       "markListingSold.bind(null, listing.id)",
       "withdrawListing.bind(null, listing.id)",
+      "submitListingForReview.bind(null, listing.id)",
+      "archiveListing.bind(null, listing.id)",
       "reportListing.bind(null, listing.id)",
       "<InstantSaveListingButton",
       "<InstantListingEnquiryForm",
       "<form action={renewAction}>",
       "<form action={soldAction}>",
       "<form action={withdrawAction}>",
+      "<form action={submitForReviewAction}>",
+      '<form action={archiveAction} className="grid gap-2">',
       "<form action={reportAction}",
       'href={`/dogs/${listing.dog.id}`}',
     ],
@@ -136,6 +147,7 @@ const EXPECTED_COMMERCE_INTERACTIONS = {
     queryParameters: ["dogId", "title", "price"],
     actionIds: [
       "MARKETPLACE-CREATE.ACTION.SUBMIT",
+      "MARKETPLACE-CREATE.ACTION.SAVE-DRAFT",
       "MARKETPLACE-CREATE.ACTION.MARKETPLACE.OPEN",
       "MARKETPLACE-CREATE.ACTION.PLAN.OPEN",
       "MARKETPLACE-CREATE.ACTION.SIGN-IN.OPEN",
@@ -151,6 +163,8 @@ const EXPECTED_COMMERCE_INTERACTIONS = {
       "action={createListing}",
       'name="welfareAcknowledged"',
       'name="legalAcknowledged"',
+      'name="submissionIntent"',
+      'value="draft"',
       "required",
       'href="/marketplace"',
       'href="/pricing"',
@@ -314,8 +328,8 @@ for (const route of PRODUCTION_SCREEN_COMMERCE_INTERACTION_ROUTES) {
   structuredFormCount += interaction.forms.length;
 }
 
-assert.equal(actionInventoryCount, 31);
-assert.equal(structuredFormCount, 10);
+assert.equal(actionInventoryCount, 34);
+assert.equal(structuredFormCount, 12);
 
 const actionsSource = readFileSync("src/app/actions.ts", "utf8");
 for (const assertion of [
@@ -434,5 +448,5 @@ for (const assertion of [
 }
 
 console.log(
-  "Commerce interaction coverage passed: 6 action routes, 6 verified form routes, 31 action entries, 10 structured forms, onboarding retained",
+  "Commerce interaction coverage passed: 6 action routes, 6 verified form routes, 34 action entries, 12 structured forms, onboarding retained",
 );

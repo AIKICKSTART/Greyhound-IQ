@@ -53,17 +53,25 @@ variable "image_digest_uri" {
   }
 }
 
-variable "wif_deployer_principal_set" {
-  description = "Existing GitHub repository-scoped WIF principalSet allowed to impersonate only the production deployer identity."
+variable "github_repository_id" {
+  description = "Immutable numeric GitHub repository ID used in the production WIF trust boundary."
   type        = string
   nullable    = false
 
   validation {
-    condition = can(regex(
-      "^principalSet://iam\\.googleapis\\.com/projects/[0-9]+/locations/global/workloadIdentityPools/[a-z0-9-]{4,32}/attribute\\.repository/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
-      var.wif_deployer_principal_set,
-    ))
-    error_message = "wif_deployer_principal_set must be an existing repository-scoped principalSet URI."
+    condition     = can(regex("^[1-9][0-9]*$", var.github_repository_id))
+    error_message = "github_repository_id must be the immutable numeric GitHub repository ID."
+  }
+}
+
+variable "github_repository_owner_id" {
+  description = "Immutable numeric GitHub repository-owner ID used in the production WIF trust boundary."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = can(regex("^[1-9][0-9]*$", var.github_repository_owner_id))
+    error_message = "github_repository_owner_id must be the immutable numeric GitHub repository-owner ID."
   }
 }
 

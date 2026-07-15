@@ -1049,6 +1049,16 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
         "withdrawListingForCurrentUser resolves the listing through the current profile and rejects status transitions outside the withdrawal allowlist.",
       ),
       marketplaceAction(
+        "MARKETPLACE-DETAIL.ACTION.OWNER.SUBMIT-DRAFT",
+        "Submits an owned draft for moderator review.",
+        "submitDraftListingForCurrentUser resolves the listing through the current profile, accepts only draft status, requires stored acknowledgements, and records the pending-review transition.",
+      ),
+      marketplaceAction(
+        "MARKETPLACE-DETAIL.ACTION.OWNER.ARCHIVE",
+        "Archives an eligible owned listing after explicit confirmation.",
+        "archiveListing parses the archive confirmation, requires the current profile, and archiveListingForCurrentUser rechecks ownership plus the archive transition allowlist.",
+      ),
+      marketplaceAction(
         "MARKETPLACE-DETAIL.ACTION.REPORT",
         "Submits a bounded marketplace-item report for moderator review.",
         "reportListing requires the current profile, applies a per-profile/listing rate limit, parses the allowlisted reason and optional bounded context, and creates a user-scoped report.",
@@ -1091,6 +1101,16 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
         "listingId:server-bound-owned-listing-id,status:active|pending_review",
       ),
       marketplaceForm(
+        "MARKETPLACE-DETAIL.FORM.SUBMIT-DRAFT",
+        "SERVER ACTION submitListingForReview",
+        "listingId:server-bound-owned-listing-id,status:draft",
+      ),
+      marketplaceForm(
+        "MARKETPLACE-DETAIL.FORM.ARCHIVE",
+        "SERVER ACTION archiveListing",
+        "listingId:server-bound-owned-listing-id,status:draft|pending_review|active|expired|sold|withdrawn,confirmation:archive",
+      ),
+      marketplaceForm(
         "MARKETPLACE-DETAIL.FORM.REPORT",
         "SERVER ACTION reportListing",
         "listingId:server-bound-listing-id,reason:spam|harassment|misinformation|illegal|other,description?:trimmed-string<=500",
@@ -1109,6 +1129,11 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
         "MARKETPLACE-CREATE.ACTION.SUBMIT",
         "Submits a new marketplace item for moderator review and returns to the directory with review feedback.",
         "createListing requires the current profile and parses listingSchema; createListingForCurrentUser enforces paid access, dog and category rules, required acknowledgements, attachable media, moderation checks, and pending-review persistence.",
+      ),
+      marketplaceAction(
+        "MARKETPLACE-CREATE.ACTION.SAVE-DRAFT",
+        "Saves the completed marketplace item as an owner-only draft.",
+        "createListing validates the draft submission intent, and createListingForCurrentUser persists draft lifecycle and moderation status with owner history and audit records.",
       ),
       marketplaceAction(
         "MARKETPLACE-CREATE.ACTION.MARKETPLACE.OPEN",
@@ -1130,7 +1155,7 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
       marketplaceForm(
         "MARKETPLACE-CREATE.FORM.LISTING",
         "SERVER ACTION createListing",
-        "type:listing-type,categoryId?:known-category-id,title:trimmed-string(5..100),description:trimmed-string(20..5000),price?:nonnegative-number,mediaIds<=11,attributes<=8,welfareAcknowledged:true,legalAcknowledged:true",
+        "type:listing-type,categoryId?:known-category-id,title:trimmed-string(5..100),description:trimmed-string(20..5000),price?:nonnegative-number,mediaIds<=11,attributes<=8,welfareAcknowledged:true,legalAcknowledged:true,submissionIntent:draft|review",
       ),
     ],
   },

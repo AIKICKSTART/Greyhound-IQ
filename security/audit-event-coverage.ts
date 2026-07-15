@@ -8,10 +8,22 @@ type AuditEventRequirementBinding = {
 
 export const AUDIT_EVENT_REQUIREMENT_BINDINGS = [
   {
+    requirementId: "security.audit-event.authentication-success",
+    eventIds: ["AUDIT.AUTH.CALLBACK.SUCCEEDED"],
+    scope:
+      "Successful WorkOS callbacks commit a fixed, credential-free auth.login record with the accepted local user transaction.",
+  },
+  {
     requirementId: "security.audit-event.authentication-failure",
     eventIds: ["AUDIT.AUTH.CALLBACK.FAILED"],
     scope:
       "Authentication callback failures are recorded with an allowlisted reason and correlation envelope; provider payloads and credentials are prohibited.",
+  },
+  {
+    requirementId: "security.audit-event.email-or-identity-changes",
+    eventIds: ["AUDIT.AUTH.IDENTITY.CHANGED"],
+    scope:
+      "Provider-driven email, display-name or subject-binding changes commit an audit record containing only changed field names, while unchanged syncs produce no event.",
   },
   {
     requirementId: "security.audit-event.security-setting-changes",

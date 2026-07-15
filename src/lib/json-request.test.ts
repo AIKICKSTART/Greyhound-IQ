@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 
 import {
+  JSON_REQUEST_MAX_ARRAY_ITEMS,
   JSON_REQUEST_MAX_BYTES,
+  JSON_REQUEST_MAX_DEPTH,
   readBoundedJsonOrFormRequest,
   readBoundedJsonRequest,
   readBoundedOptionalJsonRequest,
@@ -23,6 +25,16 @@ async function main() {
     }),
   );
   assert.deepEqual(accepted, { ok: true });
+  assert.deepEqual(
+    await readBoundedJsonRequest(
+      new Request("http://local.test/api", {
+        method: "POST",
+        headers: { "content-type": 'application/json; charset="UTF-8"' },
+        body: "[]",
+      }),
+    ),
+    [],
+  );
   assert.deepEqual(
     await readBoundedOptionalJsonRequest(
       new Request("http://local.test/api", { method: "POST" }),
@@ -69,6 +81,32 @@ async function main() {
     }),
     "request.unsupported_content_encoding",
   );
+  for (const contentType of [
+    "application/json; charset=iso-8859-1",
+    "application/json; charset=utf-8; charset=utf-8",
+  ]) {
+    await expectCode(
+      new Request("http://local.test/api", {
+        method: "POST",
+        headers: { "content-type": contentType },
+        body: "{}",
+      }),
+      "request.unsupported_media_type",
+    );
+  }
+  await assert.rejects(
+    readBoundedJsonOrFormRequest(
+      new Request("http://local.test/api", {
+        method: "POST",
+        headers: {
+          "content-type":
+            "application/x-www-form-urlencoded; charset=iso-8859-1",
+        },
+        body: "name=test",
+      }),
+    ),
+    /request\.unsupported_media_type/,
+  );
   await expectCode(
     new Request("http://local.test/api", {
       method: "POST",
@@ -88,6 +126,38 @@ async function main() {
         "content-length": "not-a-number",
       },
       body: "{}",
+    }),
+    "request.invalid_body",
+  );
+  const maximumArray = await readBoundedJsonRequest(
+    new Request("http://local.test/api", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(Array(JSON_REQUEST_MAX_ARRAY_ITEMS).fill(null)),
+    }),
+  );
+  assert.ok(Array.isArray(maximumArray));
+  assert.equal(maximumArray.length, JSON_REQUEST_MAX_ARRAY_ITEMS);
+  await expectCode(
+    new Request("http://local.test/api", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(Array(JSON_REQUEST_MAX_ARRAY_ITEMS + 1).fill(null)),
+    }),
+    "request.invalid_body",
+  );
+  await readBoundedJsonRequest(
+    new Request("http://local.test/api", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(nestedObject(JSON_REQUEST_MAX_DEPTH)),
+    }),
+  );
+  await expectCode(
+    new Request("http://local.test/api", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(nestedObject(JSON_REQUEST_MAX_DEPTH + 1)),
     }),
     "request.invalid_body",
   );
@@ -119,6 +189,12 @@ async function main() {
   );
 
   console.log("bounded JSON request tests passed");
+}
+
+function nestedObject(depth: number) {
+  let value: unknown = "leaf";
+  for (let index = 0; index < depth; index += 1) value = { value };
+  return value;
 }
 
 void main().catch((error) => {

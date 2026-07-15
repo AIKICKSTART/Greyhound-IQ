@@ -1,5 +1,9 @@
 import type { ProductMasterRequirementStatus } from "./product-master-requirements";
 import { DEMO_SCREEN_COUNT } from "./demo-experience-registry";
+import {
+  PRODUCT_UNAUTHORISED_DESTRUCTIVE_GATE_EVIDENCE_FILE,
+  PRODUCT_UNAUTHORISED_DESTRUCTIVE_GATE_TEST_FILE,
+} from "./product-unauthorised-destructive-gate";
 
 export const PRODUCT_VERIFICATION_GATE_EVIDENCE_FILE =
   "src/components/product-verification-gate-evidence.ts" as const;
@@ -7,7 +11,7 @@ export const PRODUCT_VERIFICATION_GATE_TEST_FILE =
   "src/components/product-verification-gate-evidence.test.ts" as const;
 
 export const PRODUCT_VERIFICATION_GATE_EVIDENCE_SCOPE =
-  `Deterministic source, focused-unit and source-fingerprint-bound loopback Chrome verification that the existing test runner and CI execute route and component-interaction contracts; every local page route has one canonical screen contract, a concrete Design Lab fixture and a resolvable source file; all ${DEMO_SCREEN_COUNT} screen contracts record authentication, role, tier and permission metadata; focused access tests fail when signed-out protected reads can precede their guards; isolated Design Lab demo traffic rejects non-read HTTP methods; the field-label gate rejects every reachable direct native field without a persistent accessible label; and representative HTTP plus hydrated Design Lab journeys execute with exact manifests and no production mutation. This evidence does not prove the 22 exhaustive production journeys, deployed configuration or roles, live provider or database behavior, exhaustive internal-link, action, state, keyboard-tour or destructive-operation coverage, or production readiness.`;
+  `Deterministic source, focused-unit and source-fingerprint-bound loopback Chrome verification that the existing test runner and CI execute route and component-interaction contracts; every local page route has one canonical screen contract, a concrete Design Lab fixture and a resolvable source file; all ${DEMO_SCREEN_COUNT} screen contracts record authentication, role, tier and permission metadata; focused access tests fail when signed-out protected reads can precede their guards; every registered destructive control fails closed unless it binds denied actors to an authenticated server action and resource- or role-level policy; isolated Design Lab demo traffic rejects non-read HTTP methods; the field-label gate rejects every reachable direct native field without a persistent accessible label; and representative HTTP plus hydrated Design Lab journeys execute with exact manifests and no production mutation. This evidence does not prove the 22 exhaustive production journeys, deployed configuration or roles, live provider or database behavior, exhaustive internal-link, action, state, keyboard-tour, runtime cross-account denial or production readiness.`;
 
 export const PRODUCT_VERIFICATION_GATE_REQUIREMENT_IDS = [
   "VERIFY.LEVEL.existing-stack",
@@ -19,6 +23,7 @@ export const PRODUCT_VERIFICATION_GATE_REQUIREMENT_IDS = [
   "VERIFY.GATE.field-label",
   "VERIFY.GATE.access-metadata",
   "VERIFY.GATE.signed-out-protected",
+  "VERIFY.GATE.unauthorised-destructive",
   "VERIFY.GATE.lab-production-mutation",
 ] as const;
 
@@ -28,7 +33,6 @@ export type ProductVerificationGateRequirementId =
 export const PRODUCT_VERIFICATION_GATE_OPEN_REQUIREMENT_IDS = [
   "VERIFY.GATE.state-fixture",
   "VERIFY.GATE.tour-keyboard",
-  "VERIFY.GATE.unauthorised-destructive",
 ] as const;
 
 export type ProductVerificationGateOpenRequirementId =
@@ -39,14 +43,12 @@ export const PRODUCT_VERIFICATION_GATE_OPEN_GAPS = {
     "All registered screens have a default Design Lab fixture, but the registry does not yet require a distinct reproducible fixture for every declared loading, empty, error, denied and populated state.",
   "VERIFY.GATE.tour-keyboard":
     "Source tour metadata cannot prove keyboard completion, focus movement or escape behavior. This remains open pending focused browser accessibility journeys in the onboarding lane.",
-  "VERIFY.GATE.unauthorised-destructive":
-    "Focused administration and member access tests cover protected reads and selected mutations, but no exhaustive registry yet maps every destructive control to every denied role and server-side guard.",
 } as const satisfies Readonly<
   Record<ProductVerificationGateOpenRequirementId, string>
 >;
 
 export const PRODUCT_VERIFICATION_GATE_EXPECTED_GAIN =
-  10;
+  11;
 
 type ProductVerificationGateEvidenceRecord = {
   status: ProductMasterRequirementStatus;
@@ -117,6 +119,18 @@ export const PRODUCT_VERIFICATION_GATE_MASTER_EVIDENCE = {
     "src/components/screen-contracts/production-screen-messaging-access-state-evidence.test.ts",
     "src/components/screen-contracts/production-screen-member-access-state-evidence.test.ts",
     "src/components/screen-contracts/production-screen-admin-access-state-evidence.test.ts",
+  ),
+  "VERIFY.GATE.unauthorised-destructive": tested(
+    PRODUCT_UNAUTHORISED_DESTRUCTIVE_GATE_EVIDENCE_FILE,
+    PRODUCT_UNAUTHORISED_DESTRUCTIVE_GATE_TEST_FILE,
+    "src/components/screen-contracts/production-screen-coverage.ts",
+    "src/app/actions.ts",
+    "src/app/account/team/actions.ts",
+    "src/lib/account-service.ts",
+    "src/lib/conversation-service.ts",
+    "src/lib/custom-page-service.ts",
+    "src/lib/listing-service.ts",
+    "src/lib/organization-team-service.ts",
   ),
   "VERIFY.GATE.lab-production-mutation": tested(
     "src/lib/demo-access.ts",

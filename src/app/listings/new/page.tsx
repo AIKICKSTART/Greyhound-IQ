@@ -8,6 +8,7 @@ import {
   Lock,
   MapPin,
   PlusCircle,
+  Save,
   Store,
 } from "lucide-react";
 import { createListing } from "@/app/actions";
@@ -501,13 +502,26 @@ export default async function NewListingPage({
               moderator approval.
             </p>
 
-            <SubmitButton
-              pendingLabel="Submitting..."
-              className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px] font-semibold disabled:cursor-not-allowed"
-            >
-              <PlusCircle className="h-3.5 w-3.5" />
-              Submit for review
-            </SubmitButton>
+            <div className="grid gap-3">
+              <SubmitButton
+                name="submissionIntent"
+                value="review"
+                pendingLabel="Submitting..."
+                className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px] font-semibold disabled:cursor-not-allowed"
+              >
+                <PlusCircle className="h-3.5 w-3.5" />
+                Submit for review
+              </SubmitButton>
+              <SubmitButton
+                name="submissionIntent"
+                value="draft"
+                pendingLabel="Saving draft..."
+                className="giq-button giq-button-glass min-h-11 w-full px-4 text-[13px] font-semibold disabled:cursor-not-allowed"
+              >
+                <Save className="h-3.5 w-3.5" />
+                Save as draft
+              </SubmitButton>
+            </div>
           </aside>
         </form>
       ) : (

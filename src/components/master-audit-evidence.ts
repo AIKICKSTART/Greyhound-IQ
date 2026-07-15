@@ -181,6 +181,7 @@ import { EXTERNAL_INPUT_SURFACE_MASTER_EVIDENCE } from "../../security/external-
 import { FRONTEND_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/frontend-authorization-evidence";
 import { PROPERTY_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/property-authorization-evidence";
 import { LISTING_OBJECT_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/listing-object-authorization-evidence";
+import { CONVERSATION_OBJECT_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/conversation-object-authorization-evidence";
 import { ORGANIZATION_TEAM_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/organization-team-authorization-evidence";
 import { DENY_BY_DEFAULT_MASTER_EVIDENCE } from "../../security/deny-by-default-evidence";
 import { TENANT_ISOLATION_MASTER_EVIDENCE } from "../../security/tenant-isolation-evidence";
@@ -1595,4 +1596,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   // A reviewed surface can remain blocked or unverified operationally. These
   // records close the review obligation, not the corresponding control gate.
   ...INFRASTRUCTURE_REVIEW_MASTER_EVIDENCE,
+  // This exact source and unit proof supersedes the narrower realtime-only
+  // conversation-id record above without claiming other object boundaries.
+  ...CONVERSATION_OBJECT_AUTHORIZATION_MASTER_EVIDENCE,
 };

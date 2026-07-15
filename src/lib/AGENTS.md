@@ -17,6 +17,7 @@
 - Do not leak database internals, stack traces, secrets, service-role keys, or local paths to users or clients.
 - Keep modules side-effect-light. Avoid work at import time unless the existing pattern already requires it.
 - Prefer central fixes in shared services over patching every caller.
+- LiveKit keeps the complete single-cell environment compatible by default. Regional mode requires complete, distinct Sydney and Melbourne cells with matching secure public origins, and may select a cell only from an explicitly persisted room-home region.
 - Private Realtime topics retain HMAC-derived names, but access also requires a short-lived `SUPABASE_JWT_SECRET` token and an exact, unexpired grant in the self-hosted Supabase engine database accepted by `realtime.messages` RLS. Keep events content-free and Feed public-only.
 - Realtime broadcast payloads must stay content-free: ids and flags only, never message bodies or user data.
 - Managed-page media must be uploader-owned, synchronized to `ActorGalleryMedia`, and delivered only when the actor audience permits the viewer and neither profile has blocked the other.

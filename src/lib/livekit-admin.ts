@@ -2,14 +2,18 @@ import "server-only";
 
 import { RoomServiceClient, WebhookReceiver } from "livekit-server-sdk";
 import type { LiveKitConfig } from "@/lib/call-token";
-import { logError } from "@/lib/logger";
+import {
+  readLiveKitDeploymentConfig,
+  selectLiveKitConfig,
+  type LiveKitRegion,
+} from "@/lib/livekit-config";
+import { logExecutionError } from "@/lib/logger";
 
-export function liveKitConfig(): LiveKitConfig {
-  const url = process.env.LIVEKIT_URL;
-  const apiKey = process.env.LIVEKIT_API_KEY;
-  const apiSecret = process.env.LIVEKIT_API_SECRET;
-  if (!url || !apiKey || !apiSecret) throw new Error("call.not_configured");
-  return { url, apiKey, apiSecret };
+export function liveKitConfig(homeRegion?: LiveKitRegion): LiveKitConfig {
+  return selectLiveKitConfig(
+    readLiveKitDeploymentConfig(process.env),
+    homeRegion
+  );
 }
 
 // Best-effort remote room teardown. Never throws: the DB is the source of
@@ -24,7 +28,7 @@ export async function deleteLiveKitRoom(roomName: string): Promise<void> {
     );
     await client.deleteRoom(roomName);
   } catch (err) {
-    logError("livekit.delete_room_failed", { roomName }, err);
+    await logExecutionError("livekit.delete_room_failed", { roomName }, err);
   }
 }
 

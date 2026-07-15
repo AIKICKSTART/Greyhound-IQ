@@ -969,4 +969,118 @@ export const MANDATORY_PUBLIC_RACING_DATABASE_OPERATIONS = [
     ],
     verificationStatus: "Verified",
   },
+  {
+    queryId: "DB.RACING.PROVIDER.INGEST.TRANSACTION",
+    traceId: "RACING.PROVIDER.INGEST",
+    sourceFile: "src/lib/live/sync.ts",
+    sourceSymbol: "upsertSystemMeetings/upsertMeetings",
+    ormOrDriver: "Prisma transaction, CRUD methods and tagged SQL bulk upserts",
+    ormOperation:
+      "system-context transaction that normalizes and upserts provider Track, Meeting, Race, RaceVideo, Dog, Trainer, Runner, Result and FormEntry rows",
+    normalizedSqlArtifact:
+      "output/database-audit/live-provider-ingest.json",
+    databaseRole: "greyhoundiq_runtime with transaction-local app.system=true",
+    databaseName: "greyhoundiq",
+    schemaName: "public",
+    operationType: "transaction",
+    tables: [
+      "Track",
+      "Meeting",
+      "Race",
+      "RaceVideo",
+      "Dog",
+      "Trainer",
+      "Runner",
+      "Result",
+      "FormEntry",
+    ],
+    views: [],
+    columnsRead: [
+      "provider and natural identity keys",
+      "existing racing rows needed to resolve relations and merge corrections",
+    ],
+    columnsWritten: [
+      "normalized public racing fields",
+      "sourceProvider",
+      "sourceId",
+      "sourceRawJson",
+      "lastSyncedAt",
+    ],
+    boundParameters: [
+      "validated provider meeting graph",
+      "server-selected provider identity",
+      "server-generated IDs and timestamps",
+      "tagged-SQL values in write chunks of at most 100 rows",
+    ],
+    parameterized: true,
+    tenantPredicate: "Not tenant scoped; only the internal system context may mutate public racing reference data.",
+    ownershipPredicate: "public.giq_is_system() must be true for every write policy.",
+    visibilityPredicate: "Normalized racing rows become public-readable; raw payload fields are retained server-side and excluded from public projections.",
+    rowLevelSecurityPolicies: [
+      "giq_track_system_write",
+      "giq_meeting_system_write",
+      "giq_race_system_write",
+      "giq_race_video_system_write",
+      "giq_dog_system_write",
+      "giq_trainer_system_write",
+      "giq_runner_system_write",
+      "giq_result_system_write",
+      "giq_form_entry_system_write",
+    ],
+    expectedRowCount:
+      "Provider-dependent and source-bounded; lookup chunks are at most 500 keys, total lookup sets at most 5,000 keys and tagged-SQL write chunks at most 100 rows.",
+    paginationRequired: false,
+    transactionBoundary:
+      "One Prisma transaction per fetched provider meeting batch with 30 s max wait and 240 s transaction timeout.",
+    isolationLevel:
+      "PostgreSQL default; the source transaction does not override isolation.",
+    locks: ["scheduled-task advisory transaction lock for live-sync"],
+    concurrencyControl:
+      "executeScheduledTask rejects overlapping live-sync runs; unique/natural keys and ON CONFLICT upserts merge permitted replay.",
+    indexesExpected: [
+      "Meeting_trackId_meetingDate_key",
+      "Race_meetingId_raceNumber_key",
+      "Runner_raceId_boxNumber_key",
+      "Result_runnerId_key",
+      "Dog_sourceProvider_sourceId_key",
+      "FormEntry_dogId_raceId_key",
+      "RaceVideo_raceId_sourceProvider_kind_key",
+    ],
+    constraintsReliedOn: [
+      "Meeting_trackId_fkey",
+      "Race_meetingId_fkey",
+      "Runner_raceId_fkey",
+      "Runner_dogId_fkey",
+      "Result_runnerId_fkey",
+    ],
+    triggersInvoked: [],
+    timeoutMilliseconds: 240_000,
+    sensitiveColumns: [
+      "provider sourceRawJson fields (untrusted source archive; never a public output contract)",
+    ],
+    returnedDataShape:
+      "Only aggregate meeting/race/runner/result counts and provider name return to the internal caller.",
+    notFoundBehaviour:
+      "Missing referenced rows are created from validated provider identities inside the transaction.",
+    unauthorizedBehaviour:
+      "The HTTP entry rejects missing/invalid internal credentials before provider or database work; RLS independently requires app.system=true for writes.",
+    conflictBehaviour:
+      "Natural and provider identity conflicts use deterministic upsert/merge rules; overlapping scheduled runs are skipped.",
+    failureBehaviour:
+      "The current provider batch transaction rolls back atomically and the route returns a safe error envelope; cross-batch atomicity and deployed retry behavior remain separate release evidence.",
+    tests: [
+      "security/mandatory-public-racing-trace-evidence.test.ts",
+      "src/app/api/internal/live-sync/route.test.ts",
+      "src/lib/live/provider-response-validation.test.ts",
+      "security/scheduled-task-control-evidence.test.ts",
+      "scripts/check-live-provider-ingest-postgres.test.ts",
+    ],
+    evidence: [
+      "Source evidence traces POST /api/internal/live-sync through constant-time internal-secret comparison, bounded scope/days parsing, scheduled-task overlap control, provider response validation, provider stamping and the system-context upsert transaction.",
+      "The source fixes lookup chunks at 500, lookup sets at 5,000, tagged-SQL write chunks at 100, transaction max-wait at 30 seconds and transaction timeout at 240 seconds.",
+      "output/database-audit/live-provider-ingest.json schema v1 source-binds the actual syncLiveMeetings/upsertSystemMeetings path and proves a one-row synthetic graph across all nine tables as login-capable, non-superuser, non-BYPASSRLS greyhoundiq_runtime on literal loopback port 55734. It captures the three transaction-local system-context settings, all nine parameterized INSERT shapes, COMMIT, a late failure after Track/Meeting/Race writes, ROLLBACK, zero persisted rollback rows and exact cleanup without provider or other network access.",
+      "The disposable PostgreSQL target is verification tooling only. Planned production remains the single Prisma + AlloyDB for PostgreSQL database; deployed parity, provider authenticity, scheduler/secret parity and representative-volume throughput remain release evidence rather than claims of this local proof.",
+    ],
+    verificationStatus: "Verified",
+  },
 ] satisfies readonly DatabaseOperationContract[];

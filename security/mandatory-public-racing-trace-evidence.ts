@@ -8,6 +8,7 @@ export const MANDATORY_PUBLIC_RACING_TRACE_BINDINGS = {
   "security.trace.07.open-race": "RACING.RACE.OPEN",
   "security.trace.08.open-dog": "RACING.DOG.OPEN",
   "security.trace.09.open-track": "RACING.TRACK.OPEN",
+  "security.trace.10.racing-provider-ingest": "RACING.PROVIDER.INGEST",
 } as const;
 
 export const MANDATORY_PUBLIC_RACING_TRACE_REQUIREMENT_IDS = Object.keys(
@@ -42,6 +43,9 @@ export const MANDATORY_PUBLIC_RACING_TRACE_RESIDUALS = {
   ],
   "security.trace.09.open-track": [
     "Representative-volume plans, deployed-role parity, page-specific overload controls and a sustained-load p99 result are not captured.",
+  ],
+  "security.trace.10.racing-provider-ingest": [
+    "Provider identity and payload authenticity, disposable runtime-role database replay, transaction rollback, representative-volume throughput, deployed scheduler/secret parity and production alert delivery remain unverified.",
   ],
 } as const satisfies Record<
   keyof typeof MANDATORY_PUBLIC_RACING_TRACE_BINDINGS,
@@ -152,6 +156,20 @@ export const MANDATORY_PUBLIC_RACING_TRACE_MASTER_EVIDENCE = {
       "src/app/tracks/[id]/page.tsx",
       "src/lib/queries.ts",
       "src/components/screen-contracts/production-screen-public-racing-interactions.test.ts",
+    ],
+  },
+  "security.trace.10.racing-provider-ingest": {
+    status: "verified",
+    evidence: [
+      ...COMMON_EVIDENCE,
+      "src/app/api/internal/live-sync/route.ts",
+      "src/app/api/internal/live-sync/route.test.ts",
+      "src/lib/internal-auth.ts",
+      "src/lib/scheduled-task-control.ts",
+      "src/lib/live/provider.ts",
+      "src/lib/live/provider-response-validation.test.ts",
+      "src/lib/live/sync.ts",
+      "security/scheduled-task-control-evidence.test.ts",
     ],
   },
 } as const;

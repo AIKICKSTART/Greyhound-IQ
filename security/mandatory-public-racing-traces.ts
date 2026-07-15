@@ -1065,5 +1065,241 @@ export function buildMandatoryPublicRacingTraceRecords(
       owner: "racing-data-platform",
       verificationStatus: "Partially verified",
     },
+    {
+      traceId: "RACING.PROVIDER.INGEST",
+      userStoryIds: [
+        "RACING.STORY.RACE-EXPLORER",
+        "RACING.STORY.RESULTS",
+        "RACING.STORY.DOG-DETAIL",
+        "RACING.STORY.TRACK-DETAIL",
+      ],
+      productArea: "Racing intelligence",
+      routePatterns: ["/api/internal/live-sync?scope&days"],
+      screenIds: [],
+      actionName:
+        "Authenticate an internal racing sync, validate provider data and transactionally upsert normalized public racing records",
+      actionType: "background",
+      actors: ["Cloud Scheduler", "authorized racing-data operator"],
+      authentication: "required",
+      allowedRoles: ["internal system"],
+      allowedTiers: [],
+      requiredPermissions: ["valid configured internal scheduling secret"],
+      requiredRelationships: [
+        "provider-derived records retain the server-selected sourceProvider identity",
+        "database writes run only with transaction-local app.system=true",
+      ],
+      featureFlags: ["configured racing provider feeds"],
+      frontend: {
+        sourceFiles: [],
+        components: [],
+        eventHandlers: [],
+        forms: [],
+        fields: [],
+        clientValidationSchemas: [],
+        clientStateStores: [],
+        sensitiveBrowserStorage: [],
+      },
+      transport: {
+        protocol: "HTTPS server-to-server scheduled request",
+        method: "POST",
+        pathOrProcedure: "/api/internal/live-sync?scope=upcoming|results|all&days=1..31",
+        contentType: "empty request body; JSON response",
+        credentialMode: "X-Internal-Secret or Authorization bearer token",
+        requiredHeaders: ["X-Internal-Secret or Authorization"],
+        csrfControl:
+          "Not applicable to the server-to-server entry; the internal secret is mandatory before work starts.",
+        corsPolicy: "No browser CORS dependency; server-to-server only.",
+        maximumRequestBytes: null,
+        timeoutMilliseconds: 300_000,
+      },
+      server: {
+        entryFiles: [
+          "src/app/api/internal/live-sync/route.ts",
+          "src/lib/internal-auth.ts",
+          "src/lib/scheduled-task-control.ts",
+          "src/lib/live/provider.ts",
+          "src/lib/live/sync.ts",
+        ],
+        handlers: [
+          "POST/runLiveSync",
+          "requireInternalRequest",
+          "executeScheduledTask",
+          "syncLiveData",
+          "getLiveProvider",
+          "upsertSystemMeetings/upsertMeetings",
+        ],
+        middlewareOrder: [
+          "reject absent or invalid internal credentials with constant-time comparison",
+          "allowlist scope and clamp days to an integer from 1 through 31",
+          "acquire the live-sync advisory transaction lock and skip overlap",
+          "select only configured provider adapters",
+          "fetch and validate bounded provider responses",
+          "stamp the server-selected provider identity",
+          "set transaction-local system context and upsert normalized racing rows",
+          "return aggregate counts or a safe error envelope",
+        ],
+        authenticationFunction: "requireInternalRequest",
+        sessionValidationFunction:
+          "constant-time comparison against configured internal scheduling secrets",
+        authorizationPolicy:
+          "Only a request presenting one configured internal secret may select a provider or enter the scheduler/database path.",
+        objectAuthorizationPolicy:
+          "No client object identity is accepted; provider/natural keys resolve each normalized racing object server-side.",
+        propertyAuthorizationPolicy:
+          "Provider adapters validate/normalize response fields, sync stamps sourceProvider and writes explicit normalized columns.",
+        requestValidationSchema:
+          "scope=upcoming|results|all (default upcoming); days is an integer 1..31 (default 7 for results, otherwise 31); no body.",
+        outputSchema:
+          "{ ok: true, skipped: 'overlap' } or { ok: true, synced, provider, scope, configured?, missingEnv?, meetings?, races?, runners?, results? }",
+        businessService: "syncLiveData",
+        repositoryMethods: [
+          "withDbSystemContext scheduled-task advisory lock",
+          "prisma.$transaction upsertSystemMeetings",
+          "Prisma CRUD lookups and tagged-SQL bulk upserts",
+        ],
+        rateLimitPolicy:
+          "No per-client counter; internal authentication, configured scheduler cadence and a per-task advisory lock bound authorized concurrency.",
+        idempotencyPolicy:
+          "Overlapping runs are skipped; deterministic natural/provider identities and conflict upserts merge permitted replay.",
+      },
+      databaseOperations: databaseOperationsFor("RACING.PROVIDER.INGEST"),
+      cacheOperations: [],
+      backgroundOperations: [
+        {
+          queueOrScheduler: "Cloud Scheduler to internal live-sync route",
+          jobType: "live-sync",
+          payloadSchema: "scope and days query parameters only",
+          workerIdentity: "internal-secret authenticated scheduler",
+          retryPolicy:
+            "Source scheduler wiring exists; exact deployed retry/backoff behavior is not verified.",
+          idempotencyKey:
+            "scheduled-task advisory lock plus normalized provider/natural keys",
+        },
+      ],
+      externalOperations: [
+        {
+          provider: "Configured greyhound racing provider adapters",
+          operation: "fetch upcoming meetings and/or results",
+          credentialScope:
+            "Provider-specific server environment credentials; never accepted from the request or returned.",
+          requestSchema: "server-bounded day window from 1 through 31",
+          responseSchema:
+            "adapter-specific response parsed into bounded LiveMeeting/Race/Runner/Result structures",
+          timeoutPolicy: "provider adapters use abort timeouts covered by response-boundary tests",
+          retryPolicy:
+            "provider-specific bounded retry only; Topaz retry behavior is directly tested",
+          circuitBreakerPolicy: "not implemented",
+          webhookFollowUp: "not applicable",
+        },
+      ],
+      response: {
+        successStatus: 200,
+        responseSchema:
+          "safe internal JSON containing overlap/configuration state, provider name, scope and aggregate write counts",
+        permittedFields: [
+          "ok",
+          "skipped",
+          "synced",
+          "provider",
+          "scope",
+          "configured",
+          "missingEnv",
+          "meetings",
+          "races",
+          "runners",
+          "results",
+        ],
+        cachePolicy: "Mutation response is not an application response cache entry.",
+        frontendSuccessState:
+          "No browser state; subsequent public racing reads observe committed normalized records.",
+      },
+      failureModes: [
+        {
+          condition: "No internal scheduling secret is configured",
+          externalStatus: 503,
+          safeUserMessage: "Could not sync live racing data",
+          serverLogEvent: "api.internal_error with internal.not_configured",
+          retryPermitted: false,
+        },
+        {
+          condition: "The request presents no valid internal scheduling secret",
+          externalStatus: 403,
+          safeUserMessage: "auth.forbidden",
+          serverLogEvent: "api.request_rejected with auth.forbidden",
+          retryPermitted: false,
+        },
+        {
+          condition: "Invalid scope or days query parameter",
+          externalStatus: 400,
+          safeUserMessage: "Could not sync live racing data",
+          serverLogEvent: "live.scope_invalid or live.days_invalid",
+          retryPermitted: true,
+        },
+        {
+          condition: "No racing provider is configured",
+          externalStatus: 200,
+          safeUserMessage: "Sync did not run because no provider is configured.",
+          serverLogEvent: "live_sync.provider_not_configured",
+          retryPermitted: true,
+        },
+        {
+          condition: "Another live-sync execution holds the task lock",
+          externalStatus: 200,
+          safeUserMessage: "Sync skipped because another execution is active.",
+          serverLogEvent: "scheduled_task.overlap",
+          retryPermitted: true,
+        },
+        {
+          condition: "Provider response or database transaction fails",
+          externalStatus: 500,
+          safeUserMessage: "Could not sync live racing data",
+          serverLogEvent: "scheduled_task.failed and provider-specific safe error",
+          retryPermitted: true,
+        },
+      ],
+      dataClassification: [
+        "Public racing reference data",
+        "Untrusted provider payload",
+        "Provider credential metadata (server-only)",
+        "Internal scheduling credential (server-only)",
+      ],
+      auditEvents: [],
+      securityControls: [
+        "POST-only internal entry",
+        "fail-closed constant-time internal-secret authentication",
+        "scope allowlist and 1..31 day bound",
+        "scheduled-task advisory lock and timeout",
+        "provider host/schema/collection/response-size validation",
+        "server-stamped provider identity",
+        "system-context RLS write policies",
+        "transactional idempotent normalized upserts",
+        "500-key lookup and 100-row write chunks",
+        "structured correlation-safe lifecycle logging",
+      ],
+      threats: [
+        "unauthorized provider ingestion",
+        "provider impersonation",
+        "malformed or oversized feed data",
+        "duplicate/corrected record replay",
+        "overlapping scheduler execution",
+        "partial normalized graph commit",
+        "provider credential or raw-payload disclosure",
+      ],
+      tests: [
+        FOCUSED_TEST,
+        "src/app/api/internal/live-sync/route.test.ts",
+        "src/lib/live/provider-response-validation.test.ts",
+        "src/lib/live/topaz.test.ts",
+        "security/scheduled-task-control-evidence.test.ts",
+        "scripts/check-rls-policies.ts",
+      ],
+      evidence: [
+        "Source path: POST /api/internal/live-sync -> requireInternalRequest -> bounded scope/days -> executeScheduledTask advisory lock -> syncLiveData -> configured response-validating provider adapter -> server provider stamp -> system-context upsert transaction -> safe aggregate response.",
+        "Focused source evidence verifies authentication precedes provider/database work, request bounds, provider response-boundary tests, transaction-local system context, lookup/write chunk bounds and the exact linked database operation.",
+        "Residual: provider identity/payload authenticity, disposable runtime-role SQL/plan/RLS/rollback proof, representative-volume throughput, deployed scheduler/secret parity, provider circuit breaking and production alert delivery remain unverified.",
+      ],
+      owner: "racing-data-platform",
+      verificationStatus: "Partially verified",
+    },
   ];
 }

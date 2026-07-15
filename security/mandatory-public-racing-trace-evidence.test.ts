@@ -26,6 +26,7 @@ const EXPECTED_BINDINGS = {
   "security.trace.07.open-race": "RACING.RACE.OPEN",
   "security.trace.08.open-dog": "RACING.DOG.OPEN",
   "security.trace.09.open-track": "RACING.TRACK.OPEN",
+  "security.trace.10.racing-provider-ingest": "RACING.PROVIDER.INGEST",
 } as const;
 
 assert.deepEqual(MANDATORY_PUBLIC_RACING_TRACE_BINDINGS, EXPECTED_BINDINGS);
@@ -33,7 +34,7 @@ assert.deepEqual(
   MANDATORY_PUBLIC_RACING_TRACE_REQUIREMENT_IDS.toSorted(),
   Object.keys(EXPECTED_BINDINGS).toSorted(),
 );
-assert.equal(MANDATORY_PUBLIC_RACING_TRACE_REQUIREMENT_IDS.length, 8);
+assert.equal(MANDATORY_PUBLIC_RACING_TRACE_REQUIREMENT_IDS.length, 9);
 
 for (const requirementId of MANDATORY_PUBLIC_RACING_TRACE_REQUIREMENT_IDS) {
   const requirement = MASTER_AUDIT_REQUIREMENTS.find(
@@ -62,8 +63,8 @@ const targetTraceIds = new Set(Object.values(EXPECTED_BINDINGS));
 const targetTraces = SECURITY_TRACES.filter((trace) =>
   targetTraceIds.has(trace.traceId as (typeof EXPECTED_BINDINGS)[keyof typeof EXPECTED_BINDINGS]),
 );
-assert.equal(targetTraces.length, 8);
-assert.equal(new Set(targetTraces.map((trace) => trace.traceId)).size, 8);
+assert.equal(targetTraces.length, 9);
+assert.equal(new Set(targetTraces.map((trace) => trace.traceId)).size, 9);
 
 for (const trace of targetTraces) {
   assert.equal(trace.verificationStatus, "Partially verified");
@@ -109,6 +110,7 @@ const expectedDatabaseQueryIds = {
     "DB.RACING.DOG.OPEN.OWNERSHIP.SELECT",
   ],
   "RACING.TRACK.OPEN": ["DB.RACING.TRACK.OPEN.DETAIL_BUNDLE"],
+  "RACING.PROVIDER.INGEST": ["DB.RACING.PROVIDER.INGEST.TRANSACTION"],
 } as const;
 
 for (const trace of targetTraces) {
@@ -124,8 +126,8 @@ for (const trace of targetTraces) {
 const targetOperations = DATABASE_OPERATIONS.filter((operation) =>
   targetTraceIds.has(operation.traceId as (typeof EXPECTED_BINDINGS)[keyof typeof EXPECTED_BINDINGS]),
 );
-assert.equal(targetOperations.length, 7);
-assert.equal(new Set(targetOperations.map((operation) => operation.queryId)).size, 7);
+assert.equal(targetOperations.length, 8);
+assert.equal(new Set(targetOperations.map((operation) => operation.queryId)).size, 8);
 assert.deepEqual(
   Object.fromEntries(
     targetOperations.map((operation) => [
@@ -140,6 +142,7 @@ assert.deepEqual(
     "DB.RACING.DOG.OPEN.PUBLIC_DETAIL_BUNDLE": "Verified",
     "DB.RACING.DOG.OPEN.OWNERSHIP.SELECT": "Verified",
     "DB.RACING.TRACK.OPEN.DETAIL_BUNDLE": "Verified",
+    "DB.RACING.PROVIDER.INGEST.TRANSACTION": "Verified",
     "DB.SUPPORT.TICKET.CREATE.TRANSACTION": "Verified",
   },
 );
@@ -258,7 +261,8 @@ assert.match(queries, /take: RACE_EXPLORER_STATE_LIMIT/);
 
 const raceDetail = source("src/app/races/[id]/page.tsx");
 assertOrdered(raceDetail, [
-  "const { id } = await params",
+  "const [{ id: routeId }, detailSearchParams] = await Promise.all([params, searchParams])",
+  'resolveDemoProviderRouteId("race", routeId)',
   "getRaceById(id)",
   "if (!race) notFound()",
   "resolveProviderReplay({",
@@ -272,6 +276,8 @@ assert.match(source("src/lib/live/replay-proxy.ts"), /ALLOWED_STREAM_HOSTS/);
 
 const dogDetail = source("src/app/dogs/[id]/page.tsx");
 assertOrdered(dogDetail, [
+  "const { id: routeId } = await params",
+  'resolveDemoProviderRouteId("dog", routeId)',
   "getDogById(id)",
   "getCurrentUser()",
   "getDogPedigree(id)",
@@ -300,7 +306,8 @@ assert.match(
 
 const trackDetail = source("src/app/tracks/[id]/page.tsx");
 assertOrdered(trackDetail, [
-  "const { id } = await params",
+  "const { id: routeId } = await params",
+  'resolveDemoProviderRouteId("track", routeId)',
   "getTrackById(id)",
   "if (!track) notFound()",
 ]);
@@ -324,8 +331,101 @@ for (const usage of [
   assert.ok(getTrackById.includes(usage), usage);
 }
 
+const liveSyncRoute = source("src/app/api/internal/live-sync/route.ts");
+assert.doesNotMatch(liveSyncRoute, /export async function GET\(/);
+assertOrdered(liveSyncRoute, [
+  "requireInternalRequest(request)",
+  "scopeFromRequest(request)",
+  'executeScheduledTask("live-sync"',
+  "syncLiveData(daysFromRequest(request, scope), scope)",
+]);
+assert.match(
+  liveSyncRoute,
+  /raw === "upcoming" \|\| raw === "results" \|\| raw === "all"/,
+);
+assert.match(
+  liveSyncRoute,
+  /!Number\.isInteger\(days\) \|\| days < 1 \|\| days > 31/,
+);
+
+const internalAuth = source("src/lib/internal-auth.ts");
+assertOrdered(internalAuth, [
+  "if (expectedSecrets.length === 0)",
+  "request.headers.get(INTERNAL_SECRET_HEADER)",
+  'bearerToken(request.headers.get("authorization"))',
+  "safeEqual(received, expected)",
+  'throw new Error("auth.forbidden")',
+]);
+
+const liveSync = source("src/lib/live/sync.ts");
+assert.match(liveSync, /const BULK_WRITE_CHUNK_SIZE = 100/);
+assert.match(liveSync, /const LOOKUP_QUERY_CHUNK_SIZE = 500/);
+assert.match(liveSync, /const LOOKUP_QUERY_LIMIT = 5_000/);
+assert.match(liveSync, /const LIVE_SYNC_TRANSACTION_MAX_WAIT_MS = 30_000/);
+assert.match(liveSync, /const LIVE_SYNC_TRANSACTION_TIMEOUT_MS = 240_000/);
+const syncLiveData = between(
+  liveSync,
+  "export async function syncLiveData",
+  "export async function refreshAggregateMaterializedViews",
+);
+assertOrdered(syncLiveData, [
+  "getLiveProvider()",
+  "provider.fetchUpcomingMeetings(days)",
+  "stampMeetings(",
+  "upsertSystemMeetings(meetings, logContext)",
+]);
+const ingestTransaction = between(
+  liveSync,
+  "async function upsertSystemMeetings",
+  "function setLocal",
+);
+assertOrdered(ingestTransaction, [
+  "prisma.$transaction(",
+  "setLiveSyncSystemContext(tx)",
+  "upsertMeetings(tx, meetings, logContext)",
+]);
+
+const providerResponseTests = source(
+  "src/lib/live/provider-response-validation.test.ts",
+);
+for (const boundary of [
+  "assertTransportBoundaries",
+  "assertTheDogsFollowUpBoundaries",
+  "assertWatchdogSchema",
+  "assertHtmlParserBounds",
+]) {
+  assert.ok(providerResponseTests.includes(boundary), boundary);
+}
+
+const ingestTrace = requiredTrace("RACING.PROVIDER.INGEST");
+assert.equal(ingestTrace.authentication, "required");
+assert.equal(ingestTrace.actionType, "background");
+assert.deepEqual(ingestTrace.databaseOperations.map(({ queryId }) => queryId), [
+  "DB.RACING.PROVIDER.INGEST.TRANSACTION",
+]);
+assert.ok(
+  ingestTrace.evidence.some((entry) =>
+    entry.includes("provider identity/payload authenticity"),
+  ),
+);
+const ingestOperation = targetOperations.find(
+  ({ queryId }) => queryId === "DB.RACING.PROVIDER.INGEST.TRANSACTION",
+);
+assert.ok(ingestOperation);
+assert.equal(ingestOperation.verificationStatus, "Verified");
+assert.match(
+  ingestOperation.evidence.join(" "),
+  /live-provider-ingest\.json.*zero persisted rollback rows.*deployed parity/,
+);
+assert.match(
+  MANDATORY_PUBLIC_RACING_TRACE_RESIDUALS[
+    "security.trace.10.racing-provider-ingest"
+  ].join(" "),
+  /Provider identity and payload authenticity.*production alert delivery remain unverified/,
+);
+
 console.log(
-  "mandatory public/racing trace evidence passed: exactly 8 gates, 8 source traces, 7 linked datastore records, four verified public-racing reads and explicit residuals",
+  "mandatory public/racing trace evidence passed: exactly 9 gates, 9 source traces, 8 linked datastore records, four verified public-racing reads, one runtime-verified ingest transaction and explicit release residuals",
 );
 
 function requiredTrace(traceId: string) {

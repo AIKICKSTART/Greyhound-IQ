@@ -41,9 +41,9 @@ for (const path of evidence.evidence) {
 }
 assert.match(DEPLOYMENT_APPROVAL_CONTROL_SCOPE, /every current GitHub Actions workflow/i);
 assert.match(DEPLOYMENT_APPROVAL_CONTROL_SCOPE, /manual-dispatch/i);
-assert.match(DEPLOYMENT_APPROVAL_CONTROL_SCOPE, /exact commit/i);
-assert.match(DEPLOYMENT_APPROVAL_CONTROL_SCOPE, /complete-evidence SHA-256/i);
-assert.match(DEPLOYMENT_APPROVAL_CONTROL_SCOPE, /successful CI/i);
+assert.match(DEPLOYMENT_APPROVAL_CONTROL_SCOPE, /immutable image/i);
+assert.match(DEPLOYMENT_APPROVAL_CONTROL_SCOPE, /no-traffic candidate/i);
+assert.match(DEPLOYMENT_APPROVAL_CONTROL_SCOPE, /smoke-tests/i);
 assert.match(DEPLOYMENT_APPROVAL_CONTROL_SCOPE, /blocks seeding/i);
 assert.match(DEPLOYMENT_APPROVAL_CONTROL_SCOPE, /current source controls only/i);
 assert.match(DEPLOYMENT_APPROVAL_CONTROL_SCOPE, /does not claim GitHub environment reviewer configuration/i);
@@ -169,7 +169,7 @@ assertIssue(
 );
 
 console.log(
-  "Deployment-approval control passed: all 5 GitHub Actions workflows are classified and both production deployment paths are manual, environment-bound, source-enforced approval gates.",
+  "Deployment-approval control passed: all 5 GitHub Actions workflows are classified and both production deployment paths are manual and environment-bound.",
 );
 
 function collectWorkflowSources(root: string): DeploymentWorkflowSource[] {

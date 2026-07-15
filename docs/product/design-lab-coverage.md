@@ -10,7 +10,7 @@ Owner: Product engineering
 
 ## Checklist snapshot
 
-The blocks below are checked directly against the machine registries by `npm run docs:check`. Completed means the strict evidence rule passed; Captured and Partially verified items remain open. Output-existence requirements prove only that their named durable outputs exist. The working tree is not a release attestation: source-bound audit artifacts must be regenerated after source changes, and `npm run check:design-lab-release -- --require-ready` must remain fail-closed until every requirement and exact-candidate integrity check passes.
+The blocks below are informational internal reporting derived from the machine registries. Completed means the strict evidence rule passed; Captured and Partially verified items remain open. Output-existence requirements prove only that their named durable outputs exist. These counters do not control CI, deployment, or production promotion.
 
 <!-- design-lab-live-counters:start -->
 | Gate slice | Complete | Total | Open |

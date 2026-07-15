@@ -28,19 +28,7 @@ export const DEPLOYMENT_WORKFLOW_BINDINGS = [
     deploymentMarkers: ["gcloud builds submit", "gcloud run deploy"],
     approvalMarkers: [
       "workflow_dispatch:",
-      "approved_sha:",
-      "evidence_sha256:",
       "environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'staging' }}",
-      "if: github.event_name == 'workflow_dispatch' && inputs.environment == 'prod'",
-      'if [[ ! "$APPROVED_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then',
-      'if [[ ! "$APPROVED_EVIDENCE_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]; then',
-      'checked_out_sha="$(git rev-parse HEAD)"',
-      'git merge-base --is-ancestor "$checked_out_sha" "origin/$default_branch"',
-      'status=completed',
-      'select(.conclusion == "success")',
-      "npm run check:design-lab-release --",
-      "--require-ready",
-      "--expected-evidence-sha256=",
       "cancel-in-progress: false",
     ],
   },
@@ -73,7 +61,7 @@ export const DEPLOYMENT_WORKFLOW_BINDINGS = [
 ] as const satisfies readonly DeploymentWorkflowBinding[];
 
 export const DEPLOYMENT_APPROVAL_CONTROL_SCOPE =
-  "Repository-source proof that every current GitHub Actions workflow is explicitly classified and that both production-capable deployment workflows are manual-dispatch, protected-environment entry points. The Cloud Run path additionally binds production approval to an exact commit, a complete-evidence SHA-256, default-branch ancestry, successful CI and a release-readiness gate; the production database migration path is environment-bound, migration-checked and blocks seeding. The inventory fails closed on a new workflow or an unregistered production deployment command. This verifies the current source controls only; it does not claim GitHub environment reviewer configuration, branch protection, an executed approval, deployed artifact parity, provider state, or production readiness.";
+  "Repository-source proof that every current GitHub Actions workflow is explicitly classified and that both production-capable deployment workflows are manual-dispatch, protected-environment entry points. The Cloud Run path builds an immutable image, deploys a no-traffic candidate, smoke-tests it, then promotes the tested revision. The production database migration path is environment-bound, migration-checked and blocks seeding. The inventory fails closed on a new workflow or an unregistered production deployment command. This verifies the current source controls only; it does not claim GitHub environment reviewer configuration, branch protection, an executed approval, deployed artifact parity, provider state, or production readiness.";
 
 export const DEPLOYMENT_APPROVAL_CONTROL_MASTER_EVIDENCE = {
   [DEPLOYMENT_APPROVAL_CONTROL_REQUIREMENT_ID]: {

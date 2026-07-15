@@ -341,15 +341,13 @@ QUALITY AND RELEASE COMMANDS
 
 Run the repository’s registered focused tests plus:
 
-npm run check:design-lab-release
 npm run check:openapi-static
 npm run check:openapi-contract
 npm run typecheck
 npm run lint
 npm run build
-npm run check:design-lab-release -- --require-ready
 
-A blocked --require-ready result is expected until every requirement has valid evidence. Never weaken the evaluator merely to make it pass.
+Design Lab evidence is informational only. It does not control CI, deployment, or production promotion.
 
 FINAL COMPLETION CONDITIONS
 

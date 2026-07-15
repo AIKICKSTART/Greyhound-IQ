@@ -8,7 +8,7 @@ Owner: Product engineering
 
 GreyhoundIQ now has a documented 90-route visual inventory, a 3,315-item Design Lab master checklist, public production crawl evidence and linked matrices for stories, actions, forms, permissions, states and onboarding. This is not a complete product-wide audit and must not be represented as release acceptance.
 
-The following managed block is checked against the live registries by `npm run docs:check`.
+The following managed block is an informational snapshot of the live registries.
 
 <!-- design-lab-live-counters:start -->
 | Gate slice | Complete | Total | Open |
@@ -29,7 +29,7 @@ The following managed block is checked against the live registries by `npm run d
 | Visual route registry | `src/components/demo-experience-registry.ts` | 90 routes across 8 families | Implemented and registered |
 | Route drift test | `src/components/demo-experience-registry.test.ts` | Route tree equals registry | Route presence tested |
 | Atomic master checklist | `src/components/master-audit-requirements.ts` and Design Lab screen map | See the managed live counter block | Output-existence items prove artifact existence only; open controls remain release-blocking |
-| Design Lab release gate | Source evaluator plus `npm run check:design-lab-release` | See the managed live counter block; source-bound artifacts must match the exact candidate | Production promotion remains blocked |
+| Design Lab audit | Informational source evaluator | See the managed live counter block; source-bound artifacts are internal review material | Does not control production promotion |
 | Live demo route audit | `output/demo-route-audit/latest.json` | 90/90 passed against the current source binding | Current local route rendering; production deployment parity remains open |
 | Design Lab HTTP scenarios | Source-bound HTTP story artifact | 13/13 passed | Current local HTTP scenarios only |
 | Hydrated Design Lab core | Source-bound Playwright artifact | 24/24 passed | Core and scenario-control browser evidence; no production-data or release claim |

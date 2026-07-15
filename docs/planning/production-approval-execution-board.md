@@ -8,7 +8,7 @@ This is the deduplicated working board for the remaining production-approval wor
 
 | Source | Verified | Total | Pending | Awaiting verification | Status |
 | --- | ---: | ---: | ---: | ---: | --- |
-| Current local registry (`npm run check:design-lab-sync`) | 3,735 | 4,271 | 536 | — | Authoritative for the checkout; source-bound audit artifacts are stale after direct app changes. |
+| Historical local registry | 3,735 | 4,271 | 536 | — | Retired from the delivery path; Design Lab reporting is informational and does not block deployment. |
 | Final-list attachment | 3,735 | 4,282 | 547 | 4 | Contains eleven more total checks than the current checkout. Reconcile its registry revision before any final completion claim. |
 
 ## Non-overlapping active workstreams

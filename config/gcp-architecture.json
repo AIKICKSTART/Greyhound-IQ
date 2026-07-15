@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "status": "selected-target-unverified",
+  "description": "Repository contract for the selected Australia-only production target. This is not evidence of a live deployment.",
+  "currentDeployment": {
+    "status": "repository-declared-not-live-verified",
+    "evidence": [
+      ".github/workflows/cloud-run-deploy.yml",
+      "scripts/gcp-cloud-run-deploy.ps1"
+    ],
+    "regions": ["australia-southeast1"],
+    "ingress": "all",
+    "defaultUrlPolicy": "enabled",
+    "services": {
+      "app": {
+        "architecture": "modular-monolith",
+        "cpu": 2,
+        "memory": "4Gi",
+        "concurrency": 20,
+        "minInstancesPerRegion": 3,
+        "maxInstancesPerRegion": 10,
+        "connectionLimitPerInstance": 1,
+        "requestTimeoutSeconds": 900,
+        "probes": {
+          "startup": null,
+          "liveness": null,
+          "readiness": null
+        }
+      },
+      "worker": {
+        "status": "not-deployed"
+      }
+    }
+  },
+  "selectedTarget": {
+    "status": "selected-not-deployed",
+    "regions": [
+      {
+        "id": "australia-southeast1",
+        "city": "Sydney"
+      },
+      {
+        "id": "australia-southeast2",
+        "city": "Melbourne"
+      }
+    ],
+    "ingress": "internal-and-cloud-load-balancing",
+    "defaultUrlPolicy": "disabled",
+    "databaseConnectionBudget": {
+      "safeConnections": 50,
+      "operatorReserve": 10,
+      "basis": "Provisional and unverified; replace with measured database and pooler evidence before deployment."
+    },
+    "services": {
+      "app": {
+        "architecture": "modular-monolith",
+        "cpu": 2,
+        "memory": "4Gi",
+        "concurrency": 20,
+        "minInstancesPerRegion": 3,
+        "maxInstancesPerRegion": 10,
+        "connectionLimitPerInstance": 1,
+        "requestTimeoutSeconds": 60,
+        "probes": {
+          "startup": "/api/health/ready",
+          "liveness": "/api/health",
+          "readiness": "/api/health/ready"
+        },
+        "evidence": "unverified"
+      },
+      "worker": {
+        "architecture": "separate-worker",
+        "cpu": 2,
+        "memory": "4Gi",
+        "concurrency": 1,
+        "minInstancesPerRegion": 0,
+        "maxInstancesPerRegion": 5,
+        "connectionLimitPerInstance": 1,
+        "requestTimeoutSeconds": 900,
+        "probes": {
+          "startup": "/api/health/ready",
+          "liveness": "/api/health",
+          "readiness": "/api/health/ready"
+        },
+        "evidence": "unverified"
+      }
+    }
+  }
+}

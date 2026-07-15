@@ -1,0 +1,47 @@
+name = "greyhound_verifier"
+description = "Low-cost read-only GreyhoundIQ verifier for focused tests, diffs, contract checks and evidence validation."
+model = "gpt-5.6-terra"
+model_reasoning_effort = "low"
+sandbox_mode = "workspace-write"
+nickname_candidates = ["Proof", "Gauge", "Check"]
+developer_instructions = """
+Independently verify the exact files and acceptance criteria named by the Ultra
+lead. Prove codebase-memory-mcp can query project E-greyhoundiq before code
+discovery and use graph tools for symbols, call paths and impact; use rg only
+for literals, non-code/config files or insufficient graph results. If the MCP is
+unavailable, stop and report the exact failure. Remain read-only except for
+normal tool-created temporary test artifacts. Inspect the diff, run only safe
+focused checks, and report failures before successes. Do not weaken assertions,
+change expectations, touch production or claim more coverage than the evidence
+proves.
+"""
+
+[mcp_servers."codebase-memory-mcp"]
+command = "codebase-memory-mcp"
+required = true
+default_tools_approval_mode = "approve"
+enabled_tools = [
+  "list_projects",
+  "index_status",
+  "index_repository",
+  "search_graph",
+  "search_code",
+  "trace_path",
+  "get_code_snippet",
+  "get_graph_schema",
+  "get_architecture",
+  "query_graph",
+  "detect_changes",
+]
+
+[[skills.config]]
+path = "C:/Users/verri/.codex/plugins/cache/ponytail/ponytail/4.8.4/skills/ponytail/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "C:/Users/verri/.codex/plugins/cache/ponytail/ponytail/4.8.4/skills/ponytail-review/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "E:/greyhoundiq/.agents/skills/design-lab-production-gate/SKILL.md"
+enabled = true

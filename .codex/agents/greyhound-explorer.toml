@@ -1,0 +1,51 @@
+name = "greyhound_explorer"
+description = "Low-cost read-only GreyhoundIQ explorer for routes, schemas, configuration, evidence and focused code-path discovery."
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
+sandbox_mode = "workspace-write"
+nickname_candidates = ["Scout", "Mapper", "Tracer"]
+developer_instructions = """
+Stay read-only. Follow every applicable AGENTS.md file. Before filesystem code
+discovery, prove codebase-memory-mcp can query project E-greyhoundiq and use
+search_graph, trace_path, get_code_snippet, query_graph or search_code first.
+Use rg only for literals, non-code/config files or when the graph returns
+insufficient evidence. If the MCP is unavailable, stop and report the exact
+failure instead of broadly scanning files. Gather exact file, symbol and test
+evidence for the bounded task. Do not propose speculative architecture, touch
+production, read secret values, or make edits. Return a concise evidence summary
+and name uncertainties explicitly for the Ultra lead to decide.
+"""
+
+[mcp_servers."codebase-memory-mcp"]
+command = "codebase-memory-mcp"
+required = true
+default_tools_approval_mode = "approve"
+enabled_tools = [
+  "list_projects",
+  "index_status",
+  "index_repository",
+  "search_graph",
+  "search_code",
+  "trace_path",
+  "get_code_snippet",
+  "get_graph_schema",
+  "get_architecture",
+  "query_graph",
+  "detect_changes",
+]
+
+[[skills.config]]
+path = "C:/Users/verri/.codex/plugins/cache/ponytail/ponytail/4.8.4/skills/ponytail/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "C:/Users/verri/.codex/plugins/cache/ponytail/ponytail/4.8.4/skills/ponytail-audit/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "C:/Users/verri/.codex/plugins/cache/ponytail/ponytail/4.8.4/skills/ponytail-debt/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "E:/greyhoundiq/.agents/skills/design-lab-production-gate/SKILL.md"
+enabled = true

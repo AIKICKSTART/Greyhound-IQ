@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "rls-access-matrix",
+  "generatedAt": "2026-07-15T06:20:04.861Z",
+  "safety": {
+    "scope": "literal-loopback-disposable-database",
+    "target": {
+      "database": "greyhoundiq",
+      "host": "127.0.0.1",
+      "port": 55734
+    },
+    "productionContacted": false,
+    "mutation": "negative privilege probes and synthetic rows inside forced-rollback transactions",
+    "persistedSensitiveValues": false
+  },
+  "sourceBinding": {
+    "dbContextSha256": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
+    "billingPageSha256": "d710f769c27b549881fb13e970d22ed51b070f5a888afbbbd79371f5f9806c5c",
+    "invoicePolicyMigrationSha256": "953db33c0662f936b67a88b8859fd49b5d76b28e90f2a5e8851669fb5ff6334e",
+    "migrationsSha256": "4812e2d48b9e24ed89dae0c79fb2ff1966b73539bb1ae92a804c2c2ffef1162f",
+    "prismaSchemaSha256": "b0e50aa4850eebd5e3095bba619c87370b78f249fbeabf5b8691e169f3c02b22",
+    "verifierSha256": "33fbdfae048b8ae2dbbf60e19b18a972133b3b1d92f5cacb213ab91601e2dec5"
+  },
+  "runtimeIdentity": {
+    "currentRole": "greyhoundiq_runtime",
+    "sessionRole": "greyhoundiq_runtime",
+    "superuser": false,
+    "bypassRls": false,
+    "createRole": false,
+    "createDatabase": false,
+    "replication": false,
+    "inherit": true,
+    "canLogin": true,
+    "connectionLimit": 40
+  },
+  "sourceDefinedApplicationRoles": [
+    "greyhoundiq_runtime"
+  ],
+  "roleSeparation": {
+    "effectivePrivileges": {
+      "databaseConnect": true,
+      "databaseCreate": false,
+      "databaseTemporary": false,
+      "publicSchemaUsage": true,
+      "publicSchemaCreate": false,
+      "schemaCreateCount": 0
+    },
+    "ownership": {
+      "databaseCount": 0,
+      "relationCount": 0,
+      "routineCount": 0,
+      "schemaCount": 0
+    },
+    "memberships": {
+      "membershipCount": 0,
+      "adminOptionCount": 0
+    },
+    "directGrants": {
+      "applicationDmlTableCount": 107,
+      "projectionReadCount": 6,
+      "sequenceUsageCount": 1,
+      "routineCount": 44,
+      "securityDefinerRoutineCount": 27,
+      "grantableCount": 0
+    },
+    "systemCatalog": {
+      "directGrantCount": 0,
+      "sensitiveAuthCatalogSelect": false
+    },
+    "negativeControls": {
+      "functionCreateDenied": true,
+      "policyDisableDenied": true,
+      "roleAlterDenied": true,
+      "roleCreateDenied": true,
+      "schemaCreateDenied": true,
+      "sensitiveAuthCatalogReadDenied": true
+    }
+  },
+  "catalog": {
+    "applicationModelCount": 107,
+    "forceRlsCount": 107,
+    "rlsEnabledCount": 107
+  },
+  "invoiceOwnership": {
+    "policy": {
+      "policyName": "giq_invoice_read",
+      "command": "SELECT"
+    },
+    "cases": {
+      "anonymous": {
+        "invoiceA": 0,
+        "invoiceB": 0
+      },
+      "ownerA": {
+        "invoiceA": 1,
+        "invoiceB": 0
+      },
+      "ownerB": {
+        "invoiceA": 0,
+        "invoiceB": 1
+      },
+      "privilegedModerator": {
+        "invoiceA": 1,
+        "invoiceB": 1
+      },
+      "systemWorker": {
+        "invoiceA": 1,
+        "invoiceB": 1
+      }
+    },
+    "rollback": {
+      "invoiceA": 0,
+      "invoiceB": 0,
+      "verified": true
+    }
+  },
+  "cases": {
+    "anonymous": {
+      "membershipA": 0,
+      "membershipB": 0,
+      "organizationA": 0,
+      "organizationB": 0,
+      "signupOutbox": 0
+    },
+    "ownerA": {
+      "membershipA": 1,
+      "membershipB": 0,
+      "organizationA": 1,
+      "organizationB": 0,
+      "signupOutbox": 0
+    },
+    "ownerB": {
+      "membershipA": 0,
+      "membershipB": 1,
+      "organizationA": 0,
+      "organizationB": 1,
+      "signupOutbox": 0
+    },
+    "privilegedModerator": {
+      "membershipA": 1,
+      "membershipB": 1,
+      "organizationA": 1,
+      "organizationB": 1,
+      "signupOutbox": 0
+    },
+    "systemWorker": {
+      "membershipA": 1,
+      "membershipB": 1,
+      "organizationA": 1,
+      "organizationB": 1,
+      "signupOutbox": 1
+    }
+  },
+  "rollback": {
+    "membershipA": 0,
+    "membershipB": 0,
+    "organizationA": 0,
+    "organizationB": 0,
+    "signupOutbox": 0,
+    "verified": true
+  },
+  "poolContextReset": true,
+  "verdict": "verified"
+}

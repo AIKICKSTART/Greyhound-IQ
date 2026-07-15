@@ -1,0 +1,342 @@
+extends:
+  - spectral:oas
+  - "@stoplight/spectral-owasp-ruleset"
+
+rules:
+  # The upstream API4 rule requires quota headers on every 2XX and 4XX
+  # response, including operations that have no runtime limiter. Source AST
+  # parity and the canonical registry instead annotate only real limiter
+  # operations; the two GreyhoundIQ rules below validate their exact 429.
+  owasp:api4:2023-rate-limit: off
+  # The companion response rule also requires 429 on operations with no
+  # runtime limiter. The registry-backed rule below covers the exact 61
+  # source-limited operations without documenting fictional throttling.
+  owasp:api4:2023-rate-limit-responses-429: off
+  # The upstream rule treats every query apiKey alike. GreyhoundIQ keeps one
+  # narrowly reviewed exception for browser-native HLS/media URLs, then
+  # re-applies the same prohibition to every other query/path credential.
+  owasp:api2:2023-no-api-keys-in-url: off
+  # Public reads are intentional and classified by source-derived metadata.
+  # The two authentication rules below reject missing/unknown classifications
+  # and require a security scheme for every non-public operation.
+  owasp:api2:2023-read-restricted: off
+  # The upstream rule requires 401 on public, optional-session, signed-query
+  # and internal-secret operations. GreyhoundIQ requires it only where the
+  # source-derived authentication contract is `required`; internal secrets
+  # intentionally fail with 403 and public operations do not advertise 401.
+  owasp:api8:2023-define-error-responses-401: off
+  # The upstream CORS rule flags every response that defines any header, even
+  # a same-origin-only overload response. The replacement rules below retain
+  # the requirement everywhere except the exact review-dated replay GET 503.
+  owasp:api8:2023-define-cors-origin: off
+  greyhoundiq:authentication-status-contract:
+    description: Every operation must carry a known source-derived authentication classification.
+    message: Operation authentication metadata is missing or unknown.
+    severity: error
+    given: "$.paths[*][?(@ && @.responses)]"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required:
+            - x-authentication-status
+          properties:
+            x-authentication-status:
+              type: string
+              enum:
+                - required
+                - internal-secret
+                - public
+                - optional
+                - provider-signature
+                - signed-query
+          additionalProperties: true
+  greyhoundiq:non-public-security-contract:
+    description: Every non-public operation must bind at least one declared security alternative.
+    message: Non-public operation is missing its security scheme binding.
+    severity: error
+    given: "$.paths[*][?(@ && @.responses && @['x-authentication-status'] !== 'public')]"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required:
+            - security
+          properties:
+            security:
+              type: array
+              minItems: 1
+              contains:
+                type: object
+                minProperties: 1
+          additionalProperties: true
+  greyhoundiq:strict-security-contract:
+    description: Required, internal, provider-signed and signed-query operations must never allow an anonymous security alternative.
+    message: Strictly authenticated operation contains an empty security alternative.
+    severity: error
+    given:
+      - "$.paths[*][?(@ && @['x-authentication-status'] === 'required')]"
+      - "$.paths[*][?(@ && @['x-authentication-status'] === 'internal-secret')]"
+      - "$.paths[*][?(@ && @['x-authentication-status'] === 'provider-signature')]"
+      - "$.paths[*][?(@ && @['x-authentication-status'] === 'signed-query')]"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required:
+            - security
+          properties:
+            security:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                minProperties: 1
+          additionalProperties: true
+  greyhoundiq:required-auth-response-contract:
+    description: Required end-user authentication must document the runtime JSON 401 response.
+    message: Required-auth operation is missing its JSON 401 response contract.
+    severity: error
+    given: "$.paths[*][?(@ && @['x-authentication-status'] === 'required')]"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required:
+            - responses
+          properties:
+            responses:
+              type: object
+              required:
+                - "401"
+              properties:
+                "401":
+                  type: object
+                  required:
+                    - content
+                  properties:
+                    content:
+                      type: object
+                      required:
+                        - application/json
+          additionalProperties: true
+  greyhoundiq:response-header-cors-contract:
+    description: Every response with headers must declare its CORS origin outside the exact replay GET 503 exception.
+    message: Response headers omit Access-Control-Allow-Origin outside the reviewed replay GET 503 exception.
+    severity: error
+    given:
+      - '$.paths[?(@property!="/api/replay/stream")][*].responses[?(@ && @.headers)]'
+      - '$.paths["/api/replay/stream"][?(@property!="get")].responses[?(@ && @.headers)]'
+      - '$.paths["/api/replay/stream"].get.responses[?(@property!="503" && @ && @.headers)]'
+      - '$.components.responses[?(@ && @.headers)]'
+    then:
+      field: headers
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required:
+            - Access-Control-Allow-Origin
+          additionalProperties: true
+  greyhoundiq:replay-503-same-origin-exception-contract:
+    description: The sole CORS-header exception is bounded to GET /api/replay/stream 503 and must remain owned, reasoned and review-dated.
+    message: Replay GET 503 is missing its exact same-origin CORS exception contract.
+    severity: error
+    given: '$.paths["/api/replay/stream"].get.responses["503"]'
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required:
+            - headers
+            - x-same-origin-cors-exception
+            - x-exception-scope
+            - x-exception-owner
+            - x-exception-review-by
+            - x-exception-rationale
+            - x-residual-risk
+          properties:
+            headers:
+              type: object
+              required:
+                - Retry-After
+              properties:
+                Retry-After:
+                  type: object
+                  required:
+                    - schema
+                  properties:
+                    schema:
+                      type: object
+                      required:
+                        - type
+                        - enum
+                      properties:
+                        type:
+                          enum:
+                            - string
+                        enum:
+                          type: array
+                          minItems: 1
+                          maxItems: 1
+                          items:
+                            enum:
+                              - "1"
+              additionalProperties: true
+            x-same-origin-cors-exception:
+              enum:
+                - REPLAY-STREAM-503-SAME-ORIGIN-001
+            x-exception-scope:
+              enum:
+                - GET /api/replay/stream response 503 only
+            x-exception-owner:
+              enum:
+                - API Security
+            x-exception-review-by:
+              type: string
+              format: date
+            x-exception-rationale:
+              type: string
+              minLength: 80
+            x-residual-risk:
+              type: string
+              minLength: 80
+          additionalProperties: true
+  greyhoundiq:same-origin-cors-exception-scope:
+    description: Same-origin CORS exception metadata is forbidden outside the exact replay GET 503 response.
+    message: Same-origin CORS exception metadata appears outside GET /api/replay/stream response 503.
+    severity: error
+    given:
+      - '$.paths[?(@property!="/api/replay/stream")][*].responses[*]'
+      - '$.paths["/api/replay/stream"][?(@property!="get")].responses[*]'
+      - '$.paths["/api/replay/stream"].get.responses[?(@property!="503")]'
+      - '$.components.responses[*]'
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          not:
+            required:
+              - x-same-origin-cors-exception
+  greyhoundiq:no-api-keys-in-url:
+    description: API keys may not use query or path parameters except the exact reviewed replay capability contract.
+    message: API key passed in URL without the reviewed GreyhoundIQ replay-capability exception.
+    severity: error
+    given: '$.components.securitySchemes[?(@property!="ReplaySignature" && @ && @.type=="apiKey")].in'
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: "^(path|query)$"
+  greyhoundiq:signed-url-exception-contract:
+    description: The sole replay URL-capability exception must be short-lived, owned, review-dated and explicit about residual exposure.
+    message: Replay URL-capability exception is missing its bounded security contract.
+    severity: error
+    given: '$.components.securitySchemes.ReplaySignature'
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required:
+            - type
+            - in
+            - name
+            - x-signed-url-exception
+            - x-token-ttl-seconds
+            - x-clock-skew-seconds
+            - x-exception-owner
+            - x-exception-review-by
+            - x-residual-risk
+          properties:
+            type:
+              enum:
+                - apiKey
+            in:
+              enum:
+                - query
+            name:
+              enum:
+                - t
+            x-signed-url-exception:
+              enum:
+                - MEDIA-SIGNED-URL-001
+            x-token-ttl-seconds:
+              enum:
+                - 600
+            x-clock-skew-seconds:
+              enum:
+                - 30
+            x-exception-owner:
+              enum:
+                - API Security
+            x-exception-review-by:
+              type: string
+              format: date
+            x-residual-risk:
+              type: string
+              minLength: 40
+          additionalProperties: true
+  greyhoundiq:rate-limit-operation-contract:
+    description: A source-registered rate-limited operation must expose the exact shared 429 contract.
+    message: Rate-limited operation is missing its policy ID or shared 429 response contract.
+    severity: error
+    given: "$.paths[*][?(@ && @['x-rate-limit-policy'] !== void 0)]"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required:
+            - x-rate-limit-policy
+            - responses
+          properties:
+            x-rate-limit-policy:
+              type: string
+              pattern: "^RATE\\.[A-Za-z0-9_.-]+$"
+            responses:
+              type: object
+              required:
+                - "429"
+              properties:
+                "429":
+                  type: object
+                  minProperties: 1
+          additionalProperties: true
+  greyhoundiq:rate-limit-response-contract:
+    description: The shared 429 response must match the headers and body emitted by rateLimitExceededResponse.
+    message: Shared 429 response is missing a required anti-retry-storm header or safe error schema.
+    severity: error
+    given: '$.components.responses.RateLimitExceeded'
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required:
+            - description
+            - headers
+            - content
+          properties:
+            description:
+              type: string
+              minLength: 1
+            headers:
+              type: object
+              required:
+                - Access-Control-Allow-Origin
+                - Cache-Control
+                - RateLimit-Limit
+                - RateLimit-Remaining
+                - RateLimit-Reset
+                - Retry-After
+            content:
+              type: object
+              required:
+                - application/json
+          additionalProperties: true

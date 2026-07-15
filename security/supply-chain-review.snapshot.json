@@ -1,0 +1,1673 @@
+{
+  "schemaVersion": 1,
+  "reviewDate": "2026-07-15",
+  "registrySource": "https://registry.npmjs.org",
+  "lockReviewHash": "e5ed09bfc21297aa2cfa18867fa41ae1adb8490e3fc39a20bb8ce8756bec4a75",
+  "directDependencies": [
+    {
+      "name": "@auth/prisma-adapter",
+      "group": "dependencies",
+      "declaredSpecifier": "^2.11.2",
+      "lockedVersion": "2.11.2",
+      "latestVersion": "2.11.2",
+      "registryModifiedAt": "2026-04-14T18:58:20.514Z",
+      "deprecated": null,
+      "maintainers": 2,
+      "publisher": "better-gustavo",
+      "repository": "git+https://github.com/nextauthjs/next-auth.git"
+    },
+    {
+      "name": "@base-ui/react",
+      "group": "dependencies",
+      "declaredSpecifier": "^1.6.0",
+      "lockedVersion": "1.6.0",
+      "latestVersion": "1.6.0",
+      "registryModifiedAt": "2026-06-18T12:04:15.724Z",
+      "deprecated": null,
+      "maintainers": 8,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/mui/base-ui.git"
+    },
+    {
+      "name": "@hookform/resolvers",
+      "group": "dependencies",
+      "declaredSpecifier": "^5.4.0",
+      "lockedVersion": "5.4.0",
+      "latestVersion": "5.4.0",
+      "registryModifiedAt": "2026-05-21T22:49:53.554Z",
+      "deprecated": null,
+      "maintainers": 3,
+      "publisher": "bluebill1049",
+      "repository": "git+https://github.com/react-hook-form/resolvers.git"
+    },
+    {
+      "name": "@next/env",
+      "group": "dependencies",
+      "declaredSpecifier": "16.2.10",
+      "lockedVersion": "16.2.10",
+      "latestVersion": "16.2.10",
+      "registryModifiedAt": "2026-07-13T23:52:52.886Z",
+      "deprecated": null,
+      "maintainers": 2,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/vercel/next.js.git"
+    },
+    {
+      "name": "@prisma/client",
+      "group": "dependencies",
+      "declaredSpecifier": "^6.19.3",
+      "lockedVersion": "6.19.3",
+      "latestVersion": "7.8.0",
+      "registryModifiedAt": "2026-07-14T18:00:25.050Z",
+      "deprecated": null,
+      "maintainers": 2,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/prisma/prisma.git"
+    },
+    {
+      "name": "@stoplight/spectral-cli",
+      "group": "devDependencies",
+      "declaredSpecifier": "6.16.1",
+      "lockedVersion": "6.16.1",
+      "latestVersion": "6.16.1",
+      "registryModifiedAt": "2026-06-30T10:30:53.541Z",
+      "deprecated": null,
+      "maintainers": 4,
+      "publisher": "stoplight-spectral-bot",
+      "repository": "git+https://github.com/stoplightio/spectral.git"
+    },
+    {
+      "name": "@stoplight/spectral-owasp-ruleset",
+      "group": "devDependencies",
+      "declaredSpecifier": "2.0.1",
+      "lockedVersion": "2.0.1",
+      "latestVersion": "2.0.1",
+      "registryModifiedAt": "2024-03-12T15:50:02.024Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "stoplight-spectral-bot",
+      "repository": "git+https://github.com/stoplightio/spectral-owasp-ruleset.git"
+    },
+    {
+      "name": "@supabase/ssr",
+      "group": "dependencies",
+      "declaredSpecifier": "^0.12.0",
+      "lockedVersion": "0.12.0",
+      "latestVersion": "0.12.3",
+      "registryModifiedAt": "2026-07-14T15:47:25.372Z",
+      "deprecated": null,
+      "maintainers": 0,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/supabase/ssr.git"
+    },
+    {
+      "name": "@supabase/supabase-js",
+      "group": "dependencies",
+      "declaredSpecifier": "^2.108.2",
+      "lockedVersion": "2.108.2",
+      "latestVersion": "2.110.5",
+      "registryModifiedAt": "2026-07-14T15:24:47.055Z",
+      "deprecated": null,
+      "maintainers": 2,
+      "publisher": "GitHub Actions",
+      "repository": "https://github.com/supabase/supabase-js.git"
+    },
+    {
+      "name": "@tailwindcss/postcss",
+      "group": "devDependencies",
+      "declaredSpecifier": "^4",
+      "lockedVersion": "4.3.1",
+      "latestVersion": "4.3.2",
+      "registryModifiedAt": "2026-07-14T16:52:11.422Z",
+      "deprecated": null,
+      "maintainers": 3,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/tailwindlabs/tailwindcss.git"
+    },
+    {
+      "name": "@types/node",
+      "group": "devDependencies",
+      "declaredSpecifier": "^20",
+      "lockedVersion": "20.19.43",
+      "latestVersion": "26.1.1",
+      "registryModifiedAt": "2026-07-08T06:48:09.414Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "types",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git"
+    },
+    {
+      "name": "@types/react",
+      "group": "devDependencies",
+      "declaredSpecifier": "^19",
+      "lockedVersion": "19.2.17",
+      "latestVersion": "19.2.17",
+      "registryModifiedAt": "2026-06-05T20:10:35.608Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "types",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git"
+    },
+    {
+      "name": "@types/react-dom",
+      "group": "devDependencies",
+      "declaredSpecifier": "^19",
+      "lockedVersion": "19.2.3",
+      "latestVersion": "19.2.3",
+      "registryModifiedAt": "2025-11-12T04:37:45.678Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "types",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git"
+    },
+    {
+      "name": "@workos-inc/authkit-nextjs",
+      "group": "dependencies",
+      "declaredSpecifier": "^4.1.4",
+      "lockedVersion": "4.1.4",
+      "latestVersion": "4.2.0",
+      "registryModifiedAt": "2026-06-30T13:52:58.187Z",
+      "deprecated": null,
+      "maintainers": 10,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/workos/authkit-nextjs.git"
+    },
+    {
+      "name": "@workos-inc/node",
+      "group": "dependencies",
+      "declaredSpecifier": "^10.7.0",
+      "lockedVersion": "10.7.0",
+      "latestVersion": "10.7.0",
+      "registryModifiedAt": "2026-06-29T19:13:26.184Z",
+      "deprecated": null,
+      "maintainers": 10,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/workos/workos-node.git"
+    },
+    {
+      "name": "class-variance-authority",
+      "group": "dependencies",
+      "declaredSpecifier": "^0.7.1",
+      "lockedVersion": "0.7.1",
+      "latestVersion": "0.7.1",
+      "registryModifiedAt": "2024-11-26T08:20:34.776Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "joebell93",
+      "repository": "git+https://github.com/joe-bell/cva.git"
+    },
+    {
+      "name": "clsx",
+      "group": "dependencies",
+      "declaredSpecifier": "^2.1.1",
+      "lockedVersion": "2.1.1",
+      "latestVersion": "2.1.1",
+      "registryModifiedAt": "2025-06-27T10:13:06.922Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "lukeed",
+      "repository": "git+https://github.com/lukeed/clsx.git"
+    },
+    {
+      "name": "date-fns",
+      "group": "dependencies",
+      "declaredSpecifier": "^4.4.0",
+      "lockedVersion": "4.4.0",
+      "latestVersion": "4.4.0",
+      "registryModifiedAt": "2026-05-29T23:45:56.761Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "kossnocorp",
+      "repository": "https://github.com/date-fns/date-fns"
+    },
+    {
+      "name": "eslint",
+      "group": "devDependencies",
+      "declaredSpecifier": "^9",
+      "lockedVersion": "9.39.4",
+      "latestVersion": "10.7.0",
+      "registryModifiedAt": "2026-07-10T21:22:49.077Z",
+      "deprecated": null,
+      "maintainers": 2,
+      "publisher": "eslintbot",
+      "repository": "git+https://github.com/eslint/eslint.git"
+    },
+    {
+      "name": "eslint-config-next",
+      "group": "devDependencies",
+      "declaredSpecifier": "16.2.10",
+      "lockedVersion": "16.2.10",
+      "latestVersion": "16.2.10",
+      "registryModifiedAt": "2026-07-13T23:53:30.104Z",
+      "deprecated": null,
+      "maintainers": 3,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/vercel/next.js.git"
+    },
+    {
+      "name": "hls.js",
+      "group": "dependencies",
+      "declaredSpecifier": "^1.6.16",
+      "lockedVersion": "1.6.16",
+      "latestVersion": "1.6.16",
+      "registryModifiedAt": "2026-07-14T19:16:06.266Z",
+      "deprecated": null,
+      "maintainers": 4,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/video-dev/hls.js.git"
+    },
+    {
+      "name": "livekit-client",
+      "group": "dependencies",
+      "declaredSpecifier": "^2.20.0",
+      "lockedVersion": "2.20.0",
+      "latestVersion": "2.20.1",
+      "registryModifiedAt": "2026-07-08T16:08:39.674Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "GitHub Actions",
+      "repository": "git+ssh://git@github.com/livekit/client-sdk-js.git"
+    },
+    {
+      "name": "livekit-server-sdk",
+      "group": "dependencies",
+      "declaredSpecifier": "^2.16.0",
+      "lockedVersion": "2.16.0",
+      "latestVersion": "2.17.0",
+      "registryModifiedAt": "2026-07-08T03:32:09.884Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/livekit/node-sdks.git"
+    },
+    {
+      "name": "lucide-react",
+      "group": "dependencies",
+      "declaredSpecifier": "^1.21.0",
+      "lockedVersion": "1.21.0",
+      "latestVersion": "1.24.0",
+      "registryModifiedAt": "2026-07-09T13:25:23.577Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "GitHub Actions",
+      "repository": "https://github.com/lucide-icons/lucide.git"
+    },
+    {
+      "name": "motion",
+      "group": "dependencies",
+      "declaredSpecifier": "^12.42.2",
+      "lockedVersion": "12.42.2",
+      "latestVersion": "12.42.2",
+      "registryModifiedAt": "2026-06-30T18:27:12.413Z",
+      "deprecated": null,
+      "maintainers": 2,
+      "publisher": "popmotion",
+      "repository": "git+https://github.com/motiondivision/motion.git"
+    },
+    {
+      "name": "next",
+      "group": "dependencies",
+      "declaredSpecifier": "16.2.10",
+      "lockedVersion": "16.2.10",
+      "latestVersion": "16.2.10",
+      "registryModifiedAt": "2026-07-13T23:54:09.563Z",
+      "deprecated": null,
+      "maintainers": 4,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/vercel/next.js.git"
+    },
+    {
+      "name": "next-auth",
+      "group": "dependencies",
+      "declaredSpecifier": "^4.24.14",
+      "lockedVersion": "4.24.14",
+      "latestVersion": "4.24.14",
+      "registryModifiedAt": "2026-04-14T21:41:58.009Z",
+      "deprecated": null,
+      "maintainers": 3,
+      "publisher": "better-gustavo",
+      "repository": "git+https://github.com/nextauthjs/next-auth.git"
+    },
+    {
+      "name": "prisma",
+      "group": "dependencies",
+      "declaredSpecifier": "^6.19.3",
+      "lockedVersion": "6.19.3",
+      "latestVersion": "7.8.0",
+      "registryModifiedAt": "2026-07-14T18:01:03.573Z",
+      "deprecated": null,
+      "maintainers": 2,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/prisma/prisma.git"
+    },
+    {
+      "name": "react",
+      "group": "dependencies",
+      "declaredSpecifier": "19.2.4",
+      "lockedVersion": "19.2.4",
+      "latestVersion": "19.2.7",
+      "registryModifiedAt": "2026-07-14T16:40:48.619Z",
+      "deprecated": null,
+      "maintainers": 2,
+      "publisher": "react-bot",
+      "repository": "git+https://github.com/facebook/react.git"
+    },
+    {
+      "name": "react-dom",
+      "group": "dependencies",
+      "declaredSpecifier": "19.2.4",
+      "lockedVersion": "19.2.4",
+      "latestVersion": "19.2.7",
+      "registryModifiedAt": "2026-07-14T16:41:01.665Z",
+      "deprecated": null,
+      "maintainers": 2,
+      "publisher": "react-bot",
+      "repository": "git+https://github.com/facebook/react.git"
+    },
+    {
+      "name": "react-hook-form",
+      "group": "dependencies",
+      "declaredSpecifier": "^7.80.0",
+      "lockedVersion": "7.80.0",
+      "latestVersion": "7.81.0",
+      "registryModifiedAt": "2026-07-10T02:40:06.955Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "bluebill1049",
+      "repository": "git+https://github.com/react-hook-form/react-hook-form.git"
+    },
+    {
+      "name": "server-only",
+      "group": "dependencies",
+      "declaredSpecifier": "^0.0.1",
+      "lockedVersion": "0.0.1",
+      "latestVersion": "0.0.1",
+      "registryModifiedAt": "2022-09-03T01:07:26.287Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "sebmarkbage",
+      "repository": null
+    },
+    {
+      "name": "shadcn",
+      "group": "devDependencies",
+      "declaredSpecifier": "4.12.0",
+      "lockedVersion": "4.12.0",
+      "latestVersion": "4.13.0",
+      "registryModifiedAt": "2026-07-03T12:29:02.973Z",
+      "deprecated": null,
+      "maintainers": 2,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/shadcn-ui/ui.git"
+    },
+    {
+      "name": "stripe",
+      "group": "dependencies",
+      "declaredSpecifier": "^22.3.0",
+      "lockedVersion": "22.3.0",
+      "latestVersion": "22.3.1",
+      "registryModifiedAt": "2026-07-09T17:59:46.714Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/stripe/stripe-node.git"
+    },
+    {
+      "name": "tailwind-merge",
+      "group": "dependencies",
+      "declaredSpecifier": "^3.6.0",
+      "lockedVersion": "3.6.0",
+      "latestVersion": "3.6.0",
+      "registryModifiedAt": "2026-07-13T18:37:16.121Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/dcastil/tailwind-merge.git"
+    },
+    {
+      "name": "tailwindcss",
+      "group": "devDependencies",
+      "declaredSpecifier": "^4",
+      "lockedVersion": "4.3.1",
+      "latestVersion": "4.3.2",
+      "registryModifiedAt": "2026-07-14T16:51:55.387Z",
+      "deprecated": null,
+      "maintainers": 3,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/tailwindlabs/tailwindcss.git"
+    },
+    {
+      "name": "tsx",
+      "group": "dependencies",
+      "declaredSpecifier": "^4.22.4",
+      "lockedVersion": "4.22.4",
+      "latestVersion": "4.23.1",
+      "registryModifiedAt": "2026-07-13T03:13:33.722Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/privatenumber/tsx.git"
+    },
+    {
+      "name": "typescript",
+      "group": "devDependencies",
+      "declaredSpecifier": "^5",
+      "lockedVersion": "5.9.3",
+      "latestVersion": "7.0.2",
+      "registryModifiedAt": "2026-07-14T08:23:32.009Z",
+      "deprecated": null,
+      "maintainers": 7,
+      "publisher": "typescript-bot",
+      "repository": "git+https://github.com/microsoft/TypeScript.git"
+    },
+    {
+      "name": "undici",
+      "group": "dependencies",
+      "declaredSpecifier": "^7.28.0",
+      "lockedVersion": "7.28.0",
+      "latestVersion": "8.7.0",
+      "registryModifiedAt": "2026-07-04T12:00:19.620Z",
+      "deprecated": null,
+      "maintainers": 3,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/nodejs/undici.git"
+    },
+    {
+      "name": "zod",
+      "group": "dependencies",
+      "declaredSpecifier": "^4.4.3",
+      "lockedVersion": "4.4.3",
+      "latestVersion": "4.4.3",
+      "registryModifiedAt": "2026-05-04T18:06:03.234Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "GitHub Actions",
+      "repository": "git+https://github.com/colinhacks/zod.git"
+    }
+  ],
+  "lifecycleScripts": [
+    {
+      "name": "@prisma/client",
+      "version": "6.19.3",
+      "hooks": {
+        "postinstall": "node scripts/postinstall.js"
+      }
+    },
+    {
+      "name": "@prisma/engines",
+      "version": "6.19.3",
+      "hooks": {
+        "postinstall": "node scripts/postinstall.js"
+      }
+    },
+    {
+      "name": "@scarf/scarf",
+      "version": "1.4.0",
+      "hooks": {
+        "postinstall": "node ./report.js"
+      }
+    },
+    {
+      "name": "esbuild",
+      "version": "0.28.1",
+      "hooks": {
+        "postinstall": "node install.js"
+      }
+    },
+    {
+      "name": "fsevents",
+      "version": "2.3.3",
+      "hooks": {
+        "install": "node-gyp rebuild"
+      }
+    },
+    {
+      "name": "prisma",
+      "version": "6.19.3",
+      "hooks": {
+        "preinstall": "node scripts/preinstall-entry.js"
+      }
+    },
+    {
+      "name": "sharp",
+      "version": "0.34.5",
+      "hooks": {
+        "install": "node install/check.js || npm run build"
+      }
+    },
+    {
+      "name": "unrs-resolver",
+      "version": "1.12.2",
+      "hooks": {
+        "postinstall": "node postinstall.js"
+      }
+    }
+  ],
+  "duplicateLibraries": [
+    {
+      "name": "@emnapi/runtime",
+      "versions": [
+        {
+          "version": "1.10.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "1.11.1",
+          "instances": 1,
+          "runtimeIncluded": true
+        }
+      ]
+    },
+    {
+      "name": "@livekit/protocol",
+      "versions": [
+        {
+          "version": "1.46.6",
+          "instances": 1,
+          "runtimeIncluded": true
+        },
+        {
+          "version": "1.49.0",
+          "instances": 1,
+          "runtimeIncluded": true
+        }
+      ]
+    },
+    {
+      "name": "@stoplight/types",
+      "versions": [
+        {
+          "version": "13.20.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "13.6.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "14.1.1",
+          "instances": 2,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "@stoplight/yaml",
+      "versions": [
+        {
+          "version": "4.2.3",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.3.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "@stoplight/yaml-ast-parser",
+      "versions": [
+        {
+          "version": "0.0.48",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "0.0.50",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "@types/estree",
+      "versions": [
+        {
+          "version": "0.0.39",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "1.0.9",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "ajv",
+      "versions": [
+        {
+          "version": "6.15.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "8.20.0",
+          "instances": 7,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "ajv-formats",
+      "versions": [
+        {
+          "version": "2.1.1",
+          "instances": 4,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "3.0.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "ansi-regex",
+      "versions": [
+        {
+          "version": "5.0.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "6.2.2",
+          "instances": 2,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "ast-types",
+      "versions": [
+        {
+          "version": "0.14.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "0.16.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "balanced-match",
+      "versions": [
+        {
+          "version": "1.0.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.0.4",
+          "instances": 2,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "brace-expansion",
+      "versions": [
+        {
+          "version": "1.1.15",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "5.0.6",
+          "instances": 2,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "chalk",
+      "versions": [
+        {
+          "version": "4.1.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "5.6.2",
+          "instances": 2,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "citty",
+      "versions": [
+        {
+          "version": "0.1.6",
+          "instances": 1,
+          "runtimeIncluded": true
+        },
+        {
+          "version": "0.2.2",
+          "instances": 1,
+          "runtimeIncluded": true
+        }
+      ]
+    },
+    {
+      "name": "cliui",
+      "versions": [
+        {
+          "version": "7.0.4",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "8.0.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "commander",
+      "versions": [
+        {
+          "version": "11.1.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "14.0.3",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "content-type",
+      "versions": [
+        {
+          "version": "1.0.5",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "2.0.0",
+          "instances": 2,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "cookie",
+      "versions": [
+        {
+          "version": "0.7.2",
+          "instances": 1,
+          "runtimeIncluded": true
+        },
+        {
+          "version": "1.1.1",
+          "instances": 1,
+          "runtimeIncluded": true
+        }
+      ]
+    },
+    {
+      "name": "debug",
+      "versions": [
+        {
+          "version": "3.2.7",
+          "instances": 3,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.4.3",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "define-lazy-prop",
+      "versions": [
+        {
+          "version": "2.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "3.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "dotenv",
+      "versions": [
+        {
+          "version": "16.6.1",
+          "instances": 1,
+          "runtimeIncluded": true
+        },
+        {
+          "version": "17.4.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "emoji-regex",
+      "versions": [
+        {
+          "version": "10.6.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "8.0.0",
+          "instances": 3,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "9.2.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "eslint-visitor-keys",
+      "versions": [
+        {
+          "version": "3.4.3",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.2.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "5.0.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "estree-walker",
+      "versions": [
+        {
+          "version": "1.0.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "2.0.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "execa",
+      "versions": [
+        {
+          "version": "5.1.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "9.6.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "fast-glob",
+      "versions": [
+        {
+          "version": "3.2.12",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "3.3.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "3.3.3",
+          "instances": 2,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "find-up",
+      "versions": [
+        {
+          "version": "3.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "5.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "fs-extra",
+      "versions": [
+        {
+          "version": "10.1.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "11.3.5",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "get-stream",
+      "versions": [
+        {
+          "version": "6.0.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "9.0.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "glob-parent",
+      "versions": [
+        {
+          "version": "5.1.2",
+          "instances": 4,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "6.0.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "globals",
+      "versions": [
+        {
+          "version": "14.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "16.4.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "human-signals",
+      "versions": [
+        {
+          "version": "2.1.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "8.0.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "ignore",
+      "versions": [
+        {
+          "version": "5.3.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "7.0.5",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "is-docker",
+      "versions": [
+        {
+          "version": "2.2.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "3.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "is-obj",
+      "versions": [
+        {
+          "version": "2.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "3.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "is-stream",
+      "versions": [
+        {
+          "version": "2.0.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.0.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "is-unicode-supported",
+      "versions": [
+        {
+          "version": "1.3.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "2.1.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "is-wsl",
+      "versions": [
+        {
+          "version": "2.2.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "3.1.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "isexe",
+      "versions": [
+        {
+          "version": "2.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "3.1.5",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "jose",
+      "versions": [
+        {
+          "version": "4.15.9",
+          "instances": 1,
+          "runtimeIncluded": true
+        },
+        {
+          "version": "5.10.0",
+          "instances": 2,
+          "runtimeIncluded": true
+        },
+        {
+          "version": "6.2.3",
+          "instances": 3,
+          "runtimeIncluded": true
+        }
+      ]
+    },
+    {
+      "name": "json-schema-traverse",
+      "versions": [
+        {
+          "version": "0.4.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "1.0.0",
+          "instances": 7,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "json-schema-typed",
+      "versions": [
+        {
+          "version": "7.0.3",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "8.0.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "json5",
+      "versions": [
+        {
+          "version": "1.0.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "2.2.3",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "kleur",
+      "versions": [
+        {
+          "version": "3.0.3",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.1.5",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "locate-path",
+      "versions": [
+        {
+          "version": "3.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "6.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "lru-cache",
+      "versions": [
+        {
+          "version": "5.1.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "6.0.0",
+          "instances": 1,
+          "runtimeIncluded": true
+        }
+      ]
+    },
+    {
+      "name": "magic-string",
+      "versions": [
+        {
+          "version": "0.25.9",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "0.30.21",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "mimic-fn",
+      "versions": [
+        {
+          "version": "2.1.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "3.1.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "minimatch",
+      "versions": [
+        {
+          "version": "10.2.5",
+          "instances": 2,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "3.1.5",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "npm-run-path",
+      "versions": [
+        {
+          "version": "4.0.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "6.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "onetime",
+      "versions": [
+        {
+          "version": "5.1.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "7.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "open",
+      "versions": [
+        {
+          "version": "11.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "8.4.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "p-limit",
+      "versions": [
+        {
+          "version": "2.3.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "3.1.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "p-locate",
+      "versions": [
+        {
+          "version": "3.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "5.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "path-exists",
+      "versions": [
+        {
+          "version": "3.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "path-key",
+      "versions": [
+        {
+          "version": "3.1.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "path-to-regexp",
+      "versions": [
+        {
+          "version": "6.3.0",
+          "instances": 1,
+          "runtimeIncluded": true
+        },
+        {
+          "version": "8.4.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "picomatch",
+      "versions": [
+        {
+          "version": "2.3.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.0.4",
+          "instances": 2,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "postcss",
+      "versions": [
+        {
+          "version": "8.5.15",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "8.5.16",
+          "instances": 1,
+          "runtimeIncluded": true
+        }
+      ]
+    },
+    {
+      "name": "preact-render-to-string",
+      "versions": [
+        {
+          "version": "5.2.6",
+          "instances": 1,
+          "runtimeIncluded": true
+        },
+        {
+          "version": "6.5.11",
+          "instances": 1,
+          "runtimeIncluded": true
+        }
+      ]
+    },
+    {
+      "name": "resolve",
+      "versions": [
+        {
+          "version": "1.22.12",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "2.0.0-next.7",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "semver",
+      "versions": [
+        {
+          "version": "6.3.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "7.8.5",
+          "instances": 4,
+          "runtimeIncluded": true
+        }
+      ]
+    },
+    {
+      "name": "signal-exit",
+      "versions": [
+        {
+          "version": "3.0.7",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.1.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "string-width",
+      "versions": [
+        {
+          "version": "4.2.3",
+          "instances": 3,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "7.2.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "strip-ansi",
+      "versions": [
+        {
+          "version": "6.0.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "7.2.0",
+          "instances": 2,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "strip-final-newline",
+      "versions": [
+        {
+          "version": "2.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "tsconfig-paths",
+      "versions": [
+        {
+          "version": "3.15.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.2.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "tslib",
+      "versions": [
+        {
+          "version": "1.14.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "2.8.1",
+          "instances": 1,
+          "runtimeIncluded": true
+        }
+      ]
+    },
+    {
+      "name": "validate-npm-package-name",
+      "versions": [
+        {
+          "version": "3.0.0",
+          "instances": 2,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "7.0.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "which",
+      "versions": [
+        {
+          "version": "2.0.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.0.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "yallist",
+      "versions": [
+        {
+          "version": "3.1.1",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.0.0",
+          "instances": 1,
+          "runtimeIncluded": true
+        }
+      ]
+    },
+    {
+      "name": "zod",
+      "versions": [
+        {
+          "version": "3.25.76",
+          "instances": 1,
+          "runtimeIncluded": false
+        },
+        {
+          "version": "4.4.3",
+          "instances": 1,
+          "runtimeIncluded": true
+        }
+      ]
+    }
+  ],
+  "deprecatedLockEntries": [
+    {
+      "name": "glob",
+      "version": "7.2.3",
+      "devOnly": true,
+      "message": "Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me"
+    },
+    {
+      "name": "inflight",
+      "version": "1.0.6",
+      "devOnly": true,
+      "message": "This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful."
+    },
+    {
+      "name": "sourcemap-codec",
+      "version": "1.4.8",
+      "devOnly": true,
+      "message": "Please use @jridgewell/sourcemap-codec instead"
+    }
+  ]
+}

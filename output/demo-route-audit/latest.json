@@ -1,0 +1,1622 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-15T10:39:41.703Z",
+  "baseUrl": "http://localhost:3000",
+  "testedCommitSha": "f78ba76ee853344132e0e202b3e8671d76d59104",
+  "sourceSha256": "d6f6aae2467bfa5b0e9adc4b00f65c14a61f961f9f07728116eeae6dcf1ed825",
+  "sourceFileCount": 1358,
+  "expected": 97,
+  "passed": 20,
+  "failed": 77,
+  "results": [
+    {
+      "family": "public",
+      "route": "/",
+      "samplePath": "/",
+      "finalUrl": "http://localhost:3000/",
+      "status": 200,
+      "durationMs": 1191,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "public",
+      "route": "/about",
+      "samplePath": "/about",
+      "finalUrl": "http://localhost:3000/about",
+      "status": 200,
+      "durationMs": 316,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "public",
+      "route": "/auth/error",
+      "samplePath": "/auth/error",
+      "finalUrl": "http://localhost:3000/auth/error",
+      "status": 200,
+      "durationMs": 296,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "public",
+      "route": "/contact",
+      "samplePath": "/contact",
+      "finalUrl": "http://localhost:3000/contact",
+      "status": 200,
+      "durationMs": 451,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "public",
+      "route": "/pricing",
+      "samplePath": "/pricing",
+      "finalUrl": "http://localhost:3000/pricing",
+      "status": 200,
+      "durationMs": 371,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "public",
+      "route": "/privacy",
+      "samplePath": "/privacy",
+      "finalUrl": "http://localhost:3000/privacy",
+      "status": 200,
+      "durationMs": 244,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "public",
+      "route": "/responsible-use",
+      "samplePath": "/responsible-use",
+      "finalUrl": "http://localhost:3000/responsible-use",
+      "status": 200,
+      "durationMs": 263,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "public",
+      "route": "/terms",
+      "samplePath": "/terms",
+      "finalUrl": "http://localhost:3000/terms",
+      "status": 200,
+      "durationMs": 234,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "racing",
+      "route": "/breeding",
+      "samplePath": "/breeding",
+      "finalUrl": "http://localhost:3000/breeding",
+      "status": 200,
+      "durationMs": 1143,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "racing",
+      "route": "/dogs",
+      "samplePath": "/dogs",
+      "finalUrl": "http://localhost:3000/dogs",
+      "status": 200,
+      "durationMs": 435,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "racing",
+      "route": "/dogs/[id]",
+      "samplePath": "/dogs/cmr0fg5ki00a4ephcaj4sdctc",
+      "finalUrl": "http://localhost:3000/dogs/cmr0fg5ki00a4ephcaj4sdctc",
+      "status": 404,
+      "durationMs": 250,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [
+        "page not found"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "racing",
+      "route": "/races",
+      "samplePath": "/races",
+      "finalUrl": "http://localhost:3000/races",
+      "status": 200,
+      "durationMs": 1562,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "racing",
+      "route": "/meetings/[id]",
+      "samplePath": "/meetings/d2c28701-919b-429e-828d-c55dc1d80b54",
+      "finalUrl": "http://localhost:3000/meetings/d2c28701-919b-429e-828d-c55dc1d80b54",
+      "status": 200,
+      "durationMs": 209,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "racing",
+      "route": "/races/[id]",
+      "samplePath": "/races/c842cd06-5f44-461c-be14-94439ebee1eb",
+      "finalUrl": "http://localhost:3000/races/c842cd06-5f44-461c-be14-94439ebee1eb",
+      "status": 404,
+      "durationMs": 186,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [
+        "page not found"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "racing",
+      "route": "/results",
+      "samplePath": "/results",
+      "finalUrl": "http://localhost:3000/results",
+      "status": 200,
+      "durationMs": 685,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "racing",
+      "route": "/statistics",
+      "samplePath": "/statistics",
+      "finalUrl": "http://localhost:3000/statistics",
+      "status": 200,
+      "durationMs": 673,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "racing",
+      "route": "/tracks",
+      "samplePath": "/tracks",
+      "finalUrl": "http://localhost:3000/tracks",
+      "status": 200,
+      "durationMs": 507,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "racing",
+      "route": "/tracks/[id]",
+      "samplePath": "/tracks/ce9ee26f-b678-4a19-9aa7-58185d2a3719",
+      "finalUrl": "http://localhost:3000/tracks/ce9ee26f-b678-4a19-9aa7-58185d2a3719",
+      "status": 404,
+      "durationMs": 235,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [
+        "page not found"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/discover",
+      "samplePath": "/discover",
+      "finalUrl": "http://localhost:3000/discover",
+      "status": 200,
+      "durationMs": 320,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/feed",
+      "samplePath": "/feed",
+      "finalUrl": "http://localhost:3000/feed",
+      "status": 200,
+      "durationMs": 363,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/forum",
+      "samplePath": "/forum",
+      "finalUrl": "http://localhost:3000/groups",
+      "status": 200,
+      "durationMs": 226,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/forum/[slug]",
+      "samplePath": "/forum/general",
+      "finalUrl": "http://localhost:3000/groups/general",
+      "status": 200,
+      "durationMs": 1107,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/forum/threads/[id]",
+      "samplePath": "/forum/threads/80c27107-5f87-493f-93a6-91bf46609af0",
+      "finalUrl": "http://localhost:3000/groups/threads/80c27107-5f87-493f-93a6-91bf46609af0",
+      "status": 404,
+      "durationMs": 207,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [
+        "page not found"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/groups",
+      "samplePath": "/groups",
+      "finalUrl": "http://localhost:3000/groups",
+      "status": 200,
+      "durationMs": 233,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/groups/[slug]",
+      "samplePath": "/groups/general",
+      "finalUrl": "http://localhost:3000/groups/general",
+      "status": 200,
+      "durationMs": 221,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/groups/threads/[id]",
+      "samplePath": "/groups/threads/80c27107-5f87-493f-93a6-91bf46609af0",
+      "finalUrl": "http://localhost:3000/groups/threads/80c27107-5f87-493f-93a6-91bf46609af0",
+      "status": 404,
+      "durationMs": 201,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [
+        "page not found"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/messages",
+      "samplePath": "/messages",
+      "finalUrl": "http://localhost:3000/pulse",
+      "status": 200,
+      "durationMs": 223,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/messages/[id]",
+      "samplePath": "/messages/demo-conversation-admin-pro",
+      "finalUrl": "http://localhost:3000/pulse/demo-conversation-admin-pro",
+      "status": 200,
+      "durationMs": 1137,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/messages/friends",
+      "samplePath": "/messages/friends",
+      "finalUrl": "http://localhost:3000/pulse/friends",
+      "status": 200,
+      "durationMs": 234,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/p/[handle]",
+      "samplePath": "/p/demo-control-room",
+      "finalUrl": "http://localhost:3000/p/demo-control-room",
+      "status": 404,
+      "durationMs": 244,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [
+        "page not found"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/pulse",
+      "samplePath": "/pulse",
+      "finalUrl": "http://localhost:3000/pulse",
+      "status": 200,
+      "durationMs": 187,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/pulse/[id]",
+      "samplePath": "/pulse/demo-conversation-admin-pro",
+      "finalUrl": "http://localhost:3000/pulse/demo-conversation-admin-pro",
+      "status": 200,
+      "durationMs": 277,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "community",
+      "route": "/pulse/friends",
+      "samplePath": "/pulse/friends",
+      "finalUrl": "http://localhost:3000/pulse/friends",
+      "status": 200,
+      "durationMs": 182,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "marketplace",
+      "route": "/listings",
+      "samplePath": "/listings",
+      "finalUrl": "http://localhost:3000/marketplace",
+      "status": 200,
+      "durationMs": 320,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "marketplace",
+      "route": "/listings/[id]",
+      "samplePath": "/listings/demo-listing-racing-toolkit",
+      "finalUrl": "http://localhost:3000/marketplace/demo-listing-racing-toolkit",
+      "status": 404,
+      "durationMs": 204,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [
+        "page not found"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "marketplace",
+      "route": "/listings/[id]/edit",
+      "samplePath": "/listings/demo-listing-racing-toolkit/edit",
+      "finalUrl": "http://localhost:3000/marketplace/demo-listing-racing-toolkit/edit",
+      "status": 200,
+      "durationMs": 1070,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "marketplace",
+      "route": "/listings/new",
+      "samplePath": "/listings/new",
+      "finalUrl": "http://localhost:3000/marketplace/new",
+      "status": 200,
+      "durationMs": 253,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "marketplace",
+      "route": "/marketplace",
+      "samplePath": "/marketplace",
+      "finalUrl": "http://localhost:3000/marketplace",
+      "status": 200,
+      "durationMs": 203,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "marketplace",
+      "route": "/marketplace/[id]",
+      "samplePath": "/marketplace/demo-listing-racing-toolkit",
+      "finalUrl": "http://localhost:3000/marketplace/demo-listing-racing-toolkit",
+      "status": 404,
+      "durationMs": 196,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [
+        "page not found"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "marketplace",
+      "route": "/marketplace/[id]/edit",
+      "samplePath": "/marketplace/demo-listing-racing-toolkit/edit",
+      "finalUrl": "http://localhost:3000/marketplace/demo-listing-racing-toolkit/edit",
+      "status": 200,
+      "durationMs": 222,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "marketplace",
+      "route": "/marketplace/new",
+      "samplePath": "/marketplace/new",
+      "finalUrl": "http://localhost:3000/marketplace/new",
+      "status": 200,
+      "durationMs": 193,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account",
+      "samplePath": "/account",
+      "finalUrl": "http://localhost:3000/account",
+      "status": 200,
+      "durationMs": 293,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/appearance",
+      "samplePath": "/account/appearance",
+      "finalUrl": "http://localhost:3000/account/appearance",
+      "status": 200,
+      "durationMs": 218,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/billing",
+      "samplePath": "/account/billing",
+      "finalUrl": "http://localhost:3000/account/billing",
+      "status": 200,
+      "durationMs": 265,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/listings",
+      "samplePath": "/account/listings",
+      "finalUrl": "http://localhost:3000/account/listings",
+      "status": 200,
+      "durationMs": 304,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/listings/archived",
+      "samplePath": "/account/listings/archived",
+      "finalUrl": "http://localhost:3000/account/listings/archived",
+      "status": 200,
+      "durationMs": 262,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/listings/drafts",
+      "samplePath": "/account/listings/drafts",
+      "finalUrl": "http://localhost:3000/account/listings/drafts",
+      "status": 200,
+      "durationMs": 260,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/notifications",
+      "samplePath": "/account/notifications",
+      "finalUrl": "http://localhost:3000/account/notifications",
+      "status": 200,
+      "durationMs": 240,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/pages",
+      "samplePath": "/account/pages",
+      "finalUrl": "http://localhost:3000/account/pages",
+      "status": 200,
+      "durationMs": 250,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/pages/[id]",
+      "samplePath": "/account/pages/demo-custom-page-control-room",
+      "finalUrl": "http://localhost:3000/account/pages/demo-custom-page-control-room",
+      "status": 200,
+      "durationMs": 1016,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/privacy",
+      "samplePath": "/account/privacy",
+      "finalUrl": "http://localhost:3000/account/privacy",
+      "status": 200,
+      "durationMs": 244,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/profile",
+      "samplePath": "/account/profile",
+      "finalUrl": "http://localhost:3000/account/profile",
+      "status": 200,
+      "durationMs": 241,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/saved-listings",
+      "samplePath": "/account/saved-listings",
+      "finalUrl": "http://localhost:3000/account/saved-listings",
+      "status": 200,
+      "durationMs": 243,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/security",
+      "samplePath": "/account/security",
+      "finalUrl": "http://localhost:3000/account/security",
+      "status": 200,
+      "durationMs": 244,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/support",
+      "samplePath": "/account/support",
+      "finalUrl": "http://localhost:3000/account/support",
+      "status": 200,
+      "durationMs": 302,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/support/[id]",
+      "samplePath": "/account/support/demo-support-ticket-control-room",
+      "finalUrl": "http://localhost:3000/account/support/demo-support-ticket-control-room",
+      "status": 200,
+      "durationMs": 971,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/team",
+      "samplePath": "/account/team",
+      "finalUrl": "http://localhost:3000/account/team",
+      "status": 200,
+      "durationMs": 289,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "account",
+      "route": "/account/usage",
+      "samplePath": "/account/usage",
+      "finalUrl": "http://localhost:3000/account/usage",
+      "status": 200,
+      "durationMs": 247,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin",
+      "samplePath": "/admin",
+      "finalUrl": "http://localhost:3000/admin",
+      "status": 200,
+      "durationMs": 447,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/account-deletion",
+      "samplePath": "/admin/account-deletion",
+      "finalUrl": "http://localhost:3000/admin/account-deletion",
+      "status": 200,
+      "durationMs": 415,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/actions",
+      "samplePath": "/admin/actions",
+      "finalUrl": "http://localhost:3000/admin/actions",
+      "status": 200,
+      "durationMs": 296,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/audit",
+      "samplePath": "/admin/audit",
+      "finalUrl": "http://localhost:3000/admin/audit",
+      "status": 200,
+      "durationMs": 295,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/bespoke",
+      "samplePath": "/admin/bespoke",
+      "finalUrl": "http://localhost:3000/admin/bespoke",
+      "status": 200,
+      "durationMs": 287,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/billing",
+      "samplePath": "/admin/billing",
+      "finalUrl": "http://localhost:3000/admin/billing",
+      "status": 200,
+      "durationMs": 289,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/billing-events",
+      "samplePath": "/admin/billing-events",
+      "finalUrl": "http://localhost:3000/admin/billing-events",
+      "status": 200,
+      "durationMs": 389,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/bug-reports",
+      "samplePath": "/admin/bug-reports",
+      "finalUrl": "http://localhost:3000/admin/bug-reports",
+      "status": 200,
+      "durationMs": 286,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/compliance",
+      "samplePath": "/admin/compliance",
+      "finalUrl": "http://localhost:3000/admin/compliance",
+      "status": 200,
+      "durationMs": 288,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/dog-ownership",
+      "samplePath": "/admin/dog-ownership",
+      "finalUrl": "http://localhost:3000/admin/dog-ownership",
+      "status": 200,
+      "durationMs": 276,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/entitlements",
+      "samplePath": "/admin/entitlements",
+      "finalUrl": "http://localhost:3000/admin/entitlements",
+      "status": 200,
+      "durationMs": 275,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/exports",
+      "samplePath": "/admin/exports",
+      "finalUrl": "http://localhost:3000/admin/exports",
+      "status": 200,
+      "durationMs": 301,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/feed",
+      "samplePath": "/admin/feed",
+      "finalUrl": "http://localhost:3000/admin/feed",
+      "status": 200,
+      "durationMs": 264,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/feedback",
+      "samplePath": "/admin/feedback",
+      "finalUrl": "http://localhost:3000/admin/feedback",
+      "status": 200,
+      "durationMs": 290,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/invitations",
+      "samplePath": "/admin/invitations",
+      "finalUrl": "http://localhost:3000/admin/invitations",
+      "status": 200,
+      "durationMs": 267,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/invoices",
+      "samplePath": "/admin/invoices",
+      "finalUrl": "http://localhost:3000/admin/invoices",
+      "status": 200,
+      "durationMs": 311,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/jobs",
+      "samplePath": "/admin/jobs",
+      "finalUrl": "http://localhost:3000/admin/jobs",
+      "status": 200,
+      "durationMs": 323,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/listings",
+      "samplePath": "/admin/listings",
+      "finalUrl": "http://localhost:3000/admin/listings",
+      "status": 200,
+      "durationMs": 310,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/organizations",
+      "samplePath": "/admin/organizations",
+      "finalUrl": "http://localhost:3000/admin/organizations",
+      "status": 200,
+      "durationMs": 304,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/page-rules",
+      "samplePath": "/admin/page-rules",
+      "finalUrl": "http://localhost:3000/admin/page-rules",
+      "status": 200,
+      "durationMs": 295,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/payments",
+      "samplePath": "/admin/payments",
+      "finalUrl": "http://localhost:3000/admin/payments",
+      "status": 200,
+      "durationMs": 307,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/plans",
+      "samplePath": "/admin/plans",
+      "finalUrl": "http://localhost:3000/admin/plans",
+      "status": 200,
+      "durationMs": 322,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/reports",
+      "samplePath": "/admin/reports",
+      "finalUrl": "http://localhost:3000/admin/reports",
+      "status": 200,
+      "durationMs": 296,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/retention",
+      "samplePath": "/admin/retention",
+      "finalUrl": "http://localhost:3000/admin/retention",
+      "status": 200,
+      "durationMs": 309,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/safety",
+      "samplePath": "/admin/safety",
+      "finalUrl": "http://localhost:3000/admin/safety",
+      "status": 200,
+      "durationMs": 314,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/site-content",
+      "samplePath": "/admin/site-content",
+      "finalUrl": "http://localhost:3000/admin/site-content",
+      "status": 200,
+      "durationMs": 342,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/source-health",
+      "samplePath": "/admin/source-health",
+      "finalUrl": "http://localhost:3000/admin/source-health",
+      "status": 200,
+      "durationMs": 348,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/subscriptions",
+      "samplePath": "/admin/subscriptions",
+      "finalUrl": "http://localhost:3000/admin/subscriptions",
+      "status": 200,
+      "durationMs": 296,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/support",
+      "samplePath": "/admin/support",
+      "finalUrl": "http://localhost:3000/admin/support",
+      "status": 200,
+      "durationMs": 291,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/usage",
+      "samplePath": "/admin/usage",
+      "finalUrl": "http://localhost:3000/admin/usage",
+      "status": 200,
+      "durationMs": 281,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/users",
+      "samplePath": "/admin/users",
+      "finalUrl": "http://localhost:3000/admin/users",
+      "status": 200,
+      "durationMs": 329,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "admin",
+      "route": "/admin/webhooks",
+      "samplePath": "/admin/webhooks",
+      "finalUrl": "http://localhost:3000/admin/webhooks",
+      "status": 200,
+      "durationMs": 265,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "ai",
+      "route": "/agents",
+      "samplePath": "/agents",
+      "finalUrl": "http://localhost:3000/agents",
+      "status": 200,
+      "durationMs": 334,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": false,
+      "hasReactStreamError": true,
+      "errorMarkers": [
+        "demo_auth.identity_invalid"
+      ],
+      "passed": false,
+      "error": null
+    },
+    {
+      "family": "design-lab",
+      "route": "/design-lab",
+      "samplePath": "/design-lab",
+      "finalUrl": "http://localhost:3000/design-lab",
+      "status": 200,
+      "durationMs": 264,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "design-lab",
+      "route": "/design-lab/demo-experience",
+      "samplePath": "/design-lab/demo-experience",
+      "finalUrl": "http://localhost:3000/design-lab/demo-experience",
+      "status": 200,
+      "durationMs": 725,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "design-lab",
+      "route": "/design-lab/dock-skins",
+      "samplePath": "/design-lab/dock-skins",
+      "finalUrl": "http://localhost:3000/design-lab/dock-skins",
+      "status": 200,
+      "durationMs": 260,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "design-lab",
+      "route": "/design-lab/role-blueprints",
+      "samplePath": "/design-lab/role-blueprints",
+      "finalUrl": "http://localhost:3000/design-lab/role-blueprints",
+      "status": 200,
+      "durationMs": 469,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "design-lab",
+      "route": "/feed/device-preview",
+      "samplePath": "/feed/device-preview",
+      "finalUrl": "http://localhost:3000/feed/device-preview",
+      "status": 200,
+      "durationMs": 402,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    },
+    {
+      "family": "design-lab",
+      "route": "/marketplace/design-lab",
+      "samplePath": "/marketplace/design-lab",
+      "finalUrl": "http://localhost:3000/marketplace/design-lab",
+      "status": 200,
+      "durationMs": 401,
+      "demoHeader": "full-access-read-only",
+      "hasMain": true,
+      "hasH1": true,
+      "hasReactStreamError": false,
+      "errorMarkers": [],
+      "passed": true,
+      "error": null
+    }
+  ]
+}

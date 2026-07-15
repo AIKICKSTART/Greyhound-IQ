@@ -1,0 +1,773 @@
+{
+  "schemaVersion": 1,
+  "status": "source-definition-only",
+  "evidence": {
+    "kind": "repository-source-definition",
+    "deployed": false,
+    "metricBindingsVerified": false,
+    "notificationDeliveryTested": false,
+    "drillsExecuted": false,
+    "lastDrillAt": null
+  },
+  "ownerRoles": [
+    {
+      "id": "identity-security-on-call",
+      "assignmentStatus": "provisional-unassigned",
+      "responseCapabilityStatus": "unverified"
+    },
+    {
+      "id": "administration-security-on-call",
+      "assignmentStatus": "provisional-unassigned",
+      "responseCapabilityStatus": "unverified"
+    },
+    {
+      "id": "abuse-security-on-call",
+      "assignmentStatus": "provisional-unassigned",
+      "responseCapabilityStatus": "unverified"
+    },
+    {
+      "id": "ai-platform-on-call",
+      "assignmentStatus": "provisional-unassigned",
+      "responseCapabilityStatus": "unverified"
+    },
+    {
+      "id": "platform-sre-on-call",
+      "assignmentStatus": "provisional-unassigned",
+      "responseCapabilityStatus": "unverified"
+    },
+    {
+      "id": "media-security-on-call",
+      "assignmentStatus": "provisional-unassigned",
+      "responseCapabilityStatus": "unverified"
+    },
+    {
+      "id": "supply-chain-security-on-call",
+      "assignmentStatus": "provisional-unassigned",
+      "responseCapabilityStatus": "unverified"
+    }
+  ],
+  "alerts": [
+    {
+      "requirementId": "security.alert-event.authentication-attack-patterns",
+      "id": "SEC-AUTH-ATTACK-PATTERNS",
+      "title": "Authentication attack patterns",
+      "detection": {
+        "source": "Google Cloud Logging Cloud Run request and structured application logs",
+        "queryLanguage": "google-cloud-logging",
+        "query": "resource.type=\"cloud_run_revision\" AND (jsonPayload.event=\"auth.callback_failed\" OR jsonPayload.event=\"auth.callback_sync_failed\" OR httpRequest.status=401)",
+        "signal": "Count of failed authentication callbacks and HTTP 401 responses",
+        "groupBy": ["httpRequest.remoteIp", "jsonPayload.errorClass", "resource.labels.service_name"]
+      },
+      "threshold": { "operator": ">=", "value": 20, "windowMinutes": 5, "minimumSamples": 20 },
+      "severity": "high",
+      "ownerRole": "identity-security-on-call",
+      "runbook": {
+        "id": "RB-AUTH-ATTACK-PATTERNS",
+        "investigationSteps": ["Compare source IP, user-agent and error-class clusters with the normal five-minute baseline.", "Correlate request and trace identifiers with WorkOS status and recent identity configuration changes."],
+        "containmentSteps": ["Apply the existing authentication rate-limit or edge block to confirmed abusive sources.", "Revoke affected sessions and rotate identity credentials only when compromise evidence supports it."],
+        "escalationPath": "Identity security on-call -> platform SRE on-call -> incident commander for confirmed account compromise"
+      },
+      "response": {
+        "automatic": ["Open one deduplicated incident per source and error-class cluster.", "Attach only allowlisted request, trace, service and revision fields to the incident."],
+        "manual": ["Validate provider health before blocking traffic.", "Review affected accounts and invoke the account-compromise playbook when takeover is plausible."]
+      },
+      "falsePositiveReview": {
+        "cadence": "After every alert and monthly",
+        "steps": ["Exclude approved authentication tests and provider outage windows using change records.", "Record the confirmed-positive ratio by source and tune only after identity-security approval."]
+      },
+      "testMethod": {
+        "kind": "synthetic-log-replay",
+        "procedure": "Replay 20 sanitized auth.callback_failed entries sharing one synthetic source within five minutes in an isolated alert test project.",
+        "expectedSignal": "Exactly one high-severity incident is created for the synthetic cluster and no production identity is affected."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.repeated-access-denials",
+      "id": "SEC-REPEATED-ACCESS-DENIALS",
+      "title": "Repeated access denials",
+      "detection": {
+        "source": "Google Cloud Logging Cloud Run request logs",
+        "queryLanguage": "google-cloud-logging",
+        "query": "resource.type=\"cloud_run_revision\" AND httpRequest.status=403",
+        "signal": "Count of HTTP 403 responses",
+        "groupBy": ["httpRequest.remoteIp", "httpRequest.requestUrl", "resource.labels.service_name"]
+      },
+      "threshold": { "operator": ">=", "value": 10, "windowMinutes": 5, "minimumSamples": 10 },
+      "severity": "medium",
+      "ownerRole": "identity-security-on-call",
+      "runbook": {
+        "id": "RB-REPEATED-ACCESS-DENIALS",
+        "investigationSteps": ["Inspect the denied route distribution and source fingerprint without copying request bodies.", "Correlate the denial burst with rate-limit events, release changes and approved penetration tests."],
+        "containmentSteps": ["Temporarily throttle a confirmed abusive source through the approved edge control.", "Preserve request and trace identifiers for authorization review."],
+        "escalationPath": "Identity security on-call -> route owner -> incident commander if protected data access succeeded"
+      },
+      "response": {
+        "automatic": ["Dedupe by source and route for the five-minute window.", "Create a medium-severity investigation record containing the denial counts."],
+        "manual": ["Classify user error, scanner, policy regression or hostile enumeration.", "Escalate any accompanying successful protected response for incident handling."]
+      },
+      "falsePositiveReview": {
+        "cadence": "Weekly and after every threshold change",
+        "steps": ["Compare alerts with support reports and approved security test windows.", "Review noisy routes separately before changing the shared threshold."]
+      },
+      "testMethod": {
+        "kind": "synthetic-request-replay",
+        "procedure": "Send ten isolated authenticated requests that are expected to return 403 from one synthetic source during five minutes.",
+        "expectedSignal": "The grouped denial count reaches ten and creates one medium-severity test incident."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.cross-tenant-access-attempts",
+      "id": "SEC-CROSS-TENANT-ACCESS-ATTEMPTS",
+      "title": "Cross-tenant access attempts",
+      "detection": {
+        "source": "Google Cloud Logging AlloyDB PostgreSQL logs",
+        "queryLanguage": "google-cloud-logging",
+        "query": "resource.type=\"alloydb.googleapis.com/Instance\" AND (textPayload=~\"violates row-level security policy\" OR jsonPayload.message=~\"violates row-level security policy\")",
+        "signal": "PostgreSQL row-level-security policy violation",
+        "groupBy": ["resource.labels.instance_id", "jsonPayload.user", "jsonPayload.database"]
+      },
+      "threshold": { "operator": ">=", "value": 3, "windowMinutes": 5, "minimumSamples": 3 },
+      "severity": "high",
+      "ownerRole": "identity-security-on-call",
+      "runbook": {
+        "id": "RB-CROSS-TENANT-ACCESS-ATTEMPTS",
+        "investigationSteps": ["Map the RLS violation to the database role, application revision and request trace without exposing SQL parameters.", "Verify tenant context propagation and check whether any adjacent request returned cross-tenant data."],
+        "containmentSteps": ["Disable the affected route or revision when tenant isolation may be bypassed.", "Revoke the implicated session and preserve database plus application evidence."],
+        "escalationPath": "Identity security on-call -> database security owner -> incident commander and privacy lead"
+      },
+      "response": {
+        "automatic": ["Open a high-severity incident keyed by database role, instance and revision.", "Preserve the bounded log references and affected policy name."],
+        "manual": ["Reproduce the denial in staging with two synthetic tenants.", "Treat any successful cross-tenant read or write as a privacy incident."]
+      },
+      "falsePositiveReview": {
+        "cadence": "After every alert",
+        "steps": ["Identify migration, policy-test and approved RLS verification traffic.", "Require database-security approval before suppressing a policy or role combination."]
+      },
+      "testMethod": {
+        "kind": "staging-rls-negative-test",
+        "procedure": "Run three denied cross-tenant fixture operations under the runtime role in isolated staging and capture the RLS log entries.",
+        "expectedSignal": "One high-severity test incident identifies the synthetic role and policy while all fixture data remains denied."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.administrator-privilege-changes",
+      "id": "SEC-ADMIN-PRIVILEGE-CHANGES",
+      "title": "Administrator privilege changes",
+      "detection": {
+        "source": "PostgreSQL AuditLog",
+        "queryLanguage": "postgresql",
+        "query": "SELECT \"actorId\", \"targetId\", COUNT(*) AS change_count FROM \"AuditLog\" WHERE \"action\" = 'admin.user.access_update' AND \"createdAt\" >= NOW() - INTERVAL '10 minutes' GROUP BY \"actorId\", \"targetId\" HAVING COUNT(*) >= 1",
+        "signal": "Rows recording administrator access changes",
+        "groupBy": ["actorId", "targetId"]
+      },
+      "threshold": { "operator": ">=", "value": 1, "windowMinutes": 10, "minimumSamples": 1 },
+      "severity": "high",
+      "ownerRole": "administration-security-on-call",
+      "runbook": {
+        "id": "RB-ADMIN-PRIVILEGE-CHANGES",
+        "investigationSteps": ["Verify the actor, target, reason and approved change record for each access update.", "Compare the AuditLog row with its AdminAction pair and the resulting profile role."],
+        "containmentSteps": ["Revert an unauthorized role change through the approved administration flow.", "Revoke actor sessions and freeze privileged mutations when administrator compromise is suspected."],
+        "escalationPath": "Administration security on-call -> independent administrator -> incident commander"
+      },
+      "response": {
+        "automatic": ["Create one immutable review item for every privilege-change record.", "Link the matching AuditLog and AdminAction identifiers without copying sensitive metadata."],
+        "manual": ["Obtain independent approval for the change.", "Investigate and reverse any unexplained privilege grant immediately."]
+      },
+      "falsePositiveReview": {
+        "cadence": "For every event and quarterly",
+        "steps": ["Reconcile events against approved change tickets.", "Review service or test accounts separately; never suppress human administrator grants globally."]
+      },
+      "testMethod": {
+        "kind": "database-fixture-query",
+        "procedure": "Create one rolled-back synthetic admin.user.access_update AuditLog fixture and execute the catalog query in isolated PostgreSQL.",
+        "expectedSignal": "The query returns the synthetic actor and target once and the test incident is high severity."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.last-owner-change-attempts",
+      "id": "SEC-LAST-OWNER-CHANGE-ATTEMPTS",
+      "title": "Last-owner change attempts",
+      "detection": {
+        "source": "Google Cloud Logging structured application logs",
+        "queryLanguage": "google-cloud-logging",
+        "query": "resource.type=\"cloud_run_revision\" AND (jsonPayload.event=\"admin.last_owner_change_forbidden\" OR jsonPayload.errorClass=\"admin.last_owner_change_forbidden\")",
+        "signal": "Server-denied attempt to remove or disable the final active organization owner",
+        "groupBy": ["jsonPayload.tenantId", "jsonPayload.actorId", "resource.labels.revision_name"]
+      },
+      "threshold": { "operator": ">=", "value": 1, "windowMinutes": 5, "minimumSamples": 1 },
+      "severity": "critical",
+      "ownerRole": "administration-security-on-call",
+      "runbook": {
+        "id": "RB-LAST-OWNER-CHANGE-ATTEMPTS",
+        "investigationSteps": ["Confirm the tenant, actor and attempted owner transition from allowlisted identifiers.", "Verify that the server denied the change and that at least one active owner still exists."],
+        "containmentSteps": ["Suspend further owner mutations for the affected tenant through the approved emergency control.", "Revoke the actor session when the attempt is unexplained or malicious."],
+        "escalationPath": "Administration security on-call -> tenant account owner -> incident commander"
+      },
+      "response": {
+        "automatic": ["Open a critical incident for every final-owner denial signal.", "Dedupe repeat attempts by tenant and actor for five minutes while retaining the count."],
+        "manual": ["Contact a verified existing owner through an independent channel.", "Review all recent membership and owner changes before restoring mutation access."]
+      },
+      "falsePositiveReview": {
+        "cadence": "After every alert",
+        "steps": ["Check for approved ownership-transfer rehearsals or support-led recovery.", "Keep the threshold at one; refine only actor or test-environment exclusions with approval."]
+      },
+      "testMethod": {
+        "kind": "staging-policy-negative-test",
+        "procedure": "Attempt to remove the sole owner of a synthetic staging organization and verify the request is denied with the catalog signal.",
+        "expectedSignal": "One critical test incident is produced while the synthetic owner remains active."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.unusual-export-volume",
+      "id": "SEC-UNUSUAL-EXPORT-VOLUME",
+      "title": "Unusual export volume",
+      "detection": {
+        "source": "PostgreSQL AuditLog",
+        "queryLanguage": "postgresql",
+        "query": "SELECT \"actorId\", COUNT(*) AS export_count FROM \"AuditLog\" WHERE \"action\" IN ('user.export', 'admin.export.create') AND \"createdAt\" >= NOW() - INTERVAL '60 minutes' GROUP BY \"actorId\" HAVING COUNT(*) >= 5",
+        "signal": "Per-actor count of user and administrator export events",
+        "groupBy": ["actorId"]
+      },
+      "threshold": { "operator": ">=", "value": 5, "windowMinutes": 60, "minimumSamples": 5 },
+      "severity": "high",
+      "ownerRole": "abuse-security-on-call",
+      "runbook": {
+        "id": "RB-UNUSUAL-EXPORT-VOLUME",
+        "investigationSteps": ["Review actor, target and export-type counts without retrieving export contents.", "Compare the burst with approved privacy requests, administrator work and account compromise signals."],
+        "containmentSteps": ["Pause export capability for the affected actor through the approved emergency control.", "Revoke sessions and invalidate generated artifacts when abuse is confirmed."],
+        "escalationPath": "Abuse security on-call -> privacy lead -> incident commander"
+      },
+      "response": {
+        "automatic": ["Open one high-severity incident per actor once five exports are recorded.", "Attach event identifiers and aggregate counts, not exported data."],
+        "manual": ["Validate the business or privacy basis for every export.", "Assess notification obligations if unauthorized data left the service boundary."]
+      },
+      "falsePositiveReview": {
+        "cadence": "After every alert and monthly",
+        "steps": ["Reconcile approved bulk privacy operations and support cases.", "Maintain separate baselines for system, administrator and self-service actors."]
+      },
+      "testMethod": {
+        "kind": "database-fixture-query",
+        "procedure": "Insert five rolled-back synthetic export AuditLog rows for one actor in isolated PostgreSQL and execute the query.",
+        "expectedSignal": "The actor appears once with export_count five and a high-severity test incident is created."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.unusual-message-volume",
+      "id": "SEC-UNUSUAL-MESSAGE-VOLUME",
+      "title": "Unusual message volume",
+      "detection": {
+        "source": "PostgreSQL Message",
+        "queryLanguage": "postgresql",
+        "query": "SELECT \"senderId\", COUNT(*) AS message_count FROM \"Message\" WHERE \"createdAt\" >= NOW() - INTERVAL '10 minutes' GROUP BY \"senderId\" HAVING COUNT(*) >= 100",
+        "signal": "Per-sender count of newly created messages",
+        "groupBy": ["senderId"]
+      },
+      "threshold": { "operator": ">=", "value": 100, "windowMinutes": 10, "minimumSamples": 100 },
+      "severity": "medium",
+      "ownerRole": "abuse-security-on-call",
+      "runbook": {
+        "id": "RB-UNUSUAL-MESSAGE-VOLUME",
+        "investigationSteps": ["Compare sender volume, recipient fan-out and reports without reading message bodies by default.", "Check account age, recent session changes and automation indicators."],
+        "containmentSteps": ["Apply the existing message rate limit or temporarily disable sending for confirmed abuse.", "Preserve message identifiers and moderation evidence under restricted access."],
+        "escalationPath": "Abuse security on-call -> trust and safety owner -> incident commander for coordinated abuse"
+      },
+      "response": {
+        "automatic": ["Create one deduplicated sender-volume incident per ten-minute window.", "Attach sender identifier, count and recipient fan-out only."],
+        "manual": ["Determine legitimate high-volume conversation versus spam or compromised account.", "Notify trust and safety before content inspection or user restriction."]
+      },
+      "falsePositiveReview": {
+        "cadence": "Weekly",
+        "steps": ["Review verified support, moderation and test-account traffic separately.", "Compare alert volume with confirmed spam outcomes before tuning."]
+      },
+      "testMethod": {
+        "kind": "database-fixture-query",
+        "procedure": "Create 100 rolled-back synthetic Message rows for one fixture sender inside ten minutes and execute the query.",
+        "expectedSignal": "The fixture sender is returned once at count 100 and no message body enters alert evidence."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.unusual-listing-volume",
+      "id": "SEC-UNUSUAL-LISTING-VOLUME",
+      "title": "Unusual listing volume",
+      "detection": {
+        "source": "PostgreSQL Listing",
+        "queryLanguage": "postgresql",
+        "query": "SELECT \"profileId\", COUNT(*) AS listing_count FROM \"Listing\" WHERE \"createdAt\" >= NOW() - INTERVAL '60 minutes' GROUP BY \"profileId\" HAVING COUNT(*) >= 10",
+        "signal": "Per-profile count of newly created marketplace listings",
+        "groupBy": ["profileId"]
+      },
+      "threshold": { "operator": ">=", "value": 10, "windowMinutes": 60, "minimumSamples": 10 },
+      "severity": "medium",
+      "ownerRole": "abuse-security-on-call",
+      "runbook": {
+        "id": "RB-UNUSUAL-LISTING-VOLUME",
+        "investigationSteps": ["Review listing count, moderation status and duplicate identifiers without publishing pending content.", "Compare the profile history with approved bulk listing activity and fraud indicators."],
+        "containmentSteps": ["Hold new listings in moderation for the affected profile.", "Suspend listing creation when fraud or account compromise is confirmed."],
+        "escalationPath": "Abuse security on-call -> marketplace moderation owner -> incident commander for systemic fraud"
+      },
+      "response": {
+        "automatic": ["Open one profile-volume incident and attach listing identifiers plus moderation states.", "Dedupe alerts by profile for the hourly window."],
+        "manual": ["Review welfare, legal and fraud signals before publication.", "Contact the verified profile owner when compromise is suspected."]
+      },
+      "falsePositiveReview": {
+        "cadence": "Weekly and after marketplace campaigns",
+        "steps": ["Identify approved breeder or administrator bulk operations.", "Tune by verified profile class only after moderation review."]
+      },
+      "testMethod": {
+        "kind": "database-fixture-query",
+        "procedure": "Create ten rolled-back synthetic Listing rows for one fixture profile within an hour and execute the query.",
+        "expectedSignal": "The fixture profile is returned once with listing_count ten and a medium-severity test incident."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.unusual-ai-cost",
+      "id": "SEC-UNUSUAL-AI-COST",
+      "title": "Unusual AI cost",
+      "detection": {
+        "source": "PostgreSQL AgentRun token telemetry",
+        "queryLanguage": "postgresql",
+        "query": "SELECT \"userId\", SUM(COALESCE(\"promptTokens\", 0) + COALESCE(\"completionTokens\", 0)) AS token_count FROM \"AgentRun\" WHERE \"createdAt\" >= NOW() - INTERVAL '60 minutes' GROUP BY \"userId\" HAVING SUM(COALESCE(\"promptTokens\", 0) + COALESCE(\"completionTokens\", 0)) >= 250000",
+        "signal": "Per-user hourly AI token volume used as the configured cost-exposure proxy",
+        "groupBy": ["userId"]
+      },
+      "threshold": { "operator": ">=", "value": 250000, "windowMinutes": 60, "minimumSamples": 1 },
+      "severity": "high",
+      "ownerRole": "ai-platform-on-call",
+      "runbook": {
+        "id": "RB-UNUSUAL-AI-COST",
+        "investigationSteps": ["Review token totals, agent type and run counts without copying prompts or outputs.", "Compare the spike with approved experiments, provider pricing changes and account compromise indicators."],
+        "containmentSteps": ["Disable AI features for the affected actor through the approved emergency control when abuse is likely.", "Apply provider-side budget or quota controls after owner approval."],
+        "escalationPath": "AI platform on-call -> billing owner -> incident commander for credential compromise or runaway spend"
+      },
+      "response": {
+        "automatic": ["Create one high-severity hourly cost-proxy incident per user.", "Attach token aggregate, run count and agent types without prompt content."],
+        "manual": ["Convert tokens to provider cost using the reviewed price table.", "Confirm legitimate usage before restricting a customer or rotating provider credentials."]
+      },
+      "falsePositiveReview": {
+        "cadence": "Weekly and whenever model pricing changes",
+        "steps": ["Separate approved load tests and administrator experiments from customer usage.", "Recalculate the threshold against current model prices and observed baselines."]
+      },
+      "testMethod": {
+        "kind": "database-fixture-query",
+        "procedure": "Create rolled-back synthetic AgentRun token rows totalling 250000 for one fixture user within an hour and execute the query.",
+        "expectedSignal": "The fixture user is returned once at the threshold without exposing inputJson or outputJson."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.repeated-webhook-signature-failures",
+      "id": "SEC-WEBHOOK-SIGNATURE-FAILURES",
+      "title": "Repeated webhook signature failures",
+      "detection": {
+        "source": "Google Cloud Logging Cloud Run request and structured application logs",
+        "queryLanguage": "google-cloud-logging",
+        "query": "resource.type=\"cloud_run_revision\" AND httpRequest.status=401 AND (httpRequest.requestUrl:\"/api/webhooks/stripe\" OR httpRequest.requestUrl:\"/api/webhooks/lago\" OR httpRequest.requestUrl:\"/api/livekit/webhook\")",
+        "signal": "HTTP 401 responses from signature-authenticated webhook routes",
+        "groupBy": ["httpRequest.remoteIp", "httpRequest.requestUrl", "resource.labels.service_name"]
+      },
+      "threshold": { "operator": ">=", "value": 5, "windowMinutes": 5, "minimumSamples": 5 },
+      "severity": "high",
+      "ownerRole": "platform-sre-on-call",
+      "runbook": {
+        "id": "RB-WEBHOOK-SIGNATURE-FAILURES",
+        "investigationSteps": ["Identify provider route, source network and failure timing without recording signature headers or payload bodies.", "Compare failures with secret rotation, provider delivery status and recent deployments."],
+        "containmentSteps": ["Rate-limit or block a confirmed hostile source without bypassing signature verification.", "Rotate the affected webhook secret only through the approved secret-management procedure."],
+        "escalationPath": "Platform SRE on-call -> billing or LiveKit owner -> incident commander"
+      },
+      "response": {
+        "automatic": ["Dedupe by provider route and source for five minutes.", "Open a high-severity incident containing counts and safe request metadata only."],
+        "manual": ["Verify provider health and delivery configuration.", "Inspect for replay, leaked secret or misconfigured rotation before changing controls."]
+      },
+      "falsePositiveReview": {
+        "cadence": "After every alert and after secret rotations",
+        "steps": ["Reconcile failures with provider test tools and planned rotations.", "Keep route-specific baselines so one provider cannot suppress another provider's alert."]
+      },
+      "testMethod": {
+        "kind": "synthetic-request-replay",
+        "procedure": "Send five isolated webhook requests with deliberately invalid synthetic signatures to a staging endpoint during five minutes.",
+        "expectedSignal": "All requests remain 401 and one high-severity route-specific test incident is created."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.queue-dead-letter-growth",
+      "id": "SEC-QUEUE-DEAD-LETTER-GROWTH",
+      "title": "Queue dead-letter growth",
+      "detection": {
+        "source": "PostgreSQL SignupOutbox, UsageOutbox, WebhookEvent and Notification",
+        "queryLanguage": "postgresql",
+        "query": "SELECT queue_name, COUNT(*) AS dead_letter_count FROM (SELECT 'SignupOutbox' AS queue_name, \"createdAt\" FROM \"SignupOutbox\" WHERE \"status\" = 'dead_letter' UNION ALL SELECT 'UsageOutbox', \"createdAt\" FROM \"UsageOutbox\" WHERE \"status\" = 'failed' UNION ALL SELECT 'WebhookEvent', \"createdAt\" FROM \"WebhookEvent\" WHERE \"status\" = 'failed' UNION ALL SELECT 'Notification', \"createdAt\" FROM \"Notification\" WHERE \"deliveryStatus\" = 'failed') failures WHERE \"createdAt\" >= NOW() - INTERVAL '15 minutes' GROUP BY queue_name HAVING COUNT(*) >= 5",
+        "signal": "Per-queue count of terminal delivery failures",
+        "groupBy": ["queue_name"]
+      },
+      "threshold": { "operator": ">=", "value": 5, "windowMinutes": 15, "minimumSamples": 5 },
+      "severity": "high",
+      "ownerRole": "platform-sre-on-call",
+      "runbook": {
+        "id": "RB-QUEUE-DEAD-LETTER-GROWTH",
+        "investigationSteps": ["Identify the queue, first failure time, retry count and safe error classification.", "Check downstream health, worker leases and recent schema or credential changes."],
+        "containmentSteps": ["Pause unsafe retries while preserving idempotency keys and failed rows.", "Restore the dependency or worker, then replay only approved bounded batches."],
+        "escalationPath": "Platform SRE on-call -> owning service -> incident commander for cross-queue failure"
+      },
+      "response": {
+        "automatic": ["Open one incident per failing queue and fifteen-minute window.", "Attach aggregate counts, oldest timestamp and safe error classifications."],
+        "manual": ["Determine poison message, dependency outage or worker regression.", "Approve replay only after idempotency and downstream capacity checks."]
+      },
+      "falsePositiveReview": {
+        "cadence": "Weekly and after every incident",
+        "steps": ["Separate deliberate failure drills and quarantined poison fixtures.", "Review each queue baseline independently before changing thresholds."]
+      },
+      "testMethod": {
+        "kind": "database-fixture-query",
+        "procedure": "Create five rolled-back terminal-failure fixtures for one queue within fifteen minutes and execute the union query.",
+        "expectedSignal": "Only the fixture queue is returned at count five and no replay is performed."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.malware-detections",
+      "id": "SEC-MALWARE-DETECTIONS",
+      "title": "Malware detections",
+      "detection": {
+        "source": "PostgreSQL MediaAsset malware scan status",
+        "queryLanguage": "postgresql",
+        "query": "SELECT \"id\", \"uploaderId\", \"storageBucket\", \"storagePath\", \"scanCompletedAt\" FROM \"MediaAsset\" WHERE \"scanStatus\" = 'infected' AND COALESCE(\"scanCompletedAt\", \"updatedAt\") >= NOW() - INTERVAL '5 minutes'",
+        "signal": "MediaAsset row transitions to scanStatus infected",
+        "groupBy": ["storageBucket", "uploaderId"]
+      },
+      "threshold": { "operator": ">=", "value": 1, "windowMinutes": 5, "minimumSamples": 1 },
+      "severity": "critical",
+      "ownerRole": "media-security-on-call",
+      "runbook": {
+        "id": "RB-MALWARE-DETECTIONS",
+        "investigationSteps": ["Confirm scanner result, media identifier, object coordinates and uploader without opening the object on a workstation.", "Review related uploads, hashes and delivery attempts for spread or scanner error."],
+        "containmentSteps": ["Quarantine or delete the object through the approved malware flow while retaining evidence hashes.", "Suspend related processing and signed delivery until the scope is understood."],
+        "escalationPath": "Media security on-call -> platform SRE on-call -> incident commander"
+      },
+      "response": {
+        "automatic": ["Open a critical incident for every newly infected MediaAsset.", "Attach media ID, uploader ID, bucket, path and scanner timestamp without object contents."],
+        "manual": ["Validate the scan using the isolated malware procedure.", "Review uploader activity and notify affected owners under the incident plan."]
+      },
+      "falsePositiveReview": {
+        "cadence": "For every detection and monthly scanner review",
+        "steps": ["Record scanner engine, definition version and secondary analysis outcome.", "Allowlist a hash only with media-security approval and expiry." ]
+      },
+      "testMethod": {
+        "kind": "safe-malware-fixture",
+        "procedure": "Upload the EICAR test fixture to isolated staging and verify the MediaAsset becomes infected without public delivery.",
+        "expectedSignal": "One critical test incident is created and the fixture cannot be downloaded through normal delivery."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.database-authentication-failures",
+      "id": "SEC-DATABASE-AUTHENTICATION-FAILURES",
+      "title": "Database authentication failures",
+      "detection": {
+        "source": "Google Cloud Logging AlloyDB PostgreSQL logs",
+        "queryLanguage": "google-cloud-logging",
+        "query": "resource.type=\"alloydb.googleapis.com/Instance\" AND (textPayload:\"password authentication failed\" OR jsonPayload.message:\"password authentication failed\")",
+        "signal": "PostgreSQL password authentication failure",
+        "groupBy": ["resource.labels.instance_id", "jsonPayload.user", "jsonPayload.remote_host"]
+      },
+      "threshold": { "operator": ">=", "value": 5, "windowMinutes": 5, "minimumSamples": 5 },
+      "severity": "high",
+      "ownerRole": "platform-sre-on-call",
+      "runbook": {
+        "id": "RB-DATABASE-AUTHENTICATION-FAILURES",
+        "investigationSteps": ["Identify database role, source host and instance without recording passwords or connection strings.", "Compare failures with deployments, credential rotations and network policy changes."],
+        "containmentSteps": ["Block an unauthorized source at the network boundary.", "Rotate the implicated database credential and redeploy approved consumers when leakage is plausible."],
+        "escalationPath": "Platform SRE on-call -> database security owner -> incident commander"
+      },
+      "response": {
+        "automatic": ["Dedupe failures by role, source and instance for five minutes.", "Create a high-severity incident containing only safe connection metadata and counts."],
+        "manual": ["Differentiate stale deployment credentials from brute force.", "Verify successful connections and privilege use after the failed attempts."]
+      },
+      "falsePositiveReview": {
+        "cadence": "After every alert and credential rotation",
+        "steps": ["Reconcile deployment and rotation windows.", "Track stale consumer identities separately instead of suppressing authentication failures globally."]
+      },
+      "testMethod": {
+        "kind": "staging-auth-negative-test",
+        "procedure": "Make five failed connections with an isolated synthetic role and invalid credential against staging during five minutes.",
+        "expectedSignal": "No connection succeeds and one high-severity test incident identifies the synthetic role and source."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.public-access-to-private-storage",
+      "id": "SEC-PUBLIC-PRIVATE-STORAGE-ACCESS",
+      "title": "Public access to private storage",
+      "detection": {
+        "source": "Google Cloud Audit Logs for Cloud Storage IAM",
+        "queryLanguage": "google-cloud-logging",
+        "query": "resource.type=\"gcs_bucket\" AND protoPayload.serviceName=\"storage.googleapis.com\" AND protoPayload.methodName=\"storage.setIamPermissions\" AND (protoPayload.request.policy.bindings.members:\"allUsers\" OR protoPayload.request.policy.bindings.members:\"allAuthenticatedUsers\")",
+        "signal": "Storage IAM policy change granting a public principal",
+        "groupBy": ["resource.labels.bucket_name", "protoPayload.authenticationInfo.principalEmail"]
+      },
+      "threshold": { "operator": ">=", "value": 1, "windowMinutes": 5, "minimumSamples": 1 },
+      "severity": "critical",
+      "ownerRole": "media-security-on-call",
+      "runbook": {
+        "id": "RB-PUBLIC-PRIVATE-STORAGE-ACCESS",
+        "investigationSteps": ["Identify the bucket, actor, policy delta and affected object classes from audit metadata.", "Check public access prevention, uniform bucket-level access and recent object reads."],
+        "containmentSteps": ["Remove public principals and enforce public access prevention through the approved infrastructure path.", "Revoke exposed signed access and freeze deletion while evidence is preserved."],
+        "escalationPath": "Media security on-call -> cloud platform owner -> incident commander and privacy lead"
+      },
+      "response": {
+        "automatic": ["Open a critical incident for every public-principal IAM change.", "Capture the bucket, actor and policy-change audit reference."],
+        "manual": ["Confirm whether any private object was publicly readable.", "Assess exposure scope and notification obligations before closing."]
+      },
+      "falsePositiveReview": {
+        "cadence": "After every alert",
+        "steps": ["Verify whether the bucket is explicitly classified public; private buckets have no threshold exemption.", "Reconcile the change with an approved infrastructure review and rollback record."]
+      },
+      "testMethod": {
+        "kind": "policy-simulator-replay",
+        "procedure": "Replay a sanitized SetIamPolicy audit fixture containing allUsers in an isolated monitoring test project without changing a real bucket.",
+        "expectedSignal": "One critical test incident identifies the fixture bucket and actor while no storage policy is modified."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.secrets-detected-in-logs-or-builds",
+      "id": "SEC-SECRETS-IN-LOGS-OR-BUILDS",
+      "title": "Secrets detected in logs or builds",
+      "detection": {
+        "source": "GitHub Secret Scanning REST API",
+        "queryLanguage": "github-rest",
+        "query": "GET /repos/AIKICKSTART/Greyhound-IQ/secret-scanning/alerts?state=open&per_page=100",
+        "signal": "Count of open repository secret-scanning alerts including build or log artifacts committed to the repository",
+        "groupBy": ["secret_type", "location.type", "resolution"]
+      },
+      "threshold": { "operator": ">=", "value": 1, "windowMinutes": 15, "minimumSamples": 1 },
+      "severity": "critical",
+      "ownerRole": "supply-chain-security-on-call",
+      "runbook": {
+        "id": "RB-SECRETS-IN-LOGS-OR-BUILDS",
+        "investigationSteps": ["Identify secret type, repository location and exposure duration without copying the secret value.", "Check CI logs, artifacts and provider audit history for use of the exposed credential."],
+        "containmentSteps": ["Revoke or rotate the credential before removing repository references.", "Invalidate affected artifacts and restrict access to logs or builds containing the secret."],
+        "escalationPath": "Supply-chain security on-call -> credential owner -> incident commander"
+      },
+      "response": {
+        "automatic": ["Open a critical incident for every newly open secret-scanning alert.", "Attach the alert number, secret type and redacted location only."],
+        "manual": ["Rotate the credential and verify dependent services.", "Purge or restrict retained logs and artifacts according to provider capabilities."]
+      },
+      "falsePositiveReview": {
+        "cadence": "For every alert and monthly",
+        "steps": ["Use provider validation and credential-owner confirmation without exposing the detected value.", "Document test-token or invalid-token resolutions with expiry and reviewer identity."]
+      },
+      "testMethod": {
+        "kind": "provider-safe-test-token",
+        "procedure": "Commit a provider-approved inert test token on a disposable protected branch and confirm Secret Scanning opens then resolves the alert.",
+        "expectedSignal": "One critical test incident references the provider alert number and contains no token value."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.unusual-administration-access",
+      "id": "SEC-UNUSUAL-ADMINISTRATION-ACCESS",
+      "title": "Unusual administration access",
+      "detection": {
+        "source": "PostgreSQL AuditLog administrator activity",
+        "queryLanguage": "postgresql",
+        "query": "SELECT \"actorId\", COUNT(*) AS action_count FROM \"AuditLog\" WHERE \"actorType\" = 'admin' AND \"createdAt\" >= NOW() - INTERVAL '15 minutes' AND (EXTRACT(HOUR FROM \"createdAt\" AT TIME ZONE 'Australia/Sydney') < 6 OR EXTRACT(HOUR FROM \"createdAt\" AT TIME ZONE 'Australia/Sydney') >= 22) GROUP BY \"actorId\" HAVING COUNT(*) >= 1",
+        "signal": "Administrator actions during the configured Sydney off-hours window",
+        "groupBy": ["actorId"]
+      },
+      "threshold": { "operator": ">=", "value": 1, "windowMinutes": 15, "minimumSamples": 1 },
+      "severity": "high",
+      "ownerRole": "administration-security-on-call",
+      "runbook": {
+        "id": "RB-UNUSUAL-ADMINISTRATION-ACCESS",
+        "investigationSteps": ["Review actor, action, target, reason and timing against the approved support roster.", "Correlate with session changes, source access logs and recent privilege changes."],
+        "containmentSteps": ["Revoke administrator sessions and freeze privileged mutations when access is unexplained.", "Require independent administrator approval before restoring access."],
+        "escalationPath": "Administration security on-call -> independent administrator -> incident commander"
+      },
+      "response": {
+        "automatic": ["Create one high-severity off-hours review item per administrator and window.", "Attach bounded AuditLog identifiers and action counts."],
+        "manual": ["Contact the administrator through an independent channel.", "Review all affected targets and revert unauthorized changes."]
+      },
+      "falsePositiveReview": {
+        "cadence": "After every alert and monthly roster review",
+        "steps": ["Reconcile approved incidents, maintenance and timezone-specific roster entries.", "Prefer explicit temporary schedules over broad administrator exemptions."]
+      },
+      "testMethod": {
+        "kind": "database-fixture-query",
+        "procedure": "Create one rolled-back synthetic off-hours admin AuditLog row in isolated PostgreSQL and execute the query.",
+        "expectedSignal": "The fixture actor is returned once and a high-severity review item is created."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.backup-failure",
+      "id": "SEC-BACKUP-FAILURE",
+      "title": "Backup failure",
+      "detection": {
+        "source": "Google Cloud Audit Logs for AlloyDB backup operations",
+        "queryLanguage": "google-cloud-logging",
+        "query": "resource.type=\"audited_resource\" AND protoPayload.serviceName=\"alloydb.googleapis.com\" AND protoPayload.methodName=~\"CreateBackup\" AND severity>=ERROR",
+        "signal": "Failed AlloyDB CreateBackup operation",
+        "groupBy": ["resource.labels.service", "protoPayload.resourceName"]
+      },
+      "threshold": { "operator": ">=", "value": 1, "windowMinutes": 15, "minimumSamples": 1 },
+      "severity": "high",
+      "ownerRole": "platform-sre-on-call",
+      "runbook": {
+        "id": "RB-BACKUP-FAILURE",
+        "investigationSteps": ["Identify the backup target, operation ID and safe error classification.", "Check the last successful backup, PITR coverage and recent database or IAM changes."],
+        "containmentSteps": ["Protect the last known-good backup from deletion or overwrite.", "Correct the dependency or permission issue and start an approved replacement backup."],
+        "escalationPath": "Platform SRE on-call -> database owner -> incident commander when recovery point objectives are threatened"
+      },
+      "response": {
+        "automatic": ["Open one high-severity incident per failed backup operation.", "Attach operation and target identifiers plus last-success age when available."],
+        "manual": ["Confirm coverage of every critical data store.", "Run a replacement backup and verify completion without treating it as restore proof."]
+      },
+      "falsePositiveReview": {
+        "cadence": "After every failure and monthly",
+        "steps": ["Identify explicitly cancelled test operations using approved change records.", "Review each backup target independently; never suppress repeated failures globally."]
+      },
+      "testMethod": {
+        "kind": "synthetic-audit-log-replay",
+        "procedure": "Replay a sanitized failed CreateBackup audit entry in an isolated monitoring test project.",
+        "expectedSignal": "One high-severity test incident is created without starting, deleting or modifying a backup."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.restore-test-failure",
+      "id": "SEC-RESTORE-TEST-FAILURE",
+      "title": "Restore-test failure",
+      "detection": {
+        "source": "Google Cloud Logging restore-test job logs",
+        "queryLanguage": "google-cloud-logging",
+        "query": "resource.type=\"cloud_run_job\" AND jsonPayload.event=\"backup.restore_test_failed\"",
+        "signal": "Isolated restore verification job emits backup.restore_test_failed",
+        "groupBy": ["resource.labels.job_name", "jsonPayload.backupId", "jsonPayload.testRunId"]
+      },
+      "threshold": { "operator": ">=", "value": 1, "windowMinutes": 15, "minimumSamples": 1 },
+      "severity": "high",
+      "ownerRole": "platform-sre-on-call",
+      "runbook": {
+        "id": "RB-RESTORE-TEST-FAILURE",
+        "investigationSteps": ["Identify backup, isolated target, test phase and safe failure classification.", "Determine whether integrity, migration, authorization or deletion checks failed after restore."],
+        "containmentSteps": ["Mark the affected backup chain unproven and prevent promotion based on the failed test.", "Preserve the isolated restore environment and logs until investigation completes."],
+        "escalationPath": "Platform SRE on-call -> database and privacy owners -> incident commander when no proven restore remains"
+      },
+      "response": {
+        "automatic": ["Open a high-severity incident for each failed restore test run.", "Attach backup ID, test-run ID and failed phase without restored data."],
+        "manual": ["Diagnose and repeat the restore in a fresh isolated environment.", "Validate RLS, deletion non-reactivation and application integrity before closure."]
+      },
+      "falsePositiveReview": {
+        "cadence": "After every test failure",
+        "steps": ["Separate harness or disposable-environment faults from backup corruption while keeping both visible.", "Require a successful fresh rerun before resolving any test-only classification."]
+      },
+      "testMethod": {
+        "kind": "synthetic-log-replay",
+        "procedure": "Emit one sanitized backup.restore_test_failed fixture from an isolated test job with synthetic backup and run IDs.",
+        "expectedSignal": "One high-severity test incident is created; no claim of a successful restore or drill is made."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    },
+    {
+      "requirementId": "security.alert-event.audit-log-pipeline-failure",
+      "id": "SEC-AUDIT-LOG-PIPELINE-FAILURE",
+      "title": "Audit-log pipeline failure",
+      "detection": {
+        "source": "PostgreSQL AdminAction and AuditLog integrity comparison",
+        "queryLanguage": "postgresql",
+        "query": "SELECT aa.\"id\", aa.\"adminId\", aa.\"action\", aa.\"targetType\", aa.\"targetId\" FROM \"AdminAction\" aa LEFT JOIN \"AuditLog\" al ON al.\"actorId\" = aa.\"adminId\" AND al.\"action\" = aa.\"action\" AND al.\"targetType\" IS NOT DISTINCT FROM aa.\"targetType\" AND al.\"targetId\" IS NOT DISTINCT FROM aa.\"targetId\" AND ABS(EXTRACT(EPOCH FROM (al.\"createdAt\" - aa.\"createdAt\"))) <= 5 WHERE aa.\"createdAt\" >= NOW() - INTERVAL '5 minutes' AND al.\"id\" IS NULL",
+        "signal": "Privileged AdminAction row without its expected AuditLog pair",
+        "groupBy": ["action", "adminId", "targetType"]
+      },
+      "threshold": { "operator": ">=", "value": 1, "windowMinutes": 5, "minimumSamples": 1 },
+      "severity": "critical",
+      "ownerRole": "administration-security-on-call",
+      "runbook": {
+        "id": "RB-AUDIT-LOG-PIPELINE-FAILURE",
+        "investigationSteps": ["Confirm the unmatched AdminAction and inspect transaction, database and logging health.", "Check for missing rows across other privileged actions and preserve immutable database evidence."],
+        "containmentSteps": ["Freeze privileged mutations when audit completeness cannot be assured.", "Restore the audit write path before replaying or reconciling approved actions."],
+        "escalationPath": "Administration security on-call -> database security owner -> incident commander"
+      },
+      "response": {
+        "automatic": ["Open a critical incident for every unmatched privileged action.", "Dedupe by action, actor and target while retaining every unmatched identifier."],
+        "manual": ["Determine transaction regression, tampering or delayed visibility.", "Reconcile missing audit evidence under independent review and test the complete pipeline before unfreezing mutations."]
+      },
+      "falsePositiveReview": {
+        "cadence": "After every alert",
+        "steps": ["Account only for the documented five-second pairing tolerance and transaction boundaries.", "Do not suppress unmatched privileged actions; fix query timing or pipeline behavior instead."]
+      },
+      "testMethod": {
+        "kind": "database-fixture-query",
+        "procedure": "Create one rolled-back synthetic AdminAction without an AuditLog pair in isolated PostgreSQL and execute the integrity query.",
+        "expectedSignal": "The unmatched fixture is returned once and one critical test incident is created."
+      },
+      "deploymentStatus": "not-deployed",
+      "metricBindingStatus": "unverified",
+      "notificationDeliveryStatus": "unverified",
+      "drillStatus": "unverified"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:15-alpine@sha256:cd17e2ac98240fce1541ad2a803b34009b4eea5aec8a832363cdc7eca62e722e
+    container_name: greyhoundiq-design-lab-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: greyhoundiq
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_USER: postgres
+    ports:
+      - "127.0.0.1:${GREYHOUNDIQ_DESIGN_LAB_DB_PORT:-55735}:5432"
+    volumes:
+      - greyhoundiq-design-lab-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d greyhoundiq"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  greyhoundiq-design-lab-postgres:
+    name: greyhoundiq-design-lab-postgres-v2

@@ -71,6 +71,7 @@ import { PRODUCT_RACING_FIXTURE_MASTER_EVIDENCE } from "./product-racing-fixture
 import { PRODUCT_SCREEN_CONTRACT_COMPLETENESS_MASTER_EVIDENCE } from "./product-screen-contract-completeness-evidence";
 import { PRODUCT_SCREEN_LOCATION_MASTER_EVIDENCE } from "./product-screen-location-evidence";
 import { PRODUCT_INFORMATION_UNDERSTANDING_MASTER_EVIDENCE } from "./product-information-understanding-evidence";
+import { PRODUCT_SOURCE_CRAWL_PROVENANCE_MASTER_EVIDENCE } from "./product-source-crawl-provenance-evidence";
 import { PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE } from "./product-form-contract-core-evidence";
 import { PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE } from "./product-form-operational-contract-evidence";
 import { PRODUCT_GLOBAL_FORM_DESTINATION_MASTER_EVIDENCE } from "./product-global-form-destination-evidence";
@@ -134,6 +135,9 @@ import { AUTHORIZATION_ACTOR_MASTER_EVIDENCE } from "../../security/authorizatio
 import { AUTHENTICATION_PATH_MASTER_EVIDENCE } from "../../security/authentication-path-evidence";
 import { SUPPLY_CHAIN_REVIEW_MASTER_EVIDENCE } from "../../security/supply-chain-review-evidence";
 import { DEPENDENCY_LICENSE_REVIEW_MASTER_EVIDENCE } from "../../security/dependency-license-review-evidence";
+import { MALICIOUS_PACKAGE_DETECTION_MASTER_EVIDENCE } from "../../security/dependency-malicious-package-detection-evidence";
+import { NESTED_INPUT_LIMIT_MASTER_EVIDENCE } from "../../security/nested-input-limit-aggregate-evidence";
+import { UNKNOWN_INPUT_FIELD_MASTER_EVIDENCE } from "../../security/unknown-input-field-aggregate-evidence";
 import { AUDIT_EVENT_COVERAGE_MASTER_EVIDENCE } from "../../security/audit-event-coverage-evidence";
 import { ARCHITECTURE_ADAPTATION_MASTER_EVIDENCE } from "../../security/architecture-adaptation-evidence";
 import { DATABASE_INVENTORY_MASTER_EVIDENCE } from "../../security/database-inventory-evidence";
@@ -320,6 +324,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_SCREEN_CONTRACT_COMPLETENESS_MASTER_EVIDENCE,
   ...PRODUCT_SCREEN_LOCATION_MASTER_EVIDENCE,
   ...PRODUCT_INFORMATION_UNDERSTANDING_MASTER_EVIDENCE,
+  ...PRODUCT_SOURCE_CRAWL_PROVENANCE_MASTER_EVIDENCE,
   ...PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE,
   ...PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE,
   ...PRODUCT_GLOBAL_FORM_DESTINATION_MASTER_EVIDENCE,
@@ -1259,6 +1264,9 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...AUTHENTICATION_PATH_MASTER_EVIDENCE,
   ...SUPPLY_CHAIN_REVIEW_MASTER_EVIDENCE,
   ...DEPENDENCY_LICENSE_REVIEW_MASTER_EVIDENCE,
+  ...MALICIOUS_PACKAGE_DETECTION_MASTER_EVIDENCE,
+  ...NESTED_INPUT_LIMIT_MASTER_EVIDENCE,
+  ...UNKNOWN_INPUT_FIELD_MASTER_EVIDENCE,
   ...AUDIT_EVENT_COVERAGE_MASTER_EVIDENCE,
   ...ARCHITECTURE_ADAPTATION_MASTER_EVIDENCE,
   ...DATABASE_INVENTORY_MASTER_EVIDENCE,

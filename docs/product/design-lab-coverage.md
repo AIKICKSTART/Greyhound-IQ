@@ -15,11 +15,11 @@ The blocks below are checked directly against the machine registries by `npm run
 <!-- design-lab-live-counters:start -->
 | Gate slice | Complete | Total | Open |
 | --- | ---: | ---: | ---: |
-| Aggregate production gate | 3704 | 4271 | 567 |
+| Aggregate production gate | 3709 | 4271 | 562 |
 | Screen contracts | 873 | 873 | 0 |
-| Master requirements | 2799 | 3315 | 516 |
-| Product master requirements | 950 | 1027 | 77 |
-| Security master requirements | 1849 | 2288 | 439 |
+| Master requirements | 2804 | 3315 | 511 |
+| Product master requirements | 952 | 1027 | 75 |
+| Security master requirements | 1852 | 2288 | 436 |
 | Pre-production requirements | 5 | 61 | 56 |
 | Database operation contracts | 27 | 27 | 0 |
 <!-- design-lab-live-counters:end -->

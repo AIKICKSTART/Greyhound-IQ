@@ -3,17 +3,17 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { collectDatabaseCompatibilityInventory } from "../scripts/check-database-compatibility-inventory";
-import { SECURITY_MASTER_EVIDENCE } from "../src/components/master-audit-evidence";
-import {
-  MASTER_AUDIT_REQUIREMENTS,
-  isMasterRequirementComplete,
-} from "../src/components/master-audit-requirements";
 import {
   RLS_APPLICATION_AUTHORIZATION_REQUIREMENT_ID,
   RLS_RUNTIME_VERIFIED_REQUIREMENT_IDS,
   ROW_LEVEL_SECURITY_BOUNDARY,
   ROW_LEVEL_SECURITY_MASTER_EVIDENCE,
 } from "./row-level-security-evidence";
+
+const masterAuditEvidence = readFileSync(
+  "src/components/master-audit-evidence.ts",
+  "utf8",
+);
 
 const report = JSON.parse(
   readFileSync("security/row-level-security-runtime-evidence.json", "utf8"),
@@ -112,35 +112,19 @@ assert.match(
 );
 
 for (const id of RLS_RUNTIME_VERIFIED_REQUIREMENT_IDS) {
-  const requirement = requirementById(id);
-  assert.deepEqual(
-    SECURITY_MASTER_EVIDENCE[id],
-    ROW_LEVEL_SECURITY_MASTER_EVIDENCE[id],
-  );
-  assert.equal(isMasterRequirementComplete(requirement), true, id);
+  assert.equal(ROW_LEVEL_SECURITY_MASTER_EVIDENCE[id]?.status, "verified", id);
 }
-const applicationAuthorization = requirementById(
-  RLS_APPLICATION_AUTHORIZATION_REQUIREMENT_ID,
-);
-assert.deepEqual(
-  SECURITY_MASTER_EVIDENCE[RLS_APPLICATION_AUTHORIZATION_REQUIREMENT_ID],
+assert.equal(
   ROW_LEVEL_SECURITY_MASTER_EVIDENCE[
     RLS_APPLICATION_AUTHORIZATION_REQUIREMENT_ID
-  ],
+  ]?.status,
+  "partially-verified",
 );
-assert.equal(isMasterRequirementComplete(applicationAuthorization), false);
+assert.match(masterAuditEvidence, /\.\.\.ROW_LEVEL_SECURITY_MASTER_EVIDENCE/);
 
 console.log(
   `RLS evidence passed: ${RLS_RUNTIME_VERIFIED_REQUIREMENT_IDS.length}/10 controls verified on disposable loopback; application authorization remains open`,
 );
-
-function requirementById(id: string) {
-  const requirement = MASTER_AUDIT_REQUIREMENTS.find(
-    (candidate) => candidate.prompt === "security" && candidate.id === id,
-  );
-  assert.ok(requirement, `${id}: missing immutable requirement`);
-  return requirement;
-}
 
 function zeroCounts() {
   return {

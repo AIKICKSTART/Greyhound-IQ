@@ -172,6 +172,7 @@ import { FRONTEND_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/frontend-
 import { PROPERTY_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/property-authorization-evidence";
 import { LISTING_OBJECT_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/listing-object-authorization-evidence";
 import { ORGANIZATION_TEAM_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/organization-team-authorization-evidence";
+import { DENY_BY_DEFAULT_MASTER_EVIDENCE } from "../../security/deny-by-default-evidence";
 import { TENANT_ISOLATION_MASTER_EVIDENCE } from "../../security/tenant-isolation-evidence";
 import { TRACE_IDENTIFIER_EXAMPLE_MASTER_EVIDENCE } from "../../security/trace-identifier-example-evidence";
 import { VOICE_VIDEO_CONTROL_MASTER_EVIDENCE } from "../../security/voice-video-control-evidence";
@@ -1262,6 +1263,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...PROPERTY_AUTHORIZATION_MASTER_EVIDENCE,
   ...LISTING_OBJECT_AUTHORIZATION_MASTER_EVIDENCE,
   ...ORGANIZATION_TEAM_AUTHORIZATION_MASTER_EVIDENCE,
+  ...DENY_BY_DEFAULT_MASTER_EVIDENCE,
   ...TENANT_ISOLATION_MASTER_EVIDENCE,
   ...TRACE_IDENTIFIER_EXAMPLE_MASTER_EVIDENCE,
   ...VOICE_VIDEO_CONTROL_MASTER_EVIDENCE,

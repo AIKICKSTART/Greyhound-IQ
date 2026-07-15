@@ -2,6 +2,8 @@ import ts from "typescript";
 
 export const COLLECTION_QUERY_BOUND_REQUIREMENT_ID =
   "security.ci.13.collection-unbounded";
+export const COLLECTION_QUERY_BOUND_RESOURCE_REQUIREMENT_ID =
+  "security.resource-control.pagination-limit";
 
 export const MAX_COLLECTION_QUERY_ROWS = 5_000;
 
@@ -393,6 +395,10 @@ const COLLECTION_QUERY_BOUND_EVIDENCE = [
 
 export const COLLECTION_QUERY_BOUND_MASTER_EVIDENCE = {
   [COLLECTION_QUERY_BOUND_REQUIREMENT_ID]: {
+    status: "verified" as const,
+    evidence: COLLECTION_QUERY_BOUND_EVIDENCE,
+  },
+  [COLLECTION_QUERY_BOUND_RESOURCE_REQUIREMENT_ID]: {
     status: "verified" as const,
     evidence: COLLECTION_QUERY_BOUND_EVIDENCE,
   },

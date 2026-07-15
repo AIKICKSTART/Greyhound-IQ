@@ -62,7 +62,7 @@ export function validateEndpointLifecycle(
   return issues.toSorted();
 }
 
-const API_INVENTORY_MANAGEMENT_EVIDENCE = [
+export const API_INVENTORY_MANAGEMENT_EVIDENCE = [
   "security/endpoints.ts",
   "security/registry.test.ts",
   "security/api-surface-inventory.test.ts",

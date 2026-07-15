@@ -969,7 +969,7 @@ function FeedComposer({
           onChange={(event) => setDraft(event.target.value)}
           rows={1}
           placeholder={`What's happening trackside, ${firstName}?`}
-          className="min-h-11 flex-1 resize-none rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-[13px] text-white outline-none placeholder:text-white/40 focus:border-[hsl(var(--primary-light)/0.55)]"
+          className="min-h-11 flex-1 resize-none rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-[13px] text-white outline-none placeholder:text-white/40 focus:border-[hsl(var(--primary-light)/0.55)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]"
         />
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/8 pt-3">
@@ -1166,7 +1166,7 @@ function FeedPost({
             value={commentDraft}
             onChange={(event) => setCommentDraft(event.target.value)}
             placeholder="Write a demo comment"
-            className="min-h-10 min-w-0 flex-1 rounded-full border border-white/10 bg-white/[0.035] px-4 text-[12px] text-white outline-none placeholder:text-white/34 focus:border-[hsl(var(--primary-light)/0.55)]"
+            className="min-h-10 min-w-0 flex-1 rounded-full border border-white/10 bg-white/[0.035] px-4 text-[12px] text-white outline-none placeholder:text-white/34 focus:border-[hsl(var(--primary-light)/0.55)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]"
           />
           <button
             type="submit"
@@ -1584,7 +1584,7 @@ function QuickChat({ inline = false }: { inline?: boolean }) {
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder={attachment ? `${attachment === "photo" ? "Photo" : "File"} ready` : "Write a message…"}
-          className="min-h-10 min-w-0 flex-1 rounded-full border border-white/10 bg-white/[0.035] px-3 text-[11px] text-white outline-none placeholder:text-white/35 focus:border-[hsl(var(--primary-light)/0.55)]"
+          className="min-h-10 min-w-0 flex-1 rounded-full border border-white/10 bg-white/[0.035] px-3 text-[11px] text-white outline-none placeholder:text-white/35 focus:border-[hsl(var(--primary-light)/0.55)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]"
         />
         <button
           type="submit"

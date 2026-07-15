@@ -3,6 +3,14 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 
 import {
+  MASTER_AUDIT_REQUIREMENTS,
+  isMasterRequirementComplete,
+} from "../src/components/master-audit-requirements";
+import { SECURITY_MASTER_EVIDENCE } from "../src/components/master-audit-evidence";
+import {
+  COLLECTION_QUERY_BOUND_MASTER_EVIDENCE,
+  COLLECTION_QUERY_BOUND_REQUIREMENT_ID,
+  COLLECTION_QUERY_BOUND_RESOURCE_REQUIREMENT_ID,
   MAX_COLLECTION_QUERY_ROWS,
   auditCollectionQueryBounds,
   type CollectionQuerySource,
@@ -21,6 +29,27 @@ assert.ok(
       record.maximumRows <= MAX_COLLECTION_QUERY_ROWS,
   ),
 );
+
+const ciRequirement = MASTER_AUDIT_REQUIREMENTS.find(
+  (candidate) => candidate.id === COLLECTION_QUERY_BOUND_REQUIREMENT_ID,
+);
+assert.ok(ciRequirement, `${COLLECTION_QUERY_BOUND_REQUIREMENT_ID}: immutable requirement missing`);
+assert.equal(isMasterRequirementComplete(ciRequirement), true);
+
+const paginationRequirement = MASTER_AUDIT_REQUIREMENTS.find(
+  (candidate) => candidate.id === COLLECTION_QUERY_BOUND_RESOURCE_REQUIREMENT_ID,
+);
+assert.ok(
+  paginationRequirement,
+  `${COLLECTION_QUERY_BOUND_RESOURCE_REQUIREMENT_ID}: immutable requirement missing`,
+);
+assert.deepEqual(
+  SECURITY_MASTER_EVIDENCE[COLLECTION_QUERY_BOUND_RESOURCE_REQUIREMENT_ID],
+  COLLECTION_QUERY_BOUND_MASTER_EVIDENCE[
+    COLLECTION_QUERY_BOUND_RESOURCE_REQUIREMENT_ID
+  ],
+);
+assert.equal(isMasterRequirementComplete(paginationRequirement), true);
 
 for (const fixture of [
   {

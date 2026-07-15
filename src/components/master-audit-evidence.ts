@@ -16,6 +16,9 @@ import { PRODUCT_AUTOMATED_SOURCE_GATE_MASTER_EVIDENCE } from "./product-automat
 import { PRODUCT_PLACEHOLDER_PROHIBITION_MASTER_EVIDENCE } from "./product-placeholder-prohibition-evidence";
 import { PRODUCT_GLOBAL_SECURITY_INVARIANT_MASTER_EVIDENCE } from "./product-global-security-invariant-evidence";
 import { PRODUCT_IDEMPOTENCY_SOURCE_MASTER_EVIDENCE } from "./product-idempotency-source-evidence";
+import { PRODUCT_GLOBAL_DATA_INTEGRITY_MASTER_EVIDENCE } from "./product-global-data-integrity-evidence";
+import { PRODUCT_FOCUS_VISIBLE_SOURCE_MASTER_EVIDENCE } from "./product-focus-visible-source-evidence";
+import { PRODUCT_PRODUCTION_CRAWL_LOCAL_PARITY_MASTER_EVIDENCE } from "./product-production-crawl-local-parity-evidence";
 import { PRODUCT_REDUCED_MOTION_SOURCE_MASTER_EVIDENCE } from "./product-reduced-motion-source-evidence";
 import { PRODUCT_ONBOARDING_VIEWPORT_SOURCE_MASTER_EVIDENCE } from "./product-onboarding-viewport-source-evidence";
 import { PRODUCT_SYSTEM_STATE_MASTER_EVIDENCE } from "./product-system-state-evidence";
@@ -95,6 +98,7 @@ import { ACTION_TRACE_RECORD_MASTER_EVIDENCE } from "../../security/action-trace
 import { SECURITY_STANDARDS_MASTER_EVIDENCE } from "../../security/standards-baseline-evidence";
 import { THREAT_MODEL_COVERAGE_MASTER_EVIDENCE } from "../../security/threat-model-coverage-evidence";
 import { SECURITY_CI_MASTER_EVIDENCE } from "../../security/ci-gate-evidence";
+import { COLLECTION_QUERY_BOUND_MASTER_EVIDENCE } from "../../security/collection-query-bound-evidence";
 import { CI_ACCESS_ISOLATION_MASTER_EVIDENCE } from "../../security/ci-access-isolation-evidence";
 import { INFRASTRUCTURE_REVIEW_MASTER_EVIDENCE } from "../../security/infrastructure-review-evidence";
 import { RISK_ACCEPTANCE_POLICY_MASTER_EVIDENCE } from "../../security/risk-acceptance-policy-evidence";
@@ -114,6 +118,7 @@ import { DESERIALIZATION_CONTROL_MASTER_EVIDENCE } from "../../security/deserial
 import { ORM_INJECTION_CONTROL_MASTER_EVIDENCE } from "../../security/orm-injection-control-evidence";
 import { HEADER_INJECTION_CONTROL_MASTER_EVIDENCE } from "../../security/header-injection-control-evidence";
 import { API_INVENTORY_MANAGEMENT_MASTER_EVIDENCE } from "../../security/api-inventory-management-evidence";
+import { API_TOP_TEN_MASTER_EVIDENCE } from "../../security/api-top-ten-evidence";
 import { DATABASE_COLUMN_RECORD_MASTER_EVIDENCE } from "../../security/database-column-record-evidence";
 import { PERSONAL_INFORMATION_RECORD_MASTER_EVIDENCE } from "../../security/personal-information-record-evidence";
 import { PRIVACY_MINIMISATION_MASTER_EVIDENCE } from "../../security/privacy-minimisation-evidence";
@@ -165,6 +170,7 @@ import { FRONTEND_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/frontend-
 import { PROPERTY_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/property-authorization-evidence";
 import { LISTING_OBJECT_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/listing-object-authorization-evidence";
 import { ORGANIZATION_TEAM_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/organization-team-authorization-evidence";
+import { TENANT_ISOLATION_MASTER_EVIDENCE } from "../../security/tenant-isolation-evidence";
 import { TRACE_IDENTIFIER_EXAMPLE_MASTER_EVIDENCE } from "../../security/trace-identifier-example-evidence";
 import { VOICE_VIDEO_CONTROL_MASTER_EVIDENCE } from "../../security/voice-video-control-evidence";
 import { UPLOAD_CONTROL_MASTER_EVIDENCE } from "../../security/upload-control-evidence";
@@ -217,6 +223,9 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_PLACEHOLDER_PROHIBITION_MASTER_EVIDENCE,
   ...PRODUCT_GLOBAL_SECURITY_INVARIANT_MASTER_EVIDENCE,
   ...PRODUCT_IDEMPOTENCY_SOURCE_MASTER_EVIDENCE,
+  ...PRODUCT_GLOBAL_DATA_INTEGRITY_MASTER_EVIDENCE,
+  ...PRODUCT_FOCUS_VISIBLE_SOURCE_MASTER_EVIDENCE,
+  ...PRODUCT_PRODUCTION_CRAWL_LOCAL_PARITY_MASTER_EVIDENCE,
   ...PRODUCT_REDUCED_MOTION_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_ONBOARDING_VIEWPORT_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_SYSTEM_STATE_MASTER_EVIDENCE,
@@ -1183,6 +1192,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...ACTION_TRACE_DATABASE_MASTER_EVIDENCE,
   ...ACTION_TRACE_RECORD_MASTER_EVIDENCE,
   ...SECURITY_STANDARDS_MASTER_EVIDENCE,
+  ...COLLECTION_QUERY_BOUND_MASTER_EVIDENCE,
   ...SECURITY_CI_MASTER_EVIDENCE,
   ...RISK_ACCEPTANCE_POLICY_MASTER_EVIDENCE,
   ...SECURITY_LANGUAGE_POLICY_MASTER_EVIDENCE,
@@ -1201,6 +1211,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...ORM_INJECTION_CONTROL_MASTER_EVIDENCE,
   ...HEADER_INJECTION_CONTROL_MASTER_EVIDENCE,
   ...API_INVENTORY_MANAGEMENT_MASTER_EVIDENCE,
+  ...API_TOP_TEN_MASTER_EVIDENCE,
   ...DATABASE_COLUMN_RECORD_MASTER_EVIDENCE,
   ...PERSONAL_INFORMATION_RECORD_MASTER_EVIDENCE,
   ...PRIVACY_MINIMISATION_MASTER_EVIDENCE,
@@ -1247,6 +1258,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...PROPERTY_AUTHORIZATION_MASTER_EVIDENCE,
   ...LISTING_OBJECT_AUTHORIZATION_MASTER_EVIDENCE,
   ...ORGANIZATION_TEAM_AUTHORIZATION_MASTER_EVIDENCE,
+  ...TENANT_ISOLATION_MASTER_EVIDENCE,
   ...TRACE_IDENTIFIER_EXAMPLE_MASTER_EVIDENCE,
   ...VOICE_VIDEO_CONTROL_MASTER_EVIDENCE,
   ...UPLOAD_CONTROL_MASTER_EVIDENCE,

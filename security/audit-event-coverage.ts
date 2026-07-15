@@ -14,6 +14,12 @@ export const AUDIT_EVENT_REQUIREMENT_BINDINGS = [
       "Authentication callback failures are recorded with an allowlisted reason and correlation envelope; provider payloads and credentials are prohibited.",
   },
   {
+    requirementId: "security.audit-event.security-setting-changes",
+    eventIds: ["AUDIT.ADMIN.POLICY.CHANGED"],
+    scope:
+      "Administrator platform-setting changes record the actor, target and bounded value without any credential or provider-secret fields.",
+  },
+  {
     requirementId: "security.audit-event.account-deletion",
     eventIds: [
       "AUDIT.ACCOUNT.DELETION.REQUESTED",
@@ -42,6 +48,12 @@ export const AUDIT_EVENT_REQUIREMENT_BINDINGS = [
       "Administrator role changes record actor, user target, next role and mandatory reason after self/last-admin protection.",
   },
   {
+    requirementId: "security.audit-event.administrative-access",
+    eventIds: ["AUDIT.ADMIN.USER.ACCESS_CHANGED"],
+    scope:
+      "Administrator access changes record the actor, user target, next access state and mandatory reason after self/last-admin protection.",
+  },
+  {
     requirementId: "security.audit-event.account-suspension",
     eventIds: ["AUDIT.ADMIN.USER.ACCESS_CHANGED"],
     scope:
@@ -52,6 +64,12 @@ export const AUDIT_EVENT_REQUIREMENT_BINDINGS = [
     eventIds: ["AUDIT.ADMIN.TEAM.INVITATION.CREATED"],
     scope:
       "Organization invitation creation records actor, invitation target, organization, role and reason without plain email/token values.",
+  },
+  {
+    requirementId: "security.audit-event.ownership-transfers",
+    eventIds: ["AUDIT.ORGANIZATION.OWNERSHIP.TRANSFERRED"],
+    scope:
+      "Organization ownership transfers record the actor, organization target and previous/next owner identifiers inside the transaction that changes ownerId.",
   },
   {
     requirementId: "security.audit-event.listing-publication",

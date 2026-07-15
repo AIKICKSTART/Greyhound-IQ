@@ -503,6 +503,38 @@ export const AUDIT_EVENTS = [
     verificationStatus: "Partially verified",
   },
   {
+    eventId: "AUDIT.ORGANIZATION.OWNERSHIP.TRANSFERRED",
+    traceIds: ["ACCOUNT.TEAM.CHANGE_ROLE"],
+    eventName: "team.owner.transfer",
+    persistence: "audit-log",
+    actor: "current organization owner",
+    target: "organization",
+    safeFields: [
+      "actorId",
+      "targetId",
+      "traceId",
+      "previousOwnerId",
+      "nextOwnerId",
+      "result",
+    ],
+    prohibitedFields: [
+      "member profile data",
+      "invitation token",
+      "session token",
+    ],
+    sourceFiles: ["src/lib/organization-team-service.ts"],
+    sourceSymbols: ["changeOrganizationTeamMemberRole", "writeTeamAudit"],
+    evidence: [
+      {
+        sourceFile: "src/lib/organization-team-service.ts",
+        sourceSymbol: "changeOrganizationTeamMemberRole",
+        note: "The transaction demotes the prior owner, promotes the target, updates organization.ownerId and writes a bounded team.owner.transfer audit record.",
+      },
+    ],
+    owner: "organization-security",
+    verificationStatus: "Partially verified",
+  },
+  {
     eventId: "AUDIT.CUSTOM_PAGE.DELETED",
     traceIds: [],
     eventName: "custom_page.delete",

@@ -1450,10 +1450,13 @@ function updateInteractiveHelpIntent(
 
 function formatOnboardingCompletionTime(completedAt: number) {
   return new Intl.DateTimeFormat("en-AU", {
-    dateStyle: "medium",
-    timeStyle: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    month: "short",
     timeZone: "Australia/Sydney",
     timeZoneName: "short",
+    year: "numeric",
   }).format(completedAt);
 }
 

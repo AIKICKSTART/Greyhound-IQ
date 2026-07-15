@@ -5,10 +5,13 @@ import { SubmitButton } from "@/components/submit-button";
 import type { TeamInvitationPreview } from "@/lib/organization-team-service";
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-AU", {
-  dateStyle: "medium",
-  timeStyle: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  month: "short",
   timeZone: "Australia/Sydney",
   timeZoneName: "short",
+  year: "numeric",
 });
 
 export function TeamInvitationReview({

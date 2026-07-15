@@ -403,7 +403,7 @@ function ScenarioPreview({
           role="status"
         >
           {scenario.networkState === "offline"
-            ? "Offline fixture: cached guidance remains visible; no request is sent."
+            ? "Offline fixture: cached guidance remains visible; no request is sent. Reconnect, then refresh live information."
             : "Slow-network fixture: delayed feedback is simulated locally."}
         </p>
       ) : null}
@@ -418,6 +418,11 @@ function ScenarioPreview({
             {errorState.description} This is presentation-only and grants no
             access.
           </p>
+          {errorState.recovery ? (
+            <p className="mt-2 text-xs font-medium leading-5 text-rose-100">
+              Next step: {errorState.recovery}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

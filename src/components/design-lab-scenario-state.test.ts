@@ -142,12 +142,22 @@ assert.deepEqual(DESIGN_LAB_SCENARIO_STATE_REQUIREMENT_VALUES, [
   "archived",
   "suspended",
   "missing-record",
+  "invitation-expired",
+  "invitation-invalid",
+  "maintenance",
+  "unsupported-browser",
+  "auth-callback-loading",
+  "auth-callback-failure",
+  "billing-loading",
+  "billing-failure",
+  "upload-failure",
+  "rate-limit",
   "offline",
 ]);
-assert.equal(DESIGN_LAB_SCENARIO_STATE_REQUIREMENT_VALUES.length, 29);
-assert.equal(new Set(DESIGN_LAB_SCENARIO_STATE_REQUIREMENT_VALUES).size, 29);
+assert.equal(DESIGN_LAB_SCENARIO_STATE_REQUIREMENT_VALUES.length, 39);
+assert.equal(new Set(DESIGN_LAB_SCENARIO_STATE_REQUIREMENT_VALUES).size, 39);
 assert.equal(DESIGN_LAB_DATA_STATE_VALUES.length, 17);
-assert.equal(DESIGN_LAB_ERROR_STATE_VALUES.length, 12);
+assert.equal(DESIGN_LAB_ERROR_STATE_VALUES.length, 22);
 
 const invalid = new URLSearchParams(
   "fixture=../../private&tier=root&auth=bypass&permissions=owner&state=unknown",
@@ -506,5 +516,5 @@ assert.doesNotMatch(componentSource, /<form\b/i);
 assert.doesNotMatch(componentSource, /^["']use server["'];?$/m);
 
 console.log(
-  "Design Lab scenario state passed: 18 allowlisted controls, 29 rendered state values and 1,360 reproducible contextual onboarding states.",
+  "Design Lab scenario state passed: 18 allowlisted controls, 39 rendered state values and 1,360 reproducible contextual onboarding states.",
 );

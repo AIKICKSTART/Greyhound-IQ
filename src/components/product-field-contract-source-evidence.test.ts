@@ -34,6 +34,7 @@ const EXPECTED_CLOSED_IDS = [
   "FIELD.FIELD.numeric-limits",
   "FIELD.FIELD.file-types",
   "FIELD.FIELD.file-sizes",
+  "FIELD.FIELD.validation",
   "FIELD.FIELD.source",
   "FIELD.FIELD.onboarding",
   "FIELD.FIELD.mobile-input",
@@ -49,7 +50,6 @@ const EXPECTED_CLOSED_IDS = [
   "FIELD.FIELD.dependent-fields",
 ] as const;
 const EXPECTED_OPEN_IDS = [
-  "FIELD.FIELD.validation",
   "FIELD.FIELD.sanitisation",
   "FIELD.FIELD.error",
   "FIELD.FIELD.persistence",
@@ -69,7 +69,7 @@ assert.deepEqual(
   PRODUCT_FORM_FIELD_REGISTRY_OUTPUT_REQUIREMENT_IDS,
   EXPECTED_OUTPUT_IDS,
 );
-assert.equal(PRODUCT_FIELD_CONTRACT_SOURCE_EXPECTED_GAIN, 27);
+assert.equal(PRODUCT_FIELD_CONTRACT_SOURCE_EXPECTED_GAIN, 28);
 assert.deepEqual(
   Object.keys(PRODUCT_FIELD_CONTRACT_SOURCE_MASTER_EVIDENCE),
   [...EXPECTED_CLOSED_IDS, ...EXPECTED_OUTPUT_IDS],
@@ -82,7 +82,7 @@ assert.equal(promptFieldIds.length, 31);
 assert.deepEqual(
   [...EXPECTED_CLOSED_IDS, ...EXPECTED_OPEN_IDS].toSorted(),
   promptFieldIds.toSorted(),
-  "The +26 source batch and five preserved gaps must partition fields.contract",
+  "The +27 source batch and four preserved gaps must partition fields.contract",
 );
 
 for (const [requirementId, record] of Object.entries(
@@ -161,6 +161,7 @@ const recordKeys = [
   "numericLimits",
   "acceptedFileTypes",
   "acceptedFileSizePolicy",
+  "validationRules",
   "dataSource",
   "onboarding",
   "mobileInput",
@@ -231,6 +232,9 @@ const billingFields = registry.records.filter(
 const dependentFields = registry.records.filter(({ dependentField }) =>
   dependentField,
 );
+const fieldsWithValidationRules = registry.records.filter(
+  ({ validationRules }) => validationRules.length > 0,
+);
 
 assert.ok(submittedFields.length > 1_700);
 assert.ok(hiddenFields.length > 500);
@@ -244,6 +248,25 @@ assert.ok(dependentFields.length > 0);
 assert.ok(fileFields.every(({ acceptedFileTypes }) => acceptedFileTypes));
 assert.ok(
   fileFields.every(({ acceptedFileSizePolicy }) => acceptedFileSizePolicy),
+);
+assert.ok(fieldsWithValidationRules.length >= 600);
+assert.deepEqual(
+  new Set(
+    fieldsWithValidationRules.flatMap(({ validationRules }) =>
+      validationRules.map((rule) => rule.slice(0, rule.indexOf("="))),
+    ),
+  ),
+  new Set([
+    "accept",
+    "max",
+    "maxLength",
+    "min",
+    "minLength",
+    "multiple",
+    "pattern",
+    "required",
+    "step",
+  ]),
 );
 
 const mediaSource = readFileSync(
@@ -262,11 +285,12 @@ assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /all 97 registered screen rout
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /exact one-to-one record/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /complete source-static form and field registry output/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /Null and false values are explicit observations/i);
-assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /does not promote validation/i);
+assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /native source-declared validation attributes/i);
+assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /browser-native validation behaviour/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /does not prove hydration/i);
 
 console.log(
-  `Product field contract source evidence passed: exact ${registry.records.length}-record field inventory closes 26/31 source-record requirements plus the complete form/field registry output; validation, sanitisation, error, persistence and privacy remain open.`,
+  `Product field contract source evidence passed: exact ${registry.records.length}-record field inventory closes 27/31 source-record requirements plus the complete form/field registry output; sanitisation, error, persistence and privacy remain open.`,
 );
 
 function assertNonEmpty(value: string, label: string) {

@@ -67,11 +67,15 @@ for (const requirementId of allIds) {
   }
 }
 
-assert.deepEqual(
+const declaredSimulatorStateValues =
   PRODUCT_DESIGN_LAB_SCENARIO_SIMULATOR_STATE_IDS.map((requirementId) =>
     requirementId.replace("DL.STATE.", ""),
+  );
+assert.deepEqual(
+  declaredSimulatorStateValues.toSorted(),
+  DESIGN_LAB_SCENARIO_STATE_REQUIREMENT_VALUES.filter((value) =>
+    declaredSimulatorStateValues.includes(value),
   ).toSorted(),
-  [...DESIGN_LAB_SCENARIO_STATE_REQUIREMENT_VALUES].toSorted(),
 );
 assert.match(PRODUCT_DESIGN_LAB_SCENARIO_SIMULATOR_SCOPE, /client-only synthetic/i);
 assert.match(PRODUCT_DESIGN_LAB_SCENARIO_SIMULATOR_SCOPE, /does not prove.*every production screen/i);

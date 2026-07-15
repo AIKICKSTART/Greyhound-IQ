@@ -88,7 +88,7 @@ export const PRODUCT_DESIGN_LAB_SCENARIO_SIMULATOR_REQUIREMENT_IDS = [
 ] as const;
 
 export const PRODUCT_DESIGN_LAB_SCENARIO_SIMULATOR_SCOPE =
-  "Current-source-bound isolated loopback evidence for an allowlisted, client-only synthetic scenario simulator. Tested means each declared selector changes review state, every required URL dimension round-trips, all 29 state fixtures render in the simulator, and the destructive control emits no mutating request. It does not prove those states on every production screen, real authorization changes, deployed-image identity or production readiness.";
+  "Current-source-bound isolated loopback evidence for an allowlisted, client-only synthetic scenario simulator. Tested means each declared selector changes review state, every required URL dimension round-trips, all 29 product-master state fixtures plus the system-state representations render in the simulator, and the destructive control emits no mutating request. It does not prove those states on every production screen, real authorization changes, deployed-image identity or production readiness.";
 
 type ScenarioSimulatorEvidenceRecord = {
   status: ProductMasterRequirementStatus;

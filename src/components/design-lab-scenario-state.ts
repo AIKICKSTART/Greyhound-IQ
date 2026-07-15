@@ -2,6 +2,7 @@ import {
   DESIGN_LAB_SCENARIO_DIMENSIONS,
   type DesignLabScenarioDimension,
   type DesignLabScenarioKey,
+  type DesignLabScenarioOption,
 } from "./design-lab-scenario-contract";
 import {
   getAccountOnboardingRouteTour,
@@ -417,7 +418,7 @@ export function buildDesignLabOnboardingScenarioUrl(
 export function getDesignLabScenarioOption(
   key: DesignLabScenarioKey,
   value: string,
-) {
+): DesignLabScenarioOption | undefined {
   const dimension = DIMENSION_BY_KEY.get(key);
   if (!dimension) return undefined;
   return dimension.options.find((option) => option.value === value);

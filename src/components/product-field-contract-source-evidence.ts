@@ -6,7 +6,7 @@ export const PRODUCT_FIELD_CONTRACT_SOURCE_TEST_FILE =
   "src/components/product-field-contract-source-evidence.test.ts" as const;
 
 export const PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE =
-  "Deterministic source-static field inventory across all 97 registered screen routes and their complete reachable local source closures, with an exact one-to-one record for every discovered route/source/control identifier. Every record explicitly captures registry name, submitted name or absence, visible and accessible label source or absence, input and inferred data type, required/default/placeholder/help metadata, character and numeric constraints, file type and tier-owned file-size policy, source classification, route or field-specific onboarding, mobile input, autofill, read-only/disabled state, conditional visibility and the hidden/generated-id/consent/media/disclosure/billing/dependent categories. Combined with the separately tested exact route/form operational register, this provides the complete source-static form and field registry output. Null and false values are explicit observations, not claims that a visible label or accessible name exists. This batch does not promote validation, sanitisation, per-field error, persistence or privacy requirements because the current route registry does not prove those five properties end to end; it also does not prove hydration, submission, browser accessibility or deployed parity.";
+  "Deterministic source-static field inventory across all 97 registered screen routes and their complete reachable local source closures, with an exact one-to-one record for every discovered route/source/control identifier. Every record explicitly captures registry name, submitted name or absence, visible and accessible label source or absence, input and inferred data type, required/default/placeholder/help metadata, character and numeric constraints, native source-declared validation attributes, file type and tier-owned file-size policy, source classification, route or field-specific onboarding, mobile input, autofill, read-only/disabled state, conditional visibility and the hidden/generated-id/consent/media/disclosure/billing/dependent categories. Combined with the separately tested exact route/form operational register, this provides the complete source-static form and field registry output. Null and false values are explicit observations, not claims that a visible label, accessible name or validation constraint exists; empty validation-rule values are likewise explicit. This batch does not promote sanitisation, per-field error, persistence or privacy requirements because the current route registry does not prove those four properties end to end; it does not prove hydration, submission, browser-native validation behaviour, browser accessibility or deployed parity.";
 
 export const PRODUCT_FIELD_CONTRACT_SOURCE_REQUIREMENT_IDS = [
   "FIELD.FIELD.name",
@@ -22,6 +22,7 @@ export const PRODUCT_FIELD_CONTRACT_SOURCE_REQUIREMENT_IDS = [
   "FIELD.FIELD.numeric-limits",
   "FIELD.FIELD.file-types",
   "FIELD.FIELD.file-sizes",
+  "FIELD.FIELD.validation",
   "FIELD.FIELD.source",
   "FIELD.FIELD.onboarding",
   "FIELD.FIELD.mobile-input",
@@ -38,7 +39,6 @@ export const PRODUCT_FIELD_CONTRACT_SOURCE_REQUIREMENT_IDS = [
 ] as const;
 
 export const PRODUCT_FIELD_CONTRACT_SOURCE_OPEN_REQUIREMENT_IDS = [
-  "FIELD.FIELD.validation",
   "FIELD.FIELD.sanitisation",
   "FIELD.FIELD.error",
   "FIELD.FIELD.persistence",
@@ -102,6 +102,7 @@ export const PRODUCT_FIELD_CONTRACT_SOURCE_MASTER_EVIDENCE = {
   "FIELD.FIELD.numeric-limits": tested(),
   "FIELD.FIELD.file-types": tested(),
   "FIELD.FIELD.file-sizes": tested(),
+  "FIELD.FIELD.validation": tested(),
   "FIELD.FIELD.source": tested(),
   "FIELD.FIELD.onboarding": tested(),
   "FIELD.FIELD.mobile-input": tested(),

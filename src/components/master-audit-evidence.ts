@@ -15,6 +15,7 @@ import { PRODUCT_VERIFICATION_GATE_MASTER_EVIDENCE } from "./product-verificatio
 import { PRODUCT_AUTOMATED_SOURCE_GATE_MASTER_EVIDENCE } from "./product-automated-source-gate-evidence";
 import { PRODUCT_PLACEHOLDER_PROHIBITION_MASTER_EVIDENCE } from "./product-placeholder-prohibition-evidence";
 import { PRODUCT_GLOBAL_SECURITY_INVARIANT_MASTER_EVIDENCE } from "./product-global-security-invariant-evidence";
+import { PRODUCT_GLOBAL_FUNCTIONALITY_SOURCE_MASTER_EVIDENCE } from "./product-global-functionality-source-evidence";
 import { PRODUCT_IDEMPOTENCY_SOURCE_MASTER_EVIDENCE } from "./product-idempotency-source-evidence";
 import { PRODUCT_GLOBAL_DATA_INTEGRITY_MASTER_EVIDENCE } from "./product-global-data-integrity-evidence";
 import { PRODUCT_ACCESSIBILITY_SEMANTICS_MASTER_EVIDENCE } from "./product-accessibility-semantics-evidence";
@@ -29,6 +30,7 @@ import { PRODUCT_PRODUCTION_CRAWL_LOCAL_PARITY_MASTER_EVIDENCE } from "./product
 import { PRODUCT_REDUCED_MOTION_SOURCE_MASTER_EVIDENCE } from "./product-reduced-motion-source-evidence";
 import { PRODUCT_ONBOARDING_VIEWPORT_SOURCE_MASTER_EVIDENCE } from "./product-onboarding-viewport-source-evidence";
 import { PRODUCT_SYSTEM_STATE_MASTER_EVIDENCE } from "./product-system-state-evidence";
+import { PRODUCT_SYSTEM_STATE_COVERAGE_MASTER_EVIDENCE } from "./product-system-state-coverage-evidence";
 import { PRODUCT_TEAM_INVITATION_STATE_MASTER_EVIDENCE } from "./product-team-invitation-state-evidence";
 import { PRODUCT_SYSTEM_RECOVERY_MASTER_EVIDENCE } from "./product-system-recovery-evidence";
 import { PRODUCT_STORY_CAPABILITY_MASTER_EVIDENCE } from "./product-story-capability-evidence";
@@ -233,6 +235,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_AUTOMATED_SOURCE_GATE_MASTER_EVIDENCE,
   ...PRODUCT_PLACEHOLDER_PROHIBITION_MASTER_EVIDENCE,
   ...PRODUCT_GLOBAL_SECURITY_INVARIANT_MASTER_EVIDENCE,
+  ...PRODUCT_GLOBAL_FUNCTIONALITY_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_IDEMPOTENCY_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_GLOBAL_DATA_INTEGRITY_MASTER_EVIDENCE,
   ...PRODUCT_ACCESSIBILITY_SEMANTICS_MASTER_EVIDENCE,
@@ -247,6 +250,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_REDUCED_MOTION_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_ONBOARDING_VIEWPORT_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_SYSTEM_STATE_MASTER_EVIDENCE,
+  ...PRODUCT_SYSTEM_STATE_COVERAGE_MASTER_EVIDENCE,
   ...PRODUCT_TEAM_INVITATION_STATE_MASTER_EVIDENCE,
   ...PRODUCT_SYSTEM_RECOVERY_MASTER_EVIDENCE,
   ...PRODUCT_STORY_CAPABILITY_MASTER_EVIDENCE,

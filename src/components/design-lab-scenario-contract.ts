@@ -40,6 +40,7 @@ export type DesignLabScenarioOption = {
   value: string;
   label: string;
   description: string;
+  recovery?: string;
 };
 
 export type DesignLabScenarioDimension = {
@@ -116,7 +117,145 @@ export const DESIGN_LAB_ERROR_STATE_VALUES = [
   "archived",
   "suspended",
   "missing-record",
+  "invitation-expired",
+  "invitation-invalid",
+  "maintenance",
+  "unsupported-browser",
+  "auth-callback-loading",
+  "auth-callback-failure",
+  "billing-loading",
+  "billing-failure",
+  "upload-failure",
+  "rate-limit",
 ] as const;
+
+export const DESIGN_LAB_SYSTEM_STATE_PRESENTATIONS = [
+  {
+    requirementId: "SYSTEM.not-found",
+    state: "missing-record",
+    recovery: "Return to a known route or search for a current record.",
+  },
+  {
+    requirementId: "SYSTEM.forbidden",
+    state: "permission-denied",
+    recovery: "Review account permissions or return to an allowed area.",
+  },
+  {
+    requirementId: "SYSTEM.auth-required",
+    state: "auth-required",
+    recovery: "Sign in, then return to the requested GreyhoundIQ area.",
+  },
+  {
+    requirementId: "SYSTEM.subscription-required",
+    state: "subscription-required",
+    recovery: "Review the available plans before retrying the feature.",
+  },
+  {
+    requirementId: "SYSTEM.feature-unavailable",
+    state: "feature-disabled",
+    recovery: "Use an available plan or return to a supported feature.",
+  },
+  {
+    requirementId: "SYSTEM.private",
+    state: "private",
+    recovery: "Return to content that is available to this account.",
+  },
+  {
+    requirementId: "SYSTEM.blocked",
+    state: "blocked",
+    recovery: "Unblock your own relationship before retrying, if that control is available.",
+  },
+  {
+    requirementId: "SYSTEM.deleted",
+    state: "deleted",
+    recovery: "Return to the containing conversation or current collection.",
+  },
+  {
+    requirementId: "SYSTEM.invitation-expired",
+    state: "invitation-expired",
+    recovery: "Ask the team owner for a new invitation.",
+  },
+  {
+    requirementId: "SYSTEM.invitation-invalid",
+    state: "invitation-invalid",
+    recovery: "Use the invitation link sent to the matching account email.",
+  },
+  {
+    requirementId: "SYSTEM.maintenance",
+    state: "maintenance",
+    recovery: "Wait for GreyhoundIQ to return, then retry.",
+  },
+  {
+    requirementId: "SYSTEM.offline",
+    state: "offline",
+    recovery: "Reconnect, then refresh live information.",
+  },
+  {
+    requirementId: "SYSTEM.recoverable-error",
+    state: "recoverable-error",
+    recovery: "Try the same action again or return to a safe route.",
+  },
+  {
+    requirementId: "SYSTEM.unsupported-browser",
+    state: "unsupported-browser",
+    recovery: "Use a browser supported by the published compatibility policy.",
+  },
+  {
+    requirementId: "SYSTEM.auth-callback-loading",
+    state: "auth-callback-loading",
+    recovery: "Keep the secure sign-in window open while authentication completes.",
+  },
+  {
+    requirementId: "SYSTEM.auth-callback-failure",
+    state: "auth-callback-failure",
+    recovery: "Try sign-in again or contact support with the reference code.",
+  },
+  {
+    requirementId: "SYSTEM.billing-loading",
+    state: "billing-loading",
+    recovery: "Refresh billing status after the signed provider webhook settles.",
+  },
+  {
+    requirementId: "SYSTEM.billing-failure",
+    state: "billing-failure",
+    recovery: "Retry the intended checkout or billing action; no plan change is assumed.",
+  },
+  {
+    requirementId: "SYSTEM.upload-failure",
+    state: "upload-failure",
+    recovery: "Retry or remove the failed upload before saving.",
+  },
+  {
+    requirementId: "SYSTEM.rate-limit",
+    state: "rate-limit",
+    recovery: "Wait for the published retry time, then try again once.",
+  },
+] as const;
+
+const SYSTEM_STATE_PRESENTATION_BY_VALUE = new Map<
+  string,
+  (typeof DESIGN_LAB_SYSTEM_STATE_PRESENTATIONS)[number]
+>(
+  DESIGN_LAB_SYSTEM_STATE_PRESENTATIONS.map((presentation) => [
+    presentation.state,
+    presentation,
+  ]),
+);
+
+export const DESIGN_LAB_ERROR_STATE_OPTIONS = DESIGN_LAB_ERROR_STATE_VALUES.map(
+  (value) => {
+    const presentation = SYSTEM_STATE_PRESENTATION_BY_VALUE.get(value);
+    return {
+      value,
+      label: labelFromValue(value),
+      description:
+        value === "none"
+          ? "No error state."
+          : `Synthetic ${value} presentation.`,
+      ...(presentation ? { recovery: presentation.recovery } : {}),
+    };
+  },
+);
 
 export const DESIGN_LAB_SCENARIO_DIMENSIONS = [
   {
@@ -267,12 +406,7 @@ export const DESIGN_LAB_SCENARIO_DIMENSIONS = [
     label: "Error and access state",
     group: "resilience",
     defaultValue: "none",
-    options: DESIGN_LAB_ERROR_STATE_VALUES.map((value) => ({
-      value,
-      label: labelFromValue(value),
-      description:
-        value === "none" ? "No error state." : `Synthetic ${value} presentation.`,
-    })),
+    options: DESIGN_LAB_ERROR_STATE_OPTIONS,
   },
   {
     key: "longContent",

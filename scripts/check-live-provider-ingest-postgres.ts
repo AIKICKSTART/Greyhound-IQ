@@ -175,7 +175,7 @@ export function validateLiveProviderIngestEvidence(
     rollbackRowsPersisted: 0,
   });
 
-  const statements = proof.successfulMutationStatements as Array<
+  const statements = proof.statements as Array<
     Record<string, unknown>
   >;
   assert.deepEqual(
@@ -183,11 +183,15 @@ export function validateLiveProviderIngestEvidence(
     TABLES,
   );
   for (const statement of statements) {
-    assert.equal(statement.statementType, "INSERT");
-    assert.equal(statement.persistedParameterValues, false);
-    assert.equal(statement.sha256, sha256(String(statement.normalizedSql)));
-    assert.ok(Number.isInteger(statement.parameterCount));
-    assert.ok((statement.parameterCount as number) > 0);
+    const observedSql = statement.observedSql as Record<string, unknown>;
+    assert.equal(observedSql.statementType, "INSERT");
+    assert.equal(observedSql.persistedParameterValues, false);
+    assert.equal(
+      observedSql.sha256,
+      sha256(String(observedSql.normalizedSql)),
+    );
+    assert.ok(Number.isInteger(observedSql.parameterCount));
+    assert.ok((observedSql.parameterCount as number) > 0);
   }
   assert.deepEqual(evidence.cleanup, {
     deleted: oneCounts(),
@@ -255,7 +259,7 @@ export async function runLiveProviderIngestVerifier(root = process.cwd()) {
     });
     assertTransactionOutcome(committed.queries, "COMMIT");
     const systemContext = capturedSystemContext(committed.queries);
-    const successfulMutationStatements = TABLES.map((table) =>
+    const statements = TABLES.map((table) =>
       mutationEvidence(exactTableMutation(committed.queries, table), table),
     );
     const afterCommit = await countFixtureRows(cleanupPrisma);
@@ -322,7 +326,7 @@ export async function runLiveProviderIngestVerifier(root = process.cwd()) {
           rollbackMutationsObservedBeforeFailure,
           rollbackRowsPersisted: 0,
         },
-        successfulMutationStatements,
+        statements,
         status: "verified",
       },
       cleanup: { deleted, remaining },
@@ -570,11 +574,13 @@ function mutationEvidence(event: DisposableReplayQueryEvent, table: TableName) {
   const normalizedSql = normalizeSql(event.query);
   return {
     table,
-    statementType: "INSERT",
-    normalizedSql,
-    sha256: sha256(normalizedSql),
-    parameterCount: parseParameters(event.params).length,
-    persistedParameterValues: false,
+    observedSql: {
+      statementType: "INSERT",
+      normalizedSql,
+      sha256: sha256(normalizedSql),
+      parameterCount: parseParameters(event.params).length,
+      persistedParameterValues: false,
+    },
   } as const;
 }
 
@@ -613,7 +619,7 @@ async function main() {
   console.log(
     JSON.stringify({
       verdict: report.verdict,
-      successfulTables: report.proof.successfulMutationStatements.length,
+      successfulTables: report.proof.statements.length,
       rollback: report.proof.transactionOutcomes.lateFailureBatch,
       evidence: outputPath,
     }),

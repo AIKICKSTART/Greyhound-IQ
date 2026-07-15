@@ -46,7 +46,7 @@ for (const requirementId of VERIFIED_ACTUAL_QUERY_CAPTURE_REQUIREMENT_IDS) {
   }
 }
 
-assert.equal(DATABASE_OPERATIONS.length, 26);
+assert.equal(DATABASE_OPERATIONS.length, 27);
 assert.equal(
   new Set(DATABASE_OPERATIONS.map((operation) => operation.queryId)).size,
   DATABASE_OPERATIONS.length,

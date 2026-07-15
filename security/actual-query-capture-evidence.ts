@@ -20,7 +20,7 @@ export const VERIFIED_ACTUAL_QUERY_CAPTURE_REQUIREMENT_IDS = [
 
 export const ACTUAL_QUERY_CAPTURE_RESIDUAL_GAPS = {
   "security.actual-query-capture.locate":
-    "The 26 source-bound operation records cover the mandatory security traces, not every Prisma/ORM operation in production source.",
+    "The 27 source-bound operation records cover the mandatory security traces, not every Prisma/ORM operation in production source.",
 } as const;
 
 export const ACTUAL_QUERY_CAPTURE_ARTIFACT_PATHS = [
@@ -30,6 +30,7 @@ export const ACTUAL_QUERY_CAPTURE_ARTIFACT_PATHS = [
   "output/database-audit/demo-fixture-idempotency.json",
   "output/database-audit/dog-public-detail.json",
   "output/database-audit/home-race-meetings-read.json",
+  "output/database-audit/live-provider-ingest.json",
   "output/database-audit/onboarding-analytics-rate-limit.json",
   "output/database-audit/race-detail-read.json",
   "output/database-audit/race-search-read.json",

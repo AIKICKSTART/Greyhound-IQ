@@ -973,13 +973,13 @@ export const MANDATORY_PUBLIC_RACING_DATABASE_OPERATIONS = [
     queryId: "DB.RACING.PROVIDER.INGEST.TRANSACTION",
     traceId: "RACING.PROVIDER.INGEST",
     sourceFile: "src/lib/live/sync.ts",
-    sourceSymbol: "upsertSystemMeetings/upsertMeetings",
+    sourceSymbol: "syncLiveMeetings/upsertSystemMeetings",
     ormOrDriver: "Prisma transaction, CRUD methods and tagged SQL bulk upserts",
     ormOperation:
       "system-context transaction that normalizes and upserts provider Track, Meeting, Race, RaceVideo, Dog, Trainer, Runner, Result and FormEntry rows",
     normalizedSqlArtifact:
       "output/database-audit/live-provider-ingest.json",
-    databaseRole: "greyhoundiq_runtime with transaction-local app.system=true",
+    databaseRole: "greyhoundiq_runtime",
     databaseName: "greyhoundiq",
     schemaName: "public",
     operationType: "transaction",
@@ -1029,6 +1029,7 @@ export const MANDATORY_PUBLIC_RACING_DATABASE_OPERATIONS = [
     ],
     expectedRowCount:
       "Provider-dependent and source-bounded; lookup chunks are at most 500 keys, total lookup sets at most 5,000 keys and tagged-SQL write chunks at most 100 rows.",
+    maximumRowCount: 100,
     paginationRequired: false,
     transactionBoundary:
       "One Prisma transaction per fetched provider meeting batch with 30 s max wait and 240 s transaction timeout.",

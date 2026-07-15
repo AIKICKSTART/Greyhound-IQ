@@ -263,11 +263,22 @@ export const DESIGN_LAB_PREPRODUCTION_REQUIREMENTS: readonly DesignLabPreproduct
       "Design Lab invokes the same server policy, service and Prisma repository path; query evidence contains no real values or credentials.",
     status: "partially-verified",
     owner: "Security trace owner",
-    evidence: ["security/database-operations.ts", "security/traces.ts"],
-    tests: ["security/registry.test.ts"],
-    operatorCommands: ["npx tsx security/registry.test.ts"],
+    evidence: [
+      "security/database-operations.ts",
+      "security/traces.ts",
+      "security/actual-query-capture-evidence.ts",
+      "security/actual-query-capture-evidence.test.ts",
+    ],
+    tests: [
+      "security/registry.test.ts",
+      "security/actual-query-capture-evidence.test.ts",
+    ],
+    operatorCommands: [
+      "npx tsx security/registry.test.ts",
+      "npx tsx security/actual-query-capture-evidence.test.ts",
+    ],
     remainingEvidence:
-      "Expand the seed registry to every action and capture generated SQL, actual roles, EXPLAIN evidence, failure injection and negative authorization tests.",
+      "The 27 runtime-verified mandatory trace operations do not yet locate every Prisma/ORM action in production source. Complete exhaustive source discovery, then capture generated SQL, roles, EXPLAIN evidence, failure injection and negative authorization tests for every missing action.",
     releaseBlocking: true,
   },
   {

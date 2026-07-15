@@ -50,7 +50,7 @@ const operation = DATABASE_OPERATIONS.find(
 assert.ok(operation);
 assert.equal(operation.verificationStatus, "Verified");
 assert.equal(operation.sourceFile, "src/lib/live/sync.ts");
-assert.equal(operation.databaseRole, "greyhoundiq_runtime with transaction-local app.system=true");
+assert.equal(operation.databaseRole, "greyhoundiq_runtime");
 assert.equal(
   operation.normalizedSqlArtifact,
   LIVE_PROVIDER_INGEST_EVIDENCE_PATH,

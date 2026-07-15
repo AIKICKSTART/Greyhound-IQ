@@ -13,6 +13,7 @@ import {
   buildMeetingRacePresentation,
   buildMeetingSummary,
 } from "@/lib/meeting-presentation";
+import { resolveDemoProviderRouteId } from "@/lib/demo-route-samples";
 import { getMeetingById } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,8 @@ type MeetingPageProps = {
 export async function generateMetadata({
   params,
 }: MeetingPageProps): Promise<Metadata> {
-  const { id } = await params;
+  const { id: routeId } = await params;
+  const id = await resolveDemoProviderRouteId("meeting", routeId);
   const meeting = await getMeetingById(id);
   if (!meeting) return { title: "Meeting not found — GreyhoundIQ" };
   const date = formatRaceDayLabel(formatRaceDateInput(meeting.meetingDate));
@@ -36,7 +38,8 @@ export async function generateMetadata({
 }
 
 export default async function MeetingPage({ params }: MeetingPageProps) {
-  const { id } = await params;
+  const { id: routeId } = await params;
+  const id = await resolveDemoProviderRouteId("meeting", routeId);
   const meeting = await getMeetingById(id);
   if (!meeting) notFound();
 

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CalendarDays, Clock, MapPin, Route, Trophy } from "lucide-react";
 import { getBoxColourStyle } from "@/lib/box-colours";
 import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
+import { resolveDemoProviderRouteId } from "@/lib/demo-route-samples";
 import { getTrackById } from "@/lib/queries";
 import {
   formatRaceDateInput,
@@ -17,7 +18,8 @@ export async function generateMetadata({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: routeId } = await params;
+  const id = await resolveDemoProviderRouteId("track", routeId);
   const track = await getTrackById(id);
   if (!track) {
     return {
@@ -45,7 +47,8 @@ export default async function TrackDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: routeId } = await params;
+  const id = await resolveDemoProviderRouteId("track", routeId);
   const track = await getTrackById(id);
   if (!track) notFound();
 

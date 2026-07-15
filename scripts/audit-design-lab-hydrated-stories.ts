@@ -16,8 +16,12 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import {
+  DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
+  fingerprintRepositoryFiles,
   getDesignLabSourceFingerprint,
+  getDesignLabSourcePaths,
   getRepositoryHeadSha,
+  parseDesignLabSourceFiles,
 } from "./design-lab-source-fingerprint";
 import {
   DESIGN_LAB_STORY_AUDIT_PATH,
@@ -218,7 +222,7 @@ export const DESIGN_LAB_HYDRATED_STORY_CASES: readonly HydratedStoryCaseDefiniti
         family: "all",
         routeCount: 1,
         familyKeys: ["racing"],
-        routeHrefs: ["/dogs/cmr0fg5ki00a4ephcaj4sdctc"],
+        routeHrefs: ["/dogs/demo-provider-dog"],
       },
       empty: {
         query: "no-screen-can-match-this",
@@ -320,8 +324,8 @@ export const DESIGN_LAB_HYDRATED_STORY_CASES: readonly HydratedStoryCaseDefiniti
     requestPath: "/design-lab?area=screens",
     mode: "workspace-screen-open",
     expectedObserved: {
-      clickedHref: "/dogs/cmr0fg5ki00a4ephcaj4sdctc",
-      currentPath: "/dogs/cmr0fg5ki00a4ephcaj4sdctc",
+      clickedHref: "/dogs/demo-provider-dog",
+      currentPath: "/dogs/demo-provider-dog",
     },
   },
   {
@@ -400,15 +404,15 @@ export const DESIGN_LAB_HYDRATED_STORY_CASES: readonly HydratedStoryCaseDefiniti
         query: "/dogs/[id]",
         family: "all",
         routeCount: 1,
-        routeHrefs: ["/dogs/cmr0fg5ki00a4ephcaj4sdctc"],
+        routeHrefs: ["/dogs/demo-provider-dog"],
       },
       empty: {
         query: "no-screen-can-match-this",
         family: "all",
         routeCount: 0,
       },
-      clickedHref: "/dogs/cmr0fg5ki00a4ephcaj4sdctc",
-      currentPath: "/dogs/cmr0fg5ki00a4ephcaj4sdctc",
+      clickedHref: "/dogs/demo-provider-dog",
+      currentPath: "/dogs/demo-provider-dog",
     },
   },
   {
@@ -1081,7 +1085,21 @@ async function main() {
   const repositoryRoot = path.resolve(".");
   const baseUrl = resolveLoopbackBaseUrl(readFlag("--base-url"));
   const outputPath = path.resolve(readFlag("--output") ?? DESIGN_LAB_HYDRATED_STORY_AUDIT_PATH);
-  const sourceBefore = getDesignLabSourceFingerprint(repositoryRoot);
+  const sourceContract = {
+    directFiles: ["scripts/audit-design-lab-hydrated-stories.ts"],
+    transitiveImportRoots: [
+      ...new Set(DESIGN_LAB_HYDRATED_STORY_CASES.map((item) => item.route)),
+    ].flatMap((route) => {
+      const contract = SCREEN_CONTRACT_BY_ROUTE.get(route);
+      if (!contract) throw new Error(`Missing screen contract for ${route}.`);
+      return contract.sourceFiles;
+    }),
+    fixtures: [],
+    schemaFiles: [],
+    runtimeContractFiles: DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
+  };
+  const sourceFiles = getDesignLabSourcePaths(repositoryRoot, sourceContract);
+  const sourceBefore = getDesignLabSourceFingerprint(repositoryRoot, sourceContract);
   const testedCommitSha = getRepositoryHeadSha(repositoryRoot);
   const companionHttpAuditJson = await readFile(
     path.resolve(repositoryRoot, DESIGN_LAB_STORY_AUDIT_PATH),
@@ -1091,10 +1109,18 @@ async function main() {
     .update(companionHttpAuditJson)
     .digest("hex");
   const companionHttpAudit = JSON.parse(companionHttpAuditJson) as unknown;
+  const companionSourceFiles = parseDesignLabSourceFiles(companionHttpAudit);
+  if (!companionSourceFiles) {
+    throw new Error("Companion HTTP user-story audit source files are missing or invalid.");
+  }
+  const companionSource = fingerprintRepositoryFiles(
+    repositoryRoot,
+    companionSourceFiles,
+  );
   const companionIssues = findDesignLabStoryAuditIssues(companionHttpAudit, {
     headSha: testedCommitSha,
-    sourceSha256: sourceBefore.sha256,
-    sourceFileCount: sourceBefore.fileCount,
+    sourceSha256: companionSource.sha256,
+    sourceFileCount: companionSource.fileCount,
   });
   if (companionIssues.length > 0) {
     throw new Error(
@@ -1130,7 +1156,7 @@ async function main() {
         }
       }
 
-      const sourceAfter = getDesignLabSourceFingerprint(repositoryRoot);
+      const sourceAfter = getDesignLabSourceFingerprint(repositoryRoot, sourceContract);
       if (
         sourceAfter.sha256 !== sourceBefore.sha256 ||
         sourceAfter.fileCount !== sourceBefore.fileCount
@@ -1160,6 +1186,7 @@ async function main() {
         testedCommitSha,
         sourceSha256: sourceBefore.sha256,
         sourceFileCount: sourceBefore.fileCount,
+        sourceFiles,
         expectedScenarios: DESIGN_LAB_HYDRATED_STORY_CASES.length,
         passedScenarios: results.filter((result) => result.passed).length,
         results,
@@ -1337,7 +1364,7 @@ function scenarioActionExpression(storyCase: HydratedStoryCase) {
         setValue(input, HTMLInputElement.prototype, '/dogs/[id]', 'input');
         await waitFor(() => snapshot().routeCount === 1);
         const searchSnapshot = snapshot();
-        const card = document.querySelector('section[aria-labelledby^="screen-family-"] a[href="/dogs/cmr0fg5ki00a4ephcaj4sdctc"]');
+        const card = document.querySelector('section[aria-labelledby^="screen-family-"] a[href="/dogs/demo-provider-dog"]');
         const coverageSummary = card?.querySelector('code')?.nextElementSibling?.textContent?.replace(/\\s+/g, ' ').trim() ?? null;
         const coverageBadgeTitles = [...(card?.querySelectorAll('[aria-label="Contract coverage"] [title]') ?? [])].map((badge) => badge.getAttribute('title'));
         setValue(input, HTMLInputElement.prototype, 'no-screen-can-match-this', 'input');
@@ -1577,7 +1604,7 @@ function scenarioSettledExpression(storyCase: HydratedStoryCase) {
     storyCase.mode === "workspace-screen-open" ||
     storyCase.mode === "demo-registry"
   ) {
-    return `location.pathname === '/dogs/cmr0fg5ki00a4ephcaj4sdctc' && sessionStorage.getItem('${storyCase.mode === "demo-registry" ? "greyhoundiq-demo-registry" : "greyhoundiq-workspace-screen-open"}') !== null`;
+    return `location.pathname === '/dogs/demo-provider-dog' && sessionStorage.getItem('${storyCase.mode === "demo-registry" ? "greyhoundiq-demo-registry" : "greyhoundiq-workspace-screen-open"}') !== null`;
   }
   if (storyCase.mode === "demo-fixture") {
     return `document.querySelector('[data-demo-experience-map] [data-design-lab-active-area="screens"]') !== null`;
@@ -1738,7 +1765,7 @@ function filterAndOpenScreenExpression(storageKey: string, includeRegistryStates
       await waitFor(() => routeCount() === 1);` : `setValue(select, HTMLSelectElement.prototype, 'racing', 'change');
       setValue(input, HTMLInputElement.prototype, '/dogs/[id]', 'input');
       await waitFor(() => routeCount() === 1);`}
-      const link = document.querySelector('section[aria-labelledby="screen-family-racing"] a[href="/dogs/cmr0fg5ki00a4ephcaj4sdctc"]');
+      const link = document.querySelector('section[aria-labelledby="screen-family-racing"] a[href="/dogs/demo-provider-dog"]');
       stored.clickedHref = link?.getAttribute('href') ?? null;
       sessionStorage.setItem('${storageKey}', JSON.stringify(stored));
       link.click();

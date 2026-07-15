@@ -14,6 +14,7 @@ import { claimDogOwnership } from "@/app/actions";
 import { FinishBadge } from "@/components/finish-badge";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
+import { resolveDemoProviderRouteId } from "@/lib/demo-route-samples";
 import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
 import { getDogById, getMyDogOwnership } from "@/lib/queries";
 import { getDogPedigree } from "@/lib/pedigree";
@@ -28,7 +29,8 @@ export async function generateMetadata({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: routeId } = await params;
+  const id = await resolveDemoProviderRouteId("dog", routeId);
   const dog = await getDogById(id);
   if (!dog) return {
     title: "Dog not found — GreyhoundIQ",
@@ -53,7 +55,8 @@ export default async function DogProfilePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: routeId } = await params;
+  const id = await resolveDemoProviderRouteId("dog", routeId);
   const [dog, user, pedigree] = await Promise.all([
     getDogById(id),
     getCurrentUser(),

@@ -9,6 +9,7 @@ import {
   PlayCircle,
   Trophy,
 } from "lucide-react";
+import { resolveDemoProviderRouteId } from "@/lib/demo-route-samples";
 import { getPreviousRaceVideoRunners, getRaceById } from "@/lib/queries";
 import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
 import { RaceReplayPlayer } from "@/components/race-replay-player";
@@ -58,7 +59,8 @@ export async function generateMetadata({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: routeId } = await params;
+  const id = await resolveDemoProviderRouteId("race", routeId);
   const race = await getRaceById(id);
   if (!race)
     return {
@@ -85,7 +87,8 @@ export default async function RacePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: routeId } = await params;
+  const id = await resolveDemoProviderRouteId("race", routeId);
   const race = await getRaceById(id);
   if (!race) notFound();
 

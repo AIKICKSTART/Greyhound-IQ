@@ -12,6 +12,8 @@ import {
 import { AUDIT_EVENTS } from "./audit-events";
 import {
   API_TRACE_GOVERNANCE_MASTER_EVIDENCE,
+  MANDATORY_ACTION_TRACE_COVERAGE,
+  MANDATORY_ACTION_TRACE_OPEN_GAPS,
   MANDATORY_TRACE_BINDINGS,
 } from "./api-trace-governance-evidence";
 import {
@@ -37,10 +39,10 @@ const promotedIds = Object.keys(
 ) as PromotedId[];
 const evidenceRecords = Object.values(API_TRACE_GOVERNANCE_MASTER_EVIDENCE);
 
-assert.equal(promotedIds.length, 30);
+assert.equal(promotedIds.length, 58);
 assert.equal(
   evidenceRecords.filter((record) => record.status === "verified").length,
-  27,
+  55,
 );
 assert.equal(
   evidenceRecords.filter(
@@ -63,6 +65,92 @@ for (const id of promotedIds) {
   for (const evidencePath of API_TRACE_GOVERNANCE_MASTER_EVIDENCE[id].evidence) {
     assert.ok(existsSync(evidencePath), `${id}: missing ${evidencePath}`);
   }
+}
+
+const mandatoryActionTraceIds = [
+  "security.trace.11.feed-create",
+  "security.trace.12.feed-edit",
+  "security.trace.13.feed-delete",
+  "security.trace.14.add-comment",
+  "security.trace.15.react",
+  "security.trace.16.save",
+  "security.trace.17.group-join",
+  "security.trace.18.private-thread-open",
+  "security.trace.19.conversation-start",
+  "security.trace.20.send-text",
+  "security.trace.22.voice-video-start",
+  "security.trace.23.marketplace-search",
+  "security.trace.24.marketplace-open",
+  "security.trace.25.marketplace-save",
+  "security.trace.26.marketplace-enquire",
+  "security.trace.27.listing-draft-create",
+  "security.trace.29.listing-publish",
+  "security.trace.32.profile-update",
+  "security.trace.33.privacy-change",
+  "security.trace.34.security-change",
+  "security.trace.36.invitation-accept",
+  "security.trace.39.billing-checkout",
+  "security.trace.41.checkout-return",
+  "security.trace.42.invoice-view",
+  "security.trace.45.moderator-allowed-report",
+  "security.trace.46.moderator-admin-only-attempt",
+  "security.trace.47.admin-user-status-change",
+  "security.trace.48.admin-webhook-reprocess",
+  "security.trace.49.ai-run-start",
+  "security.trace.50.ai-protected-mutation-attempt",
+  "security.trace.53.design-lab-simulated-destructive-action",
+  "security.trace.55.blocked-user-protected-access",
+] as const;
+const coveredActionTraceIds = Object.keys(MANDATORY_ACTION_TRACE_COVERAGE);
+const openActionTraceIds = Object.keys(MANDATORY_ACTION_TRACE_OPEN_GAPS);
+
+assert.equal(mandatoryActionTraceIds.length, 32);
+assert.equal(coveredActionTraceIds.length, 27);
+assert.equal(openActionTraceIds.length, 5);
+assert.deepEqual(
+  [...coveredActionTraceIds, ...openActionTraceIds].toSorted(),
+  [...mandatoryActionTraceIds].toSorted(),
+);
+
+for (const [id, coverage] of Object.entries(MANDATORY_ACTION_TRACE_COVERAGE)) {
+  const requirement = MASTER_AUDIT_REQUIREMENTS.find(
+    (candidate) => candidate.prompt === "security" && candidate.id === id,
+  );
+  assert.ok(requirement, `${id}: missing immutable requirement`);
+  assert.equal(isMasterRequirementComplete(requirement), true);
+
+  const evidence =
+    API_TRACE_GOVERNANCE_MASTER_EVIDENCE[
+      id as keyof typeof API_TRACE_GOVERNANCE_MASTER_EVIDENCE
+    ];
+  assert.equal(evidence.status, "verified");
+  const evidencePaths: readonly string[] = evidence.evidence;
+  assert.ok(evidencePaths.includes(coverage.sourceFile));
+  assert.match(coverage.residual, /does not prove deployed routing/i);
+
+  const source = readFileSync(coverage.sourceFile, "utf8");
+  for (const marker of coverage.sourceMarkers) {
+    assert.ok(
+      source.includes(marker),
+      `${id}: missing source marker ${marker}`,
+    );
+  }
+}
+
+for (const [id, gap] of Object.entries(MANDATORY_ACTION_TRACE_OPEN_GAPS)) {
+  const requirement = MASTER_AUDIT_REQUIREMENTS.find(
+    (candidate) => candidate.prompt === "security" && candidate.id === id,
+  );
+  assert.ok(requirement, `${id}: missing immutable requirement`);
+  assert.equal(
+    API_TRACE_GOVERNANCE_MASTER_EVIDENCE[
+      id as keyof typeof API_TRACE_GOVERNANCE_MASTER_EVIDENCE
+    ],
+    undefined,
+  );
+  assert.equal(SECURITY_MASTER_EVIDENCE[id], undefined);
+  assert.equal(isMasterRequirementComplete(requirement), false);
+  assert.ok(gap.length > 80, `${id}: explicit source gap required`);
 }
 
 const discoveredHttp = discoverRouteHandlers(repositoryRoot);
@@ -123,7 +211,7 @@ assert.deepEqual(
 );
 assert.equal(DATABASE_OPERATIONS.length, 26);
 
-assert.equal(AUDIT_EVENTS.length, 19);
+assert.equal(AUDIT_EVENTS.length, 21);
 assert.equal(
   AUDIT_EVENTS.reduce((total, event) => total + event.traceIds.length, 0),
   10,
@@ -246,13 +334,15 @@ assert.equal(committedReport, generatedReport);
 assert.notEqual(`${committedReport}\nstale`, generatedReport);
 
 console.log(
-  "API and trace governance evidence passed: 30 requirements, 179 endpoints, 26 database operations, 19 audit events and 18 final trace rows bound",
+  `API and trace governance evidence passed: ${promotedIds.length} requirements, ${ENDPOINTS.length} endpoints, ${DATABASE_OPERATIONS.length} database operations, ${AUDIT_EVENTS.length} audit events and ${FINAL_TRACEABILITY_ROWS.length} final trace rows bound`,
 );
 
 function hasRoute(
   pattern: RegExp,
-  endpoints: readonly Pick<(typeof ENDPOINTS)[number], "routeOrProcedure">[] =
-    ENDPOINTS,
+  endpoints: readonly Pick<
+    (typeof ENDPOINTS)[number],
+    "routeOrProcedure"
+  >[] = ENDPOINTS,
 ) {
   return endpoints.some((endpoint) => pattern.test(endpoint.routeOrProcedure));
 }

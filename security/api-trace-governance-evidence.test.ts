@@ -211,7 +211,7 @@ assert.deepEqual(
 );
 assert.equal(DATABASE_OPERATIONS.length, 26);
 
-assert.equal(AUDIT_EVENTS.length, 21);
+assert.equal(AUDIT_EVENTS.length, 22);
 assert.equal(
   AUDIT_EVENTS.reduce((total, event) => total + event.traceIds.length, 0),
   10,

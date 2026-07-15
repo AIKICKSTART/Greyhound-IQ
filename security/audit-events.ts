@@ -504,7 +504,7 @@ export const AUDIT_EVENTS = [
   },
   {
     eventId: "AUDIT.ORGANIZATION.OWNERSHIP.TRANSFERRED",
-    traceIds: ["ACCOUNT.TEAM.CHANGE_ROLE"],
+    traceIds: [],
     eventName: "team.owner.transfer",
     persistence: "audit-log",
     actor: "current organization owner",

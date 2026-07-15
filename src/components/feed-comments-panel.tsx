@@ -1,7 +1,7 @@
 "use client";
 
 import { Heart, Loader2, MessageSquare, Pencil, Trash2 } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useId, useState } from "react";
 
 import { InstantFeedCommentForm } from "@/components/instant-feed-controls";
 import { ActorMediaImage } from "@/components/actor-media-image";
@@ -370,6 +370,7 @@ function CommentOwnerActions({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const errorId = useId();
 
   async function edit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -424,6 +425,8 @@ function CommentOwnerActions({
             defaultValue={comment.body}
             minLength={2}
             maxLength={2000}
+            aria-invalid={Boolean(error)}
+            aria-errormessage={error ? errorId : undefined}
             className="giq-form-control min-h-11 min-w-0 flex-1 px-2 text-[12px]"
           />
           <button
@@ -445,7 +448,7 @@ function CommentOwnerActions({
         Delete
       </button>
       {error && (
-        <span role="alert" className="text-[11px] text-red-200">
+        <span id={errorId} role="alert" className="text-[11px] text-red-200">
           {error}
         </span>
       )}

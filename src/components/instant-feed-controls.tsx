@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
+import { FormEvent, useEffect, useId, useRef, useState, useTransition } from "react";
 import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -72,6 +72,7 @@ export function InstantFeedPostComposer({
   const [submitting, setSubmitting] = useState(false);
   const [refreshing, startTransition] = useTransition();
   const busy = submitting || refreshing;
+  const errorId = useId();
 
   useEffect(() => {
     let focusFrame = 0;
@@ -238,6 +239,8 @@ export function InstantFeedPostComposer({
           maxLength={5000}
           rows={3}
           disabled={busy}
+          aria-invalid={Boolean(error)}
+          aria-errormessage={error ? errorId : undefined}
           className="giq-form-control giq-textarea px-3 py-3 text-[14px] disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Share a race note, kennel update, question, or marketplace context."
         />
@@ -256,6 +259,8 @@ export function InstantFeedPostComposer({
                 className="giq-form-control px-3 py-2 text-[13px]"
                 defaultValue=""
                 disabled={busy}
+                aria-invalid={Boolean(error)}
+                aria-errormessage={error ? errorId : undefined}
               >
                 <option value="">General</option>
                 {topics.map((topic) => (
@@ -271,6 +276,8 @@ export function InstantFeedPostComposer({
                 name="visibility"
                 defaultValue={pageId ? "public" : "connections"}
                 disabled={busy}
+                aria-invalid={Boolean(error)}
+                aria-errormessage={error ? errorId : undefined}
                 className="giq-form-control px-3 py-2 text-[13px]"
               >
                 <option value="public">Public</option>
@@ -290,6 +297,7 @@ export function InstantFeedPostComposer({
         />
         {error && (
           <p
+            id={errorId}
             role="alert"
             className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] text-red-100"
           >
@@ -361,6 +369,7 @@ export function InstantFeedCommentForm({
   const [submitting, setSubmitting] = useState(false);
   const [refreshing, startTransition] = useTransition();
   const busy = submitting || refreshing;
+  const errorId = useId();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -400,6 +409,8 @@ export function InstantFeedCommentForm({
           minLength={2}
           maxLength={2000}
           disabled={busy}
+          aria-invalid={Boolean(error)}
+          aria-errormessage={error ? errorId : undefined}
           className="giq-form-control min-w-0 flex-1 px-3 py-2 text-[13px] disabled:cursor-not-allowed disabled:opacity-50"
           placeholder={parentCommentId ? "Write a reply" : "Add a comment"}
         />
@@ -422,7 +433,7 @@ export function InstantFeedCommentForm({
         </p>
       )}
       {error && (
-        <p role="alert" className="text-[11px] text-red-200">
+        <p id={errorId} role="alert" className="text-[11px] text-red-200">
           {error}
         </p>
       )}
@@ -811,6 +822,7 @@ export function InstantFeedOwnerControls({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const errorId = useId();
 
   async function edit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -871,12 +883,16 @@ export function InstantFeedOwnerControls({
           maxLength={5000}
           required
           rows={4}
+          aria-invalid={Boolean(error)}
+          aria-errormessage={error ? errorId : undefined}
           className="giq-form-control giq-textarea px-3 py-2 text-[13px]"
         />
         <select
           name="visibility"
           aria-label="Post visibility"
           defaultValue={initialVisibility}
+          aria-invalid={Boolean(error)}
+          aria-errormessage={error ? errorId : undefined}
           className="giq-form-control px-3 py-2 text-[13px]"
         >
           <option value="public">Public</option>
@@ -885,7 +901,7 @@ export function InstantFeedOwnerControls({
           <option value="only_me">Only me</option>
         </select>
         {error && (
-          <p role="alert" className="text-[11px] text-red-200">
+          <p id={errorId} role="alert" className="text-[11px] text-red-200">
             {error}
           </p>
         )}

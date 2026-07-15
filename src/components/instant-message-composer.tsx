@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
+import { FormEvent, useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Send } from "lucide-react";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
@@ -21,6 +21,7 @@ export function InstantMessageComposer({
   const [pendingBody, setPendingBody] = useState<string | null>(null);
   const [refreshing, startTransition] = useTransition();
   const busy = submitting || refreshing;
+  const errorId = useId();
 
   // The optimistic bubble lives only while the post-send refresh is pending.
   useEffect(() => {
@@ -104,6 +105,8 @@ export function InstantMessageComposer({
           maxLength={5000}
           rows={5}
           onInput={handleBodyInput}
+          aria-invalid={Boolean(error)}
+          aria-errormessage={error ? errorId : undefined}
           className="giq-form-control giq-textarea mt-2 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder={
             disabled
@@ -117,6 +120,7 @@ export function InstantMessageComposer({
       </div>
       {error && (
         <p
+          id={errorId}
           role="alert"
           className="mt-3 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] text-red-100"
         >

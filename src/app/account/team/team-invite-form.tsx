@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Copy, Link2, Send } from "lucide-react";
-import { useActionState, useState } from "react";
+import { useActionState, useId, useState } from "react";
 
 import {
   createTeamInvitationAction,
@@ -25,6 +25,8 @@ export function TeamInviteForm({
     INITIAL_STATE,
   );
   const [copied, setCopied] = useState(false);
+  const invitationErrorId = useId();
+  const hasError = state.status === "error";
 
   async function copyInvitationLink() {
     if (!state.invitationPath) return;
@@ -67,6 +69,8 @@ export function TeamInviteForm({
             type="email"
             autoComplete="email"
             maxLength={254}
+            aria-invalid={hasError}
+            aria-errormessage={hasError ? invitationErrorId : undefined}
             className="giq-input min-h-11"
             placeholder="member@example.com"
           />
@@ -75,7 +79,13 @@ export function TeamInviteForm({
           <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--subtle-foreground))]">
             Role
           </span>
-          <select name="role" className="giq-input min-h-11" defaultValue="member">
+          <select
+            name="role"
+            className="giq-input min-h-11"
+            defaultValue="member"
+            aria-invalid={hasError}
+            aria-errormessage={hasError ? invitationErrorId : undefined}
+          >
             <option value="member">Member</option>
             {canInviteAdmin ? <option value="admin">Administrator</option> : null}
           </select>
@@ -92,6 +102,7 @@ export function TeamInviteForm({
       </form>
 
       <div
+        id={invitationErrorId}
         className={`mt-3 rounded-xl border px-3 py-2.5 text-[12px] leading-5 ${
           state.status === "error"
             ? "border-red-400/25 bg-red-500/10 text-red-100"
@@ -99,7 +110,7 @@ export function TeamInviteForm({
               ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-100"
               : "sr-only"
         }`}
-        role={state.status === "error" ? "alert" : "status"}
+        role={hasError ? "alert" : "status"}
         aria-live="polite"
       >
         {state.message}

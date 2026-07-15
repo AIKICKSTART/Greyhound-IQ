@@ -11,7 +11,10 @@ import {
   filterDesignLabPendingWork,
   findDesignLabPendingWorkIssues,
 } from "./design-lab-pending-work";
-import { DESIGN_LAB_PREPRODUCTION_REQUIREMENTS } from "./design-lab-preproduction-requirements";
+import {
+  DESIGN_LAB_PREPRODUCTION_REQUIREMENTS,
+  isDesignLabPreproductionRequirementComplete,
+} from "./design-lab-preproduction-requirements";
 import { DESIGN_LAB_RELEASE_GATE } from "./design-lab-release-gate";
 import { MASTER_AUDIT_REQUIREMENTS } from "./master-audit-requirements";
 import { DESIGN_LAB_DATABASE_NORMALIZATION_REQUIREMENTS } from "./design-lab-database-normalization-requirements";
@@ -55,7 +58,10 @@ for (const requirement of DESIGN_LAB_DATABASE_NORMALIZATION_REQUIREMENTS) {
   );
   assert.equal(matches.length, 1, `${requirement.id} must appear exactly once.`);
   assert.equal(matches[0].releaseBlocking, requirement.releaseBlocking);
-  assert.equal(matches[0].complete, false);
+  assert.equal(
+    matches[0].complete,
+    isDesignLabPreproductionRequirementComplete(requirement),
+  );
 }
 
 const pending = filterDesignLabPendingWork({ completion: "pending" });

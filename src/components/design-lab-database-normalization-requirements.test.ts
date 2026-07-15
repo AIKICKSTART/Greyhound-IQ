@@ -65,6 +65,7 @@ const EXPECTED_RELEASE_BLOCKERS = new Set([
   "PREPROD.DB.NORMALIZATION.M2.REPLAY_RESTORE",
 ]);
 const PARTIALLY_VERIFIED_ID = "PREPROD.DB.NORMALIZATION.M2.REPLAY_RESTORE";
+const VERIFIED_ID = "PREPROD.DB.NORMALIZATION.M0.CANONICAL_FACT_ADRS";
 
 const ids = DESIGN_LAB_DATABASE_NORMALIZATION_REQUIREMENTS.map(({ id }) => id);
 assert.equal(new Set(ids).size, ids.length, "Normalization IDs must be unique.");
@@ -100,7 +101,14 @@ assert.equal(
 
 for (const item of DESIGN_LAB_DATABASE_NORMALIZATION_REQUIREMENTS) {
   assert.equal(item.system, "database", `${item.id} must stay in the database system.`);
-  if (item.status === "partially-verified") {
+  if (item.status === "verified") {
+    assert.equal(item.id, VERIFIED_ID);
+    assert.deepEqual(item.evidence, ["security/database-canonical-fact-decisions.ts"]);
+    assert.deepEqual(item.tests, ["security/database-canonical-fact-decisions.test.ts"]);
+    assert.deepEqual(item.operatorCommands, [
+      "npx tsx security/database-canonical-fact-decisions.test.ts",
+    ]);
+  } else if (item.status === "partially-verified") {
     assert.equal(item.id, PARTIALLY_VERIFIED_ID);
     assert.deepEqual(item.evidence, [
       "scripts/check-local-dr-restore.ts",
@@ -110,6 +118,7 @@ for (const item of DESIGN_LAB_DATABASE_NORMALIZATION_REQUIREMENTS) {
     assert.deepEqual(item.operatorCommands, ["npm run check:local-dr-restore"]);
   } else {
     assert.notEqual(item.id, PARTIALLY_VERIFIED_ID);
+    assert.notEqual(item.id, VERIFIED_ID);
     assert.deepEqual(item.evidence, [], `${item.id} must not claim completion evidence.`);
   }
   assert.equal(

@@ -15,6 +15,12 @@ type DesignLabDatabaseNormalizationRequirementCommon = Omit<
 
 type DesignLabDatabaseNormalizationEvidenceState =
   | {
+      status: "verified";
+      evidence: readonly [string, ...string[]];
+      tests: readonly [string, ...string[]];
+      operatorCommands: readonly [string, ...string[]];
+    }
+  | {
       status: "not-verified";
       evidence: readonly [];
       tests: readonly [`PLACEHOLDER TEST: ${string}`];
@@ -103,17 +109,17 @@ export const DESIGN_LAB_DATABASE_NORMALIZATION_REQUIREMENTS = [
       "ADRs choose one canonical source for organization authority, subscription access, listing location and type, message read and block state, ownership state, archive semantics and status history.",
       "Every retained projection has exactly one named writer and one reconciliation rule with an explicit drift threshold.",
     ],
-    status: "not-verified",
+    status: "verified",
     owner: "Backend Lead and Product Domain Owner",
-    evidence: [],
+    evidence: ["security/database-canonical-fact-decisions.ts"],
     tests: [
-      "PLACEHOLDER TEST: validate canonical-fact ADR coverage and single-writer assignments.",
+      "security/database-canonical-fact-decisions.test.ts",
     ],
     operatorCommands: [
-      "PLACEHOLDER OPERATOR STEP: record approved canonical-fact decisions in the candidate evidence bundle.",
+      "npx tsx security/database-canonical-fact-decisions.test.ts",
     ],
     remainingEvidence:
-      "Approve the canonical-fact ADRs and assign every retained projection to one writer and reconciler.",
+      "Runtime enforcement and zero-drift runs remain tracked by their M1 and M2 gates; no further source-bound ADR evidence is required.",
     releaseBlocking: true,
   },
   {

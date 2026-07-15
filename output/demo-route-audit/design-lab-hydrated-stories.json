@@ -1,0 +1,1959 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "design-lab-hydrated-user-stories",
+  "evidenceBoundary": "Isolated loopback full-access-read-only interaction evidence; not cryptographic deployed-image identity.",
+  "generatedAt": "2026-07-15T13:31:41.080Z",
+  "baseUrl": "http://localhost:3000",
+  "browser": {
+    "product": "Chrome/150.0.7871.115",
+    "protocolVersion": "1.3"
+  },
+  "companionHttpAudit": {
+    "path": "output/demo-route-audit/design-lab-user-stories.json",
+    "auditKind": "design-lab-user-stories",
+    "sha256": "c872680ce8e7080809594d41b6a4df89815db5a5a89664369f9fbd29a6e6713c",
+    "sourceSha256": "bd926f88e8a169444d69aeaa5e33ec27542dd68a7053ef800b21a0bc92ad8246",
+    "expectedScenarios": 13,
+    "passedScenarios": 13
+  },
+  "acceptanceCoverage": [
+    {
+      "acceptanceId": "DL.STORY.CONTRACT-WORKSPACE.1",
+      "httpScenarioIds": [
+        "DL.STORY.CONTRACT-WORKSPACE.1"
+      ],
+      "hydratedScenarioIds": [
+        "DL.STORY.CONTRACT-WORKSPACE.HYDRATED"
+      ]
+    },
+    {
+      "acceptanceId": "DL.STORY.CONTRACT-WORKSPACE.2",
+      "httpScenarioIds": [
+        "DL.STORY.CONTRACT-WORKSPACE.2"
+      ],
+      "hydratedScenarioIds": [
+        "DL.STORY.CONTRACT-WORKSPACE.HYDRATED"
+      ]
+    },
+    {
+      "acceptanceId": "DL.STORY.CONTRACT-WORKSPACE.3",
+      "httpScenarioIds": [
+        "DL.STORY.CONTRACT-WORKSPACE.3"
+      ],
+      "hydratedScenarioIds": [
+        "DL.STORY.CONTRACT-WORKSPACE.HYDRATED"
+      ]
+    },
+    {
+      "acceptanceId": "DL.STORY.DEMO-EXPERIENCE.1",
+      "httpScenarioIds": [
+        "DL.STORY.DEMO-EXPERIENCE.1"
+      ],
+      "hydratedScenarioIds": []
+    },
+    {
+      "acceptanceId": "DL.STORY.DEMO-EXPERIENCE.2",
+      "httpScenarioIds": [
+        "DL.STORY.DEMO-EXPERIENCE.2"
+      ],
+      "hydratedScenarioIds": [
+        "DL.STORY.DEMO-EXPERIENCE.HYDRATED"
+      ]
+    },
+    {
+      "acceptanceId": "DL.STORY.DOCK-SKINS.1",
+      "httpScenarioIds": [
+        "DL.STORY.DOCK-SKINS.1"
+      ],
+      "hydratedScenarioIds": [
+        "DL.STORY.DOCK-SKINS.HYDRATED"
+      ]
+    },
+    {
+      "acceptanceId": "DL.STORY.DOCK-SKINS.2",
+      "httpScenarioIds": [
+        "DL.STORY.DOCK-SKINS.2"
+      ],
+      "hydratedScenarioIds": [
+        "DL.STORY.DOCK-SKINS.UNSUPPORTED-FALLBACK.HYDRATED",
+        "DL.STORY.DOCK-SKINS.MISSING-FALLBACK.HYDRATED"
+      ]
+    }
+  ],
+  "inventoryCoverage": [
+    {
+      "scenarioId": "DL.STORY.CONTRACT-WORKSPACE.HYDRATED",
+      "route": "/design-lab",
+      "actionIds": [
+        "DL.ACTION.SCREEN.SEARCH",
+        "DL.ACTION.FAMILY.FILTER"
+      ],
+      "stateIds": [
+        "DL.STATE.SCREEN.FILTERED",
+        "DL.STATE.SCREEN.EMPTY"
+      ],
+      "fixtureIds": []
+    },
+    {
+      "scenarioId": "DL.INVENTORY.WORKSPACE.SCENARIO-CONTROLS.HYDRATED",
+      "route": "/design-lab",
+      "actionIds": [
+        "DL.ACTION.SCENARIO.FIXTURE.SELECT",
+        "DL.ACTION.SCENARIO.TIER.SELECT",
+        "DL.ACTION.SCENARIO.AUTH.SELECT",
+        "DL.ACTION.SCENARIO.PERMISSIONS.SELECT",
+        "DL.ACTION.SCENARIO.FEATUREFLAGS.SELECT",
+        "DL.ACTION.SCENARIO.ORIENTATION.SELECT",
+        "DL.ACTION.SCENARIO.NAVIGATION.SELECT",
+        "DL.ACTION.SCENARIO.THEME.SELECT",
+        "DL.ACTION.SCENARIO.SPONSOREDDEMO.SELECT",
+        "DL.ACTION.SCENARIO.DATASTATE.SELECT",
+        "DL.ACTION.SCENARIO.NETWORKSTATE.SELECT",
+        "DL.ACTION.SCENARIO.ERRORSTATE.SELECT",
+        "DL.ACTION.SCENARIO.LONGCONTENT.SELECT",
+        "DL.ACTION.SCENARIO.MISSINGIMAGE.SELECT",
+        "DL.ACTION.SCENARIO.TOUR.SELECT",
+        "DL.ACTION.SCENARIO.TOURSTEP.SELECT",
+        "DL.ACTION.SCENARIO.REDUCEDMOTION.SELECT",
+        "DL.ACTION.SCENARIO.HIGHCONTRAST.SELECT",
+        "DL.ACTION.SCENARIO.URL.COPY",
+        "DL.ACTION.SCENARIO.DESTRUCTIVE.SIMULATE"
+      ],
+      "stateIds": [
+        "DL.STATE.SCENARIO.DEFAULT",
+        "DL.STATE.SCENARIO.INITIAL-LOADING",
+        "DL.STATE.SCENARIO.BACKGROUND-REFRESH",
+        "DL.STATE.SCENARIO.SKELETON",
+        "DL.STATE.SCENARIO.EMPTY",
+        "DL.STATE.SCENARIO.NO-RESULTS",
+        "DL.STATE.SCENARIO.PARTIAL",
+        "DL.STATE.SCENARIO.STALE",
+        "DL.STATE.SCENARIO.DELAYED",
+        "DL.STATE.SCENARIO.SUCCESS",
+        "DL.STATE.SCENARIO.OPTIMISTIC",
+        "DL.STATE.SCENARIO.MUTATION-PENDING",
+        "DL.STATE.SCENARIO.MUTATION-FAILED",
+        "DL.STATE.SCENARIO.LONG-TEXT",
+        "DL.STATE.SCENARIO.LARGE-VOLUME",
+        "DL.STATE.SCENARIO.MISSING-MEDIA",
+        "DL.STATE.SCENARIO.BROKEN-MEDIA",
+        "DL.STATE.SCENARIO.RECOVERABLE-ERROR",
+        "DL.STATE.SCENARIO.PERMISSION-DENIED",
+        "DL.STATE.SCENARIO.AUTH-REQUIRED",
+        "DL.STATE.SCENARIO.SUBSCRIPTION-REQUIRED",
+        "DL.STATE.SCENARIO.FEATURE-DISABLED",
+        "DL.STATE.SCENARIO.PRIVATE",
+        "DL.STATE.SCENARIO.BLOCKED",
+        "DL.STATE.SCENARIO.DELETED",
+        "DL.STATE.SCENARIO.ARCHIVED",
+        "DL.STATE.SCENARIO.SUSPENDED",
+        "DL.STATE.SCENARIO.MISSING-RECORD",
+        "DL.STATE.SCENARIO.OFFLINE"
+      ],
+      "fixtureIds": [
+        "DL-SCENARIO-DOG-ATLAS",
+        "DL-SCENARIO-RACE-HARBOUR",
+        "DL-SCENARIO-LISTING-STARTER"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.WORKSPACE.DEFAULT-AREA-NAV.HYDRATED",
+      "route": "/design-lab",
+      "actionIds": [
+        "DL.ACTION.AREA.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.DEFAULT.OVERVIEW",
+        "DL.STATE.AREA.OVERVIEW",
+        "DL.STATE.AREA.SCREENS"
+      ],
+      "fixtureIds": [
+        "DL-WORKSPACE-DEFAULT",
+        "DL-WORKSPACE-AREA-OVERVIEW",
+        "DL-WORKSPACE-AREA-SCREENS"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.WORKSPACE.AREA-DELIVERY.HYDRATED",
+      "route": "/design-lab",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.AREA.DELIVERY"
+      ],
+      "fixtureIds": [
+        "DL-WORKSPACE-AREA-DELIVERY"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.WORKSPACE.AREA-ARCHITECTURE.HYDRATED",
+      "route": "/design-lab",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.AREA.ARCHITECTURE"
+      ],
+      "fixtureIds": [
+        "DL-WORKSPACE-AREA-ARCHITECTURE"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.WORKSPACE.AREA-ADVERTISING.HYDRATED",
+      "route": "/design-lab",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.AREA.ADVERTISING"
+      ],
+      "fixtureIds": [
+        "DL-WORKSPACE-AREA-ADVERTISING"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.WORKSPACE.AREA-REQUIREMENTS.HYDRATED",
+      "route": "/design-lab",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.AREA.REQUIREMENTS"
+      ],
+      "fixtureIds": [
+        "DL-WORKSPACE-AREA-REQUIREMENTS"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.WORKSPACE.AREA-READINESS.HYDRATED",
+      "route": "/design-lab",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.AREA.READINESS"
+      ],
+      "fixtureIds": [
+        "DL-WORKSPACE-AREA-READINESS"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.WORKSPACE.UNSUPPORTED-FALLBACK.HYDRATED",
+      "route": "/design-lab",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.FALLBACK.UNSUPPORTED-AREA"
+      ],
+      "fixtureIds": [
+        "DL-WORKSPACE-FALLBACK"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.WORKSPACE.SCREEN-OPEN.HYDRATED",
+      "route": "/design-lab",
+      "actionIds": [
+        "DL.ACTION.SCREEN.OPEN"
+      ],
+      "stateIds": [],
+      "fixtureIds": []
+    },
+    {
+      "scenarioId": "DL.STORY.DEMO-EXPERIENCE.HYDRATED",
+      "route": "/design-lab/demo-experience",
+      "actionIds": [
+        "DL.ACTION.ADMIN-FRAMES.OPEN",
+        "DL.ACTION.VIEWPORT.DESKTOP.SELECT",
+        "DL.ACTION.VIEWPORT.TABLET.SELECT",
+        "DL.ACTION.VIEWPORT.MOBILE.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.ADMIN-FRAME.DESKTOP",
+        "DL.STATE.ADMIN-FRAME.TABLET",
+        "DL.STATE.ADMIN-FRAME.MOBILE"
+      ],
+      "fixtureIds": [
+        "DL-DEMO-ADMIN-FRAMES"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.DEMO.REGISTRY.HYDRATED",
+      "route": "/design-lab/demo-experience",
+      "actionIds": [
+        "DL.ACTION.REGISTRY.SEARCH",
+        "DL.ACTION.REGISTRY.FAMILY.FILTER",
+        "DL.ACTION.REGISTRY.SCREEN.OPEN"
+      ],
+      "stateIds": [
+        "DL.STATE.REGISTRY.DEFAULT",
+        "DL.STATE.REGISTRY.FILTERED",
+        "DL.STATE.REGISTRY.EMPTY"
+      ],
+      "fixtureIds": [
+        "DL-DEMO-REGISTRY"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.DEMO.UNSUPPORTED-FALLBACK.HYDRATED",
+      "route": "/design-lab/demo-experience",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.FALLBACK.UNSUPPORTED-VIEW"
+      ],
+      "fixtureIds": [
+        "DL-DEMO-FALLBACK"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.DEMO.REGISTRY-RETURN.HYDRATED",
+      "route": "/design-lab/demo-experience",
+      "actionIds": [
+        "DL.ACTION.REGISTRY.RETURN"
+      ],
+      "stateIds": [],
+      "fixtureIds": []
+    },
+    {
+      "scenarioId": "DL.INVENTORY.DEMO.ADMIN-OPEN-FULL.HYDRATED",
+      "route": "/design-lab/demo-experience",
+      "actionIds": [
+        "DL.ACTION.ADMIN.OPEN-FULL"
+      ],
+      "stateIds": [],
+      "fixtureIds": []
+    },
+    {
+      "scenarioId": "DL.INVENTORY.DEMO.RELOAD.HYDRATED",
+      "route": "/design-lab/demo-experience",
+      "actionIds": [
+        "DL.ACTION.ADMIN-FRAMES.RELOAD"
+      ],
+      "stateIds": [],
+      "fixtureIds": []
+    },
+    {
+      "scenarioId": "DL.STORY.DOCK-SKINS.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "actionIds": [
+        "DL.ACTION.DOCK.D1.SELECT",
+        "DL.ACTION.DOCK.D2.SELECT",
+        "DL.ACTION.DOCK.D3.SELECT",
+        "DL.ACTION.DOCK.D4.SELECT",
+        "DL.ACTION.DOCK.D5.SELECT",
+        "DL.ACTION.DOCK.D6.SELECT",
+        "DL.ACTION.DOCK-ACTION.HOME.SELECT",
+        "DL.ACTION.DOCK-ACTION.FEED.SELECT",
+        "DL.ACTION.DOCK-ACTION.POST.SELECT",
+        "DL.ACTION.DOCK-ACTION.CHAT.SELECT",
+        "DL.ACTION.DOCK-ACTION.MENU.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.DOCK.D1",
+        "DL.STATE.DOCK.D2",
+        "DL.STATE.DOCK.D3",
+        "DL.STATE.DOCK.D4",
+        "DL.STATE.DOCK.D5",
+        "DL.STATE.DOCK.D6",
+        "DL.STATE.DOCK-ACTION.HOME",
+        "DL.STATE.DOCK-ACTION.FEED",
+        "DL.STATE.DOCK-ACTION.POST",
+        "DL.STATE.DOCK-ACTION.CHAT",
+        "DL.STATE.DOCK-ACTION.MENU"
+      ],
+      "fixtureIds": [
+        "DL-DOCK-D1"
+      ]
+    },
+    {
+      "scenarioId": "DL.STORY.DOCK-SKINS.UNSUPPORTED-FALLBACK.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.FALLBACK.UNSUPPORTED-DOCK"
+      ],
+      "fixtureIds": [
+        "DL-DOCK-FALLBACK"
+      ]
+    },
+    {
+      "scenarioId": "DL.STORY.DOCK-SKINS.MISSING-FALLBACK.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.DEFAULT.D1"
+      ],
+      "fixtureIds": [
+        "DL-DOCK-DEFAULT"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.DOCK.D2.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "actionIds": [],
+      "stateIds": [],
+      "fixtureIds": [
+        "DL-DOCK-D2"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.DOCK.D3.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "actionIds": [],
+      "stateIds": [],
+      "fixtureIds": [
+        "DL-DOCK-D3"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.DOCK.D4.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "actionIds": [],
+      "stateIds": [],
+      "fixtureIds": [
+        "DL-DOCK-D4"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.DOCK.D5.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "actionIds": [],
+      "stateIds": [],
+      "fixtureIds": [
+        "DL-DOCK-D5"
+      ]
+    },
+    {
+      "scenarioId": "DL.INVENTORY.DOCK.D6.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "actionIds": [],
+      "stateIds": [],
+      "fixtureIds": [
+        "DL-DOCK-D6"
+      ]
+    }
+  ],
+  "testedCommitSha": "b7e459372070953c58217e03b0dda48f9c14e2b9",
+  "sourceSha256": "d183b44e5a9803b044f40fd5d7dfb70d5672458241e7258008b6cc258c96afb2",
+  "sourceFileCount": 356,
+  "sourceFiles": [
+    "next.config.ts",
+    "scripts/audit-design-lab-hydrated-stories.ts",
+    "scripts/audit-design-lab-user-stories.ts",
+    "scripts/design-lab-source-fingerprint.ts",
+    "scripts/staging-load-policy.ts",
+    "security/action-trace-database-evidence.ts",
+    "security/action-trace-record-evidence.ts",
+    "security/actual-query-capture-evidence.ts",
+    "security/administration-boundary-evidence.ts",
+    "security/ai-authorization-evidence.ts",
+    "security/alert-definition-evidence.ts",
+    "security/api-inventory-management-evidence.ts",
+    "security/api-surface-evidence.ts",
+    "security/api-trace-governance-evidence.ts",
+    "security/application-log-envelope-evidence.ts",
+    "security/application-log-prohibition-evidence.ts",
+    "security/application-surface-evidence.ts",
+    "security/architecture-adaptation-evidence.ts",
+    "security/audit-event-coverage-evidence.ts",
+    "security/audit-event-coverage.ts",
+    "security/audit-events.ts",
+    "security/audit-integrity-evidence.ts",
+    "security/authentication-path-evidence.ts",
+    "security/authentication-path-review.ts",
+    "security/authorised-testing-boundary-evidence.ts",
+    "security/authorization-actor-evidence.ts",
+    "security/authorization-actor-matrix.ts",
+    "security/billing-invoice-ownership-evidence.ts",
+    "security/billing-lifecycle-evidence.ts",
+    "security/billing-subscription-state-machine-evidence.ts",
+    "security/browser-data-handling-evidence.ts",
+    "security/browser-security-header-evidence.ts",
+    "security/ci-access-isolation-evidence.ts",
+    "security/ci-gate-evidence.ts",
+    "security/command-injection-control-evidence.ts",
+    "security/cookie-control-evidence.ts",
+    "security/cors-control-evidence.ts",
+    "security/cryptography-record-evidence.ts",
+    "security/csrf-control-evidence.ts",
+    "security/database-column-record-evidence.ts",
+    "security/database-column-records.ts",
+    "security/database-inventory-evidence.ts",
+    "security/database-no-superuser-evidence.ts",
+    "security/database-operations.ts",
+    "security/database-query-record-evidence.ts",
+    "security/database-role-separation-evidence.ts",
+    "security/deletion-lifecycle-coverage.ts",
+    "security/deletion-lifecycle-evidence.ts",
+    "security/deserialization-control-evidence.ts",
+    "security/design-lab-isolation-evidence.ts",
+    "security/download-control-evidence.ts",
+    "security/endpoint-error-evidence.ts",
+    "security/endpoint-injection-output-evidence.ts",
+    "security/endpoint-resource-database-evidence.ts",
+    "security/endpoint-validation-evidence.ts",
+    "security/endpoints.ts",
+    "security/external-input-surface-evidence.ts",
+    "security/external-link-embed-evidence.ts",
+    "security/finding-severity-evidence.ts",
+    "security/finding-severity.ts",
+    "security/frontend-authorization-evidence.ts",
+    "security/header-injection-control-evidence.ts",
+    "security/health-endpoint-redaction-evidence.ts",
+    "security/http-control-evidence.ts",
+    "security/incident-readiness-evidence.ts",
+    "security/incident-readiness.ts",
+    "security/infrastructure-policy-control-evidence.ts",
+    "security/infrastructure-review-coverage.ts",
+    "security/infrastructure-review-evidence.ts",
+    "security/infrastructure-source-control-evidence.ts",
+    "security/injection-surface-control-evidence.ts",
+    "security/listing-object-authorization-evidence.ts",
+    "security/local-data-policy.ts",
+    "security/mandatory-public-racing-database-operations.ts",
+    "security/mandatory-public-racing-trace-evidence.ts",
+    "security/media-boundary-evidence.ts",
+    "security/moderator-api-boundary-evidence.ts",
+    "security/no-custom-cryptography-evidence.ts",
+    "security/organization-team-authorization-evidence.ts",
+    "security/orm-injection-control-evidence.ts",
+    "security/pci-scope-evidence.ts",
+    "security/personal-information-record-evidence.ts",
+    "security/personal-information-records.ts",
+    "security/placeholder-prohibition-evidence.ts",
+    "security/primary-trace-chain-evidence.ts",
+    "security/privacy-minimisation-evidence.ts",
+    "security/property-authorization-evidence.ts",
+    "security/query-safety-evidence.ts",
+    "security/queue-worker-control-evidence.ts",
+    "security/realtime-control-evidence.ts",
+    "security/retention-schedule-evidence.ts",
+    "security/retention-schedule.ts",
+    "security/risk-acceptance-policy-evidence.ts",
+    "security/row-level-security-evidence.ts",
+    "security/scheduled-task-control-evidence.ts",
+    "security/secret-control-evidence.ts",
+    "security/secret-inventory-evidence.ts",
+    "security/secret-inventory.ts",
+    "security/secure-failure-evidence.ts",
+    "security/security-alert-event-evidence.ts",
+    "security/security-conclusion-evidence.ts",
+    "security/security-finding-evidence.ts",
+    "security/security-language-policy-evidence.ts",
+    "security/security-language-policy.ts",
+    "security/sensitive-business-flow-evidence.ts",
+    "security/shared.ts",
+    "security/sql-injection-control-evidence.ts",
+    "security/ssrf-control-evidence.ts",
+    "security/standards-baseline-evidence.ts",
+    "security/supply-chain-additional-evidence.ts",
+    "security/supply-chain-dependency-review.ts",
+    "security/supply-chain-review-evidence.ts",
+    "security/third-party-inventory-evidence.ts",
+    "security/third-party-prohibition-evidence.ts",
+    "security/threat-model-coverage-evidence.ts",
+    "security/threat-model-coverage.ts",
+    "security/topaz-response-safety-evidence.ts",
+    "security/trace-identifier-example-evidence.ts",
+    "security/upload-control-evidence.ts",
+    "security/upload-untrusted-claim-evidence.ts",
+    "security/upload-validation-evidence.ts",
+    "security/voice-video-control-evidence.ts",
+    "security/webhook-control-evidence.ts",
+    "security/xss-surface-evidence.ts",
+    "security/xss-surface-review.ts",
+    "src/app/admin/admin-nav-data.ts",
+    "src/app/design-lab/demo-experience/page.tsx",
+    "src/app/design-lab/dock-skins/page.tsx",
+    "src/app/design-lab/page.tsx",
+    "src/app/globals.css",
+    "src/app/layout.tsx",
+    "src/components/actor-media-image.tsx",
+    "src/components/admin-control-centre-frame-lab.tsx",
+    "src/components/advertising-product-contract.ts",
+    "src/components/agents-onboarding-tour-registry.ts",
+    "src/components/community-onboarding-tour-registry.ts",
+    "src/components/cookie-consent.tsx",
+    "src/components/demo-experience-registry.ts",
+    "src/components/demo-experience-screen-map.tsx",
+    "src/components/demo-read-only-guard.tsx",
+    "src/components/demo-route-audit-evidence.ts",
+    "src/components/design-lab-advertising-console.tsx",
+    "src/components/design-lab-architecture-inventory.ts",
+    "src/components/design-lab-architecture-lab.tsx",
+    "src/components/design-lab-architecture-plan.ts",
+    "src/components/design-lab-contract-inspector-model.ts",
+    "src/components/design-lab-contract-inspector-prototype.tsx",
+    "src/components/design-lab-contract-inspector.tsx",
+    "src/components/design-lab-data-feed-contract.ts",
+    "src/components/design-lab-data-feed-operations-panel.tsx",
+    "src/components/design-lab-data-feed-operations.ts",
+    "src/components/design-lab-data-feed-registry.ts",
+    "src/components/design-lab-database-contracts.ts",
+    "src/components/design-lab-database-normalization-requirements.ts",
+    "src/components/design-lab-delivery-progress-panel.tsx",
+    "src/components/design-lab-delivery-progress.ts",
+    "src/components/design-lab-deployment-race.tsx",
+    "src/components/design-lab-onboarding-disclosure-targets.tsx",
+    "src/components/design-lab-onboarding-preview.ts",
+    "src/components/design-lab-onboarding-tour-registry.ts",
+    "src/components/design-lab-operating-model-panel.tsx",
+    "src/components/design-lab-operating-model.ts",
+    "src/components/design-lab-pending-work-panel.tsx",
+    "src/components/design-lab-pending-work.ts",
+    "src/components/design-lab-preproduction-checklist.tsx",
+    "src/components/design-lab-preproduction-requirements.ts",
+    "src/components/design-lab-release-gate.ts",
+    "src/components/design-lab-role-blueprints.ts",
+    "src/components/design-lab-scenario-contract.ts",
+    "src/components/design-lab-scenario-controls.tsx",
+    "src/components/design-lab-scenario-state.ts",
+    "src/components/design-lab-sync.ts",
+    "src/components/design-lab-url-state.ts",
+    "src/components/design-lab-workspace-shell.tsx",
+    "src/components/design-lab-workspace.ts",
+    "src/components/dock-skin-catalogue-preview.tsx",
+    "src/components/dock-skin-catalogue.ts",
+    "src/components/header-nav.tsx",
+    "src/components/home-route-content.tsx",
+    "src/components/hub/hub-conversation-dock.tsx",
+    "src/components/interactive-help-layout.ts",
+    "src/components/interactive-help-state.ts",
+    "src/components/interactive-help.tsx",
+    "src/components/json-ld.tsx",
+    "src/components/marketplace-onboarding-tour-registry.ts",
+    "src/components/marketplace-template-variants.ts",
+    "src/components/master-audit-checklist.tsx",
+    "src/components/master-audit-evidence.ts",
+    "src/components/master-audit-requirements.ts",
+    "src/components/media-attachment-fields.tsx",
+    "src/components/member-header-shell.tsx",
+    "src/components/mobile-bottom-dock.tsx",
+    "src/components/mobile-menu-close-link.tsx",
+    "src/components/network-recovery-banner.tsx",
+    "src/components/onboarding-analytics-client.ts",
+    "src/components/onboarding-analytics.ts",
+    "src/components/onboarding-help-catalogue.ts",
+    "src/components/onboarding-persona.ts",
+    "src/components/onboarding-target-disclosure.ts",
+    "src/components/onboarding-tour-registry.ts",
+    "src/components/processed-video.tsx",
+    "src/components/product-account-form-validation-evidence.ts",
+    "src/components/product-account-sensitive-confirmation-evidence.ts",
+    "src/components/product-account-support-ticket-detail-evidence.ts",
+    "src/components/product-account-team-evidence.ts",
+    "src/components/product-action-inventory-evidence.ts",
+    "src/components/product-action-purpose-evidence.ts",
+    "src/components/product-action-type-control-catalogue-evidence.ts",
+    "src/components/product-actor-map-evidence.ts",
+    "src/components/product-admin-safe-failure-evidence.ts",
+    "src/components/product-admin-server-authorization-evidence.ts",
+    "src/components/product-agent-run-lifecycle-evidence.ts",
+    "src/components/product-ai-route-inventory-evidence.ts",
+    "src/components/product-ai-truth-evidence.ts",
+    "src/components/product-automated-source-gate-evidence.ts",
+    "src/components/product-community-capability-evidence.ts",
+    "src/components/product-community-dropped-call-recovery-evidence.ts",
+    "src/components/product-community-friend-removal-evidence.ts",
+    "src/components/product-community-privacy-hide-evidence.ts",
+    "src/components/product-design-lab-inspector-evidence.ts",
+    "src/components/product-design-lab-route-selector-evidence.ts",
+    "src/components/product-design-lab-scenario-selector-evidence.ts",
+    "src/components/product-design-lab-scenario-simulator-evidence.ts",
+    "src/components/product-documentation-authority-evidence.ts",
+    "src/components/product-dynamic-route-missing-record-evidence.ts",
+    "src/components/product-field-contract-source-evidence.ts",
+    "src/components/product-form-contract-core-evidence.ts",
+    "src/components/product-form-operational-contract-evidence.ts",
+    "src/components/product-global-security-invariant-evidence.ts",
+    "src/components/product-idempotency-source-evidence.ts",
+    "src/components/product-marketplace-access-safety-evidence.ts",
+    "src/components/product-marketplace-edit-evidence.ts",
+    "src/components/product-marketplace-edit-route-evidence.ts",
+    "src/components/product-marketplace-media-ordering-evidence.ts",
+    "src/components/product-marketplace-missing-privacy-evidence.ts",
+    "src/components/product-marketplace-seller-inventory-routes-evidence.ts",
+    "src/components/product-marketplace-seller-profile-evidence.ts",
+    "src/components/product-marketplace-share-evidence.ts",
+    "src/components/product-marketplace-sort-pagination-evidence.ts",
+    "src/components/product-master-requirements.ts",
+    "src/components/product-messaging-access-state-evidence.ts",
+    "src/components/product-onboarding-capability-evidence.ts",
+    "src/components/product-onboarding-viewport-source-evidence.ts",
+    "src/components/product-placeholder-prohibition-evidence.ts",
+    "src/components/product-public-route-outcome-evidence.ts",
+    "src/components/product-racing-context-preservation-evidence.ts",
+    "src/components/product-racing-detail-navigation-evidence.ts",
+    "src/components/product-racing-final-routes-evidence.ts",
+    "src/components/product-racing-fixture-evidence.ts",
+    "src/components/product-racing-meeting-search-evidence.ts",
+    "src/components/product-racing-missing-snapshot-evidence.ts",
+    "src/components/product-racing-presentation-schema-evidence.ts",
+    "src/components/product-racing-provenance-evidence.ts",
+    "src/components/product-racing-status-distinction-evidence.ts",
+    "src/components/product-racing-structure-evidence.ts",
+    "src/components/product-racing-zero-missing-evidence.ts",
+    "src/components/product-reduced-motion-source-evidence.ts",
+    "src/components/product-required-outputs.ts",
+    "src/components/product-responsive-width-evidence.ts",
+    "src/components/product-route-master-evidence.ts",
+    "src/components/product-route-refresh-fixture-evidence.ts",
+    "src/components/product-route-registry-metadata-evidence.ts",
+    "src/components/product-screen-contract-completeness-evidence.ts",
+    "src/components/product-source-audit-evidence.ts",
+    "src/components/product-source-interaction-evidence.ts",
+    "src/components/product-story-capability-evidence.ts",
+    "src/components/product-story-contract-field-evidence.ts",
+    "src/components/product-story-operational-contract-evidence.ts",
+    "src/components/product-system-recovery-evidence.ts",
+    "src/components/product-system-state-evidence.ts",
+    "src/components/product-team-invitation-state-evidence.ts",
+    "src/components/product-verification-gate-evidence.ts",
+    "src/components/prototype-variants.ts",
+    "src/components/public-onboarding-tour-registry.ts",
+    "src/components/racing-onboarding-tour-registry.ts",
+    "src/components/realtime-refresh.tsx",
+    "src/components/screen-contracts/design-lab-user-stories.ts",
+    "src/components/screen-contracts/production-screen-admin-access-state-evidence.ts",
+    "src/components/screen-contracts/production-screen-admin-core-interactions.ts",
+    "src/components/screen-contracts/production-screen-admin-moderation-interactions.ts",
+    "src/components/screen-contracts/production-screen-admin-operations-interactions.ts",
+    "src/components/screen-contracts/production-screen-commerce-interactions.ts",
+    "src/components/screen-contracts/production-screen-coverage.ts",
+    "src/components/screen-contracts/production-screen-member-access-state-evidence.ts",
+    "src/components/screen-contracts/production-screen-member-support-interactions.ts",
+    "src/components/screen-contracts/production-screen-messaging-access-state-evidence.ts",
+    "src/components/screen-contracts/production-screen-profile-messaging-interactions.ts",
+    "src/components/screen-contracts/production-screen-public-navigation-interactions.ts",
+    "src/components/screen-contracts/production-screen-public-racing-interactions.ts",
+    "src/components/screen-contracts/screen-contract-source-audit.ts",
+    "src/components/screen-contracts/screen-permission-evidence.ts",
+    "src/components/screen-contracts/screen-state-evidence.ts",
+    "src/components/screen-contracts/types.ts",
+    "src/components/security-master-requirements.ts",
+    "src/components/security-required-input-evidence.ts",
+    "src/components/security-required-outputs.ts",
+    "src/components/site-footer.tsx",
+    "src/components/site-header.tsx",
+    "src/components/ui/button.tsx",
+    "src/components/ui/sheet.tsx",
+    "src/components/user-data-export-form.tsx",
+    "src/lib/account-service.ts",
+    "src/lib/account-validation.ts",
+    "src/lib/admin-access-contract.ts",
+    "src/lib/auth-redirect-contract.ts",
+    "src/lib/auth-roles.ts",
+    "src/lib/auth-sync.ts",
+    "src/lib/auth-types.ts",
+    "src/lib/auth.ts",
+    "src/lib/billing/billable-metrics.ts",
+    "src/lib/billing/entitlement-service.ts",
+    "src/lib/billing/entitlements.ts",
+    "src/lib/billing/usage-service.ts",
+    "src/lib/content.ts",
+    "src/lib/conversation-service.ts",
+    "src/lib/csp.ts",
+    "src/lib/database-url.ts",
+    "src/lib/db-context.ts",
+    "src/lib/db.ts",
+    "src/lib/demo-access.ts",
+    "src/lib/demo-profile-media.ts",
+    "src/lib/demo-route-sample-contract.ts",
+    "src/lib/demo-route-samples.ts",
+    "src/lib/design-lab-access-policy.ts",
+    "src/lib/design-lab-access.ts",
+    "src/lib/emergency-controls.ts",
+    "src/lib/live/replay-network.ts",
+    "src/lib/logger.ts",
+    "src/lib/maintenance-mode.ts",
+    "src/lib/media-service.ts",
+    "src/lib/media-sniff.ts",
+    "src/lib/media-validation.ts",
+    "src/lib/moderation-service.ts",
+    "src/lib/network-recovery-state.ts",
+    "src/lib/notification-service.ts",
+    "src/lib/notification-webhook-policy.ts",
+    "src/lib/notification-webhook.ts",
+    "src/lib/object-storage.ts",
+    "src/lib/organization-team-policy.ts",
+    "src/lib/public-network.ts",
+    "src/lib/realtime-service.ts",
+    "src/lib/request-id.ts",
+    "src/lib/request-security.ts",
+    "src/lib/signup-acceptance.ts",
+    "src/lib/social-actor-service.ts",
+    "src/lib/social-privacy.ts",
+    "src/lib/storage-paths.ts",
+    "src/lib/storage-url-policy.ts",
+    "src/lib/supabase-object-storage.ts",
+    "src/lib/supabase-storage.ts",
+    "src/lib/tier-access.ts",
+    "src/lib/ttl-cache.ts",
+    "src/lib/utils.ts",
+    "src/lib/workos-env.ts",
+    "src/lib/workos-redirect.ts",
+    "src/proxy.ts"
+  ],
+  "expectedScenarios": 24,
+  "passedScenarios": 24,
+  "results": [
+    {
+      "id": "DL.STORY.CONTRACT-WORKSPACE.HYDRATED",
+      "route": "/design-lab",
+      "requestPath": "/design-lab?area=screens",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "3d5d3a57-7d52-4909-ab11-105cfa9a9794",
+      "demoMode": "full-access-read-only",
+      "durationMs": 2508,
+      "observed": {
+        "initialRouteCount": 97,
+        "familyFiltered": {
+          "query": "",
+          "family": "racing",
+          "routeCount": 10,
+          "familyKeys": [
+            "racing"
+          ]
+        },
+        "searchFiltered": {
+          "query": "/dogs/[id]",
+          "family": "all",
+          "routeCount": 1,
+          "familyKeys": [
+            "racing"
+          ],
+          "routeHrefs": [
+            "/dogs/demo-provider-dog"
+          ]
+        },
+        "empty": {
+          "query": "no-screen-can-match-this",
+          "family": "all",
+          "routeCount": 0,
+          "familyCount": 0,
+          "status": "Showing 0 of 97 registered screens."
+        },
+        "coverageSummary": "9/9 complete",
+        "coverageBadgeTitles": [
+          "route: tested",
+          "user Stories: tested",
+          "actions: verified",
+          "forms: verified",
+          "permissions: tested",
+          "states: verified",
+          "design Lab: tested",
+          "onboarding: tested",
+          "tests: tested"
+        ],
+        "ribbonVisible": true,
+        "ribbonReleaseText": "Production locked"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.STORY.CONTRACT-WORKSPACE.HYDRATED",
+        "route": "/design-lab",
+        "actionIds": [
+          "DL.ACTION.SCREEN.SEARCH",
+          "DL.ACTION.FAMILY.FILTER"
+        ],
+        "stateIds": [
+          "DL.STATE.SCREEN.FILTERED",
+          "DL.STATE.SCREEN.EMPTY"
+        ],
+        "fixtureIds": []
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.WORKSPACE.SCENARIO-CONTROLS.HYDRATED",
+      "route": "/design-lab",
+      "requestPath": "/design-lab?area=screens&fixture=race-harbour&tier=business&auth=signed-out&permissions=admin&featureFlags=advertising&orientation=landscape&navigation=compact&theme=light&sponsoredDemo=off&state=stale&networkState=slow&errorState=permission-denied&longContent=on&missingImage=on&tour=safety&tourStep=4&reducedMotion=on&highContrast=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "32da8963-85e1-4101-b125-ef8391e154a3",
+      "demoMode": "full-access-read-only",
+      "durationMs": 3019,
+      "observed": {
+        "controlCount": 18,
+        "controlQueryParams": [
+          "fixture",
+          "tier",
+          "auth",
+          "permissions",
+          "featureFlags",
+          "orientation",
+          "navigation",
+          "theme",
+          "sponsoredDemo",
+          "state",
+          "networkState",
+          "errorState",
+          "longContent",
+          "missingImage",
+          "tour",
+          "tourStep",
+          "reducedMotion",
+          "highContrast"
+        ],
+        "initialValues": {
+          "fixture": "race-harbour",
+          "tier": "business",
+          "auth": "signed-out",
+          "permissions": "admin",
+          "featureFlags": "advertising",
+          "orientation": "landscape",
+          "navigation": "compact",
+          "theme": "light",
+          "sponsoredDemo": "off",
+          "dataState": "stale",
+          "networkState": "slow",
+          "errorState": "permission-denied",
+          "longContent": "on",
+          "missingImage": "on",
+          "tour": "safety",
+          "tourStep": "4",
+          "reducedMotion": "on",
+          "highContrast": "on"
+        },
+        "dataStateCoverage": [
+          "default",
+          "initial-loading",
+          "background-refresh",
+          "skeleton",
+          "empty",
+          "no-results",
+          "partial",
+          "stale",
+          "delayed",
+          "success",
+          "optimistic",
+          "mutation-pending",
+          "mutation-failed",
+          "long-text",
+          "large-volume",
+          "missing-media",
+          "broken-media"
+        ],
+        "errorStateCoverage": [
+          "none",
+          "recoverable-error",
+          "permission-denied",
+          "auth-required",
+          "subscription-required",
+          "feature-disabled",
+          "private",
+          "blocked",
+          "deleted",
+          "archived",
+          "suspended",
+          "missing-record"
+        ],
+        "networkStateCoverage": [
+          "online",
+          "offline",
+          "slow"
+        ],
+        "finalValues": {
+          "fixture": "race-harbour",
+          "tier": "business",
+          "auth": "signed-out",
+          "permissions": "admin",
+          "featureFlags": "advertising",
+          "orientation": "landscape",
+          "navigation": "compact",
+          "theme": "light",
+          "sponsoredDemo": "off",
+          "dataState": "broken-media",
+          "networkState": "slow",
+          "errorState": "missing-record",
+          "longContent": "on",
+          "missingImage": "on",
+          "tour": "safety",
+          "tourStep": "4",
+          "reducedMotion": "on",
+          "highContrast": "on"
+        },
+        "preview": {
+          "dataState": "broken-media",
+          "errorState": "missing-record",
+          "networkState": "slow",
+          "destructiveSimulation": "complete"
+        },
+        "copyButtonPresent": true,
+        "syntheticBoundaryPresent": true,
+        "accessBoundaryPresent": true
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.WORKSPACE.SCENARIO-CONTROLS.HYDRATED",
+        "route": "/design-lab",
+        "actionIds": [
+          "DL.ACTION.SCENARIO.FIXTURE.SELECT",
+          "DL.ACTION.SCENARIO.TIER.SELECT",
+          "DL.ACTION.SCENARIO.AUTH.SELECT",
+          "DL.ACTION.SCENARIO.PERMISSIONS.SELECT",
+          "DL.ACTION.SCENARIO.FEATUREFLAGS.SELECT",
+          "DL.ACTION.SCENARIO.ORIENTATION.SELECT",
+          "DL.ACTION.SCENARIO.NAVIGATION.SELECT",
+          "DL.ACTION.SCENARIO.THEME.SELECT",
+          "DL.ACTION.SCENARIO.SPONSOREDDEMO.SELECT",
+          "DL.ACTION.SCENARIO.DATASTATE.SELECT",
+          "DL.ACTION.SCENARIO.NETWORKSTATE.SELECT",
+          "DL.ACTION.SCENARIO.ERRORSTATE.SELECT",
+          "DL.ACTION.SCENARIO.LONGCONTENT.SELECT",
+          "DL.ACTION.SCENARIO.MISSINGIMAGE.SELECT",
+          "DL.ACTION.SCENARIO.TOUR.SELECT",
+          "DL.ACTION.SCENARIO.TOURSTEP.SELECT",
+          "DL.ACTION.SCENARIO.REDUCEDMOTION.SELECT",
+          "DL.ACTION.SCENARIO.HIGHCONTRAST.SELECT",
+          "DL.ACTION.SCENARIO.URL.COPY",
+          "DL.ACTION.SCENARIO.DESTRUCTIVE.SIMULATE"
+        ],
+        "stateIds": [
+          "DL.STATE.SCENARIO.DEFAULT",
+          "DL.STATE.SCENARIO.INITIAL-LOADING",
+          "DL.STATE.SCENARIO.BACKGROUND-REFRESH",
+          "DL.STATE.SCENARIO.SKELETON",
+          "DL.STATE.SCENARIO.EMPTY",
+          "DL.STATE.SCENARIO.NO-RESULTS",
+          "DL.STATE.SCENARIO.PARTIAL",
+          "DL.STATE.SCENARIO.STALE",
+          "DL.STATE.SCENARIO.DELAYED",
+          "DL.STATE.SCENARIO.SUCCESS",
+          "DL.STATE.SCENARIO.OPTIMISTIC",
+          "DL.STATE.SCENARIO.MUTATION-PENDING",
+          "DL.STATE.SCENARIO.MUTATION-FAILED",
+          "DL.STATE.SCENARIO.LONG-TEXT",
+          "DL.STATE.SCENARIO.LARGE-VOLUME",
+          "DL.STATE.SCENARIO.MISSING-MEDIA",
+          "DL.STATE.SCENARIO.BROKEN-MEDIA",
+          "DL.STATE.SCENARIO.RECOVERABLE-ERROR",
+          "DL.STATE.SCENARIO.PERMISSION-DENIED",
+          "DL.STATE.SCENARIO.AUTH-REQUIRED",
+          "DL.STATE.SCENARIO.SUBSCRIPTION-REQUIRED",
+          "DL.STATE.SCENARIO.FEATURE-DISABLED",
+          "DL.STATE.SCENARIO.PRIVATE",
+          "DL.STATE.SCENARIO.BLOCKED",
+          "DL.STATE.SCENARIO.DELETED",
+          "DL.STATE.SCENARIO.ARCHIVED",
+          "DL.STATE.SCENARIO.SUSPENDED",
+          "DL.STATE.SCENARIO.MISSING-RECORD",
+          "DL.STATE.SCENARIO.OFFLINE"
+        ],
+        "fixtureIds": [
+          "DL-SCENARIO-DOG-ATLAS",
+          "DL-SCENARIO-RACE-HARBOUR",
+          "DL-SCENARIO-LISTING-STARTER"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.WORKSPACE.DEFAULT-AREA-NAV.HYDRATED",
+      "route": "/design-lab",
+      "requestPath": "/design-lab",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "519162b4-0713-4d13-aecc-63aeef262caf",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1635,
+      "observed": {
+        "initial": {
+          "currentPath": "/design-lab",
+          "activeArea": "overview",
+          "heading": "Overview",
+          "currentNavigationHref": "/design-lab?area=overview"
+        },
+        "clickedHref": "/design-lab?area=screens",
+        "currentPath": "/design-lab?area=screens",
+        "activeArea": "screens",
+        "heading": "Screen library",
+        "currentNavigationHref": "/design-lab?area=screens"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.WORKSPACE.DEFAULT-AREA-NAV.HYDRATED",
+        "route": "/design-lab",
+        "actionIds": [
+          "DL.ACTION.AREA.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.DEFAULT.OVERVIEW",
+          "DL.STATE.AREA.OVERVIEW",
+          "DL.STATE.AREA.SCREENS"
+        ],
+        "fixtureIds": [
+          "DL-WORKSPACE-DEFAULT",
+          "DL-WORKSPACE-AREA-OVERVIEW",
+          "DL-WORKSPACE-AREA-SCREENS"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.WORKSPACE.AREA-DELIVERY.HYDRATED",
+      "route": "/design-lab",
+      "requestPath": "/design-lab?area=delivery",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "872f3fa1-bb5d-47e1-8e0f-3a3148004f42",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1057,
+      "observed": {
+        "currentPath": "/design-lab?area=delivery",
+        "activeArea": "delivery",
+        "heading": "Delivery",
+        "currentNavigationHref": "/design-lab?area=delivery"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.WORKSPACE.AREA-DELIVERY.HYDRATED",
+        "route": "/design-lab",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.AREA.DELIVERY"
+        ],
+        "fixtureIds": [
+          "DL-WORKSPACE-AREA-DELIVERY"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.WORKSPACE.AREA-ARCHITECTURE.HYDRATED",
+      "route": "/design-lab",
+      "requestPath": "/design-lab?area=architecture",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "33047b46-6322-4620-9231-2c13ff94a7bc",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1397,
+      "observed": {
+        "currentPath": "/design-lab?area=architecture",
+        "activeArea": "architecture",
+        "heading": "Architecture",
+        "currentNavigationHref": "/design-lab?area=architecture"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.WORKSPACE.AREA-ARCHITECTURE.HYDRATED",
+        "route": "/design-lab",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.AREA.ARCHITECTURE"
+        ],
+        "fixtureIds": [
+          "DL-WORKSPACE-AREA-ARCHITECTURE"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.WORKSPACE.AREA-ADVERTISING.HYDRATED",
+      "route": "/design-lab",
+      "requestPath": "/design-lab?area=advertising",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "0036764a-1a38-4a3e-b878-4433215091cb",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1017,
+      "observed": {
+        "currentPath": "/design-lab?area=advertising",
+        "activeArea": "advertising",
+        "heading": "Advertising",
+        "currentNavigationHref": "/design-lab?area=advertising"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.WORKSPACE.AREA-ADVERTISING.HYDRATED",
+        "route": "/design-lab",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.AREA.ADVERTISING"
+        ],
+        "fixtureIds": [
+          "DL-WORKSPACE-AREA-ADVERTISING"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.WORKSPACE.AREA-REQUIREMENTS.HYDRATED",
+      "route": "/design-lab",
+      "requestPath": "/design-lab?area=requirements",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "ee4d656c-5fc4-4938-9ba9-c4bbc8b2ecf3",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1080,
+      "observed": {
+        "currentPath": "/design-lab?area=requirements",
+        "activeArea": "requirements",
+        "heading": "Final to-do",
+        "currentNavigationHref": "/design-lab?area=requirements"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.WORKSPACE.AREA-REQUIREMENTS.HYDRATED",
+        "route": "/design-lab",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.AREA.REQUIREMENTS"
+        ],
+        "fixtureIds": [
+          "DL-WORKSPACE-AREA-REQUIREMENTS"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.WORKSPACE.AREA-READINESS.HYDRATED",
+      "route": "/design-lab",
+      "requestPath": "/design-lab?area=readiness",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "afb2d86a-9684-491d-a2d0-fe60c274d511",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1199,
+      "observed": {
+        "currentPath": "/design-lab?area=readiness",
+        "activeArea": "readiness",
+        "heading": "Readiness",
+        "currentNavigationHref": "/design-lab?area=readiness"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.WORKSPACE.AREA-READINESS.HYDRATED",
+        "route": "/design-lab",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.AREA.READINESS"
+        ],
+        "fixtureIds": [
+          "DL-WORKSPACE-AREA-READINESS"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.WORKSPACE.UNSUPPORTED-FALLBACK.HYDRATED",
+      "route": "/design-lab",
+      "requestPath": "/design-lab?area=unsupported",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "02cf68e5-fdb5-4940-825a-806a66d5ab53",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1015,
+      "observed": {
+        "currentPath": "/design-lab?area=unsupported",
+        "activeArea": "overview",
+        "heading": "Overview",
+        "currentNavigationHref": "/design-lab?area=overview"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.WORKSPACE.UNSUPPORTED-FALLBACK.HYDRATED",
+        "route": "/design-lab",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.FALLBACK.UNSUPPORTED-AREA"
+        ],
+        "fixtureIds": [
+          "DL-WORKSPACE-FALLBACK"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.WORKSPACE.SCREEN-OPEN.HYDRATED",
+      "route": "/design-lab",
+      "requestPath": "/design-lab?area=screens",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "1d8c1f63-9257-4c49-a190-e13e95a021f5",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1909,
+      "observed": {
+        "clickedHref": "/dogs/demo-provider-dog",
+        "currentPath": "/dogs/demo-provider-dog"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.WORKSPACE.SCREEN-OPEN.HYDRATED",
+        "route": "/design-lab",
+        "actionIds": [
+          "DL.ACTION.SCREEN.OPEN"
+        ],
+        "stateIds": [],
+        "fixtureIds": []
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.STORY.DEMO-EXPERIENCE.HYDRATED",
+      "route": "/design-lab/demo-experience",
+      "requestPath": "/design-lab/demo-experience",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "30bd49d1-662f-49d2-abd3-d8a9843d4d60",
+      "demoMode": "full-access-read-only",
+      "durationMs": 3512,
+      "observed": {
+        "adminFramesClickedHref": "/design-lab/demo-experience?view=admin-frames",
+        "currentPath": "/design-lab/demo-experience?view=admin-frames",
+        "transitions": [
+          {
+            "from": "desktop",
+            "to": "mobile",
+            "tabId": "admin-control-centre-mobile-tab",
+            "tabAriaSelected": "true",
+            "tabIndex": "0",
+            "panelLabelledBy": "admin-control-centre-mobile-tab",
+            "iframeTitle": "Mobile interactive Control Centre",
+            "iframeSrc": "/admin",
+            "iframeWidth": "390",
+            "iframeHeight": "844"
+          },
+          {
+            "from": "mobile",
+            "to": "desktop",
+            "tabId": "admin-control-centre-desktop-tab",
+            "tabAriaSelected": "true",
+            "tabIndex": "0",
+            "panelLabelledBy": "admin-control-centre-desktop-tab",
+            "iframeTitle": "Desktop interactive Control Centre",
+            "iframeSrc": "/admin",
+            "iframeWidth": "1440",
+            "iframeHeight": "1000"
+          },
+          {
+            "from": "desktop",
+            "to": "tablet",
+            "tabId": "admin-control-centre-tablet-tab",
+            "tabAriaSelected": "true",
+            "tabIndex": "0",
+            "panelLabelledBy": "admin-control-centre-tablet-tab",
+            "iframeTitle": "Tablet interactive Control Centre",
+            "iframeSrc": "/admin",
+            "iframeWidth": "834",
+            "iframeHeight": "1112"
+          }
+        ],
+        "selectedViewport": "tablet",
+        "iframeCount": 1,
+        "registryHref": "/design-lab/demo-experience",
+        "openFullHref": "/admin",
+        "openFullTarget": "_blank",
+        "reloadHref": "/design-lab/demo-experience?view=admin-frames"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.STORY.DEMO-EXPERIENCE.HYDRATED",
+        "route": "/design-lab/demo-experience",
+        "actionIds": [
+          "DL.ACTION.ADMIN-FRAMES.OPEN",
+          "DL.ACTION.VIEWPORT.DESKTOP.SELECT",
+          "DL.ACTION.VIEWPORT.TABLET.SELECT",
+          "DL.ACTION.VIEWPORT.MOBILE.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.ADMIN-FRAME.DESKTOP",
+          "DL.STATE.ADMIN-FRAME.TABLET",
+          "DL.STATE.ADMIN-FRAME.MOBILE"
+        ],
+        "fixtureIds": [
+          "DL-DEMO-ADMIN-FRAMES"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.DEMO.REGISTRY.HYDRATED",
+      "route": "/design-lab/demo-experience",
+      "requestPath": "/design-lab/demo-experience",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "6a9e9ef5-0477-4ac9-8abc-e1d6de76891b",
+      "demoMode": "full-access-read-only",
+      "durationMs": 3918,
+      "observed": {
+        "default": {
+          "currentPath": "/design-lab/demo-experience",
+          "activeArea": "screens",
+          "routeCount": 97
+        },
+        "familyFiltered": {
+          "query": "",
+          "family": "racing",
+          "routeCount": 10,
+          "familyKeys": [
+            "racing"
+          ]
+        },
+        "searchFiltered": {
+          "query": "/dogs/[id]",
+          "family": "all",
+          "routeCount": 1,
+          "routeHrefs": [
+            "/dogs/demo-provider-dog"
+          ]
+        },
+        "empty": {
+          "query": "no-screen-can-match-this",
+          "family": "all",
+          "routeCount": 0
+        },
+        "clickedHref": "/dogs/demo-provider-dog",
+        "currentPath": "/dogs/demo-provider-dog"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.DEMO.REGISTRY.HYDRATED",
+        "route": "/design-lab/demo-experience",
+        "actionIds": [
+          "DL.ACTION.REGISTRY.SEARCH",
+          "DL.ACTION.REGISTRY.FAMILY.FILTER",
+          "DL.ACTION.REGISTRY.SCREEN.OPEN"
+        ],
+        "stateIds": [
+          "DL.STATE.REGISTRY.DEFAULT",
+          "DL.STATE.REGISTRY.FILTERED",
+          "DL.STATE.REGISTRY.EMPTY"
+        ],
+        "fixtureIds": [
+          "DL-DEMO-REGISTRY"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.DEMO.UNSUPPORTED-FALLBACK.HYDRATED",
+      "route": "/design-lab/demo-experience",
+      "requestPath": "/design-lab/demo-experience?view=unsupported",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "4bf2b594-8866-46bc-89ff-0df43c05fa3e",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1506,
+      "observed": {
+        "currentPath": "/design-lab/demo-experience?view=unsupported",
+        "surface": "registry",
+        "activeArea": "screens",
+        "currentNavigationHref": "/design-lab/demo-experience?area=screens"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.DEMO.UNSUPPORTED-FALLBACK.HYDRATED",
+        "route": "/design-lab/demo-experience",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.FALLBACK.UNSUPPORTED-VIEW"
+        ],
+        "fixtureIds": [
+          "DL-DEMO-FALLBACK"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.DEMO.REGISTRY-RETURN.HYDRATED",
+      "route": "/design-lab/demo-experience",
+      "requestPath": "/design-lab/demo-experience?view=admin-frames",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "bbacb999-f88f-4d2f-a979-78a8c1fb905e",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1826,
+      "observed": {
+        "clickedHref": "/design-lab/demo-experience",
+        "currentPath": "/design-lab/demo-experience",
+        "surface": "registry",
+        "activeArea": "screens"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.DEMO.REGISTRY-RETURN.HYDRATED",
+        "route": "/design-lab/demo-experience",
+        "actionIds": [
+          "DL.ACTION.REGISTRY.RETURN"
+        ],
+        "stateIds": [],
+        "fixtureIds": []
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.DEMO.ADMIN-OPEN-FULL.HYDRATED",
+      "route": "/design-lab/demo-experience",
+      "requestPath": "/design-lab/demo-experience?view=admin-frames",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "7a298c40-7bf0-4601-8573-0244c8450840",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1351,
+      "observed": {
+        "clickedHref": "/admin",
+        "target": "_blank",
+        "surfaceRetained": true
+      },
+      "mutatingRequests": [],
+      "popupPaths": [
+        "/admin"
+      ],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.DEMO.ADMIN-OPEN-FULL.HYDRATED",
+        "route": "/design-lab/demo-experience",
+        "actionIds": [
+          "DL.ACTION.ADMIN.OPEN-FULL"
+        ],
+        "stateIds": [],
+        "fixtureIds": []
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.DEMO.RELOAD.HYDRATED",
+      "route": "/design-lab/demo-experience",
+      "requestPath": "/design-lab/demo-experience?view=admin-frames",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "438baa12-a707-4142-9773-b6ab891e48e5",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1588,
+      "observed": {
+        "clickedHref": "/design-lab/demo-experience?view=admin-frames",
+        "currentPath": "/design-lab/demo-experience?view=admin-frames",
+        "reloaded": true,
+        "surface": "admin-frames"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.DEMO.RELOAD.HYDRATED",
+        "route": "/design-lab/demo-experience",
+        "actionIds": [
+          "DL.ACTION.ADMIN-FRAMES.RELOAD"
+        ],
+        "stateIds": [],
+        "fixtureIds": []
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.STORY.DOCK-SKINS.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "requestPath": "/design-lab/dock-skins?dock=D1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "2ab3a6fa-04d7-4a75-8835-4cc051d37a0c",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1200,
+      "observed": {
+        "skinTransitions": [
+          {
+            "from": "D1",
+            "to": "D2",
+            "selectedSkin": "D2",
+            "ariaPressed": "true",
+            "dataSelected": "true",
+            "activeAction": "home",
+            "activeReadout": "Selected action Home"
+          },
+          {
+            "from": "D2",
+            "to": "D1",
+            "selectedSkin": "D1",
+            "ariaPressed": "true",
+            "dataSelected": "true",
+            "activeAction": "home",
+            "activeReadout": "Selected action Home"
+          },
+          {
+            "from": "D1",
+            "to": "D3",
+            "selectedSkin": "D3",
+            "ariaPressed": "true",
+            "dataSelected": "true",
+            "activeAction": "home",
+            "activeReadout": "Selected action Home"
+          },
+          {
+            "from": "D3",
+            "to": "D4",
+            "selectedSkin": "D4",
+            "ariaPressed": "true",
+            "dataSelected": "true",
+            "activeAction": "home",
+            "activeReadout": "Selected action Home"
+          },
+          {
+            "from": "D4",
+            "to": "D5",
+            "selectedSkin": "D5",
+            "ariaPressed": "true",
+            "dataSelected": "true",
+            "activeAction": "home",
+            "activeReadout": "Selected action Home"
+          },
+          {
+            "from": "D5",
+            "to": "D6",
+            "selectedSkin": "D6",
+            "ariaPressed": "true",
+            "dataSelected": "true",
+            "activeAction": "home",
+            "activeReadout": "Selected action Home"
+          }
+        ],
+        "actionTransitions": [
+          {
+            "from": "home",
+            "to": "feed",
+            "activeReadout": "Selected action Feed",
+            "activeAction": "feed",
+            "ariaPressed": "true",
+            "dataActive": "true"
+          },
+          {
+            "from": "feed",
+            "to": "post",
+            "activeReadout": "Selected action Post",
+            "activeAction": "post",
+            "ariaPressed": "true",
+            "dataActive": "true"
+          },
+          {
+            "from": "post",
+            "to": "chat",
+            "activeReadout": "Selected action Chat",
+            "activeAction": "chat",
+            "ariaPressed": "true",
+            "dataActive": "true"
+          },
+          {
+            "from": "chat",
+            "to": "menu",
+            "activeReadout": "Selected action Menu",
+            "activeAction": "menu",
+            "ariaPressed": "true",
+            "dataActive": "true"
+          },
+          {
+            "from": "menu",
+            "to": "home",
+            "activeReadout": "Selected action Home",
+            "activeAction": "home",
+            "ariaPressed": "true",
+            "dataActive": "true"
+          }
+        ],
+        "selectedSkin": "D6",
+        "selectedSkinKeys": [
+          "D6"
+        ],
+        "dockSkin": "D6",
+        "actionKeys": [
+          "home",
+          "feed",
+          "post",
+          "chat",
+          "menu"
+        ],
+        "activeAction": "home",
+        "activeReadout": "Selected action Home"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.STORY.DOCK-SKINS.HYDRATED",
+        "route": "/design-lab/dock-skins",
+        "actionIds": [
+          "DL.ACTION.DOCK.D1.SELECT",
+          "DL.ACTION.DOCK.D2.SELECT",
+          "DL.ACTION.DOCK.D3.SELECT",
+          "DL.ACTION.DOCK.D4.SELECT",
+          "DL.ACTION.DOCK.D5.SELECT",
+          "DL.ACTION.DOCK.D6.SELECT",
+          "DL.ACTION.DOCK-ACTION.HOME.SELECT",
+          "DL.ACTION.DOCK-ACTION.FEED.SELECT",
+          "DL.ACTION.DOCK-ACTION.POST.SELECT",
+          "DL.ACTION.DOCK-ACTION.CHAT.SELECT",
+          "DL.ACTION.DOCK-ACTION.MENU.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.DOCK.D1",
+          "DL.STATE.DOCK.D2",
+          "DL.STATE.DOCK.D3",
+          "DL.STATE.DOCK.D4",
+          "DL.STATE.DOCK.D5",
+          "DL.STATE.DOCK.D6",
+          "DL.STATE.DOCK-ACTION.HOME",
+          "DL.STATE.DOCK-ACTION.FEED",
+          "DL.STATE.DOCK-ACTION.POST",
+          "DL.STATE.DOCK-ACTION.CHAT",
+          "DL.STATE.DOCK-ACTION.MENU"
+        ],
+        "fixtureIds": [
+          "DL-DOCK-D1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.STORY.DOCK-SKINS.UNSUPPORTED-FALLBACK.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "requestPath": "/design-lab/dock-skins?dock=unsupported",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "e798bc56-5243-4209-9683-2a9647eb5572",
+      "demoMode": "full-access-read-only",
+      "durationMs": 974,
+      "observed": {
+        "currentPath": "/design-lab/dock-skins?dock=unsupported",
+        "selectedSkin": "D1",
+        "selectedSkinKeys": [
+          "D1"
+        ],
+        "dockSkin": "D1",
+        "activeAction": "home",
+        "activeReadout": "Selected action Home"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.STORY.DOCK-SKINS.UNSUPPORTED-FALLBACK.HYDRATED",
+        "route": "/design-lab/dock-skins",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.FALLBACK.UNSUPPORTED-DOCK"
+        ],
+        "fixtureIds": [
+          "DL-DOCK-FALLBACK"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.STORY.DOCK-SKINS.MISSING-FALLBACK.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "requestPath": "/design-lab/dock-skins",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "45e98001-8f97-4e10-944e-fcf73b3a3e84",
+      "demoMode": "full-access-read-only",
+      "durationMs": 862,
+      "observed": {
+        "currentPath": "/design-lab/dock-skins",
+        "selectedSkin": "D1",
+        "selectedSkinKeys": [
+          "D1"
+        ],
+        "dockSkin": "D1",
+        "activeAction": "home",
+        "activeReadout": "Selected action Home"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.STORY.DOCK-SKINS.MISSING-FALLBACK.HYDRATED",
+        "route": "/design-lab/dock-skins",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.DEFAULT.D1"
+        ],
+        "fixtureIds": [
+          "DL-DOCK-DEFAULT"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.DOCK.D2.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "requestPath": "/design-lab/dock-skins?dock=D2",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "40e7ee2e-2017-4999-9548-b1c4d76dd4a8",
+      "demoMode": "full-access-read-only",
+      "durationMs": 864,
+      "observed": {
+        "currentPath": "/design-lab/dock-skins?dock=D2",
+        "selectedSkin": "D2",
+        "selectedSkinKeys": [
+          "D2"
+        ],
+        "dockSkin": "D2",
+        "activeAction": "home",
+        "activeReadout": "Selected action Home"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.DOCK.D2.HYDRATED",
+        "route": "/design-lab/dock-skins",
+        "actionIds": [],
+        "stateIds": [],
+        "fixtureIds": [
+          "DL-DOCK-D2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.DOCK.D3.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "requestPath": "/design-lab/dock-skins?dock=D3",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "bdd0a727-c6c4-4d94-ade0-2370e8ce11b7",
+      "demoMode": "full-access-read-only",
+      "durationMs": 892,
+      "observed": {
+        "currentPath": "/design-lab/dock-skins?dock=D3",
+        "selectedSkin": "D3",
+        "selectedSkinKeys": [
+          "D3"
+        ],
+        "dockSkin": "D3",
+        "activeAction": "home",
+        "activeReadout": "Selected action Home"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.DOCK.D3.HYDRATED",
+        "route": "/design-lab/dock-skins",
+        "actionIds": [],
+        "stateIds": [],
+        "fixtureIds": [
+          "DL-DOCK-D3"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.DOCK.D4.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "requestPath": "/design-lab/dock-skins?dock=D4",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "c988064f-f7b2-4570-8922-9c4d0d9c39bf",
+      "demoMode": "full-access-read-only",
+      "durationMs": 875,
+      "observed": {
+        "currentPath": "/design-lab/dock-skins?dock=D4",
+        "selectedSkin": "D4",
+        "selectedSkinKeys": [
+          "D4"
+        ],
+        "dockSkin": "D4",
+        "activeAction": "home",
+        "activeReadout": "Selected action Home"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.DOCK.D4.HYDRATED",
+        "route": "/design-lab/dock-skins",
+        "actionIds": [],
+        "stateIds": [],
+        "fixtureIds": [
+          "DL-DOCK-D4"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.DOCK.D5.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "requestPath": "/design-lab/dock-skins?dock=D5",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "0fdbdcf3-5449-4657-bbeb-63b5245db61f",
+      "demoMode": "full-access-read-only",
+      "durationMs": 942,
+      "observed": {
+        "currentPath": "/design-lab/dock-skins?dock=D5",
+        "selectedSkin": "D5",
+        "selectedSkinKeys": [
+          "D5"
+        ],
+        "dockSkin": "D5",
+        "activeAction": "home",
+        "activeReadout": "Selected action Home"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.DOCK.D5.HYDRATED",
+        "route": "/design-lab/dock-skins",
+        "actionIds": [],
+        "stateIds": [],
+        "fixtureIds": [
+          "DL-DOCK-D5"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.INVENTORY.DOCK.D6.HYDRATED",
+      "route": "/design-lab/dock-skins",
+      "requestPath": "/design-lab/dock-skins?dock=D6",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "ed4c3c56-99b9-4e54-8e4e-0be16d6322a5",
+      "demoMode": "full-access-read-only",
+      "durationMs": 865,
+      "observed": {
+        "currentPath": "/design-lab/dock-skins?dock=D6",
+        "selectedSkin": "D6",
+        "selectedSkinKeys": [
+          "D6"
+        ],
+        "dockSkin": "D6",
+        "activeAction": "home",
+        "activeReadout": "Selected action Home"
+      },
+      "mutatingRequests": [],
+      "popupPaths": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.INVENTORY.DOCK.D6.HYDRATED",
+        "route": "/design-lab/dock-skins",
+        "actionIds": [],
+        "stateIds": [],
+        "fixtureIds": [
+          "DL-DOCK-D6"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    }
+  ]
+}

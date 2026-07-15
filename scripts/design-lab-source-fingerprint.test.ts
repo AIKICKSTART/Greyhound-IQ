@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 import {
+  type DesignLabSourceContract,
   fingerprintRepositoryFiles,
   getDesignLabSourceChangesBetween,
   getDesignLabSourcePaths,
@@ -29,6 +30,36 @@ try {
   assert.throws(
     () => fingerprintRepositoryFiles(root, ["../outside.ts"]),
     /escapes repository|ENOENT/
+  );
+
+  writeFileSync(join(root, "entry.ts"), 'import "./dependency";\n');
+  writeFileSync(join(root, "dependency.ts"), "export const dependency = 1;\n");
+  writeFileSync(join(root, "fixture.json"), "{}\n");
+  writeFileSync(join(root, "schema.prisma"), "model Test { id String @id }\n");
+  writeFileSync(join(root, "runtime.ts"), "export const runtime = true;\n");
+  writeFileSync(join(root, "unrelated.ts"), "export const unrelated = 1;\n");
+  const contract: DesignLabSourceContract = {
+    directFiles: ["entry.ts"],
+    transitiveImportRoots: ["entry.ts"],
+    fixtures: ["fixture.json"],
+    schemaFiles: ["schema.prisma"],
+    runtimeContractFiles: ["runtime.ts"],
+  };
+  const scopedPaths = getDesignLabSourcePaths(root, contract);
+  assert.deepEqual(scopedPaths, [
+    "dependency.ts",
+    "entry.ts",
+    "fixture.json",
+    "runtime.ts",
+    "schema.prisma",
+  ]);
+  const scopedBefore = fingerprintRepositoryFiles(root, scopedPaths);
+  writeFileSync(join(root, "unrelated.ts"), "export const unrelated = 2;\n");
+  assert.deepEqual(fingerprintRepositoryFiles(root, scopedPaths), scopedBefore);
+  writeFileSync(join(root, "dependency.ts"), "export const dependency = 2;\n");
+  assert.notEqual(
+    fingerprintRepositoryFiles(root, scopedPaths).sha256,
+    scopedBefore.sha256,
   );
 
   runGit(root, ["init"]);
@@ -116,6 +147,12 @@ try {
     "add",
     "a.ts",
     "b.ts",
+    "entry.ts",
+    "dependency.ts",
+    "fixture.json",
+    "schema.prisma",
+    "runtime.ts",
+    "unrelated.ts",
     "docker-compose.design-lab-db.yml",
     "src",
     "prisma",
@@ -133,6 +170,20 @@ try {
   assert.deepEqual(
     getDesignLabSourceChangesBetween(root, sourceCommit, evidenceCommit),
     []
+  );
+  writeFileSync(join(root, "unrelated.ts"), "export const unrelated = 3;\n");
+  runGit(root, ["add", "unrelated.ts"]);
+  runGit(root, ["commit", "-m", "unrelated change"]);
+  const unrelatedCommit = getRepositoryHeadSha(root);
+  assert.deepEqual(
+    getDesignLabSourceChangesBetween(
+      root,
+      sourceCommit,
+      unrelatedCommit,
+      scopedPaths,
+    ),
+    [],
+    "commit movement without scoped dependency changes must remain fresh",
   );
   assert.deepEqual(
     getDesignLabSourcePathsAtCommit(root, evidenceCommit),

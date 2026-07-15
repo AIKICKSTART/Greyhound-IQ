@@ -9,6 +9,8 @@ import {
 import { isAbsolute, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
+import { getLocalSourceClosure } from "../src/components/screen-contracts/screen-contract-source-audit";
+
 const SOURCE_DIRECTORIES = ["src", "security", "prisma"] as const;
 const SOURCE_FILES = [
   "package.json",
@@ -67,13 +69,61 @@ export type DesignLabSourceFingerprint = {
   fileCount: number;
 };
 
+export type DesignLabSourceContract = Readonly<{
+  directFiles: readonly string[];
+  transitiveImportRoots: readonly string[];
+  fixtures: readonly string[];
+  schemaFiles: readonly string[];
+  runtimeContractFiles: readonly string[];
+}>;
+
+export const DESIGN_LAB_DEMO_FIXTURE_FILES = Object.freeze([
+  "scripts/demo-route-fixture-contract.ts",
+  "scripts/seed-demo-route-fixtures.ts",
+]);
+
+export const DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES = Object.freeze([
+  "next.config.ts",
+  "src/app/globals.css",
+  "src/app/layout.tsx",
+  "src/proxy.ts",
+]);
+
 export function getDesignLabSourceFingerprint(
-  repoRoot: string
+  repoRoot: string,
+  contract?: DesignLabSourceContract,
 ): DesignLabSourceFingerprint {
-  return fingerprintRepositoryFiles(repoRoot, getDesignLabSourcePaths(repoRoot));
+  return fingerprintRepositoryFiles(
+    repoRoot,
+    getDesignLabSourcePaths(repoRoot, contract),
+  );
 }
 
-export function getDesignLabSourcePaths(repoRoot: string) {
+export function getDesignLabSourcePaths(
+  repoRoot: string,
+  contract?: DesignLabSourceContract,
+) {
+  if (contract) {
+    const declaredFiles = [
+      ...contract.directFiles,
+      ...contract.transitiveImportRoots,
+      ...contract.fixtures,
+      ...contract.schemaFiles,
+      ...contract.runtimeContractFiles,
+    ];
+    const importRoots = [
+      ...contract.directFiles,
+      ...contract.transitiveImportRoots,
+      ...contract.fixtures,
+      ...contract.runtimeContractFiles,
+    ].filter((file) => /\.[cm]?[jt]sx?$/.test(file));
+    return normalizeRepositoryPaths([
+      ...declaredFiles,
+      ...importRoots.flatMap((file) => [
+        ...getLocalSourceClosure(file, repoRoot),
+      ]),
+    ]);
+  }
   const files = [
     ...SOURCE_DIRECTORIES.flatMap((directory) =>
       collectSourceFiles(repoRoot, directory)
@@ -81,6 +131,27 @@ export function getDesignLabSourcePaths(repoRoot: string) {
     ...SOURCE_FILES.filter((file) => existsSync(resolve(repoRoot, file))),
   ];
   return [...new Set(files)].sort();
+}
+
+export function parseDesignLabSourceFiles(value: unknown) {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("sourceFiles" in value) ||
+    !Array.isArray(value.sourceFiles) ||
+    value.sourceFiles.length === 0 ||
+    value.sourceFiles.some((file) => typeof file !== "string")
+  ) {
+    return null;
+  }
+  try {
+    const sourceFiles = normalizeRepositoryPaths(value.sourceFiles as string[]);
+    return JSON.stringify(sourceFiles) === JSON.stringify(value.sourceFiles)
+      ? sourceFiles
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 export function fingerprintRepositoryFiles(
@@ -162,9 +233,14 @@ export function isRepositoryCommitAncestor(
 export function getDesignLabSourceChangesBetween(
   repoRoot: string,
   ancestorSha: string,
-  descendantSha: string
+  descendantSha: string,
+  repositoryRelativeFiles?: readonly string[],
 ) {
   if (!isRepositoryCommitAncestor(repoRoot, ancestorSha, descendantSha)) return null;
+  const scopedPaths = repositoryRelativeFiles
+    ? normalizeRepositoryPaths(repositoryRelativeFiles)
+    : null;
+  const scopedPathSet = scopedPaths ? new Set(scopedPaths) : null;
   const result = spawnSync(
     "git",
     [
@@ -174,8 +250,7 @@ export function getDesignLabSourceChangesBetween(
       "-z",
       `${ancestorSha}..${descendantSha}`,
       "--",
-      ...SOURCE_DIRECTORIES,
-      ...SOURCE_FILES,
+      ...(scopedPaths ?? [...SOURCE_DIRECTORIES, ...SOURCE_FILES]),
     ],
     { cwd: repoRoot, encoding: "utf8" }
   );
@@ -184,7 +259,9 @@ export function getDesignLabSourceChangesBetween(
     .split("\0")
     .filter(Boolean)
     .map(normalizeRepositoryPath)
-    .filter(isDesignLabSourcePath)
+    .filter(
+      scopedPathSet ? (file) => scopedPathSet.has(file) : isDesignLabSourcePath,
+    )
     .toSorted();
 }
 
@@ -247,6 +324,21 @@ function isDesignLabSourcePath(filePath: string) {
 
 function normalizeRepositoryPath(filePath: string) {
   return filePath.replaceAll("\\", "/");
+}
+
+function normalizeRepositoryPaths(filePaths: readonly string[]) {
+  return [...new Set(filePaths.map((filePath) => {
+    const normalizedPath = normalizeRepositoryPath(filePath);
+    if (
+      isAbsolute(normalizedPath) ||
+      normalizedPath === ".." ||
+      normalizedPath.startsWith("../") ||
+      /[\0\r\n\t]/.test(normalizedPath)
+    ) {
+      throw new Error(`Source fingerprint path must be repository-relative: ${filePath}`);
+    }
+    return normalizedPath;
+  }))].sort();
 }
 
 function repositoryObjectType(repoRoot: string, objectSha: string) {

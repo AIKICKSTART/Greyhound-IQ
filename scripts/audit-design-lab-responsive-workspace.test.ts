@@ -154,6 +154,7 @@ const validAudit: ResponsiveAuditReport = {
   testedCommitSha: binding.headSha,
   sourceSha256: binding.sourceSha256,
   sourceFileCount: binding.sourceFileCount,
+  sourceFiles: ["src/app/design-lab/page.tsx"],
   auditScriptSha256: binding.auditScriptSha256,
   architectureReportSha256: binding.architectureReportSha256,
   architectureSourceSha256: binding.architectureSourceSha256,

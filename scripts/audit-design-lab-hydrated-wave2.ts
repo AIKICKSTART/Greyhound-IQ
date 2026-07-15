@@ -46,14 +46,19 @@ import {
 import {
   DESIGN_LAB_USER_STORY_MANIFESTS,
 } from "../src/components/screen-contracts/design-lab-user-stories";
+import { SCREEN_CONTRACT_BY_ROUTE } from "../src/components/demo-experience-registry";
 import {
   DESIGN_LAB_STORY_AUDIT_PATH,
   DESIGN_LAB_STORY_RUNTIME_CASES,
   findDesignLabStoryAuditIssues,
 } from "./audit-design-lab-user-stories";
 import {
+  DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
+  fingerprintRepositoryFiles,
   getDesignLabSourceFingerprint,
+  getDesignLabSourcePaths,
   getRepositoryHeadSha,
+  parseDesignLabSourceFiles,
 } from "./design-lab-source-fingerprint";
 
 export const DESIGN_LAB_HYDRATED_WAVE2_AUDIT_PATH =
@@ -1283,7 +1288,19 @@ async function main() {
   const outputPath = path.resolve(
     readFlag("--output") ?? DESIGN_LAB_HYDRATED_WAVE2_AUDIT_PATH,
   );
-  const sourceBefore = getDesignLabSourceFingerprint(repositoryRoot);
+  const sourceContract = {
+    directFiles: ["scripts/audit-design-lab-hydrated-wave2.ts"],
+    transitiveImportRoots: DESIGN_LAB_HYDRATED_WAVE2_ROUTES.flatMap((route) => {
+      const contract = SCREEN_CONTRACT_BY_ROUTE.get(route);
+      if (!contract) throw new Error(`Missing screen contract for ${route}.`);
+      return contract.sourceFiles;
+    }),
+    fixtures: [],
+    schemaFiles: [],
+    runtimeContractFiles: DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
+  };
+  const sourceFiles = getDesignLabSourcePaths(repositoryRoot, sourceContract);
+  const sourceBefore = getDesignLabSourceFingerprint(repositoryRoot, sourceContract);
   const testedCommitSha = getRepositoryHeadSha(repositoryRoot);
   const companionJson = await readFile(
     path.resolve(repositoryRoot, DESIGN_LAB_STORY_AUDIT_PATH),
@@ -1293,10 +1310,18 @@ async function main() {
     .update(companionJson)
     .digest("hex");
   const companion = JSON.parse(companionJson) as unknown;
+  const companionSourceFiles = parseDesignLabSourceFiles(companion);
+  if (!companionSourceFiles) {
+    throw new Error("Companion HTTP audit source files are missing or invalid.");
+  }
+  const companionSource = fingerprintRepositoryFiles(
+    repositoryRoot,
+    companionSourceFiles,
+  );
   const companionIssues = findDesignLabStoryAuditIssues(companion, {
     headSha: testedCommitSha,
-    sourceSha256: sourceBefore.sha256,
-    sourceFileCount: sourceBefore.fileCount,
+    sourceSha256: companionSource.sha256,
+    sourceFileCount: companionSource.fileCount,
   });
   if (companionIssues.length > 0) {
     throw new Error(
@@ -1335,7 +1360,7 @@ async function main() {
         }
       }
 
-      const sourceAfter = getDesignLabSourceFingerprint(repositoryRoot);
+      const sourceAfter = getDesignLabSourceFingerprint(repositoryRoot, sourceContract);
       if (!canonicalJsonEquals(sourceAfter, sourceBefore)) {
         throw new Error(
           "Design Lab source changed during wave 2; discard the run.",
@@ -1363,6 +1388,7 @@ async function main() {
         testedCommitSha,
         sourceSha256: sourceBefore.sha256,
         sourceFileCount: sourceBefore.fileCount,
+        sourceFiles,
         expectedScenarios: DESIGN_LAB_HYDRATED_WAVE2_SCENARIOS.length,
         passedScenarios: results.filter((result) => result.passed).length,
         results,

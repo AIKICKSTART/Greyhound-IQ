@@ -2,14 +2,17 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 
-export function getLocalSourceClosure(entryPath: string) {
-  const repoRoot = path.resolve(".");
-  const pending = [path.resolve(entryPath)];
+export function getLocalSourceClosure(
+  entryPath: string,
+  repoRoot = path.resolve("."),
+) {
+  const canonicalRoot = path.resolve(repoRoot);
+  const pending = [path.resolve(canonicalRoot, entryPath)];
   const visited = new Set<string>();
 
   while (pending.length > 0) {
     const absolutePath = pending.pop()!;
-    const repoPath = normalizeRepoPath(path.relative(repoRoot, absolutePath));
+    const repoPath = normalizeRepoPath(path.relative(canonicalRoot, absolutePath));
     if (
       repoPath === ".." ||
       repoPath.startsWith("../") ||
@@ -23,7 +26,7 @@ export function getLocalSourceClosure(entryPath: string) {
     const source = readFileSync(absolutePath, "utf8");
     const sourceFile = parseSource(absolutePath, source);
     for (const specifier of localImportSpecifiers(sourceFile)) {
-      const resolved = resolveLocalImport(absolutePath, specifier);
+      const resolved = resolveLocalImport(absolutePath, specifier, canonicalRoot);
       if (resolved) pending.push(resolved);
     }
   }
@@ -158,10 +161,14 @@ function localImportSpecifiers(sourceFile: ts.SourceFile) {
   return specifiers;
 }
 
-function resolveLocalImport(fromPath: string, specifier: string) {
+function resolveLocalImport(
+  fromPath: string,
+  specifier: string,
+  repoRoot = path.resolve("."),
+) {
   if (!specifier.startsWith("@/") && !specifier.startsWith(".")) return null;
   const base = specifier.startsWith("@/")
-    ? path.resolve("src", specifier.slice(2))
+    ? path.resolve(repoRoot, "src", specifier.slice(2))
     : path.resolve(path.dirname(fromPath), specifier);
   const candidates = path.extname(base)
     ? [base]

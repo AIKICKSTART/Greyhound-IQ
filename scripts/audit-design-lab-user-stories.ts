@@ -4,8 +4,11 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { DESIGN_LAB_USER_STORY_MANIFESTS } from "../src/components/screen-contracts/design-lab-user-stories";
+import { SCREEN_CONTRACT_BY_ROUTE } from "../src/components/demo-experience-registry";
 import {
+  DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
   getDesignLabSourceFingerprint,
+  getDesignLabSourcePaths,
   getRepositoryHeadSha,
 } from "./design-lab-source-fingerprint";
 import {
@@ -312,7 +315,22 @@ async function main() {
     readFlag("--output") ??
       DESIGN_LAB_STORY_AUDIT_PATH,
   );
-  const sourceBefore = getDesignLabSourceFingerprint(repositoryRoot);
+  const storyRoutes = [
+    ...new Set(DESIGN_LAB_STORY_RUNTIME_CASES.map((item) => item.route)),
+  ];
+  const sourceContract = {
+    directFiles: ["scripts/audit-design-lab-user-stories.ts"],
+    transitiveImportRoots: storyRoutes.flatMap((route) => {
+      const contract = SCREEN_CONTRACT_BY_ROUTE.get(route);
+      if (!contract) throw new Error(`Missing screen contract for ${route}.`);
+      return contract.sourceFiles;
+    }),
+    fixtures: [],
+    schemaFiles: [],
+    runtimeContractFiles: DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
+  };
+  const sourceFiles = getDesignLabSourcePaths(repositoryRoot, sourceContract);
+  const sourceBefore = getDesignLabSourceFingerprint(repositoryRoot, sourceContract);
   const expectedRoutes = DESIGN_LAB_USER_STORY_MANIFESTS.map((item) => item.route).toSorted();
   const auditedRoutes = [...new Set(DESIGN_LAB_STORY_RUNTIME_CASES.map((item) => item.route))].toSorted();
   if (JSON.stringify(expectedRoutes) !== JSON.stringify(auditedRoutes)) {
@@ -354,7 +372,7 @@ async function main() {
     });
   }
 
-  const sourceAfter = getDesignLabSourceFingerprint(repositoryRoot);
+  const sourceAfter = getDesignLabSourceFingerprint(repositoryRoot, sourceContract);
   if (
     sourceAfter.sha256 !== sourceBefore.sha256 ||
     sourceAfter.fileCount !== sourceBefore.fileCount
@@ -374,6 +392,7 @@ async function main() {
     testedCommitSha: getRepositoryHeadSha(repositoryRoot),
     sourceSha256: sourceBefore.sha256,
     sourceFileCount: sourceBefore.fileCount,
+    sourceFiles,
     expectedRoutes: results.length,
     passedRoutes: results.filter((item) => item.passed).length,
     expectedScenarios: scenarioResults.length,

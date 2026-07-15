@@ -16,8 +16,11 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { DESIGN_LAB_AREAS } from "../src/components/design-lab-workspace";
+import { SCREEN_CONTRACT_BY_ROUTE } from "../src/components/demo-experience-registry";
 import {
+  DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
   getDesignLabSourceFingerprint,
+  getDesignLabSourcePaths,
   getRepositoryHeadSha,
 } from "./design-lab-source-fingerprint";
 
@@ -180,6 +183,7 @@ export type ResponsiveAuditReport = {
   testedCommitSha: string;
   sourceSha256: string;
   sourceFileCount: number;
+  sourceFiles: string[];
   auditScriptSha256: string;
   architectureReportSha256: string;
   architectureSourceSha256: string;
@@ -716,6 +720,21 @@ async function main() {
     repositoryRoot,
     DESIGN_LAB_RESPONSIVE_ARCHITECTURE_BUILD_PATH,
   );
+  const workspaceContract = SCREEN_CONTRACT_BY_ROUTE.get("/design-lab");
+  if (!workspaceContract) throw new Error("Missing screen contract for /design-lab.");
+  const sourceContract = {
+    directFiles: [
+      "scripts/audit-design-lab-responsive-workspace.ts",
+      DESIGN_LAB_RESPONSIVE_ARCHITECTURE_REPORT_PATH,
+      DESIGN_LAB_RESPONSIVE_ARCHITECTURE_SOURCE_PATH,
+      DESIGN_LAB_RESPONSIVE_ARCHITECTURE_BUILD_PATH,
+    ],
+    transitiveImportRoots: workspaceContract.sourceFiles,
+    fixtures: [],
+    schemaFiles: [],
+    runtimeContractFiles: DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
+  };
+  const sourceFiles = getDesignLabSourcePaths(repositoryRoot, sourceContract);
   const [
     sourceBefore,
     testedCommitSha,
@@ -725,7 +744,7 @@ async function main() {
     architectureBuildBefore,
   ] =
     await Promise.all([
-      Promise.resolve(getDesignLabSourceFingerprint(repositoryRoot)),
+      Promise.resolve(getDesignLabSourceFingerprint(repositoryRoot, sourceContract)),
       Promise.resolve(getRepositoryHeadSha(repositoryRoot)),
       readFile(scriptPath),
       readFile(architectureReportPath),
@@ -767,7 +786,7 @@ async function main() {
         architectureSourceAfter,
         architectureBuildAfter,
       ] = await Promise.all([
-        Promise.resolve(getDesignLabSourceFingerprint(repositoryRoot)),
+        Promise.resolve(getDesignLabSourceFingerprint(repositoryRoot, sourceContract)),
         readFile(scriptPath),
         readFile(architectureReportPath),
         readFile(architectureSourcePath),
@@ -799,6 +818,7 @@ async function main() {
         testedCommitSha,
         sourceSha256: sourceBefore.sha256,
         sourceFileCount: sourceBefore.fileCount,
+        sourceFiles,
         auditScriptSha256,
         architectureReportSha256,
         architectureSourceSha256,

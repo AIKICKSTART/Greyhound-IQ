@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import {
   DEMO_SCREEN_COUNT,
   DEMO_SCREEN_FAMILIES,
+  SCREEN_CONTRACTS,
 } from "../src/components/demo-experience-registry";
 import {
   resolveStagingLoadBaseUrl,
@@ -12,7 +13,10 @@ import {
   resolveStagingRequestUrl,
 } from "./staging-load-policy";
 import {
+  DESIGN_LAB_DEMO_FIXTURE_FILES,
+  DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
   getDesignLabSourceFingerprint,
+  getDesignLabSourcePaths,
   getRepositoryHeadSha,
 } from "./design-lab-source-fingerprint";
 
@@ -156,7 +160,17 @@ async function auditRoute(
 async function main() {
   const repositoryRoot = path.resolve(".");
   const testedCommitSha = getRepositoryHeadSha(repositoryRoot);
-  const sourceBefore = getDesignLabSourceFingerprint(repositoryRoot);
+  const sourceContract = {
+    directFiles: ["scripts/audit-demo-routes.ts"],
+    transitiveImportRoots: SCREEN_CONTRACTS.flatMap(
+      (screen) => screen.sourceFiles,
+    ),
+    fixtures: DESIGN_LAB_DEMO_FIXTURE_FILES,
+    schemaFiles: ["prisma/schema.prisma"],
+    runtimeContractFiles: DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
+  };
+  const sourceFiles = getDesignLabSourcePaths(repositoryRoot, sourceContract);
+  const sourceBefore = getDesignLabSourceFingerprint(repositoryRoot, sourceContract);
   const baseUrl = resolveStagingLoadBaseUrl(
     readFlag("--base-url"),
     "--base-url",
@@ -214,7 +228,7 @@ async function main() {
   }
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
 
-  const sourceAfter = getDesignLabSourceFingerprint(repositoryRoot);
+  const sourceAfter = getDesignLabSourceFingerprint(repositoryRoot, sourceContract);
   if (
     sourceAfter.sha256 !== sourceBefore.sha256 ||
     sourceAfter.fileCount !== sourceBefore.fileCount
@@ -234,6 +248,7 @@ async function main() {
     testedCommitSha,
     sourceSha256: sourceBefore.sha256,
     sourceFileCount: sourceBefore.fileCount,
+    sourceFiles,
     expected: DEMO_SCREEN_COUNT,
     passed,
     failed,

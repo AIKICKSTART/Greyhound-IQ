@@ -24,12 +24,11 @@ import {
 import { evaluateDemoRouteAuditEvidence } from "../src/components/demo-route-audit-evidence";
 import { DEMO_ROUTE_AUDIT_EXPECTED_ROWS } from "../src/components/demo-experience-registry";
 import {
-  getDesignLabSourceFingerprint,
   getDesignLabSourceChangesBetween,
-  getDesignLabSourcePaths,
-  getDesignLabSourcePathsAtCommit,
+  fingerprintRepositoryFiles,
   getRepositoryHeadSha,
   isRepositoryCommitAncestor,
+  parseDesignLabSourceFiles,
 } from "./design-lab-source-fingerprint";
 import {
   DESIGN_LAB_STORY_AUDIT_PATH,
@@ -66,6 +65,7 @@ export function collectDesignLabSyncIssues({
 }) {
   const issues = [...findDesignLabRegistrySyncIssues()];
   const canonicalRoot = realpathSync(repoRoot);
+  const auditedSourcePaths = new Set<string>();
 
   for (const item of DESIGN_LAB_DELIVERY_PROGRESS) {
     const updatedAt = Date.parse(item.updatedAt);
@@ -128,7 +128,13 @@ export function collectDesignLabSyncIssues({
   issues.push(...findDesignLabRouteAuditSyncIssues(rawAudit));
 
   const currentHeadSha = getRepositoryHeadSha(canonicalRoot);
-  const currentSource = getDesignLabSourceFingerprint(canonicalRoot);
+  const routeSource = resolveAuditSourceBinding(
+    canonicalRoot,
+    "Route audit",
+    rawAudit,
+    issues,
+    auditedSourcePaths,
+  );
   if (
     !routeEvaluation.testedCommitSha ||
     !isRepositoryCommitAncestor(
@@ -138,20 +144,21 @@ export function collectDesignLabSyncIssues({
     )
   ) {
     issues.push("Route audit tested commit is not an ancestor of the current Git HEAD.");
-  } else {
+  } else if (routeSource) {
     issues.push(
       ...findAuditedSourceCommitIssues(
         canonicalRoot,
         "Route audit",
         routeEvaluation.testedCommitSha,
-        currentHeadSha
+        currentHeadSha,
+        routeSource.sourceFiles,
       )
     );
   }
-  if (routeEvaluation.sourceSha256 !== currentSource.sha256) {
+  if (routeSource && routeEvaluation.sourceSha256 !== routeSource.sourceSha256) {
     issues.push("Route audit source digest does not match the current source tree.");
   }
-  if (routeEvaluation.sourceFileCount !== currentSource.fileCount) {
+  if (routeSource && routeEvaluation.sourceFileCount !== routeSource.sourceFileCount) {
     issues.push("Route audit source-file count does not match the current source tree.");
   }
 
@@ -168,12 +175,19 @@ export function collectDesignLabSyncIssues({
       const responsiveAudit = JSON.parse(
         readFileSync(responsiveAuditPath, "utf8")
       );
+      const responsiveSource = resolveAuditSourceBinding(
+        canonicalRoot,
+        "Responsive workspace audit",
+        responsiveAudit,
+        issues,
+        auditedSourcePaths,
+      );
       const responsiveTestedCommitSha = readTestedCommitSha(responsiveAudit);
       issues.push(
         ...findDesignLabResponsiveWorkspaceAuditIssues(responsiveAudit, {
           headSha: responsiveTestedCommitSha ?? currentHeadSha,
-          sourceSha256: currentSource.sha256,
-          sourceFileCount: currentSource.fileCount,
+          sourceSha256: responsiveSource?.sourceSha256 ?? "",
+          sourceFileCount: responsiveSource?.sourceFileCount ?? 0,
           auditScriptSha256: sha256File(
             resolve(canonicalRoot, "scripts/audit-design-lab-responsive-workspace.ts")
           ),
@@ -209,13 +223,14 @@ export function collectDesignLabSyncIssues({
         issues.push(
           "Responsive workspace audit tested commit is not an ancestor of the current Git HEAD."
         );
-      } else {
+      } else if (responsiveSource) {
         issues.push(
           ...findAuditedSourceCommitIssues(
             canonicalRoot,
             "Responsive workspace audit",
             responsiveTestedCommitSha,
-            currentHeadSha
+            currentHeadSha,
+            responsiveSource.sourceFiles,
           )
         );
       }
@@ -228,20 +243,28 @@ export function collectDesignLabSyncIssues({
 
   const storyAuditPath = resolve(canonicalRoot, DESIGN_LAB_STORY_AUDIT_PATH);
   let storyAuditJson: string | null = null;
+  let storySource: AuditSourceBinding | null = null;
   if (!existsSync(storyAuditPath)) {
     issues.push(`User-story audit evidence is missing: ${DESIGN_LAB_STORY_AUDIT_PATH}`);
   } else {
     try {
       storyAuditJson = readFileSync(storyAuditPath, "utf8");
       const storyAudit = JSON.parse(storyAuditJson);
+      storySource = resolveAuditSourceBinding(
+        canonicalRoot,
+        "User-story audit",
+        storyAudit,
+        issues,
+        auditedSourcePaths,
+      );
       const storyTestedCommitSha = readTestedCommitSha(storyAudit);
       issues.push(
         ...findDesignLabStoryAuditIssues(
           storyAudit,
           {
             headSha: storyTestedCommitSha ?? currentHeadSha,
-            sourceSha256: currentSource.sha256,
-            sourceFileCount: currentSource.fileCount,
+            sourceSha256: storySource?.sourceSha256 ?? "",
+            sourceFileCount: storySource?.sourceFileCount ?? 0,
             now,
           },
         ),
@@ -253,13 +276,14 @@ export function collectDesignLabSyncIssues({
         issues.push(
           "User-story audit tested commit is not an ancestor of the current Git HEAD."
         );
-      } else {
+      } else if (storySource) {
         issues.push(
           ...findAuditedSourceCommitIssues(
             canonicalRoot,
             "User-story audit",
             storyTestedCommitSha,
-            currentHeadSha
+            currentHeadSha,
+            storySource.sourceFiles,
           )
         );
       }
@@ -281,12 +305,19 @@ export function collectDesignLabSyncIssues({
   } else if (storyAuditJson) {
     try {
       const hydratedAudit = JSON.parse(readFileSync(hydratedAuditPath, "utf8"));
+      const hydratedSource = resolveAuditSourceBinding(
+        canonicalRoot,
+        "Hydrated user-story audit",
+        hydratedAudit,
+        issues,
+        auditedSourcePaths,
+      );
       const hydratedTestedCommitSha = readTestedCommitSha(hydratedAudit);
       issues.push(
         ...findDesignLabHydratedStoryAuditIssues(hydratedAudit, {
           headSha: hydratedTestedCommitSha ?? currentHeadSha,
-          sourceSha256: currentSource.sha256,
-          sourceFileCount: currentSource.fileCount,
+          sourceSha256: hydratedSource?.sourceSha256 ?? "",
+          sourceFileCount: hydratedSource?.sourceFileCount ?? 0,
           companionHttpAuditSha256: createHash("sha256")
             .update(storyAuditJson)
             .digest("hex"),
@@ -304,13 +335,14 @@ export function collectDesignLabSyncIssues({
         issues.push(
           "Hydrated user-story audit tested commit is not an ancestor of the current Git HEAD."
         );
-      } else {
+      } else if (hydratedSource) {
         issues.push(
           ...findAuditedSourceCommitIssues(
             canonicalRoot,
             "Hydrated user-story audit",
             hydratedTestedCommitSha,
-            currentHeadSha
+            currentHeadSha,
+            hydratedSource.sourceFiles,
           )
         );
       }
@@ -334,14 +366,21 @@ export function collectDesignLabSyncIssues({
       const hydratedWave2Audit = JSON.parse(
         readFileSync(hydratedWave2AuditPath, "utf8")
       );
+      const hydratedWave2Source = resolveAuditSourceBinding(
+        canonicalRoot,
+        "Hydrated wave 2 audit",
+        hydratedWave2Audit,
+        issues,
+        auditedSourcePaths,
+      );
       const hydratedWave2TestedCommitSha = readTestedCommitSha(
         hydratedWave2Audit
       );
       issues.push(
         ...findDesignLabHydratedWave2AuditIssues(hydratedWave2Audit, {
           headSha: hydratedWave2TestedCommitSha ?? currentHeadSha,
-          sourceSha256: currentSource.sha256,
-          sourceFileCount: currentSource.fileCount,
+          sourceSha256: hydratedWave2Source?.sourceSha256 ?? "",
+          sourceFileCount: hydratedWave2Source?.sourceFileCount ?? 0,
           companionHttpAuditSha256: createHash("sha256")
             .update(storyAuditJson)
             .digest("hex"),
@@ -359,13 +398,14 @@ export function collectDesignLabSyncIssues({
         issues.push(
           "Hydrated wave 2 audit tested commit is not an ancestor of the current Git HEAD."
         );
-      } else {
+      } else if (hydratedWave2Source) {
         issues.push(
           ...findAuditedSourceCommitIssues(
             canonicalRoot,
             "Hydrated wave 2 audit",
             hydratedWave2TestedCommitSha,
-            currentHeadSha
+            currentHeadSha,
+            hydratedWave2Source.sourceFiles,
           )
         );
       }
@@ -400,25 +440,11 @@ export function collectDesignLabSyncIssues({
         [DESIGN_LAB_RESPONSIVE_WORKSPACE_AUDIT_PATH]
       )
     );
-    const workingSourcePaths = getDesignLabSourcePaths(canonicalRoot);
-    const committedSourcePaths = getDesignLabSourcePathsAtCommit(
-      canonicalRoot,
-      currentHeadSha
-    );
-    if (!committedSourcePaths) {
-      issues.push("Release-ready source inventory could not be read from the current HEAD.");
-    } else if (
-      JSON.stringify(workingSourcePaths) !== JSON.stringify(committedSourcePaths)
-    ) {
-      issues.push(
-        "Release-ready source inventory does not exactly match the current HEAD."
-      );
-    }
     issues.push(
       ...findRepositoryFileIntegrityIssues(
         canonicalRoot,
         "Audited source",
-        [...new Set([...workingSourcePaths, ...(committedSourcePaths ?? [])])]
+        [...auditedSourcePaths]
       )
     );
   }
@@ -464,12 +490,14 @@ function findAuditedSourceCommitIssues(
   repoRoot: string,
   label: string,
   testedCommitSha: string,
-  currentHeadSha: string
+  currentHeadSha: string,
+  sourceFiles: readonly string[],
 ) {
   const changedPaths = getDesignLabSourceChangesBetween(
     repoRoot,
     testedCommitSha,
-    currentHeadSha
+    currentHeadSha,
+    sourceFiles,
   );
   if (!changedPaths) {
     return [`${label} source ancestry could not be verified.`];
@@ -481,6 +509,40 @@ function findAuditedSourceCommitIssues(
           ", "
         )}`,
       ];
+}
+
+type AuditSourceBinding = {
+  sourceFiles: readonly string[];
+  sourceSha256: string;
+  sourceFileCount: number;
+};
+
+function resolveAuditSourceBinding(
+  repoRoot: string,
+  label: string,
+  audit: unknown,
+  issues: string[],
+  auditedSourcePaths: Set<string>,
+): AuditSourceBinding | null {
+  const sourceFiles = parseDesignLabSourceFiles(audit);
+  if (!sourceFiles) {
+    issues.push(`${label} source-files manifest is missing or non-canonical.`);
+    return null;
+  }
+  try {
+    const fingerprint = fingerprintRepositoryFiles(repoRoot, sourceFiles);
+    sourceFiles.forEach((sourceFile) => auditedSourcePaths.add(sourceFile));
+    return {
+      sourceFiles,
+      sourceSha256: fingerprint.sha256,
+      sourceFileCount: fingerprint.fileCount,
+    };
+  } catch (error) {
+    issues.push(
+      `${label} source-files manifest cannot be fingerprinted: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return null;
+  }
 }
 
 export function findRepositoryFileIntegrityIssues(

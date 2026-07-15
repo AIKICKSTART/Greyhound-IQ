@@ -116,7 +116,10 @@ export function InstantMessageComposer({
         <MediaAttachmentFields key={resetKey} compact />
       </div>
       {error && (
-        <p className="mt-3 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] text-red-100">
+        <p
+          role="alert"
+          className="mt-3 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] text-red-100"
+        >
           {error}
         </p>
       )}

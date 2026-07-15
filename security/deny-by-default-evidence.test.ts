@@ -87,7 +87,7 @@ assert.match(listingService, /throw new Error\("listing\.dog_not_owned"\)/);
 const conversationService = read("src/lib/conversation-service.ts");
 assert.match(
   conversationService,
-  /where: \{\s*id: conversationId,\s*OR: \[\s*\{ participantAId: current\.profileId \},\s*\{ participantBId: current\.profileId \}/s,
+  /where: \{\s*id: conversationId,\s*OR: \[\s*\{ participantAId: current\.profileId \},\s*\{ participantBId: current\.profileId \}/,
 );
 assert.match(
   conversationService,

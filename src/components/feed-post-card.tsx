@@ -454,7 +454,10 @@ function RemoveFeedMediaButton({
         {busy ? "Removing..." : "Remove attachment"}
       </button>
       {error && (
-        <span className="rounded bg-red-950/90 px-2 py-1 text-[10px] text-red-100">
+        <span
+          role="alert"
+          className="rounded bg-red-950/90 px-2 py-1 text-[10px] text-red-100"
+        >
           {error}
         </span>
       )}

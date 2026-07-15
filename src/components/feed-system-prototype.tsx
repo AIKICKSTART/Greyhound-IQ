@@ -1271,7 +1271,7 @@ function MarketplacePreview({ compact }: { compact: boolean }) {
         visibleDogs.length > 0 && dog && previousDog && nextDog ? (
           <div className="grid gap-7 p-4 sm:p-5 md:grid-cols-[minmax(250px,360px)_minmax(0,1fr)] md:items-center">
             <div
-              className={`relative mx-auto w-full outline-none ${compact ? "max-w-[300px]" : "max-w-[340px]"}`}
+              className={`relative mx-auto w-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))] ${compact ? "max-w-[300px]" : "max-w-[340px]"}`}
               tabIndex={0}
               onKeyDown={(event) => {
                 if (event.target !== event.currentTarget) return;

@@ -57,7 +57,10 @@ export function InstantListingEnquiryForm({ listingId }: { listingId: string }) 
         />
       </label>
       {error && (
-        <p className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] text-red-100">
+        <p
+          role="alert"
+          className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] text-red-100"
+        >
           {error}
         </p>
       )}

@@ -443,7 +443,11 @@ function CommentOwnerActions({
         <Trash2 className="h-3 w-3" />
         Delete
       </button>
-      {error && <span className="text-[11px] text-red-200">{error}</span>}
+      {error && (
+        <span role="alert" className="text-[11px] text-red-200">
+          {error}
+        </span>
+      )}
     </>
   );
 }

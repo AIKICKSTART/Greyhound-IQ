@@ -684,7 +684,9 @@ export function ConversationCallPanel({
             )}
           </div>
           {deviceError && (
-            <p className="mt-2 text-[12px] text-red-200">{deviceError}</p>
+            <p role="alert" className="mt-2 text-[12px] text-red-200">
+              {deviceError}
+            </p>
           )}
         </div>
       )}

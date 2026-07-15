@@ -140,7 +140,10 @@ export function ProcessedVideo({
       )}
 
       {error && (
-        <div className="absolute inset-0 grid place-items-center bg-black/88 p-5 text-center">
+        <div
+          role="alert"
+          className="absolute inset-0 grid place-items-center bg-black/88 p-5 text-center"
+        >
           <div>
             <CircleAlert className="mx-auto h-6 w-6 text-amber-200" aria-hidden="true" />
             <p className="mt-2 text-[13px] font-semibold text-white">

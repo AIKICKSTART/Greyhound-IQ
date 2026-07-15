@@ -288,7 +288,10 @@ export function InstantFeedPostComposer({
           compact
         />
         {error && (
-          <p className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] text-red-100">
+          <p
+            role="alert"
+            className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] text-red-100"
+          >
             {error}
           </p>
         )}
@@ -416,7 +419,11 @@ export function InstantFeedCommentForm({
           Replies inherit the post audience.
         </p>
       )}
-      {error && <p className="text-[11px] text-red-200">{error}</p>}
+      {error && (
+        <p role="alert" className="text-[11px] text-red-200">
+          {error}
+        </p>
+      )}
     </form>
   );
 }
@@ -873,7 +880,11 @@ export function InstantFeedOwnerControls({
           <option value="connections">Connections</option>
           <option value="only_me">Only me</option>
         </select>
-        {error && <p className="text-[11px] text-red-200">{error}</p>}
+        {error && (
+          <p role="alert" className="text-[11px] text-red-200">
+            {error}
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <button
             type="submit"

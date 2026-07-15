@@ -162,7 +162,10 @@ export function RaceReplayPlayer({
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 border-t border-[hsl(var(--secondary)/0.18)] bg-[hsl(var(--secondary)/0.08)] px-4 py-3 text-[12px] text-[hsl(var(--secondary-light))]">
+        <div
+          role="alert"
+          className="flex items-start gap-2 border-t border-[hsl(var(--secondary)/0.18)] bg-[hsl(var(--secondary)/0.08)] px-4 py-3 text-[12px] text-[hsl(var(--secondary-light))]"
+        >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>

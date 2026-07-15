@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "auditKind": "design-lab-hydrated-user-stories",
   "evidenceBoundary": "Isolated loopback full-access-read-only interaction evidence; not cryptographic deployed-image identity.",
-  "generatedAt": "2026-07-15T20:20:31.138Z",
+  "generatedAt": "2026-07-15T20:50:56.773Z",
   "baseUrl": "http://localhost:3000",
   "browser": {
     "product": "Chrome/150.0.7871.115",
@@ -11,8 +11,8 @@
   "companionHttpAudit": {
     "path": "output/demo-route-audit/design-lab-user-stories.json",
     "auditKind": "design-lab-user-stories",
-    "sha256": "bbc2398e3f405e318317dfc89a67c803faa4b37ed51bb669adc722f8fa0ed757",
-    "sourceSha256": "4a98b94bf4e9978619c9db11678a83027fca5da16829f740412c460a0b7b96ce",
+    "sha256": "15644a1a7c399049fb858e5ee6d0bfcabfd634df36a6a46d9599e5db0237703f",
+    "sourceSha256": "3acbb8b793b012baaf4c80cc6abfb4c8da472a597f2687d90f89ecdf8e7b4410",
     "expectedScenarios": 13,
     "passedScenarios": 13
   },
@@ -432,8 +432,8 @@
       ]
     }
   ],
-  "testedCommitSha": "5d562b7ed90f00992a0c655a6141d05869fe286b",
-  "sourceSha256": "cd7edc8fab5cd15eaf51bb590434721e2b02bea22f9e3f5f4378bf5b6dd84fb8",
+  "testedCommitSha": "b7296c4e0fd23d11288f010b853bc6aca70a1704",
+  "sourceSha256": "9aa474d93bbb3fa84c4fb7c70bf0bce1767502282e29e114088a3794f84e626d",
   "sourceFileCount": 166,
   "sourceFiles": [
     "next.config.ts",
@@ -612,9 +612,9 @@
       "requestPath": "/design-lab?area=screens",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "99c841ba-075e-4e5d-956b-f0da657fb9d1",
+      "requestId": "7b28c5a9-5e12-4d18-8749-e60750620ef0",
       "demoMode": "full-access-read-only",
-      "durationMs": 9190,
+      "durationMs": 16567,
       "observed": {
         "initialRouteCount": 97,
         "familyFiltered": {
@@ -682,9 +682,9 @@
       "requestPath": "/design-lab?area=screens&fixture=race-harbour&tier=business&auth=signed-out&permissions=admin&featureFlags=advertising&orientation=landscape&navigation=compact&theme=light&sponsoredDemo=off&state=stale&networkState=slow&errorState=permission-denied&longContent=on&missingImage=on&tour=safety&tourStep=4&reducedMotion=on&highContrast=on",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "259b8304-b3b0-43e4-aa43-5656f3caa802",
+      "requestId": "74fc03b9-5bc5-433d-8eba-3ecc46258be8",
       "demoMode": "full-access-read-only",
-      "durationMs": 3748,
+      "durationMs": 4453,
       "observed": {
         "controlCount": 18,
         "controlQueryParams": [
@@ -888,9 +888,9 @@
       "requestPath": "/design-lab",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "845d0430-fc48-43a6-a90b-8b709532b416",
+      "requestId": "f97fe731-f33e-4c7d-b83f-868b77c7e2a3",
       "demoMode": "full-access-read-only",
-      "durationMs": 1698,
+      "durationMs": 2023,
       "observed": {
         "initial": {
           "currentPath": "/design-lab",
@@ -932,9 +932,9 @@
       "requestPath": "/design-lab?area=delivery",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "5050ea2b-de40-44a1-864a-76e0c9bec5b9",
+      "requestId": "12a9b0bb-9199-4c3c-854b-ddf45088d95f",
       "demoMode": "full-access-read-only",
-      "durationMs": 1112,
+      "durationMs": 1570,
       "observed": {
         "currentPath": "/design-lab?area=delivery",
         "activeArea": "delivery",
@@ -963,9 +963,9 @@
       "requestPath": "/design-lab?area=architecture",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "09983b7f-20f3-4e84-ac65-180ecf999a74",
+      "requestId": "2c80c8fb-8f0a-4262-a499-d7b30e8f7d08",
       "demoMode": "full-access-read-only",
-      "durationMs": 1216,
+      "durationMs": 1989,
       "observed": {
         "currentPath": "/design-lab?area=architecture",
         "activeArea": "architecture",
@@ -994,9 +994,9 @@
       "requestPath": "/design-lab?area=advertising",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "4e9dd0eb-8383-4e7f-84d1-0e867e0d753c",
+      "requestId": "d658ca9a-8f71-44c7-8700-3e566f5a4c7a",
       "demoMode": "full-access-read-only",
-      "durationMs": 1073,
+      "durationMs": 1968,
       "observed": {
         "currentPath": "/design-lab?area=advertising",
         "activeArea": "advertising",
@@ -1025,9 +1025,9 @@
       "requestPath": "/design-lab?area=requirements",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "4bfbf789-019b-47bf-9e7b-f8ed7da4597e",
+      "requestId": "0c556c18-a082-4a4a-944b-997d170b90fd",
       "demoMode": "full-access-read-only",
-      "durationMs": 1144,
+      "durationMs": 1697,
       "observed": {
         "currentPath": "/design-lab?area=requirements",
         "activeArea": "requirements",
@@ -1056,9 +1056,9 @@
       "requestPath": "/design-lab?area=readiness",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "adbbaf0b-31b7-4a69-a9b0-cbc5eb67f53e",
+      "requestId": "471ae6bb-5169-4b6f-a081-f7f4bad2e58b",
       "demoMode": "full-access-read-only",
-      "durationMs": 1205,
+      "durationMs": 1720,
       "observed": {
         "currentPath": "/design-lab?area=readiness",
         "activeArea": "readiness",
@@ -1087,9 +1087,9 @@
       "requestPath": "/design-lab?area=unsupported",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "89fc420c-f1b1-4807-b2d1-6a6d7d85586c",
+      "requestId": "87014973-e02f-43d0-8fec-db9eaca36f25",
       "demoMode": "full-access-read-only",
-      "durationMs": 1168,
+      "durationMs": 1101,
       "observed": {
         "currentPath": "/design-lab?area=unsupported",
         "activeArea": "overview",
@@ -1118,9 +1118,9 @@
       "requestPath": "/design-lab?area=screens",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "049b852f-80a9-4fe5-9b39-97e651a83ef7",
+      "requestId": "df2cedea-2215-42be-8d13-dbc9bb10b8ab",
       "demoMode": "full-access-read-only",
-      "durationMs": 2206,
+      "durationMs": 3320,
       "observed": {
         "clickedHref": "/dogs/demo-provider-dog",
         "currentPath": "/dogs/demo-provider-dog"
@@ -1145,9 +1145,9 @@
       "requestPath": "/design-lab/demo-experience",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "b9096918-c852-4eee-97ed-4021037a93db",
+      "requestId": "081662cc-f03f-4a16-a97e-49c0d685a65a",
       "demoMode": "full-access-read-only",
-      "durationMs": 3259,
+      "durationMs": 6018,
       "observed": {
         "adminFramesClickedHref": "/design-lab/demo-experience?view=admin-frames",
         "currentPath": "/design-lab/demo-experience?view=admin-frames",
@@ -1225,9 +1225,9 @@
       "requestPath": "/design-lab/demo-experience",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "da2086ee-6d64-41d0-af9a-be963883f9d7",
+      "requestId": "0407f379-b640-42e8-b9fe-27f6752eadd3",
       "demoMode": "full-access-read-only",
-      "durationMs": 2541,
+      "durationMs": 3052,
       "observed": {
         "default": {
           "currentPath": "/design-lab/demo-experience",
@@ -1286,9 +1286,9 @@
       "requestPath": "/design-lab/demo-experience?view=unsupported",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "88152974-3c84-4bc0-b602-0f741080fac6",
+      "requestId": "f0b877a7-947f-47bc-8a55-5792f11a7c23",
       "demoMode": "full-access-read-only",
-      "durationMs": 1623,
+      "durationMs": 1987,
       "observed": {
         "currentPath": "/design-lab/demo-experience?view=unsupported",
         "surface": "registry",
@@ -1317,9 +1317,9 @@
       "requestPath": "/design-lab/demo-experience?view=admin-frames",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "2941d6fd-c129-4146-a0f7-5034c07afd30",
+      "requestId": "3d45d399-5966-4dea-a9e0-a380ec141064",
       "demoMode": "full-access-read-only",
-      "durationMs": 1935,
+      "durationMs": 3384,
       "observed": {
         "clickedHref": "/design-lab/demo-experience",
         "currentPath": "/design-lab/demo-experience",
@@ -1346,9 +1346,9 @@
       "requestPath": "/design-lab/demo-experience?view=admin-frames",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "12f442dc-e322-488a-b9b1-8b76a4ff1c5b",
+      "requestId": "5033cc57-3bad-449a-8256-52e719058d53",
       "demoMode": "full-access-read-only",
-      "durationMs": 1525,
+      "durationMs": 2550,
       "observed": {
         "clickedHref": "/admin",
         "target": "_blank",
@@ -1376,9 +1376,9 @@
       "requestPath": "/design-lab/demo-experience?view=admin-frames",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "78a43fbe-926b-4299-9bfd-ce42cf7cffce",
+      "requestId": "c0388018-789f-4902-b261-02f48b63726e",
       "demoMode": "full-access-read-only",
-      "durationMs": 1626,
+      "durationMs": 3070,
       "observed": {
         "clickedHref": "/design-lab/demo-experience?view=admin-frames",
         "currentPath": "/design-lab/demo-experience?view=admin-frames",
@@ -1405,9 +1405,9 @@
       "requestPath": "/design-lab/dock-skins?dock=D1",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "6dca4a5e-9871-4c1d-ad19-9bca5280fc59",
+      "requestId": "f386c4d4-a98f-48a0-a901-f9eafe7311b1",
       "demoMode": "full-access-read-only",
-      "durationMs": 1506,
+      "durationMs": 2892,
       "observed": {
         "skinTransitions": [
           {
@@ -1566,9 +1566,9 @@
       "requestPath": "/design-lab/dock-skins?dock=unsupported",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "cbb5a7d5-e416-4fc5-9e63-4288d05bcba4",
+      "requestId": "f7f01889-1ad0-4ad1-94d3-838ae825eba3",
       "demoMode": "full-access-read-only",
-      "durationMs": 897,
+      "durationMs": 16435,
       "observed": {
         "currentPath": "/design-lab/dock-skins?dock=unsupported",
         "selectedSkin": "D1",
@@ -1601,9 +1601,9 @@
       "requestPath": "/design-lab/dock-skins",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "13b0f663-71a6-4753-9fa1-9c87fb785c33",
+      "requestId": "8378f919-f06e-4bbe-8fc1-c524a275abf6",
       "demoMode": "full-access-read-only",
-      "durationMs": 865,
+      "durationMs": 1933,
       "observed": {
         "currentPath": "/design-lab/dock-skins",
         "selectedSkin": "D1",
@@ -1636,9 +1636,9 @@
       "requestPath": "/design-lab/dock-skins?dock=D2",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "25b0bbb5-85b4-4c99-ac04-8f4e3726281d",
+      "requestId": "0ef86948-1c6c-4961-8c95-a4351e0fa6bb",
       "demoMode": "full-access-read-only",
-      "durationMs": 874,
+      "durationMs": 1178,
       "observed": {
         "currentPath": "/design-lab/dock-skins?dock=D2",
         "selectedSkin": "D2",
@@ -1669,9 +1669,9 @@
       "requestPath": "/design-lab/dock-skins?dock=D3",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "a88f5e60-04c3-43dd-ac8a-783dc4659d2a",
+      "requestId": "4876718b-06a0-477e-87e5-34f7960a278f",
       "demoMode": "full-access-read-only",
-      "durationMs": 923,
+      "durationMs": 1395,
       "observed": {
         "currentPath": "/design-lab/dock-skins?dock=D3",
         "selectedSkin": "D3",
@@ -1702,9 +1702,9 @@
       "requestPath": "/design-lab/dock-skins?dock=D4",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "5ac5225c-12ce-49b8-9e76-3aca6db79cb8",
+      "requestId": "07cba176-bfbc-4743-b8fc-69241f42f1fc",
       "demoMode": "full-access-read-only",
-      "durationMs": 815,
+      "durationMs": 1400,
       "observed": {
         "currentPath": "/design-lab/dock-skins?dock=D4",
         "selectedSkin": "D4",
@@ -1735,9 +1735,9 @@
       "requestPath": "/design-lab/dock-skins?dock=D5",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "ac2a7858-0aaa-4f8b-9c0b-98f484c99c1a",
+      "requestId": "082bea3d-f70e-4493-bc4e-4c9c486c1ae4",
       "demoMode": "full-access-read-only",
-      "durationMs": 892,
+      "durationMs": 2179,
       "observed": {
         "currentPath": "/design-lab/dock-skins?dock=D5",
         "selectedSkin": "D5",
@@ -1768,9 +1768,9 @@
       "requestPath": "/design-lab/dock-skins?dock=D6",
       "httpStatus": 200,
       "requestIdPresent": true,
-      "requestId": "6af0c072-3ecb-4c60-84c5-4c4f407ce8ba",
+      "requestId": "a07cab38-181a-4d89-b014-33804f76e925",
       "demoMode": "full-access-read-only",
-      "durationMs": 855,
+      "durationMs": 1532,
       "observed": {
         "currentPath": "/design-lab/dock-skins?dock=D6",
         "selectedSkin": "D6",

@@ -15,6 +15,7 @@ import {
   DATABASE_QUERY_RECORDS,
   validateDatabaseQueryRecords,
 } from "./database-query-records";
+import { DATABASE_OPERATIONS } from "./database-operations";
 
 const bindingEntries = Object.entries(DATABASE_QUERY_RECORD_FIELD_BINDINGS);
 assert.equal(bindingEntries.length, 41);
@@ -22,11 +23,17 @@ assert.deepEqual(
   bindingEntries.map(([, field]) => field).toSorted(),
   [...DATABASE_QUERY_RECORD_FIELDS].toSorted(),
 );
-assert.equal(DATABASE_QUERY_RECORDS.length, 26);
+assert.equal(DATABASE_QUERY_RECORDS.length, DATABASE_OPERATIONS.length);
 assert.deepEqual(validateDatabaseQueryRecords(DATABASE_QUERY_RECORDS), []);
 assert.equal(
   new Set(DATABASE_QUERY_RECORDS.map((record) => record.queryId)).size,
   DATABASE_QUERY_RECORDS.length,
+);
+assert.deepEqual(
+  DATABASE_QUERY_RECORDS.filter((record) => record.normalisedSql.length === 0).map(
+    (record) => record.queryId,
+  ),
+  [],
 );
 
 for (const [id] of bindingEntries) {
@@ -51,5 +58,5 @@ assert.deepEqual(validateDatabaseQueryRecords(forged), [
 ]);
 
 console.log(
-  "database query record evidence passed: 41 fields across 26 linked records",
+  `database query record evidence passed: 41 fields across ${DATABASE_QUERY_RECORDS.length} linked records`,
 );

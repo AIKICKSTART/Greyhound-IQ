@@ -1,4 +1,5 @@
 import { DATABASE_OPERATIONS } from "./database-operations";
+import { CAPTURED_NORMALISED_SQL_BY_QUERY_ID } from "./database-query-captures";
 import { SECURITY_TRACES } from "./traces";
 
 export const DATABASE_QUERY_RECORD_FIELDS = [
@@ -54,7 +55,7 @@ export type DatabaseQueryRecord = {
   repository: string;
   ormOrDriver: string;
   ormOperation: string;
-  normalisedSql: string | null;
+  normalisedSql: readonly string[];
   boundParameterNames: string[];
   database: string;
   schema: string;
@@ -107,7 +108,9 @@ export const DATABASE_QUERY_RECORDS: readonly DatabaseQueryRecord[] =
       repository: `${operation.sourceFile}#${operation.sourceSymbol}`,
       ormOrDriver: operation.ormOrDriver,
       ormOperation: operation.ormOperation,
-      normalisedSql: operation.normalizedSql ?? null,
+      normalisedSql: operation.normalizedSql
+        ? [operation.normalizedSql]
+        : (CAPTURED_NORMALISED_SQL_BY_QUERY_ID.get(operation.queryId) ?? []),
       boundParameterNames: [...operation.boundParameters],
       database: operation.databaseName,
       schema: operation.schemaName,

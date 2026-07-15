@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { SECURITY_MASTER_REQUIREMENTS } from "../src/components/security-master-requirements";
 import { DATABASE_OPERATIONS } from "./database-operations";
+import { DATABASE_QUERY_RECORDS } from "./database-query-records";
 import {
   GENERIC_SECURITY_PLACEHOLDER_EVIDENCE_SCOPE,
   GENERIC_SECURITY_PLACEHOLDER_EXPECTED_GAIN,
@@ -58,7 +59,7 @@ const completedRequirementIds = [
 ];
 
 assert.equal(GENERIC_SECURITY_PLACEHOLDER_EXPECTED_GAIN, 10);
-assert.equal(SECURITY_CONTROL_REFERENCE_EXPECTED_GAIN, 8);
+assert.equal(SECURITY_CONTROL_REFERENCE_EXPECTED_GAIN, 9);
 assert.equal(sectionRequirements.length, 19);
 assert.deepEqual(
   [
@@ -184,6 +185,15 @@ for (const operation of DATABASE_OPERATIONS) {
   }
 }
 
+assert.equal(DATABASE_QUERY_RECORDS.length, DATABASE_OPERATIONS.length);
+assert.deepEqual(
+  DATABASE_QUERY_RECORDS
+    .filter((record) => record.normalisedSql.length === 0)
+    .map((record) => record.queryId),
+  [],
+  "every canonical database operation requires a captured normalized SQL statement",
+);
+
 const designLabTrace = tracesById.get("DESIGN_LAB.SCREEN.REVIEW");
 assert.ok(designLabTrace);
 assert.match(designLabTrace.server.requestValidationSchema, /DesignLabSearchParams/);
@@ -225,7 +235,7 @@ for (const phrase of phrases.values()) {
 }
 
 console.log(
-  `Security placeholder evidence passed: ${completedRequirementIds.length}/19 requirements across ${scannedFiles.length} owned files, ${SECURITY_TRACES.length} canonical traces and ${DATABASE_OPERATIONS.length} database controls; exact-query remains open.`,
+  `Security placeholder evidence passed: ${completedRequirementIds.length}/19 requirements across ${scannedFiles.length} owned files, ${SECURITY_TRACES.length} canonical traces and ${DATABASE_OPERATIONS.length} database controls.`,
 );
 
 function walkFiles(directory: string): string[] {

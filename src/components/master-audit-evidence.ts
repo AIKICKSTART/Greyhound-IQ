@@ -47,6 +47,7 @@ import { PRODUCT_ACTION_INVENTORY_MASTER_EVIDENCE } from "./product-action-inven
 import { PRODUCT_ROUTE_REGISTRY_METADATA_MASTER_EVIDENCE } from "./product-route-registry-metadata-evidence";
 import { PRODUCT_ROUTE_REFRESH_FIXTURE_MASTER_EVIDENCE } from "./product-route-refresh-fixture-evidence";
 import { PRODUCT_RESPONSIVE_WIDTH_MASTER_EVIDENCE } from "./product-responsive-width-evidence";
+import { PRODUCT_RESPONSIVE_BEHAVIOUR_MASTER_EVIDENCE } from "./product-responsive-behaviour-evidence";
 import { PRODUCT_MESSAGING_ACCESS_STATE_MASTER_EVIDENCE } from "./product-messaging-access-state-evidence";
 import { PRODUCT_RACING_STRUCTURE_MASTER_EVIDENCE } from "./product-racing-structure-evidence";
 import { PRODUCT_RACING_MEETING_SEARCH_MASTER_EVIDENCE } from "./product-racing-meeting-search-evidence";
@@ -65,6 +66,7 @@ import { PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE } from "./product-for
 import { PRODUCT_FIELD_CONTRACT_SOURCE_MASTER_EVIDENCE } from "./product-field-contract-source-evidence";
 import { PRODUCT_DYNAMIC_ROUTE_MISSING_RECORD_MASTER_EVIDENCE } from "./product-dynamic-route-missing-record-evidence";
 import { PRODUCT_ACTION_PURPOSE_MASTER_EVIDENCE } from "./product-action-purpose-evidence";
+import { PRODUCT_ACTION_ACCESSIBILITY_BEHAVIOUR_MASTER_EVIDENCE } from "./product-action-accessibility-behaviour-evidence";
 import { PRODUCT_ACTOR_MAP_MASTER_EVIDENCE } from "./product-actor-map-evidence";
 import { PRODUCT_MARKETPLACE_ACCESS_SAFETY_MASTER_EVIDENCE } from "./product-marketplace-access-safety-evidence";
 import { PRODUCT_ADMIN_SERVER_AUTHORIZATION_MASTER_EVIDENCE } from "./product-admin-server-authorization-evidence";
@@ -86,6 +88,7 @@ import { PRODUCT_AI_ROUTE_INVENTORY_MASTER_EVIDENCE } from "./product-ai-route-i
 import { PRODUCT_AGENT_RUN_LIFECYCLE_MASTER_EVIDENCE } from "./product-agent-run-lifecycle-evidence";
 import { PRODUCT_ONBOARDING_CAPABILITY_MASTER_EVIDENCE } from "./product-onboarding-capability-evidence";
 import { PRODUCT_DOCUMENTATION_AUTHORITY_MASTER_EVIDENCE } from "./product-documentation-authority-evidence";
+import { PRODUCT_E2E_JOURNEY_MASTER_EVIDENCE } from "./product-e2e-journey-evidence";
 import { API_SURFACE_MASTER_EVIDENCE } from "../../security/api-surface-evidence";
 import { APPLICATION_SURFACE_MASTER_EVIDENCE } from "../../security/application-surface-evidence";
 import { API_TRACE_GOVERNANCE_MASTER_EVIDENCE } from "../../security/api-trace-governance-evidence";
@@ -261,6 +264,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_ROUTE_REGISTRY_METADATA_MASTER_EVIDENCE,
   ...PRODUCT_ROUTE_REFRESH_FIXTURE_MASTER_EVIDENCE,
   ...PRODUCT_RESPONSIVE_WIDTH_MASTER_EVIDENCE,
+  ...PRODUCT_RESPONSIVE_BEHAVIOUR_MASTER_EVIDENCE,
   "GLOBAL.SEC.thread-metadata":
     PRODUCT_MESSAGING_ACCESS_STATE_MASTER_EVIDENCE[
       "GLOBAL.SEC.thread-metadata"
@@ -282,6 +286,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_FIELD_CONTRACT_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_DYNAMIC_ROUTE_MISSING_RECORD_MASTER_EVIDENCE,
   ...PRODUCT_ACTION_PURPOSE_MASTER_EVIDENCE,
+  ...PRODUCT_ACTION_ACCESSIBILITY_BEHAVIOUR_MASTER_EVIDENCE,
   ...PRODUCT_ACTOR_MAP_MASTER_EVIDENCE,
   ...PRODUCT_MARKETPLACE_ACCESS_SAFETY_MASTER_EVIDENCE,
   ...PRODUCT_ADMIN_SERVER_AUTHORIZATION_MASTER_EVIDENCE,
@@ -302,6 +307,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_AI_ROUTE_INVENTORY_MASTER_EVIDENCE,
   ...PRODUCT_AGENT_RUN_LIFECYCLE_MASTER_EVIDENCE,
   ...PRODUCT_ONBOARDING_CAPABILITY_MASTER_EVIDENCE,
+  ...PRODUCT_E2E_JOURNEY_MASTER_EVIDENCE,
   ...PRODUCT_DOCUMENTATION_AUTHORITY_MASTER_EVIDENCE,
   ...PRODUCT_SOURCE_AUDIT_MASTER_EVIDENCE,
   ...PRODUCT_SOURCE_INTERACTION_MASTER_EVIDENCE,
@@ -646,10 +652,6 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   "SYSTEM.not-found": {
     status: "tested",
     evidence: ["src/app/not-found.tsx", "src/proxy-detail-routes.test.ts"],
-  },
-  "GLOBAL.RESP.menus": {
-    status: "captured",
-    evidence: ["src/components/site-header-mobile-navigation.test.ts"],
   },
   "VERIFY.GATE.overflow": {
     status: "tested",

@@ -17,6 +17,7 @@ import { PRODUCT_PLACEHOLDER_PROHIBITION_MASTER_EVIDENCE } from "./product-place
 import { PRODUCT_GLOBAL_SECURITY_INVARIANT_MASTER_EVIDENCE } from "./product-global-security-invariant-evidence";
 import { PRODUCT_IDEMPOTENCY_SOURCE_MASTER_EVIDENCE } from "./product-idempotency-source-evidence";
 import { PRODUCT_REDUCED_MOTION_SOURCE_MASTER_EVIDENCE } from "./product-reduced-motion-source-evidence";
+import { PRODUCT_ONBOARDING_VIEWPORT_SOURCE_MASTER_EVIDENCE } from "./product-onboarding-viewport-source-evidence";
 import { PRODUCT_SYSTEM_STATE_MASTER_EVIDENCE } from "./product-system-state-evidence";
 import { PRODUCT_TEAM_INVITATION_STATE_MASTER_EVIDENCE } from "./product-team-invitation-state-evidence";
 import { PRODUCT_SYSTEM_RECOVERY_MASTER_EVIDENCE } from "./product-system-recovery-evidence";
@@ -217,6 +218,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_GLOBAL_SECURITY_INVARIANT_MASTER_EVIDENCE,
   ...PRODUCT_IDEMPOTENCY_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_REDUCED_MOTION_SOURCE_MASTER_EVIDENCE,
+  ...PRODUCT_ONBOARDING_VIEWPORT_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_SYSTEM_STATE_MASTER_EVIDENCE,
   ...PRODUCT_TEAM_INVITATION_STATE_MASTER_EVIDENCE,
   ...PRODUCT_SYSTEM_RECOVERY_MASTER_EVIDENCE,

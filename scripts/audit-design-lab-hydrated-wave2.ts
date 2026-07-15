@@ -1318,8 +1318,12 @@ async function main() {
     repositoryRoot,
     companionSourceFiles,
   );
+  const companionTestedCommitSha =
+    isRecord(companion) && typeof companion.testedCommitSha === "string"
+      ? companion.testedCommitSha
+      : "";
   const companionIssues = findDesignLabStoryAuditIssues(companion, {
-    headSha: testedCommitSha,
+    headSha: companionTestedCommitSha,
     sourceSha256: companionSource.sha256,
     sourceFileCount: companionSource.fileCount,
   });

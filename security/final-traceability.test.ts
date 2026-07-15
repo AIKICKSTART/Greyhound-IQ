@@ -63,7 +63,7 @@ assert.deepEqual(
   finalMetricRequirements.map((requirement) => requirement.id).sort(),
   "the summary map must use the exact immutable 21 requirement IDs",
 );
-assert.equal(FINAL_TRACEABILITY_ROWS.length, 18);
+assert.equal(FINAL_TRACEABILITY_ROWS.length, 19);
 assert.deepEqual(
   FINAL_TRACEABILITY_ROWS.map((row) => row.traceId).sort(),
   SECURITY_TRACES.map((trace) => trace.traceId).sort(),
@@ -245,7 +245,7 @@ for (const requirement of [
 }
 
 console.log(
-  "Final security traceability report passed: 18 rows, 23 fields, 21 metrics, structure only",
+  `Final security traceability report passed: ${FINAL_TRACEABILITY_ROWS.length} rows, 23 fields, 21 metrics, structure only`,
 );
 
 function withoutField(record: FinalTraceabilityRow, field: string) {

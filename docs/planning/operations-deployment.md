@@ -1,9 +1,12 @@
 # GreyhoundIQ — Operations & Deployment Plan v1
 
 > Source: `docs/GreyhoundIQ-Architecture-Premium.html` (sections 11, 14, 16)
-> Status: Production operations baseline. Detailed runbooks continue in Phase 4.
-> Hosting note: production targets Google Cloud Run.
-> Supabase remains the current database and storage integration.
+> Status: **Superseded production-infrastructure plan; retained as historical implementation context only. Do not execute.**
+> Production authority: [`../architecture/greyhoundiq-australia-production-architecture.md`](../architecture/greyhoundiq-australia-production-architecture.md).
+
+The single-VPS, self-hosted PostgreSQL, Supabase Storage, legacy CI/CD, backup/RTO, scaling and cost instructions below are not the selected production target, a deployment procedure, a current cost estimate or production evidence. The selected target is the separately reviewed Sydney/Melbourne Google Cloud architecture with AlloyDB, Australian Cloud Storage, application-owned realtime and independent regional LiveKit cells. Useful operational requirements from this historical plan must be re-established in an approved target module or runbook before use.
+
+No command in this file authorises project creation, provider access, billing attachment or upgrade, API enablement, DNS/firewall changes, credential use, Terraform or deployment execution, staging, traffic promotion or automatic payment. Each such action requires separate explicit approval under the canonical architecture boundary.
 
 ---
 

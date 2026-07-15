@@ -83,6 +83,7 @@ import { PRODUCT_QUERY_VALIDATION_MASTER_EVIDENCE } from "./product-query-valida
 import { PRODUCT_CRAWL_ACCESSIBLE_LABEL_MASTER_EVIDENCE } from "./product-crawl-accessible-label-evidence";
 import { PRODUCT_BREAKPOINT_LINK_CRAWL_MASTER_EVIDENCE } from "./product-breakpoint-link-crawl-evidence";
 import { PRODUCT_HISTORY_NAVIGATION_MASTER_EVIDENCE } from "./product-history-navigation-evidence";
+import { PRODUCT_PUBLIC_AUTH_LOADING_MASTER_EVIDENCE } from "./product-public-auth-loading-evidence";
 import { PRODUCT_ACCOUNT_MUTATION_FEEDBACK_MASTER_EVIDENCE } from "./product-account-mutation-feedback-evidence";
 import { PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE } from "./product-form-contract-core-evidence";
 import { PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE } from "./product-form-operational-contract-evidence";
@@ -122,6 +123,7 @@ import { APPLICATION_SURFACE_MASTER_EVIDENCE } from "../../security/application-
 import { API_TRACE_GOVERNANCE_MASTER_EVIDENCE } from "../../security/api-trace-governance-evidence";
 import { DATABASE_QUERY_RECORD_MASTER_EVIDENCE } from "../../security/database-query-record-evidence";
 import { ACTUAL_QUERY_CAPTURE_MASTER_EVIDENCE } from "../../security/actual-query-capture-evidence";
+import { ORM_CALL_LOCATION_MASTER_EVIDENCE } from "../../security/orm-call-location-evidence";
 import { QUERY_SAFETY_MASTER_EVIDENCE } from "../../security/query-safety-evidence";
 import { TOPAZ_RESPONSE_SAFETY_MASTER_EVIDENCE } from "../../security/topaz-response-safety-evidence";
 import { ENDPOINT_ERROR_MASTER_EVIDENCE } from "../../security/endpoint-error-evidence";
@@ -359,6 +361,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_CRAWL_ACCESSIBLE_LABEL_MASTER_EVIDENCE,
   ...PRODUCT_BREAKPOINT_LINK_CRAWL_MASTER_EVIDENCE,
   ...PRODUCT_HISTORY_NAVIGATION_MASTER_EVIDENCE,
+  ...PRODUCT_PUBLIC_AUTH_LOADING_MASTER_EVIDENCE,
   ...PRODUCT_ACCOUNT_MUTATION_FEEDBACK_MASTER_EVIDENCE,
   ...PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE,
   ...PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE,
@@ -1277,6 +1280,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...API_TRACE_GOVERNANCE_MASTER_EVIDENCE,
   ...DATABASE_QUERY_RECORD_MASTER_EVIDENCE,
   ...ACTUAL_QUERY_CAPTURE_MASTER_EVIDENCE,
+  ...ORM_CALL_LOCATION_MASTER_EVIDENCE,
   ...QUERY_SAFETY_MASTER_EVIDENCE,
   ...TOPAZ_RESPONSE_SAFETY_MASTER_EVIDENCE,
   ...ENDPOINT_ERROR_MASTER_EVIDENCE,

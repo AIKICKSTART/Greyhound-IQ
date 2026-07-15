@@ -56,6 +56,27 @@ No Google Cloud resources were created during this review.
 
 The currently linked account is to remain a non-billable Free Trial. The $300 credit can fund a time-bounded staging rehearsal, but it is not a sustainable monthly budget for the full dual-region AlloyDB, LiveKit, edge, storage and observability target. No billing-account upgrade, additional billing attachment, or automatic payment setup is authorised. Production continuity after the trial requires a separate cost decision and explicit approval; otherwise Google will stop the trial resources when the credit or trial period ends.
 
+## 2026-07-16 pre-production source audit
+
+The local source audit passed the production Terraform foundation contract, GCP architecture policy, private-datastore policy, provider-readiness unit contract and LiveKit topology-config unit contract. Those results prove only that the repository records the selected target and fails closed around prohibited source patterns. They do not prove a project, provider, service, network, identity, datastore, media cell or recovery path exists.
+
+Verified source gaps remain:
+
+- Production Terraform currently declares only required APIs, Workload Identity Federation, build/deploy/runtime service accounts and narrow foundation IAM. It contains no production AlloyDB, Cloud Run, VPC, Redis, LiveKit compute, storage, queue, observability, DNS or budget resources. Each paid or traffic-bearing layer still requires a separate source module, review and immutable plan.
+- The repository still contains a runnable legacy single-region Cloud Run/Supabase workflow. It is superseded by this document, is not compatible with the selected target and must not be dispatched for production or treated as promotion evidence.
+- AlloyDB has no deployable implementation module or environment evidence for private networking, sizing, backup/PITR, restore, connection capacity, Prisma/RLS/extension/pooler compatibility, asynchronous replication, fenced promotion, switchover, reconciliation or failback.
+- The checked-in LiveKit deployment file is a minimal single-endpoint configuration. It does not implement independent Sydney and Melbourne cells, per-cell HA Redis, N+1 SFU capacity, room-home routing, regional load balancing, drain controls, monitoring or failure recovery.
+- Regional LiveKit configuration exists in application source, but the durable call-room model does not persist a room-home region and token, webhook and teardown paths do not yet select a regional cell consistently. The dual-cell journey therefore remains blocked even before infrastructure provisioning.
+- Regional ejection and Melbourne database promotion remain unimplemented and unexercised. RTO/RPO, N-1 capacity, replication lag, reconnect, reconciliation and compound-failure behaviour remain targets rather than claims.
+- No approved cost ceiling, current SKU estimate, hourly/monthly always-on forecast, budget-alert plan, anomaly policy or free-credit teardown envelope exists for the selected topology. Foundation IAM also does not yet define the separately scoped runtime, migration, queue, Redis, LiveKit, backup/restore and emergency-recovery identities required by later modules.
+- Pub/Sub regional topology, Cloud Storage default-versus-Turbo replication, Secret Manager regional semantics and the Australian residency of any future LiveKit hosting remain explicit decisions requiring evidence and approval.
+
+### Approval boundary
+
+This audit authorises documentation and local source checks only. It does **not** authorise project creation or selection, provider probes, billing attachment or upgrade, automatic payment setup, API enablement, quota requests, Terraform plan/apply/import/state changes, resource creation, DNS or traffic changes, credential or secret access, production data access, live provider registration, load testing, staging deployment or production promotion.
+
+Every future infrastructure step requires a separately reviewed action packet naming the exact project and environment, resources and regions, immutable source revision and plan, identities and permissions, expected hourly/monthly and maximum rehearsal cost, free-credit impact, test duration, teardown/rollback procedure, evidence owner and approval expiry. Approval to write or review source is never approval to provision it. Approval to spend free-trial credit is never approval to activate paid billing. Billing activation, DNS cutover and production promotion remain three separate manual decisions.
+
 ## Why this is the selected design
 
 - Australian edge locations reduce static-content latency around the country without placing origins overseas.

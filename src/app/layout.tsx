@@ -12,6 +12,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { HomeRouteContent } from "@/components/home-route-content";
 import { JsonLd, organizationSchema, websiteSchema } from "@/components/json-ld";
+import { AuthenticationNavigationFeedback } from "@/components/authentication-navigation-feedback";
 import { siteAssetUrl } from "@/lib/storage-paths";
 
 const inter = Inter({
@@ -104,6 +105,7 @@ export default async function RootLayout({
             href="#main-content"
             className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-md focus:bg-[hsl(var(--primary))] focus:text-white focus:text-sm focus:font-semibold"
           >
+          <AuthenticationNavigationFeedback />
             Skip to main content
           </a>
           <div className="flex min-h-screen flex-col">

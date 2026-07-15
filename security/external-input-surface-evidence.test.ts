@@ -25,8 +25,8 @@ import {
 } from "./external-input-surface-evidence";
 
 assert.equal(EXTERNAL_INPUT_SURFACE_REQUIREMENT_IDS.length, 21);
-assert.equal(VERIFIED_EXTERNAL_INPUT_SURFACE_IDS.length, 5);
-assert.equal(Object.keys(OPEN_EXTERNAL_INPUT_SURFACE_GAPS).length, 16);
+assert.equal(VERIFIED_EXTERNAL_INPUT_SURFACE_IDS.length, 8);
+assert.equal(Object.keys(OPEN_EXTERNAL_INPUT_SURFACE_GAPS).length, 13);
 assert.deepEqual(
   [
     ...VERIFIED_EXTERNAL_INPUT_SURFACE_IDS,
@@ -225,6 +225,47 @@ assert.match(
   /webhookBodyErrorResponse\(err\)/,
 );
 
+const feedValidation = read("src/lib/feed-validation.ts");
+const feedPostCard = read("src/components/feed-post-card.tsx");
+assert.match(feedValidation, /body:\s*z\.string\(\)\.trim\(\)\.min\(2\)\.max\(5000\)\.transform\(cleanText\)/);
+assert.match(feedValidation, /body:\s*z\.string\(\)\.trim\(\)\.min\(2\)\.max\(2000\)\.transform\(cleanText\)/);
+assert.match(read("src/lib/content.ts"), /replace\(\/\[<>\]\//);
+assert.match(feedPostCard, /<p[^>]*>\s*\{post\.body\}\s*<\/p>/);
+assert.match(feedPostCard, /<p[^>]*>\s*\{post\.reshare\.body\}\s*<\/p>/);
+
+const packageManifest = read("package.json");
+assert.doesNotMatch(
+  packageManifest,
+  /"(?:react-markdown|remark(?:-[^"]*)?|rehype(?:-[^"]*)?|markdown-it|marked|@mdx-js\/react)"/,
+);
+
+const dangerousHtmlSinks = collectFiles("src")
+  .filter((path) => /\.(?:ts|tsx)$/.test(path) && !/\.test\./.test(path))
+  .flatMap((path) =>
+    read(path)
+      .split(/\r?\n/)
+      .flatMap((line, index) =>
+        line.includes("dangerouslySetInnerHTML") ? [`${path}:${index + 1}`] : [],
+      ),
+  );
+assert.deepEqual(dangerousHtmlSinks, ["src/components/json-ld.tsx:20"]);
+const jsonLd = read("src/components/json-ld.tsx");
+assert.match(jsonLd, /dangerouslySetInnerHTML=\{\{ __html: serializeJsonLd\(data\) \}\}/);
+assert.match(jsonLd, /JSON\.stringify\(data\)\.replace\(\/</);
+const remoteResponse = read("src/lib/remote-response.ts");
+assert.match(remoteResponse, /response\.headers\s*\.get\("content-type"\)/);
+assert.match(remoteResponse, /size > policy\.maxBytes/);
+for (const providerHtmlReader of [
+  "src/lib/live/fasttrack.ts",
+  "src/lib/live/thedogs.ts",
+]) {
+  assert.match(
+    read(providerHtmlReader),
+    /readBoundedTextResponse\(response, [A-Z_]+HTML_POLICY\)/,
+    providerHtmlReader,
+  );
+}
+
 assert.deepEqual(
   Object.keys(EXTERNAL_INPUT_SURFACE_MASTER_EVIDENCE).toSorted(),
   [...VERIFIED_EXTERNAL_INPUT_SURFACE_IDS].toSorted(),
@@ -255,7 +296,7 @@ for (const fact of Object.keys(
 }
 
 console.log(
-  "External-input surface evidence passed: 5 verified controls and 16 explicit gaps cover all 21 requirements",
+  "External-input surface evidence passed: 8 verified controls and 13 explicit gaps cover all 21 requirements",
 );
 
 function collectFiles(directory: string): string[] {

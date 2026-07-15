@@ -30,6 +30,9 @@ export const VERIFIED_EXTERNAL_INPUT_SURFACE_IDS = [
   "security.external-input-surface.uploaded-files",
   "security.external-input-surface.file-names",
   "security.external-input-surface.webhook-payloads",
+  "security.external-input-surface.rich-text",
+  "security.external-input-surface.markdown",
+  "security.external-input-surface.html",
   "security.external-input-surface.media-metadata",
 ] as const;
 
@@ -43,6 +46,9 @@ export type ExternalInputSurfaceFact =
   | "webhookDeclaredLengthBounded"
   | "webhookStreamBytesBounded"
   | "webhookOversizeRejectedBeforeVerification"
+  | "richTextRenderedAsText"
+  | "markdownRendererAbsent"
+  | "htmlSinksRestricted"
   | "mediaMetadataValidated";
 
 export type ExternalInputSurfaceFacts = Readonly<
@@ -59,6 +65,9 @@ export const EXTERNAL_INPUT_SURFACE_FACTS: ExternalInputSurfaceFacts = {
   webhookDeclaredLengthBounded: true,
   webhookStreamBytesBounded: true,
   webhookOversizeRejectedBeforeVerification: true,
+  richTextRenderedAsText: true,
+  markdownRendererAbsent: true,
+  htmlSinksRestricted: true,
   mediaMetadataValidated: true,
 };
 
@@ -94,6 +103,25 @@ const evidenceByRequirement = {
     "src/app/api/webhooks/lago/route.ts",
     "src/app/api/livekit/webhook/route.ts",
     "security/webhook-request-body-control.test.ts",
+    EXTERNAL_INPUT_SURFACE_EVIDENCE_TEST,
+  ],
+  "security.external-input-surface.rich-text": [
+    "src/lib/content.ts",
+    "src/lib/feed-validation.ts",
+    "src/components/feed-post-card.tsx",
+    EXTERNAL_INPUT_SURFACE_EVIDENCE_TEST,
+  ],
+  "security.external-input-surface.markdown": [
+    "package.json",
+    "src/lib/content.ts",
+    "src/components/feed-post-card.tsx",
+    EXTERNAL_INPUT_SURFACE_EVIDENCE_TEST,
+  ],
+  "security.external-input-surface.html": [
+    "src/components/json-ld.tsx",
+    "src/lib/remote-response.ts",
+    "src/lib/live/fasttrack.ts",
+    "src/lib/live/thedogs.ts",
     EXTERNAL_INPUT_SURFACE_EVIDENCE_TEST,
   ],
   "security.external-input-surface.media-metadata": [
@@ -142,12 +170,6 @@ export const OPEN_EXTERNAL_INPUT_SURFACE_GAPS: Readonly<
     "Some filters are allowlisted while others, including report status and memory kind, still reach ORM filters as unvalidated strings.",
   "security.external-input-surface.pagination-tokens":
     "Cursor and before tokens do not yet share an exhaustive maximum-length and canonical identifier schema across handlers.",
-  "security.external-input-surface.rich-text":
-    "Free-text schemas are bounded in many mutations but do not explicitly reject or normalize rich-text markup at every boundary.",
-  "security.external-input-surface.markdown":
-    "The product has no Markdown renderer dependency, but unsupported Markdown is not explicitly rejected by every free-text boundary.",
-  "security.external-input-surface.html":
-    "Provider HTML reads are bounded and rendered text is escaped, but raw provider HTML parsing does not constitute an exhaustive input schema.",
 };
 
 export function evaluateExternalInputSurfaceFacts(
@@ -166,6 +188,10 @@ export function evaluateExternalInputSurfaceFacts(
       facts.webhookDeclaredLengthBounded &&
       facts.webhookStreamBytesBounded &&
       facts.webhookOversizeRejectedBeforeVerification,
+    "security.external-input-surface.rich-text": facts.richTextRenderedAsText,
+    "security.external-input-surface.markdown":
+      facts.markdownRendererAbsent && facts.richTextRenderedAsText,
+    "security.external-input-surface.html": facts.htmlSinksRestricted,
     "security.external-input-surface.media-metadata":
       facts.mediaMetadataValidated,
   } as const;

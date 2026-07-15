@@ -5,6 +5,7 @@ import ts from "typescript";
 export function getLocalSourceClosure(
   entryPath: string,
   repoRoot = path.resolve("."),
+  options?: Readonly<{ ignoredFiles?: ReadonlySet<string> }>,
 ) {
   const canonicalRoot = path.resolve(repoRoot);
   const pending = [path.resolve(canonicalRoot, entryPath)];
@@ -21,6 +22,7 @@ export function getLocalSourceClosure(
       throw new Error(`${entryPath}: local import escaped the repository`);
     }
     if (visited.has(repoPath)) continue;
+    if (options?.ignoredFiles?.has(repoPath)) continue;
     visited.add(repoPath);
 
     const source = readFileSync(absolutePath, "utf8");

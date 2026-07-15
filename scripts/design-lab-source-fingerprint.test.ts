@@ -34,6 +34,19 @@ try {
 
   writeFileSync(join(root, "entry.ts"), 'import "./dependency";\n');
   writeFileSync(join(root, "dependency.ts"), "export const dependency = 1;\n");
+  mkdirSync(join(root, "src", "components"), { recursive: true });
+  writeFileSync(
+    join(root, "src", "components", "master-audit-evidence.ts"),
+    'import "../../operational-dependency";\n',
+  );
+  writeFileSync(
+    join(root, "operational-dependency.ts"),
+    "export const operational = true;\n",
+  );
+  writeFileSync(
+    join(root, "entry.ts"),
+    'import "./dependency";\nimport "./src/components/master-audit-evidence";\n',
+  );
   writeFileSync(join(root, "fixture.json"), "{}\n");
   writeFileSync(join(root, "schema.prisma"), "model Test { id String @id }\n");
   writeFileSync(join(root, "runtime.ts"), "export const runtime = true;\n");

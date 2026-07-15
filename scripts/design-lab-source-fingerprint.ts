@@ -61,6 +61,7 @@ const SOURCE_FILES = [
 ] as const;
 const OPERATIONAL_STATUS_FILES = new Set([
   "src/components/design-lab-delivery-progress.ts",
+  "src/components/master-audit-evidence.ts",
 ]);
 
 export type DesignLabSourceFingerprint = {
@@ -120,7 +121,9 @@ export function getDesignLabSourcePaths(
     return normalizeRepositoryPaths([
       ...declaredFiles,
       ...importRoots.flatMap((file) => [
-        ...getLocalSourceClosure(file, repoRoot),
+        ...getLocalSourceClosure(file, repoRoot, {
+          ignoredFiles: OPERATIONAL_STATUS_FILES,
+        }),
       ]),
     ]);
   }

@@ -170,6 +170,7 @@ import { SUPPLY_CHAIN_ADDITIONAL_MASTER_EVIDENCE } from "../../security/supply-c
 import { SECURE_FAILURE_MASTER_EVIDENCE } from "../../security/secure-failure-evidence";
 import { ROW_LEVEL_SECURITY_MASTER_EVIDENCE } from "../../security/row-level-security-evidence";
 import { DATABASE_ROLE_SEPARATION_MASTER_EVIDENCE } from "../../security/database-role-separation-evidence";
+import { DATABASE_NO_SUPERUSER_MASTER_EVIDENCE } from "../../security/database-no-superuser-evidence";
 import { GENERIC_SECURITY_PLACEHOLDER_MASTER_EVIDENCE } from "../../security/placeholder-prohibition-evidence";
 import { REQUIRED_INPUT_REGISTRY_MASTER_EVIDENCE } from "./security-required-input-evidence";
 import {
@@ -1544,6 +1545,9 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   // This authority closes only properties exercised as the ordinary runtime
   // role. Distinct specialist-role requirements intentionally remain open.
   ...DATABASE_ROLE_SEPARATION_MASTER_EVIDENCE,
+  // The ordinary PostgreSQL application path is independently proven to use
+  // the restricted non-superuser runtime identity. Specialist roles stay open.
+  ...DATABASE_NO_SUPERUSER_MASTER_EVIDENCE,
   // Threat-model completion records are deliberately last: they verify that
   // each threat is modeled while the linked records retain unresolved control
   // status and release actions. They do not claim those controls are fixed.

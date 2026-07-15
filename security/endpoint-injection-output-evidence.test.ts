@@ -22,7 +22,10 @@ import {
 import { assertUserExportDto } from "../src/lib/user-export-policy";
 import { whitelistProviderSnapshot } from "../src/lib/live/raw-sanitizer";
 import { resolveWorkosReturnTo } from "../src/lib/workos-redirect";
-import { SECURITY_MASTER_EVIDENCE } from "../src/components/master-audit-evidence";
+import {
+  PRODUCT_MASTER_EVIDENCE,
+  SECURITY_MASTER_EVIDENCE,
+} from "../src/components/master-audit-evidence";
 import {
   MASTER_AUDIT_REQUIREMENTS,
   isMasterRequirementComplete,
@@ -72,6 +75,10 @@ assert.equal(new Set(EXPECTED_REQUIREMENT_IDS).size, 15);
 const immutableIds = new Set(
   MASTER_AUDIT_REQUIREMENTS.map((requirement) => requirement.id),
 );
+const masterEvidence = {
+  ...PRODUCT_MASTER_EVIDENCE,
+  ...SECURITY_MASTER_EVIDENCE,
+};
 for (const requirementId of EXPECTED_REQUIREMENT_IDS) {
   assert.equal(
     immutableIds.has(requirementId),
@@ -83,7 +90,7 @@ for (const requirementId of EXPECTED_REQUIREMENT_IDS) {
     (candidate) => candidate.id === requirementId,
   );
   assert.ok(requirement, `${requirementId}: missing immutable requirement`);
-  assert.deepEqual(SECURITY_MASTER_EVIDENCE[requirementId], evidence);
+  assert.deepEqual(masterEvidence[requirementId], evidence);
   assert.equal(isMasterRequirementComplete(requirement), true);
   assert.equal(evidence.status, "verified");
   assert.equal(evidence.evidence[0], ENDPOINT_INJECTION_OUTPUT_EVIDENCE_FILE);

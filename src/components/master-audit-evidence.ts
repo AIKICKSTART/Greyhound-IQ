@@ -155,7 +155,10 @@ import { SCHEDULED_TASK_CONTROL_MASTER_EVIDENCE } from "../../security/scheduled
 import { QUEUE_WORKER_CONTROL_MASTER_EVIDENCE } from "../../security/queue-worker-control-evidence";
 import { COOKIE_CONTROL_MASTER_EVIDENCE } from "../../security/cookie-control-evidence";
 import { BROWSER_DATA_HANDLING_MASTER_EVIDENCE } from "../../security/browser-data-handling-evidence";
-import { ENDPOINT_INJECTION_OUTPUT_MASTER_EVIDENCE } from "../../security/endpoint-injection-output-evidence";
+import {
+  ENDPOINT_INJECTION_OUTPUT_SECURITY_MASTER_EVIDENCE,
+  OPEN_REDIRECT_PRODUCT_MASTER_EVIDENCE,
+} from "../../security/endpoint-injection-output-evidence";
 import { EXTERNAL_INPUT_SURFACE_MASTER_EVIDENCE } from "../../security/external-input-surface-evidence";
 import { FRONTEND_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/frontend-authorization-evidence";
 import { PROPERTY_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/property-authorization-evidence";
@@ -506,10 +509,6 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
     status: "tested",
     evidence: ["src/lib/workos-redirect.test.ts"],
   },
-  "ROUTE.PUBLIC.no-open-redirect": {
-    status: "tested",
-    evidence: ["src/lib/workos-redirect.test.ts"],
-  },
   "ROUTE.PUBLIC.auth-retry": {
     status: "tested",
     evidence: [
@@ -720,6 +719,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
       "docs/product/production-parity.md",
     ],
   },
+  ...OPEN_REDIRECT_PRODUCT_MASTER_EVIDENCE,
 };
 
 export const TESTED_SECURITY_REGISTRY_FIELD_REQUIREMENTS = {
@@ -1239,7 +1239,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...QUEUE_WORKER_CONTROL_MASTER_EVIDENCE,
   ...COOKIE_CONTROL_MASTER_EVIDENCE,
   ...BROWSER_DATA_HANDLING_MASTER_EVIDENCE,
-  ...ENDPOINT_INJECTION_OUTPUT_MASTER_EVIDENCE,
+  ...ENDPOINT_INJECTION_OUTPUT_SECURITY_MASTER_EVIDENCE,
   ...EXTERNAL_INPUT_SURFACE_MASTER_EVIDENCE,
   ...FRONTEND_AUTHORIZATION_MASTER_EVIDENCE,
   ...PROPERTY_AUTHORIZATION_MASTER_EVIDENCE,

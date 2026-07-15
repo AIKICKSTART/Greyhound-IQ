@@ -47,7 +47,7 @@ function verified(
   return { status: "verified", evidence: [...COMMON_EVIDENCE, ...evidence] };
 }
 
-export const ENDPOINT_INJECTION_OUTPUT_MASTER_EVIDENCE = {
+export const ENDPOINT_INJECTION_OUTPUT_SECURITY_MASTER_EVIDENCE = {
   "security.endpoint-test-injection-output.sql-injection-attempts": verified(
     "scripts/check-production-sql-safety.ts",
     "scripts/check-production-sql-safety.test.ts",
@@ -110,6 +110,14 @@ export const ENDPOINT_INJECTION_OUTPUT_MASTER_EVIDENCE = {
     "src/lib/remote-response.ts",
     "src/lib/remote-response.test.ts",
   ),
+} as const satisfies Readonly<
+  Record<
+    (typeof ENDPOINT_INJECTION_OUTPUT_REQUIREMENT_IDS)[number],
+    EndpointInjectionOutputEvidenceRecord
+  >
+>;
+
+export const OPEN_REDIRECT_PRODUCT_MASTER_EVIDENCE = {
   "ROUTE.PUBLIC.no-open-redirect": verified(
     "src/lib/workos-redirect.ts",
     "src/lib/workos-redirect.test.ts",
@@ -128,6 +136,16 @@ export const ENDPOINT_INJECTION_OUTPUT_MASTER_EVIDENCE = {
     "src/app/sign-in/route.ts",
     "src/app/callback/route.ts",
   ),
+} as const satisfies Readonly<
+  Record<
+    (typeof OPEN_REDIRECT_REQUIREMENT_IDS)[number],
+    EndpointInjectionOutputEvidenceRecord
+  >
+>;
+
+export const ENDPOINT_INJECTION_OUTPUT_MASTER_EVIDENCE = {
+  ...ENDPOINT_INJECTION_OUTPUT_SECURITY_MASTER_EVIDENCE,
+  ...OPEN_REDIRECT_PRODUCT_MASTER_EVIDENCE,
 } as const satisfies Readonly<
   Record<
     EndpointInjectionOutputRequirementId,

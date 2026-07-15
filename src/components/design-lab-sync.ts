@@ -1,11 +1,11 @@
 import {
   DEMO_ROUTE_AUDIT_EXPECTED_ROWS,
+  DEMO_ROUTE_AUDIT_EVALUATION,
   DEMO_SCREEN_COUNT,
   DEMO_SCREEN_FAMILIES,
   DEMO_USER_JOURNEYS,
   SCREEN_CONTRACT_CHECKLIST,
   SCREEN_CONTRACT_BY_ROUTE,
-  SCREEN_CONTRACTS,
 } from "./demo-experience-registry";
 import { evaluateDemoRouteAuditEvidence } from "./demo-route-audit-evidence";
 import {
@@ -21,10 +21,15 @@ import {
   isDesignLabPreproductionRequirementComplete,
 } from "./design-lab-preproduction-requirements";
 import {
+  DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK,
   DESIGN_LAB_PENDING_WORK_SUMMARY,
+  DESIGN_LAB_VERIFICATION_REFRESH_WORKFLOW,
   findDesignLabPendingWorkIssues,
 } from "./design-lab-pending-work";
-import { DESIGN_LAB_RELEASE_GATE } from "./design-lab-release-gate";
+import {
+  DESIGN_LAB_RELEASE_GATE,
+  type DesignLabReleaseGateStatus,
+} from "./design-lab-release-gate";
 import {
   DESIGN_LAB_AREAS,
   type DesignLabAreaId,
@@ -67,6 +72,19 @@ export type DesignLabMissionControlStatus = {
   detail: string;
 };
 
+export type DesignLabReleaseEvidenceState =
+  | "fresh-verified"
+  | "stale-captured"
+  | "open"
+  | "blocked";
+
+export type DesignLabReleaseEvidenceCapture = {
+  id: string;
+  label: string;
+  evidencePath: string;
+  state: DesignLabReleaseEvidenceState;
+};
+
 export const DESIGN_LAB_DEPLOYMENT_TARGET = Object.freeze({
   date: "2026-07-15",
   window: "Tonight",
@@ -76,6 +94,71 @@ export const DESIGN_LAB_DEPLOYMENT_TARGET = Object.freeze({
   condition:
     "Promote only when the exact immutable candidate passes the fail-closed release gate and receives human approval.",
 });
+
+export const DESIGN_LAB_RELEASE_EVIDENCE_SNAPSHOT: readonly DesignLabReleaseEvidenceCapture[] =
+  Object.freeze([
+    {
+      id: "exact-route",
+      label: "Exact-route browser audit",
+      evidencePath: "output/demo-route-audit/latest.json",
+      state:
+        DEMO_ROUTE_AUDIT_EVALUATION.valid &&
+        DEMO_ROUTE_AUDIT_EVALUATION.summary?.failed === 0
+          ? "stale-captured"
+          : "open",
+    },
+    {
+      id: "responsive-workspace",
+      label: "Responsive workspace audit",
+      evidencePath: "output/design-lab-responsive-workspace/latest.json",
+      state: "stale-captured",
+    },
+    {
+      id: "user-stories",
+      label: "User-story HTTP audit",
+      evidencePath: "output/demo-route-audit/design-lab-user-stories.json",
+      state: "stale-captured",
+    },
+    {
+      id: "hydrated-stories",
+      label: "Hydrated user-story audit",
+      evidencePath: "output/demo-route-audit/design-lab-hydrated-stories.json",
+      state: "stale-captured",
+    },
+    {
+      id: "hydrated-wave2",
+      label: "Hydrated wave 2 audit",
+      evidencePath: "output/demo-route-audit/design-lab-hydrated-wave2.json",
+      state: "stale-captured",
+    },
+  ]);
+
+const releaseEvidenceSummary = Object.freeze({
+  total: DESIGN_LAB_RELEASE_EVIDENCE_SNAPSHOT.length,
+  freshVerified: DESIGN_LAB_RELEASE_EVIDENCE_SNAPSHOT.filter(
+    (capture) => capture.state === "fresh-verified",
+  ).length,
+  staleCaptured: DESIGN_LAB_RELEASE_EVIDENCE_SNAPSHOT.filter(
+    (capture) => capture.state === "stale-captured",
+  ).length,
+  open: DESIGN_LAB_RELEASE_EVIDENCE_SNAPSHOT.filter(
+    (capture) => capture.state === "open",
+  ).length,
+  blocked: DESIGN_LAB_RELEASE_EVIDENCE_SNAPSHOT.filter(
+    (capture) => capture.state === "blocked",
+  ).length,
+});
+
+export function resolveDesignLabSyncReleaseStatus(
+  registryStatus: DesignLabReleaseGateStatus,
+  evidence: Pick<typeof releaseEvidenceSummary, "freshVerified" | "total">,
+): DesignLabReleaseGateStatus {
+  return registryStatus === "ready-for-approval" &&
+    evidence.total > 0 &&
+    evidence.freshVerified === evidence.total
+    ? "ready-for-approval"
+    : "blocked";
+}
 
 function section(
   id: string,
@@ -159,25 +242,13 @@ const releaseOpenChecks =
   DESIGN_LAB_RELEASE_GATE.totalChecks -
   DESIGN_LAB_RELEASE_GATE.completedChecks;
 const releaseAwaitingVerificationChecks =
-  releaseRequirements.filter(
-    (requirement) =>
-      !isMasterRequirementComplete(requirement) &&
-      requirement.status === "captured" &&
-      requirement.evidence.length > 0,
-  ).length +
-  SCREEN_CONTRACTS.flatMap((screen) => Object.values(screen.coverage)).filter(
-    (coverage) =>
-      coverage.status === "captured" && coverage.evidence.length > 0,
-  ).length +
-  DATABASE_OPERATIONS.filter(
-    (operation) =>
-      !isDesignLabDatabaseOperationComplete(operation) &&
-      operation.verificationStatus === "Verified" &&
-      operation.tests.length > 0 &&
-      operation.evidence.length > 0,
-  ).length;
+  DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.length;
 const releaseImplementationOpenChecks =
   releaseOpenChecks - releaseAwaitingVerificationChecks;
+const designLabSyncReleaseStatus = resolveDesignLabSyncReleaseStatus(
+  DESIGN_LAB_RELEASE_GATE.status,
+  releaseEvidenceSummary,
+);
 const screenSections = DESIGN_LAB_SYNC_SECTIONS.filter((item) =>
   item.id.startsWith("screen:"),
 );
@@ -202,7 +273,7 @@ const registrySyncWorkstream = DESIGN_LAB_DELIVERY_PROGRESS.find(
 
 export const DESIGN_LAB_MISSION_CONTROL_STATUS = Object.freeze({
   overview: missionStatus(
-    DESIGN_LAB_RELEASE_GATE.status === "ready-for-approval"
+    designLabSyncReleaseStatus === "ready-for-approval"
       ? "complete"
       : "blocked",
     `${releaseOpenChecks.toLocaleString("en-AU")} MVP open`,
@@ -269,16 +340,28 @@ function missionStatus(
 }
 
 export const DESIGN_LAB_SYNC_SNAPSHOT = Object.freeze({
-  schemaVersion: 4,
+  schemaVersion: 5,
   sourceOfTruth: "Design Lab release registries",
   deploymentTarget: DESIGN_LAB_DEPLOYMENT_TARGET,
   release: Object.freeze({
-    status: DESIGN_LAB_RELEASE_GATE.status,
+    status: designLabSyncReleaseStatus,
+    registryStatus: DESIGN_LAB_RELEASE_GATE.status,
     completedChecks: DESIGN_LAB_RELEASE_GATE.completedChecks,
     totalChecks: DESIGN_LAB_RELEASE_GATE.totalChecks,
     openChecks: releaseOpenChecks,
     awaitingVerificationChecks: releaseAwaitingVerificationChecks,
     implementationOpenChecks: releaseImplementationOpenChecks,
+    awaitingVerification: Object.freeze({
+      total: DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.length,
+      itemIds: Object.freeze(
+        DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.map((item) => item.id),
+      ),
+      refreshWorkflow: DESIGN_LAB_VERIFICATION_REFRESH_WORKFLOW,
+    }),
+    evidence: Object.freeze({
+      ...releaseEvidenceSummary,
+      captures: DESIGN_LAB_RELEASE_EVIDENCE_SNAPSHOT,
+    }),
     blockers: DESIGN_LAB_RELEASE_GATE.blockers,
     masterBlockers: DESIGN_LAB_RELEASE_GATE.masterBlockers,
     preproductionBlockers: DESIGN_LAB_RELEASE_GATE.preproductionBlockers,

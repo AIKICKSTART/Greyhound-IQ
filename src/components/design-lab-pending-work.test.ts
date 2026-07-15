@@ -6,10 +6,13 @@ import {
   SCREEN_CONTRACTS,
 } from "./demo-experience-registry";
 import {
+  DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK,
   DESIGN_LAB_PENDING_WORK,
   DESIGN_LAB_PENDING_WORK_SUMMARY,
+  DESIGN_LAB_VERIFICATION_REFRESH_WORKFLOW,
   filterDesignLabPendingWork,
   findDesignLabPendingWorkIssues,
+  isDesignLabWorkAwaitingVerification,
 } from "./design-lab-pending-work";
 import {
   DESIGN_LAB_PREPRODUCTION_REQUIREMENTS,
@@ -37,6 +40,30 @@ assert.equal(
 assert.equal(
   new Set(DESIGN_LAB_PENDING_WORK.map((item) => item.id)).size,
   DESIGN_LAB_PENDING_WORK.length,
+);
+assert.ok(DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.length > 0);
+assert.equal(
+  DESIGN_LAB_PENDING_WORK_SUMMARY.awaitingVerification,
+  DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.length,
+);
+assert.ok(
+  DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.every(
+    isDesignLabWorkAwaitingVerification,
+  ),
+);
+assert.equal(
+  new Set(
+    DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.map((item) => item.id),
+  ).size,
+  DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.length,
+);
+assert.equal(
+  DESIGN_LAB_VERIFICATION_REFRESH_WORKFLOW.queueFilter,
+  "workCompletion=awaiting-verification",
+);
+assert.deepEqual(
+  DESIGN_LAB_VERIFICATION_REFRESH_WORKFLOW.commands.slice(-2),
+  ["npm run check:design-lab-sync", "npm run check:design-lab-release"],
 );
 
 assert.deepEqual(DESIGN_LAB_PENDING_WORK_SUMMARY.sources, {
@@ -67,6 +94,13 @@ for (const requirement of DESIGN_LAB_DATABASE_NORMALIZATION_REQUIREMENTS) {
 const pending = filterDesignLabPendingWork({ completion: "pending" });
 assert.equal(pending.length, DESIGN_LAB_PENDING_WORK_SUMMARY.pending);
 assert.ok(pending.every((item) => !item.complete));
+const awaitingVerification = filterDesignLabPendingWork({
+  completion: "awaiting-verification",
+});
+assert.deepEqual(
+  awaitingVerification.map((item) => item.id),
+  DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.map((item) => item.id),
+);
 assert.ok(
   filterDesignLabPendingWork({
     completion: "all",

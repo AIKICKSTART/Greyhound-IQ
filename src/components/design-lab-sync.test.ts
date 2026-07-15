@@ -1,24 +1,36 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { DEMO_ROUTE_AUDIT_EXPECTED_ROWS } from "./demo-experience-registry";
+import {
+  DEMO_ROUTE_AUDIT_EXPECTED_ROWS,
+  DEMO_ROUTE_AUDIT_EVALUATION,
+} from "./demo-experience-registry";
 import {
   DESIGN_LAB_DELIVERY_PROGRESS,
 } from "./design-lab-delivery-progress";
 import { DesignLabDeliveryProgressPanel } from "./design-lab-delivery-progress-panel";
+import { DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK } from "./design-lab-pending-work";
 import { DESIGN_LAB_AREAS } from "./design-lab-workspace";
 import { DESIGN_LAB_USER_STORY_MANIFESTS } from "./screen-contracts/design-lab-user-stories";
 import {
+  DESIGN_LAB_RELEASE_EVIDENCE_SNAPSHOT,
   DESIGN_LAB_SYNC_SECTIONS,
   DESIGN_LAB_SYNC_SNAPSHOT,
   findDesignLabRegistrySyncIssues,
   findDesignLabRouteAuditSyncIssues,
+  resolveDesignLabSyncReleaseStatus,
 } from "./design-lab-sync";
 
 type AuditFixture = {
+  schemaVersion: number;
+  generatedAt: string;
+  baseUrl: string;
+  testedCommitSha: string;
+  sourceSha256: string;
+  sourceFileCount: number;
   expected: number;
   passed: number;
   failed: number;
@@ -38,7 +50,7 @@ type AuditFixture = {
 };
 
 assert.deepEqual(findDesignLabRegistrySyncIssues(), []);
-assert.equal(DESIGN_LAB_SYNC_SNAPSHOT.schemaVersion, 4);
+assert.equal(DESIGN_LAB_SYNC_SNAPSHOT.schemaVersion, 5);
 assert.equal(DESIGN_LAB_SYNC_SNAPSHOT.deploymentTarget.window, "Tonight");
 assert.equal(DESIGN_LAB_SYNC_SNAPSHOT.deploymentTarget.teamSeats, 4);
 assert.deepEqual(
@@ -58,6 +70,90 @@ assert.ok(
   DESIGN_LAB_SYNC_SNAPSHOT.release.awaitingVerificationChecks > 0,
   "captured implementation evidence must remain visible while final verification is pending",
 );
+assert.equal(
+  DESIGN_LAB_SYNC_SNAPSHOT.release.awaitingVerificationChecks,
+  DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.length,
+);
+assert.equal(
+  DESIGN_LAB_SYNC_SNAPSHOT.release.awaitingVerification.total,
+  DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.length,
+);
+assert.equal(
+  new Set(DESIGN_LAB_SYNC_SNAPSHOT.release.awaitingVerification.itemIds).size,
+  DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.length,
+);
+assert.deepEqual(
+  DESIGN_LAB_SYNC_SNAPSHOT.release.awaitingVerification.itemIds,
+  DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK.map((item) => item.id),
+);
+assert.equal(
+  DESIGN_LAB_SYNC_SNAPSHOT.release.awaitingVerification.refreshWorkflow
+    .queueFilter,
+  "workCompletion=awaiting-verification",
+);
+assert.deepEqual(
+  DESIGN_LAB_SYNC_SNAPSHOT.release.awaitingVerification.refreshWorkflow.commands.slice(
+    -2,
+  ),
+  ["npm run check:design-lab-sync", "npm run check:design-lab-release"],
+);
+const releaseEvidenceSummaryKeys = {
+  "fresh-verified": "freshVerified",
+  "stale-captured": "staleCaptured",
+  open: "open",
+  blocked: "blocked",
+} as const;
+for (const state of [
+  "fresh-verified",
+  "stale-captured",
+  "open",
+  "blocked",
+] as const) {
+  const summaryKey = releaseEvidenceSummaryKeys[state];
+  assert.equal(
+    DESIGN_LAB_SYNC_SNAPSHOT.release.evidence[summaryKey],
+    DESIGN_LAB_RELEASE_EVIDENCE_SNAPSHOT.filter(
+      (capture) => capture.state === state,
+    ).length,
+  );
+}
+assert.equal(
+  DESIGN_LAB_SYNC_SNAPSHOT.release.evidence.freshVerified +
+    DESIGN_LAB_SYNC_SNAPSHOT.release.evidence.staleCaptured +
+    DESIGN_LAB_SYNC_SNAPSHOT.release.evidence.open +
+    DESIGN_LAB_SYNC_SNAPSHOT.release.evidence.blocked,
+  DESIGN_LAB_SYNC_SNAPSHOT.release.evidence.total,
+);
+assert.equal(
+  resolveDesignLabSyncReleaseStatus("ready-for-approval", {
+    freshVerified: 4,
+    total: 5,
+  }),
+  "blocked",
+  "stale release evidence must never promote an otherwise ready registry",
+);
+assert.equal(
+  resolveDesignLabSyncReleaseStatus("ready-for-approval", {
+    freshVerified: 0,
+    total: 0,
+  }),
+  "blocked",
+  "an empty release-evidence set must fail closed",
+);
+assert.equal(
+  resolveDesignLabSyncReleaseStatus("ready-for-approval", {
+    freshVerified: 5,
+    total: 5,
+  }),
+  "ready-for-approval",
+);
+assert.equal(
+  new Set(DESIGN_LAB_RELEASE_EVIDENCE_SNAPSHOT.map(({ id }) => id)).size,
+  DESIGN_LAB_RELEASE_EVIDENCE_SNAPSHOT.length,
+);
+for (const capture of DESIGN_LAB_RELEASE_EVIDENCE_SNAPSHOT) {
+  assert.equal(existsSync(capture.evidencePath), true, capture.id);
+}
 assert.equal(
   DESIGN_LAB_SYNC_SNAPSHOT.backlog.pending,
   DESIGN_LAB_SYNC_SNAPSHOT.backlog.release.pending +
@@ -85,7 +181,13 @@ assert.equal(
 const latestAudit = JSON.parse(
   readFileSync(resolve("output/demo-route-audit/latest.json"), "utf8")
 ) as AuditFixture;
-assert.deepEqual(findDesignLabRouteAuditSyncIssues(latestAudit), []);
+assert.deepEqual(
+  findDesignLabRouteAuditSyncIssues(latestAudit).slice(
+    0,
+    DEMO_ROUTE_AUDIT_EVALUATION.structuralIssues.length,
+  ),
+  DEMO_ROUTE_AUDIT_EVALUATION.structuralIssues,
+);
 
 const routeWorkstream = DESIGN_LAB_DELIVERY_PROGRESS.find(
   (item) => item.id === "WORK.ROUTES.EXACT-AUDIT"
@@ -117,6 +219,7 @@ assert.ok(
 );
 
 const fullPass = structuredClone(latestAudit);
+fullPass.baseUrl = "http://localhost:3000";
 for (const row of fullPass.results) {
   row.finalUrl = new URL(row.samplePath, "http://localhost:3000").href;
   row.status = 200;
@@ -178,6 +281,12 @@ const markup = renderToStaticMarkup(
 );
 const gateScore = `${DESIGN_LAB_SYNC_SNAPSHOT.release.completedChecks}/${DESIGN_LAB_SYNC_SNAPSHOT.release.totalChecks}`;
 assert.match(markup, new RegExp(gateScore.replace("/", "\\/")));
+assert.equal(
+  (markup.match(/data-design-lab-release-evidence-counter=/g) ?? []).length,
+  4,
+);
+assert.match(markup, /Fresh verified/);
+assert.match(markup, /Stale captures/);
 assert.equal(
   (markup.match(/data-design-lab-sync-section=/g) ?? []).length,
   DESIGN_LAB_SYNC_SECTIONS.length

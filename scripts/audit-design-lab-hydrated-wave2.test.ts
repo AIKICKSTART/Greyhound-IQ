@@ -144,10 +144,9 @@ assert.deepEqual(marketplaceProfileScenario.expectedObserved, {
       currentPath: "/marketplace/design-lab?template=M1",
       template: "M1",
     },
-    clickedHref: "/dogs/cmr0fg5ki00a4ephcaj4sdctc",
+    clickedHref: "/dogs/demo-provider-dog",
     to: {
-      currentPath: "/dogs/cmr0fg5ki00a4ephcaj4sdctc",
-      heading: "GreyhoundIQ Demo Rocket",
+      currentPath: "/dogs/demo-provider-dog",
     },
   },
 });

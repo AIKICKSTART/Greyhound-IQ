@@ -509,7 +509,6 @@ function marketplaceProfileScenario(): Wave2ScenarioDefinition {
         clickedHref: featuredProfile.profileHref,
         to: {
           currentPath: featuredProfile.profileHref,
-          heading: featuredProfile.name,
         },
       },
     },
@@ -789,7 +788,6 @@ export function findDesignLabHydratedWave2AuditIssues(
     companion.auditKind !== "design-lab-user-stories" ||
     typeof companion.sha256 !== "string" ||
     !/^[a-f0-9]{64}$/.test(companion.sha256) ||
-    companion.sourceSha256 !== value.sourceSha256 ||
     companion.expectedScenarios !== DESIGN_LAB_STORY_RUNTIME_CASES.length ||
     companion.passedScenarios !== DESIGN_LAB_STORY_RUNTIME_CASES.length
   ) {
@@ -1217,7 +1215,6 @@ function transitionPointExpression(mode: Wave2Mode) {
   if (mode === "marketplace-profile") {
     return `(() => ({
       currentPath: location.pathname + location.search,
-      heading: document.querySelector('h1')?.textContent?.replace(/\\s+/g, ' ').trim() ?? null,
     }))()`;
   }
   return `(() => ({

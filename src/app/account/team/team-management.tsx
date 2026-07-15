@@ -15,6 +15,7 @@ import type {
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-AU", {
   day: "2-digit",
   month: "short",
+  timeZone: "Australia/Sydney",
   year: "numeric",
 });
 

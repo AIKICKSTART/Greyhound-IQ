@@ -71,12 +71,13 @@ const intentionallyOpenIds = [
 const preExistingCompletedIds = [
   "VERIFY.GATE.lab-indexable",
   "VERIFY.GATE.overflow",
+  "VERIFY.GATE.tour-target",
 ] as const;
 
-assert.equal(completedIds.length, 9);
+assert.equal(completedIds.length, 10);
 assert.equal(new Set(completedIds).size, completedIds.length);
-assert.equal(intentionallyOpenIds.length, 5);
-assert.equal(PRODUCT_VERIFICATION_GATE_EXPECTED_GAIN, 9);
+assert.equal(intentionallyOpenIds.length, 3);
+assert.equal(PRODUCT_VERIFICATION_GATE_EXPECTED_GAIN, 10);
 assert.deepEqual(
   Object.keys(PRODUCT_VERIFICATION_GATE_MASTER_EVIDENCE),
   completedIds,
@@ -139,7 +140,6 @@ for (const requirementId of intentionallyOpenIds) {
     `${requirementId} needs a precise residual-gap explanation`,
   );
 }
-assert.match(PRODUCT_VERIFICATION_GATE_OPEN_GAPS["VERIFY.GATE.field-label"], /No exhaustive form-control inventory/i);
 assert.match(PRODUCT_VERIFICATION_GATE_OPEN_GAPS["VERIFY.GATE.tour-keyboard"], /keyboard completion.*focus movement/i);
 
 const evidenceSource = readFileSync(
@@ -150,6 +150,7 @@ assert.doesNotMatch(evidenceSource, /from ["']node:/);
 assert.doesNotMatch(evidenceSource, /\breadFileSync\b|\bprocess\.cwd\b/);
 assert.match(PRODUCT_VERIFICATION_GATE_EVIDENCE_SCOPE, /Deterministic source, focused-unit and source-fingerprint-bound loopback Chrome/i);
 assert.match(PRODUCT_VERIFICATION_GATE_EVIDENCE_SCOPE, /representative HTTP plus hydrated Design Lab journeys/i);
+assert.match(PRODUCT_VERIFICATION_GATE_EVIDENCE_SCOPE, /field-label gate rejects every reachable direct native field/i);
 assert.match(PRODUCT_VERIFICATION_GATE_EVIDENCE_SCOPE, /does not prove the 22 exhaustive production journeys/i);
 assert.match(PRODUCT_VERIFICATION_GATE_EVIDENCE_SCOPE, /deployed configuration or roles/i);
 assert.match(PRODUCT_VERIFICATION_GATE_EVIDENCE_SCOPE, /production readiness/i);
@@ -380,7 +381,7 @@ assert.equal(
 );
 
 console.log(
-  "Product verification gate evidence passed: 9 deterministic/source-bound gates; 7 exhaustive gates remain open.",
+  "Product verification gate evidence passed: 10 deterministic/source-bound gates; 5 scoped gates remain open.",
 );
 
 function findPageRoutes(directory: string, segments: string[] = []): string[] {

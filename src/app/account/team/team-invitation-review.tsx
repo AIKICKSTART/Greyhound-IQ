@@ -7,6 +7,8 @@ import type { TeamInvitationPreview } from "@/lib/organization-team-service";
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-AU", {
   dateStyle: "medium",
   timeStyle: "short",
+  timeZone: "Australia/Sydney",
+  timeZoneName: "short",
 });
 
 export function TeamInvitationReview({

@@ -32,9 +32,9 @@ const completedIds = [
   ...PRODUCT_SCREEN_CONTRACT_COMPLETENESS_REQUIREMENT_IDS,
 ];
 
-assert.equal(completedIds.length, 2);
+assert.equal(completedIds.length, 3);
 assert.equal(new Set(completedIds).size, completedIds.length);
-assert.equal(PRODUCT_SCREEN_CONTRACT_COMPLETENESS_EXPECTED_GAIN, 2);
+assert.equal(PRODUCT_SCREEN_CONTRACT_COMPLETENESS_EXPECTED_GAIN, 3);
 assert.deepEqual(
   Object.keys(PRODUCT_SCREEN_CONTRACT_COMPLETENESS_MASTER_EVIDENCE),
   completedIds,
@@ -89,7 +89,7 @@ assert.match(
 );
 assert.match(
   PRODUCT_SCREEN_CONTRACT_COMPLETENESS_SCOPE,
-  /screen-level permissions output and default production-screen Design Lab representation only/i,
+  /screen-level permissions output and route-level default production-screen Design Lab representation only/i,
 );
 assert.match(
   PRODUCT_SCREEN_CONTRACT_COMPLETENESS_SCOPE,
@@ -271,5 +271,5 @@ assert.equal(
 );
 
 console.log(
-  "Product screen-contract completeness evidence passed: 97 permission contracts and 90 production Design Lab fixtures; exact +2 gates closed.",
+  "Product screen-contract completeness evidence passed: 97 permission contracts and 90 production Design Lab fixtures; exact +3 gates closed.",
 );

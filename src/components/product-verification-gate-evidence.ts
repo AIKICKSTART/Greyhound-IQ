@@ -7,7 +7,7 @@ export const PRODUCT_VERIFICATION_GATE_TEST_FILE =
   "src/components/product-verification-gate-evidence.test.ts" as const;
 
 export const PRODUCT_VERIFICATION_GATE_EVIDENCE_SCOPE =
-  `Deterministic source, focused-unit and source-fingerprint-bound loopback Chrome verification that the existing test runner and CI execute route and component-interaction contracts; every local page route has one canonical screen contract, a concrete Design Lab fixture and a resolvable source file; all ${DEMO_SCREEN_COUNT} screen contracts record authentication, role, tier and permission metadata; focused access tests fail when signed-out protected reads can precede their guards; isolated Design Lab demo traffic rejects non-read HTTP methods; and representative HTTP plus hydrated Design Lab journeys execute with exact manifests and no production mutation. This evidence does not prove the 22 exhaustive production journeys, deployed configuration or roles, live provider or database behavior, exhaustive internal-link, action, field, state, tour or destructive-operation coverage, or production readiness.`;
+  `Deterministic source, focused-unit and source-fingerprint-bound loopback Chrome verification that the existing test runner and CI execute route and component-interaction contracts; every local page route has one canonical screen contract, a concrete Design Lab fixture and a resolvable source file; all ${DEMO_SCREEN_COUNT} screen contracts record authentication, role, tier and permission metadata; focused access tests fail when signed-out protected reads can precede their guards; isolated Design Lab demo traffic rejects non-read HTTP methods; the field-label gate rejects every reachable direct native field without a persistent accessible label; and representative HTTP plus hydrated Design Lab journeys execute with exact manifests and no production mutation. This evidence does not prove the 22 exhaustive production journeys, deployed configuration or roles, live provider or database behavior, exhaustive internal-link, action, state, keyboard-tour or destructive-operation coverage, or production readiness.`;
 
 export const PRODUCT_VERIFICATION_GATE_REQUIREMENT_IDS = [
   "VERIFY.LEVEL.existing-stack",
@@ -16,6 +16,7 @@ export const PRODUCT_VERIFICATION_GATE_REQUIREMENT_IDS = [
   "VERIFY.LEVEL.e2e",
   "VERIFY.GATE.app-route-in-lab",
   "VERIFY.GATE.lab-route-exists",
+  "VERIFY.GATE.field-label",
   "VERIFY.GATE.access-metadata",
   "VERIFY.GATE.signed-out-protected",
   "VERIFY.GATE.lab-production-mutation",
@@ -25,9 +26,7 @@ export type ProductVerificationGateRequirementId =
   (typeof PRODUCT_VERIFICATION_GATE_REQUIREMENT_IDS)[number];
 
 export const PRODUCT_VERIFICATION_GATE_OPEN_REQUIREMENT_IDS = [
-  "VERIFY.GATE.field-label",
   "VERIFY.GATE.state-fixture",
-  "VERIFY.GATE.tour-target",
   "VERIFY.GATE.tour-keyboard",
   "VERIFY.GATE.unauthorised-destructive",
 ] as const;
@@ -36,12 +35,8 @@ export type ProductVerificationGateOpenRequirementId =
   (typeof PRODUCT_VERIFICATION_GATE_OPEN_REQUIREMENT_IDS)[number];
 
 export const PRODUCT_VERIFICATION_GATE_OPEN_GAPS = {
-  "VERIFY.GATE.field-label":
-    "No exhaustive form-control inventory currently parses every rendered field and proves its accessible label association. Selected semantic tests are insufficient for this whole-product claim.",
   "VERIFY.GATE.state-fixture":
     "All registered screens have a default Design Lab fixture, but the registry does not yet require a distinct reproducible fixture for every declared loading, empty, error, denied and populated state.",
-  "VERIFY.GATE.tour-target":
-    "Tour contracts are being completed in the separate onboarding lane. This batch does not prove that every tour target exists in the final browser DOM for every responsive layout.",
   "VERIFY.GATE.tour-keyboard":
     "Source tour metadata cannot prove keyboard completion, focus movement or escape behavior. This remains open pending focused browser accessibility journeys in the onboarding lane.",
   "VERIFY.GATE.unauthorised-destructive":
@@ -51,7 +46,7 @@ export const PRODUCT_VERIFICATION_GATE_OPEN_GAPS = {
 >;
 
 export const PRODUCT_VERIFICATION_GATE_EXPECTED_GAIN =
-  PRODUCT_VERIFICATION_GATE_REQUIREMENT_IDS.length;
+  10;
 
 type ProductVerificationGateEvidenceRecord = {
   status: ProductMasterRequirementStatus;
@@ -104,6 +99,11 @@ export const PRODUCT_VERIFICATION_GATE_MASTER_EVIDENCE = {
   "VERIFY.GATE.lab-route-exists": tested(
     "src/components/demo-experience-registry.ts",
     "src/components/demo-experience-screen-map.tsx",
+  ),
+  "VERIFY.GATE.field-label": tested(
+    "src/components/product-accessibility-field-label-evidence.ts",
+    "src/components/product-accessibility-field-label-evidence.test.ts",
+    "src/components/product-field-contract-source-registry.ts",
   ),
   "VERIFY.GATE.access-metadata": tested(
     "src/components/demo-experience-registry.ts",

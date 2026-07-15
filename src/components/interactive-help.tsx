@@ -1452,6 +1452,8 @@ function formatOnboardingCompletionTime(completedAt: number) {
   return new Intl.DateTimeFormat("en-AU", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: "Australia/Sydney",
+    timeZoneName: "short",
   }).format(completedAt);
 }
 

@@ -3,6 +3,7 @@ export const VERIFIED_SECURITY_CI_GATE_IDS = [
   "security.ci.04.deployed-route-absent",
   "security.ci.12.unsafe-query-interpolation",
   "security.ci.13.collection-unbounded",
+  "security.ci.15.destructive-action-no-audit",
   "security.ci.16.payment-webhook-no-signature",
   "security.ci.17.webhook-no-dedupe",
   "security.ci.18.billing-return-grants-entitlement",
@@ -79,6 +80,20 @@ export const SECURITY_CI_GATE_ENFORCEMENT = {
       "scripts/run-unit-tests.ts",
       "security/collection-query-bound-evidence.ts",
       "security/collection-query-bound-evidence.test.ts",
+    ],
+  },
+  "security.ci.15.destructive-action-no-audit": {
+    control:
+      "An exhaustive TypeScript AST gate discovers every direct production Prisma delete/deleteMany call, requires an exact classification, and requires each irreversible action to bind to a persisted audit event and audit write.",
+    failureMode:
+      "The automatically discovered unit suite exits non-zero for an unclassified production hard delete, a stale classification, a missing audit event/source binding, or an audited action without an audit write in its containing function.",
+    evidence: [
+      ".github/workflows/ci.yml",
+      "scripts/run-unit-tests.ts",
+      "security/destructive-action-audit-coverage.ts",
+      "security/destructive-action-audit-coverage.test.ts",
+      "security/audit-events.ts",
+      "security/ci-gate-evidence.test.ts",
     ],
   },
   "security.ci.16.payment-webhook-no-signature": {
@@ -259,6 +274,9 @@ export const SECURITY_CI_MASTER_EVIDENCE: Readonly<
   ),
   "security.ci.13.collection-unbounded": masterEvidence(
     "security.ci.13.collection-unbounded",
+  ),
+  "security.ci.15.destructive-action-no-audit": masterEvidence(
+    "security.ci.15.destructive-action-no-audit",
   ),
   "security.ci.16.payment-webhook-no-signature": masterEvidence(
     "security.ci.16.payment-webhook-no-signature",

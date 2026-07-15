@@ -399,7 +399,7 @@ export function FeedSystemPrototype({
         data-layout-family={family}
         className={`mt-4 grid gap-4 ${
           family === "B"
-            ? "lg:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_340px]"
+            ? "lg:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[340px_minmax(0,1fr)]"
             : variant === "A2"
               ? "lg:grid-cols-[200px_minmax(0,1fr)] xl:grid-cols-[200px_minmax(0,1fr)_280px] 2xl:grid-cols-[220px_minmax(0,1fr)_300px]"
             : socialMode === "compact"
@@ -410,7 +410,7 @@ export function FeedSystemPrototype({
         }`}
       >
         <aside
-          className={`hidden lg:block ${family === "B" ? "order-2" : ""}`}
+          className="hidden lg:block"
           aria-label="Profile and hub navigation"
         >
           <div className="sticky top-[176px] space-y-4">
@@ -445,7 +445,7 @@ export function FeedSystemPrototype({
         <main
           data-review-component="FEED"
           aria-label="Live community feed preview"
-          className={`min-w-0 ${socialMode === "expanded" ? "space-y-5" : socialMode === "compact" ? "space-y-3" : "space-y-4"} ${family === "B" ? "order-1" : ""}`}
+          className={`min-w-0 ${socialMode === "expanded" ? "space-y-5" : socialMode === "compact" ? "space-y-3" : "space-y-4"}`}
         >
           {variant === "B1" ? <CockpitTelemetry /> : null}
           {variant === "B2" ? <IntegratedWorkspaceControls /> : null}

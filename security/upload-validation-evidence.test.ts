@@ -16,14 +16,44 @@ import {
   UPLOAD_VALIDATION_MASTER_EVIDENCE,
   UPLOAD_VALIDATION_REMAINING_REQUIREMENT_IDS,
   UPLOAD_VALIDATION_REQUIREMENT_IDS,
+  UPLOAD_VALIDATION_TRACES,
 } from "./upload-validation-evidence";
 
-assert.equal(UPLOAD_VALIDATION_REQUIREMENT_IDS.length, 15);
+assert.equal(UPLOAD_VALIDATION_REQUIREMENT_IDS.length, 20);
 assert.deepEqual(UPLOAD_VALIDATION_REMAINING_REQUIREMENT_IDS, []);
 assert.match(UPLOAD_VALIDATION_EVIDENCE_SCOPE, /does not claim deployed/i);
 assert.match(UPLOAD_VALIDATION_EVIDENCE_SCOPE, /dimension ceilings/i);
 assert.match(UPLOAD_VALIDATION_EVIDENCE_SCOPE, /duration ceilings/i);
+assert.match(UPLOAD_VALIDATION_EVIDENCE_SCOPE, /messages and listings/i);
 assert.match(UPLOAD_VALIDATION_EVIDENCE_SCOPE, /client metadata.*claim.*match/i);
+assert.match(UPLOAD_VALIDATION_EVIDENCE_SCOPE, /unlisted workflows/i);
+
+assert.deepEqual(
+  UPLOAD_VALIDATION_TRACES.map(
+    ({ requirementId, attachmentTarget }) => ({ requirementId, attachmentTarget }),
+  ),
+  [
+    {
+      requirementId: "security.trace.21.message-media-upload",
+      attachmentTarget: "message",
+    },
+    {
+      requirementId: "security.trace.28.listing-media-upload",
+      attachmentTarget: "listing",
+    },
+  ],
+);
+for (const trace of UPLOAD_VALIDATION_TRACES) {
+  assert.ok(trace.actor.length > 30, `${trace.requirementId}: actor missing`);
+  assert.equal(trace.steps.length, 3, `${trace.requirementId}: trace drifted`);
+  for (const step of trace.steps) {
+    for (const [field, value] of Object.entries(step)) {
+      assert.ok(value.trim(), `${trace.requirementId}: ${field} missing`);
+    }
+    assert.equal(existsSync(step.sourceFile), true, step.sourceFile);
+    assert.equal(existsSync(step.test), true, step.test);
+  }
+}
 
 assert.equal(normalizeUploadFilename("../../race card.JPG"), "race-card.JPG");
 assert.equal(uploadFilenameMatchesMimeType("race-card.JPG", "image/jpeg"), true);
@@ -128,6 +158,22 @@ assert.match(
   /context === "site"[\s\S]*isModeratorRole\(current\.profileRole\)[\s\S]*auth\.forbidden/,
 );
 
+const conversationService = source("src/lib/conversation-service.ts");
+assert.match(
+  conversationService,
+  /sendConversationMessage[\s\S]*assertMediaAttachable\(current, mediaIds, 4,[\s\S]*allowPending: true/,
+);
+assert.match(
+  conversationService,
+  /media\.some\(\(item\) => item\.storageBucket !== PRIVATE_USER_MEDIA_BUCKET\)/,
+);
+
+const listingService = source("src/lib/listing-service.ts");
+assert.match(
+  listingService,
+  /assertListingMediaAttachable[\s\S]*assertMediaAttachable\(current, mediaIds, 11\)[\s\S]*assertListingMediaPolicy\(media\)/,
+);
+
 const sniffTests = source("src/lib/media-sniff.test.ts");
 assertIncludes("magic-byte tests", sniffTests, [
   'sniffMatchesMimeType(PNG, "image/jpeg"), false',
@@ -155,7 +201,7 @@ for (const [requirementId, evidence] of Object.entries(
 }
 
 console.log(
-  "Upload validation evidence passed: 15 signed-upload/finalize/scan/decoded-metadata controls verified",
+  "Upload validation evidence passed: 20 signed-upload/finalize/scan/decoded-metadata and message/listing attachment controls verified",
 );
 
 function source(path: string) {

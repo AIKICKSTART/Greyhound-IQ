@@ -14,7 +14,7 @@ import {
 } from "./staging-load-policy";
 import {
   DESIGN_LAB_DEMO_FIXTURE_FILES,
-  DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
+  DESIGN_LAB_HTTP_RUNTIME_CONTRACT_FILES,
   getDesignLabSourceFingerprint,
   getDesignLabSourcePaths,
   getRepositoryHeadSha,
@@ -167,7 +167,7 @@ async function main() {
     ),
     fixtures: DESIGN_LAB_DEMO_FIXTURE_FILES,
     schemaFiles: ["prisma/schema.prisma"],
-    runtimeContractFiles: DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
+    runtimeContractFiles: DESIGN_LAB_HTTP_RUNTIME_CONTRACT_FILES,
   };
   const sourceFiles = getDesignLabSourcePaths(repositoryRoot, sourceContract);
   const sourceBefore = getDesignLabSourceFingerprint(repositoryRoot, sourceContract);

@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 import { DESIGN_LAB_USER_STORY_MANIFESTS } from "../src/components/screen-contracts/design-lab-user-stories";
 import { SCREEN_CONTRACT_BY_ROUTE } from "../src/components/demo-experience-registry";
 import {
-  DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
+  DESIGN_LAB_HTTP_RUNTIME_CONTRACT_FILES,
   getDesignLabSourceFingerprint,
   getDesignLabSourcePaths,
   getRepositoryHeadSha,
@@ -327,7 +327,7 @@ async function main() {
     }),
     fixtures: [],
     schemaFiles: [],
-    runtimeContractFiles: DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
+    runtimeContractFiles: DESIGN_LAB_HTTP_RUNTIME_CONTRACT_FILES,
   };
   const sourceFiles = getDesignLabSourcePaths(repositoryRoot, sourceContract);
   const sourceBefore = getDesignLabSourceFingerprint(repositoryRoot, sourceContract);

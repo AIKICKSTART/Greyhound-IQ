@@ -27,6 +27,7 @@ import { PRODUCT_ACCESSIBILITY_HEADING_MASTER_EVIDENCE } from "./product-accessi
 import { PRODUCT_GLOBAL_ACCESSIBILITY_INTERACTION_MASTER_EVIDENCE } from "./product-global-accessibility-interaction-evidence";
 import { PRODUCT_TOUR_KEYBOARD_GATE_MASTER_EVIDENCE } from "./product-tour-keyboard-gate-evidence";
 import { PRODUCT_PUBLIC_ROUTE_ACCESSIBILITY_MASTER_EVIDENCE } from "./product-public-route-accessibility-evidence";
+import { PRODUCT_PUBLIC_ROUTE_RESPONSIVE_MASTER_EVIDENCE } from "./product-public-route-responsive-evidence";
 import { PRODUCT_GLOBAL_FOCUS_ORDER_MASTER_EVIDENCE } from "./product-global-focus-order-evidence";
 import { PRODUCT_FOCUS_VISIBLE_SOURCE_MASTER_EVIDENCE } from "./product-focus-visible-source-evidence";
 import { PRODUCT_PRODUCTION_CRAWL_LOCAL_PARITY_MASTER_EVIDENCE } from "./product-production-crawl-local-parity-evidence";
@@ -69,6 +70,7 @@ import { PRODUCT_RACING_FINAL_ROUTES_MASTER_EVIDENCE } from "./product-racing-fi
 import { PRODUCT_RACING_FIXTURE_MASTER_EVIDENCE } from "./product-racing-fixture-evidence";
 import { PRODUCT_SCREEN_CONTRACT_COMPLETENESS_MASTER_EVIDENCE } from "./product-screen-contract-completeness-evidence";
 import { PRODUCT_SCREEN_LOCATION_MASTER_EVIDENCE } from "./product-screen-location-evidence";
+import { PRODUCT_INFORMATION_UNDERSTANDING_MASTER_EVIDENCE } from "./product-information-understanding-evidence";
 import { PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE } from "./product-form-contract-core-evidence";
 import { PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE } from "./product-form-operational-contract-evidence";
 import { PRODUCT_GLOBAL_FORM_DESTINATION_MASTER_EVIDENCE } from "./product-global-form-destination-evidence";
@@ -131,6 +133,7 @@ import { INCIDENT_READINESS_MASTER_EVIDENCE } from "../../security/incident-read
 import { AUTHORIZATION_ACTOR_MASTER_EVIDENCE } from "../../security/authorization-actor-evidence";
 import { AUTHENTICATION_PATH_MASTER_EVIDENCE } from "../../security/authentication-path-evidence";
 import { SUPPLY_CHAIN_REVIEW_MASTER_EVIDENCE } from "../../security/supply-chain-review-evidence";
+import { DEPENDENCY_LICENSE_REVIEW_MASTER_EVIDENCE } from "../../security/dependency-license-review-evidence";
 import { AUDIT_EVENT_COVERAGE_MASTER_EVIDENCE } from "../../security/audit-event-coverage-evidence";
 import { ARCHITECTURE_ADAPTATION_MASTER_EVIDENCE } from "../../security/architecture-adaptation-evidence";
 import { DATABASE_INVENTORY_MASTER_EVIDENCE } from "../../security/database-inventory-evidence";
@@ -206,6 +209,7 @@ import { ORGANIZATION_TEAM_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/
 import { DENY_BY_DEFAULT_MASTER_EVIDENCE } from "../../security/deny-by-default-evidence";
 import { TENANT_ISOLATION_MASTER_EVIDENCE } from "../../security/tenant-isolation-evidence";
 import { TRACE_IDENTIFIER_EXAMPLE_MASTER_EVIDENCE } from "../../security/trace-identifier-example-evidence";
+import { MANDATORY_LISTING_DRAFT_TRACE_MASTER_EVIDENCE } from "../../security/mandatory-listing-draft-trace-evidence";
 import { VOICE_VIDEO_CONTROL_MASTER_EVIDENCE } from "../../security/voice-video-control-evidence";
 import { UPLOAD_CONTROL_MASTER_EVIDENCE } from "../../security/upload-control-evidence";
 import { UPLOAD_VALIDATION_MASTER_EVIDENCE } from "../../security/upload-validation-evidence";
@@ -270,6 +274,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_GLOBAL_ACCESSIBILITY_INTERACTION_MASTER_EVIDENCE,
   ...PRODUCT_TOUR_KEYBOARD_GATE_MASTER_EVIDENCE,
   ...PRODUCT_PUBLIC_ROUTE_ACCESSIBILITY_MASTER_EVIDENCE,
+  ...PRODUCT_PUBLIC_ROUTE_RESPONSIVE_MASTER_EVIDENCE,
   ...PRODUCT_GLOBAL_FOCUS_ORDER_MASTER_EVIDENCE,
   ...PRODUCT_FOCUS_VISIBLE_SOURCE_MASTER_EVIDENCE,
   ...PRODUCT_PRODUCTION_CRAWL_LOCAL_PARITY_MASTER_EVIDENCE,
@@ -314,6 +319,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_RACING_FIXTURE_MASTER_EVIDENCE,
   ...PRODUCT_SCREEN_CONTRACT_COMPLETENESS_MASTER_EVIDENCE,
   ...PRODUCT_SCREEN_LOCATION_MASTER_EVIDENCE,
+  ...PRODUCT_INFORMATION_UNDERSTANDING_MASTER_EVIDENCE,
   ...PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE,
   ...PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE,
   ...PRODUCT_GLOBAL_FORM_DESTINATION_MASTER_EVIDENCE,
@@ -1252,6 +1258,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...AUTHORIZATION_ACTOR_MASTER_EVIDENCE,
   ...AUTHENTICATION_PATH_MASTER_EVIDENCE,
   ...SUPPLY_CHAIN_REVIEW_MASTER_EVIDENCE,
+  ...DEPENDENCY_LICENSE_REVIEW_MASTER_EVIDENCE,
   ...AUDIT_EVENT_COVERAGE_MASTER_EVIDENCE,
   ...ARCHITECTURE_ADAPTATION_MASTER_EVIDENCE,
   ...DATABASE_INVENTORY_MASTER_EVIDENCE,
@@ -1321,6 +1328,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...DENY_BY_DEFAULT_MASTER_EVIDENCE,
   ...TENANT_ISOLATION_MASTER_EVIDENCE,
   ...TRACE_IDENTIFIER_EXAMPLE_MASTER_EVIDENCE,
+  ...MANDATORY_LISTING_DRAFT_TRACE_MASTER_EVIDENCE,
   ...VOICE_VIDEO_CONTROL_MASTER_EVIDENCE,
   ...UPLOAD_CONTROL_MASTER_EVIDENCE,
   ...UPLOAD_VALIDATION_MASTER_EVIDENCE,

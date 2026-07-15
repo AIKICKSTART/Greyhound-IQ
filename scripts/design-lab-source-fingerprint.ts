@@ -90,6 +90,12 @@ export const DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES = Object.freeze([
   "src/proxy.ts",
 ]);
 
+export const DESIGN_LAB_HTTP_RUNTIME_CONTRACT_FILES = Object.freeze([
+  "next.config.ts",
+  "src/app/layout.tsx",
+  "src/proxy.ts",
+]);
+
 export function getDesignLabSourceFingerprint(
   repoRoot: string,
   contract?: DesignLabSourceContract,

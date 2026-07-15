@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 import {
+  DESIGN_LAB_HTTP_RUNTIME_CONTRACT_FILES,
+  DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES,
   type DesignLabSourceContract,
   fingerprintRepositoryFiles,
   getDesignLabSourceChangesBetween,
@@ -13,6 +15,12 @@ import {
   getRepositoryHeadSha,
   isRepositoryCommitAncestor,
 } from "./design-lab-source-fingerprint";
+
+assert.ok(DESIGN_LAB_SAFE_RUNTIME_CONTRACT_FILES.includes("src/app/globals.css"));
+assert.equal(
+  DESIGN_LAB_HTTP_RUNTIME_CONTRACT_FILES.includes("src/app/globals.css"),
+  false,
+);
 
 const root = mkdtempSync(join(tmpdir(), "greyhoundiq-source-fingerprint-"));
 try {

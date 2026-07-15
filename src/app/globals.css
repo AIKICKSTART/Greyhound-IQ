@@ -2454,7 +2454,7 @@ h2,
     min-width: 0;
   }
 
-  .giq-header-nav,
+  .giq-site-header .giq-header-nav,
   .giq-header-meta-row,
   .giq-search-shell,
   .giq-header-notification,

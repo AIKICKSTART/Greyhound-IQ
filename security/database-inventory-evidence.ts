@@ -8,6 +8,7 @@ export const VERIFIED_DATABASE_INVENTORY_REQUIREMENT_IDS = [
   "security.database-inventory.row-level-security-policy",
   "security.database-inventory.migration",
   "security.database-inventory.sequence",
+  "security.database-inventory.schema",
 ] as const;
 
 export const DATABASE_INVENTORY_NOT_APPLICABLE = {
@@ -18,6 +19,7 @@ export const DATABASE_INVENTORY_NOT_APPLICABLE = {
 export const DATABASE_INVENTORY_EVIDENCE_PATHS = [
   "prisma/schema.prisma",
   "prisma/migrations/20260630093000_baseline/migration.sql",
+  "prisma/migrations/20260630170000_supabase_storage/migration.sql",
   "output/database-audit/migration-replay.json",
   "scripts/check-database-compatibility-inventory.ts",
   "scripts/check-database-compatibility-inventory.test.ts",
@@ -26,6 +28,9 @@ export const DATABASE_INVENTORY_EVIDENCE_PATHS = [
   "security/database-sequence-inventory-evidence.ts",
   "security/database-sequence-inventory-evidence.json",
   "security/database-sequence-inventory-evidence.test.ts",
+  "security/database-schema-inventory-evidence.ts",
+  "security/database-schema-inventory-evidence.json",
+  "security/database-schema-inventory-evidence.test.ts",
 ] as const;
 
 export const DATABASE_INVENTORY_MASTER_EVIDENCE = {

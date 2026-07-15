@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "database-schema-inventory",
+  "generatedAt": "2026-07-15T22:59:41.535+10:00",
+  "safety": {
+    "scope": "literal-loopback-disposable-replay-read-only",
+    "host": "127.0.0.1",
+    "port": 55734,
+    "database": "greyhoundiq",
+    "readOnlySession": true,
+    "productionOrProviderSystemsContacted": false
+  },
+  "sourceBinding": {
+    "prismaSchemaSha256": "b0e50aa4850eebd5e3095bba619c87370b78f249fbeabf5b8691e169f3c02b22",
+    "migrationsSha256": "4812e2d48b9e24ed89dae0c79fb2ff1966b73539bb1ae92a804c2c2ffef1162f",
+    "migrationCount": 97
+  },
+  "runtimeIdentity": {
+    "role": "greyhoundiq_runtime"
+  },
+  "applicationOwnedSchemas": [
+    {
+      "name": "public",
+      "sourceDeclaration": "CREATE SCHEMA IF NOT EXISTS public",
+      "observedInDisposableReplay": true
+    }
+  ],
+  "conditionalExternalSchemas": [
+    {
+      "name": "auth",
+      "owner": "Supabase",
+      "sourceUse": "auth.jwt()",
+      "guardedWhenAbsent": true,
+      "observedInDisposableReplay": false
+    },
+    {
+      "name": "storage",
+      "owner": "Supabase",
+      "sourceUse": "storage.buckets, storage.objects and storage.foldername(text)",
+      "guardedWhenAbsent": true,
+      "observedInDisposableReplay": false
+    }
+  ],
+  "excludedPlatformManagedSchemaClasses": [
+    "information_schema",
+    "pg_catalog",
+    "pg_toast and pg_toast_temp_*",
+    "pg_temp_*"
+  ],
+  "verdict": "verified"
+}

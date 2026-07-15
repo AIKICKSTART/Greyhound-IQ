@@ -54,7 +54,7 @@ const requirementIds = [
   ...VERIFIED_DATABASE_INVENTORY_REQUIREMENT_IDS,
   ...Object.keys(DATABASE_INVENTORY_NOT_APPLICABLE),
 ];
-assert.equal(requirementIds.length, 10);
+assert.equal(requirementIds.length, 11);
 assert.equal(new Set(requirementIds).size, requirementIds.length);
 for (const requirementId of requirementIds) {
   const requirement = MASTER_AUDIT_REQUIREMENTS.find(
@@ -73,5 +73,5 @@ for (const requirementId of requirementIds) {
 }
 
 console.log(
-  "database source inventory evidence passed: 9 populated object classes and zero stored procedures",
+  "database source inventory evidence passed: 10 populated object classes and zero stored procedures",
 );

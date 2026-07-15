@@ -37,6 +37,12 @@ export const PROPERTY_AUTHORIZATION_REQUIREMENT_IDS = [
   ),
   "security.property-authorization.unexpected-fields",
   "security.property-authorization.mass-assignment-tests",
+  "security.authorization-dimension.property",
+  "security.explicit-data-selection.no-request-spread",
+  "security.explicit-data-selection.no-generic-update",
+  "security.api-top-ten.property",
+  "security.endpoint-test-authorization.attempted-security-field-update",
+  "security.endpoint-test-authorization.attempted-mass-assignment",
 ] as const;
 
 export const VERIFIED_PROPERTY_AUTHORIZATION_IDS =

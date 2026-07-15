@@ -107,7 +107,7 @@ const immutableRequirementIds = new Set(
   SECURITY_MASTER_REQUIREMENTS.map(({ id }) => id),
 );
 assert.equal(PROTECTED_MUTATION_FIELDS.length, 22);
-assert.equal(PROPERTY_AUTHORIZATION_REQUIREMENT_IDS.length, 25);
+assert.equal(PROPERTY_AUTHORIZATION_REQUIREMENT_IDS.length, 31);
 assert.deepEqual(
   VERIFIED_PROPERTY_AUTHORIZATION_IDS,
   PROPERTY_AUTHORIZATION_REQUIREMENT_IDS,
@@ -510,7 +510,7 @@ for (const fact of Object.keys(
 }
 
 console.log(
-  `Property-authorization evidence passed: ${discoveredRoutes.length} HTTP mutations + ${discoveredActions.length} Server Actions, ${OBJECT_BODY_BOUNDARIES.length} object schemas, 25 verified gates`,
+  `Property-authorization evidence passed: ${discoveredRoutes.length} HTTP mutations + ${discoveredActions.length} Server Actions, ${OBJECT_BODY_BOUNDARIES.length} object schemas, 31 verified gates`,
 );
 
 function body(method: string, sourceFile: string, schema: string) {

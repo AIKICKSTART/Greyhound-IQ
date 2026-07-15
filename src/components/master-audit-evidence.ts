@@ -156,6 +156,7 @@ import { ENDPOINT_INJECTION_OUTPUT_MASTER_EVIDENCE } from "../../security/endpoi
 import { EXTERNAL_INPUT_SURFACE_MASTER_EVIDENCE } from "../../security/external-input-surface-evidence";
 import { FRONTEND_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/frontend-authorization-evidence";
 import { PROPERTY_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/property-authorization-evidence";
+import { LISTING_OBJECT_AUTHORIZATION_MASTER_EVIDENCE } from "../../security/listing-object-authorization-evidence";
 import { TRACE_IDENTIFIER_EXAMPLE_MASTER_EVIDENCE } from "../../security/trace-identifier-example-evidence";
 import { VOICE_VIDEO_CONTROL_MASTER_EVIDENCE } from "../../security/voice-video-control-evidence";
 import { UPLOAD_CONTROL_MASTER_EVIDENCE } from "../../security/upload-control-evidence";
@@ -1248,6 +1249,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...EXTERNAL_INPUT_SURFACE_MASTER_EVIDENCE,
   ...FRONTEND_AUTHORIZATION_MASTER_EVIDENCE,
   ...PROPERTY_AUTHORIZATION_MASTER_EVIDENCE,
+  ...LISTING_OBJECT_AUTHORIZATION_MASTER_EVIDENCE,
   ...TRACE_IDENTIFIER_EXAMPLE_MASTER_EVIDENCE,
   ...VOICE_VIDEO_CONTROL_MASTER_EVIDENCE,
   ...UPLOAD_CONTROL_MASTER_EVIDENCE,

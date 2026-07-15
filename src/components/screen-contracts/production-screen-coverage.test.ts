@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { getDesignLabSourceFingerprint } from "../../../scripts/design-lab-source-fingerprint";
+import {
+  fingerprintRepositoryFiles,
+  parseDesignLabSourceFiles,
+} from "../../../scripts/design-lab-source-fingerprint";
 import { SCREEN_CONTRACTS } from "../demo-experience-registry";
 import {
   getAccountOnboardingRouteTour,
@@ -720,6 +723,7 @@ const routeAudit = JSON.parse(
 ) as {
   sourceSha256?: string;
   sourceFileCount?: number;
+  sourceFiles?: unknown;
   results?: Array<{
     route?: string;
     samplePath?: string;
@@ -732,7 +736,12 @@ const routeAudit = JSON.parse(
     passed?: boolean;
   }>;
 };
-const sourceFingerprint = getDesignLabSourceFingerprint(process.cwd());
+const routeAuditSourceFiles = parseDesignLabSourceFiles(routeAudit);
+assert.ok(routeAuditSourceFiles, "route audit must declare canonical source files");
+const sourceFingerprint = fingerprintRepositoryFiles(
+  process.cwd(),
+  routeAuditSourceFiles,
+);
 assert.equal(routeAudit.sourceSha256, sourceFingerprint.sha256);
 assert.equal(routeAudit.sourceFileCount, sourceFingerprint.fileCount);
 

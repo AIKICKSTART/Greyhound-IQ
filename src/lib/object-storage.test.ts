@@ -7,6 +7,7 @@ import {
   type ObjectStoragePort,
   type PutObjectInput,
 } from "./object-storage";
+import { resolveObjectStoragePort } from "./object-storage-provider";
 import { createSupabaseObjectStoragePort } from "./supabase-object-storage";
 import { PUBLIC_USER_MEDIA_BUCKET } from "./storage-paths";
 
@@ -220,6 +221,64 @@ async function main() {
     { cacheControl: null, upsert: false },
   ]);
   assert.deepEqual(removeArguments, [PUBLIC_USER_MEDIA_BUCKET, [validKey]]);
+
+  const supabasePort = createTestPort();
+  const gcsCalls: string[] = [];
+  const gcsPort = createTestPort({
+    async createSignedUpload(input) {
+      gcsCalls.push("sign-upload");
+      return { url: "https://storage.invalid/upload", token: null, key: input.key };
+    },
+    async createSignedDownload() {
+      gcsCalls.push("sign-download");
+      return "https://storage.invalid/download";
+    },
+    async readObjectHead() {
+      gcsCalls.push("read");
+      return body;
+    },
+    async putObject() {
+      gcsCalls.push("put");
+    },
+    async deleteObjects() {
+      gcsCalls.push("delete");
+    },
+  });
+  assert.equal(
+    resolveObjectStoragePort(undefined, { supabase: supabasePort, gcs: gcsPort }),
+    supabasePort,
+  );
+  const gcsStorage = createObjectStorageFacade(
+    resolveObjectStoragePort(" GCS ", { supabase: supabasePort, gcs: gcsPort }),
+  );
+  await gcsStorage.createSignedUpload({ bucket: PUBLIC_USER_MEDIA_BUCKET, key: validKey });
+  await gcsStorage.createSignedDownload({
+    bucket: PUBLIC_USER_MEDIA_BUCKET,
+    key: validKey,
+    expiresInSeconds: 60,
+  });
+  await gcsStorage.readObjectHead({
+    bucket: PUBLIC_USER_MEDIA_BUCKET,
+    key: validKey,
+    bytes: 3,
+  });
+  await gcsStorage.putObject({
+    bucket: PUBLIC_USER_MEDIA_BUCKET,
+    key: validKey,
+    body,
+    contentType: "image/png",
+    upsert: false,
+  });
+  await gcsStorage.deleteObject({ bucket: PUBLIC_USER_MEDIA_BUCKET, key: validKey });
+  assert.deepEqual(gcsCalls, ["sign-upload", "sign-download", "read", "put", "delete"]);
+  assert.throws(
+    () => resolveObjectStoragePort("gcs", { supabase: supabasePort }),
+    /storage\.gcs_not_configured/,
+  );
+  assert.throws(
+    () => resolveObjectStoragePort("unknown", { supabase: supabasePort, gcs: gcsPort }),
+    /storage\.invalid_provider/,
+  );
 
   const objectStorageSource = readFileSync(
     "src/lib/object-storage.ts",

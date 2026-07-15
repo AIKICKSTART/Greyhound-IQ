@@ -1,6 +1,6 @@
 import "server-only";
 
-import { supabaseObjectStoragePort } from "@/lib/supabase-object-storage";
+import { objectStoragePort } from "@/lib/object-storage-provider";
 import {
   isObjectStorageBucket,
   type ObjectStorageBucket,
@@ -215,7 +215,7 @@ export function createObjectStorageFacade(port: ObjectStoragePort) {
 export type ObjectStorage = ReturnType<typeof createObjectStorageFacade>;
 
 export const objectStorage = createObjectStorageFacade(
-  supabaseObjectStoragePort,
+  objectStoragePort,
 );
 
 export function assertObjectStorageKey(key: string) {

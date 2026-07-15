@@ -21,8 +21,15 @@ export const ENDPOINT_INJECTION_OUTPUT_REQUIREMENT_IDS = [
   "security.endpoint-test-injection-output.external-api-responses-with-unexpected-values",
 ] as const;
 
+export const OPEN_REDIRECT_REQUIREMENT_IDS = [
+  "ROUTE.PUBLIC.no-open-redirect",
+  "ROUTE.ACCOUNT.safe-auth-return",
+  "GLOBAL.SEC.open-redirect",
+] as const;
+
 export type EndpointInjectionOutputRequirementId =
-  (typeof ENDPOINT_INJECTION_OUTPUT_REQUIREMENT_IDS)[number];
+  | (typeof ENDPOINT_INJECTION_OUTPUT_REQUIREMENT_IDS)[number]
+  | (typeof OPEN_REDIRECT_REQUIREMENT_IDS)[number];
 
 type EndpointInjectionOutputEvidenceRecord = Readonly<{
   status: "verified";
@@ -103,6 +110,24 @@ export const ENDPOINT_INJECTION_OUTPUT_MASTER_EVIDENCE = {
     "src/lib/remote-response.ts",
     "src/lib/remote-response.test.ts",
   ),
+  "ROUTE.PUBLIC.no-open-redirect": verified(
+    "src/lib/workos-redirect.ts",
+    "src/lib/workos-redirect.test.ts",
+    "src/app/sign-in/route.ts",
+    "src/app/callback/route.ts",
+  ),
+  "ROUTE.ACCOUNT.safe-auth-return": verified(
+    "src/lib/workos-redirect.ts",
+    "src/lib/workos-redirect.test.ts",
+    "src/app/sign-in/route.ts",
+    "src/app/account/page.tsx",
+  ),
+  "GLOBAL.SEC.open-redirect": verified(
+    "src/lib/workos-redirect.ts",
+    "src/lib/workos-redirect.test.ts",
+    "src/app/sign-in/route.ts",
+    "src/app/callback/route.ts",
+  ),
 } as const satisfies Readonly<
   Record<
     EndpointInjectionOutputRequirementId,
@@ -111,4 +136,5 @@ export const ENDPOINT_INJECTION_OUTPUT_MASTER_EVIDENCE = {
 >;
 
 export const ENDPOINT_INJECTION_OUTPUT_EXPECTED_GAIN =
-  ENDPOINT_INJECTION_OUTPUT_REQUIREMENT_IDS.length;
+  ENDPOINT_INJECTION_OUTPUT_REQUIREMENT_IDS.length +
+  OPEN_REDIRECT_REQUIREMENT_IDS.length;

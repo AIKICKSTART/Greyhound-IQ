@@ -22,7 +22,11 @@ import {
 import { assertUserExportDto } from "../src/lib/user-export-policy";
 import { whitelistProviderSnapshot } from "../src/lib/live/raw-sanitizer";
 import { resolveWorkosReturnTo } from "../src/lib/workos-redirect";
-import { SECURITY_MASTER_REQUIREMENTS } from "../src/components/security-master-requirements";
+import { SECURITY_MASTER_EVIDENCE } from "../src/components/master-audit-evidence";
+import {
+  MASTER_AUDIT_REQUIREMENTS,
+  isMasterRequirementComplete,
+} from "../src/components/master-audit-requirements";
 import {
   ENDPOINT_INJECTION_OUTPUT_EVIDENCE_FILE,
   ENDPOINT_INJECTION_OUTPUT_EVIDENCE_SCOPE,
@@ -30,6 +34,7 @@ import {
   ENDPOINT_INJECTION_OUTPUT_MASTER_EVIDENCE,
   ENDPOINT_INJECTION_OUTPUT_REQUIREMENT_IDS,
   ENDPOINT_INJECTION_OUTPUT_TEST_FILE,
+  OPEN_REDIRECT_REQUIREMENT_IDS,
 } from "./endpoint-injection-output-evidence";
 
 const EXPECTED_REQUIREMENT_IDS = [
@@ -45,18 +50,27 @@ const EXPECTED_REQUIREMENT_IDS = [
   "security.endpoint-test-injection-output.ssrf-destinations",
   "security.endpoint-test-injection-output.spreadsheet-formula-content-in-exports",
   "security.endpoint-test-injection-output.external-api-responses-with-unexpected-values",
+  "ROUTE.PUBLIC.no-open-redirect",
+  "ROUTE.ACCOUNT.safe-auth-return",
+  "GLOBAL.SEC.open-redirect",
 ] as const;
 
-assert.deepEqual(ENDPOINT_INJECTION_OUTPUT_REQUIREMENT_IDS, EXPECTED_REQUIREMENT_IDS);
+assert.deepEqual(
+  [
+    ...ENDPOINT_INJECTION_OUTPUT_REQUIREMENT_IDS,
+    ...OPEN_REDIRECT_REQUIREMENT_IDS,
+  ],
+  EXPECTED_REQUIREMENT_IDS,
+);
 assert.deepEqual(
   Object.keys(ENDPOINT_INJECTION_OUTPUT_MASTER_EVIDENCE),
   EXPECTED_REQUIREMENT_IDS,
 );
-assert.equal(ENDPOINT_INJECTION_OUTPUT_EXPECTED_GAIN, 12);
-assert.equal(new Set(EXPECTED_REQUIREMENT_IDS).size, 12);
+assert.equal(ENDPOINT_INJECTION_OUTPUT_EXPECTED_GAIN, 15);
+assert.equal(new Set(EXPECTED_REQUIREMENT_IDS).size, 15);
 
 const immutableIds = new Set(
-  SECURITY_MASTER_REQUIREMENTS.map((requirement) => requirement.id),
+  MASTER_AUDIT_REQUIREMENTS.map((requirement) => requirement.id),
 );
 for (const requirementId of EXPECTED_REQUIREMENT_IDS) {
   assert.equal(
@@ -65,6 +79,12 @@ for (const requirementId of EXPECTED_REQUIREMENT_IDS) {
     `${requirementId}: missing immutable requirement`,
   );
   const evidence = ENDPOINT_INJECTION_OUTPUT_MASTER_EVIDENCE[requirementId];
+  const requirement = MASTER_AUDIT_REQUIREMENTS.find(
+    (candidate) => candidate.id === requirementId,
+  );
+  assert.ok(requirement, `${requirementId}: missing immutable requirement`);
+  assert.deepEqual(SECURITY_MASTER_EVIDENCE[requirementId], evidence);
+  assert.equal(isMasterRequirementComplete(requirement), true);
   assert.equal(evidence.status, "verified");
   assert.equal(evidence.evidence[0], ENDPOINT_INJECTION_OUTPUT_EVIDENCE_FILE);
   assert.equal(evidence.evidence[1], ENDPOINT_INJECTION_OUTPUT_TEST_FILE);
@@ -214,7 +234,7 @@ assert.equal(
 void assertSsrfDestinations().then(
   () => {
     console.log(
-      "Endpoint injection/output evidence passed: 12 representative attack classes handled safely by executable production boundaries",
+      "Endpoint injection/output evidence passed: 12 representative attack classes plus 3 shared open-redirect gates handled safely by executable production boundaries",
     );
   },
   (error) => {

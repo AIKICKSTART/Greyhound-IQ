@@ -45,7 +45,10 @@ assert.equal(
   true,
 );
 assert.match(durableSqlRequirement?.requirement ?? "", /Do not adopt PG Durable SQL/);
-assert.match(durableSqlRequirement?.requirement ?? "", /Prisma and PostgreSQL/);
+assert.match(
+  durableSqlRequirement?.requirement ?? "",
+  /Prisma against the planned AlloyDB for PostgreSQL/,
+);
 assert.match(durableSqlRequirement?.simulationContract ?? "", /no PG Durable dependency/);
 assert.match(durableSqlRequirement?.remainingEvidence ?? "", /Future adoption remains post-MVP/);
 
@@ -65,6 +68,13 @@ for (const file of pgDurableRuntimeSurfaces) {
 }
 assert.match(readFileSync("prisma/schema.prisma", "utf8"), /provider\s*=\s*"postgresql"/);
 assert.match(readFileSync("src/lib/db.ts", "utf8"), /PrismaClient/);
+assert.match(
+  readFileSync(
+    "docs/architecture/greyhoundiq-master-production-delivery-prompt.md",
+    "utf8",
+  ),
+  /AlloyDB for PostgreSQL is the single production database/,
+);
 
 const normalizationReleaseRequirements =
   DESIGN_LAB_DATABASE_NORMALIZATION_REQUIREMENTS.filter(

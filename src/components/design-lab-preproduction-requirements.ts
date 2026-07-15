@@ -550,9 +550,9 @@ export const DESIGN_LAB_PREPRODUCTION_REQUIREMENTS: readonly DesignLabPreproduct
     id: "PREPROD.PG_DURABLE.EVALUATION",
     system: "durable-sql",
     requirement:
-      "Do not adopt PG Durable SQL for the GreyhoundIQ MVP; retain Prisma and PostgreSQL as the production source of truth.",
+      "Do not adopt PG Durable SQL for the GreyhoundIQ MVP; retain Prisma against the planned AlloyDB for PostgreSQL production database as the sole source of truth.",
     simulationContract:
-      "The MVP adds no PG Durable dependency, extension, background worker, schema object, queue or provider call. Any future evaluation must use a separate disposable lane and leave the canonical Prisma/PostgreSQL path unchanged.",
+      "The MVP adds no PG Durable dependency, extension, background worker, schema object, queue or provider call. Any future evaluation must use a separate disposable lane and leave the planned Prisma + AlloyDB for PostgreSQL production path unchanged.",
     status: "verified",
     owner: "Database architecture owner",
     evidence: [

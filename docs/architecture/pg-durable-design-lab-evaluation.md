@@ -8,9 +8,12 @@ Review date: 2026-07-15
 
 ## Decision
 
-PG Durable SQL is not adopted for the GreyhoundIQ MVP. Prisma and PostgreSQL
-remain the production source of truth. The MVP adds no PG Durable dependency,
-extension, background worker, schema object, queue or provider call.
+PG Durable SQL is not adopted for the GreyhoundIQ MVP. Prisma remains the
+application ORM, and AlloyDB for PostgreSQL is the planned single production
+database. Local or disposable PostgreSQL is verification tooling only; Supabase
+PostgreSQL must not become a second production source of truth. The MVP adds no
+PG Durable dependency, extension, background worker, schema object, queue or
+provider call.
 
 This decision closes the MVP evaluation item through tested non-adoption. It
 does not verify PG Durable itself or approve it for production. A future
@@ -88,5 +91,5 @@ non-adoption decision. Adoption remains prohibited until all spike evidence is
 reviewed, the production PostgreSQL topology is verified, and a new written
 architecture decision identifies a clear reliability benefit that outweighs
 the additional database privilege and operational surface. Failure of any
-future experiment leaves the canonical Prisma/PostgreSQL implementation
-unchanged.
+future experiment leaves the planned Prisma + AlloyDB for PostgreSQL production
+path unchanged.

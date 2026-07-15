@@ -520,7 +520,14 @@ function collectInteractiveControlRecords(
         (candidate): candidate is ts.JsxOpeningLikeElement => Boolean(candidate),
       );
       const contextText = contextNodes
-        .map((candidate) => candidate.getText(parsed))
+        .flatMap((candidate) => [
+          candidate.getText(parsed),
+          ...jsxStaticAttributeValues(
+            candidate,
+            parsed,
+            "data-action-contract",
+          ),
+        ])
         .join("\n");
       const staticTargets = contextNodes
         .flatMap((candidate) =>
@@ -726,9 +733,16 @@ function collectPrimaryActionRecords(
       .map(([sourceFile]) => sourceFile)
       .filter(isImplementationSourceFile)
       .toSorted((left, right) => left.localeCompare(right));
-    const candidateTestFiles = screen.coverage.actions.evidence
+    const candidateTestFiles = [
+      ...screen.coverage.actions.evidence,
+      ...screen.coverage.tests.evidence,
+    ]
       .filter((evidencePath) => TEST_FILE_PATTERN.test(evidencePath))
       .filter((evidencePath) => existsSync(evidencePath))
+      .filter(
+        (evidencePath, index, evidencePaths) =>
+          evidencePaths.indexOf(evidencePath) === index,
+      )
       .toSorted((left, right) => left.localeCompare(right));
 
     for (const action of actions) {
@@ -1184,6 +1198,29 @@ function staticExpressionValues(
     return initializer
       ? staticExpressionValues(initializer, sourceFile, visitedIdentifiers)
       : [];
+  }
+  if (ts.isElementAccessExpression(expression)) {
+    const object = resolveObjectLiteral(expression.expression, sourceFile);
+    if (!object) return [];
+    const selectedProperties = staticExpressionValues(
+      expression.argumentExpression,
+      sourceFile,
+      visitedIdentifiers,
+    );
+    return object.properties.flatMap((property) => {
+      if (!ts.isPropertyAssignment(property)) return [];
+      if (
+        selectedProperties.length > 0 &&
+        !selectedProperties.includes(propertyName(property.name, sourceFile))
+      ) {
+        return [];
+      }
+      return staticExpressionValues(
+        property.initializer,
+        sourceFile,
+        visitedIdentifiers,
+      );
+    });
   }
   return [];
 }

@@ -165,6 +165,21 @@ const actionIssuesByRecord = new Map(
     registry.primaryActionIssues.filter((issue) => issue.recordId === action.id),
   ]),
 );
+const scenarioSelectActions = registry.primaryActions.filter(
+  ({ id }) =>
+    id.startsWith("/design-lab::DL.ACTION.SCENARIO.") &&
+    id.endsWith(".SELECT"),
+);
+assert.equal(scenarioSelectActions.length, 18);
+for (const action of scenarioSelectActions) {
+  assert.deepEqual(
+    actionIssuesByRecord.get(action.id),
+    [],
+    `${action.id}: scenario control implementation/test binding regressed`,
+  );
+  assert.ok(action.implementationEvidence.length > 0, action.id);
+  assert.ok(action.testEvidence.length > 0, action.id);
+}
 const correctedExistingBindingActionIds = [
   "/admin/listings::ADMIN-LISTINGS.ACTION.LISTING.OPEN",
   "/discover::DISCOVER.ACTION.ACTOR.OPEN",
@@ -209,8 +224,8 @@ for (const actionId of [
 }
 assert.ok(
   new Set(registry.primaryActionIssues.map(({ recordId }) => recordId)).size <=
-    143,
-  "the bounded binding batch must close at least 24 of the 167 strict baseline action gaps",
+    125,
+  "the bounded binding batches must close at least 42 of the 167 strict baseline action gaps",
 );
 
 const explicitPurposeContractIds = [

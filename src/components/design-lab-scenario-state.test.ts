@@ -55,6 +55,32 @@ import {
 // screen-evidence-test-id: DL-SCENARIO-STATE
 
 assert.equal(DESIGN_LAB_SCENARIO_DIMENSIONS.length, 18);
+const scenarioSelectActionIds = [
+  "DL.ACTION.SCENARIO.FIXTURE.SELECT",
+  "DL.ACTION.SCENARIO.TIER.SELECT",
+  "DL.ACTION.SCENARIO.AUTH.SELECT",
+  "DL.ACTION.SCENARIO.PERMISSIONS.SELECT",
+  "DL.ACTION.SCENARIO.FEATUREFLAGS.SELECT",
+  "DL.ACTION.SCENARIO.ORIENTATION.SELECT",
+  "DL.ACTION.SCENARIO.NAVIGATION.SELECT",
+  "DL.ACTION.SCENARIO.THEME.SELECT",
+  "DL.ACTION.SCENARIO.SPONSOREDDEMO.SELECT",
+  "DL.ACTION.SCENARIO.DATASTATE.SELECT",
+  "DL.ACTION.SCENARIO.NETWORKSTATE.SELECT",
+  "DL.ACTION.SCENARIO.ERRORSTATE.SELECT",
+  "DL.ACTION.SCENARIO.LONGCONTENT.SELECT",
+  "DL.ACTION.SCENARIO.MISSINGIMAGE.SELECT",
+  "DL.ACTION.SCENARIO.TOUR.SELECT",
+  "DL.ACTION.SCENARIO.TOURSTEP.SELECT",
+  "DL.ACTION.SCENARIO.REDUCEDMOTION.SELECT",
+  "DL.ACTION.SCENARIO.HIGHCONTRAST.SELECT",
+] as const;
+assert.deepEqual(
+  scenarioSelectActionIds,
+  DESIGN_LAB_SCENARIO_DIMENSIONS.map(
+    ({ key }) => `DL.ACTION.SCENARIO.${key.toUpperCase()}.SELECT`,
+  ),
+);
 assert.equal(
   new Set(DESIGN_LAB_SCENARIO_DIMENSIONS.map(({ key }) => key)).size,
   DESIGN_LAB_SCENARIO_DIMENSIONS.length,
@@ -467,6 +493,10 @@ const componentSource = readFileSync(
 );
 assert.match(componentSource, /data-design-lab-scenario-controls/);
 assert.match(componentSource, /data-design-lab-scenario-control/);
+assert.match(componentSource, /data-action-contract/);
+for (const actionId of scenarioSelectActionIds) {
+  assert.ok(componentSource.includes(actionId), actionId);
+}
 assert.match(componentSource, /data-scenario-copy-url/);
 assert.match(componentSource, /data-scenario-simulate-destructive/);
 assert.match(componentSource, /window\.history\.pushState/);

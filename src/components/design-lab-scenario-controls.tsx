@@ -38,6 +38,27 @@ const BUSY_STATES = new Set([
 const EMPTY_STATES = new Set(["empty", "no-results"]);
 const MEDIA_STATES = new Set(["missing-media", "broken-media"]);
 
+const SCENARIO_ACTION_CONTRACT_IDS = {
+  fixture: "DL.ACTION.SCENARIO.FIXTURE.SELECT",
+  tier: "DL.ACTION.SCENARIO.TIER.SELECT",
+  auth: "DL.ACTION.SCENARIO.AUTH.SELECT",
+  permissions: "DL.ACTION.SCENARIO.PERMISSIONS.SELECT",
+  featureFlags: "DL.ACTION.SCENARIO.FEATUREFLAGS.SELECT",
+  orientation: "DL.ACTION.SCENARIO.ORIENTATION.SELECT",
+  navigation: "DL.ACTION.SCENARIO.NAVIGATION.SELECT",
+  theme: "DL.ACTION.SCENARIO.THEME.SELECT",
+  sponsoredDemo: "DL.ACTION.SCENARIO.SPONSOREDDEMO.SELECT",
+  dataState: "DL.ACTION.SCENARIO.DATASTATE.SELECT",
+  networkState: "DL.ACTION.SCENARIO.NETWORKSTATE.SELECT",
+  errorState: "DL.ACTION.SCENARIO.ERRORSTATE.SELECT",
+  longContent: "DL.ACTION.SCENARIO.LONGCONTENT.SELECT",
+  missingImage: "DL.ACTION.SCENARIO.MISSINGIMAGE.SELECT",
+  tour: "DL.ACTION.SCENARIO.TOUR.SELECT",
+  tourStep: "DL.ACTION.SCENARIO.TOURSTEP.SELECT",
+  reducedMotion: "DL.ACTION.SCENARIO.REDUCEDMOTION.SELECT",
+  highContrast: "DL.ACTION.SCENARIO.HIGHCONTRAST.SELECT",
+} satisfies Record<DesignLabScenarioKey, string>;
+
 export function DesignLabScenarioControls() {
   const searchParams = useSearchParams();
   const scenario = resolveDesignLabScenarioState(searchParams);
@@ -280,6 +301,9 @@ function ScenarioControlGroup({
               }
               data-design-lab-scenario-control={dimension.key}
               data-scenario-query-param={dimension.queryParam}
+              data-action-contract={
+                SCENARIO_ACTION_CONTRACT_IDS[dimension.key]
+              }
             >
               {dimension.options.map((option) => (
                 <option key={option.value} value={option.value}>

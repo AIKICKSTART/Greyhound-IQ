@@ -73,6 +73,9 @@ import { PRODUCT_SCREEN_LOCATION_MASTER_EVIDENCE } from "./product-screen-locati
 import { PRODUCT_INFORMATION_UNDERSTANDING_MASTER_EVIDENCE } from "./product-information-understanding-evidence";
 import { PRODUCT_SOURCE_CRAWL_PROVENANCE_MASTER_EVIDENCE } from "./product-source-crawl-provenance-evidence";
 import { PRODUCT_CRAWL_ACCESS_METADATA_MASTER_EVIDENCE } from "./product-crawl-access-metadata-evidence";
+import { PRODUCT_CRAWL_DESIGN_LAB_PARITY_MASTER_EVIDENCE } from "./product-crawl-design-lab-parity-evidence";
+import { PRODUCT_CRAWL_STATE_COVERAGE_MASTER_EVIDENCE } from "./product-crawl-state-coverage-evidence";
+import { PRODUCT_CRAWL_VISIBLE_LABEL_MASTER_EVIDENCE } from "./product-crawl-visible-label-evidence";
 import { PRODUCT_NON_NAVIGATION_LINK_MASTER_EVIDENCE } from "./product-non-navigation-link-inclusion-evidence";
 import { PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE } from "./product-form-contract-core-evidence";
 import { PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE } from "./product-form-operational-contract-evidence";
@@ -149,6 +152,9 @@ import { DATABASE_CONSTRAINT_INVENTORY_MASTER_EVIDENCE } from "../../security/da
 import { MIGRATION_DATA_LOSS_REVIEW_MASTER_EVIDENCE } from "../../security/migration-data-loss-review-evidence";
 import { MIGRATION_NULLABILITY_REVIEW_MASTER_EVIDENCE } from "../../security/migration-nullability-review-evidence";
 import { MIGRATION_TABLE_REWRITE_REVIEW_MASTER_EVIDENCE } from "../../security/migration-table-rewrite-review-evidence";
+import { MIGRATION_BACKWARD_COMPATIBILITY_REVIEW_MASTER_EVIDENCE } from "../../security/migration-backward-compatibility-review-evidence";
+import { MIGRATION_CONSTRAINT_VALIDATION_REVIEW_MASTER_EVIDENCE } from "../../security/migration-constraint-validation-review-evidence";
+import { MIGRATION_INDEX_CREATION_REVIEW_MASTER_EVIDENCE } from "../../security/migration-index-creation-review-evidence";
 import { SQL_INJECTION_CONTROL_MASTER_EVIDENCE } from "../../security/sql-injection-control-evidence";
 import { INJECTION_SURFACE_CONTROL_MASTER_EVIDENCE } from "../../security/injection-surface-control-evidence";
 import { COMMAND_INJECTION_CONTROL_MASTER_EVIDENCE } from "../../security/command-injection-control-evidence";
@@ -332,6 +338,9 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_INFORMATION_UNDERSTANDING_MASTER_EVIDENCE,
   ...PRODUCT_SOURCE_CRAWL_PROVENANCE_MASTER_EVIDENCE,
   ...PRODUCT_CRAWL_ACCESS_METADATA_MASTER_EVIDENCE,
+  ...PRODUCT_CRAWL_DESIGN_LAB_PARITY_MASTER_EVIDENCE,
+  ...PRODUCT_CRAWL_STATE_COVERAGE_MASTER_EVIDENCE,
+  ...PRODUCT_CRAWL_VISIBLE_LABEL_MASTER_EVIDENCE,
   ...PRODUCT_NON_NAVIGATION_LINK_MASTER_EVIDENCE,
   ...PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE,
   ...PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE,
@@ -1284,6 +1293,28 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...MIGRATION_DATA_LOSS_REVIEW_MASTER_EVIDENCE,
   ...MIGRATION_NULLABILITY_REVIEW_MASTER_EVIDENCE,
   ...MIGRATION_TABLE_REWRITE_REVIEW_MASTER_EVIDENCE,
+  ...MIGRATION_BACKWARD_COMPATIBILITY_REVIEW_MASTER_EVIDENCE,
+  ...MIGRATION_CONSTRAINT_VALIDATION_REVIEW_MASTER_EVIDENCE,
+  ...MIGRATION_INDEX_CREATION_REVIEW_MASTER_EVIDENCE,
+  "security.migration-review.defaults": {
+    status: "verified",
+    evidence: [
+      "prisma/migrations",
+      "security/migration-default-value-review-evidence.ts",
+      "security/migration-default-value-review-evidence.test.ts",
+    ],
+  },
+  "security.migration-review.rollback": {
+    status: "verified",
+    evidence: [
+      "AGENTS.md",
+      "prisma/AGENTS.md",
+      "docs/planning/operations-deployment.md",
+      "prisma/migrations",
+      "security/migration-rollback-strategy-review-evidence.ts",
+      "security/migration-rollback-strategy-review-evidence.test.ts",
+    ],
+  },
   ...SQL_INJECTION_CONTROL_MASTER_EVIDENCE,
   ...INJECTION_SURFACE_CONTROL_MASTER_EVIDENCE,
   ...COMMAND_INJECTION_CONTROL_MASTER_EVIDENCE,

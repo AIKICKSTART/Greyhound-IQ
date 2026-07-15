@@ -356,9 +356,9 @@ function FeatureCard({
         />
       </div>
       <div className="p-5">
-        <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))] mb-1.5 tracking-[-0.015em]">
+        <h2 className="text-[15px] font-semibold text-[hsl(var(--foreground))] mb-1.5 tracking-[-0.015em]">
           {title}
-        </h3>
+        </h2>
         <p className="min-h-[68px] text-[13px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.013em]">
           {description}
         </p>

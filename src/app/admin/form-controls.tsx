@@ -139,6 +139,7 @@ export function AdminSupportTicketForm({
 export function AdminBugReportForm({
   bugReport,
   path,
+        aria-label="Support reply"
 }: {
   bugReport: {
     id: string;
@@ -495,3 +496,4 @@ function PlanSelect({ plans }: { plans: { id: string; code: string }[] }) {
     </select>
   );
 }
+      aria-label={placeholder}

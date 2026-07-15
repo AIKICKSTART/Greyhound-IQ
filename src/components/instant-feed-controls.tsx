@@ -232,6 +232,7 @@ export function InstantFeedPostComposer({
 
         <textarea
           name="body"
+          aria-label="Create post"
           required
           minLength={2}
           maxLength={5000}
@@ -394,6 +395,7 @@ export function InstantFeedCommentForm({
       <div className="flex gap-2">
         <input
           name="body"
+          aria-label={parentCommentId ? "Reply" : "Comment"}
           required
           minLength={2}
           maxLength={2000}
@@ -863,6 +865,7 @@ export function InstantFeedOwnerControls({
       <form onSubmit={edit} className="grid gap-2">
         <textarea
           name="body"
+          aria-label="Edit post"
           defaultValue={initialBody}
           minLength={2}
           maxLength={5000}
@@ -872,6 +875,7 @@ export function InstantFeedOwnerControls({
         />
         <select
           name="visibility"
+          aria-label="Post visibility"
           defaultValue={initialVisibility}
           className="giq-form-control px-3 py-2 text-[13px]"
         >

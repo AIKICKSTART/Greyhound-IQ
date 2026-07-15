@@ -420,6 +420,7 @@ function CommentOwnerActions({
         <form onSubmit={edit} className="mt-2 flex min-w-[260px] gap-2">
           <input
             name="body"
+            aria-label="Edit comment"
             defaultValue={comment.body}
             minLength={2}
             maxLength={2000}

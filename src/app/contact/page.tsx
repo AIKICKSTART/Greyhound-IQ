@@ -68,11 +68,11 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
                 <div className="giq-icon-plate mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg">
                   <Icon className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
                 </div>
-                <h3
+                <h2
                   className="text-[15px] font-semibold text-[hsl(var(--foreground))] mb-1 tracking-[-0.015em]"
                 >
                   {c.title}
-                </h3>
+                </h2>
                 <p
                   className="text-[12px] font-mono text-[hsl(var(--primary-bright))] mb-2"
                 >

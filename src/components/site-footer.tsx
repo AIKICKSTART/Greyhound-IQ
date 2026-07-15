@@ -123,9 +123,9 @@ export function SiteFooter() {
 
           {FOOTER_SECTIONS.map((section) => (
             <div key={section.title} className="giq-footer-section">
-              <h4 className="giq-eyebrow text-[hsl(var(--secondary-light))]">
+              <h2 className="giq-eyebrow text-[hsl(var(--secondary-light))]">
                 {section.title}
-              </h4>
+              </h2>
               <ul className="mt-4 flex list-none flex-col gap-[11px] p-0">
                 {section.links.map((link) => (
                   <li key={`${section.title}-${link.href}-${link.label}`}>

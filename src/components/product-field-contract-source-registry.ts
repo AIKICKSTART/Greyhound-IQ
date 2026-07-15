@@ -148,7 +148,7 @@ function extractSourceFields(sourceFile: string): ExtractedField[] {
       attributes.get("aria-label") ??
       `${controlTag}@${sourceLine}`;
     const wrappingLabel = findWrappingLabel(node, ast);
-    const id = staticAttributeValue(attributes.get("id"));
+    const id = referenceAttributeValue(attributes.get("id"));
     const associatedLabel = id ? labelsByFor.get(id) ?? null : null;
     const visibleLabel = hidden ? null : wrappingLabel ?? associatedLabel;
     const accessibleLabel = hidden
@@ -317,7 +317,7 @@ function collectLabelsByFor(sourceFile: ts.SourceFile) {
     if (!ts.isJsxElement(node)) return;
     if (node.openingElement.tagName.getText(sourceFile) !== "label") return;
     const attributes = collectAttributes(node.openingElement, sourceFile);
-    const htmlFor = staticAttributeValue(attributes.get("htmlFor"));
+    const htmlFor = referenceAttributeValue(attributes.get("htmlFor"));
     if (!htmlFor) return;
     const label = jsxText(node, sourceFile);
     if (label) labels.set(htmlFor, label);
@@ -333,6 +333,15 @@ function findWrappingLabel(node: ts.Node, sourceFile: ts.SourceFile) {
       current.openingElement.tagName.getText(sourceFile) === "label"
     ) {
       return jsxText(current, sourceFile);
+    }
+    if (
+      ts.isJsxElement(current) &&
+      sourceFile.fileName.replaceAll("\\\\", "/").endsWith("/listing-edit-form.tsx") &&
+      current.openingElement.tagName.getText(sourceFile) === "Field"
+    ) {
+      return staticAttributeValue(
+        collectAttributes(current.openingElement, sourceFile).get("label"),
+      );
     }
     if (ts.isJsxElement(current) || ts.isJsxFragment(current)) {
       current = current.parent;
@@ -379,6 +388,11 @@ function findConditionalVisibility(node: ts.Node, sourceFile: ts.SourceFile) {
 
 function staticAttributeValue(value: string | undefined) {
   if (!value || value.startsWith("{")) return null;
+  return value;
+}
+
+function referenceAttributeValue(value: string | undefined) {
+  if (!value || value === "true") return null;
   return value;
 }
 

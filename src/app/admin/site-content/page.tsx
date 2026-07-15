@@ -91,30 +91,31 @@ export default async function SiteContentAdmin() {
             </legend>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className={LABEL}>Name</label>
-                <input name={`${plan.id}_name`} defaultValue={plan.name} className={INPUT} />
+                <label htmlFor={`${plan.id}-name`} className={LABEL}>Name</label>
+                <input id={`${plan.id}-name`} name={`${plan.id}_name`} defaultValue={plan.name} className={INPUT} />
               </div>
               <div>
-                <label className={LABEL}>CTA button</label>
-                <input name={`${plan.id}_cta`} defaultValue={plan.cta} className={INPUT} />
+                <label htmlFor={`${plan.id}-cta`} className={LABEL}>CTA button</label>
+                <input id={`${plan.id}-cta`} name={`${plan.id}_cta`} defaultValue={plan.cta} className={INPUT} />
               </div>
               <div>
-                <label className={LABEL}>Price (display, e.g. $20)</label>
-                <input name={`${plan.id}_price`} defaultValue={plan.price} className={INPUT} />
+                <label htmlFor={`${plan.id}-price`} className={LABEL}>Price (display, e.g. $20)</label>
+                <input id={`${plan.id}-price`} name={`${plan.id}_price`} defaultValue={plan.price} className={INPUT} />
               </div>
               <div>
-                <label className={LABEL}>Period (e.g. /month or $204/year)</label>
-                <input name={`${plan.id}_period`} defaultValue={plan.period} className={INPUT} />
+                <label htmlFor={`${plan.id}-period`} className={LABEL}>Period (e.g. /month or $204/year)</label>
+                <input id={`${plan.id}-period`} name={`${plan.id}_period`} defaultValue={plan.period} className={INPUT} />
               </div>
             </div>
             <div>
-              <label className={LABEL}>Description</label>
-              <input name={`${plan.id}_description`} defaultValue={plan.description} className={INPUT} />
+              <label htmlFor={`${plan.id}-description`} className={LABEL}>Description</label>
+              <input id={`${plan.id}-description`} name={`${plan.id}_description`} defaultValue={plan.description} className={INPUT} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className={LABEL}>Included features (one per line)</label>
+                <label htmlFor={`${plan.id}-features`} className={LABEL}>Included features (one per line)</label>
                 <textarea
+                  id={`${plan.id}-features`}
                   name={`${plan.id}_features`}
                   defaultValue={plan.features.join("\n")}
                   rows={8}
@@ -122,8 +123,9 @@ export default async function SiteContentAdmin() {
                 />
               </div>
               <div>
-                <label className={LABEL}>Not included (one per line)</label>
+                <label htmlFor={`${plan.id}-not-included`} className={LABEL}>Not included (one per line)</label>
                 <textarea
+                  id={`${plan.id}-not-included`}
                   name={`${plan.id}_notIncluded`}
                   defaultValue={plan.notIncluded.join("\n")}
                   rows={8}
@@ -139,8 +141,8 @@ export default async function SiteContentAdmin() {
         ))}
 
         <div>
-          <label className={LABEL}>Yearly note (below the plans)</label>
-          <input name="yearlyNote" defaultValue={yearlyNote} className={INPUT} />
+          <label htmlFor="yearly-note" className={LABEL}>Yearly note (below the plans)</label>
+          <input id="yearly-note" name="yearlyNote" defaultValue={yearlyNote} className={INPUT} />
         </div>
 
         <SubmitButton className="giq-button giq-button-primary px-5 text-[13px] font-semibold">

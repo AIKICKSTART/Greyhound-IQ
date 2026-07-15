@@ -270,6 +270,7 @@ function ListingActions({ listing }: { listing: ListingRow }) {
             placeholder="Reason"
             className="giq-form-control min-h-11 w-36 px-2 py-1 text-[12px]"
           />
+            aria-label="Rejection reason"
           <button className="giq-button giq-button-glass min-h-11 px-3 text-[12px]">
             Reject
           </button>
@@ -292,6 +293,7 @@ function ListingActions({ listing }: { listing: ListingRow }) {
         <button className="giq-button giq-button-glass min-h-11 px-3 text-[12px]">
           Remove
         </button>
+          aria-label="Removal reason"
       </form>
     );
   }

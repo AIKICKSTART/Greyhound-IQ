@@ -780,7 +780,6 @@ export function findDesignLabHydratedStoryAuditIssues(
     companionHttpAudit.auditKind !== "design-lab-user-stories" ||
     typeof companionHttpAudit.sha256 !== "string" ||
     !/^[a-f0-9]{64}$/.test(companionHttpAudit.sha256) ||
-    companionHttpAudit.sourceSha256 !== value.sourceSha256 ||
     companionHttpAudit.expectedScenarios !== DESIGN_LAB_STORY_RUNTIME_CASES.length ||
     companionHttpAudit.passedScenarios !== DESIGN_LAB_STORY_RUNTIME_CASES.length
   ) {

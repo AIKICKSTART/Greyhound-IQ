@@ -192,6 +192,20 @@ const validAudit: MutableAudit = {
 };
 
 assert.deepEqual(findDesignLabHydratedStoryAuditIssues(validAudit, binding), []);
+assert.deepEqual(
+  findDesignLabHydratedStoryAuditIssues(
+    {
+      ...validAudit,
+      companionHttpAudit: {
+        ...validAudit.companionHttpAudit,
+        sourceSha256: "d".repeat(64),
+      },
+    },
+    binding,
+  ),
+  [],
+  "The companion HTTP audit has its own declared source contract.",
+);
 assert.equal(
   canonicalJsonEquals(
     { beta: 2, alpha: { delta: 4, gamma: [{ two: 2, one: 1 }] } },

@@ -19,6 +19,7 @@ import {
   getDogsForListingSelect,
   getMarketplaceCategories,
 } from "@/lib/queries";
+import { listingCreatePrefillQuerySchema } from "@/lib/query-validation";
 
 export const dynamic = "force-dynamic";
 
@@ -48,11 +49,19 @@ export default async function NewListingPage({
 }: {
   searchParams: Promise<{ dogId?: string; title?: string; price?: string }>;
 }) {
+  const rawPrefill = await searchParams;
+  const parsedPrefill = listingCreatePrefillQuerySchema.safeParse(
+    {
+      dogId: rawPrefill.dogId,
+      title: rawPrefill.title,
+      price: rawPrefill.price,
+    },
+  );
   const {
     dogId: prefillDogId,
     title: prefillTitle,
     price: prefillPrice,
-  } = await searchParams;
+  } = parsedPrefill.success ? parsedPrefill.data : {};
   const [user, dogs, categories] = await Promise.all([
     getCurrentUser(),
     getDogsForListingSelect(120),

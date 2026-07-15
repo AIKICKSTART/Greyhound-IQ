@@ -349,6 +349,16 @@ export default async function ListingDetailPage({
                     )}
                     {canWithdraw && (
                       <form action={withdrawAction}>
+                        <label className="mb-2 flex min-h-11 items-start gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] p-3 text-[12px] leading-5 text-[hsl(var(--muted-foreground))]">
+                          <input
+                            type="checkbox"
+                            name="confirmation"
+                            value="withdraw"
+                            required
+                            className="mt-0.5 size-4 shrink-0 accent-[hsl(var(--primary))]"
+                          />
+                          Confirm this listing should be withdrawn from review or active inventory.
+                        </label>
                         <SubmitButton
                           pendingLabel="Withdrawing..."
                           className="giq-button giq-button-glass min-h-11 w-full px-4 text-[13px] font-semibold disabled:cursor-not-allowed"

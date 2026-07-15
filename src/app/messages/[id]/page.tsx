@@ -42,6 +42,7 @@ import {
   searchConversationMessages,
 } from "@/lib/conversation-service";
 import { withDbRequestContext } from "@/lib/db-context";
+import { messageThreadQuerySchema } from "@/lib/query-validation";
 import { conversationRealtimeChannel } from "@/lib/realtime-service";
 
 export const dynamic = "force-dynamic";
@@ -71,7 +72,7 @@ export default async function MessageThreadPage({
     q?: string | string[];
   }>;
 }) {
-  const [{ id }, query, user] = await Promise.all([
+  const [{ id }, rawQuery, user] = await Promise.all([
     params,
     searchParams,
     getCurrentUser(),
@@ -83,17 +84,14 @@ export default async function MessageThreadPage({
     profileRole: user.role ?? "member",
     tier: user.tier,
   };
-  const before = typeof query.before === "string" ? query.before : undefined;
-  const callIntent =
-    query.call === "voice" ||
-    query.call === "video" ||
-    query.call === "answer"
-      ? query.call
-      : null;
-  const messageQuery =
-    typeof query.q === "string"
-      ? query.q.trim().replace(/\s+/g, " ").slice(0, 100)
-      : "";
+  const parsedQuery = messageThreadQuerySchema.safeParse({
+    before: rawQuery.before,
+    call: rawQuery.call,
+    q: rawQuery.q,
+  });
+  const before = parsedQuery.success ? parsedQuery.data.before : undefined;
+  const callIntent = parsedQuery.success ? (parsedQuery.data.call ?? null) : null;
+  const messageQuery = parsedQuery.success ? parsedQuery.data.q : "";
 
   let conversation: Awaited<ReturnType<typeof getConversationForProfile>>;
   try {

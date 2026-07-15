@@ -9,6 +9,7 @@ import Link from "next/link";
 
 import { getCurrentUser } from "@/lib/auth";
 import { discoverSocialActorsAndDogs } from "@/lib/social-discovery";
+import { directorySearchQuerySchema } from "@/lib/query-validation";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +21,11 @@ export const metadata = {
 export default async function DiscoverPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [{ q = "" }, user] = await Promise.all([searchParams, getCurrentUser()]);
+  const [rawQuery, user] = await Promise.all([searchParams, getCurrentUser()]);
+  const parsedQuery = directorySearchQuerySchema.safeParse({ q: rawQuery.q });
+  const q = parsedQuery.success ? parsedQuery.data.q : "";
   const current = user?.dbUserId && user.profileId
     ? {
         ...user,

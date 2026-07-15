@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { jsonError } from "@/lib/api-errors";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { searchConversationMessages } from "@/lib/conversation-service";
+import {
+  messageSearchQuerySchema,
+  queryParamsObject,
+} from "@/lib/query-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET(
@@ -25,14 +29,16 @@ export async function GET(
         { status: 429 }
       );
     }
-    const limit = Number(request.nextUrl.searchParams.get("limit") ?? 20);
+    const query = messageSearchQuerySchema.parse(
+      queryParamsObject(request.nextUrl.searchParams),
+    );
     const result = await searchConversationMessages(
       current,
       id,
-      request.nextUrl.searchParams.get("q") ?? "",
+      query.q,
       {
-        before: request.nextUrl.searchParams.get("before"),
-        limit: Number.isFinite(limit) ? limit : 20,
+        before: query.before,
+        limit: query.limit,
       }
     );
     return NextResponse.json(result);

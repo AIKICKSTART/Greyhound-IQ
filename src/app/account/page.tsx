@@ -8,6 +8,7 @@ import {
   Database,
   Lock,
   MessageSquare,
+  ShoppingBag,
   PawPrint,
   Pencil,
   Bookmark,
@@ -22,6 +23,7 @@ import {
 import { ActorMediaImage } from "@/components/actor-media-image";
 import { PageHero } from "@/components/page-hero";
 import { SubmitButton } from "@/components/submit-button";
+import { UserDataExportForm } from "@/components/user-data-export-form";
 import { getCurrentUser, hasTier, isModeratorRole } from "@/lib/auth";
 import { getAccountSummary, getMessagesForUserEmail } from "@/lib/queries";
 import { getPersonalActorMedia } from "@/lib/social-actor-service";
@@ -189,6 +191,7 @@ async function SignedInAccount({
                 />
               ) : (
                 <div className="grid h-full place-items-center text-2xl font-semibold text-white/75">
+      <AccountMutationFeedback />
                   {(profile?.displayName ?? user.name).slice(0, 1).toUpperCase()}
                 </div>
               )}
@@ -516,12 +519,10 @@ async function SignedInAccount({
             title="Data export"
             body="Download a JSON archive of your profile, content, Pulse messages, marketplace items, ownership links, and agent runs."
             action={
-              <Link
-                href="/api/users/me/export"
+              <UserDataExportForm
                 className={ACTION_CLASS}
-              >
-                Download JSON
-              </Link>
+                label="Download JSON"
+              />
             }
           />
           <ControlCard
@@ -539,7 +540,19 @@ async function SignedInAccount({
                   Requested
                 </span>
               ) : (
-                <form action={requestAccountDeletion}>
+                <form action={requestAccountDeletion} className="grid gap-2">
+                  <label className="text-[12px] font-semibold text-[hsl(var(--foreground))]">
+                    Type DELETE to confirm
+                    <input
+                      name="confirmation"
+                      type="text"
+                      autoComplete="off"
+                      required
+                      pattern="DELETE"
+                      spellCheck={false}
+                      className={`${INPUT_CLASS} w-full`}
+                    />
+                  </label>
                   <SubmitButton
                     pendingLabel="Requesting..."
                     className="giq-danger-action disabled:cursor-not-allowed disabled:opacity-60"
@@ -612,6 +625,59 @@ function SignedOutAccount() {
 
 function DemoAccountPreview() {
   return (
+function AccountMutationFeedback() {
+  const outcomes = [
+    {
+      id: "profile-updated",
+      role: "status" as const,
+      message: "Profile saved.",
+      recovery: false,
+    },
+    {
+      id: "profile-error",
+      role: "alert" as const,
+      message: "Profile could not be saved. Review the fields and try again.",
+      recovery: true,
+    },
+    {
+      id: "deletion-requested",
+      role: "status" as const,
+      message: "Account deletion requested. The 30-day grace window has started.",
+      recovery: false,
+    },
+    {
+      id: "deletion-error",
+      role: "alert" as const,
+      message: "Deletion could not be requested. Confirm DELETE and try again.",
+      recovery: true,
+    },
+  ];
+
+  return outcomes.map(({ id, message, recovery, role }) => (
+    <div
+      key={id}
+      id={id}
+      role={role}
+      aria-live={role === "alert" ? "assertive" : "polite"}
+      aria-atomic="true"
+      className={`hidden rounded-lg border p-4 target:block lg:col-span-12 ${
+        recovery
+          ? "border-[hsl(var(--destructive)/0.35)] bg-[hsl(var(--destructive)/0.08)]"
+          : "border-[hsl(var(--secondary)/0.35)] bg-[hsl(var(--secondary)/0.08)]"
+      }`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
+          {message}
+        </p>
+        <Link href="/account" className={ACTION_CLASS}>
+          Dismiss
+        </Link>
+      </div>
+    </div>
+  ));
+}
+
     <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
       <section className={PANEL_CLASS}>
         <div className="mb-5 flex items-center gap-3">

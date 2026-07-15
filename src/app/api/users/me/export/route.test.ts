@@ -37,9 +37,12 @@ assert.doesNotMatch(
 );
 assert.match(
   formSource,
-  /<form action="\/api\/users\/me\/export" method="post">/,
+  /<form onSubmit=\{downloadExport\}/,
 );
-assert.match(formSource, /<button type="submit"/);
+assert.match(formSource, /fetch\("\/api\/users\/me\/export", \{/);
+assert.match(formSource, /method: "POST"/);
+assert.match(formSource, /<button\s+type="submit"/);
+assert.match(formSource, /if \(!response\.ok\)/);
 
 assert.ok(ENDPOINTS.some((entry) => entry.endpointId === "HTTP.POST.API_USERS_ME_EXPORT"));
 assert.ok(!ENDPOINTS.some((entry) => entry.endpointId === "HTTP.GET.API_USERS_ME_EXPORT"));

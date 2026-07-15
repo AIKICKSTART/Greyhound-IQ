@@ -1,37 +1,39 @@
 import type { ProductMasterRequirementStatus } from "./product-master-requirements";
 
-export const PRODUCT_CRAWL_VISIBLE_LABEL_EVIDENCE_FILE =
-  "src/components/product-crawl-visible-label-evidence.ts" as const;
-export const PRODUCT_CRAWL_VISIBLE_LABEL_TEST_FILE =
-  "src/components/product-crawl-visible-label-evidence.test.ts" as const;
+export const PRODUCT_CRAWL_ACCESSIBLE_LABEL_EVIDENCE_FILE =
+  "src/components/product-crawl-accessible-label-evidence.ts" as const;
+export const PRODUCT_CRAWL_ACCESSIBLE_LABEL_TEST_FILE =
+  "src/components/product-crawl-accessible-label-evidence.test.ts" as const;
 
-export const PRODUCT_CRAWL_VISIBLE_LABEL_REQUIREMENT_ID =
-  "DISC.CRAWL.visible-label" as const;
+export const PRODUCT_CRAWL_ACCESSIBLE_LABEL_REQUIREMENT_ID =
+  "DISC.CRAWL.accessible-label" as const;
 
-export const PRODUCT_CRAWL_VISIBLE_LABEL_SCOPE =
-  "Deterministic local source-crawl inventory for all 5,467 production-owned discovery rows: 2,345 internal-link rows and 3,122 interactive-action rows across the 89 production routes with a discovered link or action. Each row records directly source-visible static text, dynamic expression, visible label/title/placeholder attribute, or navigation-object label property, or one explicit source-visible absence reason. Accessible-only names are deliberately not counted as visible labels. This closes only visible-label recording for the current static source crawl; it does not prove rendered text, dynamic runtime values, responsive visibility, accessible naming, action behavior, deployed crawling, or production readiness.";
+export const PRODUCT_CRAWL_ACCESSIBLE_LABEL_SCOPE =
+  "Deterministic local source-crawl inventory for all 5,467 production-owned discovery rows: 2,345 internal-link rows and 3,122 interactive-action rows across the 89 production routes with a discovered link or action. Each row records one or more source-level accessible-name candidates or one explicit absence reason. Candidate provenance covers explicit ARIA naming attributes, accessible descendant content, associated labels, component label properties, and HTML naming attributes. This closes only accessible-label recording for the current static source crawl; it does not prove the browser-computed accessible name, referenced-element resolution, runtime values, assistive-technology output, rendered visibility, action behavior, deployed crawling, or production readiness.";
 
-export type ProductCrawlVisibleLabelSource = {
+export type ProductCrawlAccessibleLabelSource = {
   kind:
-    | "dynamic-expression"
-    | "label-property"
-    | "static-text"
-    | "visible-attribute";
+    | "aria-label"
+    | "aria-labelledby"
+    | "associated-label"
+    | "content"
+    | "html-naming-attribute"
+    | "label-property";
   value: string;
 };
 
-export type ProductCrawlVisibleLabelRecord = {
+export type ProductCrawlAccessibleLabelRecord = {
   id: string;
   kind: "action" | "link";
   sourceRoute: string;
   sourceFile: string;
   sourceLine: number;
   sourceColumn: number;
-  visibleLabelSources: readonly ProductCrawlVisibleLabelSource[];
+  accessibleLabelSources: readonly ProductCrawlAccessibleLabelSource[];
   absenceReason: string | null;
 };
 
-export type ProductCrawlVisibleLabelIssue = {
+export type ProductCrawlAccessibleLabelIssue = {
   code:
     | "ABSENCE_REASON_CONFLICT"
     | "ABSENCE_REASON_MISSING"
@@ -47,17 +49,19 @@ export type ProductCrawlVisibleLabelIssue = {
   recordId: string;
 };
 
-const LABEL_SOURCE_KINDS = new Set<ProductCrawlVisibleLabelSource["kind"]>([
-  "dynamic-expression",
+const LABEL_SOURCE_KINDS = new Set<ProductCrawlAccessibleLabelSource["kind"]>([
+  "aria-label",
+  "aria-labelledby",
+  "associated-label",
+  "content",
+  "html-naming-attribute",
   "label-property",
-  "static-text",
-  "visible-attribute",
 ]);
 
-export function findCrawlVisibleLabelIssues(
-  records: readonly ProductCrawlVisibleLabelRecord[],
-): ProductCrawlVisibleLabelIssue[] {
-  const issues: ProductCrawlVisibleLabelIssue[] = [];
+export function findCrawlAccessibleLabelIssues(
+  records: readonly ProductCrawlAccessibleLabelRecord[],
+): ProductCrawlAccessibleLabelIssue[] {
+  const issues: ProductCrawlAccessibleLabelIssue[] = [];
   const seenIds = new Set<string>();
 
   for (const record of records) {
@@ -87,7 +91,7 @@ export function findCrawlVisibleLabelIssues(
       issues.push({ code: "SOURCE_POSITION_INVALID", recordId: record.id });
     }
 
-    if (record.visibleLabelSources.length === 0) {
+    if (record.accessibleLabelSources.length === 0) {
       if (!record.absenceReason?.trim()) {
         issues.push({ code: "ABSENCE_REASON_MISSING", recordId: record.id });
       }
@@ -98,12 +102,9 @@ export function findCrawlVisibleLabelIssues(
     }
 
     const seenSources = new Set<string>();
-    for (const source of record.visibleLabelSources) {
+    for (const source of record.accessibleLabelSources) {
       if (!LABEL_SOURCE_KINDS.has(source.kind)) {
-        issues.push({
-          code: "INVALID_LABEL_SOURCE_KIND",
-          recordId: record.id,
-        });
+        issues.push({ code: "INVALID_LABEL_SOURCE_KIND", recordId: record.id });
       }
       if (!source.value.trim() || source.value !== source.value.trim()) {
         issues.push({ code: "LABEL_SOURCE_BLANK", recordId: record.id });
@@ -119,21 +120,21 @@ export function findCrawlVisibleLabelIssues(
   return issues;
 }
 
-type ProductCrawlVisibleLabelEvidenceRecord = {
+type ProductCrawlAccessibleLabelEvidenceRecord = {
   status: ProductMasterRequirementStatus;
   evidence: readonly string[];
 };
 
-export const PRODUCT_CRAWL_VISIBLE_LABEL_MASTER_EVIDENCE = {
-  [PRODUCT_CRAWL_VISIBLE_LABEL_REQUIREMENT_ID]: {
+export const PRODUCT_CRAWL_ACCESSIBLE_LABEL_MASTER_EVIDENCE = {
+  [PRODUCT_CRAWL_ACCESSIBLE_LABEL_REQUIREMENT_ID]: {
     status: "tested",
     evidence: [
-      PRODUCT_CRAWL_VISIBLE_LABEL_EVIDENCE_FILE,
-      PRODUCT_CRAWL_VISIBLE_LABEL_TEST_FILE,
+      PRODUCT_CRAWL_ACCESSIBLE_LABEL_EVIDENCE_FILE,
+      PRODUCT_CRAWL_ACCESSIBLE_LABEL_TEST_FILE,
       "src/components/product-automated-source-gate-registry.ts",
       "src/components/demo-experience-registry.ts",
     ],
   },
 } as const satisfies Readonly<
-  Record<string, ProductCrawlVisibleLabelEvidenceRecord>
+  Record<string, ProductCrawlAccessibleLabelEvidenceRecord>
 >;

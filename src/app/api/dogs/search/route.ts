@@ -4,6 +4,10 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request-ip";
 
 const DOG_SEARCH_RATE_LIMIT = 60;
+import {
+  directorySearchQuerySchema,
+  queryParamsObject,
+} from "@/lib/query-validation";
 // No trusted client IP means everyone shares one bucket; keep it small so a
 // spoofed/missing header cannot rent the full per-IP allowance.
 const DOG_SEARCH_NO_IP_RATE_LIMIT = 10;
@@ -29,7 +33,15 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const q = searchParams.get("q") ?? "";
-  const results = await searchDogs(q, 20);
+  const query = directorySearchQuerySchema.safeParse(
+    queryParamsObject(searchParams),
+  );
+  if (!query.success) {
+    return NextResponse.json(
+      { error: { code: "validation.invalid", message: "Invalid search query" } },
+      { status: 400 },
+    );
+  }
+  const results = await searchDogs(query.data.q, 20);
   return NextResponse.json(results);
 }

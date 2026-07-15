@@ -13,11 +13,11 @@ The following managed block is checked against the live registries by `npm run d
 <!-- design-lab-live-counters:start -->
 | Gate slice | Complete | Total | Open |
 | --- | ---: | ---: | ---: |
-| Aggregate production gate | 3724 | 4271 | 547 |
+| Aggregate production gate | 3735 | 4271 | 536 |
 | Screen contracts | 873 | 873 | 0 |
-| Master requirements | 2819 | 3315 | 496 |
-| Product master requirements | 958 | 1027 | 69 |
-| Security master requirements | 1861 | 2288 | 427 |
+| Master requirements | 2830 | 3315 | 485 |
+| Product master requirements | 965 | 1027 | 62 |
+| Security master requirements | 1865 | 2288 | 423 |
 | Pre-production requirements | 5 | 61 | 56 |
 | Database operation contracts | 27 | 27 | 0 |
 <!-- design-lab-live-counters:end -->

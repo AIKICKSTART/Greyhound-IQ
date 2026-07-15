@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { jsonError } from "@/lib/api-errors";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  directorySearchQuerySchema,
+  queryParamsObject,
+} from "@/lib/query-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request-ip";
 import { discoverSocialActorsAndDogs } from "@/lib/social-discovery";
@@ -35,7 +39,10 @@ export async function GET(request: NextRequest) {
         }
       : null;
     const result = await discoverSocialActorsAndDogs(
-      request.nextUrl.searchParams.get("q") ?? "",
+      query.q,
+    const query = directorySearchQuerySchema.parse(
+      queryParamsObject(request.nextUrl.searchParams),
+    );
       current
     );
     return NextResponse.json(result, {

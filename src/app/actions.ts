@@ -179,6 +179,18 @@ const listingArchiveSchema = z.object({
   confirmation: z.literal("archive"),
 });
 
+const listingWithdrawConfirmationSchema = z.object({
+  confirmation: z.literal("withdraw"),
+});
+
+const listingRemovalConfirmationSchema = z.object({
+  confirmation: z.literal("remove"),
+});
+
+const messageDeleteConfirmationSchema = z.object({
+  confirmation: z.literal("delete"),
+});
+
 const listingReportSchema = z.object({
   reason: z.enum(["spam", "harassment", "misinformation", "illegal", "other"]),
   description: z
@@ -706,9 +718,11 @@ export async function markListingSold(listingId: string, _formData?: FormData) {
   redirect(`/marketplace/${listingId}`);
 }
 
-export async function withdrawListing(listingId: string, _formData?: FormData) {
-  void _formData;
+export async function withdrawListing(listingId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
+  listingWithdrawConfirmationSchema.parse({
+    confirmation: field(formData, "confirmation"),
+  });
   await withdrawListingForCurrentUser(current, listingId);
 
   revalidatePath("/marketplace");
@@ -777,6 +791,9 @@ export async function rejectListing(listingId: string, formData: FormData) {
 
 export async function removeListing(listingId: string, formData: FormData) {
   const current = await requireModeratorProfile();
+  listingRemovalConfirmationSchema.parse({
+    confirmation: field(formData, "confirmation"),
+  });
   await removeListingForModerator(
     current,
     listingId,
@@ -942,10 +959,12 @@ export async function replyToConversation(
 export async function deleteConversationMessage(
   conversationId: string,
   messageId: string,
-  _formData?: FormData
+  formData: FormData
 ) {
-  void _formData;
   const current = await requireCurrentUserProfile();
+  messageDeleteConfirmationSchema.parse({
+    confirmation: field(formData, "confirmation"),
+  });
   await softDeleteConversationMessage(current, conversationId, messageId);
 
   revalidatePath("/pulse");
@@ -1146,44 +1165,48 @@ export async function markAllNotificationsRead(_formData?: FormData) {
 
 export async function updateProfile(formData: FormData) {
   const current = await requireCurrentUserProfile();
-  const parsed = profileUpdateSchema.parse({
-    displayName: field(formData, "displayName"),
-    bio: field(formData, "bio"),
-    state: field(formData, "state"),
-    kennelName: field(formData, "kennelName"),
-    kennelPrefix: field(formData, "kennelPrefix"),
-    website: field(formData, "website"),
-    phone: field(formData, "phone"),
-    profileVisibility: field(formData, "profileVisibility") || "members",
-    contactVisibility: field(formData, "contactVisibility") || "only_me",
-  });
-  if (hasProfileMarketingFields(parsed)) assertPaidFeatureAccess(current);
-  const { profileVisibility, contactVisibility, ...profileFields } = parsed;
-  const data = hasTier(current.tier, "pro")
-    ? profileFields
-    : {
-      displayName: profileFields.displayName,
-      bio: profileFields.bio,
-      state: profileFields.state,
-    };
-  await withDbRequestContext(current, async (tx) => {
-    const profile = await tx.profile.update({
-      where: { id: current.profileId },
-      data,
+  try {
+    const parsed = profileUpdateSchema.parse({
+      displayName: field(formData, "displayName"),
+      bio: field(formData, "bio"),
+      state: field(formData, "state"),
+      kennelName: field(formData, "kennelName"),
+      kennelPrefix: field(formData, "kennelPrefix"),
+      website: field(formData, "website"),
+      phone: field(formData, "phone"),
+      profileVisibility: field(formData, "profileVisibility") || "members",
+      contactVisibility: field(formData, "contactVisibility") || "only_me",
     });
-    await tx.socialActor.updateMany({
-      where: { profileId: current.profileId },
-      data: {
-        displayName: profile.displayName,
-        avatarUrl: profile.avatarUrl,
-        profileVisibility,
-        contactVisibility,
-      },
+    if (hasProfileMarketingFields(parsed)) assertPaidFeatureAccess(current);
+    const { profileVisibility, contactVisibility, ...profileFields } = parsed;
+    const data = hasTier(current.tier, "pro")
+      ? profileFields
+      : {
+        displayName: profileFields.displayName,
+        bio: profileFields.bio,
+        state: profileFields.state,
+      };
+    await withDbRequestContext(current, async (tx) => {
+      const profile = await tx.profile.update({
+        where: { id: current.profileId },
+        data,
+      });
+      await tx.socialActor.updateMany({
+        where: { profileId: current.profileId },
+        data: {
+          displayName: profile.displayName,
+          avatarUrl: profile.avatarUrl,
+          profileVisibility,
+          contactVisibility,
+        },
+      });
     });
-  });
+  } catch {
+    redirect("/account#profile-error");
+  }
 
   revalidatePath("/account");
-  redirect("/account");
+  redirect("/account#profile-updated");
 }
 
 export async function updatePersonalIdentityMedia(formData: FormData) {
@@ -1280,20 +1303,24 @@ export async function claimDogOwnership(dogId: string, formData: FormData) {
 
 export async function requestAccountDeletion(formData: FormData) {
   const current = await requireCurrentUserProfile();
-  const rateLimit = await checkRateLimit(
-    `account:delete:${current.dbUserId}`,
-    ACCOUNT_DELETION_RATE_LIMIT,
-    ACCOUNT_DELETION_RATE_LIMIT_WINDOW_MS,
-    FAIL_CLOSED_RATE_LIMIT,
-  );
-  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
-  destructiveConfirmationSchema.parse({
-    confirmation: field(formData, "confirmation"),
-  });
-  await requestAccountDeletionForUser(current);
+  try {
+    const rateLimit = await checkRateLimit(
+      `account:delete:${current.dbUserId}`,
+      ACCOUNT_DELETION_RATE_LIMIT,
+      ACCOUNT_DELETION_RATE_LIMIT_WINDOW_MS,
+      FAIL_CLOSED_RATE_LIMIT,
+    );
+    if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
+    destructiveConfirmationSchema.parse({
+      confirmation: field(formData, "confirmation"),
+    });
+    await requestAccountDeletionForUser(current);
+  } catch {
+    redirect("/account#deletion-error");
+  }
 
   revalidatePath("/account");
-  redirect("/account");
+  redirect("/account#deletion-requested");
 }
 
 const CUSTOM_PAGE_RATE_LIMIT = 20;

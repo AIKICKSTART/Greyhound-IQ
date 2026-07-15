@@ -6,36 +6,29 @@ import { createListingForCurrentUser } from "@/lib/listing-service";
 import { listingWriteSchema } from "@/lib/listing-validation";
 import { getMarketplaceListings } from "@/lib/queries";
 
-const STATES = new Set(["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"]);
-const TYPES = new Set([
-  "pup_for_sale",
-  "dog_for_sale",
-  "stud_service",
-  "wanted",
-  "share",
-]);
-const SORTS = new Set(["created_at", "price", "expires_at"]);
+import { listingApiQuerySchema, queryParamsObject } from "@/lib/query-validation";
 const LISTING_CREATE_RATE_LIMIT = 3;
 const LISTING_CREATE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const limit = boundedLimit(searchParams.get("limit"));
-  const listings = await getMarketplaceListings(limit, {
-    type: valueFromSet(searchParams.get("type"), TYPES),
-    categoryId: searchParams.get("categoryId"),
-    categorySlug: searchParams.get("category"),
-    state: valueFromSet(searchParams.get("state"), STATES),
-    dogId: searchParams.get("dog") || searchParams.get("dogId"),
-    q: searchParams.get("q"),
-    status: "active",
-    sort: valueFromSet(searchParams.get("sort"), SORTS) as
-      | "created_at"
-      | "price"
-      | "expires_at"
-      | null,
-  });
-  return NextResponse.json({ items: listings });
+  try {
+    const query = listingApiQuerySchema.parse(
+      queryParamsObject(request.nextUrl.searchParams),
+    );
+    const listings = await getMarketplaceListings(query.limit, {
+      type: query.type,
+      categoryId: query.categoryId,
+      categorySlug: query.category,
+      state: query.state,
+      dogId: query.dog ?? query.dogId,
+      q: query.q,
+      status: "active",
+      sort: query.sort,
+    });
+    return NextResponse.json({ items: listings });
+  } catch (err) {
+    return jsonError(err, "Could not load listings");
+  }
 }
 
 export async function POST(request: Request) {
@@ -65,14 +58,4 @@ export async function POST(request: Request) {
   } catch (err) {
     return jsonError(err, "Could not create listing");
   }
-}
-
-function boundedLimit(raw: string | null) {
-  const parsed = Number(raw ?? 100);
-  if (!Number.isFinite(parsed)) return 100;
-  return Math.min(Math.max(Math.trunc(parsed), 1), 100);
-}
-
-function valueFromSet(value: string | null, allowed: Set<string>) {
-  return value && allowed.has(value) ? value : null;
 }

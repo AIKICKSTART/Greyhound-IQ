@@ -7,6 +7,10 @@ import {
 } from "@/lib/feed-service";
 import { feedCommentWriteSchema } from "@/lib/feed-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import {
+  feedCommentPageQuerySchema,
+  queryParamsObject,
+} from "@/lib/query-validation";
 
 const FEED_COMMENT_RATE_LIMIT = 30;
 const FEED_COMMENT_RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -20,6 +24,9 @@ export async function GET(
     const url = new URL(request.url);
     const current = user?.dbUserId && user.profileId
       ? {
+    const query = feedCommentPageQuerySchema.parse(
+      queryParamsObject(url.searchParams),
+    );
           ...user,
           dbUserId: user.dbUserId,
           profileId: user.profileId,
@@ -30,8 +37,8 @@ export async function GET(
       : null;
     const result = await getFeedCommentsForViewer(postId, {
       current,
-      cursor: url.searchParams.get("cursor"),
-      limit: Number(url.searchParams.get("limit") ?? 20),
+      cursor: query.cursor,
+      limit: query.limit,
     });
     return NextResponse.json(result, {
       headers: { "Cache-Control": "private, no-store" },

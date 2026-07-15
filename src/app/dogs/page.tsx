@@ -2,6 +2,7 @@ import { DogSearch } from "@/components/dog-search";
 import { PageHero } from "@/components/page-hero";
 import { getDogSearchTallies } from "@/lib/queries";
 import { Search } from "lucide-react";
+import { directorySearchQuerySchema } from "@/lib/query-validation";
 
 export const metadata = {
   title: "Dog Search — GreyhoundIQ",
@@ -24,8 +25,9 @@ export default async function DogsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { q } = await searchParams;
-  const initialQuery = Array.isArray(q) ? q[0] : (q ?? "");
+  const rawQuery = await searchParams;
+  const parsedQuery = directorySearchQuerySchema.safeParse({ q: rawQuery.q });
+  const initialQuery = parsedQuery.success ? parsedQuery.data.q : "";
   const tallies = await getDogSearchTallies();
   const stats = [
     { label: "Greyhounds", value: tallies.dogs },

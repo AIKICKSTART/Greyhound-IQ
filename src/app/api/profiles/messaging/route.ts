@@ -4,10 +4,13 @@ import { jsonError } from "@/lib/api-errors";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getMessagingProfiles } from "@/lib/queries";
 
+import {
+  directorySearchQuerySchema,
+  queryParamsObject,
+} from "@/lib/query-validation";
 const MESSAGING_PROFILES_RATE_LIMIT = 30;
 const MESSAGING_PROFILES_RATE_LIMIT_WINDOW_MS = 60_000;
 const MESSAGING_PROFILES_LIMIT = 20;
-const MAX_QUERY_LENGTH = 80;
 
 export async function GET(request: Request) {
   try {
@@ -29,16 +32,14 @@ export async function GET(request: Request) {
       );
     }
 
-    const q =
-      new URL(request.url).searchParams
-        .get("q")
-        ?.trim()
-        .slice(0, MAX_QUERY_LENGTH) ?? "";
+    const query = directorySearchQuerySchema.parse(
+      queryParamsObject(new URL(request.url).searchParams),
+    );
     const profiles = await getMessagingProfiles(
       current,
       current.email,
       MESSAGING_PROFILES_LIMIT,
-      q || undefined
+      query.q || undefined
     );
 
     return NextResponse.json({

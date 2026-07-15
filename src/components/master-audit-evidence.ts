@@ -77,6 +77,13 @@ import { PRODUCT_CRAWL_DESIGN_LAB_PARITY_MASTER_EVIDENCE } from "./product-crawl
 import { PRODUCT_CRAWL_STATE_COVERAGE_MASTER_EVIDENCE } from "./product-crawl-state-coverage-evidence";
 import { PRODUCT_CRAWL_VISIBLE_LABEL_MASTER_EVIDENCE } from "./product-crawl-visible-label-evidence";
 import { PRODUCT_NON_NAVIGATION_LINK_MASTER_EVIDENCE } from "./product-non-navigation-link-inclusion-evidence";
+import { PRODUCT_DESTRUCTIVE_CONFIRMATION_MASTER_EVIDENCE } from "./product-destructive-confirmation-evidence";
+import { PRODUCT_MESSAGE_EDIT_EXCLUSION_MASTER_EVIDENCE } from "./product-message-edit-exclusion-evidence";
+import { PRODUCT_QUERY_VALIDATION_MASTER_EVIDENCE } from "./product-query-validation-evidence";
+import { PRODUCT_CRAWL_ACCESSIBLE_LABEL_MASTER_EVIDENCE } from "./product-crawl-accessible-label-evidence";
+import { PRODUCT_BREAKPOINT_LINK_CRAWL_MASTER_EVIDENCE } from "./product-breakpoint-link-crawl-evidence";
+import { PRODUCT_HISTORY_NAVIGATION_MASTER_EVIDENCE } from "./product-history-navigation-evidence";
+import { PRODUCT_ACCOUNT_MUTATION_FEEDBACK_MASTER_EVIDENCE } from "./product-account-mutation-feedback-evidence";
 import { PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE } from "./product-form-contract-core-evidence";
 import { PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE } from "./product-form-operational-contract-evidence";
 import { PRODUCT_GLOBAL_FORM_DESTINATION_MASTER_EVIDENCE } from "./product-global-form-destination-evidence";
@@ -155,6 +162,10 @@ import { MIGRATION_TABLE_REWRITE_REVIEW_MASTER_EVIDENCE } from "../../security/m
 import { MIGRATION_BACKWARD_COMPATIBILITY_REVIEW_MASTER_EVIDENCE } from "../../security/migration-backward-compatibility-review-evidence";
 import { MIGRATION_CONSTRAINT_VALIDATION_REVIEW_MASTER_EVIDENCE } from "../../security/migration-constraint-validation-review-evidence";
 import { MIGRATION_INDEX_CREATION_REVIEW_MASTER_EVIDENCE } from "../../security/migration-index-creation-review-evidence";
+import { MIGRATION_LOCK_DURATION_REVIEW_MASTER_EVIDENCE } from "../../security/migration-lock-duration-review-evidence";
+import { MIGRATION_FORWARD_COMPATIBILITY_REVIEW_MASTER_EVIDENCE } from "../../security/migration-forward-compatibility-review-evidence";
+import { MIGRATION_BACKUP_REQUIREMENT_REVIEW_MASTER_EVIDENCE } from "../../security/migration-backup-requirement-review-evidence";
+import { MIGRATION_RETENTION_IMPACT_REVIEW_MASTER_EVIDENCE } from "../../security/migration-retention-impact-review-evidence";
 import { SQL_INJECTION_CONTROL_MASTER_EVIDENCE } from "../../security/sql-injection-control-evidence";
 import { INJECTION_SURFACE_CONTROL_MASTER_EVIDENCE } from "../../security/injection-surface-control-evidence";
 import { COMMAND_INJECTION_CONTROL_MASTER_EVIDENCE } from "../../security/command-injection-control-evidence";
@@ -342,6 +353,13 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_CRAWL_STATE_COVERAGE_MASTER_EVIDENCE,
   ...PRODUCT_CRAWL_VISIBLE_LABEL_MASTER_EVIDENCE,
   ...PRODUCT_NON_NAVIGATION_LINK_MASTER_EVIDENCE,
+  ...PRODUCT_DESTRUCTIVE_CONFIRMATION_MASTER_EVIDENCE,
+  ...PRODUCT_MESSAGE_EDIT_EXCLUSION_MASTER_EVIDENCE,
+  ...PRODUCT_QUERY_VALIDATION_MASTER_EVIDENCE,
+  ...PRODUCT_CRAWL_ACCESSIBLE_LABEL_MASTER_EVIDENCE,
+  ...PRODUCT_BREAKPOINT_LINK_CRAWL_MASTER_EVIDENCE,
+  ...PRODUCT_HISTORY_NAVIGATION_MASTER_EVIDENCE,
+  ...PRODUCT_ACCOUNT_MUTATION_FEEDBACK_MASTER_EVIDENCE,
   ...PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE,
   ...PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE,
   ...PRODUCT_GLOBAL_FORM_DESTINATION_MASTER_EVIDENCE,
@@ -1296,6 +1314,10 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...MIGRATION_BACKWARD_COMPATIBILITY_REVIEW_MASTER_EVIDENCE,
   ...MIGRATION_CONSTRAINT_VALIDATION_REVIEW_MASTER_EVIDENCE,
   ...MIGRATION_INDEX_CREATION_REVIEW_MASTER_EVIDENCE,
+  ...MIGRATION_LOCK_DURATION_REVIEW_MASTER_EVIDENCE,
+  ...MIGRATION_FORWARD_COMPATIBILITY_REVIEW_MASTER_EVIDENCE,
+  ...MIGRATION_BACKUP_REQUIREMENT_REVIEW_MASTER_EVIDENCE,
+  ...MIGRATION_RETENTION_IMPACT_REVIEW_MASTER_EVIDENCE,
   "security.migration-review.defaults": {
     status: "verified",
     evidence: [
@@ -1313,6 +1335,14 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
       "prisma/migrations",
       "security/migration-rollback-strategy-review-evidence.ts",
       "security/migration-rollback-strategy-review-evidence.test.ts",
+    ],
+  },
+  "security.explicit-data-selection.no-select-star": {
+    status: "verified",
+    evidence: [
+      "src/lib/feed-service.ts",
+      "security/select-star-sensitive-record-evidence.ts",
+      "security/select-star-sensitive-record-evidence.test.ts",
     ],
   },
   ...SQL_INJECTION_CONTROL_MASTER_EVIDENCE,

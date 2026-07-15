@@ -17,10 +17,10 @@ This managed block is checked against the live screen registry by `npm run docs:
 <!-- design-lab-route-counter:start -->
 | Registry state | Count |
 | --- | ---: |
-| Complete | 20 |
-| Captured only | 77 |
+| Complete | 97 |
+| Captured only | 0 |
 | Explicitly blocked | 0 |
-| Open | 77 |
+| Open | 0 |
 | Total | 97 |
 <!-- design-lab-route-counter:end -->
 

@@ -15,25 +15,25 @@ The blocks below are checked directly against the machine registries by `npm run
 <!-- design-lab-live-counters:start -->
 | Gate slice | Complete | Total | Open |
 | --- | ---: | ---: | ---: |
-| Aggregate production gate | 3312 | 4270 | 958 |
-| Screen contracts | 719 | 873 | 154 |
-| Master requirements | 2564 | 3315 | 751 |
-| Product master requirements | 857 | 1027 | 170 |
-| Security master requirements | 1707 | 2288 | 581 |
-| Pre-production requirements | 3 | 61 | 58 |
-| Database operation contracts | 26 | 26 | 0 |
+| Aggregate production gate | 3531 | 4271 | 740 |
+| Screen contracts | 873 | 873 | 0 |
+| Master requirements | 2626 | 3315 | 689 |
+| Product master requirements | 866 | 1027 | 161 |
+| Security master requirements | 1760 | 2288 | 528 |
+| Pre-production requirements | 5 | 61 | 56 |
+| Database operation contracts | 27 | 27 | 0 |
 <!-- design-lab-live-counters:end -->
 
 <!-- design-lab-screen-counters:start -->
 | Coverage area | Total | Complete | Captured only | Blocked | Open |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Route | 97 | 20 | 77 | 0 | 77 |
+| Route | 97 | 97 | 0 | 0 | 0 |
 | User Stories | 97 | 97 | 0 | 0 | 0 |
 | Actions | 97 | 97 | 0 | 0 | 0 |
 | Forms | 97 | 97 | 0 | 0 | 0 |
 | Permissions | 97 | 97 | 0 | 0 | 0 |
 | States | 97 | 97 | 0 | 0 | 0 |
-| Design Lab | 97 | 20 | 77 | 0 | 77 |
+| Design Lab | 97 | 97 | 0 | 0 | 0 |
 | Onboarding | 97 | 97 | 0 | 0 | 0 |
 | Tests | 97 | 97 | 0 | 0 | 0 |
 <!-- design-lab-screen-counters:end -->

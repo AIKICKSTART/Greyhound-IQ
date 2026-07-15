@@ -72,6 +72,7 @@ import { PRODUCT_SCREEN_CONTRACT_COMPLETENESS_MASTER_EVIDENCE } from "./product-
 import { PRODUCT_SCREEN_LOCATION_MASTER_EVIDENCE } from "./product-screen-location-evidence";
 import { PRODUCT_INFORMATION_UNDERSTANDING_MASTER_EVIDENCE } from "./product-information-understanding-evidence";
 import { PRODUCT_SOURCE_CRAWL_PROVENANCE_MASTER_EVIDENCE } from "./product-source-crawl-provenance-evidence";
+import { PRODUCT_NON_NAVIGATION_LINK_MASTER_EVIDENCE } from "./product-non-navigation-link-inclusion-evidence";
 import { PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE } from "./product-form-contract-core-evidence";
 import { PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE } from "./product-form-operational-contract-evidence";
 import { PRODUCT_GLOBAL_FORM_DESTINATION_MASTER_EVIDENCE } from "./product-global-form-destination-evidence";
@@ -124,6 +125,7 @@ import { ACTION_TRACE_RECORD_MASTER_EVIDENCE } from "../../security/action-trace
 import { SECURITY_STANDARDS_MASTER_EVIDENCE } from "../../security/standards-baseline-evidence";
 import { THREAT_MODEL_COVERAGE_MASTER_EVIDENCE } from "../../security/threat-model-coverage-evidence";
 import { SECURITY_CI_MASTER_EVIDENCE } from "../../security/ci-gate-evidence";
+import { SECURITY_DOCUMENT_ENDPOINT_GATE_MASTER_EVIDENCE } from "../../security/security-document-endpoint-gate-evidence";
 import { COLLECTION_QUERY_BOUND_MASTER_EVIDENCE } from "../../security/collection-query-bound-evidence";
 import { CI_ACCESS_ISOLATION_MASTER_EVIDENCE } from "../../security/ci-access-isolation-evidence";
 import { INFRASTRUCTURE_REVIEW_MASTER_EVIDENCE } from "../../security/infrastructure-review-evidence";
@@ -138,6 +140,7 @@ import { DEPENDENCY_LICENSE_REVIEW_MASTER_EVIDENCE } from "../../security/depend
 import { MALICIOUS_PACKAGE_DETECTION_MASTER_EVIDENCE } from "../../security/dependency-malicious-package-detection-evidence";
 import { NESTED_INPUT_LIMIT_MASTER_EVIDENCE } from "../../security/nested-input-limit-aggregate-evidence";
 import { UNKNOWN_INPUT_FIELD_MASTER_EVIDENCE } from "../../security/unknown-input-field-aggregate-evidence";
+import { NULL_INPUT_BEHAVIOR_MASTER_EVIDENCE } from "../../security/null-input-behavior-evidence";
 import { AUDIT_EVENT_COVERAGE_MASTER_EVIDENCE } from "../../security/audit-event-coverage-evidence";
 import { ARCHITECTURE_ADAPTATION_MASTER_EVIDENCE } from "../../security/architecture-adaptation-evidence";
 import { DATABASE_INVENTORY_MASTER_EVIDENCE } from "../../security/database-inventory-evidence";
@@ -325,6 +328,7 @@ export const PRODUCT_MASTER_EVIDENCE: Readonly<
   ...PRODUCT_SCREEN_LOCATION_MASTER_EVIDENCE,
   ...PRODUCT_INFORMATION_UNDERSTANDING_MASTER_EVIDENCE,
   ...PRODUCT_SOURCE_CRAWL_PROVENANCE_MASTER_EVIDENCE,
+  ...PRODUCT_NON_NAVIGATION_LINK_MASTER_EVIDENCE,
   ...PRODUCT_FORM_CONTRACT_CORE_MASTER_EVIDENCE,
   ...PRODUCT_FORM_OPERATIONAL_CONTRACT_MASTER_EVIDENCE,
   ...PRODUCT_GLOBAL_FORM_DESTINATION_MASTER_EVIDENCE,
@@ -1256,6 +1260,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...SECURITY_STANDARDS_MASTER_EVIDENCE,
   ...COLLECTION_QUERY_BOUND_MASTER_EVIDENCE,
   ...SECURITY_CI_MASTER_EVIDENCE,
+  ...SECURITY_DOCUMENT_ENDPOINT_GATE_MASTER_EVIDENCE,
   ...RISK_ACCEPTANCE_POLICY_MASTER_EVIDENCE,
   ...SECURITY_LANGUAGE_POLICY_MASTER_EVIDENCE,
   ...DELETION_LIFECYCLE_MASTER_EVIDENCE,
@@ -1267,6 +1272,7 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
   ...MALICIOUS_PACKAGE_DETECTION_MASTER_EVIDENCE,
   ...NESTED_INPUT_LIMIT_MASTER_EVIDENCE,
   ...UNKNOWN_INPUT_FIELD_MASTER_EVIDENCE,
+  ...NULL_INPUT_BEHAVIOR_MASTER_EVIDENCE,
   ...AUDIT_EVENT_COVERAGE_MASTER_EVIDENCE,
   ...ARCHITECTURE_ADAPTATION_MASTER_EVIDENCE,
   ...DATABASE_INVENTORY_MASTER_EVIDENCE,

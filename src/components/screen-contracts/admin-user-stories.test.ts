@@ -6,7 +6,10 @@ import {
   ADMIN_AUTHORIZATION_INVENTORY,
   type AdminRequiredRole,
 } from "../../app/admin/admin-authorization-inventory";
-import { getDesignLabSourceFingerprint } from "../../../scripts/design-lab-source-fingerprint";
+import {
+  fingerprintRepositoryFiles,
+  parseDesignLabSourceFiles,
+} from "../../../scripts/design-lab-source-fingerprint";
 import {
   DEMO_ROUTE_AUDIT_EVALUATION,
   DEMO_SCREEN_FAMILIES,
@@ -74,7 +77,12 @@ type AuditArtifact = {
 const routeAudit = JSON.parse(
   readFileSync(join(REPO_ROOT, "output/demo-route-audit/latest.json"), "utf8")
 ) as AuditArtifact;
-const currentFingerprint = getDesignLabSourceFingerprint(REPO_ROOT);
+const routeAuditSourceFiles = parseDesignLabSourceFiles(routeAudit);
+assert.ok(routeAuditSourceFiles, "Route audit must declare its source-file manifest.");
+const currentFingerprint = fingerprintRepositoryFiles(
+  REPO_ROOT,
+  routeAuditSourceFiles,
+);
 assert.equal(
   routeAudit.sourceSha256 === currentFingerprint.sha256 &&
     routeAudit.sourceFileCount === currentFingerprint.fileCount,

@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import {
+  fingerprintRepositoryFiles,
   getDesignLabSourceChangesBetween,
-  getDesignLabSourceFingerprint,
   getRepositoryHeadSha,
   isRepositoryCommitAncestor,
+  parseDesignLabSourceFiles,
 } from "../../scripts/design-lab-source-fingerprint";
 import {
   DEMO_ROUTE_AUDIT_EXPECTED_ROWS,
@@ -72,6 +73,11 @@ for (const screen of dynamicScreens) {
 const expectedByRoute = new Map(
   DEMO_ROUTE_AUDIT_EXPECTED_ROWS.map((row) => [row.route, row]),
 );
+const canonicalRoutePrefixes = new Map([
+  ["/forum", "/groups"],
+  ["/listings", "/marketplace"],
+  ["/messages", "/pulse"],
+] as const);
 assert.equal(expectedByRoute.size, screens.length);
 for (const screen of screens) {
   const row = expectedByRoute.get(screen.route);
@@ -107,7 +113,9 @@ type Audit = {
 const audit = JSON.parse(
   readFileSync("output/demo-route-audit/latest.json", "utf8"),
 ) as Audit;
-const fingerprint = getDesignLabSourceFingerprint(process.cwd());
+const sourceFiles = parseDesignLabSourceFiles(audit);
+assert.ok(sourceFiles, "Route audit must declare its source-file manifest");
+const fingerprint = fingerprintRepositoryFiles(process.cwd(), sourceFiles);
 const headSha = getRepositoryHeadSha(process.cwd());
 assert.equal(audit.schemaVersion, 2);
 assert.equal(
@@ -144,7 +152,11 @@ for (const row of audit.results) {
   const finalUrl = new URL(row.finalUrl);
   const baseUrl = new URL(audit.baseUrl);
   assert.equal(finalUrl.origin, baseUrl.origin, row.route);
-  assert.equal(`${finalUrl.pathname}${finalUrl.search}`, row.samplePath, row.route);
+  assert.equal(
+    `${finalUrl.pathname}${finalUrl.search}`,
+    canonicalAuditPath(row.samplePath),
+    row.route,
+  );
 }
 
 const evidenceSource = readFileSync(
@@ -157,3 +169,12 @@ assert.doesNotMatch(evidenceSource, /\breadFileSync\b|\bprocess\.cwd\b/);
 console.log(
   `Route refresh and fixture evidence passed: ${dynamicScreens.length} dynamic fixtures and ${audit.passed}/${audit.expected} direct deep-route responses are bound to the current source.`,
 );
+
+function canonicalAuditPath(samplePath: string) {
+  for (const [legacyPrefix, canonicalPrefix] of canonicalRoutePrefixes) {
+    if (samplePath === legacyPrefix || samplePath.startsWith(`${legacyPrefix}/`)) {
+      return `${canonicalPrefix}${samplePath.slice(legacyPrefix.length)}`;
+    }
+  }
+  return samplePath;
+}

@@ -18,8 +18,8 @@ import {
   findDesignLabStoryAuditIssues,
 } from "../../scripts/audit-design-lab-user-stories";
 import {
+  fingerprintRepositoryFiles,
   getDesignLabSourceChangesBetween,
-  getDesignLabSourceFingerprint,
   getRepositoryHeadSha,
   isRepositoryCommitAncestor,
   parseDesignLabSourceFiles,
@@ -91,16 +91,11 @@ assert.deepEqual(
   ].toSorted(),
 );
 
-const fingerprint = getDesignLabSourceFingerprint(repositoryRoot);
 const headSha = getRepositoryHeadSha(repositoryRoot);
 const httpBytes = readFileSync(DESIGN_LAB_STORY_AUDIT_PATH);
 const httpReport = JSON.parse(httpBytes.toString("utf8")) as unknown;
 const hydratedStoryReport = readJson(DESIGN_LAB_HYDRATED_STORY_AUDIT_PATH);
 const wave2Report = readJson(DESIGN_LAB_HYDRATED_WAVE2_AUDIT_PATH);
-const currentSourceBinding = {
-  sourceSha256: fingerprint.sha256,
-  sourceFileCount: fingerprint.fileCount,
-};
 const companionHttpAuditSha256 = sha256(httpBytes);
 const httpBinding = auditBinding(httpReport, "HTTP audit");
 const hydratedStoryBinding = auditBinding(
@@ -206,6 +201,7 @@ function auditBinding(report: unknown, label: string) {
   );
   const sourceFiles = parseDesignLabSourceFiles(report);
   assert.ok(sourceFiles, `${label} must carry a canonical source-files manifest`);
+  const fingerprint = fingerprintRepositoryFiles(repositoryRoot, sourceFiles);
   assert.deepEqual(
     getDesignLabSourceChangesBetween(
       repositoryRoot,
@@ -218,6 +214,7 @@ function auditBinding(report: unknown, label: string) {
   );
   return {
     headSha: testedCommitSha,
-    ...currentSourceBinding,
+    sourceSha256: fingerprint.sha256,
+    sourceFileCount: fingerprint.fileCount,
   };
 }

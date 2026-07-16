@@ -28,6 +28,7 @@ external
 !.env.example
 
 *.log
+Thumbs.db
 npm-debug.log*
 tsconfig.tsbuildinfo
 docs/**/*.html

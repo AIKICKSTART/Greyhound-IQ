@@ -604,7 +604,8 @@ $deployArgs = @(
   "--network=default",
   "--subnet=default",
   "--vpc-egress=private-ranges-only",
-  "--set-env-vars=$plainEnv"
+  "--update-env-vars=$plainEnv",
+  "--remove-env-vars=WORKOS_COOKIE_DOMAIN"
 )
 if ($secretMappings) {
   $deployArgs += "--set-secrets=$secretMappings"
@@ -648,7 +649,7 @@ if (-not $SkipMediaScanner) {
     "run",
     "deploy",
     $MediaScannerServiceName,
-  "--image=$immutableImage",
+    "--image=$immutableImage",
     "--region=$Region",
     "--platform=managed",
     "--service-account=$scannerServiceAccount",
@@ -664,7 +665,8 @@ if (-not $SkipMediaScanner) {
     "--network=default",
     "--subnet=default",
     "--vpc-egress=private-ranges-only",
-    "--set-env-vars=$scannerEnv"
+    "--update-env-vars=$scannerEnv",
+    "--remove-env-vars=WORKOS_COOKIE_DOMAIN"
   )
   if ($secretMappings) {
     $scannerDeployArgs += "--set-secrets=$secretMappings"

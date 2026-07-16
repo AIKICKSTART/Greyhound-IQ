@@ -20,6 +20,7 @@ param(
   [int]$WebConcurrency = 20,
   [ValidateSet("metadata", "clamav")]
   [string]$MediaScannerMode = "clamav",
+  [switch]$SkipSchedulerJobs,
   [ValidateSet("true", "false")]
   [string]$ActorConversationMultiplexEnabled = "false",
   [ValidateSet("true", "false", IgnoreCase = $false)]
@@ -508,9 +509,15 @@ if (-not $NextPublicLivekitUrl -and $enabledOptionalSecrets -contains "LIVEKIT_U
   throw "NEXT_PUBLIC_LIVEKIT_URL is required when LiveKit secrets are enabled (CSP connect-src + browser connect origin). Set it in .env or pass -NextPublicLivekitUrl."
 }
 
-$timestamp = Get-Date -Format "yyyyMMddHHmmss"
-$image = "$Region-docker.pkg.dev/$ProjectId/$Repository/greyhoundiq-web:$Environment-$timestamp"
-$candidateTag = "candidate-$timestamp"
+$sourceSha = (& git rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $sourceSha -notmatch "^[0-9a-f]{40}$") {
+  throw "Could not resolve the exact source commit for deployment."
+}
+if (& git status --porcelain) {
+  throw "The staging deployment worktree must be clean."
+}
+$image = "$Region-docker.pkg.dev/$ProjectId/$Repository/greyhoundiq-web:$sourceSha"
+$candidateTag = "candidate-$($sourceSha.Substring(0, 12))"
 $substitutions = @(
   "_IMAGE=$image",
   "_NEXT_PUBLIC_SUPABASE_URL=$NextPublicSupabaseUrl",
@@ -523,6 +530,14 @@ Invoke-Gcloud builds submit . `
   --config cloudbuild.yaml `
   "--substitutions=$substitutions" `
   --project $ProjectId
+
+$imageDigest = Gcloud-Value artifacts docker images describe $image `
+  "--format=value(image_summary.digest)" `
+  --project $ProjectId
+if ($imageDigest -notmatch "^sha256:[0-9a-f]{64}$") {
+  throw "Could not resolve an immutable container image digest."
+}
+$immutableImage = "$($image.Substring(0, $image.LastIndexOf(':')))@$imageDigest"
 
 $runtimeServiceAccount = "giq-web-$Environment@$ProjectId.iam.gserviceaccount.com"
 $scannerServiceAccount = "giq-media-scanner-$Environment@$ProjectId.iam.gserviceaccount.com"
@@ -570,7 +585,7 @@ $deployArgs = @(
   "run",
   "deploy",
   $ServiceName,
-  "--image=$image",
+  "--image=$immutableImage",
   "--region=$Region",
   "--platform=managed",
   "--service-account=$runtimeServiceAccount",
@@ -633,7 +648,7 @@ if (-not $SkipMediaScanner) {
     "run",
     "deploy",
     $MediaScannerServiceName,
-    "--image=$image",
+  "--image=$immutableImage",
     "--region=$Region",
     "--platform=managed",
     "--service-account=$scannerServiceAccount",
@@ -694,12 +709,14 @@ if ($scannerRevision) {
     --project $ProjectId
 }
 
-Ensure-SchedulerJobs `
-  -MediaMaintenanceBaseUrl $mediaMaintenanceBaseUrl `
-  -MediaMaintenanceOidcServiceAccount $(if ($mediaMaintenanceBaseUrl) { $runtimeServiceAccount } else { "" })
+if (-not $SkipSchedulerJobs) {
+  Ensure-SchedulerJobs `
+    -MediaMaintenanceBaseUrl $mediaMaintenanceBaseUrl `
+    -MediaMaintenanceOidcServiceAccount $(if ($mediaMaintenanceBaseUrl) { $runtimeServiceAccount } else { "" })
+}
 
 Write-Host "Cloud Run deploy completed for $ServiceName."
-Write-Host "Image: $image"
+Write-Host "Image: $immutableImage"
 if ($mediaMaintenanceBaseUrl) {
   Write-Host "Media scanner service: $MediaScannerServiceName"
 }

@@ -59,6 +59,7 @@ import {
 import {
   resolveInteractiveHelpPopupLayout,
   resolveInteractiveHelpTargetSide,
+  type InteractiveHelpTargetBounds,
   type InteractiveHelpTargetSide,
   type InteractiveHelpViewport,
 } from "@/components/interactive-help-layout";
@@ -80,14 +81,6 @@ import {
   type AdminOnboardingIcon,
   type OnboardingTargetId,
 } from "@/components/onboarding-tour-registry";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import styles from "./interactive-help.module.css";
 
 type HelpStep = {
@@ -215,10 +208,10 @@ export function InteractiveHelp({
   tier?: string | null;
 }) {
   const pathname = usePathname();
+  const coachmarkDescriptionId = useId();
+  const coachmarkTitleId = useId();
   const authenticated =
-    role === "visitor"
-      ? false
-      : Boolean(profileScope?.trim() || role?.trim());
+    role === "visitor" ? false : Boolean(profileScope?.trim() || role?.trim());
   const routeTour = resolveContextualOnboardingTour(pathname, {
     authenticated,
     role,
@@ -258,29 +251,35 @@ export function InteractiveHelp({
   const [targetStatus, setTargetStatus] = useState<
     "primary" | "revealing" | "controller" | "fallback" | "missing"
   >("primary");
-  const [targetSide, setTargetSide] =
-    useState<InteractiveHelpTargetSide>(null);
+  const [targetSide, setTargetSide] = useState<InteractiveHelpTargetSide>(null);
+  const [targetBounds, setTargetBounds] =
+    useState<InteractiveHelpTargetBounds | null>(null);
+  const coachmarkRef = useRef<HTMLElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const revealAttemptRef = useRef(new Set<string>());
   const wasOpenRef = useRef(false);
   const viewport = useInteractiveHelpViewport();
-  const popupLayout = resolveInteractiveHelpPopupLayout(viewport, targetSide);
+  const popupLayout = resolveInteractiveHelpPopupLayout(
+    viewport,
+    targetSide,
+    targetBounds,
+  );
   const mobileViewport = popupLayout.mobile;
   const reducedMotion = useReducedMotion();
   const state = useInteractiveHelpState();
-  const legacyAutoOpen = allowAutomaticOpen && state.enabled && !state.completed;
+  const legacyAutoOpen =
+    allowAutomaticOpen && state.enabled && !state.completed;
   const routeAutoOpen = Boolean(
     routeTour &&
-      allowContextualAutomaticOpen &&
-      routeProgress.enabled &&
-      !routeProgress.completed &&
-      !routeProgress.dismissed,
+    allowContextualAutomaticOpen &&
+    state.enabled &&
+    routeProgress.enabled &&
+    !routeProgress.completed &&
+    !routeProgress.dismissed,
   );
   const autoOpen = routeTour ? routeAutoOpen : legacyAutoOpen;
   const open = autoOpen || manualOpen;
-  const requestedStepIndex = routeTour
-    ? routeProgress.step
-    : legacyStepIndex;
+  const requestedStepIndex = routeTour ? routeProgress.step : legacyStepIndex;
   const stepIndex = Math.min(
     activeSteps.length - 1,
     Math.max(0, requestedStepIndex),
@@ -288,7 +287,8 @@ export function InteractiveHelp({
   const step = activeSteps[stepIndex];
   const StepIcon = step.icon;
   const lastStep = stepIndex === activeSteps.length - 1;
-  const analyticsTourId = routeTour?.tourId ?? ONBOARDING_ANALYTICS_LEGACY_TOUR_ID;
+  const analyticsTourId =
+    routeTour?.tourId ?? ONBOARDING_ANALYTICS_LEGACY_TOUR_ID;
   const analyticsStepId =
     step.id ?? ONBOARDING_ANALYTICS_LEGACY_STEP_IDS[stepIndex];
   const analyticsOpenTourRef = useRef<string | null>(null);
@@ -317,7 +317,8 @@ export function InteractiveHelp({
       setManualOpen(true);
     };
     window.addEventListener(INTERACTIVE_HELP_EVENT, handleAction);
-    return () => window.removeEventListener(INTERACTIVE_HELP_EVENT, handleAction);
+    return () =>
+      window.removeEventListener(INTERACTIVE_HELP_EVENT, handleAction);
   }, [analyticsTourId, progressStorageKey]);
 
   useEffect(() => {
@@ -326,6 +327,7 @@ export function InteractiveHelp({
         document.activeElement instanceof HTMLElement
           ? document.activeElement
           : null;
+      window.requestAnimationFrame(() => coachmarkRef.current?.focus());
     }
     if (!open && wasOpenRef.current) {
       const previousFocus = restoreFocusRef.current;
@@ -355,10 +357,7 @@ export function InteractiveHelp({
         ? null
         : findVisibleOnboardingRevealController(step.targetId!);
       const revealAttemptKey = `${analyticsTourId}:${step.id}:${step.targetId}`;
-      if (
-        revealController &&
-        !revealAttemptRef.current.has(revealAttemptKey)
-      ) {
+      if (revealController && !revealAttemptRef.current.has(revealAttemptKey)) {
         revealAttemptRef.current.add(revealAttemptKey);
         setTargetStatus("revealing");
         revealController.element.click();
@@ -367,13 +366,22 @@ export function InteractiveHelp({
       }
       const nextTarget = primary ?? revealController?.element ?? fallback;
       const nextTargetBounds = nextTarget?.getBoundingClientRect();
-      const nextTargetSide =
-        nextTargetBounds && mobileViewport
-          ? resolveInteractiveHelpTargetSide(
-              viewport,
-              nextTargetBounds.top + nextTargetBounds.height / 2,
-            )
-          : null;
+      const nextTargetSide = nextTargetBounds
+        ? resolveInteractiveHelpTargetSide(
+            viewport,
+            nextTargetBounds.top + nextTargetBounds.height / 2,
+          )
+        : null;
+      const nextTargetLayoutBounds = nextTargetBounds
+        ? {
+            bottom: nextTargetBounds.bottom,
+            height: nextTargetBounds.height,
+            left: nextTargetBounds.left,
+            right: nextTargetBounds.right,
+            top: nextTargetBounds.top,
+            width: nextTargetBounds.width,
+          }
+        : null;
       setTargetStatus(
         primary
           ? "primary"
@@ -385,6 +393,11 @@ export function InteractiveHelp({
       );
       setTargetSide((current) =>
         current === nextTargetSide ? current : nextTargetSide,
+      );
+      setTargetBounds((current) =>
+        sameTargetBounds(current, nextTargetLayoutBounds)
+          ? current
+          : nextTargetLayoutBounds,
       );
 
       if (nextTarget !== highlightedTarget) {
@@ -404,10 +417,8 @@ export function InteractiveHelp({
           }
           highlightedTarget.scrollIntoView({
             behavior: onboardingScrollBehavior(reducedMotion),
-            block: resolveInteractiveHelpPopupLayout(
-              viewport,
-              nextTargetSide,
-            ).scrollBlock,
+            block: resolveInteractiveHelpPopupLayout(viewport, nextTargetSide)
+              .scrollBlock,
             inline: "nearest",
           });
         }
@@ -445,17 +456,18 @@ export function InteractiveHelp({
       childList: true,
       subtree: true,
     });
+    window.addEventListener("scroll", scheduleResolution, true);
     scheduleResolution();
 
     return () => {
       observer.disconnect();
+      window.removeEventListener("scroll", scheduleResolution, true);
       if (scheduledFrame !== null) {
         window.cancelAnimationFrame(scheduledFrame);
       }
       releaseHighlightedTarget();
     };
   }, [
-    mobileViewport,
     analyticsTourId,
     open,
     reducedMotion,
@@ -533,6 +545,7 @@ export function InteractiveHelp({
       event: "help-opened",
       tourId: analyticsTourId,
     });
+    if (!state.enabled) updateInteractiveHelp("enable");
     if (progressStorageKey) {
       updateInteractiveHelpProgress(progressStorageKey, "resume");
     } else {
@@ -543,19 +556,15 @@ export function InteractiveHelp({
   }
 
   function disableHelp() {
+    updateInteractiveHelp("disable");
     if (progressStorageKey) {
       updateInteractiveHelpProgress(progressStorageKey, "disable");
-    } else {
-      updateInteractiveHelp("disable");
     }
     setManualOpen(false);
   }
 
   function changeStep(nextStep: number) {
-    const boundedStep = Math.min(
-      activeSteps.length - 1,
-      Math.max(0, nextStep),
-    );
+    const boundedStep = Math.min(activeSteps.length - 1, Math.max(0, nextStep));
     if (progressStorageKey) {
       updateInteractiveHelpProgress(progressStorageKey, {
         type: "set-step",
@@ -584,7 +593,8 @@ export function InteractiveHelp({
     }
   }
 
-  const helpEnabled = progressStorageKey ? routeProgress.enabled : state.enabled;
+  const helpEnabled =
+    state.enabled && (progressStorageKey ? routeProgress.enabled : true);
   const displayFloatingLauncher =
     !open && showFloatingLauncher && (Boolean(routeTour) || role !== "visitor");
 
@@ -594,193 +604,167 @@ export function InteractiveHelp({
         <button
           type="button"
           onClick={openHelp}
-          aria-label={helpEnabled ? "Open interactive help" : "Turn on interactive help"}
-          className="fixed bottom-[calc(var(--giq-mobile-dock-clearance)+12px)] left-3 z-[72] inline-flex min-h-11 items-center gap-2 rounded-full border border-[hsl(var(--primary-light)/0.36)] bg-[hsl(var(--surface-1)/0.94)] px-3 text-[11px] font-bold text-[hsl(var(--foreground))] shadow-[0_14px_34px_hsl(0_0%_0%/0.44)] backdrop-blur-xl transition hover:border-[hsl(var(--primary-light)/0.7)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))] md:bottom-5 md:left-5"
+          aria-label={
+            helpEnabled ? "Open interactive help" : "Turn on interactive help"
+          }
+          className="fixed bottom-[calc(var(--giq-mobile-dock-clearance)+12px)] left-3 z-[72] inline-flex min-h-11 items-center gap-2 rounded-full border border-[hsl(var(--primary-light)/0.36)] bg-[hsl(var(--surface-1)/0.98)] px-3 text-[11px] font-bold text-[hsl(var(--foreground))] shadow-[0_14px_34px_hsl(0_0%_0%/0.44)] transition hover:border-[hsl(var(--primary-light)/0.7)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))] md:bottom-5 md:left-5"
         >
-          <CircleHelp className="size-4 text-[hsl(var(--primary-light))]" aria-hidden="true" />
+          <CircleHelp
+            className="size-4 text-[hsl(var(--primary-light))]"
+            aria-hidden="true"
+          />
           <span>{helpEnabled ? "Help" : "Help off"}</span>
         </button>
       ) : null}
 
-      <Sheet
-        modal={false}
-        open={open}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) dismissHelp();
-        }}
-      >
-        <SheetContent
-          side="bottom"
-          showCloseButton={false}
-          data-help-layout={mobileViewport ? "popup-mobile" : "popup-desktop"}
+      {open ? (
+        <aside
+          ref={coachmarkRef}
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby={coachmarkTitleId}
+          aria-describedby={coachmarkDescriptionId}
+          tabIndex={-1}
+          data-help-layout={
+            mobileViewport ? "coachmark-mobile" : "coachmark-desktop"
+          }
           data-help-device={popupLayout.deviceClass}
           data-help-keyboard={popupLayout.keyboardOpen ? "open" : "closed"}
+          data-help-placement={popupLayout.placement}
           data-help-target-side={targetSide ?? "none"}
           data-onboarding-route={routeTour?.route}
           data-onboarding-step={routeTour ? step.id : undefined}
           data-onboarding-target-status={routeTour ? targetStatus : undefined}
           data-onboarding-tour={routeTour?.tourId}
-          style={
-            {
-              bottom: "auto",
-              borderRadius: "24px",
-              height: "auto",
-              left: "50%",
-              maxHeight: popupLayout.maxHeight,
-              right: "auto",
-              top: popupLayout.top,
-              transform: "translate(-50%, -50%)",
-              width: popupLayout.width,
-            }
-          }
-          className={`${styles.popup} giq-interactive-help-popup z-[80] w-auto overflow-hidden border border-white/[0.12] bg-[radial-gradient(circle_at_85%_4%,hsl(var(--primary)/0.23),transparent_30%),hsl(var(--surface-1)/0.98)] p-0 backdrop-blur-2xl`}
+          style={{
+            left: popupLayout.left,
+            maxHeight: popupLayout.maxHeight,
+            top: popupLayout.top,
+            transform: popupLayout.transform,
+            width: popupLayout.width,
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") return;
+            event.stopPropagation();
+            dismissHelp();
+          }}
+          className={`${styles.popup} giq-interactive-help-popup z-[80] flex flex-col overflow-y-auto rounded-2xl border border-white/[0.14] bg-[hsl(var(--surface-1))] p-4 shadow-[0_18px_46px_hsl(0_0%_0%/0.48)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]`}
         >
-          <SheetHeader className="border-b border-white/[0.08] p-4 sm:p-6">
-            {mobileViewport ? (
-              <span
-                aria-hidden="true"
-                className="mx-auto -mt-1 mb-2 h-1 w-10 rounded-full bg-white/20"
-              />
-            ) : null}
-            <div className="flex items-center justify-between gap-3">
-              <span className="inline-flex min-h-8 items-center rounded-full border border-[hsl(var(--primary-light)/0.28)] bg-[hsl(var(--primary)/0.12)] px-3 text-[9px] font-black uppercase tracking-[0.16em] text-[hsl(var(--primary-light))]">
-                Interactive help
-              </span>
-              <span className="text-[11px] font-semibold tabular-nums text-[hsl(var(--muted-foreground))]">
-                {stepIndex + 1} / {activeSteps.length}
-              </span>
-            </div>
-            <SheetTitle className="mt-4 text-2xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))]">
-              {stepIndex === 0 ? `Welcome, ${firstName}` : step.title}
-            </SheetTitle>
-            <SheetDescription className="mt-2 text-[13px] leading-6 text-[hsl(var(--muted-foreground))]">
-              {mobileViewport
-                ? "A clean, touch-friendly walkthrough. Skip or turn it off any time."
-                : "A focused five-step walkthrough you can skip, restart or turn off."}
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 sm:p-6">
-            <div className="grid grid-cols-5 gap-2" aria-label="Tour progress">
-              {activeSteps.map((item, index) => (
-                <span
-                  key={item.id ?? item.title}
-                  aria-current={index === stepIndex ? "step" : undefined}
-                  className={`h-1.5 rounded-full ${
-                    index <= stepIndex
-                      ? "bg-[hsl(var(--primary-bright))]"
-                      : "bg-white/[0.10]"
-                  }`}
-                />
-              ))}
-            </div>
-
-            <div className="mt-5 flex min-h-[150px] flex-1 flex-col rounded-2xl border border-white/[0.09] bg-white/[0.035] p-4 shadow-inner sm:mt-6 sm:min-h-[240px] sm:p-6">
-              <span className="grid size-10 place-items-center rounded-xl border border-[hsl(var(--secondary)/0.28)] bg-[hsl(var(--secondary)/0.09)] text-[hsl(var(--secondary-light))] sm:size-12 sm:rounded-2xl">
-                <StepIcon className="size-5" aria-hidden="true" />
-              </span>
-              <h2 className="mt-4 text-lg font-semibold tracking-[-0.025em] text-[hsl(var(--foreground))] sm:mt-6 sm:text-xl">
+          <header className="flex items-start gap-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-[hsl(var(--secondary)/0.28)] bg-[hsl(var(--secondary)/0.09)] text-[hsl(var(--secondary-light))]">
+              <StepIcon className="size-4" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--primary-light))]">
+                {stepIndex === 0 ? `Welcome, ${firstName}` : "Interactive help"}
+              </p>
+              <h2
+                id={coachmarkTitleId}
+                className="mt-1 text-base font-semibold leading-5 tracking-[-0.02em] text-[hsl(var(--foreground))]"
+              >
                 {step.title}
               </h2>
-              <p className="mt-2 text-[13px] leading-6 text-[hsl(var(--muted-foreground))] sm:mt-3 sm:text-[14px] sm:leading-7">
-                {step.body}
-              </p>
-              {step.actionHref && step.actionLabel ? (
-                <Link
-                  href={step.actionHref}
-                  onClick={() => {
-                    const actionHref = step.actionHref;
-                    if (!actionHref) return;
-                    if (actionHref === "/pricing") {
-                      queueOnboardingAnalyticsEvent({
-                        schemaVersion: ONBOARDING_ANALYTICS_SCHEMA_VERSION,
-                        event: "upgrade-viewed",
-                        tourId: analyticsTourId,
-                      });
-                    }
-                    if (
-                      actionHref === "/contact" ||
-                      actionHref.startsWith("/account/support")
-                    ) {
-                      queueOnboardingAnalyticsEvent({
-                        schemaVersion: ONBOARDING_ANALYTICS_SCHEMA_VERSION,
-                        event: "support-selected",
-                        tourId: analyticsTourId,
-                      });
-                    }
-                    closeAndComplete();
-                  }}
-                  className="giq-outline-action mt-auto w-fit"
-                >
-                  {step.actionLabel}
-                  <ChevronRight className="size-4" aria-hidden="true" />
-                </Link>
-              ) : null}
             </div>
+            <span className="shrink-0 text-[10px] font-semibold tabular-nums text-[hsl(var(--muted-foreground))]">
+              {stepIndex + 1}/{activeSteps.length}
+            </span>
+          </header>
 
-            <p className="mt-4 text-[11px] leading-5 text-[hsl(var(--muted-foreground))]" aria-live="polite">
-              Step {stepIndex + 1}: {step.title}
-              {routeTour && targetStatus === "fallback"
-                ? " · The primary target is unavailable, so this step is anchored to its safe fallback."
-                : null}
-              {routeTour && targetStatus === "revealing"
-                ? " · Opening the allowlisted, non-mutating tab or dialog that owns this target."
-                : null}
-              {routeTour && targetStatus === "controller"
-                ? " · The target disclosure did not open automatically, so this step is anchored to its safe tab or dialog control."
-                : null}
-              {routeTour && targetStatus === "missing"
-                ? " · The page target is not available yet; this step will attach if it loads, and the guidance remains usable here."
-                : null}
-            </p>
+          <div
+            className="mt-3 grid grid-cols-5 gap-1.5"
+            aria-label="Tour progress"
+          >
+            {activeSteps.map((item, index) => (
+              <span
+                key={item.id ?? item.title}
+                aria-current={index === stepIndex ? "step" : undefined}
+                className={`h-1 rounded-full ${
+                  index <= stepIndex
+                    ? "bg-[hsl(var(--primary-bright))]"
+                    : "bg-white/[0.10]"
+                }`}
+              />
+            ))}
           </div>
 
-          <SheetFooter className="border-t border-white/[0.08] bg-[hsl(var(--surface-1)/0.98)] p-4 sm:p-6">
-            <div className="hidden grid-cols-2 gap-2 sm:flex sm:justify-between">
-              <button
-                type="button"
-                onClick={dismissHelp}
-                className={`${styles.secondaryControl} giq-button giq-button-glass min-h-11 px-4 text-[12px] font-semibold`}
-              >
-                Skip tour
-              </button>
-              <button
-                type="button"
-                onClick={disableHelp}
-                className={`${styles.secondaryControl} giq-button giq-button-carbon min-h-11 px-4 text-[12px] font-semibold`}
-              >
-                <ToggleLeft className="size-4" aria-hidden="true" />
-                Turn off
-              </button>
-            </div>
-            <div
-              className={`grid gap-2 ${lastStep ? "grid-cols-2" : "grid-cols-3"}`}
+          <p
+            id={coachmarkDescriptionId}
+            className="mt-3 text-[13px] leading-5 text-[hsl(var(--muted-foreground))]"
+          >
+            {step.body}
+          </p>
+
+          {step.actionHref && step.actionLabel ? (
+            <Link
+              href={step.actionHref}
+              onClick={() => {
+                const actionHref = step.actionHref;
+                if (!actionHref) return;
+                if (actionHref === "/pricing") {
+                  queueOnboardingAnalyticsEvent({
+                    schemaVersion: ONBOARDING_ANALYTICS_SCHEMA_VERSION,
+                    event: "upgrade-viewed",
+                    tourId: analyticsTourId,
+                  });
+                }
+                if (
+                  actionHref === "/contact" ||
+                  actionHref.startsWith("/account/support")
+                ) {
+                  queueOnboardingAnalyticsEvent({
+                    schemaVersion: ONBOARDING_ANALYTICS_SCHEMA_VERSION,
+                    event: "support-selected",
+                    tourId: analyticsTourId,
+                  });
+                }
+                closeAndComplete();
+              }}
+              className="giq-outline-action mt-3 w-fit"
             >
+              {step.actionLabel}
+              <ChevronRight className="size-4" aria-hidden="true" />
+            </Link>
+          ) : null}
+
+          <p
+            className={`mt-2 text-[11px] leading-4 text-[hsl(var(--muted-foreground))] ${
+              !routeTour || targetStatus === "primary" ? "sr-only" : ""
+            }`}
+            aria-live="polite"
+          >
+            Step {stepIndex + 1}: {step.title}
+            {routeTour && targetStatus === "fallback"
+              ? " · The primary target is unavailable, so this step is anchored to its safe fallback."
+              : null}
+            {routeTour && targetStatus === "revealing"
+              ? " · Opening the allowlisted, non-mutating tab or dialog that owns this target."
+              : null}
+            {routeTour && targetStatus === "controller"
+              ? " · The target disclosure did not open automatically, so this step is anchored to its safe tab or dialog control."
+              : null}
+            {routeTour && targetStatus === "missing"
+              ? " · The page target is not available yet; this step will attach if it loads, and the guidance remains usable here."
+              : null}
+          </p>
+
+          <footer className="mt-3 border-t border-white/[0.08] pt-3">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 disabled={stepIndex === 0}
                 onClick={() => changeStep(stepIndex - 1)}
-                className={`${styles.secondaryControl} giq-button giq-button-glass min-h-11 px-4 text-[12px] font-semibold disabled:cursor-not-allowed disabled:opacity-45`}
+                className={`${styles.secondaryControl} giq-button giq-button-glass min-h-11 px-3 text-[12px] font-semibold disabled:cursor-not-allowed disabled:opacity-45`}
               >
                 <ChevronLeft className="size-4" aria-hidden="true" />
                 Back
               </button>
-              {!lastStep ? (
-                <button
-                  type="button"
-                  onClick={skipCurrentStep}
-                  className={`${styles.secondaryControl} giq-button giq-button-carbon min-h-11 px-2 text-[11px] font-semibold sm:px-4 sm:text-[12px]`}
-                >
-                  Skip step
-                </button>
-              ) : null}
               <button
                 type="button"
                 onClick={() => {
                   if (lastStep) closeAndComplete();
                   else changeStep(stepIndex + 1);
                 }}
-                className={`${styles.primaryControl} giq-button giq-button-primary min-h-11 px-4 text-[12px] font-semibold`}
+                className={`${styles.primaryControl} giq-button giq-button-primary min-h-11 px-3 text-[12px] font-semibold`}
               >
                 {lastStep ? (
                   <>
@@ -795,25 +779,34 @@ export function InteractiveHelp({
                 )}
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:hidden">
+            <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2">
+              {!lastStep ? (
+                <button
+                  type="button"
+                  onClick={skipCurrentStep}
+                  className="min-h-11 px-1 text-[11px] font-semibold text-[hsl(var(--foreground))] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]"
+                >
+                  Skip step
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={dismissHelp}
-                className="min-h-11 rounded-xl px-3 text-[11px] font-semibold text-[hsl(var(--muted-foreground))] underline-offset-4 hover:underline"
+                className="min-h-11 px-1 text-[11px] font-semibold text-[hsl(var(--foreground))] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]"
               >
-                Skip
+                Skip tour
               </button>
               <button
                 type="button"
                 onClick={disableHelp}
-                className="min-h-11 rounded-xl px-3 text-[11px] font-semibold text-[hsl(var(--muted-foreground))] underline-offset-4 hover:underline"
+                className="min-h-11 px-1 text-[11px] font-semibold text-[hsl(var(--foreground))] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]"
               >
-                Turn help off
+                Turn off
               </button>
             </div>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+          </footer>
+        </aside>
+      ) : null}
     </>
   );
 }
@@ -829,17 +822,23 @@ export function InteractiveHelpMenuControls({
   const selectedIntentOption = ONBOARDING_INTENT_OPTIONS.find(
     ({ id }) => id === selectedIntent,
   );
-  const recentlyCompleted = useRecentlyCompletedInteractiveHelpTours(profileScope);
+  const recentlyCompleted =
+    useRecentlyCompletedInteractiveHelpTours(profileScope);
 
   return (
     <div className="grid gap-2" aria-label="Interactive help preferences">
       <button
         type="button"
-        onClick={() => updateInteractiveHelp(state.enabled ? "disable" : "enable")}
+        onClick={() =>
+          updateInteractiveHelp(state.enabled ? "disable" : "enable")
+        }
         className={`${styles.secondaryControl} giq-button giq-button-carbon min-h-10 w-full justify-start px-3 text-[13px] font-semibold`}
       >
         {state.enabled ? (
-          <ToggleRight className="h-3.5 w-3.5 text-emerald-300" aria-hidden="true" />
+          <ToggleRight
+            className="h-3.5 w-3.5 text-emerald-300"
+            aria-hidden="true"
+          />
         ) : (
           <ToggleLeft className="h-3.5 w-3.5" aria-hidden="true" />
         )}
@@ -944,7 +943,9 @@ export function InteractiveHelpMenuControls({
                       href={tour.href}
                       onClick={() => {
                         const descriptor =
-                          parseInteractiveHelpProgressStorageKey(tour.storageKey);
+                          parseInteractiveHelpProgressStorageKey(
+                            tour.storageKey,
+                          );
                         if (descriptor) {
                           queueOnboardingAnalyticsEvent({
                             schemaVersion: ONBOARDING_ANALYTICS_SCHEMA_VERSION,
@@ -952,7 +953,10 @@ export function InteractiveHelpMenuControls({
                             tourId: descriptor.tourId,
                           });
                         }
-                        updateInteractiveHelpProgress(tour.storageKey, "restart");
+                        updateInteractiveHelpProgress(
+                          tour.storageKey,
+                          "restart",
+                        );
                       }}
                       className="mt-1 w-fit text-[11px] font-semibold text-[hsl(var(--primary-light))] underline-offset-4 hover:underline"
                     >
@@ -1000,8 +1004,8 @@ export function InteractiveHelpMenuControls({
         </summary>
         <div className="grid gap-2 border-t border-white/[0.07] px-3 py-3">
           <p className="text-[11px] leading-5 text-[hsl(var(--muted-foreground))]">
-            Compare feature access and usage limits before changing a plan. Opening
-            this explanation never changes billing or entitlement state.
+            Compare feature access and usage limits before changing a plan.
+            Opening this explanation never changes billing or entitlement state.
           </p>
           <Link
             href="/pricing"
@@ -1033,7 +1037,7 @@ function useInteractiveHelpState() {
   const snapshot = useSyncExternalStore(
     subscribeToInteractiveHelp,
     readInteractiveHelpSnapshot,
-    () => ""
+    () => "",
   );
   return parseInteractiveHelpState(snapshot);
 }
@@ -1121,10 +1125,7 @@ function readInteractiveHelpViewportSnapshot() {
   const width = visualViewport?.width ?? window.innerWidth;
   const height = visualViewport?.height ?? window.innerHeight;
   const offsetTop = visualViewport?.offsetTop ?? 0;
-  const keyboardInset = Math.max(
-    0,
-    window.innerHeight - height - offsetTop,
-  );
+  const keyboardInset = Math.max(0, window.innerHeight - height - offsetTop);
   return [width, height, offsetTop, keyboardInset]
     .map((value) => Math.round(value))
     .join(":");
@@ -1150,7 +1151,7 @@ function useInteractiveHelpOwner() {
       return () => interactiveHelpOwnerListeners.delete(onChange);
     },
     () => interactiveHelpOwner,
-    () => null
+    () => null,
   );
 
   useEffect(() => {
@@ -1189,7 +1190,10 @@ function subscribeToInteractiveHelp(onChange: () => void) {
 
 function readInteractiveHelpSnapshot() {
   try {
-    return window.localStorage.getItem(INTERACTIVE_HELP_STORAGE_KEY) ?? memorySnapshot;
+    return (
+      window.localStorage.getItem(INTERACTIVE_HELP_STORAGE_KEY) ??
+      memorySnapshot
+    );
   } catch {
     return memorySnapshot;
   }
@@ -1223,9 +1227,7 @@ function subscribeToInteractiveHelpProgress(
 
 function subscribeToInteractiveHelpProgressInventory(onChange: () => void) {
   const handleStorage = (event: StorageEvent) => {
-    if (
-      event.key?.startsWith(`${INTERACTIVE_HELP_PROGRESS_STORAGE_PREFIX}:`)
-    ) {
+    if (event.key?.startsWith(`${INTERACTIVE_HELP_PROGRESS_STORAGE_PREFIX}:`)) {
       onChange();
     }
   };
@@ -1275,7 +1277,8 @@ function migrateInteractiveHelpProgressStorageKey(
   storageKey: string | null,
   legacyStorageKey: string | null,
 ) {
-  if (!storageKey || !legacyStorageKey || storageKey === legacyStorageKey) return;
+  if (!storageKey || !legacyStorageKey || storageKey === legacyStorageKey)
+    return;
   if (readInteractiveHelpProgressSnapshot(storageKey)) return;
 
   const legacySnapshot = readInteractiveHelpProgressSnapshot(legacyStorageKey);
@@ -1303,7 +1306,9 @@ function readRecentlyCompletedInteractiveHelpSnapshot(
   try {
     for (let index = 0; index < window.localStorage.length; index += 1) {
       const storageKey = window.localStorage.key(index);
-      if (!storageKey?.startsWith(`${INTERACTIVE_HELP_PROGRESS_STORAGE_PREFIX}:`)) {
+      if (
+        !storageKey?.startsWith(`${INTERACTIVE_HELP_PROGRESS_STORAGE_PREFIX}:`)
+      ) {
         continue;
       }
       const value = window.localStorage.getItem(storageKey);
@@ -1323,8 +1328,12 @@ function readRecentlyCompletedInteractiveHelpSnapshot(
     entries,
     profileScope,
   ).flatMap((completed) => {
-    const tour = toursByRoute.get(`${completed.tourId}\u0000${completed.route}`);
-    return tour ? [{ ...completed, href: tour.href, pageLabel: tour.pageLabel }] : [];
+    const tour = toursByRoute.get(
+      `${completed.tourId}\u0000${completed.route}`,
+    );
+    return tour
+      ? [{ ...completed, href: tour.href, pageLabel: tour.pageLabel }]
+      : [];
   });
   return JSON.stringify(visibleTours);
 }
@@ -1379,6 +1388,21 @@ function findVisibleOnboardingTarget(targetId: OnboardingTargetId) {
   );
 }
 
+function sameTargetBounds(
+  current: InteractiveHelpTargetBounds | null,
+  next: InteractiveHelpTargetBounds | null,
+) {
+  if (!current || !next) return current === next;
+  return (
+    Math.abs(current.bottom - next.bottom) < 0.5 &&
+    Math.abs(current.height - next.height) < 0.5 &&
+    Math.abs(current.left - next.left) < 0.5 &&
+    Math.abs(current.right - next.right) < 0.5 &&
+    Math.abs(current.top - next.top) < 0.5 &&
+    Math.abs(current.width - next.width) < 0.5
+  );
+}
+
 function findVisibleOnboardingRevealController(targetId: OnboardingTargetId): {
   element: HTMLButtonElement;
   kind: OnboardingRevealKind;
@@ -1387,7 +1411,9 @@ function findVisibleOnboardingRevealController(targetId: OnboardingTargetId): {
     "button[data-onboarding-controls][data-onboarding-reveal]",
   );
   for (const candidate of candidates) {
-    const kind = resolveOnboardingRevealKind(candidate.dataset.onboardingReveal);
+    const kind = resolveOnboardingRevealKind(
+      candidate.dataset.onboardingReveal,
+    );
     if (
       !kind ||
       candidate.getClientRects().length === 0 ||
@@ -1413,7 +1439,7 @@ function updateInteractiveHelp(action: InteractiveHelpAction) {
   const current = parseInteractiveHelpState(readInteractiveHelpSnapshot());
   const next = reduceInteractiveHelpState(
     current ?? DEFAULT_INTERACTIVE_HELP_STATE,
-    action
+    action,
   );
   memorySnapshot = serializeInteractiveHelpState(next);
   try {
@@ -1424,7 +1450,7 @@ function updateInteractiveHelp(action: InteractiveHelpAction) {
   window.dispatchEvent(
     new CustomEvent<InteractiveHelpAction>(INTERACTIVE_HELP_EVENT, {
       detail: action,
-    })
+    }),
   );
 }
 

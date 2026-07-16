@@ -1,9 +1,7 @@
 .popup {
+  position: fixed;
   overscroll-behavior: contain;
-}
-
-:global([data-slot="sheet-overlay"]):has(+ .popup) {
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .secondaryControl {

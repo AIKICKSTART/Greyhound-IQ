@@ -48,13 +48,17 @@ for (const testCase of deviceCases) {
   const layout = resolveInteractiveHelpPopupLayout(viewport, null);
   observedDeviceClasses.add(layout.deviceClass);
   assert.equal(layout.deviceClass, testCase.expected, `${testCase.width}px`);
-  assert.equal(classifyInteractiveHelpDevice(testCase.width), testCase.expected);
+  assert.equal(
+    classifyInteractiveHelpDevice(testCase.width),
+    testCase.expected,
+  );
   assert.ok(layout.width <= testCase.width - (layout.mobile ? 24 : 40));
-  assert.ok(layout.top - layout.maxHeight / 2 >= 0);
+  assert.ok(layout.top >= 0);
   assert.ok(
-    layout.top + layout.maxHeight / 2 <=
+    layout.top + layout.maxHeight <=
       testCase.height - layout.navigationClearance,
   );
+  assert.equal(layout.placement, "viewport");
 }
 assert.deepEqual(
   [...observedDeviceClasses].toSorted(),
@@ -70,20 +74,51 @@ const phoneViewport: InteractiveHelpViewport = {
 const upperTargetLayout = resolveInteractiveHelpPopupLayout(
   phoneViewport,
   "upper",
+  {
+    bottom: 160,
+    height: 48,
+    left: 24,
+    right: 366,
+    top: 112,
+    width: 342,
+  },
 );
 const lowerTargetLayout = resolveInteractiveHelpPopupLayout(
   phoneViewport,
   "lower",
+  {
+    bottom: 748,
+    height: 48,
+    left: 24,
+    right: 366,
+    top: 700,
+    width: 342,
+  },
 );
 assert.equal(upperTargetLayout.scrollBlock, "start");
 assert.equal(lowerTargetLayout.scrollBlock, "end");
-assert.ok(upperTargetLayout.top - upperTargetLayout.maxHeight / 2 >= 112);
-assert.ok(
-  lowerTargetLayout.top + lowerTargetLayout.maxHeight / 2 <=
-    phoneViewport.height - lowerTargetLayout.navigationClearance - 112,
-);
+assert.equal(upperTargetLayout.placement, "below");
+assert.ok(upperTargetLayout.top >= 170);
+assert.equal(lowerTargetLayout.placement, "above");
+assert.ok(lowerTargetLayout.top <= 690);
+assert.equal(lowerTargetLayout.transform, "translateY(-100%)");
 assert.equal(resolveInteractiveHelpTargetSide(phoneViewport, 120), "upper");
 assert.equal(resolveInteractiveHelpTargetSide(phoneViewport, 720), "lower");
+
+const desktopTargetLayout = resolveInteractiveHelpPopupLayout(
+  { height: 900, keyboardInset: 0, offsetTop: 0, width: 1440 },
+  "upper",
+  {
+    bottom: 260,
+    height: 60,
+    left: 120,
+    right: 360,
+    top: 200,
+    width: 240,
+  },
+);
+assert.equal(desktopTargetLayout.placement, "right");
+assert.ok(desktopTargetLayout.left >= 370);
 
 const keyboardViewport: InteractiveHelpViewport = {
   height: 360,
@@ -97,12 +132,9 @@ const keyboardLayout = resolveInteractiveHelpPopupLayout(
 );
 assert.equal(keyboardLayout.keyboardOpen, true);
 assert.equal(keyboardLayout.navigationClearance, 12);
+assert.ok(keyboardLayout.top >= keyboardViewport.offsetTop);
 assert.ok(
-  keyboardLayout.top - keyboardLayout.maxHeight / 2 >=
-    keyboardViewport.offsetTop,
-);
-assert.ok(
-  keyboardLayout.top + keyboardLayout.maxHeight / 2 <=
+  keyboardLayout.top + keyboardLayout.maxHeight <=
     keyboardViewport.offsetTop + keyboardViewport.height - 12,
 );
 
@@ -110,31 +142,47 @@ for (const sourceContract of [
   /window\.visualViewport/,
   /visualViewport\?\.addEventListener\("resize", onChange\)/,
   /visualViewport\?\.addEventListener\("scroll", onChange\)/,
-  /modal=\{false\}/,
+  /role="dialog"/,
+  /aria-modal="false"/,
   /data-help-device=\{popupLayout\.deviceClass\}/,
   /data-help-keyboard=\{popupLayout\.keyboardOpen \? "open" : "closed"\}/,
+  /data-help-placement=\{popupLayout\.placement\}/,
   /data-help-target-side=\{targetSide \?\? "none"\}/,
   /resolveInteractiveHelpTargetSide/,
+  /sameTargetBounds/,
+  /window\.addEventListener\("scroll", scheduleResolution, true\)/,
+  /window\.removeEventListener\("scroll", scheduleResolution, true\)/,
   /scrollMarginBlockEnd/,
   /var\(--giq-mobile-dock-clearance\)/,
+  /popupLayout\.left/,
   /popupLayout\.maxHeight/,
   /popupLayout\.top/,
+  /popupLayout\.transform/,
   /popupLayout\.width/,
-  /side="bottom"/,
-  /sm:hidden/,
-  /sm:flex/,
   /interactiveHelpOwner/,
   /if \(!ownsInteractiveHelp\) return null/,
 ]) {
   assert.match(source, sourceContract);
 }
-assert.match(
-  moduleStyles,
-  /\[data-slot="sheet-overlay"\][\s\S]*pointer-events: none/,
-);
+assert.doesNotMatch(source, /<Sheet|SheetContent|backdrop-blur/);
+assert.doesNotMatch(moduleStyles, /sheet-overlay/);
+assert.match(moduleStyles, /\.popup[\s\S]*position: fixed/);
+assert.match(moduleStyles, /\.popup[\s\S]*pointer-events: auto/);
 assert.match(moduleStyles, /\.popup[\s\S]*overscroll-behavior: contain/);
+assert.match(
+  source,
+  /const routeAutoOpen = Boolean\([\s\S]*state\.enabled[\s\S]*routeProgress\.enabled/,
+);
+assert.match(
+  source,
+  /function disableHelp\(\) \{\s*updateInteractiveHelp\("disable"\)/,
+);
+assert.match(
+  source,
+  /function openHelp\(\)[\s\S]*if \(!state\.enabled\) updateInteractiveHelp\("enable"\)/,
+);
 assert.doesNotMatch(source, /function useMobileViewport/);
 
 console.log(
-  "Interactive help responsive contract passed: eight device classes, opposite-side target clearance, persistent navigation access and Visual Viewport keyboard bounds.",
+  "Interactive help responsive contract passed: eight device classes, target-adjacent coachmarks, persistent navigation access and Visual Viewport keyboard bounds.",
 );

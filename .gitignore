@@ -53,6 +53,9 @@ output/product-audit/*
 output/database-audit/*
 !output/database-audit/local-postgres-catalog.json
 !output/database-audit/demo-fixture-idempotency.json
+!output/database-audit/account-deletion-finalize.json
+!output/database-audit/live-provider-ingest.json
+!output/database-audit/user-export-read.json
 
 # local agent/tooling artifacts
 .agents/

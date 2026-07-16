@@ -9,8 +9,8 @@ import {
 } from "../../scripts/audit-design-lab-hydrated-stories";
 import { DESIGN_LAB_STORY_AUDIT_PATH } from "../../scripts/audit-design-lab-user-stories";
 import {
+  fingerprintRepositoryFiles,
   getDesignLabSourceChangesBetween,
-  getDesignLabSourceFingerprint,
   getRepositoryHeadSha,
   isRepositoryCommitAncestor,
   parseDesignLabSourceFiles,
@@ -118,7 +118,6 @@ assert.ok(
     .options.some((option) => option.value === "slow"),
 );
 
-const fingerprint = getDesignLabSourceFingerprint(repositoryRoot);
 const storyBytes = readFileSync(DESIGN_LAB_STORY_AUDIT_PATH);
 const hydratedReport = JSON.parse(
   readFileSync(DESIGN_LAB_HYDRATED_STORY_AUDIT_PATH, "utf8"),
@@ -132,6 +131,7 @@ assert.equal(
   "Hydrated story audit tested commit must be an ancestor of the current HEAD",
 );
 assert.ok(sourceFiles, "Hydrated story audit must carry a source-files manifest");
+const fingerprint = fingerprintRepositoryFiles(repositoryRoot, sourceFiles);
 assert.deepEqual(
   getDesignLabSourceChangesBetween(
     repositoryRoot,

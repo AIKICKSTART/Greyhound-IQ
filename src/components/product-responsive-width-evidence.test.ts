@@ -14,10 +14,11 @@ import {
   type ResponsiveAuditReport,
 } from "../../scripts/audit-design-lab-responsive-workspace";
 import {
+  fingerprintRepositoryFiles,
   getDesignLabSourceChangesBetween,
-  getDesignLabSourceFingerprint,
   getRepositoryHeadSha,
   isRepositoryCommitAncestor,
+  parseDesignLabSourceFiles,
 } from "../../scripts/design-lab-source-fingerprint";
 import { PRODUCT_MASTER_REQUIREMENTS } from "./product-master-requirements";
 import {
@@ -62,7 +63,9 @@ for (const width of PRODUCT_RESPONSIVE_REQUIRED_WIDTHS) {
 const report = JSON.parse(
   readFileSync(DESIGN_LAB_RESPONSIVE_WORKSPACE_AUDIT_PATH, "utf8"),
 ) as ResponsiveAuditReport;
-const fingerprint = getDesignLabSourceFingerprint(repositoryRoot);
+const sourceFiles = parseDesignLabSourceFiles(report);
+assert.ok(sourceFiles, "Responsive audit must carry a canonical source-files manifest");
+const fingerprint = fingerprintRepositoryFiles(repositoryRoot, sourceFiles);
 const auditScriptPath = "scripts/audit-design-lab-responsive-workspace.ts";
 const headSha = getRepositoryHeadSha(repositoryRoot);
 assert.equal(
@@ -75,7 +78,7 @@ assert.deepEqual(
     repositoryRoot,
     report.testedCommitSha,
     headSha,
-    report.sourceFiles,
+    sourceFiles,
   ),
   [],
   "Responsive workspace audit fingerprinted source changed after its tested commit",

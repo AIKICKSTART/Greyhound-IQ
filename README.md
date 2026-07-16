@@ -48,6 +48,7 @@ Database commands:
 
 ```bash
 npm run db:migrate       # apply Prisma migrations
+npm run db:indexes:prepare # prebuild large indexes without blocking writes
 npm run db:seed          # seed demo data
 npm run db:reset         # reset local database
 ```
@@ -119,7 +120,7 @@ npm run backfill:thedogs:dog-profile-shards -- stop
 
 Backfill progress is written to `.backfill/thedogs-history-progress.jsonl`, which is ignored by git. Successful dates are skipped on the next run unless `--no-resume` is passed. Use `--continue-on-error` for full archive runs so an isolated malformed legacy page is logged and the job continues. For the full multi-year archive, prefer the shard launcher: it splits the remaining date range across non-overlapping local workers, writes one progress file per shard, and keeps a `.backfill/thedogs-shards-manifest.json` status/stop manifest. When using high shard counts, set `--provider-concurrency 1` so each worker fetches politely. The current Supabase session pool rejected 20 simultaneous workers with `EMAXCONNSESSION`; use 12 workers unless the database pool is increased.
 
-Dog profile enrichment uses the public dog profile pages to store source dog IDs, owner/trainer, sire/dam, DOB, career summary, prize money, win/place rates, best-time/box/distance table snapshots, and rich per-dog form rows including weight, box, track, distance, grade, run time, winner time, best-of-night, first sectional, margin, winner, PIR, and starting price. Progress is written to `.backfill/thedogs-dog-profile-progress.jsonl`; the dog-profile shard launcher partitions dogs by stable source-ID hash so workers do not overlap. Run dog-profile shards when the race archive is paused or with enough database connection headroom.
+Dog profile enrichment uses the public dog profile pages to store source dog IDs, owner/trainer, sire/dam, DOB, career summary, prize money, win/place rates, best-time/box/distance table snapshots, and rich per-dog form rows including weight, box, track, distance, grade, run time, winner time, best-of-night, first sectional, margin, winner, and PIR. Progress is written to `.backfill/thedogs-dog-profile-progress.jsonl`; the dog-profile shard launcher partitions dogs by stable source-ID hash so workers do not overlap. Run dog-profile shards when the race archive is paused or with enough database connection headroom.
 
 ### Local-first historic import
 
@@ -132,10 +133,11 @@ npm run db:local:import:race-archive
 npm run db:local:import:race-normalized
 npm run db:local:import:dog-archive
 npm run db:local:import:dog-normalized
+npm run db:local:analyze
 npm run db:local:status
 ```
 
-The local database listens on `localhost:55432` via `docker-compose.local-db.yml`. Override with `LOCAL_DATABASE_URL` when needed. Local import progress uses separate `.backfill/thedogs-local-*.jsonl` files so remote Supabase import progress is not reused accidentally.
+The Docker database listens on `127.0.0.1:55433` via `docker-compose.local-db.yml`; the dedicated port avoids collisions with installed PostgreSQL services. Override with `LOCAL_DATABASE_URL` when needed. Local import commands refresh planner statistics automatically; `db:local:analyze` is available after manual bulk changes. The managed Supabase migration workflow runs `db:indexes:prepare` before Prisma migrations so large indexes are built concurrently on populated databases. Local import progress uses separate `.backfill/thedogs-local-*.jsonl` files so remote Supabase import progress is not reused accidentally.
 
 Marketplace listing cards and details use optimized demo WebP media while `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA` is enabled. Turn that flag off when real listing uploads should be the only displayed media.
 
@@ -186,4 +188,4 @@ Open a PR and wait for CI, Codex review, and human approval.
 
 ## Responsible use
 
-GreyhoundIQ is a racing intelligence and community platform. It does not place bets, accept wagers, or provide guaranteed outcomes. Users must comply with local laws and responsible gambling guidance.
+GreyhoundIQ is a racing intelligence and community platform. Predictions are estimates, not guaranteed outcomes; verify important decisions against official race data.

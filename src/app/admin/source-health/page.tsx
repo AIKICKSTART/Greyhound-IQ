@@ -5,7 +5,7 @@ import {
   AdminStatusForm,
 } from "@/app/admin/form-controls";
 import type { CurrentUserProfile } from "@/lib/auth-types";
-import { requireModeratorProfile } from "@/lib/auth";
+import { requireAdminProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbRequestContext } from "@/lib/db-context";
 import { getLiveFeedStatus } from "@/lib/live/status";
@@ -32,7 +32,7 @@ type DataSourceHealthRow = {
 };
 
 export default async function AdminSourceHealthPage() {
-  const current = await requireModeratorProfile();
+  const current = await requireAdminProfile();
   const [liveStatus, dataSourceHealthRows] = await Promise.all([
     getLiveFeedStatus(),
     getDataSourceHealthRows(current),
@@ -123,47 +123,36 @@ function StatusDetails({ liveStatus }: { liveStatus: LiveFeedStatus }) {
         </InfoPanel>
       </div>
 
-      <div className="giq-table-shell overflow-x-auto">
-        <table className="w-full min-w-[980px]">
-          <thead>
-            <tr className="giq-table-head">
-              <th className="px-4 py-3 text-left">Feed</th>
-              <th className="px-4 py-3 text-left">Role</th>
-              <th className="px-4 py-3 text-left">Implemented</th>
-              <th className="px-4 py-3 text-left">Configured</th>
-              <th className="px-4 py-3 text-left">Blocking</th>
-              <th className="px-4 py-3 text-left">Missing env</th>
-              <th className="px-4 py-3 text-left">Optional env</th>
-            </tr>
-          </thead>
-          <tbody>
-            {liveStatus.feeds.map((feed) => (
-              <tr key={feed.name} className="border-t border-white/[0.06]">
-                <td className="px-4 py-3 font-mono text-[12px] text-[hsl(var(--foreground))]">
+      <div
+        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+        data-source-feed-grid
+      >
+        {liveStatus.feeds.map((feed) => (
+          <article
+            key={feed.name}
+            className="giq-subpanel min-w-0 p-4"
+            data-live-feed={feed.name}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="break-words font-mono text-[12px] text-[hsl(var(--foreground))]">
                   {feed.name}
-                </td>
-                <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                </h3>
+                <p className="mt-1 text-[12px] text-[hsl(var(--muted-foreground))]">
                   {feed.role}
-                </td>
-                <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                  {formatBoolean(feed.implemented)}
-                </td>
-                <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                  {formatBoolean(feed.configured)}
-                </td>
-                <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
-                  {formatBoolean(feed.blocking)}
-                </td>
-                <td className="px-4 py-3 font-mono text-[12px] text-[hsl(var(--muted-foreground))]">
-                  {formatList(feed.missingEnv)}
-                </td>
-                <td className="px-4 py-3 font-mono text-[12px] text-[hsl(var(--muted-foreground))]">
-                  {formatList(feed.optionalEnv)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </p>
+              </div>
+              <StatusPill value={feed.configured ? "configured" : "unknown"} />
+            </div>
+            <dl className="mt-4 grid gap-3 border-t border-white/[0.06] pt-3 sm:grid-cols-2">
+              <FeedFact label="Implemented" value={formatBoolean(feed.implemented)} />
+              <FeedFact label="Configured" value={formatBoolean(feed.configured)} />
+              <FeedFact label="Blocking" value={formatBoolean(feed.blocking)} />
+              <FeedFact label="Missing env" value={formatList(feed.missingEnv)} mono />
+              <FeedFact label="Optional env" value={formatList(feed.optionalEnv)} mono />
+            </dl>
+          </article>
+        ))}
       </div>
 
       <InfoPanel title="Status payload">
@@ -186,75 +175,50 @@ function DataSourceHealthTable({ rows }: { rows: DataSourceHealthRow[] }) {
         selected or displayed.
       </p>
 
-      <div className="giq-table-shell mt-3 overflow-x-auto">
-        <table className="w-full min-w-[1380px]">
-          <thead>
-            <tr className="giq-table-head">
-              <th className="px-4 py-3 text-left">Source provider</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-left">Last checked</th>
-              <th className="px-4 py-3 text-left">Last success</th>
-              <th className="px-4 py-3 text-left">Last failure</th>
-              <th className="px-4 py-3 text-right">Latency</th>
-              <th className="px-4 py-3 text-left">Created</th>
-              <th className="px-4 py-3 text-left">Updated</th>
-              <th className="px-4 py-3 text-left">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={9}
-                  className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
-                >
-                  No data source health rows found.
-                </td>
-              </tr>
-            ) : (
-              rows.map((row) => (
-                <tr
-                  key={row.sourceProvider}
-                  className="border-t border-white/[0.06]"
-                >
-                  <td className="px-4 py-3 font-mono text-[12px] text-[hsl(var(--foreground))]">
-                    {row.sourceProvider}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusPill value={row.status} />
-                  </td>
-                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
-                    {formatTimestamp(row.lastCheckedAt)}
-                  </td>
-                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
-                    {formatTimestamp(row.lastSuccessAt, "No success")}
-                  </td>
-                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
-                    {formatTimestamp(row.lastFailureAt, "No failure")}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-[13px] text-[hsl(var(--muted-foreground))]">
-                    {formatLatency(row.latencyMs)}
-                  </td>
-                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
-                    {formatTimestamp(row.createdAt)}
-                  </td>
-                  <td className="px-4 py-3 text-[13px] text-[hsl(var(--muted-foreground))]">
-                    {formatTimestamp(row.updatedAt)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <AdminStatusForm
-                      resource="dataSourceHealth"
-                      id={row.id}
-                      currentStatus={row.status}
-                      statuses={["ok", "degraded", "error", "unknown"]}
-                      path="/admin/source-health"
-                    />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="mt-3 grid gap-3 lg:grid-cols-2" data-source-health-grid>
+        {rows.length === 0 ? (
+          <p className="giq-subpanel p-5 text-[13px] text-[hsl(var(--muted-foreground))] lg:col-span-2">
+            No data source health rows found.
+          </p>
+        ) : (
+          rows.map((row) => (
+            <article
+              key={row.sourceProvider}
+              className="giq-subpanel min-w-0 p-4"
+              data-source-health-row={row.sourceProvider}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <h3 className="min-w-0 break-words font-mono text-[12px] text-[hsl(var(--foreground))]">
+                  {row.sourceProvider}
+                </h3>
+                <StatusPill value={row.status} />
+              </div>
+              <dl className="mt-4 grid gap-3 border-t border-white/[0.06] pt-3 sm:grid-cols-2">
+                <FeedFact label="Last checked" value={formatTimestamp(row.lastCheckedAt)} />
+                <FeedFact
+                  label="Last success"
+                  value={formatTimestamp(row.lastSuccessAt, "No success")}
+                />
+                <FeedFact
+                  label="Last failure"
+                  value={formatTimestamp(row.lastFailureAt, "No failure")}
+                />
+                <FeedFact label="Latency" value={formatLatency(row.latencyMs)} mono />
+                <FeedFact label="Created" value={formatTimestamp(row.createdAt)} />
+                <FeedFact label="Updated" value={formatTimestamp(row.updatedAt)} />
+              </dl>
+              <div className="mt-4 border-t border-white/[0.06] pt-4">
+                <AdminStatusForm
+                  resource="dataSourceHealth"
+                  id={row.id}
+                  currentStatus={row.status}
+                  statuses={["ok", "degraded", "error", "unknown"]}
+                  path="/admin/source-health"
+                />
+              </div>
+            </article>
+          ))
+        )}
       </div>
     </div>
   );
@@ -303,6 +267,29 @@ function StatusRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function FeedFact({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
+        {label}
+      </dt>
+      <dd
+        className={`mt-1 break-words text-[12px] text-[hsl(var(--foreground))] ${mono ? "font-mono" : ""}`}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 function formatBoolean(value: boolean) {
   return value ? "Yes" : "No";
 }
@@ -330,6 +317,7 @@ function getDataSourceHealthRows(current: CurrentUserProfile) {
       withDbRequestContext(current, (tx) =>
         tx.dataSourceHealth.findMany({
           orderBy: [{ lastCheckedAt: "desc" }, { sourceProvider: "asc" }],
+          take: 100,
           select: {
             id: true,
             sourceProvider: true,

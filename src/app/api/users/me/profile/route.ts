@@ -5,8 +5,10 @@ import {
 } from "@/lib/account-validation";
 import { assertPaidFeatureAccess, hasTier, requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { withDbRequestContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const PROFILE_UPDATE_RATE_LIMIT = 10;
 const PROFILE_UPDATE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -58,18 +60,14 @@ export async function PATCH(request: Request) {
       PROFILE_UPDATE_RATE_LIMIT_WINDOW_MS
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        PROFILE_UPDATE_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const parsed = profileUpdateSchema.parse(await request.json());
+    const parsed = profileUpdateSchema.parse(await readBoundedJsonRequest(request));
     if (hasProfileMarketingFields(parsed)) assertPaidFeatureAccess(current);
     const data = hasTier(current.tier, "pro")
       ? parsed

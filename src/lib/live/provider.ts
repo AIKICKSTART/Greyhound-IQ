@@ -1,6 +1,7 @@
 // Live data abstraction. Any external feed (Topaz/GRV, TAB, etc.) maps its
 // payload into these normalized DTOs; the sync layer (./sync) is provider-agnostic.
 
+import { logExecutionWarn } from "../logger";
 import { FastTrackPrototypeProvider } from "./fasttrack";
 import { TheDogsProvider } from "./thedogs";
 import { TopazProvider } from "./topaz";
@@ -21,7 +22,6 @@ export interface LiveRunner {
   dog: LiveDog;
   trainerName?: string;
   weight?: number;
-  startingPrice?: number;
   scratched?: boolean;
   // Present only for completed races:
   finishingPosition?: number;
@@ -174,7 +174,7 @@ export function getLiveProvider(): LiveDataProvider | null {
   return null;
 }
 
-class CompositeLiveProvider implements LiveDataProvider {
+export class CompositeLiveProvider implements LiveDataProvider {
   readonly name: string;
 
   constructor(private readonly providers: LiveDataProvider[]) {
@@ -182,19 +182,36 @@ class CompositeLiveProvider implements LiveDataProvider {
   }
 
   async fetchUpcomingMeetings(days: number): Promise<LiveMeeting[]> {
-    return (await Promise.all(
-      this.providers.map(async (provider) =>
-        withSourceProvider(await provider.fetchUpcomingMeetings(days), provider.name)
-      )
-    )).flat();
+    return this.fetch("fetchUpcomingMeetings", days);
   }
 
   async fetchResults(days: number): Promise<LiveMeeting[]> {
-    return (await Promise.all(
-      this.providers.map(async (provider) =>
-        withSourceProvider(await provider.fetchResults(days), provider.name)
+    return this.fetch("fetchResults", days);
+  }
+
+  private async fetch(
+    operation: "fetchUpcomingMeetings" | "fetchResults",
+    days: number
+  ): Promise<LiveMeeting[]> {
+    return (
+      await Promise.all(
+        this.providers.map(async (provider) => {
+          try {
+            return withSourceProvider(
+              await provider[operation](days),
+              provider.name
+            );
+          } catch (err) {
+            await logExecutionWarn(
+              "live.composite.provider_failed",
+              { provider: provider.name, operation },
+              err
+            );
+            return [];
+          }
+        })
       )
-    )).flat();
+    ).flat();
   }
 }
 

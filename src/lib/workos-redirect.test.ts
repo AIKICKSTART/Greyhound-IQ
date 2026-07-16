@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { resolveWorkosBaseUrl, resolveWorkosRedirectUri } from "./workos-redirect";
+import {
+  resolveWorkosBaseUrl,
+  resolveWorkosRedirectUri,
+  resolveWorkosReturnTo,
+} from "./workos-redirect";
 
 const ENV_KEYS = [
   "NODE_ENV",
@@ -83,5 +87,35 @@ withEnv(
     );
   }
 );
+
+assert.equal(resolveWorkosReturnTo(), "/feed");
+assert.equal(resolveWorkosReturnTo({ plan: "unknown" }), "/feed");
+assert.equal(
+  resolveWorkosReturnTo({ plan: "pro" }),
+  "/account?plan=pro"
+);
+assert.equal(
+  resolveWorkosReturnTo({ interval: "yearly", plan: "pro" }),
+  "/account?plan=pro&interval=yearly&checkout=continue"
+);
+assert.equal(
+  resolveWorkosReturnTo({ interval: "weekly", plan: "pro" }),
+  "/account?plan=pro"
+);
+assert.equal(
+  resolveWorkosReturnTo({ returnTo: "/account/profile?tab=media" }),
+  "/account/profile?tab=media"
+);
+for (const returnTo of [
+  "https://attacker.example/account",
+  "//attacker.example/account",
+  "/sign-in?returnTo=/account",
+  "/sign-in/again",
+  "/callback?code=fake",
+  "/callback/again",
+  "/\\attacker.example/account",
+]) {
+  assert.equal(resolveWorkosReturnTo({ returnTo }), "/feed");
+}
 
 console.log("workos redirect tests passed");

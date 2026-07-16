@@ -8,22 +8,43 @@ import {
   tasracingStreamUrl,
 } from "../src/lib/live/race-replay";
 import { absoluteTheDogsUrl } from "../src/lib/live/thedogs-replay";
-import { proxiedStreamPath, verifyStreamToken } from "../src/lib/live/replay-proxy";
+import {
+  proxiedStreamPath,
+  verifyStreamCapability,
+} from "../src/lib/live/replay-proxy";
 
 // Stream proxy: allowed hosts sign+round-trip; foreign hosts and tampered
 // signatures are rejected (prevents open-proxy / SSRF and hides source origin).
-process.env.INTERNAL_API_SECRET ||= "test-secret-for-replay-proxy-check";
+process.env.REPLAY_PROXY_SECRET ||= "test-secret-for-replay-proxy-check";
+const nowMs = Date.UTC(2026, 6, 14, 0, 0, 0);
 const signed = proxiedStreamPath(
-  "https://d2w8yyjcswa0zt.cloudfront.net/abc.m3u8"
+  "https://d2w8yyjcswa0zt.cloudfront.net/abc.m3u8",
+  nowMs
 );
-assert.ok(signed && signed.startsWith("/api/replay/stream?u="));
+assert.ok(signed && signed.startsWith("/api/replay/stream?t="));
 const proxyParams = new URLSearchParams(signed!.split("?")[1]);
+const capability = proxyParams.get("t")!;
 assert.equal(
-  verifyStreamToken(proxyParams.get("u")!, proxyParams.get("s")!),
+  verifyStreamCapability(capability, nowMs),
   "https://d2w8yyjcswa0zt.cloudfront.net/abc.m3u8"
 );
-assert.equal(verifyStreamToken(proxyParams.get("u")!, "tampered"), null);
+const tamperIndex = Math.floor(capability.length / 2);
+const tampered = `${capability.slice(0, tamperIndex)}${
+  capability[tamperIndex] === "A" ? "B" : "A"
+}${capability.slice(tamperIndex + 1)}`;
+assert.equal(
+  verifyStreamCapability(tampered, nowMs),
+  null
+);
+assert.equal(
+  verifyStreamCapability(capability, nowMs + 11 * 60 * 1000),
+  null
+);
 assert.equal(proxiedStreamPath("https://attacker.example/x.m3u8"), null);
+assert.equal(
+  proxiedStreamPath("http://d2w8yyjcswa0zt.cloudfront.net/insecure.m3u8"),
+  null
+);
 assert.equal(proxiedStreamPath("http://169.254.169.254/x"), null);
 
 // SSRF guard: absolute values must not escape the thedogs host before a fetch.

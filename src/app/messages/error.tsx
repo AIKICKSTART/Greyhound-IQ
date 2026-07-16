@@ -11,7 +11,7 @@ export default function MessagesError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Pulse page error:", error);
+    console.error("pulse.segment_error", { digest: error.digest ?? "unknown" });
   }, [error]);
 
   return (

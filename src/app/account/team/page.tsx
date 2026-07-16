@@ -2,190 +2,230 @@ import { ArrowLeft, Building2, ShieldCheck, Users } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { PageHero } from "@/components/page-hero";
+import { TeamInvitationReview } from "@/app/account/team/team-invitation-review";
+import { TeamManagement } from "@/app/account/team/team-management";
 import { requireCurrentUserProfile } from "@/lib/auth";
-import type { CurrentUserProfile } from "@/lib/auth-types";
 import { safeQuery } from "@/lib/db";
-import { withDbRequestContext } from "@/lib/db-context";
+import {
+  getOrganizationTeamInvitation,
+  isTeamInvitationToken,
+  listOrganizationTeams,
+} from "@/lib/organization-team-service";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Account team - GreyhoundIQ",
-  description: "Review your GreyhoundIQ organization memberships.",
+  description: "Manage GreyhoundIQ organization memberships and invitations.",
 };
 
-const PANEL_CLASS = "giq-panel p-6";
+const PANEL_CLASS = "giq-panel p-5 sm:p-6";
 const ACTION_CLASS = "giq-outline-action";
-const DATE_FORMATTER = new Intl.DateTimeFormat("en-AU", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-});
 
-type TeamMembership = {
-  organization: {
-    name: string;
-  };
-  role: string;
-  status: string;
-  acceptedAt: Date | null;
-  createdAt: Date;
+type AccountTeamPageProps = {
+  searchParams: Promise<{
+    invitation?: string | string[];
+    team?: string | string[];
+  }>;
 };
 
-export default async function AccountTeamPage() {
-  const current = await requireTeamProfile();
-  const memberships = await getTeamMemberships(current);
+const TEAM_RESULT_MESSAGES: Record<
+  string,
+  { tone: "success" | "error"; message: string }
+> = {
+  "invitation-accepted": {
+    tone: "success",
+    message: "Invitation accepted. Your team access is active.",
+  },
+  "invitation-rejected": {
+    tone: "success",
+    message: "Invitation declined. No team access was added.",
+  },
+  "team-left": {
+    tone: "success",
+    message: "You left the team. Your other account access is unchanged.",
+  },
+  "member-removed": {
+    tone: "success",
+    message: "The member was removed from this team.",
+  },
+  "role-updated": {
+    tone: "success",
+    message: "The member role was updated.",
+  },
+  "owner-transferred": {
+    tone: "success",
+    message: "Ownership was transferred atomically. You are now an administrator.",
+  },
+  "error-rate-limited": {
+    tone: "error",
+    message: "Team changes are paused briefly. Wait and try again.",
+  },
+  "error-last-owner": {
+    tone: "error",
+    message: "That change would remove or alter the required owner. Transfer ownership first.",
+  },
+  "error-invitation-state": {
+    tone: "error",
+    message: "That invitation is unavailable, expired, or has already been used.",
+  },
+  "error-forbidden": {
+    tone: "error",
+    message: "Your current team role does not allow that change.",
+  },
+  "error-invalid": {
+    tone: "error",
+    message: "The team change was not valid. Review the form and try again.",
+  },
+  "error-unavailable": {
+    tone: "error",
+    message: "The team change could not be completed. No access was changed.",
+  },
+};
+
+export default async function AccountTeamPage({
+  searchParams,
+}: AccountTeamPageProps) {
+  const query = await searchParams;
+  const rawInvitation =
+    typeof query.invitation === "string" ? query.invitation : null;
+  const invitationRequested = rawInvitation !== null;
+  const invitationToken =
+    rawInvitation && isTeamInvitationToken(rawInvitation)
+      ? rawInvitation
+      : null;
+  const returnTo = invitationToken
+    ? `/account/team?invitation=${encodeURIComponent(invitationToken)}`
+    : "/account/team";
+  const current = await requireTeamProfile(returnTo);
+  const organizations = await safeQuery(
+    () => listOrganizationTeams(current),
+    null,
+  );
+  const invitation = invitationToken
+    ? await safeQuery(
+        () => getOrganizationTeamInvitation(current, invitationToken),
+        null,
+      )
+    : null;
+  const result = typeof query.team === "string" ? TEAM_RESULT_MESSAGES[query.team] : null;
 
   return (
     <div>
-      <PageHero
-        image="/images/wentworth-gate-hero.webp"
-        title={
-          <>
-            Account
-            <br />
-            <span className="gradient-text">team.</span>
-          </>
-        }
-        subtitle="Read-only organization memberships linked to your WorkOS account."
-      />
+      <TeamMemberHeader />
 
-      <section className="mx-auto max-w-5xl px-6 py-12">
-        <Link href="/account" className={`${ACTION_CLASS} mb-6 w-fit`}>
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to account
-        </Link>
+      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        {result ? <TeamResultNotice {...result} /> : null}
+        {invitationRequested ? (
+          <TeamInvitationReview
+            invitation={invitation}
+            token={invitationToken ?? ""}
+          />
+        ) : null}
 
-        <section className={PANEL_CLASS}>
-          <div className="mb-5 flex items-center gap-3">
-            <Users className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-            <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
-              Organizations
-            </h2>
-          </div>
-
-          {memberships.length > 0 ? (
-            <MembershipTable memberships={memberships} />
-          ) : (
+        {organizations === null ? (
+          <UnavailableState />
+        ) : organizations.length > 0 ? (
+          <TeamManagement organizations={organizations} />
+        ) : (
+          <section className={PANEL_CLASS}>
             <EmptyState />
-          )}
-        </section>
+          </section>
+        )}
       </section>
     </div>
   );
 }
 
-async function requireTeamProfile() {
-  try {
-    return await requireCurrentUserProfile();
-  } catch (err) {
-    if (err instanceof Error && err.message === "auth.unauthorized") {
-      redirect("/sign-in");
-    }
-    throw err;
-  }
-}
-
-async function getTeamMemberships(
-  current: CurrentUserProfile
-): Promise<TeamMembership[]> {
-  return safeQuery(
-    () =>
-      withDbRequestContext(current, (tx) =>
-        tx.membership.findMany({
-          where: { userId: current.dbUserId },
-          orderBy: [{ createdAt: "desc" }],
-          select: {
-            organization: {
-              select: {
-                name: true,
-              },
-            },
-            role: true,
-            status: true,
-            acceptedAt: true,
-            createdAt: true,
-          },
-        })
-      ),
-    []
+function TeamMemberHeader() {
+  return (
+    <header className="relative overflow-hidden border-b border-white/[0.07] bg-[linear-gradient(135deg,hsl(var(--card)/0.92),hsl(var(--background))_72%)]">
+      <div
+        aria-hidden="true"
+        className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[hsl(var(--primary-bright)/0.12)] blur-3xl"
+      />
+      <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-8">
+        <div className="max-w-2xl">
+          <p className="program-label">Member settings</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+            Team
+          </h1>
+          <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
+            Invite members, manage least-privilege roles, and transfer ownership safely.
+          </p>
+        </div>
+        <Link href="/account" className={`${ACTION_CLASS} w-full sm:w-auto`}>
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+          Back to account
+        </Link>
+      </div>
+    </header>
   );
 }
 
-function MembershipTable({
-  memberships,
+async function requireTeamProfile(returnTo: string) {
+  try {
+    return await requireCurrentUserProfile();
+  } catch (error) {
+    if (error instanceof Error && error.message === "auth.unauthorized") {
+      redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
+    }
+    throw error;
+  }
+}
+
+function TeamResultNotice({
+  tone,
+  message,
 }: {
-  memberships: TeamMembership[];
+  tone: "success" | "error";
+  message: string;
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-white/[0.06]">
-      <table className="w-full min-w-[720px] border-collapse text-left text-[13px]">
-        <thead>
-          <tr className="border-b border-white/[0.06] bg-white/[0.03] text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
-            <th className="px-4 py-3">Organization</th>
-            <th className="px-4 py-3">Role</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Accepted</th>
-            <th className="px-4 py-3">Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {memberships.map((membership, index) => (
-            <tr
-              key={`${membership.organization.name}-${membership.createdAt.toISOString()}-${index}`}
-              className="border-b border-white/[0.05] last:border-0"
-            >
-              <td className="px-4 py-4 font-semibold text-[hsl(var(--foreground))]">
-                {membership.organization.name}
-              </td>
-              <td className="px-4 py-4 text-[hsl(var(--muted-foreground))]">
-                {formatLabel(membership.role)}
-              </td>
-              <td className="px-4 py-4">
-                <span className="giq-status-pill giq-status-pill-purple">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  {formatLabel(membership.status)}
-                </span>
-              </td>
-              <td className="px-4 py-4 text-[hsl(var(--muted-foreground))]">
-                {formatDate(membership.acceptedAt)}
-              </td>
-              <td className="px-4 py-4 text-[hsl(var(--muted-foreground))]">
-                {formatDate(membership.createdAt)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div
+      role={tone === "error" ? "alert" : "status"}
+      className={`mb-5 flex items-start gap-2 rounded-xl border px-4 py-3 text-[13px] leading-5 ${
+        tone === "error"
+          ? "border-red-400/25 bg-red-500/10 text-red-100"
+          : "border-emerald-400/25 bg-emerald-500/10 text-emerald-100"
+      }`}
+    >
+      <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+      {message}
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="giq-dashed-panel p-5">
-      <div className="giq-icon-plate mb-3 flex h-8 w-8 items-center justify-center rounded-md">
-        <Building2 className="h-4 w-4" />
+    <div className="giq-dashed-panel px-5 py-10 text-center sm:px-8">
+      <div className="giq-icon-plate mx-auto flex h-11 w-11 items-center justify-center rounded-xl">
+        <Building2 className="h-5 w-5" aria-hidden="true" />
       </div>
-      <h3 className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+      <h2 className="mt-4 text-[16px] font-semibold text-[hsl(var(--foreground))]">
         No organizations linked
-      </h3>
-      <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-        This account has no local organization membership rows yet.
+      </h2>
+      <p className="mx-auto mt-2 max-w-xl text-[13px] leading-6 text-[hsl(var(--muted-foreground))]">
+        Ask an organization owner to create an invitation for your verified account email.
       </p>
     </div>
   );
 }
 
-function formatDate(value: Date | null) {
-  if (!value) return "Not recorded";
-  return DATE_FORMATTER.format(value);
-}
-
-function formatLabel(value: string) {
-  const text = value.trim();
-  if (!text) return "Unknown";
-  const cleaned = text.replace(/[_-]+/g, " ").replace(/\s+/g, " ");
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+function UnavailableState() {
+  return (
+    <section className={PANEL_CLASS}>
+      <div className="giq-dashed-panel px-5 py-10 text-center sm:px-8" role="status">
+        <div className="giq-icon-plate mx-auto flex h-11 w-11 items-center justify-center rounded-xl">
+          <Users className="h-5 w-5" aria-hidden="true" />
+        </div>
+        <h2 className="mt-4 text-[16px] font-semibold text-[hsl(var(--foreground))]">
+          Teams are temporarily unavailable
+        </h2>
+        <p className="mx-auto mt-2 max-w-xl text-[13px] leading-6 text-[hsl(var(--muted-foreground))]">
+          No membership was changed. Refresh this page in a moment to try again.
+        </p>
+      </div>
+    </section>
+  );
 }

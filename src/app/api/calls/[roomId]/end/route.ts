@@ -4,6 +4,7 @@ import { jsonError } from "@/lib/api-errors";
 import { endCallRoomForCurrentUser } from "@/lib/call-service";
 import { callRoomIdSchema } from "@/lib/call-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const CALL_END_RATE_LIMIT = 20;
 const CALL_END_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -21,17 +22,14 @@ export async function POST(
     const rateLimit = await checkRateLimit(
       `call:end:${current.dbUserId}:${parsedRoomId}`,
       CALL_END_RATE_LIMIT,
-      CALL_END_RATE_LIMIT_WINDOW_MS
+      CALL_END_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true },
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        CALL_END_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 

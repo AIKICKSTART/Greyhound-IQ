@@ -1,6 +1,6 @@
 import { getTodaysMeetings } from "@/lib/queries";
 import { MeetingCard } from "@/components/meeting-card";
-import { PageHero } from "@/components/page-hero";
+import { HomeHero } from "@/components/home-hero";
 import { formatLongRaceDayLabel } from "@/lib/race-time";
 import {
   ArrowRight,
@@ -134,40 +134,6 @@ export default function HomePage() {
 
       <WhyGreyhoundIQSection />
     </div>
-  );
-}
-
-function HomeHero() {
-  return (
-    <PageHero
-      image="/images/wentworth-gate-hero.webp"
-      size="tall"
-      title={
-        <>
-          Australian greyhound racing,
-          <br />
-          <span className="giq-text-gold-glass">done</span>{" "}
-          <span className="giq-text-purple-glass">right.</span>
-        </>
-      }
-      subtitle="Real-time race cards, full career form, breeding analytics, AI predictions, and a community for breeders and owners — all in one place. No ads. No clutter. No GBP pricing."
-    >
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Link
-          href="#races"
-          className="giq-liquid-purple-button group text-[14px] font-semibold tracking-[-0.013em]"
-        >
-          View Today&apos;s Races
-          <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-        </Link>
-        <Link
-          href="/pricing"
-          className="giq-button giq-button-carbon px-6 text-[14px] font-semibold"
-        >
-          See Pricing
-        </Link>
-      </div>
-    </PageHero>
   );
 }
 
@@ -356,9 +322,9 @@ function FeatureCard({
         />
       </div>
       <div className="p-5">
-        <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))] mb-1.5 tracking-[-0.015em]">
+        <h2 className="text-[15px] font-semibold text-[hsl(var(--foreground))] mb-1.5 tracking-[-0.015em]">
           {title}
-        </h3>
+        </h2>
         <p className="min-h-[68px] text-[13px] text-[hsl(var(--muted-foreground))] leading-relaxed tracking-[-0.013em]">
           {description}
         </p>

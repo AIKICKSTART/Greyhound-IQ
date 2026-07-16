@@ -1,5 +1,5 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
-import { requireModeratorProfile } from "@/lib/auth";
+import { requireAdminProfile } from "@/lib/auth";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { safeQuery } from "@/lib/db";
 import { withDbRequestContext } from "@/lib/db-context";
@@ -23,7 +23,7 @@ type AdminActionRow = {
 };
 
 export default async function AdminActionsPage() {
-  const current = await requireModeratorProfile();
+  const current = await requireAdminProfile();
   const actions = await getAdminActions(current);
 
   return (

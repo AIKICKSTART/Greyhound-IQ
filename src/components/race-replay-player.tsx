@@ -122,6 +122,7 @@ export function RaceReplayPlayer({
         {!activated && (
           <button
             type="button"
+            data-purpose-id="RACE-DETAIL.ACTION.REPLAY.PLAY"
             className="absolute inset-0 isolate flex items-end justify-center overflow-hidden text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[hsl(var(--secondary-light))]"
             onClick={() => setActivated(true)}
             aria-label={`Play ${raceLabel} replay at ${trackName}`}
@@ -162,7 +163,10 @@ export function RaceReplayPlayer({
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 border-t border-[hsl(var(--secondary)/0.18)] bg-[hsl(var(--secondary)/0.08)] px-4 py-3 text-[12px] text-[hsl(var(--secondary-light))]">
+        <div
+          role="alert"
+          className="flex items-start gap-2 border-t border-[hsl(var(--secondary)/0.18)] bg-[hsl(var(--secondary)/0.08)] px-4 py-3 text-[12px] text-[hsl(var(--secondary-light))]"
+        >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>

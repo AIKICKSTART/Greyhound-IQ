@@ -1,7 +1,7 @@
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import type { CurrentUserProfile } from "@/lib/auth-types";
-import { requireModeratorProfile } from "@/lib/auth";
+import { requireAdminProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbRequestContext } from "@/lib/db-context";
 
@@ -25,7 +25,7 @@ type OrganizationInvitationRow = {
 };
 
 export default async function AdminOrganizationInvitationsPage() {
-  const current = await requireModeratorProfile();
+  const current = await requireAdminProfile();
   const invitations = await getOrganizationInvitations(current);
 
   return (

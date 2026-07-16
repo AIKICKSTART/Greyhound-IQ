@@ -19,6 +19,7 @@ export async function listBespokeRequestsForCurrentUser(current: CurrentUserProf
     tx.customDesignRequest.findMany({
       where: { buyerProfileId: current.profileId },
       orderBy: { createdAt: "desc" },
+      take: 100,
     })
   );
 }

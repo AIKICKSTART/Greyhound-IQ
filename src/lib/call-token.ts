@@ -1,5 +1,5 @@
-import { createHmac } from "node:crypto";
 import type { Prisma } from "@prisma/client";
+import { AccessToken, TrackSource } from "livekit-server-sdk";
 
 const LIVEKIT_TOKEN_TTL_SECONDS = 10 * 60;
 export const CALL_ROOM_JOIN_TTL_MS = 2 * 60 * 60 * 1000;
@@ -9,6 +9,8 @@ export type LiveKitConfig = {
   apiKey: string;
   apiSecret: string;
 };
+
+export type CallType = "voice" | "video";
 
 export function callRoomJoinWhere(
   roomId: string,
@@ -29,43 +31,48 @@ export function callRoomJoinWhere(
   };
 }
 
-export function createLiveKitCallToken(
+export async function createLiveKitCallToken(
   current: { profileId: string; displayName: string },
   roomName: string,
+  callType: CallType,
   config: LiveKitConfig,
-  nowSeconds = Math.floor(Date.now() / 1000)
 ) {
-  const expiresAtSeconds = nowSeconds + LIVEKIT_TOKEN_TTL_SECONDS;
-  const payload = {
-    iss: config.apiKey,
-    sub: current.profileId,
+  const token = new AccessToken(config.apiKey, config.apiSecret, {
+    identity: current.profileId,
     name: current.displayName,
-    nbf: nowSeconds - 5,
-    exp: expiresAtSeconds,
-    video: {
-      room: roomName,
-      roomJoin: true,
-      canPublish: true,
-      canSubscribe: true,
-      canPublishData: false,
-    },
-  };
+    ttl: LIVEKIT_TOKEN_TTL_SECONDS,
+  });
+  token.addGrant({
+    room: roomName,
+    roomJoin: true,
+    canPublish: true,
+    canPublishSources:
+      callType === "voice"
+        ? [TrackSource.MICROPHONE]
+        : [
+            TrackSource.MICROPHONE,
+            TrackSource.CAMERA,
+            TrackSource.SCREEN_SHARE,
+            TrackSource.SCREEN_SHARE_AUDIO,
+          ],
+    canSubscribe: true,
+    canPublishData: false,
+  });
+
+  const signed = await token.toJwt();
 
   return {
-    token: signJwt(payload, config.apiSecret),
-    expiresAtSeconds,
+    token: signed,
+    expiresAtSeconds: jwtExpiry(signed),
   };
 }
 
-function signJwt(payload: Record<string, unknown>, secret: string) {
-  const header = { alg: "HS256", typ: "JWT" };
-  const unsigned = `${base64UrlJson(header)}.${base64UrlJson(payload)}`;
-  const signature = createHmac("sha256", secret)
-    .update(unsigned)
-    .digest("base64url");
-  return `${unsigned}.${signature}`;
-}
-
-function base64UrlJson(value: unknown) {
-  return Buffer.from(JSON.stringify(value)).toString("base64url");
+function jwtExpiry(token: string) {
+  const payload = token.split(".")[1];
+  if (!payload) throw new Error("call.token_invalid");
+  const { exp } = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
+    exp?: unknown;
+  };
+  if (typeof exp !== "number") throw new Error("call.token_invalid");
+  return exp;
 }

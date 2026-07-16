@@ -1,0 +1,3442 @@
+{
+  "schemaVersion": 16,
+  "auditKind": "synthetic-private-fixture-idempotency",
+  "generatedAt": "2026-07-15T14:14:05.110Z",
+  "safety": {
+    "scope": "literal-loopback-disposable-replay-only",
+    "host": "127.0.0.1",
+    "port": 55734,
+    "database": "greyhoundiq",
+    "runtimeRole": "greyhoundiq_runtime",
+    "runtimeSessionRole": "greyhoundiq_runtime",
+    "productionOrProviderSystemsContacted": false,
+    "cleanup": "A separately guarded postgres session removed only exact verifier-owned identifiers, including the auth-acceptance, signed Stripe receipt, user-export audit/artifact and rejected DogOwnership probe graphs, and the exact synthetic conversation-block, media-delete and account-deletion audit scopes after runtime verification completed.",
+    "elevatedAdminUsedForVerification": false,
+    "elevatedAdminUsedForCleanupOnly": true,
+    "externalRealtimeAndNetworkEffects": "Realtime broadcast was disabled; Stripe signature generation and verification used a synthetic local secret without provider delivery or network access; Storage cleanup was directed only to a loopback-unreachable endpoint with a rejected placeholder service role, so the real best-effort error path ran without any provider or external network access."
+  },
+  "runtimeIdentity": {
+    "role": "greyhoundiq_runtime",
+    "sessionRole": "greyhoundiq_runtime",
+    "database": "greyhoundiq",
+    "schema": "public",
+    "canLogin": true,
+    "superuser": false,
+    "bypassRls": false
+  },
+  "sourceBinding": {
+    "files": {
+      "package.json": "5fe570044f267a5f511167b614fb84d95c504a3ef6e4ee2cc6d92578b2c4b5ae",
+      "package-lock.json": "6754e3392765cce4f646108bf5ae330c8341aa455cdba390a28e723cd705d259",
+      "prisma/schema.prisma": "b0e50aa4850eebd5e3095bba619c87370b78f249fbeabf5b8691e169f3c02b22",
+      "prisma/migrations/20260630093000_baseline/migration.sql": "1c3bf7960da1a93de65bac113d53524392fd10c48e0bb519f07b21ca38dfb759",
+      "prisma/migrations/20260706223000_add_rls_entitlement_policies/migration.sql": "953db33c0662f936b67a88b8859fd49b5d76b28e90f2a5e8851669fb5ff6334e",
+      "prisma/migrations/20260708192000_restrict_audit_ratelimit_rls/migration.sql": "4263b9bd24355d0f49e5cecf1199ca8056f535be6942e37459086fbf87feb5ce",
+      "prisma/migrations/20260708230000_dog_ownership_verification/migration.sql": "47193c42d9c7fd8c5942f8f22a78354a3dd7afff18b1204c095a147a31b2b75f",
+      "prisma/migrations/20260713173000_allow_owned_user_export_artifacts/migration.sql": "6c9c33e8d210ca022d394e5e1ef86244f233016c3fd0a32835ccd2ae62eae71d",
+      "scripts/load-env.ts": "78abbbe541df43b32fd555ad127a17b91fe835484e3aabda47e26dc9e03c3a7f",
+      "scripts/demo-route-fixture-contract.ts": "43d1feb53e84af4913c33f9f6360d2f98a1b9e706bf8a832f590eaf96f2f8052",
+      "scripts/demo-route-fixture-evidence.ts": "fbacae452db563426caa3faaf86824661746db8e98e1394a8f12054199d42f58",
+      "scripts/check-demo-route-fixture-idempotency.ts": "c2ca0575a70b274f7d1b54f6d2ce362388cae486853a737c446ad1e51168c04d",
+      "scripts/seed-demo-route-fixtures.ts": "39b8f398bed8c2bed3ec9335620ff5184060211fdc11c2726fa8727627eb883e",
+      "security/database-operations.ts": "ed32b2c91f41b2608ebb7f3797c79361cf6b07e54b2d1e4587893bc96d6f52e7",
+      "security/mandatory-public-racing-database-operations.ts": "5857024ce844716a381f9a011b3a872cf5ead98d2ec62138eb7f1704f065c8af",
+      "security/data-classification.ts": "daba3575e8f2aa730b22248e21ba2c579157d640c862c3e0978478ff500e4543",
+      "security/local-data-policy.ts": "81c4e906442c2b9efbdcf426dac019c56a86726b429ec2276eb76cce19ee62fb",
+      "docs/security/data-classification.md": "d9e6fc063b769cf26ae4b4165fcaff1799546da5fe1d38cad43447ecac3aaf89",
+      "src/app/api/users/me/export/route.ts": "c1e770c1eeec68fbb5742d789db9898da51459cc34f4288f23a4f99aa5c0ce92",
+      "src/lib/account-service.ts": "2a10581b11cc1426006fe40c6083d3e412fc7bb97f084d0ab67de3f8a6ff165f",
+      "src/lib/auth-sync.ts": "e3713cc05de5d5cb1b0d01d759594afedf11d97054d3299b7d1b38a827227b84",
+      "src/lib/billing/stripe-client.ts": "99283ccc895d7a009a6faaee913062de2cec6f0ae90f6c6cc38e35afbcc12812",
+      "src/lib/billing/stripe-env.ts": "51b4a7160d04ec42a3f21b9b531e58f2ca1636d5c328348c0211493e5c6df2ef",
+      "src/lib/billing/stripe-webhooks.ts": "2ee6917bc852f7090ec29fe91a095617e75637de4a3393d101f907fc9a81867e",
+      "src/lib/demo-access.ts": "03f2973d35dd54b4c2c7805b5e13c1f07c104cbc947742c0014a6f28412cb1fc",
+      "src/lib/demo-profile-media.ts": "c56ff3537cb4a7e3d88d41c82114c9dcf98dd08f0471ad9fe226bc3c7757532f",
+      "src/lib/demo-route-sample-contract.ts": "9b762de12416a584da8554aa78de98a1ece820b4a68ac12b1c6e32a83ab22d4b",
+      "src/lib/demo-route-samples.ts": "384f5e319ea2357e8e0f490cef78e62b5072d70de6ee87a94023d2ff50c3c7ce",
+      "src/lib/custom-page-service.ts": "eadc204baadea54b834900d8fb970aa787f508df383cf899f49af7a48eacfda7",
+      "src/lib/conversation-service.ts": "ae9a79650a1d596055e0b10765222b2c5eef9e5d99faf2d3f9e5f27769ef8542",
+      "src/lib/db.ts": "3f2df86c14ebb983246293aee66fb14a40b2fe09da1c70908b6d2ea547ade5f0",
+      "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
+      "src/lib/listing-service.ts": "a8905d1be95be854a3e2579ca201762827d63e058b6779fdf80d35271cc4886c",
+      "src/lib/media-service.ts": "d762706db72059eece36c6cf358076c691edf52c31a38d3186b8aa4fca9fd19d",
+      "src/lib/queries.ts": "b6195a482ab5d3387dd1fb2c2cde16fb76ba7011cc0baf36b7989f9c0df2895e",
+      "src/lib/realtime-service.ts": "bd488e6f06099d756c108bd1330750aba5d2aec83d240be90f34430bdecd14a6",
+      "src/lib/social-actor-service.ts": "f662173f7c4f4f9dae26e9a1eeb3e385b84ade53bd494a2a5ad6e3f09ad02d82",
+      "src/lib/signup-acceptance.ts": "3762304e4f242146fc90a0bdc754a4ba7b068d469bfb59aa3042bc95d7142948",
+      "src/lib/signup-acceptance-worker-store.ts": "e3b94adee26017e450f9ff4428ac8da5789435d6a7cd39b929f800728e3cc48d",
+      "src/lib/storage-paths.ts": "e75e2b85d7766d2341ee105406fb52ae5a79557fbda582255e04dfb50569c09f",
+      "src/lib/supabase-storage.ts": "276baf7722eda2b2df01e86458f8666c3b08cca4cadf8aa6353647795a67ff26"
+    },
+    "assets": {
+      "public/images/logo-mark-purple-gold.webp": {
+        "sha256": "a3fa996a89fc599fb12a89e8b414de8fe8079fd912793329deb719c6cc1afd60",
+        "sizeBytes": 53446,
+        "publicUrl": "/images/logo-mark-purple-gold.webp",
+        "provenanceId": "prov-control-room-brand-mark-v1"
+      },
+      "public/images/demo-profiles/freddie-free.webp": {
+        "sha256": "8f0947eb87197db98a1a1a57f3a8950d5eb38b74db953f60daa722cbab731e4a",
+        "sizeBytes": 161182,
+        "publicUrl": "/images/demo-profiles/freddie-free.webp",
+        "provenanceId": "prov-fictional-freddie-free-v1"
+      },
+      "public/images/demo-profiles/patricia-pro.webp": {
+        "sha256": "2cf77fd0c0c9840dde23192110afe7e2a9a20c23350ff34ffb7188fe0e31bee0",
+        "sizeBytes": 173110,
+        "publicUrl": "/images/demo-profiles/patricia-pro.webp",
+        "provenanceId": "prov-fictional-patricia-pro-v1"
+      },
+      "public/images/demo-profiles/quentin-quant.webp": {
+        "sha256": "9e3c0b807fc715969314c66eb98fa11d318b180ea0207b9eca6efa407106e5fc",
+        "sizeBytes": 172538,
+        "publicUrl": "/images/demo-profiles/quentin-quant.webp",
+        "provenanceId": "prov-fictional-quentin-quant-v1"
+      },
+      "public/images/site-header-gate-burst-landscape.webp": {
+        "sha256": "654cde0135b31ca8ba1bf1b2c0f313f922d1b40e985656b4245507e736360201",
+        "sizeBytes": 99470,
+        "publicUrl": "/images/site-header-gate-burst-landscape.webp",
+        "provenanceId": "prov-control-room-banner-v1"
+      },
+      "public/images/logo-wordmark-purple-gold.webp": {
+        "sha256": "6519b9aed615511ac03c8e9fc10bd64c77e3ff1acd1d62bacdb27a753e907a69",
+        "sizeBytes": 68338,
+        "publicUrl": "/images/logo-wordmark-purple-gold.webp",
+        "provenanceId": "prov-control-room-wordmark-v1"
+      },
+      "public/images/feature-advanced-stats-green.webp": {
+        "sha256": "58e0bea2e27bf4363e43a1b6ac7c5da6e93ad95ecc6816ec19d3ee4a748f19a5",
+        "sizeBytes": 342926,
+        "publicUrl": "/images/feature-advanced-stats-green.webp",
+        "provenanceId": "prov-control-room-gallery-stats-v1"
+      },
+      "public/images/feature-breeding-analytics-gold.webp": {
+        "sha256": "087e930ca1fd258f1c4434e78f9743a6e45613321cd344eb029a87c40ebdeb01",
+        "sizeBytes": 391068,
+        "publicUrl": "/images/feature-breeding-analytics-gold.webp",
+        "provenanceId": "prov-control-room-gallery-breeding-v1"
+      },
+      "public/images/feature-ai-predictions-blue.webp": {
+        "sha256": "db1a78912a9a63f346facf5897e87cee680f2747885f773acc3534a1cc1bb012",
+        "sizeBytes": 446598,
+        "publicUrl": "/images/feature-ai-predictions-blue.webp",
+        "provenanceId": "prov-control-room-gallery-ai-v1"
+      }
+    },
+    "combinedSha256": "1fe9bef21fe6db75a07ef375786eb6a15ddb504914f1a857ac3f8714e03ad449"
+  },
+  "collisionRollbackProbes": [
+    {
+      "probe": "duplicate .test identity with foreign reserved owner",
+      "expectedError": "demo_fixtures.user_collision",
+      "transactionRowsAfterFailure": 0,
+      "status": "verified"
+    },
+    {
+      "probe": "reserved thread identifier owned by a foreign synthetic profile",
+      "expectedError": "demo_fixtures.thread_collision",
+      "transactionRowsAfterFailure": 37,
+      "status": "verified"
+    }
+  ],
+  "databaseOperationProofs": [
+    {
+      "queryId": "DB.AUTH.CALLBACK.ACCEPTANCE.TRANSACTION",
+      "sourceFile": "src/lib/auth-sync.ts",
+      "sourceSymbol": "syncAuthUser",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 4,
+      "rowsBefore": 0,
+      "rowsAfter": 1,
+      "rowCountDelta": 1,
+      "cases": {
+        "newIdentity": "created-one-user-profile-actor-outbox",
+        "repeat": "same-four-rows-bounded-update-and-actor-upsert",
+        "pendingDeletion": "restored-user-and-inserted-one-audit",
+        "permanentBan": "returned-without-mutation",
+        "unverifiedEmail": "duplicate-email-rejected-without-linking",
+        "requestContext": "exact-user-insert-rejected-by-rls",
+        "rollback": "four-write-transaction-rolled-back",
+        "systemContext": "captured-under-nobypassrls-runtime-role",
+        "providerResidual": "identity-provider-validation-out-of-scope",
+        "concurrencyResidual": "concurrent-first-login-not-proven"
+      },
+      "observedSql": {
+        "statementType": "SELECT",
+        "normalizedSql": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"email\", \"public\".\"User\".\"name\", \"public\".\"User\".\"subscriptionTier\", \"public\".\"User\".\"stripeCustomerId\", \"public\".\"User\".\"stripeSubscriptionId\", \"public\".\"User\".\"isBanned\", \"public\".\"User\".\"deletionRequestedAt\", \"public\".\"User\".\"createdAt\", \"public\".\"User\".\"updatedAt\", \"public\".\"User\".\"workosUserId\" FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"workosUserId\" = $1 OR \"public\".\"User\".\"email\" = $2) ORDER BY \"public\".\"User\".\"createdAt\" ASC LIMIT $3 OFFSET $4",
+        "sha256": "2a7164e57604ea85aed987f35647f6f2698dc4207dd2b6183b515c8c53f05a9f",
+        "parameterCount": 4,
+        "namedBinds": [
+          {
+            "name": "provider.subject",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "provider.verifiedEmail",
+            "positions": [
+              2
+            ]
+          },
+          {
+            "name": "prisma.take",
+            "positions": [
+              3
+            ]
+          },
+          {
+            "name": "prisma.skip",
+            "positions": [
+              4
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "Limit",
+          "relationName": null,
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 1,
+          "totalCost": 1.06,
+          "children": [
+            {
+              "nodeType": "Sort",
+              "relationName": null,
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.06,
+              "children": [
+                {
+                  "nodeType": "Seq Scan",
+                  "relationName": "User",
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.04,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        "planSha256": "06877cbafcce9deaf31787d6189defafea11ca74cf1b57aac65a60d05cc61435"
+      },
+      "variants": [
+        {
+          "variant": "verified-identity-lookup",
+          "observedSql": {
+            "statementType": "SELECT",
+            "normalizedSql": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"email\", \"public\".\"User\".\"name\", \"public\".\"User\".\"subscriptionTier\", \"public\".\"User\".\"stripeCustomerId\", \"public\".\"User\".\"stripeSubscriptionId\", \"public\".\"User\".\"isBanned\", \"public\".\"User\".\"deletionRequestedAt\", \"public\".\"User\".\"createdAt\", \"public\".\"User\".\"updatedAt\", \"public\".\"User\".\"workosUserId\" FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"workosUserId\" = $1 OR \"public\".\"User\".\"email\" = $2) ORDER BY \"public\".\"User\".\"createdAt\" ASC LIMIT $3 OFFSET $4",
+            "sha256": "2a7164e57604ea85aed987f35647f6f2698dc4207dd2b6183b515c8c53f05a9f",
+            "parameterCount": 4,
+            "namedBinds": [
+              {
+                "name": "provider.subject",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "provider.verifiedEmail",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "prisma.take",
+                "positions": [
+                  3
+                ]
+              },
+              {
+                "name": "prisma.skip",
+                "positions": [
+                  4
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "Limit",
+              "relationName": null,
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.06,
+              "children": [
+                {
+                  "nodeType": "Sort",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.06,
+                  "children": [
+                    {
+                      "nodeType": "Seq Scan",
+                      "relationName": "User",
+                      "indexName": null,
+                      "joinType": null,
+                      "scanDirection": null,
+                      "estimatedRows": 1,
+                      "totalCost": 1.04,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            "planSha256": "06877cbafcce9deaf31787d6189defafea11ca74cf1b57aac65a60d05cc61435"
+          }
+        },
+        {
+          "variant": "unverified-identity-lookup",
+          "observedSql": {
+            "statementType": "SELECT",
+            "normalizedSql": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"email\", \"public\".\"User\".\"name\", \"public\".\"User\".\"subscriptionTier\", \"public\".\"User\".\"stripeCustomerId\", \"public\".\"User\".\"stripeSubscriptionId\", \"public\".\"User\".\"isBanned\", \"public\".\"User\".\"deletionRequestedAt\", \"public\".\"User\".\"createdAt\", \"public\".\"User\".\"updatedAt\", \"public\".\"User\".\"workosUserId\" FROM \"public\".\"User\" WHERE \"public\".\"User\".\"workosUserId\" = $1 ORDER BY \"public\".\"User\".\"createdAt\" ASC LIMIT $2 OFFSET $3",
+            "sha256": "411e0965a02c7216ae5459726e3f1fef56565965c36741be88e23ccc6509c1d6",
+            "parameterCount": 3,
+            "namedBinds": [
+              {
+                "name": "provider.subject",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "prisma.take",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "prisma.skip",
+                "positions": [
+                  3
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "Limit",
+              "relationName": null,
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.06,
+              "children": [
+                {
+                  "nodeType": "Sort",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.06,
+                  "children": [
+                    {
+                      "nodeType": "Seq Scan",
+                      "relationName": "User",
+                      "indexName": null,
+                      "joinType": null,
+                      "scanDirection": null,
+                      "estimatedRows": 1,
+                      "totalCost": 1.04,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            "planSha256": "06877cbafcce9deaf31787d6189defafea11ca74cf1b57aac65a60d05cc61435"
+          }
+        },
+        {
+          "variant": "user-insert",
+          "observedSql": {
+            "statementType": "INSERT",
+            "normalizedSql": "INSERT INTO \"public\".\"User\" (\"id\",\"email\",\"name\",\"subscriptionTier\",\"isBanned\",\"createdAt\",\"updatedAt\",\"workosUserId\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING \"public\".\"User\".\"id\"",
+            "sha256": "51dd9d93da1096da7c4a98b4c7f89091e390fa67ea59a2683c1ef677d5b7f873",
+            "parameterCount": 8,
+            "namedBinds": [
+              {
+                "name": "user.id",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "provider.email",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "displayName",
+                "positions": [
+                  3
+                ]
+              },
+              {
+                "name": "subscriptionTier",
+                "positions": [
+                  4
+                ]
+              },
+              {
+                "name": "isBanned",
+                "positions": [
+                  5
+                ]
+              },
+              {
+                "name": "prisma.userTimestamps",
+                "positions": [
+                  6,
+                  7
+                ]
+              },
+              {
+                "name": "provider.subject",
+                "positions": [
+                  8
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "ModifyTable",
+              "relationName": "User",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 0.02,
+              "children": [
+                {
+                  "nodeType": "Result",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 0.02,
+                  "children": []
+                }
+              ]
+            },
+            "planSha256": "4470b5791de89b1d9ceb6a6e6ba7d3a5d0148d2d41044d3553bd3fbde371ba35"
+          }
+        },
+        {
+          "variant": "profile-insert",
+          "observedSql": {
+            "statementType": "INSERT",
+            "normalizedSql": "INSERT INTO \"public\".\"Profile\" (\"id\",\"userId\",\"displayName\",\"role\",\"verified\",\"isFounder\",\"createdAt\",\"updatedAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING \"public\".\"Profile\".\"id\", \"public\".\"Profile\".\"userId\", \"public\".\"Profile\".\"displayName\", \"public\".\"Profile\".\"bio\", \"public\".\"Profile\".\"avatarUrl\", \"public\".\"Profile\".\"state\", \"public\".\"Profile\".\"kennelName\", \"public\".\"Profile\".\"kennelPrefix\", \"public\".\"Profile\".\"role\", \"public\".\"Profile\".\"verified\", \"public\".\"Profile\".\"isFounder\", \"public\".\"Profile\".\"website\", \"public\".\"Profile\".\"phone\", \"public\".\"Profile\".\"createdAt\", \"public\".\"Profile\".\"updatedAt\"",
+            "sha256": "5da69cf954672342b6f658d7d2b1cd5e0be372b871893aeae38514e6f5c0a31a",
+            "parameterCount": 8,
+            "namedBinds": [
+              {
+                "name": "profile.id",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "user.id",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "displayName",
+                "positions": [
+                  3
+                ]
+              },
+              {
+                "name": "profile.role",
+                "positions": [
+                  4
+                ]
+              },
+              {
+                "name": "profile.flags",
+                "positions": [
+                  5,
+                  6
+                ]
+              },
+              {
+                "name": "prisma.profileTimestamps",
+                "positions": [
+                  7,
+                  8
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "ModifyTable",
+              "relationName": "Profile",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 0.02,
+              "children": [
+                {
+                  "nodeType": "Result",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 0.02,
+                  "children": []
+                }
+              ]
+            },
+            "planSha256": "f8676f5140e4b91e456fbf96201d868ea64c1be145e98460a2fab69120798e5f"
+          }
+        },
+        {
+          "variant": "social-actor-upsert",
+          "observedSql": {
+            "statementType": "INSERT",
+            "normalizedSql": "INSERT INTO \"public\".\"SocialActor\" (\"id\",\"kind\",\"profileId\",\"ownerProfileId\",\"handle\",\"displayName\",\"avatarUrl\",\"avatarFocalX\",\"avatarFocalY\",\"avatarZoom\",\"avatarRotation\",\"coverFocalX\",\"coverFocalY\",\"coverZoom\",\"coverRotation\",\"profileVisibility\",\"contactVisibility\",\"published\",\"createdAt\",\"updatedAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) ON CONFLICT (\"profileId\") DO UPDATE SET \"displayName\" = $21, \"avatarUrl\" = $22, \"published\" = $23, \"updatedAt\" = $24 WHERE (\"public\".\"SocialActor\".\"profileId\" = $25 AND 1=1) RETURNING \"public\".\"SocialActor\".\"id\", \"public\".\"SocialActor\".\"kind\", \"public\".\"SocialActor\".\"profileId\", \"public\".\"SocialActor\".\"pageId\", \"public\".\"SocialActor\".\"ownerProfileId\", \"public\".\"SocialActor\".\"handle\", \"public\".\"SocialActor\".\"displayName\", \"public\".\"SocialActor\".\"avatarUrl\", \"public\".\"SocialActor\".\"avatarFocalX\", \"public\".\"SocialActor\".\"avatarFocalY\", \"public\".\"SocialActor\".\"avatarZoom\", \"public\".\"SocialActor\".\"avatarRotation\", \"public\".\"SocialActor\".\"coverUrl\", \"public\".\"SocialActor\".\"coverFocalX\", \"public\".\"SocialActor\".\"coverFocalY\", \"public\".\"SocialActor\".\"coverZoom\", \"public\".\"SocialActor\".\"coverRotation\", \"public\".\"SocialActor\".\"profileVisibility\", \"public\".\"SocialActor\".\"contactVisibility\", \"public\".\"SocialActor\".\"published\", \"public\".\"SocialActor\".\"createdAt\", \"public\".\"SocialActor\".\"updatedAt\"",
+            "sha256": "7cc2edbd425669606265b2f6edd12a4e9619e169ce2c677fe36a6a805ca54ba5",
+            "parameterCount": 25,
+            "namedBinds": [
+              {
+                "name": "actor.id",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "actor.kind",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "profile.id",
+                "positions": [
+                  3,
+                  4,
+                  25
+                ]
+              },
+              {
+                "name": "actor.handle",
+                "positions": [
+                  5
+                ]
+              },
+              {
+                "name": "displayName",
+                "positions": [
+                  6,
+                  21
+                ]
+              },
+              {
+                "name": "avatarUrl",
+                "positions": [
+                  7,
+                  22
+                ]
+              },
+              {
+                "name": "actor.focalDefaults",
+                "positions": [
+                  8,
+                  9,
+                  12,
+                  13
+                ]
+              },
+              {
+                "name": "actor.zoomDefaults",
+                "positions": [
+                  10,
+                  14
+                ]
+              },
+              {
+                "name": "actor.rotationDefaults",
+                "positions": [
+                  11,
+                  15
+                ]
+              },
+              {
+                "name": "profileVisibility",
+                "positions": [
+                  16
+                ]
+              },
+              {
+                "name": "contactVisibility",
+                "positions": [
+                  17
+                ]
+              },
+              {
+                "name": "published",
+                "positions": [
+                  18,
+                  23
+                ]
+              },
+              {
+                "name": "prisma.actorTimestamps",
+                "positions": [
+                  19,
+                  20,
+                  24
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "ModifyTable",
+              "relationName": "SocialActor",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 0.02,
+              "children": [
+                {
+                  "nodeType": "Result",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 0.02,
+                  "children": []
+                }
+              ]
+            },
+            "planSha256": "f319f32d2fb08e57f3bf5cd54ca1e0f29b379c9e06e94a26fb794ced81206f16"
+          }
+        },
+        {
+          "variant": "signup-outbox-insert",
+          "observedSql": {
+            "statementType": "INSERT",
+            "normalizedSql": "INSERT INTO \"public\".\"SignupOutbox\" (\"id\",\"userId\",\"idempotencyKey\",\"status\",\"retryCount\",\"nextRetryAt\",\"createdAt\",\"updatedAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING \"public\".\"SignupOutbox\".\"id\"",
+            "sha256": "ea231debfaf4dae0ac4d438fe0b7e8c6708410ced12837c17d3c5cae1bf410ed",
+            "parameterCount": 8,
+            "namedBinds": [
+              {
+                "name": "outbox.id",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "user.id",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "idempotencyKey",
+                "positions": [
+                  3
+                ]
+              },
+              {
+                "name": "outbox.status",
+                "positions": [
+                  4
+                ]
+              },
+              {
+                "name": "retryCount",
+                "positions": [
+                  5
+                ]
+              },
+              {
+                "name": "prisma.outboxTimestamps",
+                "positions": [
+                  6,
+                  7,
+                  8
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "ModifyTable",
+              "relationName": "SignupOutbox",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 0.03,
+              "children": [
+                {
+                  "nodeType": "Result",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 0.03,
+                  "children": []
+                }
+              ]
+            },
+            "planSha256": "f7241204f03f99b7c63476347d549692c2e776e8d211cc2118e87a2dbaec2615"
+          }
+        },
+        {
+          "variant": "repeat-user-update",
+          "observedSql": {
+            "statementType": "UPDATE",
+            "normalizedSql": "UPDATE \"public\".\"User\" SET \"email\" = $1, \"name\" = $2, \"workosUserId\" = $3, \"isBanned\" = $4, \"deletionRequestedAt\" = $5, \"updatedAt\" = $6 WHERE (\"public\".\"User\".\"id\" = $7 AND 1=1) RETURNING \"public\".\"User\".\"id\", \"public\".\"User\".\"email\", \"public\".\"User\".\"name\", \"public\".\"User\".\"subscriptionTier\", \"public\".\"User\".\"stripeCustomerId\", \"public\".\"User\".\"stripeSubscriptionId\", \"public\".\"User\".\"isBanned\", \"public\".\"User\".\"deletionRequestedAt\", \"public\".\"User\".\"createdAt\", \"public\".\"User\".\"updatedAt\", \"public\".\"User\".\"workosUserId\"",
+            "sha256": "47675912720b8c976a91f2f7412e047e25b9527c35c9e03355bbc0e5c4871953",
+            "parameterCount": 7,
+            "namedBinds": [
+              {
+                "name": "provider.email",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "displayName",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "provider.subject",
+                "positions": [
+                  3
+                ]
+              },
+              {
+                "name": "isBanned",
+                "positions": [
+                  4
+                ]
+              },
+              {
+                "name": "deletionRequestedAt",
+                "positions": [
+                  5
+                ]
+              },
+              {
+                "name": "prisma.updatedAt",
+                "positions": [
+                  6
+                ]
+              },
+              {
+                "name": "user.id",
+                "positions": [
+                  7
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "ModifyTable",
+              "relationName": "User",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.05,
+              "children": [
+                {
+                  "nodeType": "Seq Scan",
+                  "relationName": "User",
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.05,
+                  "children": []
+                }
+              ]
+            },
+            "planSha256": "a8698ea20ae3f34142b6af98efffa601b3612bb2c95371a662cb84f90b552a13"
+          }
+        },
+        {
+          "variant": "restore-audit-insert",
+          "observedSql": {
+            "statementType": "INSERT",
+            "normalizedSql": "INSERT INTO \"public\".\"AuditLog\" (\"actorId\",\"actorType\",\"action\",\"targetType\",\"targetId\",\"metadata\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING \"public\".\"AuditLog\".\"id\", \"public\".\"AuditLog\".\"actorId\", \"public\".\"AuditLog\".\"actorType\", \"public\".\"AuditLog\".\"action\", \"public\".\"AuditLog\".\"targetType\", \"public\".\"AuditLog\".\"targetId\", \"public\".\"AuditLog\".\"ip\", \"public\".\"AuditLog\".\"userAgent\", \"public\".\"AuditLog\".\"metadata\", \"public\".\"AuditLog\".\"createdAt\"",
+            "sha256": "82574698dea6e5cb25d76a88b34f9e0add7c42d191f90b53fcea07b145af6617",
+            "parameterCount": 7,
+            "namedBinds": [
+              {
+                "name": "user.id.actor",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "actorType",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "action",
+                "positions": [
+                  3
+                ]
+              },
+              {
+                "name": "targetType",
+                "positions": [
+                  4
+                ]
+              },
+              {
+                "name": "user.id.target",
+                "positions": [
+                  5
+                ]
+              },
+              {
+                "name": "audit.metadata",
+                "positions": [
+                  6
+                ]
+              },
+              {
+                "name": "prisma.createdAt",
+                "positions": [
+                  7
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "ModifyTable",
+              "relationName": "AuditLog",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 0.02,
+              "children": [
+                {
+                  "nodeType": "Result",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 0.02,
+                  "children": []
+                }
+              ]
+            },
+            "planSha256": "9a2e3aa5f922c3e0872f6387dd861c2f80e70dcb4ea8c23ab9a4f61296a72ff4"
+          }
+        }
+      ],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.PULSE.CONVERSATION.ACCESS.SELECT",
+      "sourceFile": "src/lib/conversation-service.ts",
+      "sourceSymbol": "getConversationForProfile",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1,
+      "rowsBefore": 1,
+      "rowsAfter": 1,
+      "rowCountDelta": 0,
+      "cases": {
+        "participant": "returned-one",
+        "nonParticipant": "conversation.not_found",
+        "missing": "conversation.not_found"
+      },
+      "observedSql": {
+        "statementType": "SELECT",
+        "normalizedSql": "SELECT \"public\".\"Conversation\".\"id\", \"public\".\"Conversation\".\"participantAId\", \"public\".\"Conversation\".\"participantAActorId\", \"public\".\"Conversation\".\"participantBId\", \"public\".\"Conversation\".\"participantBActorId\", \"public\".\"Conversation\".\"lastMessageAt\", \"public\".\"Conversation\".\"blockedById\", \"public\".\"Conversation\".\"blockedAt\", \"public\".\"Conversation\".\"createdAt\", \"public\".\"Conversation\".\"updatedAt\" FROM \"public\".\"Conversation\" WHERE (\"public\".\"Conversation\".\"id\" = $1 AND (\"public\".\"Conversation\".\"participantAId\" = $2 OR \"public\".\"Conversation\".\"participantBId\" = $3)) LIMIT $4 OFFSET $5",
+        "sha256": "9c5e91112e60a6fb522415995c9c0269b8b35d79e0846b42795d84db51021f18",
+        "parameterCount": 5,
+        "namedBinds": [
+          {
+            "name": "conversationId",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "current.profileId",
+            "positions": [
+              2,
+              3
+            ]
+          },
+          {
+            "name": "prisma.take",
+            "positions": [
+              4
+            ]
+          },
+          {
+            "name": "prisma.skip",
+            "positions": [
+              5
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "Limit",
+          "relationName": null,
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 1,
+          "totalCost": 1,
+          "children": [
+            {
+              "nodeType": "Seq Scan",
+              "relationName": "Conversation",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1,
+              "children": []
+            }
+          ]
+        },
+        "planSha256": "0727cba3c689a2a72caa16e91b3734dfdd7a0044d51f55223cf524fd8ad23f74"
+      },
+      "variants": [],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.MEDIA.ASSET.STATUS.SELECT",
+      "sourceFile": "src/lib/media-service.ts",
+      "sourceSymbol": "getMediaStatusForCurrentUser",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1,
+      "rowsBefore": 6,
+      "rowsAfter": 6,
+      "rowCountDelta": 0,
+      "cases": {
+        "owner": "returned-seven-field-projection",
+        "otherOwner": "media.not_found",
+        "missing": "media.not_found"
+      },
+      "observedSql": {
+        "statementType": "SELECT",
+        "normalizedSql": "SELECT \"public\".\"MediaAsset\".\"id\", \"public\".\"MediaAsset\".\"originalName\", \"public\".\"MediaAsset\".\"scanStatus\", \"public\".\"MediaAsset\".\"processingStatus\", \"public\".\"MediaAsset\".\"processingError\", \"public\".\"MediaAsset\".\"createdAt\", \"public\".\"MediaAsset\".\"updatedAt\" FROM \"public\".\"MediaAsset\" WHERE (\"public\".\"MediaAsset\".\"id\" = $1 AND \"public\".\"MediaAsset\".\"uploaderId\" = $2 AND \"public\".\"MediaAsset\".\"deletedAt\" IS NULL) LIMIT $3 OFFSET $4",
+        "sha256": "acd2daa18098c8825e1a3e4780d82d38ee3debbb0a8cdf80b988af1b83fc4301",
+        "parameterCount": 4,
+        "namedBinds": [
+          {
+            "name": "mediaId",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "current.dbUserId",
+            "positions": [
+              2
+            ]
+          },
+          {
+            "name": "prisma.take",
+            "positions": [
+              3
+            ]
+          },
+          {
+            "name": "prisma.skip",
+            "positions": [
+              4
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "Limit",
+          "relationName": null,
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 1,
+          "totalCost": 1,
+          "children": [
+            {
+              "nodeType": "Seq Scan",
+              "relationName": "MediaAsset",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1,
+              "children": [
+                {
+                  "nodeType": "Nested Loop",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": "Inner",
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 27.58,
+                  "children": [
+                    {
+                      "nodeType": "Seq Scan",
+                      "relationName": "Message",
+                      "indexName": null,
+                      "joinType": null,
+                      "scanDirection": null,
+                      "estimatedRows": 1,
+                      "totalCost": 8.62,
+                      "children": []
+                    },
+                    {
+                      "nodeType": "Index Only Scan",
+                      "relationName": "MessageMedia",
+                      "indexName": "MessageMedia_pkey",
+                      "joinType": null,
+                      "scanDirection": "Forward",
+                      "estimatedRows": 1,
+                      "totalCost": 12.69,
+                      "children": [
+                        {
+                          "nodeType": "Seq Scan",
+                          "relationName": "Message",
+                          "indexName": null,
+                          "joinType": null,
+                          "scanDirection": null,
+                          "estimatedRows": 1,
+                          "totalCost": 2.38,
+                          "children": []
+                        },
+                        {
+                          "nodeType": "Seq Scan",
+                          "relationName": "Message",
+                          "indexName": null,
+                          "joinType": null,
+                          "scanDirection": null,
+                          "estimatedRows": 2,
+                          "totalCost": 2,
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "planSha256": "edf1c4d4f4b76177fcf4b14c9853797bfddea4f671179e26ecde4088370407d4"
+      },
+      "variants": [],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.PULSE.CONVERSATION.BLOCK.UPDATE",
+      "sourceFile": "src/lib/conversation-service.ts",
+      "sourceSymbol": "setConversationBlock",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1,
+      "rowsBefore": 1,
+      "rowsAfter": 1,
+      "rowCountDelta": 0,
+      "cases": {
+        "rollback": "conversation-and-user-block-rolled-back",
+        "stranger": "conversation.not_found",
+        "block": "blocked-by-participant",
+        "counterpartyUnblock": "auth.forbidden",
+        "duplicate": "conversation-updated-user-block-row-stable",
+        "unblock": "conversation-cleared-user-block-removed",
+        "blockAndUnblockSqlShape": "identical"
+      },
+      "observedSql": {
+        "statementType": "UPDATE",
+        "normalizedSql": "UPDATE \"public\".\"Conversation\" SET \"blockedById\" = $1, \"blockedAt\" = $2, \"updatedAt\" = $3 WHERE (\"public\".\"Conversation\".\"id\" = $4 AND 1=1) RETURNING \"public\".\"Conversation\".\"id\", \"public\".\"Conversation\".\"participantAId\", \"public\".\"Conversation\".\"participantAActorId\", \"public\".\"Conversation\".\"participantBId\", \"public\".\"Conversation\".\"participantBActorId\", \"public\".\"Conversation\".\"lastMessageAt\", \"public\".\"Conversation\".\"blockedById\", \"public\".\"Conversation\".\"blockedAt\", \"public\".\"Conversation\".\"createdAt\", \"public\".\"Conversation\".\"updatedAt\"",
+        "sha256": "73d3b57dab0e4783faa15195fc58f5c62a9f1da6d79ffacaa1800b388e166790",
+        "parameterCount": 4,
+        "namedBinds": [
+          {
+            "name": "next.blockedById",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "next.blockedAt",
+            "positions": [
+              2
+            ]
+          },
+          {
+            "name": "prisma.updatedAt",
+            "positions": [
+              3
+            ]
+          },
+          {
+            "name": "conversation.id",
+            "positions": [
+              4
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "ModifyTable",
+          "relationName": "Conversation",
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 1,
+          "totalCost": 1.01,
+          "children": [
+            {
+              "nodeType": "Seq Scan",
+              "relationName": "Conversation",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.01,
+              "children": []
+            }
+          ]
+        },
+        "planSha256": "b048ea1370a20694a4e0b4f342b1b1a9fd0d640609b3319c3de1546494babfc0"
+      },
+      "variants": [],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.PULSE.USER_BLOCK.UPSERT",
+      "sourceFile": "src/lib/conversation-service.ts",
+      "sourceSymbol": "setConversationBlock",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1,
+      "rowsBefore": 0,
+      "rowsAfter": 0,
+      "rowCountDelta": 0,
+      "cases": {
+        "rollback": "user-block-insert-rolled-back",
+        "firstBlock": "created-one",
+        "duplicateBlock": "same-row-retained",
+        "duplicateSqlPath": "unique-pair-read-no-second-mutation",
+        "counterpartyUnblock": "auth.forbidden",
+        "unblock": "deleted-to-zero"
+      },
+      "observedSql": {
+        "statementType": "INSERT",
+        "normalizedSql": "INSERT INTO \"public\".\"UserBlock\" (\"id\",\"blockerProfileId\",\"blockedProfileId\",\"createdAt\") VALUES ($1,$2,$3,$4) RETURNING \"public\".\"UserBlock\".\"id\"",
+        "sha256": "e55293e083cf5012aed28ef92c872ce1520fb4beb681080863b70f44e60a5e12",
+        "parameterCount": 4,
+        "namedBinds": [
+          {
+            "name": "userBlock.id",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "current.profileId",
+            "positions": [
+              2
+            ]
+          },
+          {
+            "name": "blockedProfileId",
+            "positions": [
+              3
+            ]
+          },
+          {
+            "name": "prisma.createdAt",
+            "positions": [
+              4
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "ModifyTable",
+          "relationName": "UserBlock",
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 1,
+          "totalCost": 0.01,
+          "children": [
+            {
+              "nodeType": "Result",
+              "relationName": null,
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 0.01,
+              "children": []
+            }
+          ]
+        },
+        "planSha256": "c8d869912cb6117d30ed91fade7d42e24a303effe1e7ef008de974fbf2dd7c18"
+      },
+      "variants": [],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.AUTH.SIGNUP_OUTBOX.CLAIM",
+      "sourceFile": "src/lib/signup-acceptance-worker-store.ts",
+      "sourceSymbol": "signupAcceptanceWorkerStore.claimBatch",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1,
+      "rowsBefore": 2,
+      "rowsAfter": 2,
+      "rowCountDelta": 0,
+      "cases": {
+        "locked": "skipped-locked-row",
+        "requestContext": "returned-zero-and-left-row-pending",
+        "rollback": "claim-rolled-back",
+        "eligible": "claimed-one",
+        "duplicate": "unexpired-processing-row-not-reclaimed"
+      },
+      "observedSql": {
+        "statementType": "WITH",
+        "normalizedSql": "WITH candidates AS ( SELECT \"id\" FROM \"SignupOutbox\" WHERE \"retryCount\" < $1 AND ( (\"status\" = 'pending' AND \"nextRetryAt\" <= $2) OR ( \"status\" = 'processing' AND (\"leaseExpiresAt\" IS NULL OR \"leaseExpiresAt\" <= $3) ) ) ORDER BY \"nextRetryAt\" ASC, \"createdAt\" ASC, \"id\" ASC FOR UPDATE SKIP LOCKED LIMIT $4 ) UPDATE \"SignupOutbox\" AS outbox SET \"status\" = 'processing', \"retryCount\" = outbox.\"retryCount\" + 1, \"lastAttemptAt\" = $5, \"leaseExpiresAt\" = $6, \"leaseToken\" = $7, \"deadLetteredAt\" = NULL, \"lastErrorCode\" = CASE WHEN outbox.\"status\" = 'processing' THEN 'signup.lease_expired' ELSE outbox.\"lastErrorCode\" END, \"updatedAt\" = $8 FROM candidates WHERE outbox.\"id\" = candidates.\"id\" RETURNING outbox.\"id\", outbox.\"userId\", outbox.\"idempotencyKey\", outbox.\"correlationId\", outbox.\"retryCount\" AS \"attempt\", outbox.\"leaseToken\", outbox.\"leaseExpiresAt\"",
+        "sha256": "bab2368f26844904057af43d2a80a7682a15952f9a9c15946fe74376caa55472",
+        "parameterCount": 8,
+        "namedBinds": [
+          {
+            "name": "maxAttempts",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "worker.now",
+            "positions": [
+              2,
+              3,
+              5,
+              8
+            ]
+          },
+          {
+            "name": "limit",
+            "positions": [
+              4
+            ]
+          },
+          {
+            "name": "leaseExpiresAt",
+            "positions": [
+              6
+            ]
+          },
+          {
+            "name": "leaseToken",
+            "positions": [
+              7
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "ModifyTable",
+          "relationName": "SignupOutbox",
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 1,
+          "totalCost": 2.12,
+          "children": [
+            {
+              "nodeType": "Limit",
+              "relationName": null,
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.05,
+              "children": [
+                {
+                  "nodeType": "LockRows",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.05,
+                  "children": [
+                    {
+                      "nodeType": "Sort",
+                      "relationName": null,
+                      "indexName": null,
+                      "joinType": null,
+                      "scanDirection": null,
+                      "estimatedRows": 1,
+                      "totalCost": 1.04,
+                      "children": [
+                        {
+                          "nodeType": "Seq Scan",
+                          "relationName": "SignupOutbox",
+                          "indexName": null,
+                          "joinType": null,
+                          "scanDirection": null,
+                          "estimatedRows": 1,
+                          "totalCost": 1.03,
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nodeType": "Nested Loop",
+              "relationName": null,
+              "indexName": null,
+              "joinType": "Inner",
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.07,
+              "children": [
+                {
+                  "nodeType": "Seq Scan",
+                  "relationName": "SignupOutbox",
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.02,
+                  "children": []
+                },
+                {
+                  "nodeType": "CTE Scan",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 0.02,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        "planSha256": "2fa1d082749be7470fc263b3a87f03461da5154b10d5486b7b600ae75bbb3706"
+      },
+      "variants": [],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.AUTH.SIGNUP_OUTBOX.SETTLE",
+      "sourceFile": "src/lib/signup-acceptance-worker-store.ts",
+      "sourceSymbol": "signupAcceptanceWorkerStore.complete/fail",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1,
+      "rowsBefore": 2,
+      "rowsAfter": 2,
+      "rowCountDelta": 0,
+      "cases": {
+        "staleLease": "returned-false-and-left-processing",
+        "requestContext": "all-variants-returned-zero",
+        "rollback": "all-variants-rolled-back",
+        "complete": "sent-once-then-false",
+        "retry": "retried-once-then-lease-lost",
+        "deadLetter": "dead-lettered-once-then-lease-lost",
+        "sqlVariants": "three-distinct-parameterized-statements"
+      },
+      "observedSql": {
+        "statementType": "UPDATE",
+        "normalizedSql": "UPDATE \"SignupOutbox\" SET \"status\" = 'sent', \"leaseToken\" = NULL, \"leaseExpiresAt\" = NULL, \"sentAt\" = $1, \"lastErrorCode\" = NULL, \"updatedAt\" = $2 WHERE \"id\" = $3 AND \"status\" = 'processing' AND \"leaseToken\" = $4",
+        "sha256": "0b77809ad01830d264943a4f6c794d00ef84e7e67484eb3a12a67aeb75fb6856",
+        "parameterCount": 4,
+        "namedBinds": [
+          {
+            "name": "completedAt",
+            "positions": [
+              1,
+              2
+            ]
+          },
+          {
+            "name": "claim.id",
+            "positions": [
+              3
+            ]
+          },
+          {
+            "name": "claim.leaseToken",
+            "positions": [
+              4
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "ModifyTable",
+          "relationName": "SignupOutbox",
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 0,
+          "totalCost": 1.03,
+          "children": [
+            {
+              "nodeType": "Seq Scan",
+              "relationName": "SignupOutbox",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.03,
+              "children": []
+            }
+          ]
+        },
+        "planSha256": "c76ee6f7473bc2fa056ef488a057fd978dcdc6f82652fed4188674449eccfb45"
+      },
+      "variants": [
+        {
+          "variant": "complete",
+          "observedSql": {
+            "statementType": "UPDATE",
+            "normalizedSql": "UPDATE \"SignupOutbox\" SET \"status\" = 'sent', \"leaseToken\" = NULL, \"leaseExpiresAt\" = NULL, \"sentAt\" = $1, \"lastErrorCode\" = NULL, \"updatedAt\" = $2 WHERE \"id\" = $3 AND \"status\" = 'processing' AND \"leaseToken\" = $4",
+            "sha256": "0b77809ad01830d264943a4f6c794d00ef84e7e67484eb3a12a67aeb75fb6856",
+            "parameterCount": 4,
+            "namedBinds": [
+              {
+                "name": "completedAt",
+                "positions": [
+                  1,
+                  2
+                ]
+              },
+              {
+                "name": "claim.id",
+                "positions": [
+                  3
+                ]
+              },
+              {
+                "name": "claim.leaseToken",
+                "positions": [
+                  4
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "ModifyTable",
+              "relationName": "SignupOutbox",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 0,
+              "totalCost": 1.03,
+              "children": [
+                {
+                  "nodeType": "Seq Scan",
+                  "relationName": "SignupOutbox",
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.03,
+                  "children": []
+                }
+              ]
+            },
+            "planSha256": "c76ee6f7473bc2fa056ef488a057fd978dcdc6f82652fed4188674449eccfb45"
+          }
+        },
+        {
+          "variant": "retry",
+          "observedSql": {
+            "statementType": "UPDATE",
+            "normalizedSql": "UPDATE \"SignupOutbox\" SET \"status\" = 'pending', \"leaseToken\" = NULL, \"leaseExpiresAt\" = NULL, \"nextRetryAt\" = $1, \"lastErrorCode\" = $2, \"updatedAt\" = $3 WHERE \"id\" = $4 AND \"status\" = 'processing' AND \"leaseToken\" = $5",
+            "sha256": "cd41c981684368fd943257ca9aecb028f87336e74c56060b869d4debba304259",
+            "parameterCount": 5,
+            "namedBinds": [
+              {
+                "name": "retryAt",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "errorCode",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "failedAt",
+                "positions": [
+                  3
+                ]
+              },
+              {
+                "name": "claim.id",
+                "positions": [
+                  4
+                ]
+              },
+              {
+                "name": "claim.leaseToken",
+                "positions": [
+                  5
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "ModifyTable",
+              "relationName": "SignupOutbox",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 0,
+              "totalCost": 1.03,
+              "children": [
+                {
+                  "nodeType": "Seq Scan",
+                  "relationName": "SignupOutbox",
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.03,
+                  "children": []
+                }
+              ]
+            },
+            "planSha256": "c76ee6f7473bc2fa056ef488a057fd978dcdc6f82652fed4188674449eccfb45"
+          }
+        },
+        {
+          "variant": "dead-letter",
+          "observedSql": {
+            "statementType": "UPDATE",
+            "normalizedSql": "UPDATE \"SignupOutbox\" SET \"status\" = 'dead_letter', \"leaseToken\" = NULL, \"leaseExpiresAt\" = NULL, \"deadLetteredAt\" = $1, \"lastErrorCode\" = $2, \"updatedAt\" = $3 WHERE \"id\" = $4 AND \"status\" = 'processing' AND \"leaseToken\" = $5",
+            "sha256": "2953f149d9f1a1fba8bdf579a871bd0baac90053b20f8b84191cb2b494a34e10",
+            "parameterCount": 5,
+            "namedBinds": [
+              {
+                "name": "failedAt",
+                "positions": [
+                  1,
+                  3
+                ]
+              },
+              {
+                "name": "errorCode",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "claim.id",
+                "positions": [
+                  4
+                ]
+              },
+              {
+                "name": "claim.leaseToken",
+                "positions": [
+                  5
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "ModifyTable",
+              "relationName": "SignupOutbox",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 0,
+              "totalCost": 1.03,
+              "children": [
+                {
+                  "nodeType": "Seq Scan",
+                  "relationName": "SignupOutbox",
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.03,
+                  "children": []
+                }
+              ]
+            },
+            "planSha256": "c76ee6f7473bc2fa056ef488a057fd978dcdc6f82652fed4188674449eccfb45"
+          }
+        }
+      ],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.AUTH.SIGNUP_OUTBOX.EXPIRED_ATTEMPTS.DEAD_LETTER",
+      "sourceFile": "src/lib/signup-acceptance-worker-store.ts",
+      "sourceSymbol": "signupAcceptanceWorkerStore.claimBatch",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1,
+      "rowsBefore": 2,
+      "rowsAfter": 2,
+      "rowCountDelta": 0,
+      "cases": {
+        "bounded": "dead-lettered-one-with-limit-one",
+        "claimLock": "expired-row-progressed-while-claim-row-locked",
+        "requestContext": "returned-zero-and-left-row-pending",
+        "rollback": "dead-letter-rolled-back",
+        "duplicate": "already-dead-lettered-row-not-reprocessed"
+      },
+      "observedSql": {
+        "statementType": "WITH",
+        "normalizedSql": "WITH candidates AS ( SELECT \"id\" FROM \"SignupOutbox\" WHERE \"retryCount\" >= $1 AND ( (\"status\" = 'pending' AND \"nextRetryAt\" <= $2) OR ( \"status\" = 'processing' AND (\"leaseExpiresAt\" IS NULL OR \"leaseExpiresAt\" <= $3) ) ) ORDER BY \"nextRetryAt\" ASC, \"createdAt\" ASC, \"id\" ASC FOR UPDATE SKIP LOCKED LIMIT $4 ) UPDATE \"SignupOutbox\" AS outbox SET \"status\" = 'dead_letter', \"leaseToken\" = NULL, \"leaseExpiresAt\" = NULL, \"deadLetteredAt\" = $5, \"lastErrorCode\" = 'signup.attempts_exhausted', \"updatedAt\" = $6 FROM candidates WHERE outbox.\"id\" = candidates.\"id\"",
+        "sha256": "ebc3c340505c9d10ebd87c904e4758e81cdde2dbd2da82f3cc5ec0495da998cd",
+        "parameterCount": 6,
+        "namedBinds": [
+          {
+            "name": "maxAttempts",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "worker.now",
+            "positions": [
+              2,
+              3,
+              5,
+              6
+            ]
+          },
+          {
+            "name": "limit",
+            "positions": [
+              4
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "ModifyTable",
+          "relationName": "SignupOutbox",
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 0,
+          "totalCost": 2.12,
+          "children": [
+            {
+              "nodeType": "Limit",
+              "relationName": null,
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.05,
+              "children": [
+                {
+                  "nodeType": "LockRows",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.05,
+                  "children": [
+                    {
+                      "nodeType": "Sort",
+                      "relationName": null,
+                      "indexName": null,
+                      "joinType": null,
+                      "scanDirection": null,
+                      "estimatedRows": 1,
+                      "totalCost": 1.04,
+                      "children": [
+                        {
+                          "nodeType": "Seq Scan",
+                          "relationName": "SignupOutbox",
+                          "indexName": null,
+                          "joinType": null,
+                          "scanDirection": null,
+                          "estimatedRows": 1,
+                          "totalCost": 1.03,
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nodeType": "Nested Loop",
+              "relationName": null,
+              "indexName": null,
+              "joinType": "Inner",
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.06,
+              "children": [
+                {
+                  "nodeType": "Seq Scan",
+                  "relationName": "SignupOutbox",
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.02,
+                  "children": []
+                },
+                {
+                  "nodeType": "CTE Scan",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 0.02,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        "planSha256": "5a696ed24717596fba135d48345f74ce27c46ffe35eb447fe751de76fed35243"
+      },
+      "variants": [],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.MEDIA.ASSET.DELETE.TOMBSTONE",
+      "sourceFile": "src/lib/media-service.ts",
+      "sourceSymbol": "deleteMediaForCurrentUser",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1,
+      "rowsBefore": 6,
+      "rowsAfter": 6,
+      "rowCountDelta": 0,
+      "cases": {
+        "owner": "tombstoned-one-and-audited-once",
+        "otherOwner": "media.not_found",
+        "missing": "media.not_found",
+        "rlsReplay": "exact-update-returned-zero",
+        "rollback": "tombstone-and-audit-unchanged",
+        "duplicate": "one-tombstone-one-audit-retained",
+        "feedPostResidual": "fixture-unlinked-not-proven",
+        "realtimeResidual": "disabled-no-event-path-proven",
+        "storageResidual": "loopback-best-effort-error-path-only"
+      },
+      "observedSql": {
+        "statementType": "UPDATE",
+        "normalizedSql": "UPDATE \"public\".\"MediaAsset\" SET \"deletedAt\" = $1, \"updatedAt\" = $2 WHERE (\"public\".\"MediaAsset\".\"id\" = $3 AND \"public\".\"MediaAsset\".\"deletedAt\" IS NULL)",
+        "sha256": "2074a0c3129729c0fe28b071456343bd54de1b72b437dbb28d63501e23039353",
+        "parameterCount": 3,
+        "namedBinds": [
+          {
+            "name": "deletedAt",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "prisma.updatedAt",
+            "positions": [
+              2
+            ]
+          },
+          {
+            "name": "media.id",
+            "positions": [
+              3
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "ModifyTable",
+          "relationName": "MediaAsset",
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 0,
+          "totalCost": 1.01,
+          "children": [
+            {
+              "nodeType": "Seq Scan",
+              "relationName": "MediaAsset",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.01,
+              "children": [
+                {
+                  "nodeType": "Nested Loop",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": "Inner",
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 27.58,
+                  "children": [
+                    {
+                      "nodeType": "Seq Scan",
+                      "relationName": "Message",
+                      "indexName": null,
+                      "joinType": null,
+                      "scanDirection": null,
+                      "estimatedRows": 1,
+                      "totalCost": 8.62,
+                      "children": []
+                    },
+                    {
+                      "nodeType": "Index Only Scan",
+                      "relationName": "MessageMedia",
+                      "indexName": "MessageMedia_pkey",
+                      "joinType": null,
+                      "scanDirection": "Forward",
+                      "estimatedRows": 1,
+                      "totalCost": 12.69,
+                      "children": [
+                        {
+                          "nodeType": "Seq Scan",
+                          "relationName": "Message",
+                          "indexName": null,
+                          "joinType": null,
+                          "scanDirection": null,
+                          "estimatedRows": 1,
+                          "totalCost": 2.38,
+                          "children": []
+                        },
+                        {
+                          "nodeType": "Seq Scan",
+                          "relationName": "Message",
+                          "indexName": null,
+                          "joinType": null,
+                          "scanDirection": null,
+                          "estimatedRows": 2,
+                          "totalCost": 2,
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nodeType": "Nested Loop",
+              "relationName": null,
+              "indexName": null,
+              "joinType": "Inner",
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 27.58,
+              "children": [
+                {
+                  "nodeType": "Seq Scan",
+                  "relationName": "Message",
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 8.62,
+                  "children": []
+                },
+                {
+                  "nodeType": "Index Only Scan",
+                  "relationName": "MessageMedia",
+                  "indexName": "MessageMedia_pkey",
+                  "joinType": null,
+                  "scanDirection": "Forward",
+                  "estimatedRows": 1,
+                  "totalCost": 12.69,
+                  "children": [
+                    {
+                      "nodeType": "Seq Scan",
+                      "relationName": "Message",
+                      "indexName": null,
+                      "joinType": null,
+                      "scanDirection": null,
+                      "estimatedRows": 1,
+                      "totalCost": 2.38,
+                      "children": []
+                    },
+                    {
+                      "nodeType": "Seq Scan",
+                      "relationName": "Message",
+                      "indexName": null,
+                      "joinType": null,
+                      "scanDirection": null,
+                      "estimatedRows": 2,
+                      "totalCost": 2,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "planSha256": "4406bddf3501bb90476529aa5e135b193bb169924dbbbe125cbfc1ca9298ccd2"
+      },
+      "variants": [],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.ACCOUNT.DELETION.REQUEST.TRANSACTION",
+      "sourceFile": "src/lib/account-service.ts",
+      "sourceSymbol": "requestAccountDeletion",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1,
+      "rowsBefore": 4,
+      "rowsAfter": 4,
+      "rowCountDelta": 0,
+      "cases": {
+        "owner": "updated-one-and-audited-once",
+        "lastAdmin": "admin.last_admin_forbidden",
+        "missing": "transaction-rejected-no-audit",
+        "otherUserRls": "exact-update-returned-zero",
+        "rollback": "user-and-audit-rolled-back",
+        "repeat": "second-request-updated-and-audited-once",
+        "advisoryLock": "captured-on-service-transaction",
+        "auditRls": "exact-insert-returning-rejected",
+        "auditPolicyResidual": "insert-with-check-true-remains"
+      },
+      "observedSql": {
+        "statementType": "UPDATE",
+        "normalizedSql": "UPDATE \"public\".\"User\" SET \"email\" = $1, \"isBanned\" = $2, \"deletionRequestedAt\" = $3, \"updatedAt\" = $4 WHERE (\"public\".\"User\".\"id\" = $5 AND 1=1) RETURNING \"public\".\"User\".\"id\", \"public\".\"User\".\"email\", \"public\".\"User\".\"name\", \"public\".\"User\".\"subscriptionTier\", \"public\".\"User\".\"stripeCustomerId\", \"public\".\"User\".\"stripeSubscriptionId\", \"public\".\"User\".\"isBanned\", \"public\".\"User\".\"deletionRequestedAt\", \"public\".\"User\".\"createdAt\", \"public\".\"User\".\"updatedAt\", \"public\".\"User\".\"workosUserId\"",
+        "sha256": "da2d95d4d5cf089616bbb86c70eadfdfada4b7443bf39a7d6de6e94e161faf0a",
+        "parameterCount": 5,
+        "namedBinds": [
+          {
+            "name": "deletionRequestEmail",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "isBanned",
+            "positions": [
+              2
+            ]
+          },
+          {
+            "name": "deletionRequestedAt",
+            "positions": [
+              3
+            ]
+          },
+          {
+            "name": "prisma.updatedAt",
+            "positions": [
+              4
+            ]
+          },
+          {
+            "name": "current.dbUserId",
+            "positions": [
+              5
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "ModifyTable",
+          "relationName": "User",
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 1,
+          "totalCost": 1.05,
+          "children": [
+            {
+              "nodeType": "Seq Scan",
+              "relationName": "User",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.05,
+              "children": []
+            }
+          ]
+        },
+        "planSha256": "a8698ea20ae3f34142b6af98efffa601b3612bb2c95371a662cb84f90b552a13"
+      },
+      "variants": [
+        {
+          "variant": "user-update",
+          "observedSql": {
+            "statementType": "UPDATE",
+            "normalizedSql": "UPDATE \"public\".\"User\" SET \"email\" = $1, \"isBanned\" = $2, \"deletionRequestedAt\" = $3, \"updatedAt\" = $4 WHERE (\"public\".\"User\".\"id\" = $5 AND 1=1) RETURNING \"public\".\"User\".\"id\", \"public\".\"User\".\"email\", \"public\".\"User\".\"name\", \"public\".\"User\".\"subscriptionTier\", \"public\".\"User\".\"stripeCustomerId\", \"public\".\"User\".\"stripeSubscriptionId\", \"public\".\"User\".\"isBanned\", \"public\".\"User\".\"deletionRequestedAt\", \"public\".\"User\".\"createdAt\", \"public\".\"User\".\"updatedAt\", \"public\".\"User\".\"workosUserId\"",
+            "sha256": "da2d95d4d5cf089616bbb86c70eadfdfada4b7443bf39a7d6de6e94e161faf0a",
+            "parameterCount": 5,
+            "namedBinds": [
+              {
+                "name": "deletionRequestEmail",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "isBanned",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "deletionRequestedAt",
+                "positions": [
+                  3
+                ]
+              },
+              {
+                "name": "prisma.updatedAt",
+                "positions": [
+                  4
+                ]
+              },
+              {
+                "name": "current.dbUserId",
+                "positions": [
+                  5
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "ModifyTable",
+              "relationName": "User",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.05,
+              "children": [
+                {
+                  "nodeType": "Seq Scan",
+                  "relationName": "User",
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.05,
+                  "children": []
+                }
+              ]
+            },
+            "planSha256": "a8698ea20ae3f34142b6af98efffa601b3612bb2c95371a662cb84f90b552a13"
+          }
+        },
+        {
+          "variant": "audit-insert",
+          "observedSql": {
+            "statementType": "INSERT",
+            "normalizedSql": "INSERT INTO \"public\".\"AuditLog\" (\"actorId\",\"actorType\",\"action\",\"targetType\",\"targetId\",\"ip\",\"userAgent\",\"metadata\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING \"public\".\"AuditLog\".\"id\", \"public\".\"AuditLog\".\"actorId\", \"public\".\"AuditLog\".\"actorType\", \"public\".\"AuditLog\".\"action\", \"public\".\"AuditLog\".\"targetType\", \"public\".\"AuditLog\".\"targetId\", \"public\".\"AuditLog\".\"ip\", \"public\".\"AuditLog\".\"userAgent\", \"public\".\"AuditLog\".\"metadata\", \"public\".\"AuditLog\".\"createdAt\"",
+            "sha256": "aa40e5ecfc9ca72336f803f0a2afea7bc44ee9bbfd2d19e94677246a9474708c",
+            "parameterCount": 9,
+            "namedBinds": [
+              {
+                "name": "current.dbUserId.actor",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "actorType",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "action",
+                "positions": [
+                  3
+                ]
+              },
+              {
+                "name": "targetType",
+                "positions": [
+                  4
+                ]
+              },
+              {
+                "name": "current.dbUserId.target",
+                "positions": [
+                  5
+                ]
+              },
+              {
+                "name": "request.ip",
+                "positions": [
+                  6
+                ]
+              },
+              {
+                "name": "request.userAgent",
+                "positions": [
+                  7
+                ]
+              },
+              {
+                "name": "audit.metadata",
+                "positions": [
+                  8
+                ]
+              },
+              {
+                "name": "prisma.createdAt",
+                "positions": [
+                  9
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "ModifyTable",
+              "relationName": "AuditLog",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 0.02,
+              "children": [
+                {
+                  "nodeType": "Result",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 0.02,
+                  "children": []
+                }
+              ]
+            },
+            "planSha256": "9a2e3aa5f922c3e0872f6387dd861c2f80e70dcb4ea8c23ab9a4f61296a72ff4"
+          }
+        }
+      ],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.RACING.DOG.OPEN.OWNERSHIP.SELECT",
+      "sourceFile": "src/lib/queries.ts",
+      "sourceSymbol": "getMyDogOwnership",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1,
+      "rowsBefore": 1,
+      "rowsAfter": 1,
+      "rowCountDelta": 0,
+      "cases": {
+        "claimant": "returned-four-field-rejected-projection",
+        "crossProfileService": "returned-null",
+        "crossProfileRlsReplay": "exact-select-returned-zero",
+        "anonymousRlsReplay": "exact-select-returned-zero",
+        "systemReplay": "exact-select-returned-one",
+        "missing": "returned-null",
+        "repeat": "same-row-and-sql-shape",
+        "readOnly": "row-count-unchanged",
+        "deployedParityResidual": "local-disposable-runtime-only"
+      },
+      "observedSql": {
+        "statementType": "SELECT",
+        "normalizedSql": "SELECT \"public\".\"DogOwnership\".\"id\", \"public\".\"DogOwnership\".\"role\", \"public\".\"DogOwnership\".\"status\", \"public\".\"DogOwnership\".\"rejectionReason\" FROM \"public\".\"DogOwnership\" WHERE ((\"public\".\"DogOwnership\".\"dogId\" = $1 AND \"public\".\"DogOwnership\".\"profileId\" = $2) AND 1=1) LIMIT $3 OFFSET $4",
+        "sha256": "7977e88382b5e4dae03d0158bc3e1da28e0d67513639f5547f4f93c42349e5f6",
+        "parameterCount": 4,
+        "namedBinds": [
+          {
+            "name": "route.dogId",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "current.profileId",
+            "positions": [
+              2
+            ]
+          },
+          {
+            "name": "prisma.take",
+            "positions": [
+              3
+            ]
+          },
+          {
+            "name": "prisma.skip",
+            "positions": [
+              4
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "Limit",
+          "relationName": null,
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 1,
+          "totalCost": 2.28,
+          "children": [
+            {
+              "nodeType": "Seq Scan",
+              "relationName": "DogOwnership",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 2.28,
+              "children": []
+            }
+          ]
+        },
+        "planSha256": "f1b43ce7e4566c4ecd777fa08f634ca8b995084c62584033005502bafee944c8"
+      },
+      "variants": [],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.BILLING.STRIPE_WEBHOOK_EVENT.INSERT",
+      "sourceFile": "src/lib/billing/stripe-webhooks.ts",
+      "sourceSymbol": "ingestStripeWebhook",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1,
+      "rowsBefore": 0,
+      "rowsAfter": 1,
+      "rowCountDelta": 1,
+      "cases": {
+        "invalidSignature": "rejected-before-database-write",
+        "verifiedSignature": "created-one-sanitized-receipt",
+        "systemContext": "committed-under-nobypassrls-runtime-role",
+        "memberRlsReplay": "exact-insert-rejected",
+        "anonymousRlsReplay": "exact-insert-rejected",
+        "moderatorPolicy": "exact-insert-allowed-then-rolled-back",
+        "duplicate": "one-row-retained-retry-count-incremented",
+        "conflict": "same-event-different-payload-rejected-without-overwrite",
+        "redaction": "signature-and-data-object-not-persisted",
+        "providerResidual": "stripe-network-and-delivery-not-contacted",
+        "deployedParityResidual": "local-disposable-runtime-only"
+      },
+      "observedSql": {
+        "statementType": "INSERT",
+        "normalizedSql": "INSERT INTO \"public\".\"WebhookEvent\" (\"id\",\"provider\",\"lagoEventId\",\"eventType\",\"status\",\"payloadHash\",\"payloadJson\",\"headersJson\",\"retryCount\",\"receivedAt\",\"createdAt\",\"updatedAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING \"public\".\"WebhookEvent\".\"id\", \"public\".\"WebhookEvent\".\"eventType\", \"public\".\"WebhookEvent\".\"lagoEventId\", \"public\".\"WebhookEvent\".\"retryCount\", \"public\".\"WebhookEvent\".\"status\"",
+        "sha256": "f14aea7bdce09ef59ea597ff934f488d8cb663aee68183d273296ad02fe637b9",
+        "parameterCount": 12,
+        "namedBinds": [
+          {
+            "name": "webhookEvent.id",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "provider",
+            "positions": [
+              2
+            ]
+          },
+          {
+            "name": "stripeEvent.id",
+            "positions": [
+              3
+            ]
+          },
+          {
+            "name": "stripeEvent.type",
+            "positions": [
+              4
+            ]
+          },
+          {
+            "name": "status",
+            "positions": [
+              5
+            ]
+          },
+          {
+            "name": "payloadHash",
+            "positions": [
+              6
+            ]
+          },
+          {
+            "name": "auditPayload",
+            "positions": [
+              7
+            ]
+          },
+          {
+            "name": "safeHeaders",
+            "positions": [
+              8
+            ]
+          },
+          {
+            "name": "retryCount",
+            "positions": [
+              9
+            ]
+          },
+          {
+            "name": "prisma.timestamps",
+            "positions": [
+              10,
+              11,
+              12
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "ModifyTable",
+          "relationName": "WebhookEvent",
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 1,
+          "totalCost": 0.03,
+          "children": [
+            {
+              "nodeType": "Result",
+              "relationName": null,
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 0.03,
+              "children": []
+            }
+          ]
+        },
+        "planSha256": "1ab5086dc895161bbade46a386c81aec210a9c6646d27b5db233afe161f973d3"
+      },
+      "variants": [],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.RACING.TRACK.OPEN.DETAIL_BUNDLE",
+      "sourceFile": "src/lib/queries.ts",
+      "sourceSymbol": "getTrackById",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1536,
+      "rowsBefore": 1,
+      "rowsAfter": 1,
+      "rowCountDelta": 0,
+      "cases": {
+        "public": "returned-complete-track-meeting-race-runner-dog-result-graph",
+        "anonymousRlsReplay": "all-six-exact-selects-returned-reviewed-public-rows",
+        "missing": "returned-null-after-one-bounded-track-select",
+        "topLevel": "one-track",
+        "meetings": "maximum-eight",
+        "raceQuery": "maximum-128-with-sixteen-returned-per-meeting",
+        "runnerQuery": "maximum-1536-with-twelve-returned-per-race",
+        "populatedBranches": "dog-and-result-relations-observed",
+        "mutation": "none",
+        "deployedParityResidual": "local-disposable-runtime-only"
+      },
+      "observedSql": {
+        "statementType": "SELECT",
+        "normalizedSql": "SELECT \"public\".\"Track\".\"id\", \"public\".\"Track\".\"name\", \"public\".\"Track\".\"state\", \"public\".\"Track\".\"surface\", \"public\".\"Track\".\"circumference\", \"public\".\"Track\".\"straightLength\", \"public\".\"Track\".\"boxCount\", \"public\".\"Track\".\"hasIsolynx\", \"public\".\"Track\".\"createdAt\" FROM \"public\".\"Track\" WHERE (\"public\".\"Track\".\"id\" = $1 AND 1=1) LIMIT $2 OFFSET $3",
+        "sha256": "4a4c594564f2779cce03a0933a339a1612cf069c6070419ef1acb85008432b23",
+        "parameterCount": 3,
+        "namedBinds": [
+          {
+            "name": "route.trackId",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "prisma.take",
+            "positions": [
+              2
+            ]
+          },
+          {
+            "name": "prisma.skip",
+            "positions": [
+              3
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "Limit",
+          "relationName": null,
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 1,
+          "totalCost": 1,
+          "children": [
+            {
+              "nodeType": "Seq Scan",
+              "relationName": "Track",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1,
+              "children": []
+            }
+          ]
+        },
+        "planSha256": "6dbe41d0787a1b1a52829a3a163ca5c75b6aadefa2084644ff43060b2a5d41f4"
+      },
+      "variants": [
+        {
+          "variant": "track",
+          "observedSql": {
+            "statementType": "SELECT",
+            "normalizedSql": "SELECT \"public\".\"Track\".\"id\", \"public\".\"Track\".\"name\", \"public\".\"Track\".\"state\", \"public\".\"Track\".\"surface\", \"public\".\"Track\".\"circumference\", \"public\".\"Track\".\"straightLength\", \"public\".\"Track\".\"boxCount\", \"public\".\"Track\".\"hasIsolynx\", \"public\".\"Track\".\"createdAt\" FROM \"public\".\"Track\" WHERE (\"public\".\"Track\".\"id\" = $1 AND 1=1) LIMIT $2 OFFSET $3",
+            "sha256": "4a4c594564f2779cce03a0933a339a1612cf069c6070419ef1acb85008432b23",
+            "parameterCount": 3,
+            "namedBinds": [
+              {
+                "name": "route.trackId",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "prisma.take",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "prisma.skip",
+                "positions": [
+                  3
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "Limit",
+              "relationName": null,
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1,
+              "children": [
+                {
+                  "nodeType": "Seq Scan",
+                  "relationName": "Track",
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1,
+                  "children": []
+                }
+              ]
+            },
+            "planSha256": "6dbe41d0787a1b1a52829a3a163ca5c75b6aadefa2084644ff43060b2a5d41f4"
+          }
+        },
+        {
+          "variant": "meetings",
+          "observedSql": {
+            "statementType": "SELECT",
+            "normalizedSql": "SELECT \"public\".\"Meeting\".\"id\", \"public\".\"Meeting\".\"trackId\", \"public\".\"Meeting\".\"meetingDate\", \"public\".\"Meeting\".\"meetingType\", \"public\".\"Meeting\".\"sourceProvider\", \"public\".\"Meeting\".\"sourceId\", \"public\".\"Meeting\".\"sourceRawJson\", \"public\".\"Meeting\".\"lastSyncedAt\", \"public\".\"Meeting\".\"createdAt\" FROM \"public\".\"Meeting\" WHERE \"public\".\"Meeting\".\"trackId\" = $1 ORDER BY \"public\".\"Meeting\".\"meetingDate\" DESC, \"public\".\"Meeting\".\"id\" ASC LIMIT $2 OFFSET $3",
+            "sha256": "9ba38657521c1e64d8addc6210f8adaee0f1b32c54d42545d88d0599fdd9045d",
+            "parameterCount": 3,
+            "namedBinds": [
+              {
+                "name": "route.trackId",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "meeting.limit",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "prisma.skip",
+                "positions": [
+                  3
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "Limit",
+              "relationName": null,
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.01,
+              "children": [
+                {
+                  "nodeType": "Sort",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.01,
+                  "children": [
+                    {
+                      "nodeType": "Seq Scan",
+                      "relationName": "Meeting",
+                      "indexName": null,
+                      "joinType": null,
+                      "scanDirection": null,
+                      "estimatedRows": 1,
+                      "totalCost": 1,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            "planSha256": "6a4e2aad16bead4fcf2a8fda713ac9898025d1920b1642730121193fb672a449"
+          }
+        },
+        {
+          "variant": "races",
+          "observedSql": {
+            "statementType": "SELECT",
+            "normalizedSql": "SELECT \"public\".\"Race\".\"id\", \"public\".\"Race\".\"meetingId\", \"public\".\"Race\".\"raceNumber\", \"public\".\"Race\".\"name\", \"public\".\"Race\".\"raceTime\", \"public\".\"Race\".\"distance\", \"public\".\"Race\".\"grade\", \"public\".\"Race\".\"prizeMoney\", \"public\".\"Race\".\"resultStatus\", \"public\".\"Race\".\"replayUrl\", \"public\".\"Race\".\"photoFinishUrl\", \"public\".\"Race\".\"sourceProvider\", \"public\".\"Race\".\"sourceId\", \"public\".\"Race\".\"sourceRawJson\", \"public\".\"Race\".\"lastSyncedAt\", \"public\".\"Race\".\"createdAt\" FROM \"public\".\"Race\" WHERE \"public\".\"Race\".\"meetingId\" IN ($1) ORDER BY \"public\".\"Race\".\"meetingId\" ASC, \"public\".\"Race\".\"raceNumber\" ASC, \"public\".\"Race\".\"id\" ASC LIMIT $2 OFFSET $3",
+            "sha256": "0731b83be733d848323ad3ea2135bd8f28dfaeb77f113ffabf3a4b4a59e9469c",
+            "parameterCount": 3,
+            "namedBinds": [
+              {
+                "name": "meeting.id",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "race.queryLimit",
+                "positions": [
+                  2
+                ]
+              },
+              {
+                "name": "prisma.skip",
+                "positions": [
+                  3
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "Limit",
+              "relationName": null,
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.01,
+              "children": [
+                {
+                  "nodeType": "Sort",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.01,
+                  "children": [
+                    {
+                      "nodeType": "Seq Scan",
+                      "relationName": "Race",
+                      "indexName": null,
+                      "joinType": null,
+                      "scanDirection": null,
+                      "estimatedRows": 1,
+                      "totalCost": 1,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            "planSha256": "bd05f65701db6c8d1e37df96bca985c4e54c9af8b350a02a1e766438e6d9f0fe"
+          }
+        },
+        {
+          "variant": "runners",
+          "observedSql": {
+            "statementType": "SELECT",
+            "normalizedSql": "SELECT \"public\".\"Runner\".\"id\", \"public\".\"Runner\".\"raceId\", \"public\".\"Runner\".\"dogId\", \"public\".\"Runner\".\"boxNumber\", \"public\".\"Runner\".\"weight\", \"public\".\"Runner\".\"trainerId\", \"public\".\"Runner\".\"startingPrice\", \"public\".\"Runner\".\"scratched\", \"public\".\"Runner\".\"sourceProvider\", \"public\".\"Runner\".\"sourceId\", \"public\".\"Runner\".\"sourceRawJson\", \"public\".\"Runner\".\"createdAt\" FROM \"public\".\"Runner\" WHERE \"public\".\"Runner\".\"raceId\" IN ($1,$2) ORDER BY \"public\".\"Runner\".\"raceId\" ASC, \"public\".\"Runner\".\"boxNumber\" ASC, \"public\".\"Runner\".\"id\" ASC LIMIT $3 OFFSET $4",
+            "sha256": "e861bc35fafd05b156a5df1c789b908506abe04b69ced4ac21ea2148b08dd156",
+            "parameterCount": 4,
+            "namedBinds": [
+              {
+                "name": "loaded.raceIds",
+                "positions": [
+                  1,
+                  2
+                ]
+              },
+              {
+                "name": "runner.queryLimit",
+                "positions": [
+                  3
+                ]
+              },
+              {
+                "name": "prisma.skip",
+                "positions": [
+                  4
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "Limit",
+              "relationName": null,
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.01,
+              "children": [
+                {
+                  "nodeType": "Sort",
+                  "relationName": null,
+                  "indexName": null,
+                  "joinType": null,
+                  "scanDirection": null,
+                  "estimatedRows": 1,
+                  "totalCost": 1.01,
+                  "children": [
+                    {
+                      "nodeType": "Seq Scan",
+                      "relationName": "Runner",
+                      "indexName": null,
+                      "joinType": null,
+                      "scanDirection": null,
+                      "estimatedRows": 1,
+                      "totalCost": 1,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            "planSha256": "95c6de03c467d4ce44d2289b043fe45544b83b7fba1b0b29af75bac1087bc4da"
+          }
+        },
+        {
+          "variant": "dogs",
+          "observedSql": {
+            "statementType": "SELECT",
+            "normalizedSql": "SELECT \"public\".\"Dog\".\"id\", \"public\".\"Dog\".\"name\", \"public\".\"Dog\".\"earBrand\", \"public\".\"Dog\".\"colour\", \"public\".\"Dog\".\"sex\", \"public\".\"Dog\".\"whelpDate\", \"public\".\"Dog\".\"sireId\", \"public\".\"Dog\".\"damId\", \"public\".\"Dog\".\"trainerId\", \"public\".\"Dog\".\"sourceProvider\", \"public\".\"Dog\".\"sourceId\", \"public\".\"Dog\".\"profileUrl\", \"public\".\"Dog\".\"ownerName\", \"public\".\"Dog\".\"careerStarts\", \"public\".\"Dog\".\"careerWins\", \"public\".\"Dog\".\"careerSeconds\", \"public\".\"Dog\".\"careerThirds\", \"public\".\"Dog\".\"prizeMoney\", \"public\".\"Dog\".\"winPercentage\", \"public\".\"Dog\".\"placePercentage\", \"public\".\"Dog\".\"profileStatsJson\", \"public\".\"Dog\".\"bestTimesJson\", \"public\".\"Dog\".\"boxHistoryJson\", \"public\".\"Dog\".\"distanceHistoryJson\", \"public\".\"Dog\".\"profileSourceRawJson\", \"public\".\"Dog\".\"lastProfileSyncedAt\", \"public\".\"Dog\".\"retiredAt\", \"public\".\"Dog\".\"createdAt\", \"public\".\"Dog\".\"updatedAt\" FROM \"public\".\"Dog\" WHERE \"public\".\"Dog\".\"id\" IN ($1) OFFSET $2",
+            "sha256": "b7d478609da039841ef025a7e4630bcabd3d5b4edbbc7f28937522103d5453b5",
+            "parameterCount": 2,
+            "namedBinds": [
+              {
+                "name": "loaded.dogIds",
+                "positions": [
+                  1
+                ]
+              },
+              {
+                "name": "prisma.skip",
+                "positions": [
+                  2
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "Seq Scan",
+              "relationName": "Dog",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 1.2,
+              "children": []
+            },
+            "planSha256": "f6edd577098a2aef0738f6548408a027bb80e7fbbc9d8fec77830acfc8cfb9d4"
+          }
+        },
+        {
+          "variant": "results",
+          "observedSql": {
+            "statementType": "SELECT",
+            "normalizedSql": "SELECT \"public\".\"Result\".\"id\", \"public\".\"Result\".\"runnerId\", \"public\".\"Result\".\"raceId\", \"public\".\"Result\".\"finishingPosition\", \"public\".\"Result\".\"runningTime\", \"public\".\"Result\".\"margin\", \"public\".\"Result\".\"prizeMoneyWon\", \"public\".\"Result\".\"splitTime\", \"public\".\"Result\".\"sectionals\", \"public\".\"Result\".\"gpsData\", \"public\".\"Result\".\"sourceProvider\", \"public\".\"Result\".\"sourceId\", \"public\".\"Result\".\"sourceRawJson\", \"public\".\"Result\".\"lastSyncedAt\", \"public\".\"Result\".\"createdAt\" FROM \"public\".\"Result\" WHERE \"public\".\"Result\".\"runnerId\" IN ($1,$2) OFFSET $3",
+            "sha256": "3cd659879f963d2a093a228ff2c2c62238a0f72a603f0fa165b1d69c1f827173",
+            "parameterCount": 3,
+            "namedBinds": [
+              {
+                "name": "loaded.runnerIds",
+                "positions": [
+                  1,
+                  2
+                ]
+              },
+              {
+                "name": "prisma.skip",
+                "positions": [
+                  3
+                ]
+              }
+            ],
+            "persistedParameterValues": false
+          },
+          "explain": {
+            "format": "postgresql-json-cost-plan",
+            "analyze": false,
+            "buffers": false,
+            "statementTimeoutMilliseconds": 5000,
+            "sanitized": true,
+            "plan": {
+              "nodeType": "Seq Scan",
+              "relationName": "Result",
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 2,
+              "totalCost": 1.3,
+              "children": []
+            },
+            "planSha256": "c8211c2f253909a1b3b330584c1dd4c966464c907581190cc28b81489ec18bf7"
+          }
+        }
+      ],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.ACCOUNT.DATA_EXPORT.AUDIT.INSERT",
+      "sourceFile": "src/lib/account-service.ts",
+      "sourceSymbol": "recordUserExportCompletion",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1,
+      "rowsBefore": 0,
+      "rowsAfter": 2,
+      "rowCountDelta": 2,
+      "cases": {
+        "routeBinding": "source-bound-post-delegates-to-atomic-service",
+        "owner": "created-one-under-member-request-context",
+        "otherUserRlsReplay": "exact-insert-rejected",
+        "anonymousRlsReplay": "exact-insert-rejected",
+        "ownerRlsReplay": "exact-insert-allowed-then-rolled-back",
+        "atomicRollback": "artifact-rejection-rolled-back-audit",
+        "repeat": "second-pair-created-with-same-bounded-sql-shape",
+        "deployedParityResidual": "local-disposable-runtime-only",
+        "metadata": "size-schema-counts-only-no-export-body",
+        "visibility": "actor-only-for-members"
+      },
+      "observedSql": {
+        "statementType": "INSERT",
+        "normalizedSql": "INSERT INTO \"public\".\"AuditLog\" (\"actorId\",\"actorType\",\"action\",\"targetType\",\"targetId\",\"ip\",\"userAgent\",\"metadata\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+        "sha256": "af86b600f17132e8e0583e874666a19417651fd04f2e4d900550163c46a1ecfa",
+        "parameterCount": 9,
+        "namedBinds": [
+          {
+            "name": "current.dbUserId.actor",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "actorType",
+            "positions": [
+              2
+            ]
+          },
+          {
+            "name": "action",
+            "positions": [
+              3
+            ]
+          },
+          {
+            "name": "targetType",
+            "positions": [
+              4
+            ]
+          },
+          {
+            "name": "current.dbUserId.target",
+            "positions": [
+              5
+            ]
+          },
+          {
+            "name": "request.ip",
+            "positions": [
+              6
+            ]
+          },
+          {
+            "name": "request.userAgent",
+            "positions": [
+              7
+            ]
+          },
+          {
+            "name": "audit.metadata",
+            "positions": [
+              8
+            ]
+          },
+          {
+            "name": "prisma.createdAt",
+            "positions": [
+              9
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "ModifyTable",
+          "relationName": "AuditLog",
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 0,
+          "totalCost": 0.02,
+          "children": [
+            {
+              "nodeType": "Result",
+              "relationName": null,
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 0.02,
+              "children": []
+            }
+          ]
+        },
+        "planSha256": "d83890cecbd67cf96150c668166f7107887c83137dfe0ce6642b6642e94b1d95"
+      },
+      "variants": [],
+      "status": "verified"
+    },
+    {
+      "queryId": "DB.ACCOUNT.DATA_EXPORT.ARTIFACT.INSERT",
+      "sourceFile": "src/lib/account-service.ts",
+      "sourceSymbol": "recordUserExportCompletion",
+      "runtimeIdentity": {
+        "role": "greyhoundiq_runtime",
+        "sessionRole": "greyhoundiq_runtime",
+        "database": "greyhoundiq",
+        "schema": "public",
+        "canLogin": true,
+        "superuser": false,
+        "bypassRls": false
+      },
+      "expectedMaximumRows": 1,
+      "rowsBefore": 0,
+      "rowsAfter": 2,
+      "rowCountDelta": 2,
+      "cases": {
+        "routeBinding": "source-bound-post-delegates-to-atomic-service",
+        "owner": "created-one-under-member-request-context",
+        "otherUserRlsReplay": "exact-insert-rejected",
+        "anonymousRlsReplay": "exact-insert-rejected",
+        "ownerRlsReplay": "exact-insert-allowed-then-rolled-back",
+        "atomicRollback": "artifact-rejection-rolled-back-audit",
+        "repeat": "second-pair-created-with-same-bounded-sql-shape",
+        "deployedParityResidual": "local-disposable-runtime-only",
+        "shapePolicy": "storage-and-organization-fields-rejected",
+        "ownerMutation": "update-and-delete-returned-zero",
+        "expiry": "exactly-seven-days-after-completion",
+        "visibility": "target-or-requester-only-for-members"
+      },
+      "observedSql": {
+        "statementType": "INSERT",
+        "normalizedSql": "INSERT INTO \"public\".\"ExportArtifact\" (\"id\",\"exportType\",\"status\",\"targetUserId\",\"requestedByUserId\",\"sizeBytes\",\"completedAt\",\"expiresAt\",\"createdAt\",\"updatedAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING \"public\".\"ExportArtifact\".\"id\", \"public\".\"ExportArtifact\".\"exportType\", \"public\".\"ExportArtifact\".\"status\", \"public\".\"ExportArtifact\".\"targetUserId\", \"public\".\"ExportArtifact\".\"organizationId\", \"public\".\"ExportArtifact\".\"requestedByUserId\", \"public\".\"ExportArtifact\".\"storageBucket\", \"public\".\"ExportArtifact\".\"storagePath\", \"public\".\"ExportArtifact\".\"sha256\", \"public\".\"ExportArtifact\".\"sizeBytes\", \"public\".\"ExportArtifact\".\"completedAt\", \"public\".\"ExportArtifact\".\"expiresAt\", \"public\".\"ExportArtifact\".\"createdAt\", \"public\".\"ExportArtifact\".\"updatedAt\"",
+        "sha256": "c0d4ea81b354d8d862cd789acd22d8164ca26fbfe44c1894a6af80ea0dcc0b32",
+        "parameterCount": 10,
+        "namedBinds": [
+          {
+            "name": "exportArtifact.id",
+            "positions": [
+              1
+            ]
+          },
+          {
+            "name": "exportType",
+            "positions": [
+              2
+            ]
+          },
+          {
+            "name": "status",
+            "positions": [
+              3
+            ]
+          },
+          {
+            "name": "current.dbUserId.target",
+            "positions": [
+              4
+            ]
+          },
+          {
+            "name": "current.dbUserId.requester",
+            "positions": [
+              5
+            ]
+          },
+          {
+            "name": "sizeBytes",
+            "positions": [
+              6
+            ]
+          },
+          {
+            "name": "exportedAt",
+            "positions": [
+              7
+            ]
+          },
+          {
+            "name": "expiresAt",
+            "positions": [
+              8
+            ]
+          },
+          {
+            "name": "prisma.timestamps",
+            "positions": [
+              9,
+              10
+            ]
+          }
+        ],
+        "persistedParameterValues": false
+      },
+      "explain": {
+        "format": "postgresql-json-cost-plan",
+        "analyze": false,
+        "buffers": false,
+        "statementTimeoutMilliseconds": 5000,
+        "sanitized": true,
+        "plan": {
+          "nodeType": "ModifyTable",
+          "relationName": "ExportArtifact",
+          "indexName": null,
+          "joinType": null,
+          "scanDirection": null,
+          "estimatedRows": 1,
+          "totalCost": 0.03,
+          "children": [
+            {
+              "nodeType": "Result",
+              "relationName": null,
+              "indexName": null,
+              "joinType": null,
+              "scanDirection": null,
+              "estimatedRows": 1,
+              "totalCost": 0.03,
+              "children": []
+            }
+          ]
+        },
+        "planSha256": "c804761aa043e69e7cba26ba88ae9ee258bb0cc6f841ae8ac981364cb590aeed"
+      },
+      "variants": [],
+      "status": "verified"
+    }
+  ],
+  "firstRun": {
+    "privateRowCount": 37,
+    "referenceRowCount": 1,
+    "modelCounts": {
+      "User": 4,
+      "Profile": 4,
+      "SocialActor": 5,
+      "Friendship": 1,
+      "CustomPage": 1,
+      "MediaAsset": 6,
+      "ActorGalleryMedia": 6,
+      "Thread": 1,
+      "Post": 1,
+      "Conversation": 1,
+      "ConversationParticipant": 2,
+      "Message": 1,
+      "Listing": 1,
+      "ListingLocation": 1,
+      "ListingSearchIndex": 1,
+      "ListingStatusHistory": 1
+    },
+    "fixtureSha256": "9af22bdcf145059d5ce804c111692ef37c6799f39e4aec6bfea6187b5a763b86"
+  },
+  "secondRun": {
+    "privateRowCount": 37,
+    "referenceRowCount": 1,
+    "modelCounts": {
+      "User": 4,
+      "Profile": 4,
+      "SocialActor": 5,
+      "Friendship": 1,
+      "CustomPage": 1,
+      "MediaAsset": 6,
+      "ActorGalleryMedia": 6,
+      "Thread": 1,
+      "Post": 1,
+      "Conversation": 1,
+      "ConversationParticipant": 2,
+      "Message": 1,
+      "Listing": 1,
+      "ListingLocation": 1,
+      "ListingSearchIndex": 1,
+      "ListingStatusHistory": 1
+    },
+    "fixtureSha256": "9af22bdcf145059d5ce804c111692ef37c6799f39e4aec6bfea6187b5a763b86"
+  },
+  "providerInitial": {
+    "counts": {
+      "Dog": 0,
+      "Track": 0,
+      "Meeting": 0,
+      "Race": 0
+    },
+    "rowsSha256": "c089b3729143da7745b33f34bd74f26f9bce8d7d2d2190069cae5402a3e09c1f"
+  },
+  "providerBefore": {
+    "counts": {
+      "Dog": 1,
+      "Track": 1,
+      "Meeting": 1,
+      "Race": 1
+    },
+    "rowsSha256": "7156bbc85ea2ed6be73d15521c897a0d6bdf04affb878751c1ce5ec841e16d4b"
+  },
+  "providerAfter": {
+    "counts": {
+      "Dog": 1,
+      "Track": 1,
+      "Meeting": 1,
+      "Race": 1
+    },
+    "rowsSha256": "7156bbc85ea2ed6be73d15521c897a0d6bdf04affb878751c1ce5ec841e16d4b"
+  },
+  "cleanup": {
+    "role": "postgres",
+    "purpose": "cleanup-only",
+    "deleted": {
+      "AuthAcceptanceRestoreAuditLog": 1,
+      "AuthAcceptanceSignupOutbox": 1,
+      "AuthAcceptanceSocialActor": 1,
+      "AuthAcceptanceProfile": 1,
+      "AuthAcceptanceUser": 1,
+      "StripeWebhookOperationProbe": 1,
+      "UserExportArtifact": 2,
+      "UserExportAuditLog": 2,
+      "SignupOutbox": 2,
+      "AccountDeletionAuditLog": 2,
+      "MediaDeleteAuditLog": 1,
+      "ConversationBlockAuditLog": 3,
+      "ListingStatusHistory": 1,
+      "ListingSearchIndex": 1,
+      "ListingLocation": 1,
+      "Listing": 1,
+      "Message": 1,
+      "UserBlock": 0,
+      "ConversationParticipant": 2,
+      "Conversation": 1,
+      "ActorGalleryMedia": 6,
+      "MediaAsset": 6,
+      "SocialActor": 5,
+      "CustomPage": 1,
+      "Post": 1,
+      "Thread": 1,
+      "Friendship": 1,
+      "DogOwnershipOperationProbe": 1,
+      "Profile": 4,
+      "User": 4,
+      "UserCollisionProbe": 0,
+      "Race": 1,
+      "Meeting": 1,
+      "Track": 1,
+      "Dog": 1
+    },
+    "finalPrivateRows": 0,
+    "finalProviderRows": {
+      "Dog": 0,
+      "Track": 0,
+      "Meeting": 0,
+      "Race": 0
+    }
+  },
+  "verdict": "verified"
+}

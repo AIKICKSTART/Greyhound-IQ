@@ -3,6 +3,7 @@ import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { withDbRequestContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const MEMORY_DELETE_RATE_LIMIT = 5;
 const MEMORY_DELETE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -16,17 +17,11 @@ export async function GET(
       params,
       requireCurrentUserProfile(),
     ]);
-    const item = await withDbRequestContext(current, async (tx) => {
-      const found = await tx.memoryEntry.findFirst({
+    const item = await withDbRequestContext(current, (tx) =>
+      tx.memoryEntry.findFirst({
         where: { id, userId: current.dbUserId, deletedAt: null },
-      });
-      if (!found) return null;
-      await tx.memoryEntry.update({
-        where: { id: found.id },
-        data: { lastAccessedAt: new Date(), accessCount: { increment: 1 } },
-      });
-      return found;
-    });
+      })
+    );
     if (!item) throw new Error("memory.not_found");
 
     return NextResponse.json({ item });
@@ -50,14 +45,10 @@ export async function DELETE(
       MEMORY_DELETE_RATE_LIMIT_WINDOW_MS
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        MEMORY_DELETE_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 

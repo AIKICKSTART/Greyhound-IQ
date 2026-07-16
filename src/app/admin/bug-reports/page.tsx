@@ -19,13 +19,18 @@ type BugReportRow = {
 
 export default async function AdminBugReportsPage() {
   const current = await requireModeratorProfile();
+  const canManageReports = current.profileRole === "admin";
   const bugReports = await getBugReports(current);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
       <AdminPageHeader
         title="Bug reports"
-        description="Latest 20 stored bug report records with status controls. Report descriptions stay out of this overview."
+        description={
+          canManageReports
+            ? "Latest 20 stored bug report records with audited status controls. Report descriptions stay out of this overview."
+            : "Latest 20 stored bug report records. Moderator access is read-only; an administrator is required to change severity or status."
+        }
       />
 
       <section className="giq-panel p-6">
@@ -70,10 +75,14 @@ export default async function AdminBugReportsPage() {
                       {formatDateTime(bugReport.updatedAt)}
                     </td>
                     <td className="px-4 py-3">
-                      <AdminBugReportForm
-                        bugReport={bugReport}
-                        path="/admin/bug-reports"
-                      />
+                      {canManageReports ? (
+                        <AdminBugReportForm
+                          bugReport={bugReport}
+                          path="/admin/bug-reports"
+                        />
+                      ) : (
+                        <AdminRequiredLabel />
+                      )}
                     </td>
                   </tr>
                 ))
@@ -83,6 +92,14 @@ export default async function AdminBugReportsPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function AdminRequiredLabel() {
+  return (
+    <span className="inline-flex min-h-11 items-center rounded-lg border border-amber-300/20 bg-amber-300/[0.07] px-3 text-[12px] font-semibold text-amber-200">
+      Administrator required
+    </span>
   );
 }
 

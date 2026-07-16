@@ -1,3 +1,5 @@
+import { sanitizeProviderHtml } from "./raw-sanitizer";
+
 const THEDOGS_BASE =
   process.env.THEDOGS_BASE_URL ?? "https://www.thedogs.com.au";
 const THEDOGS_FETCH_TIMEOUT_MS = positiveInt(
@@ -34,7 +36,6 @@ export type TheDogsDogProfileForm = {
   winnerDogName?: string;
   winnerDogSourceId?: string;
   inRunningPositions?: string;
-  startingPrice?: number;
   hasVideo: boolean;
   sourceRawJson: string;
 };
@@ -232,15 +233,12 @@ function parseProfileFormRow(row: string): TheDogsDogProfileForm | null {
       cleanHtml(
         firstMatch(row, /<td class="runner-form__in-running-places">([\s\S]*?)<\/td>/i)
       ) || undefined,
-    startingPrice: parseMoney(
-      firstMatch(row, /<td class="runner-form__starting-price">([\s\S]*?)<\/td>/i)
-    ),
     hasVideo: /runner-form__video[\s\S]*?href="[^"]+"/i.test(row),
     sourceRawJson: JSON.stringify({
       raceUrl,
       finishText,
       timeCells,
-      rowText: cleanHtml(row),
+      rowText: cleanHtml(sanitizeProviderHtml(row)),
     }),
   };
 }

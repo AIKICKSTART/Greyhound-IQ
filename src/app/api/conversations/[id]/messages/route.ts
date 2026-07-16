@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import {
   getConversationForProfile,
-  markConversationDelivered,
   sendConversationMessage,
 } from "@/lib/conversation-service";
 import { conversationMessageSchema } from "@/lib/conversation-validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const MESSAGE_SEND_RATE_LIMIT = 10;
 const MESSAGE_SEND_RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -38,7 +39,6 @@ export async function GET(
       id,
       query
     );
-    await markConversationDelivered(current, id);
     const pageSize = query.limit ?? MESSAGE_PAGE_SIZE;
     const nextBefore =
       conversation.messages.length === pageSize
@@ -62,21 +62,18 @@ export async function POST(
     const rateLimit = await checkRateLimit(
       `conversation:message:${current.dbUserId}:${id}`,
       MESSAGE_SEND_RATE_LIMIT,
-      MESSAGE_SEND_RATE_LIMIT_WINDOW_MS
+      MESSAGE_SEND_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true },
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        MESSAGE_SEND_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const parsed = conversationMessageSchema.parse(await request.json());
+    const parsed = conversationMessageSchema.parse(await readBoundedJsonRequest(request));
     const message = await sendConversationMessage(current, id, parsed);
     return NextResponse.json({ item: message }, { status: 201 });
   } catch (err) {

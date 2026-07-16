@@ -1,6 +1,6 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminStatusForm } from "@/app/admin/form-controls";
-import { requireModeratorProfile } from "@/lib/auth";
+import { requireAdminProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
 
@@ -24,7 +24,7 @@ type BillingEventRow = {
 };
 
 export default async function AdminBillingEventsPage() {
-  await requireModeratorProfile();
+  await requireAdminProfile();
   const events = await getBillingEvents();
 
   return (

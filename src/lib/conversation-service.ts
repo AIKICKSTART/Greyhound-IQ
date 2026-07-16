@@ -6,7 +6,8 @@ import {
   withDbSystemContext,
   type DbContextUser,
 } from "@/lib/db-context";
-import { logWarn } from "@/lib/logger";
+import { logRequestWarn } from "@/lib/logger";
+import { resolveDemoProfilePortrait } from "@/lib/demo-profile-media";
 import { assertMediaAttachable } from "@/lib/media-service";
 import { findBannedPhraseMatch } from "@/lib/moderation-service";
 import {
@@ -16,34 +17,81 @@ import {
 import {
   broadcastConversationRealtimeEvent,
   broadcastProfileRealtimeEvent,
+  revokeConversationRealtimeGrants,
 } from "@/lib/realtime-service";
+import {
+  requireOwnedActor,
+  type SocialActorSummary,
+} from "@/lib/social-actor-service";
 import { PRIVATE_USER_MEDIA_BUCKET } from "@/lib/storage-paths";
 import { assertPaidFeatureAccess } from "@/lib/tier-access";
 import type { Prisma } from "@prisma/client";
 
+const CONVERSATION_ACTOR_SELECT = {
+  id: true,
+  kind: true,
+  handle: true,
+  displayName: true,
+  avatarUrl: true,
+  ownerProfileId: true,
+  profileId: true,
+  pageId: true,
+  published: true,
+} as const;
+
 const CONVERSATION_INCLUDE = {
   participantA: {
-    include: {
-      user: {
-        select: {
-          email: true,
-          subscriptionTier: true,
-        },
-      },
-    },
+    select: { id: true, displayName: true, avatarUrl: true, kennelName: true, state: true },
   },
   participantB: {
-    include: {
-      user: {
-        select: {
-          email: true,
-          subscriptionTier: true,
-        },
-      },
-    },
+    select: { id: true, displayName: true, avatarUrl: true, kennelName: true, state: true },
   },
-  participants: true,
+  participantAActor: { select: CONVERSATION_ACTOR_SELECT },
+  participantBActor: { select: CONVERSATION_ACTOR_SELECT },
+  participants: {
+    include: { actor: { select: CONVERSATION_ACTOR_SELECT } },
+  },
 } as const;
+
+function withDemoConversationPortraits<
+  T extends Prisma.ConversationGetPayload<{ include: typeof CONVERSATION_INCLUDE }>,
+>(conversation: T) {
+  return {
+    ...conversation,
+    participantA: {
+      ...conversation.participantA,
+      avatarUrl: resolveDemoProfilePortrait(
+        conversation.participantA.displayName,
+        conversation.participantA.avatarUrl,
+      ),
+    },
+    participantB: {
+      ...conversation.participantB,
+      avatarUrl: resolveDemoProfilePortrait(
+        conversation.participantB.displayName,
+        conversation.participantB.avatarUrl,
+      ),
+    },
+    participantAActor: conversation.participantAActor
+      ? {
+          ...conversation.participantAActor,
+          avatarUrl: resolveDemoProfilePortrait(
+            conversation.participantAActor.displayName,
+            conversation.participantAActor.avatarUrl,
+          ),
+        }
+      : null,
+    participantBActor: conversation.participantBActor
+      ? {
+          ...conversation.participantBActor,
+          avatarUrl: resolveDemoProfilePortrait(
+            conversation.participantBActor.displayName,
+            conversation.participantBActor.avatarUrl,
+          ),
+        }
+      : null,
+  };
+}
 
 // The conversation list only renders the last message's sender/body/read state
 // and whether it carried media — not the full thread of receipts/reactions.
@@ -52,14 +100,17 @@ const CONVERSATION_LIST_MESSAGE_SELECT = {
   body: true,
   createdAt: true,
   senderId: true,
+  senderActor: { select: CONVERSATION_ACTOR_SELECT },
+  recipientActor: { select: CONVERSATION_ACTOR_SELECT },
   read: true,
   readAt: true,
   _count: { select: { media: true } },
 } as const;
 
 const MESSAGE_INCLUDE = {
-  sender: true,
-  recipient: true,
+  sender: { select: { displayName: true } },
+  senderActor: { select: CONVERSATION_ACTOR_SELECT },
+  recipientActor: { select: CONVERSATION_ACTOR_SELECT },
   media: {
     orderBy: { position: "asc" },
     include: { media: true },
@@ -68,7 +119,7 @@ const MESSAGE_INCLUDE = {
   readReceipts: true,
   reactions: {
     orderBy: { createdAt: "asc" },
-    include: { profile: true },
+    select: { profileId: true },
   },
 } as const;
 
@@ -79,13 +130,12 @@ export function canonicalProfilePair(profileAId: string, profileBId: string) {
 }
 
 export async function listConversationsForProfile(current: DbContextUser) {
-  return withDbRequestContext(current, (tx) =>
-    tx.conversation.findMany({
+  return withDbRequestContext(current, async (tx) => {
+    const conversations = await tx.conversation.findMany({
       where: {
         OR: [
           { participantAId: current.profileId },
           { participantBId: current.profileId },
-          { participants: { some: { profileId: current.profileId } } },
         ],
       },
       orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }],
@@ -99,8 +149,9 @@ export async function listConversationsForProfile(current: DbContextUser) {
         },
       },
       take: 50,
-    })
-  );
+    });
+    return conversations.map(withDemoConversationPortraits);
+  });
 }
 
 export async function getConversationForProfile(
@@ -115,7 +166,6 @@ export async function getConversationForProfile(
         OR: [
           { participantAId: current.profileId },
           { participantBId: current.profileId },
-          { participants: { some: { profileId: current.profileId } } },
         ],
       },
       include: CONVERSATION_INCLUDE,
@@ -137,61 +187,175 @@ export async function getConversationForProfile(
     const messages = await tx.message.findMany({
       where: messageWhere,
       orderBy: { createdAt: "desc" },
-      take: Math.min(opts?.limit ?? 50, 50),
+      take: Math.min(Math.max(1, Math.trunc(opts?.limit ?? 50)), 50),
       include: MESSAGE_INCLUDE,
     });
     messages.reverse();
 
-    return { ...conversation, messages };
+    return { ...withDemoConversationPortraits(conversation), messages };
   });
 }
 
-export async function startOrGetConversation(
-  current: CurrentUserProfile,
-  recipientIdOrProfileId: string
+export async function searchConversationMessages(
+  current: DbContextUser,
+  conversationId: string,
+  rawQuery: string,
+  options?: { before?: string | null; limit?: number }
 ) {
-  // Direct messaging is a Pro feature (pricing: Free = "No messaging
-  // trainers/sellers"). Enforce here so the action, /api/conversations, and
-  // /api/messages all inherit the paywall from this shared chokepoint.
-  assertPaidFeatureAccess(current);
-
-  const recipient = await withDbRequestContext(current, (tx) =>
-    tx.profile.findFirst({
+  const query = rawQuery.trim().replace(/\s+/g, " ").slice(0, 100);
+  if (query.length < 2) return { items: [], nextCursor: null };
+  const limit = Math.min(Math.max(Math.trunc(options?.limit ?? 20), 1), 50);
+  return withDbRequestContext(current, async (tx) => {
+    const conversation = await tx.conversation.findFirst({
       where: {
+        id: conversationId,
         OR: [
-          { id: recipientIdOrProfileId },
-          { userId: recipientIdOrProfileId },
+          { participantAId: current.profileId },
+          { participantBId: current.profileId },
         ],
       },
-      include: {
-        user: {
-          select: {
-            isBanned: true,
-            deletionRequestedAt: true,
-          },
-        },
+      select: { id: true },
+    });
+    if (!conversation) throw new Error("conversation.not_found");
+    const cursor = options?.before
+      ? await tx.message.findFirst({
+          where: { id: options.before, conversationId },
+          select: { id: true, createdAt: true },
+        })
+      : null;
+    if (options?.before && !cursor) throw new Error("message.not_found");
+    const rows = await tx.message.findMany({
+      where: {
+        conversationId,
+        body: { contains: query, mode: "insensitive" },
+        AND: [
+          visibleMessageWhere(current.profileId),
+          ...(cursor
+            ? [
+                {
+                  OR: [
+                    { createdAt: { lt: cursor.createdAt } },
+                    { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+                  ],
+                },
+              ]
+            : []),
+        ],
       },
-    })
-  );
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: Math.min(Math.max(1, limit + 1), 51),
+      include: MESSAGE_INCLUDE,
+    });
+    const items = rows.slice(0, limit);
+    return {
+      items,
+      nextCursor: rows.length > limit ? items.at(-1)?.id ?? null : null,
+    };
+  });
+}
+
+export type ConversationStartOptions = {
+  senderActorId?: string | null;
+};
+
+type ConversationActorIdentity = Pick<
+  SocialActorSummary,
+  | "id"
+  | "kind"
+  | "handle"
+  | "displayName"
+  | "avatarUrl"
+  | "ownerProfileId"
+  | "profileId"
+  | "pageId"
+  | "published"
+>;
+
+export async function startOrGetConversation(
+  current: CurrentUserProfile,
+  recipientIdOrProfileId: string,
+  options?: ConversationStartOptions
+) {
+  const identities = await withDbRequestContext(current, async (tx) => {
+    const senderActor = await requireOwnedActor(
+      current,
+      options?.senderActorId,
+      tx
+    );
+    const recipient = await resolveConversationRecipient(
+      tx,
+      recipientIdOrProfileId
+    );
+    return { senderActor, recipient };
+  });
+  const { senderActor, recipient } = identities;
   if (!recipient) throw new Error("conversation.recipient_not_found");
-  if (recipient.user.isBanned || recipient.user.deletionRequestedAt) {
-    throw new Error("conversation.recipient_unavailable");
+  if (senderActor.kind === "page") {
+    assertPaidFeatureAccess(current);
+    if (!senderActor.published) throw new Error("actor.page_unpublished");
   }
-  if (recipient.id === current.profileId) {
+  await assertProfileCanReceiveMessage(recipient.profileId);
+  if (recipient.profileId === current.profileId) {
     throw new Error("conversation.cannot_message_self");
   }
-  await assertProfilesCanInteract(current.profileId, recipient.id);
+  await assertProfilesCanInteract(current.profileId, recipient.profileId);
 
-  const pair = canonicalProfilePair(current.profileId, recipient.id);
+  const pair = canonicalProfilePair(current.profileId, recipient.profileId);
+  const actorPair =
+    pair.participantAId === current.profileId
+      ? {
+          participantAActorId: senderActor.id,
+          participantBActorId: recipient.actor.id,
+        }
+      : {
+          participantAActorId: recipient.actor.id,
+          participantBActorId: senderActor.id,
+        };
+
   return withDbRequestContext(current, async (tx) => {
-    const conversation = await tx.conversation.upsert({
-      where: {
-        participantAId_participantBId: pair,
-      },
-      update: {},
-      create: pair,
+    let conversation = await tx.conversation.findFirst({
+      where: { ...pair, ...actorPair },
       include: CONVERSATION_INCLUDE,
     });
+    if (!conversation && !actorConversationMultiplexEnabled()) {
+      const legacyPair = await tx.conversation.findFirst({
+        where: pair,
+        include: CONVERSATION_INCLUDE,
+      });
+      if (
+        legacyPair &&
+        (legacyPair.participantAActorId || legacyPair.participantBActorId)
+      ) {
+        throw new Error("conversation.actor_pair_conflict");
+      }
+      conversation = legacyPair;
+    }
+    if (!conversation) {
+      try {
+        conversation = await tx.conversation.create({
+          data: { ...pair, ...actorPair },
+          include: CONVERSATION_INCLUDE,
+        });
+      } catch (err) {
+        if (!isUniqueConstraintError(err)) throw err;
+        conversation = await tx.conversation.findFirst({
+          where: { ...pair, ...actorPair },
+          include: CONVERSATION_INCLUDE,
+        });
+      }
+    }
+    if (!conversation) throw new Error("conversation.create_failed");
+    assertConversationActorPair(conversation, actorPair);
+    if (
+      conversation.participantAActorId !== actorPair.participantAActorId ||
+      conversation.participantBActorId !== actorPair.participantBActorId
+    ) {
+      conversation = await tx.conversation.update({
+        where: { id: conversation.id },
+        data: actorPair,
+        include: CONVERSATION_INCLUDE,
+      });
+    }
     await ensureConversationParticipants(tx, conversation);
     return conversation;
   });
@@ -202,22 +366,19 @@ export async function sendConversationMessage(
   conversationId: string,
   input: { body: string; mediaIds?: string[] }
 ) {
-  // Sending a message is Pro-only (see startOrGetConversation). Gating send as
-  // well as start closes the paywall bypass on the reply path too.
-  assertPaidFeatureAccess(current);
-
+  // Personal text messaging is available to every tier. The participant check
+  // below and giq_message_write_guard enforce the same boundary under RLS.
   const conversation = await getConversationForProfile(
     current,
     conversationId,
   );
   assertNotBlocked(conversation.blockedById);
 
-  const recipientId =
-    conversation.participantAId === current.profileId
-      ? conversation.participantBId
-      : conversation.participantAId;
+  const { senderActor, recipientActor } =
+    await resolveConversationActorsForSender(current, conversation);
+  const recipientId = recipientActor.ownerProfileId;
   await assertProfilesCanInteract(current.profileId, recipientId);
-  await assertProfileCanReceiveMessage(recipientId);
+  const recipientUserId = await assertProfileCanReceiveMessage(recipientId);
   const mediaIds = input.mediaIds ?? [];
   const media = await assertMediaAttachable(current, mediaIds, 4, {
     allowPending: true,
@@ -235,7 +396,9 @@ export async function sendConversationMessage(
       data: {
         conversationId: conversation.id,
         senderId: current.profileId,
+        senderActorId: senderActor.id,
         recipientId,
+        recipientActorId: recipientActor.id,
         body: input.body,
         createdAt,
         media:
@@ -289,6 +452,8 @@ export async function sendConversationMessage(
     metadata: {
       messageId: message.id,
       recipientProfileId: recipientId,
+      senderActorId: senderActor.id,
+      recipientActorId: recipientActor.id,
       mediaCount: mediaIds.length,
       phraseFlag: phraseMatch?.id,
     },
@@ -297,12 +462,15 @@ export async function sendConversationMessage(
     messageId: message.id,
     senderProfileId: current.profileId,
     recipientProfileId: recipientId,
+    senderActorId: senderActor.id,
+    recipientActorId: recipientActor.id,
   });
   await createInAppNotificationDeduped({
-    userId: message.recipient.userId,
+    userId: recipientUserId,
     actorProfileId: current.profileId,
+    actorId: senderActor.id,
     type: "message",
-    title: `New message from ${current.displayName}`,
+    title: `New message from ${senderActor.displayName}`,
     body: notificationBodySnippet(input.body),
     href: `/pulse/${conversation.id}`,
     targetType: "message",
@@ -321,6 +489,8 @@ export async function markConversationRead(
     current,
     conversationId,
   );
+  const { senderActor: currentActor } =
+    await resolveConversationActorsForSender(current, conversation);
   const result = await withDbRequestContext(current, async (tx) => {
     const unread = await tx.message.findMany({
       where: {
@@ -330,6 +500,7 @@ export async function markConversationRead(
         deletedByRecipientAt: null,
       },
       orderBy: { createdAt: "asc" },
+      take: 200,
       select: { id: true },
     });
     if (unread.length === 0) return 0;
@@ -366,10 +537,14 @@ export async function markConversationRead(
           profileId: current.profileId,
         },
       },
-      update: { lastReadMessageId: messageIds[messageIds.length - 1] },
+      update: {
+        actorId: currentActor.id,
+        lastReadMessageId: messageIds[messageIds.length - 1],
+      },
       create: {
         conversationId: conversation.id,
         profileId: current.profileId,
+        actorId: currentActor.id,
         lastReadMessageId: messageIds[messageIds.length - 1],
       },
     });
@@ -411,6 +586,8 @@ export async function markConversationDelivered(
           deletedByRecipientAt: null,
           deliveryReceipts: { none: { profileId: current.profileId } },
         },
+        orderBy: { createdAt: "asc" },
+        take: 200,
         select: { id: true },
       });
       if (undelivered.length === 0) {
@@ -451,6 +628,8 @@ export async function countUnreadMessagesByConversation(current: DbContextUser) 
           deletedByRecipientAt: null,
         },
         _count: { _all: true },
+        orderBy: { conversationId: "asc" },
+        take: 5_000,
       })
     );
     const counts = new Map<string, number>();
@@ -577,6 +756,13 @@ export async function setConversationBlock(
     return nextConversation;
   });
 
+  if (blocked) {
+    await revokeConversationRealtimeGrants(conversation.id, [
+      current.profileId,
+      blockedProfileId,
+    ]);
+  }
+
   await createAuditLog({
     actorId: current.dbUserId,
     actorType: "user",
@@ -701,13 +887,199 @@ function otherProfileId(
     : conversation.participantAId;
 }
 
+async function resolveConversationRecipient(
+  tx: Prisma.TransactionClient,
+  recipientIdOrProfileId: string
+): Promise<{
+  profileId: string;
+  actor: ConversationActorIdentity;
+} | null> {
+  const actor = await tx.socialActor.findFirst({
+    where: {
+      id: recipientIdOrProfileId,
+      published: true,
+    },
+    select: {
+      ...CONVERSATION_ACTOR_SELECT,
+      ownerProfile: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+  if (actor) {
+    return {
+      profileId: actor.ownerProfile.id,
+      actor,
+    };
+  }
+
+  const profile = await tx.profile.findFirst({
+    where: {
+      OR: [
+        { id: recipientIdOrProfileId },
+        { userId: recipientIdOrProfileId },
+      ],
+    },
+    select: {
+      id: true,
+      socialActor: { select: CONVERSATION_ACTOR_SELECT },
+    },
+  });
+  if (!profile?.socialActor) return null;
+  return {
+    profileId: profile.id,
+    actor: profile.socialActor,
+  };
+}
+
+function assertConversationActorPair(
+  conversation: {
+    participantAActorId: string | null;
+    participantBActorId: string | null;
+  },
+  actorPair: {
+    participantAActorId: string;
+    participantBActorId: string;
+  }
+) {
+  if (
+    (conversation.participantAActorId &&
+      conversation.participantAActorId !== actorPair.participantAActorId) ||
+    (conversation.participantBActorId &&
+      conversation.participantBActorId !== actorPair.participantBActorId)
+  ) {
+    throw new Error("conversation.actor_pair_conflict");
+  }
+}
+
+function isUniqueConstraintError(err: unknown) {
+  return (err as { code?: string } | null)?.code === "P2002";
+}
+
+function actorConversationMultiplexEnabled() {
+  const configured = process.env.ACTOR_CONVERSATION_MULTIPLEX_ENABLED;
+  if (configured === "true") return true;
+  if (configured === "false") return false;
+  return process.env.NODE_ENV !== "production";
+}
+
+async function resolveConversationActorsForSender(
+  current: DbContextUser,
+  conversation: {
+    id: string;
+    participantAId: string;
+    participantAActorId: string | null;
+    participantAActor: ConversationActorIdentity | null;
+    participantBId: string;
+    participantBActorId: string | null;
+    participantBActor: ConversationActorIdentity | null;
+  }
+) {
+  if (
+    current.profileId !== conversation.participantAId &&
+    current.profileId !== conversation.participantBId
+  ) {
+    throw new Error("conversation.not_found");
+  }
+
+  let participantAActor = conversation.participantAActor;
+  let participantBActor = conversation.participantBActor;
+  if (!participantAActor || !participantBActor) {
+    // The caller is already authorized for this 1:1 conversation. A system
+    // read preserves its fixed actor identity even if a profile becomes hidden.
+    const actorIds = [
+      conversation.participantAActorId,
+      conversation.participantBActorId,
+    ].filter((id): id is string => Boolean(id));
+    const fallbackActors = await withDbSystemContext((tx) =>
+      tx.socialActor.findMany({
+        where: {
+          OR: [
+            { id: { in: actorIds } },
+            {
+              profileId: {
+                in: [conversation.participantAId, conversation.participantBId],
+              },
+            },
+          ],
+        },
+        select: CONVERSATION_ACTOR_SELECT,
+        take: 4,
+      })
+    );
+    participantAActor ??=
+      fallbackActors.find(
+        (actor) => actor.id === conversation.participantAActorId
+      ) ??
+      fallbackActors.find(
+        (actor) => actor.profileId === conversation.participantAId
+      ) ??
+      null;
+    participantBActor ??=
+      fallbackActors.find(
+        (actor) => actor.id === conversation.participantBActorId
+      ) ??
+      fallbackActors.find(
+        (actor) => actor.profileId === conversation.participantBId
+      ) ??
+      null;
+  }
+  if (!participantAActor || !participantBActor) {
+    throw new Error("conversation.actor_not_found");
+  }
+  if (
+    participantAActor.ownerProfileId !== conversation.participantAId ||
+    participantBActor.ownerProfileId !== conversation.participantBId
+  ) {
+    throw new Error("conversation.actor_pair_invalid");
+  }
+
+  if (
+    conversation.participantAActorId !== participantAActor.id ||
+    conversation.participantBActorId !== participantBActor.id
+  ) {
+    await withDbRequestContext(current, async (tx) => {
+      const updated = await tx.conversation.update({
+        where: { id: conversation.id },
+        data: {
+          participantAActorId: participantAActor.id,
+          participantBActorId: participantBActor.id,
+        },
+      });
+      await ensureConversationParticipants(tx, updated);
+    });
+  }
+
+  const currentIsA = current.profileId === conversation.participantAId;
+  const senderActor = currentIsA ? participantAActor : participantBActor;
+  const recipientActor = currentIsA ? participantBActor : participantAActor;
+  if (senderActor.ownerProfileId !== current.profileId) {
+    throw new Error("actor.not_owned");
+  }
+  return { senderActor, recipientActor };
+}
+
 async function ensureConversationParticipants(
   tx: Prisma.TransactionClient,
-  conversation: { id: string; participantAId: string; participantBId: string }
+  conversation: {
+    id: string;
+    participantAId: string;
+    participantAActorId: string | null;
+    participantBId: string;
+    participantBActorId: string | null;
+  }
 ) {
-  for (const profileId of [
-    conversation.participantAId,
-    conversation.participantBId,
+  for (const { profileId, actorId } of [
+    {
+      profileId: conversation.participantAId,
+      actorId: conversation.participantAActorId,
+    },
+    {
+      profileId: conversation.participantBId,
+      actorId: conversation.participantBActorId,
+    },
   ]) {
     await tx.conversationParticipant.upsert({
       where: {
@@ -716,10 +1088,11 @@ async function ensureConversationParticipants(
           profileId,
         },
       },
-      update: {},
+      update: { actorId },
       create: {
         conversationId: conversation.id,
         profileId,
+        actorId,
       },
     });
   }
@@ -762,7 +1135,7 @@ async function touchPresence(profileId: string) {
       })
     );
   } catch (err) {
-    logWarn("presence.upsert_failed", { profileId }, err);
+    await logRequestWarn("presence.upsert_failed", { profileId }, err);
   }
 }
 
@@ -776,10 +1149,11 @@ async function assertProfileCanReceiveMessage(profileId: string) {
           deletionRequestedAt: null,
         },
       },
-      select: { id: true },
+      select: { userId: true },
     })
   );
   if (!profile) throw new Error("conversation.recipient_unavailable");
+  return profile.userId;
 }
 
 async function refreshConversationLastMessageAt(conversationId: string) {

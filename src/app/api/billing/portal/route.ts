@@ -6,8 +6,18 @@ import {
   getStripeCheckoutEnv,
   type StripeCheckoutEnv,
 } from "@/lib/billing/stripe-env";
+import {
+  buildBillingFailureUrl,
+  buildBillingRateLimitUrl,
+} from "@/lib/billing/billing-return-recovery";
 import { createStripePortalSession } from "@/lib/billing/stripe-service";
+import { logRequestError } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
+import {
+  prefersHtmlFormNavigation,
+  prefersHtmlRateLimitRecovery,
+} from "@/lib/rate-limit-recovery";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -28,25 +38,45 @@ export async function POST(request: Request) {
       { failClosed: true }
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      if (prefersHtmlRateLimitRecovery(request)) {
+        return NextResponse.redirect(
+          buildBillingRateLimitUrl({
+            appUrl: env.appUrl,
+            surface: "portal",
+          }),
+          303,
+        );
+      }
+      return rateLimitExceededResponse(
+        rateLimit,
+        PORTAL_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const session = await createStripePortalSession({ current, env });
-    if (!session?.url) {
-      const pricingUrl = new URL("/pricing", env.appUrl);
-      pricingUrl.searchParams.set("billing", "not_started");
-      return NextResponse.redirect(pricingUrl, 303);
-    }
+    try {
+      const session = await createStripePortalSession({ current, env });
+      if (!session?.url) {
+        const pricingUrl = new URL("/pricing", env.appUrl);
+        pricingUrl.searchParams.set("billing", "not_started");
+        return NextResponse.redirect(pricingUrl, 303);
+      }
 
-    return NextResponse.redirect(session.url, 303);
+      return NextResponse.redirect(session.url, 303);
+    } catch (err) {
+      await logRequestError(
+        "billing.portal_start_failed",
+        { surface: "portal" },
+        err,
+      );
+      if (prefersHtmlFormNavigation(request)) {
+        return NextResponse.redirect(
+          buildBillingFailureUrl({ appUrl: env.appUrl, surface: "portal" }),
+          303,
+        );
+      }
+      throw err;
+    }
   } catch (err) {
     return jsonError(err, "Could not open billing portal");
   }

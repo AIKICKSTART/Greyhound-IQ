@@ -1,0 +1,1055 @@
+.catalogue {
+  --lab-bg: #07070b;
+  --lab-panel: rgba(16, 15, 23, 0.88);
+  --lab-line: rgba(255, 255, 255, 0.1);
+  --lab-muted: rgba(239, 237, 247, 0.62);
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 15% -10%, rgba(124, 58, 237, 0.19), transparent 30rem),
+    #07070b;
+  color: #f7f5fb;
+}
+
+.reviewHeader {
+  display: flex;
+  max-width: 96rem;
+  margin: 0 auto;
+  padding: 2.5rem clamp(1rem, 4vw, 3.5rem) 1.5rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.reviewHeaderCopy {
+  max-width: 52rem;
+}
+
+.reviewLabel,
+.templateCode,
+.panelLabel {
+  margin: 0;
+  color: #d9ae54;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.reviewHeader h1 {
+  margin: 0.55rem 0 0;
+  font-size: clamp(2rem, 5vw, 4.3rem);
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+}
+
+.reviewHeaderCopy > p:last-child {
+  max-width: 45rem;
+  margin: 1rem 0 0;
+  color: var(--lab-muted);
+  font-size: clamp(0.88rem, 1.4vw, 1.02rem);
+  line-height: 1.7;
+}
+
+.reviewStatus {
+  display: flex;
+  min-width: 15rem;
+  padding: 0.85rem 1rem;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: 1rem;
+  background: rgba(12, 34, 24, 0.65);
+  color: rgba(220, 252, 231, 0.78);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.reviewStatus svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: none;
+  color: #86efac;
+}
+
+.selector {
+  display: grid;
+  position: relative;
+  z-index: 5;
+  max-width: 96rem;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 3.5rem) 1.25rem;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.selectorOption {
+  display: grid;
+  min-width: 0;
+  min-height: 5.5rem;
+  padding: 0.8rem;
+  grid-template-columns: auto 1fr;
+  align-content: center;
+  column-gap: 0.55rem;
+  border: 1px solid var(--lab-line);
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.58);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.selectorOption:hover {
+  transform: translateY(-2px);
+  border-color: rgba(217, 174, 84, 0.34);
+  color: #fff;
+}
+
+.selectorOption:focus-visible {
+  outline: 2px solid #d9ae54;
+  outline-offset: 3px;
+}
+
+.selectorOption strong {
+  grid-row: 1 / 3;
+  align-self: start;
+  color: #d9ae54;
+  font-size: 0.78rem;
+}
+
+.selectorOption span {
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectorOption small {
+  overflow: hidden;
+  margin-top: 0.15rem;
+  font-size: 0.62rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.72;
+}
+
+.selectorOptionActive {
+  border-color: rgba(217, 174, 84, 0.55);
+  background: linear-gradient(145deg, rgba(105, 57, 190, 0.38), rgba(217, 174, 84, 0.09));
+  color: #fff;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+}
+
+.activeSummary {
+  display: none;
+}
+
+.template {
+  position: relative;
+  max-width: 96rem;
+  min-height: 50rem;
+  margin: 0 auto;
+  padding: clamp(1.2rem, 4vw, 3.5rem);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  isolation: isolate;
+}
+
+.templateHeading {
+  display: flex;
+  margin-bottom: clamp(1.5rem, 3vw, 2.75rem);
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.templateHeading > div {
+  max-width: 50rem;
+}
+
+.templateHeading h2,
+.grandstandCopy h2 {
+  max-width: 48rem;
+  margin: 0.65rem 0 0;
+  font-size: clamp(2rem, 5vw, 4.5rem);
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  line-height: 0.96;
+}
+
+.templateHeading > p {
+  max-width: 31rem;
+  margin: 0;
+  color: var(--lab-muted);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+.primaryAction {
+  display: inline-flex;
+  min-height: 2.9rem;
+  margin-top: 1.5rem;
+  padding: 0.75rem 1rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border-radius: 0.75rem;
+  background: #d9ae54;
+  color: #110d06;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.primaryAction svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.primaryAction:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.cardMount {
+  width: min(100%, 20rem);
+  min-width: 0;
+  margin: 0 auto;
+}
+
+.portrait {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  background: rgba(7, 6, 10, 0.72);
+  color: #fff;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease;
+}
+
+.portrait:hover {
+  transform: translateY(-4px);
+  border-color: rgba(217, 174, 84, 0.42);
+}
+
+.portrait:focus-visible {
+  outline: 2px solid #d9ae54;
+  outline-offset: 3px;
+}
+
+.portraitImage {
+  display: block;
+  position: relative;
+  aspect-ratio: 5 / 7;
+  overflow: hidden;
+  background: #08070b;
+}
+
+.portraitImage img {
+  object-fit: cover;
+}
+
+.portraitCopy {
+  display: block;
+  padding: 0.8rem;
+}
+
+.portraitCopy strong,
+.portraitCopy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portraitCopy strong {
+  font-size: 0.82rem;
+}
+
+.portraitCopy small {
+  margin-top: 0.2rem;
+  color: var(--lab-muted);
+  font-size: 0.65rem;
+}
+
+.portraitCompact {
+  display: grid;
+  grid-template-columns: 4.7rem minmax(0, 1fr);
+  align-items: center;
+}
+
+.portraitCompact .portraitCopy {
+  padding: 0.6rem 0.7rem;
+}
+
+.panelLabel {
+  margin-bottom: 0.8rem;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.58rem;
+}
+
+/* M1: wide editorial hierarchy with one hero card and programme rail. */
+.grandstand {
+  background:
+    linear-gradient(90deg, rgba(217, 174, 84, 0.08) 1px, transparent 1px) 0 0 / 18rem 100%,
+    radial-gradient(circle at 84% 15%, rgba(126, 72, 204, 0.28), transparent 26rem),
+    linear-gradient(145deg, #0e0a15, #07070b 65%);
+}
+
+.grandstand::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(108deg, transparent 0 67%, rgba(217, 174, 84, 0.1) 67% 67.2%, transparent 67.2%);
+}
+
+.grandstandHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(17rem, 0.55fr);
+  align-items: center;
+  gap: clamp(2rem, 6vw, 6rem);
+}
+
+.grandstandCopy > p:not(.templateCode) {
+  max-width: 39rem;
+  margin: 1.25rem 0 0;
+  color: var(--lab-muted);
+  line-height: 1.75;
+}
+
+.inlineFacts {
+  display: grid;
+  max-width: 45rem;
+  margin: 2rem 0 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-block: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.inlineFacts div {
+  padding: 1rem 1rem 1rem 0;
+}
+
+.inlineFacts div + div {
+  padding-left: 1rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.inlineFacts dt {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+}
+
+.inlineFacts dd {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.grandstandFeatureCard {
+  width: min(100%, 22rem);
+}
+
+.grandstandRail {
+  display: grid;
+  margin-top: clamp(3rem, 7vw, 6rem);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+/* M2: dense exchange with table-first comparison. */
+.exchange {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px) 0 0 / 100% 2.8rem,
+    #080a0d;
+}
+
+.exchangeToolbar,
+.dataTableHeader {
+  display: flex;
+  min-height: 3rem;
+  padding: 0.7rem 0.9rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgba(107, 196, 255, 0.16);
+  border-radius: 0.65rem;
+  background: rgba(11, 18, 24, 0.92);
+  color: rgba(220, 240, 255, 0.62);
+  font-size: 0.68rem;
+}
+
+.exchangeToolbar span,
+.dataTableHeader span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.exchangeToolbar svg,
+.dataTableHeader svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: #68c8ff;
+}
+
+.exchangeGrid {
+  display: grid;
+  margin-top: 0.8rem;
+  grid-template-columns: minmax(0, 1.55fr) minmax(18rem, 0.55fr);
+  gap: 0.8rem;
+}
+
+.exchangeTableWrap,
+.dataTableWrap {
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid rgba(107, 196, 255, 0.14);
+  border-radius: 0.75rem;
+  background: rgba(7, 12, 17, 0.9);
+}
+
+.exchangeTable,
+.dataTable {
+  width: 100%;
+  min-width: 48rem;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.exchangeTable th,
+.exchangeTable td,
+.dataTable th,
+.dataTable td {
+  padding: 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 0.72rem;
+  vertical-align: middle;
+}
+
+.exchangeTable th,
+.dataTable th {
+  color: rgba(184, 222, 245, 0.55);
+  font-size: 0.58rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.exchangeTable tbody tr:hover,
+.dataTable tbody tr:hover {
+  background: rgba(104, 200, 255, 0.05);
+}
+
+.exchangeTable td:first-child a,
+.dataTable td:first-child a {
+  color: #fff;
+  font-weight: 750;
+}
+
+.exchangeTable td:first-child small,
+.dataTable td:first-child small {
+  display: block;
+  max-width: 17rem;
+  margin-top: 0.2rem;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.58rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exchangeInspect,
+.dataInspect {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid rgba(107, 196, 255, 0.14);
+  border-radius: 0.75rem;
+  background: rgba(10, 14, 19, 0.9);
+}
+
+/* M3: command centre metrics, cards and status monitor. */
+.control {
+  background:
+    radial-gradient(circle at 18% 15%, rgba(36, 154, 255, 0.13), transparent 25rem),
+    linear-gradient(155deg, #07111a, #06080c 68%);
+}
+
+.controlMetrics {
+  display: grid;
+  margin-bottom: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.controlMetrics > div {
+  display: grid;
+  min-height: 7.5rem;
+  padding: 1rem;
+  grid-template-columns: auto 1fr;
+  align-content: start;
+  column-gap: 0.65rem;
+  border: 1px solid rgba(92, 198, 255, 0.14);
+  border-radius: 0.75rem;
+  background: rgba(9, 21, 31, 0.82);
+}
+
+.controlMetrics svg {
+  width: 1rem;
+  height: 1rem;
+  color: #57c7ff;
+}
+
+.controlMetrics span {
+  color: rgba(225, 241, 250, 0.5);
+  font-size: 0.63rem;
+}
+
+.controlMetrics strong {
+  grid-column: 1 / -1;
+  margin-top: 1.1rem;
+  font-size: clamp(1.3rem, 2.5vw, 2.1rem);
+  font-weight: 650;
+}
+
+.controlGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.55fr);
+  gap: 0.8rem;
+}
+
+.controlCards {
+  display: grid;
+  padding: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  border: 1px solid rgba(92, 198, 255, 0.14);
+  border-radius: 0.8rem;
+  background: rgba(6, 12, 18, 0.78);
+}
+
+.controlRail {
+  padding: 1rem;
+  border: 1px solid rgba(92, 198, 255, 0.14);
+  border-radius: 0.8rem;
+  background: rgba(6, 12, 18, 0.88);
+}
+
+.monitorRow {
+  display: grid;
+  padding: 0.75rem 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.monitorRow > span {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #64d79b;
+  box-shadow: 0 0 12px rgba(100, 215, 155, 0.65);
+}
+
+.monitorRow strong,
+.monitorRow small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.monitorRow strong {
+  font-size: 0.73rem;
+}
+
+.monitorRow small {
+  margin-top: 0.15rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.58rem;
+}
+
+.monitorRow b {
+  color: #91d9ff;
+  font-size: 0.68rem;
+}
+
+/* M4: three-column seller workflow. */
+.seller {
+  background:
+    radial-gradient(circle at 72% 5%, rgba(238, 151, 61, 0.16), transparent 26rem),
+    linear-gradient(150deg, #13100d, #090808 70%);
+}
+
+.sellerGrid {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.42fr) minmax(0, 1.25fr) minmax(16rem, 0.55fr);
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.sellerNav,
+.sellerWorkbench,
+.sellerInspector {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid rgba(239, 160, 81, 0.15);
+  border-radius: 0.85rem;
+  background: rgba(20, 16, 13, 0.88);
+}
+
+.sellerNav > div {
+  display: grid;
+  min-height: 3.5rem;
+  padding: 0.65rem 0;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sellerNav > div > span {
+  color: rgba(239, 160, 81, 0.68);
+  font-size: 0.62rem;
+}
+
+.sellerNav > div > strong {
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+
+.sellerNav > div > svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: #7bde9f;
+}
+
+.sellerNav > div[data-complete="false"] {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.sellerWorkbenchHeader {
+  display: flex;
+  margin-bottom: 1rem;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sellerWorkbenchHeader h3 {
+  margin: 0.3rem 0 0;
+  font-size: 1.4rem;
+}
+
+.sellerWorkbenchHeader > span {
+  padding: 0.35rem 0.55rem;
+  border: 1px solid rgba(239, 160, 81, 0.2);
+  border-radius: 999px;
+  color: #efb879;
+  font-size: 0.58rem;
+}
+
+.sellerCards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.sellerInspector dl {
+  margin: 0;
+}
+
+.sellerInspector dl > div {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sellerInspector dt {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+}
+
+.sellerInspector dd {
+  margin: 0.3rem 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.sellerGuardrail {
+  display: flex;
+  margin-top: 1rem;
+  padding: 0.8rem;
+  gap: 0.6rem;
+  border: 1px solid rgba(74, 222, 128, 0.16);
+  border-radius: 0.7rem;
+  background: rgba(13, 41, 25, 0.55);
+  color: rgba(220, 252, 231, 0.68);
+}
+
+.sellerGuardrail svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  color: #86efac;
+}
+
+.sellerGuardrail p {
+  margin: 0;
+  font-size: 0.62rem;
+  line-height: 1.55;
+}
+
+/* M5: community rails around a central card. */
+.social {
+  background:
+    radial-gradient(circle at 45% 4%, rgba(189, 76, 255, 0.2), transparent 28rem),
+    linear-gradient(145deg, #130b17, #08070b 72%);
+}
+
+.socialGrid {
+  display: grid;
+  grid-template-columns: minmax(13rem, 0.5fr) minmax(18rem, 0.8fr) minmax(14rem, 0.55fr);
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.socialRail,
+.socialFeature,
+.socialSuggestions {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid rgba(218, 128, 255, 0.14);
+  border-radius: 1rem;
+  background: rgba(16, 9, 20, 0.85);
+}
+
+.socialRail > div {
+  display: flex;
+  padding: 0.85rem 0;
+  align-items: center;
+  gap: 0.7rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.socialRail svg,
+.socialActions svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  color: #d998ff;
+}
+
+.socialRail strong,
+.socialRail small {
+  display: block;
+}
+
+.socialRail strong {
+  font-size: 0.7rem;
+}
+
+.socialRail small {
+  margin-top: 0.15rem;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.58rem;
+}
+
+.socialFeatureHeader {
+  display: flex;
+  margin-bottom: 1rem;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.avatar {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid rgba(217, 174, 84, 0.35);
+  border-radius: 999px;
+  background: linear-gradient(145deg, #6b27b8, #1b0b28);
+  color: #f2d486;
+  font-size: 0.58rem;
+  font-weight: 800;
+}
+
+.socialFeatureHeader strong,
+.socialFeatureHeader small {
+  display: block;
+}
+
+.socialFeatureHeader strong {
+  font-size: 0.72rem;
+}
+
+.socialFeatureHeader small {
+  margin-top: 0.15rem;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.58rem;
+}
+
+.socialActions {
+  display: flex;
+  margin-top: 1rem;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.62rem;
+}
+
+.socialActions span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.socialSuggestions {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.socialSuggestions .panelLabel {
+  margin-bottom: 0.15rem;
+}
+
+/* M6: full comparison matrix with one visual record. */
+.data {
+  background:
+    linear-gradient(rgba(93, 230, 190, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(93, 230, 190, 0.04) 1px, transparent 1px),
+    #07100f;
+  background-size: 3.2rem 3.2rem;
+}
+
+.dataGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(18rem, 0.5fr);
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.dataTableHeader {
+  border: 0;
+  border-bottom: 1px solid rgba(93, 230, 190, 0.13);
+  border-radius: 0;
+  background: rgba(7, 19, 17, 0.9);
+}
+
+.dataTableHeader svg {
+  color: #5de6be;
+}
+
+.dataTableWrap,
+.dataInspect {
+  border-color: rgba(93, 230, 190, 0.14);
+  background: rgba(6, 17, 15, 0.9);
+}
+
+.dataTable tbody tr:hover {
+  background: rgba(93, 230, 190, 0.05);
+}
+
+.dataConfidence {
+  display: flex;
+  margin-top: 1rem;
+  padding: 0.8rem;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid rgba(93, 230, 190, 0.15);
+  border-radius: 0.7rem;
+  background: rgba(93, 230, 190, 0.05);
+}
+
+.dataConfidence svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  color: #5de6be;
+}
+
+.dataConfidence strong,
+.dataConfidence small {
+  display: block;
+}
+
+.dataConfidence strong {
+  font-size: 0.68rem;
+}
+
+.dataConfidence small {
+  margin-top: 0.15rem;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.58rem;
+}
+
+@media (max-width: 74rem) {
+  .selector {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .grandstandHero,
+  .exchangeGrid,
+  .controlGrid,
+  .dataGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.6fr);
+  }
+
+  .grandstandRail {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sellerGrid {
+    grid-template-columns: 12rem minmax(0, 1fr);
+  }
+
+  .sellerInspector {
+    grid-column: 1 / -1;
+  }
+
+  .socialGrid {
+    grid-template-columns: minmax(12rem, 0.42fr) minmax(18rem, 0.75fr);
+  }
+
+  .socialSuggestions {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 52rem) {
+  .reviewHeader,
+  .templateHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .reviewStatus {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .template {
+    min-height: 0;
+  }
+
+  .grandstandHero,
+  .exchangeGrid,
+  .controlGrid,
+  .sellerGrid,
+  .socialGrid,
+  .dataGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .grandstandFeatureCard {
+    width: min(100%, 20rem);
+  }
+
+  .grandstandRail,
+  .controlMetrics,
+  .socialSuggestions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sellerInspector,
+  .socialSuggestions {
+    grid-column: auto;
+  }
+
+  .inlineFacts {
+    grid-template-columns: 1fr;
+  }
+
+  .inlineFacts div + div {
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 0;
+  }
+
+  .exchangeInspect,
+  .dataInspect {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 38rem) {
+  .reviewHeader {
+    padding-top: 1.75rem;
+  }
+
+  .selector {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .selectorOption {
+    min-width: 0;
+  }
+
+  .activeSummary {
+    display: flex;
+    padding: 0 1rem 1rem;
+    align-items: baseline;
+    gap: 0.5rem;
+    color: rgba(255, 255, 255, 0.52);
+    font-size: 0.66rem;
+  }
+
+  .activeSummary span {
+    color: #d9ae54;
+    font-weight: 800;
+  }
+
+  .activeSummary strong {
+    color: #fff;
+  }
+
+  .activeSummary small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .templateHeading h2,
+  .grandstandCopy h2 {
+    font-size: clamp(2rem, 11vw, 3rem);
+  }
+
+  .grandstandRail,
+  .controlMetrics,
+  .controlCards,
+  .sellerCards,
+  .socialSuggestions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .portrait:not(.portraitCompact) {
+    width: min(100%, 18rem);
+    margin: 0 auto;
+  }
+
+  .exchangeToolbar,
+  .dataTableHeader,
+  .socialActions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selectorOption,
+  .portrait,
+  .primaryAction {
+    scroll-behavior: auto;
+    transition: none;
+  }
+}

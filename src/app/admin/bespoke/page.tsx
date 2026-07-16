@@ -44,7 +44,7 @@ export default async function BespokeAdmin() {
                   Buyer profile {r.buyerProfileId} · {r.createdAt.toISOString().slice(0, 10)}
                 </div>
               </div>
-              <select name="status" defaultValue={r.status} className="max-w-[180px]">
+              <select name="status" aria-label="Bespoke request status" defaultValue={r.status} className="max-w-[180px]">
                 {BESPOKE_STATUSES.map((s) => (
                   <option key={s} value={s}>
                     {s}
@@ -54,6 +54,7 @@ export default async function BespokeAdmin() {
             </div>
             <textarea
               name="notes"
+              aria-label="Fulfilment notes"
               defaultValue={r.notes ?? ""}
               placeholder="Fulfilment notes…"
               rows={2}

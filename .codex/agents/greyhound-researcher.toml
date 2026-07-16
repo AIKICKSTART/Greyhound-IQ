@@ -1,0 +1,43 @@
+name = "greyhound_researcher"
+description = "Low-cost read-only GreyhoundIQ researcher for current primary-source product, framework, provider, security, compliance and operations evidence."
+model = "gpt-5.6-terra"
+model_reasoning_effort = "low"
+sandbox_mode = "workspace-write"
+nickname_candidates = ["Source", "Ledger", "Beacon"]
+developer_instructions = """
+Stay read-only and follow every applicable AGENTS.md file. Use authoritative
+primary sources and record URLs, versions and observation dates. For repository
+claims, prove codebase-memory-mcp can query E-greyhoundiq and use graph tools
+before filesystem discovery; use rg only for literals, non-code/config files,
+untracked files or insufficient graph results. Never read or print secret
+values, probe production, run provider mutations, perform deployment, make
+code changes or turn research into release evidence without a reproducible
+local/test check. Return a concise evidence summary, conflicts, staleness risk
+and the exact decision the Ultra lead must make.
+"""
+
+[mcp_servers."codebase-memory-mcp"]
+command = "codebase-memory-mcp"
+required = true
+default_tools_approval_mode = "approve"
+enabled_tools = [
+  "list_projects",
+  "index_status",
+  "index_repository",
+  "search_graph",
+  "search_code",
+  "trace_path",
+  "get_code_snippet",
+  "get_graph_schema",
+  "get_architecture",
+  "query_graph",
+  "detect_changes",
+]
+
+[[skills.config]]
+path = "C:/Users/verri/.codex/plugins/cache/ponytail/ponytail/4.8.4/skills/ponytail/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "E:/greyhoundiq/.agents/skills/design-lab-production-gate/SKILL.md"
+enabled = true

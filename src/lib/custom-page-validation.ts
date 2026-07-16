@@ -41,6 +41,9 @@ const baseFields = {
   about: optionalText(4000),
   contactEmail: z.string().trim().email().max(200).optional().nullable(),
   contactPhone: optionalText(40),
+  contactVisibility: z
+    .enum(["public", "members", "connections", "only_me"])
+    .default("only_me"),
   website: z
     .string()
     .trim()
@@ -53,6 +56,10 @@ const baseFields = {
   heroMediaId: z.string().trim().min(1).optional().nullable(),
   avatarMediaId: z.string().trim().min(1).optional().nullable(),
   bannerMediaId: z.string().trim().min(1).optional().nullable(),
+  avatarFocalX: z.coerce.number().min(0).max(1).optional(),
+  avatarFocalY: z.coerce.number().min(0).max(1).optional(),
+  coverFocalX: z.coerce.number().min(0).max(1).default(0.5),
+  coverFocalY: z.coerce.number().min(0).max(1).default(0.5),
   logoMediaId: z.string().trim().min(1).optional().nullable(),
   galleryMediaIds: z.array(z.string().trim().min(1)).max(12).default([]),
 };

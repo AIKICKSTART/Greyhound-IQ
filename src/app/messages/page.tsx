@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   Inbox,
   Lock,
@@ -53,7 +54,7 @@ export default async function MessagesPage() {
   return (
     <div>
       <PageHero
-        image="/images/wentworth-gate-hero.webp"
+        image="/images/feed/posts/marketplace-seller-handover.webp"
         title={
           <>
             Pulse.
@@ -121,6 +122,12 @@ export default async function MessagesPage() {
                       conversation.participantAId === user.profileId
                         ? conversation.participantB
                         : conversation.participantA;
+                    const otherActor =
+                      conversation.participantAId === user.profileId
+                        ? conversation.participantBActor
+                        : conversation.participantAActor;
+                    const otherName = otherActor?.displayName ?? other.displayName;
+                    const otherAvatarUrl = otherActor?.avatarUrl ?? other.avatarUrl;
                     const message = conversation.messages[0];
                     const isSent = message?.senderId === user.profileId;
                     const unreadCount =
@@ -132,34 +139,37 @@ export default async function MessagesPage() {
                         href={`/pulse/${conversation.id}`}
                         className="giq-table-row block p-5"
                       >
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                          <div>
-                            <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))]">
-                              {other.displayName}
-                            </h3>
-                            <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-                              {message
-                                ? `${isSent ? "You: " : ""}${message.body}`
-                                : "Conversation started"}
-                            </p>
-                          </div>
-                          <span
-                            className={`giq-status-pill ${
-                              conversation.blockedAt
-                                ? "border-red-500/25 bg-red-500/10 text-red-200"
+                        <div className="flex items-start gap-3">
+                          <ProfileAvatar name={otherName} src={otherAvatarUrl} />
+                          <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <h3 className="truncate text-[15px] font-semibold text-[hsl(var(--foreground))]">
+                                {otherName}
+                              </h3>
+                              <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                                {message
+                                  ? `${isSent ? "You: " : ""}${message.body}`
+                                  : "Conversation started"}
+                              </p>
+                            </div>
+                            <span
+                              className={`giq-status-pill ${
+                                conversation.blockedAt
+                                  ? "border-red-500/25 bg-red-500/10 text-red-200"
+                                  : unreadCount > 0
+                                    ? "giq-status-pill-purple"
+                                    : ""
+                              }`}
+                            >
+                              {conversation.blockedAt
+                                ? "Blocked"
                                 : unreadCount > 0
-                                  ? "giq-status-pill-purple"
-                                  : ""
-                            }`}
-                          >
-                            {conversation.blockedAt
-                              ? "Blocked"
-                              : unreadCount > 0
-                                ? `Unread (${unreadCount})`
-                                : message?.readAt
-                                  ? "Read"
-                                  : "Open"}
-                          </span>
+                                  ? `Unread (${unreadCount})`
+                                  : message?.readAt
+                                    ? "Read"
+                                    : "Open"}
+                            </span>
+                          </div>
                         </div>
                       </Link>
                     );
@@ -196,13 +206,16 @@ export default async function MessagesPage() {
                         className="rounded-lg border border-white/[0.06] bg-white/[0.025] p-3"
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-[13px] font-semibold text-[hsl(var(--foreground))]">
-                              {friend.displayName}
-                            </p>
-                            <p className="truncate text-[12px] text-[hsl(var(--muted-foreground))]">
-                              {friend.email ?? friend.state ?? "GreyhoundIQ profile"}
-                            </p>
+                          <div className="flex min-w-0 items-center gap-3">
+                            <ProfileAvatar name={friend.displayName} src={friend.avatarUrl} />
+                            <div className="min-w-0">
+                              <p className="truncate text-[13px] font-semibold text-[hsl(var(--foreground))]">
+                                {friend.displayName}
+                              </p>
+                              <p className="truncate text-[12px] text-[hsl(var(--muted-foreground))]">
+                                {friend.kennelName ?? friend.state ?? "GreyhoundIQ profile"}
+                              </p>
+                            </div>
                           </div>
                           {friend.verified && (
                             <span className="giq-status-pill giq-status-pill-purple">
@@ -274,6 +287,25 @@ export default async function MessagesPage() {
         )}
       </section>
     </div>
+  );
+}
+
+function ProfileAvatar({ name, src }: { name: string; src: string | null }) {
+  return (
+    <span className="relative grid size-11 shrink-0 place-items-center rounded-full border border-white/10 bg-[hsl(var(--primary)/0.14)] text-[13px] font-semibold text-[hsl(var(--primary-light))]">
+      {src ? (
+        <Image
+          src={src}
+          alt=""
+          fill
+          className="rounded-full object-cover"
+          sizes="44px"
+          unoptimized={src.startsWith("/api/media/")}
+        />
+      ) : (
+        name.trim().charAt(0).toUpperCase() || "G"
+      )}
+    </span>
   );
 }
 

@@ -43,7 +43,6 @@ type CountStats = {
   resultRows: number;
   runnersWithWeight: number;
   runnersWithTrainer: number;
-  runnersWithStartingPrice: number;
   runnersWithSourceId: number;
   runnersWithRunningTime: number;
   runnersWithMargin: number;
@@ -155,7 +154,6 @@ async function main() {
     richnessRates: {
       runnerWeight: ratio(totals.runnersWithWeight, totals.runners),
       runnerTrainer: ratio(totals.runnersWithTrainer, totals.runners),
-      startingPrice: ratio(totals.runnersWithStartingPrice, totals.runners),
       runningTime: ratio(totals.runnersWithRunningTime, totals.runners),
       margin: ratio(totals.runnersWithMargin, totals.runners),
       splitTime: ratio(totals.runnersWithSplitTime, totals.runners),
@@ -180,7 +178,6 @@ async function main() {
             richnessRates: {
               runnerWeight: ratio(stats.runnersWithWeight, stats.runners),
               runnerTrainer: ratio(stats.runnersWithTrainer, stats.runners),
-              startingPrice: ratio(stats.runnersWithStartingPrice, stats.runners),
               runningTime: ratio(stats.runnersWithRunningTime, stats.runners),
               margin: ratio(stats.runnersWithMargin, stats.runners),
               splitTime: ratio(stats.runnersWithSplitTime, stats.runners),
@@ -265,7 +262,6 @@ function addRunnerStats(stats: CountStats, runner: LiveRunner) {
   if (hasResultData(runner)) stats.resultRows += 1;
   if (runner.weight != null) stats.runnersWithWeight += 1;
   if (runner.trainerName) stats.runnersWithTrainer += 1;
-  if (runner.startingPrice != null) stats.runnersWithStartingPrice += 1;
   if (runner.sourceId) stats.runnersWithSourceId += 1;
   if (runner.runningTime != null) stats.runnersWithRunningTime += 1;
   if (runner.margin != null) stats.runnersWithMargin += 1;
@@ -341,7 +337,6 @@ function emptyStats(): CountStats {
     resultRows: 0,
     runnersWithWeight: 0,
     runnersWithTrainer: 0,
-    runnersWithStartingPrice: 0,
     runnersWithSourceId: 0,
     runnersWithRunningTime: 0,
     runnersWithMargin: 0,

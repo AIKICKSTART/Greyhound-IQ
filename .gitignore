@@ -41,7 +41,21 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-output/
+output/*
+!output/demo-route-audit/
+output/demo-route-audit/*
+!output/demo-route-audit/latest.json
+!output/demo-route-audit/latest.md
+!output/product-audit/
+output/product-audit/*
+!output/product-audit/production-link-audit.json
+!output/database-audit/
+output/database-audit/*
+!output/database-audit/local-postgres-catalog.json
+!output/database-audit/demo-fixture-idempotency.json
+!output/database-audit/account-deletion-finalize.json
+!output/database-audit/live-provider-ingest.json
+!output/database-audit/user-export-read.json
 
 # local agent/tooling artifacts
 .agents/
@@ -52,3 +66,20 @@ certificates
 
 # local deploy logs
 .deploy-*.log
+.vercel
+
+# Terraform local state and unreviewed inputs
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+terraform.tfvars
+crash.log
+crash.*.log
+.terraformrc
+terraform.rc
+crash.log

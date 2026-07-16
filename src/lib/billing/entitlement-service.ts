@@ -3,6 +3,7 @@ import "server-only";
 import {
   DEFAULT_TIER_ENTITLEMENT_LIMITS,
   ENTITLEMENT_KEYS,
+  maximumEntitlementLimit,
   type BillingTier,
   type EntitlementLimits,
 } from "@/lib/billing/entitlements";
@@ -47,7 +48,7 @@ export async function getEntitlementLimitsForCurrentUser(
   return parseEntitlementLimits(snapshot.entitlementsJson) ?? fallback;
 }
 
-function parseEntitlementLimits(rawJson: string): EntitlementLimits | null {
+export function parseEntitlementLimits(rawJson: string): EntitlementLimits | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawJson);
@@ -80,5 +81,12 @@ function isValidEntitlementValue(
     return typeof value === "boolean";
   }
 
-  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+  const maximum = maximumEntitlementLimit(key);
+  return (
+    maximum !== null &&
+    typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value >= -1 &&
+    value <= maximum
+  );
 }

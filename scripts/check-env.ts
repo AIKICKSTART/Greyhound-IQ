@@ -1,5 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { databaseUrlConfigurationError } from "../src/lib/database-url";
+import { resolveNotificationWebhookConfig } from "../src/lib/notification-webhook-policy";
 
 loadEnvConfig(process.cwd());
 
@@ -28,7 +29,14 @@ const specs: EnvSpec[] = [
   },
   {
     names: ["NEXTAUTH_SECRET", "AUTH_SECRET"],
-    description: "server-side signing secret for sessions and media URLs",
+    description: "server-side signing secret for sessions",
+    productionOnly: true,
+    validate: (value) =>
+      value.length >= 32 ? null : "must be at least 32 characters",
+  },
+  {
+    names: ["REPLAY_PROXY_SECRET"],
+    description: "dedicated server-only HMAC secret for short-lived replay URLs",
     productionOnly: true,
     validate: (value) =>
       value.length >= 32 ? null : "must be at least 32 characters",
@@ -111,6 +119,13 @@ const specs: EnvSpec[] = [
       value.length >= 32 ? null : "must be at least 32 characters",
   },
   {
+    names: ["SUPABASE_JWT_SECRET"],
+    description: "server-only key for short-lived Realtime authorization JWTs",
+    productionOnly: true,
+    validate: (value) =>
+      value.length >= 32 ? null : "must be at least 32 characters",
+  },
+  {
     names: ["REALTIME_CHANNEL_SECRET"],
     description: "server-only HMAC secret deriving realtime channel names",
     productionOnly: true,
@@ -170,14 +185,19 @@ const optional = [
   "NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA",
   "NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT",
   "REALTIME_CHANNEL_SECRET",
+  "ACTOR_CONVERSATION_MULTIPLEX_ENABLED",
   "LIVEKIT_URL",
   "LIVEKIT_API_KEY",
   "LIVEKIT_API_SECRET",
   "NEXT_PUBLIC_LIVEKIT_URL",
   "MEDIA_SCAN_MODE",
   "MEDIA_CLAMSCAN_BIN",
+  "MEDIA_FRESHCLAM_BIN",
   "MEDIA_CLAMAV_DATABASE",
   "MEDIA_CLAMSCAN_TIMEOUT_MS",
+  "MEDIA_FRESHCLAM_TIMEOUT_MS",
+  "MEDIA_CLAMAV_REFRESH_INTERVAL_MS",
+  "MEDIA_CLAMAV_MAX_DEFINITION_AGE_MS",
   "NOTIFICATION_WEBHOOK_URL",
   "NOTIFICATION_WEBHOOK_SECRET",
   "NOTIFICATION_DELIVERY_MAX_ATTEMPTS",
@@ -230,20 +250,19 @@ for (const name of optionalDatabaseUrlNames) {
   }
 }
 
+try {
+  resolveNotificationWebhookConfig();
+} catch (error) {
+  failures.push(
+    error instanceof Error ? error.message : "notification.webhook_invalid_config",
+  );
+}
+
 if (production) {
   for (const name of productionFalseFlags) {
     if (process.env[name]?.trim().toLowerCase() === "true") {
       failures.push(`${name} must be false or unset in production`);
     }
-  }
-
-  if (
-    process.env.NOTIFICATION_WEBHOOK_URL?.trim() &&
-    !process.env.NOTIFICATION_WEBHOOK_SECRET?.trim()
-  ) {
-    failures.push(
-      "NOTIFICATION_WEBHOOK_SECRET missing (required when NOTIFICATION_WEBHOOK_URL is set)"
-    );
   }
 }
 

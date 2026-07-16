@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash, createHmac, timingSafeEqual } from "crypto";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { Prisma } from "@prisma/client";
 
 import { getLagoEnv } from "@/lib/billing/lago-env";
@@ -11,6 +11,7 @@ const LAGO_SIGNATURE_HEADER = "x-lago-signature";
 const LAGO_SIGNATURE_ALGORITHM_HEADER = "x-lago-signature-algorithm";
 const LAGO_UNIQUE_KEY_HEADER = "x-lago-unique-key";
 const SUPPORTED_SIGNATURE_ALGORITHM = "hmac";
+const LAGO_PROCESSING_LEASE_MS = 10 * 60 * 1000;
 
 type IngestLagoWebhookInput = {
   headers: Headers;
@@ -60,69 +61,151 @@ export async function ingestLagoWebhook({
     headersJson: JSON.stringify(safeHeaders(headers)),
   };
 
+  let duplicate = false;
+  let event: StoredWebhookEvent;
   try {
-    const event = await withDbSystemContext((tx) => tx.webhookEvent.create({
-      data,
-      select: eventSelect,
-    }));
+    event = await withDbSystemContext((tx) =>
+      tx.webhookEvent.create({ data, select: eventSelect })
+    );
+  } catch (err) {
+    if (!isUniqueConstraintError(err)) throw err;
+    duplicate = true;
+    const existing = await findExistingLagoWebhook(lagoEventId, payloadHash);
+    if (!existing) throw new Error("lago.webhook_duplicate_not_found");
+    event = existing;
+  }
+
+  const processed = await processLagoWebhookReceipt({
+    duplicate,
+    event,
+    eventType,
+    lagoEventId,
+    payloadJson: rawBodyText,
+  });
+  return { event: processed, duplicate };
+}
+
+async function findExistingLagoWebhook(
+  lagoEventId: string | null,
+  payloadHash: string
+) {
+  return withDbSystemContext(async (tx) => {
+    if (lagoEventId) {
+      const existingById = await tx.webhookEvent.findUnique({
+        where: { lagoEventId },
+        select: duplicateEventSelect,
+      });
+      if (existingById) {
+        if (
+          existingById.provider !== "lago" ||
+          existingById.payloadHash !== payloadHash
+        ) {
+          throw new Error("lago.webhook_receipt_conflict");
+        }
+        return existingById;
+      }
+    }
+
+    return tx.webhookEvent.findUnique({
+      where: { provider_payloadHash: { provider: "lago", payloadHash } },
+      select: duplicateEventSelect,
+    });
+  });
+}
+
+async function processLagoWebhookReceipt({
+  duplicate,
+  event,
+  eventType,
+  lagoEventId,
+  payloadJson,
+}: {
+  duplicate: boolean;
+  event: StoredWebhookEvent;
+  eventType: string;
+  lagoEventId: string | null;
+  payloadJson: string;
+}) {
+  const leaseExpiredBefore = new Date(Date.now() - LAGO_PROCESSING_LEASE_MS);
+  const processingToken = randomUUID();
+  const claimed = await withDbSystemContext((tx) =>
+    tx.webhookEvent.updateMany({
+      where: {
+        id: event.id,
+        OR: [
+          { status: { in: ["failed", "received"] } },
+          { status: "processing", updatedAt: { lt: leaseExpiredBefore } },
+        ],
+      },
+      data: {
+        error: null,
+        ...(duplicate ? { retryCount: { increment: 1 } } : {}),
+        processingToken,
+        status: "processing",
+      },
+    })
+  );
+
+  if (claimed.count === 0) {
+    const current = await getStoredWebhookEvent(event.id);
+    // Updating an active receipt would also refresh Prisma's @updatedAt field
+    // and could keep a crashed processing lease alive forever. Count only
+    // terminal duplicates; active work retains its original lease clock.
+    return duplicate && current.status !== "processing"
+      ? incrementWebhookRetryCount(event.id)
+      : current;
+  }
+
+  try {
     await reduceLagoWebhook({
       webhookEventId: event.id,
       lagoEventId,
       eventType,
-      payloadJson: rawBodyText,
+      payloadJson,
+      processingToken,
     });
-    return { event, duplicate: false };
   } catch (err) {
-    if (!isUniqueConstraintError(err)) throw err;
-
-    const event = await incrementDuplicateWebhookEvent({
-      eventType,
-      lagoEventId,
-      payloadHash,
-    });
-    return { event, duplicate: true };
+    await markLagoWebhookFailed(event.id, processingToken, err);
+    throw err;
   }
+
+  return getStoredWebhookEvent(event.id);
 }
 
-async function incrementDuplicateWebhookEvent({
-  eventType,
-  lagoEventId,
-  payloadHash,
-}: {
-  eventType: string;
-  lagoEventId: string | null;
-  payloadHash: string;
-}) {
-  if (lagoEventId) {
-    const existingById = await withDbSystemContext((tx) => tx.webhookEvent.findUnique({
-      where: { lagoEventId },
-      select: { id: true },
-    }));
-    if (existingById) {
-      return incrementWebhookRetryCount(existingById.id);
-    }
-  }
-
-  const existing = await withDbSystemContext((tx) => tx.webhookEvent.findFirst({
-    where: { provider: "lago", eventType, payloadHash },
-    select: { id: true },
-  }));
-  if (!existing) {
-    throw new Error("lago.webhook_duplicate_not_found");
-  }
-
-  return incrementWebhookRetryCount(existing.id);
+function getStoredWebhookEvent(id: string) {
+  return withDbSystemContext((tx) =>
+    tx.webhookEvent.findUniqueOrThrow({ where: { id }, select: eventSelect })
+  );
 }
 
 function incrementWebhookRetryCount(id: string) {
-  return withDbSystemContext((tx) => tx.webhookEvent.update({
-    where: { id },
-    data: { retryCount: { increment: 1 } },
-    select: eventSelect,
-  }));
+  return withDbSystemContext((tx) =>
+    tx.webhookEvent.update({
+      where: { id },
+      data: { retryCount: { increment: 1 } },
+      select: eventSelect,
+    })
+  );
 }
 
-function verifyLagoWebhook(headers: Headers, rawBody: Buffer) {
+function markLagoWebhookFailed(
+  id: string,
+  processingToken: string,
+  err: unknown
+) {
+  return withDbSystemContext((tx) =>
+    tx.webhookEvent.updateMany({
+      where: { id, processingToken, status: "processing" },
+      data: {
+        error: summarizeError(err),
+        processingToken: null,
+        status: "failed",
+      },
+    })
+  );
+}
+
+export function verifyLagoWebhook(headers: Headers, rawBody: Buffer) {
   const algorithm = cleanHeaderValue(headers.get(LAGO_SIGNATURE_ALGORITHM_HEADER));
   if (algorithm !== SUPPORTED_SIGNATURE_ALGORITHM) {
     throw new LagoWebhookError("lago.webhook_unsupported_signature_algorithm");
@@ -219,6 +302,11 @@ function looksLikeBase64(value: string) {
   return value.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(value);
 }
 
+function summarizeError(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  return message.replace(/\s+/g, " ").slice(0, 500);
+}
+
 function isUniqueConstraintError(err: unknown) {
   return err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
 }
@@ -229,4 +317,10 @@ const eventSelect = {
   eventType: true,
   status: true,
   retryCount: true,
+} as const;
+
+const duplicateEventSelect = {
+  ...eventSelect,
+  payloadHash: true,
+  provider: true,
 } as const;

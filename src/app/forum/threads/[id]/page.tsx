@@ -110,6 +110,7 @@ export default async function ForumThreadPage({
           <form action={replyAction} className="space-y-4">
             <textarea
               name="body"
+              aria-label="Reply"
               required
               minLength={20}
               maxLength={20000}

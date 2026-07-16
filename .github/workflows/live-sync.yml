@@ -26,6 +26,7 @@ jobs:
   sync:
     name: sync-live-racing
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     env:
       PROD_INTERNAL_API_SECRET: ${{ secrets.PROD_INTERNAL_API_SECRET }}
       LIVE_SYNC_BASE_URL: ${{ vars.LIVE_SYNC_BASE_URL }}
@@ -37,6 +38,6 @@ jobs:
           test -n "$PROD_INTERNAL_API_SECRET" || (echo "Missing PROD_INTERNAL_API_SECRET secret" && exit 1)
 
           base_url="${LIVE_SYNC_BASE_URL:-https://greyhoundsiq.com.au}"
-          curl -fsS -X POST \
+          curl -fsS --max-time 240 -X POST \
             -H "X-Internal-Secret: $PROD_INTERNAL_API_SECRET" \
             "$base_url/api/internal/live-sync?days=$DAYS&scope=$SCOPE"

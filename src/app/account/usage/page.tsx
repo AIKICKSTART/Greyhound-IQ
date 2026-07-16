@@ -17,7 +17,7 @@ export const metadata = {
   description: "Review your current GreyhoundIQ tier limits.",
 };
 
-const PANEL_CLASS = "giq-panel p-6";
+const PANEL_CLASS = "giq-panel p-5 sm:p-6";
 const ACTION_CLASS = "giq-outline-action";
 
 type UsageEventRow = {
@@ -34,27 +34,81 @@ export default async function AccountUsagePage() {
 
   return (
     <div>
-      <PageHero
-        image="/images/wentworth-gate-hero.webp"
-        title={
-          <>
-            Account
-            <br />
-            <span className="gradient-text">usage.</span>
-          </>
+      {user ? (
+        <UsageMemberHeader tier={user.tier} />
+      ) : (
+        <PageHero
+          image="/images/feature-advanced-stats-green.webp"
+          title={
+            <>
+              Account
+              <br />
+              <span className="gradient-text">usage.</span>
+            </>
+          }
+          subtitle="Current tier limits for your GreyhoundIQ account."
+        />
+      )}
+
+      <section
+        className={
+          user
+            ? "mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
+            : "mx-auto max-w-5xl px-6 py-12"
         }
-        subtitle="Current tier limits for your GreyhoundIQ account."
-      />
-
-      <section className="mx-auto max-w-5xl px-6 py-12">
-        <Link href="/account" className={`${ACTION_CLASS} mb-6 w-fit`}>
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to account
-        </Link>
-
-        {!user ? <SignedOutUsage /> : <SignedInUsage user={user} />}
+      >
+        {user ? (
+          <SignedInUsage user={user} />
+        ) : (
+          <>
+            <Link href="/account" className={`${ACTION_CLASS} mb-6 w-fit`}>
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              Back to account
+            </Link>
+            <SignedOutUsage />
+          </>
+        )}
       </section>
     </div>
+  );
+}
+
+function UsageMemberHeader({
+  tier,
+}: {
+  tier: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>["tier"];
+}) {
+  return (
+    <header className="relative overflow-hidden border-b border-white/[0.07] bg-[linear-gradient(135deg,hsl(var(--card)/0.92),hsl(var(--background))_72%)]">
+      <div
+        aria-hidden="true"
+        className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[hsl(var(--primary-bright)/0.12)] blur-3xl"
+      />
+      <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-8">
+        <div className="max-w-2xl">
+          <p className="program-label">Member settings</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+            Usage
+          </h1>
+          <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
+            See your current tier limits and recent account usage.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className="giq-status-pill giq-status-pill-purple min-h-8 px-3"
+            aria-label={`Current tier ${BILLING_TIER_LABELS[tier]}`}
+          >
+            <Crown className="h-3.5 w-3.5" aria-hidden="true" />
+            {BILLING_TIER_LABELS[tier]}
+          </span>
+          <Link href="/account" className={ACTION_CLASS}>
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            Back to account
+          </Link>
+        </div>
+      </div>
+    </header>
   );
 }
 
@@ -75,7 +129,10 @@ async function SignedInUsage({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="mb-4 flex items-center gap-3">
-              <Crown className="h-5 w-5 text-[hsl(var(--secondary))]" />
+              <Crown
+                className="h-5 w-5 text-[hsl(var(--secondary))]"
+                aria-hidden="true"
+              />
               <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
                 Current tier
               </p>
@@ -90,7 +147,7 @@ async function SignedInUsage({
           </div>
           <Link
             href="/pricing"
-            className="giq-liquid-purple-button min-h-10 px-4 text-[13px] font-semibold"
+            className="giq-liquid-purple-button w-full px-4 text-[13px] font-semibold sm:w-auto"
           >
             Manage tier
           </Link>
@@ -99,8 +156,11 @@ async function SignedInUsage({
 
       <section className={PANEL_CLASS}>
         <div className="mb-5 flex items-center gap-3">
-          <BarChart3 className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+          <BarChart3
+            className="h-5 w-5 text-[hsl(var(--primary-bright))]"
+            aria-hidden="true"
+          />
+          <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
             Limits
           </h2>
         </div>
@@ -126,43 +186,82 @@ async function SignedInUsage({
   );
 }
 
-function UsageEventsTable({ rows }: { rows: UsageEventRow[] }) {
+function UsageEventsTable({ rows }: { rows: UsageEventRow[] | null }) {
   return (
     <section className={PANEL_CLASS}>
       <div className="mb-5 flex items-center gap-3">
-        <BarChart3 className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-        <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+        <BarChart3
+          className="h-5 w-5 text-[hsl(var(--primary-bright))]"
+          aria-hidden="true"
+        />
+        <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
           Recent usage events
         </h2>
       </div>
 
-      <div className="giq-table-shell overflow-x-auto">
+      <div
+        role="region"
+        aria-label="Recent usage events"
+        tabIndex={0}
+        className="giq-table-shell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
+      >
         <table className="w-full min-w-[760px]">
+          <caption className="sr-only">
+            The ten most recent usage events for this account
+          </caption>
           <thead>
             <tr className="giq-table-head">
-              <th className="px-4 py-3 text-left">Metric</th>
-              <th className="px-4 py-3 text-left">Quantity</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-left">Occurred</th>
-              <th className="px-4 py-3 text-left">Processed</th>
-              <th className="px-4 py-3 text-left">Failed</th>
+              <th scope="col" className="px-4 py-3 text-left">Metric</th>
+              <th scope="col" className="px-4 py-3 text-left">Quantity</th>
+              <th scope="col" className="px-4 py-3 text-left">Status</th>
+              <th scope="col" className="px-4 py-3 text-left">Occurred</th>
+              <th scope="col" className="px-4 py-3 text-left">Processed</th>
+              <th scope="col" className="px-4 py-3 text-left">Failed</th>
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {rows === null ? (
               <tr>
                 <td
                   colSpan={6}
-                  className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
+                  className="px-4 py-10 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                 >
-                  No usage events found.
+                  <span className="mx-auto flex max-w-sm flex-col items-center gap-2">
+                    <BarChart3
+                      className="h-6 w-6 text-[hsl(var(--primary-bright))]"
+                      aria-hidden="true"
+                    />
+                    <strong className="text-[14px] text-[hsl(var(--foreground))]">
+                      Usage history is temporarily unavailable
+                    </strong>
+                    Your usage records have not been removed. Refresh this page
+                    in a moment to try again.
+                  </span>
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-4 py-10 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
+                >
+                  <span className="mx-auto flex max-w-sm flex-col items-center gap-2">
+                    <BarChart3
+                      className="h-6 w-6 text-[hsl(var(--primary-bright))]"
+                      aria-hidden="true"
+                    />
+                    <strong className="text-[14px] text-[hsl(var(--foreground))]">
+                      No usage events yet
+                    </strong>
+                    Usage activity will appear here after a tracked feature is used.
+                  </span>
                 </td>
               </tr>
             ) : (
               rows.map((row, index) => (
                 <tr
                   key={`${row.metricKey}-${row.occurredAt.toISOString()}-${index}`}
-                  className="border-t border-white/[0.06]"
+                  className="giq-table-row"
                 >
                   <MonoCell>{row.metricKey}</MonoCell>
                   <td className="px-4 py-3 font-mono text-[13px] text-[hsl(var(--muted-foreground))]">
@@ -212,7 +311,7 @@ function getUsageEventsForUser(
   if (!user.dbUserId || !user.profileId) return Promise.resolve([]);
   const userId = user.dbUserId;
 
-  return safeQuery<UsageEventRow[]>(
+  return safeQuery<UsageEventRow[] | null>(
     () =>
       withDbRequestContext(
         {
@@ -236,7 +335,7 @@ function getUsageEventsForUser(
             },
           })
       ),
-    []
+    null
   );
 }
 

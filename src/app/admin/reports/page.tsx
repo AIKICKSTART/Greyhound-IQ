@@ -42,17 +42,43 @@ type ReportRow = {
 export default async function AdminReportsPage() {
   await requireModeratorProfile();
   const reports = await getReports();
+  const openReports = reports.filter((report) => report.status === "open").length;
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
+    <main className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10 lg:px-10">
       <AdminPageHeader
         title="Reports"
         description="Latest 50 local report records. Moderators can dismiss reports or mark them resolved after taking the appropriate content or user action."
       />
 
-      <section className="giq-panel p-6">
-        <div className="giq-table-shell overflow-x-auto">
+      <section className="giq-panel p-4 sm:p-6" aria-labelledby="reports-queue-heading">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2
+              id="reports-queue-heading"
+              className="text-xl font-semibold text-[hsl(var(--foreground))]"
+            >
+              Moderation queue
+            </h2>
+            <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+              Review the reporter context and target evidence before recording a resolution.
+            </p>
+          </div>
+          <span className="giq-badge giq-badge-gold" aria-label={`${openReports} open reports`}>
+            {openReports} open
+          </span>
+        </div>
+
+        <div
+          className="giq-table-shell mt-4 overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))]"
+          role="region"
+          aria-label="Report moderation queue"
+          tabIndex={0}
+        >
           <table className="w-full min-w-[1180px]">
+            <caption className="sr-only">
+              Latest reports with reporter context and resolution controls
+            </caption>
             <thead>
               <tr className="giq-table-head">
                 <th className="px-4 py-3 text-left">Report ID</th>
@@ -70,35 +96,38 @@ export default async function AdminReportsPage() {
                 <tr>
                   <td
                     colSpan={8}
-                    className="px-4 py-6 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
+                    className="px-4 py-10 text-center text-[13px] text-[hsl(var(--muted-foreground))]"
                   >
-                    No reports found.
+                    No reports are waiting for review.
                   </td>
                 </tr>
               ) : (
                 reports.map((report) => (
-                  <tr key={report.id} className="border-t border-white/[0.06]">
-                    <td className="px-4 py-3 font-mono text-[12px] text-[hsl(var(--foreground))]">
+                  <tr
+                    key={report.id}
+                    className="border-t border-white/[0.06] align-top transition-colors hover:bg-white/[0.025]"
+                  >
+                    <td className="px-4 py-3 font-mono text-[12px] text-[hsl(var(--foreground))] [overflow-wrap:anywhere]">
                       {report.id}
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
                       {report.reporter.name ?? "Unnamed"}
-                      <p className="mt-1 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                      <p className="mt-1 break-all text-[11px] text-[hsl(var(--subtle-foreground))]">
                         {report.reporter.email}
                       </p>
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
                       {report.targetType}
-                      <p className="mt-1 font-mono text-[11px] text-[hsl(var(--subtle-foreground))]">
+                      <p className="mt-1 font-mono text-[11px] text-[hsl(var(--subtle-foreground))] [overflow-wrap:anywhere]">
                         {report.targetId}
                       </p>
                       {report.reported ? (
-                        <p className="mt-1 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                        <p className="mt-1 break-all text-[11px] text-[hsl(var(--subtle-foreground))]">
                           Reported: {report.reported.email}
                         </p>
                       ) : null}
                       {report.messagePreview ? (
-                        <div className="mt-2 max-w-sm rounded-md border border-white/[0.08] bg-white/[0.03] p-2">
+                        <div className="mt-2 max-w-sm rounded-lg border border-white/[0.08] bg-white/[0.03] p-3">
                           <p className="text-[11px] text-[hsl(var(--subtle-foreground))]">
                             {report.messagePreview.sender} to{" "}
                             {report.messagePreview.recipient} ·{" "}
@@ -110,7 +139,7 @@ export default async function AdminReportsPage() {
                         </div>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))]">
+                    <td className="px-4 py-3 text-[13px] text-[hsl(var(--foreground))] [overflow-wrap:anywhere]">
                       {report.reason}
                       {report.description ? (
                         <p className="mt-1 max-w-xs text-[12px] text-[hsl(var(--muted-foreground))]">
@@ -156,11 +185,12 @@ function ReportResolutionForm({ reportId }: { reportId: string }) {
   const action = resolveReport.bind(null, reportId);
 
   return (
-    <form action={action} className="flex min-w-[320px] flex-wrap gap-2">
+    <form action={action} className="flex min-w-[340px] flex-wrap gap-2">
       <select
         name="action"
         defaultValue="dismiss"
-        className="giq-form-control px-2 py-1 text-[12px]"
+        aria-label="Resolution action"
+        className="giq-form-control min-h-11 px-3 py-2 text-[12px]"
       >
         <option value="dismiss">Dismiss</option>
         <option value="hide_content">Hide content</option>
@@ -172,9 +202,10 @@ function ReportResolutionForm({ reportId }: { reportId: string }) {
         name="notes"
         maxLength={1000}
         placeholder="Resolution notes"
-        className="giq-form-control w-40 px-2 py-1 text-[12px]"
+        aria-label="Resolution notes"
+        className="giq-form-control min-h-11 w-44 px-3 py-2 text-[12px]"
       />
-      <button className="giq-button giq-button-glass px-3 text-[12px]">
+      <button className="giq-button giq-button-glass min-h-11 px-3 text-[12px]">
         Resolve
       </button>
     </form>
@@ -226,6 +257,7 @@ async function getReports() {
       withDbSystemContext((tx) =>
         tx.message.findMany({
           where: { id: { in: messageIds } },
+          take: 50,
           select: {
             id: true,
             conversationId: true,

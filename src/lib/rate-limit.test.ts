@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { checkRateLimit } from "./rate-limit";
+import { checkLocalRateLimit, checkRateLimit } from "./rate-limit";
 
 // Input-validation throws — no DB needed. Wrap in async IIFE for assert.rejects.
 (async () => {
@@ -43,6 +43,22 @@ import { checkRateLimit } from "./rate-limit";
   // The limiter must never become an outage mode.
   const result = await checkRateLimit("unit-test-key", 5, 60_000);
   assert.equal(result.allowed, true);
+
+  const now = Date.UTC(2026, 6, 14, 0, 0, 0);
+  const first = checkLocalRateLimit("local-unit-test-key", 2, 1000, now);
+  const second = checkLocalRateLimit("local-unit-test-key", 2, 1000, now + 1);
+  const denied = checkLocalRateLimit("local-unit-test-key", 2, 1000, now + 2);
+  const reset = checkLocalRateLimit("local-unit-test-key", 2, 1000, now + 1000);
+  assert.deepEqual(
+    [first.allowed, second.allowed, denied.allowed, reset.allowed],
+    [true, true, false, true]
+  );
+  assert.equal(denied.remaining, 0);
+  assert.equal(reset.remaining, 1);
+  assert.throws(
+    () => checkLocalRateLimit("", 2, 1000, now),
+    /rate_limit\.key_required/
+  );
 
   console.log("rate-limit tests passed");
 })().catch((err) => {

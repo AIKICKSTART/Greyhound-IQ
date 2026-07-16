@@ -104,6 +104,12 @@ const checks: SmokeCheck[] = [
     method: "POST",
     expected: 401,
   },
+  {
+    label: "aggregate refresh requires internal auth",
+    path: "/api/internal/aggregate-refresh",
+    method: "POST",
+    expected: 403,
+  },
   ...(liveKitBaseUrl
     ? [
         {
@@ -133,8 +139,14 @@ async function main() {
       const response = await fetch(url, {
         method: check.method ?? "GET",
         redirect: "manual",
-        headers: check.body ? { "content-type": "application/json" } : undefined,
-        body: check.body ? JSON.stringify(check.body) : undefined,
+        headers:
+          check.method === "POST"
+            ? { "content-type": "application/json" }
+            : undefined,
+        body:
+          check.method === "POST"
+            ? JSON.stringify(check.body ?? {})
+            : undefined,
       });
       const allowed = Array.isArray(check.expected)
         ? check.expected

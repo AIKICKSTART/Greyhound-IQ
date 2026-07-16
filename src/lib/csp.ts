@@ -13,6 +13,8 @@ export function contentSecurityPolicy(nonce: string) {
   const supaWs = supa?.replace(/^http/, "ws");
   const lk = safeOrigin(process.env.NEXT_PUBLIC_LIVEKIT_URL);
   const isDev = process.env.NODE_ENV !== "production";
+  const allowSameOriginFrames =
+    isDev || process.env.ENABLE_DEVICE_PREVIEWS === "true";
   const devWs = isDev ? "ws://localhost:* ws://127.0.0.1:*" : undefined;
 
   const join = (...parts: Array<string | undefined>) =>
@@ -41,7 +43,9 @@ export function contentSecurityPolicy(nonce: string) {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    allowSameOriginFrames
+      ? "frame-ancestors 'self'"
+      : "frame-ancestors 'none'",
   ].join("; ");
 }
 

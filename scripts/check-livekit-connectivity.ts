@@ -22,12 +22,13 @@ async function main() {
   assert.equal(unauth.status, 401);
 
   const roomName = `connectivity-probe-${Date.now()}`;
-  const signed = createLiveKitCallToken(
+  const signed = await createLiveKitCallToken(
     {
       profileId: "connectivity-probe",
       displayName: "Connectivity Probe",
     },
     roomName,
+    "voice",
     { url, apiKey, apiSecret }
   );
 

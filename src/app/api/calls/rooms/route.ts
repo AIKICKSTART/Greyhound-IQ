@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { callRoomCreateSchema } from "@/lib/call-validation";
 import { createCallRoomForConversation } from "@/lib/call-service";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const CALL_ROOM_RATE_LIMIT = 10;
 const CALL_ROOM_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -17,18 +19,14 @@ export async function POST(request: Request) {
       CALL_ROOM_RATE_LIMIT_WINDOW_MS
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        CALL_ROOM_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const parsed = callRoomCreateSchema.parse(await request.json());
+    const parsed = callRoomCreateSchema.parse(await readBoundedJsonRequest(request));
     const room = await createCallRoomForConversation(
       current,
       parsed.conversationId,

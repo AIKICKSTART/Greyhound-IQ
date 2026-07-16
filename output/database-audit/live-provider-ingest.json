@@ -1,0 +1,276 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "live-provider-ingest-disposable-proof",
+  "generatedAt": "2026-07-15T12:29:30.491Z",
+  "safety": {
+    "scope": "literal-loopback-disposable-replay-only",
+    "host": "127.0.0.1",
+    "port": 55734,
+    "productionTopology": "Prisma plus AlloyDB for PostgreSQL",
+    "productionOrProviderSystemsContacted": false,
+    "providerNetworkAccess": false,
+    "fixtureOwner": "live-provider-ingest-dedicated-proof",
+    "broadCleanupUsed": false
+  },
+  "runtimeIdentity": {
+    "role": "greyhoundiq_runtime",
+    "sessionRole": "greyhoundiq_runtime",
+    "database": "greyhoundiq",
+    "schema": "public",
+    "canLogin": true,
+    "superuser": false,
+    "bypassRls": false
+  },
+  "sourceBinding": {
+    "files": {
+      "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d",
+      "scripts/check-live-provider-ingest-postgres.ts": "3aa5923c1a13261f54a9b560c26298f622e880e768c9d237a9d6283af31941b5",
+      "scripts/check-live-provider-ingest-postgres.test.ts": "c771624441e058847e7ca4e4d429d5f9d04e2668a12d25f7461cdcf54deed765",
+      "security/mandatory-public-racing-database-operations.ts": "5857024ce844716a381f9a011b3a872cf5ead98d2ec62138eb7f1704f065c8af",
+      "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
+      "src/lib/db.ts": "3f2df86c14ebb983246293aee66fb14a40b2fe09da1c70908b6d2ea547ade5f0",
+      "src/lib/live/sync.ts": "2518f9583e34cee487aeb71e50ebc4f76e4c652c2a2a97c43c6849b910a0e3c6"
+    },
+    "combinedSha256": "15a55c14513349b7572f736c123ebd93bcb5c3eb985a37e80c36c229956ae8ca"
+  },
+  "proof": {
+    "queryId": "DB.RACING.PROVIDER.INGEST.TRANSACTION",
+    "sourceFile": "src/lib/live/sync.ts",
+    "sourceSymbol": "syncLiveMeetings/upsertSystemMeetings",
+    "successCounts": {
+      "meetings": 1,
+      "races": 1,
+      "runners": 1,
+      "results": 1
+    },
+    "systemContext": [
+      {
+        "key": "app.system",
+        "value": "true"
+      },
+      {
+        "key": "app.current_tier",
+        "value": "system"
+      },
+      {
+        "key": "app.current_role",
+        "value": "system"
+      }
+    ],
+    "rowCounts": {
+      "before": {
+        "commit": {
+          "Track": 0,
+          "Meeting": 0,
+          "Race": 0,
+          "RaceVideo": 0,
+          "Dog": 0,
+          "Trainer": 0,
+          "Runner": 0,
+          "Result": 0,
+          "FormEntry": 0
+        },
+        "rollback": {
+          "Track": 0,
+          "Meeting": 0,
+          "Race": 0,
+          "RaceVideo": 0,
+          "Dog": 0,
+          "Trainer": 0,
+          "Runner": 0,
+          "Result": 0,
+          "FormEntry": 0
+        }
+      },
+      "afterCommit": {
+        "commit": {
+          "Track": 1,
+          "Meeting": 1,
+          "Race": 1,
+          "RaceVideo": 1,
+          "Dog": 1,
+          "Trainer": 1,
+          "Runner": 1,
+          "Result": 1,
+          "FormEntry": 1
+        },
+        "rollback": {
+          "Track": 0,
+          "Meeting": 0,
+          "Race": 0,
+          "RaceVideo": 0,
+          "Dog": 0,
+          "Trainer": 0,
+          "Runner": 0,
+          "Result": 0,
+          "FormEntry": 0
+        }
+      },
+      "afterForcedRollback": {
+        "commit": {
+          "Track": 1,
+          "Meeting": 1,
+          "Race": 1,
+          "RaceVideo": 1,
+          "Dog": 1,
+          "Trainer": 1,
+          "Runner": 1,
+          "Result": 1,
+          "FormEntry": 1
+        },
+        "rollback": {
+          "Track": 0,
+          "Meeting": 0,
+          "Race": 0,
+          "RaceVideo": 0,
+          "Dog": 0,
+          "Trainer": 0,
+          "Runner": 0,
+          "Result": 0,
+          "FormEntry": 0
+        }
+      }
+    },
+    "transactionOutcomes": {
+      "successfulBatch": "COMMIT",
+      "lateFailureBatch": "ROLLBACK",
+      "rollbackMutationsObservedBeforeFailure": [
+        "Track",
+        "Meeting",
+        "Race"
+      ],
+      "rollbackRowsPersisted": 0
+    },
+    "statements": [
+      {
+        "table": "Track",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"public\".\"Track\" (\"id\",\"name\",\"state\",\"boxCount\",\"hasIsolynx\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6) RETURNING \"public\".\"Track\".\"id\", \"public\".\"Track\".\"name\", \"public\".\"Track\".\"state\"",
+          "sha256": "e9585ec73c94b1273ef88df6db41631d4cb26e1b91ef21b99e58f4014f35a33a",
+          "parameterCount": 6,
+          "persistedParameterValues": false
+        }
+      },
+      {
+        "table": "Meeting",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"Meeting\" (\"id\", \"trackId\", \"meetingDate\", \"meetingType\", \"sourceProvider\", \"sourceId\", \"sourceRawJson\", \"lastSyncedAt\", \"createdAt\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) ON CONFLICT (\"trackId\", \"meetingDate\") DO UPDATE SET \"meetingType\" = EXCLUDED.\"meetingType\", \"sourceProvider\" = EXCLUDED.\"sourceProvider\", \"sourceId\" = EXCLUDED.\"sourceId\", \"sourceRawJson\" = EXCLUDED.\"sourceRawJson\", \"lastSyncedAt\" = EXCLUDED.\"lastSyncedAt\"",
+          "sha256": "43a50af6a0b0fb98e2f3650eed351cbd43dda4d61b37554792111301a78b5eb1",
+          "parameterCount": 8,
+          "persistedParameterValues": false
+        }
+      },
+      {
+        "table": "Race",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"Race\" (\"id\", \"meetingId\", \"raceNumber\", \"name\", \"raceTime\", \"distance\", \"grade\", \"prizeMoney\", \"resultStatus\", \"replayUrl\", \"photoFinishUrl\", \"sourceProvider\", \"sourceId\", \"sourceRawJson\", \"lastSyncedAt\", \"createdAt\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW()) ON CONFLICT (\"meetingId\", \"raceNumber\") DO UPDATE SET \"name\" = EXCLUDED.\"name\", \"raceTime\" = EXCLUDED.\"raceTime\", \"distance\" = EXCLUDED.\"distance\", \"grade\" = EXCLUDED.\"grade\", \"prizeMoney\" = EXCLUDED.\"prizeMoney\", \"resultStatus\" = EXCLUDED.\"resultStatus\", \"replayUrl\" = EXCLUDED.\"replayUrl\", \"photoFinishUrl\" = EXCLUDED.\"photoFinishUrl\", \"sourceProvider\" = EXCLUDED.\"sourceProvider\", \"sourceId\" = EXCLUDED.\"sourceId\", \"sourceRawJson\" = EXCLUDED.\"sourceRawJson\", \"lastSyncedAt\" = EXCLUDED.\"lastSyncedAt\"",
+          "sha256": "52dcdb7b2905f574ec05f6f923c4ef28c22d4f13c307d2c2f6f94ed683c25862",
+          "parameterCount": 15,
+          "persistedParameterValues": false
+        }
+      },
+      {
+        "table": "RaceVideo",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"RaceVideo\" (\"id\", \"raceId\", \"sourceProvider\", \"sourceId\", \"kind\", \"pageUrl\", \"embedSourceType\", \"sourceStatus\", \"sourceCode\", \"streamUrl\", \"streamContentType\", \"title\", \"description\", \"sourceRawJson\", \"fetchedAt\", \"lastSyncedAt\", \"createdAt\", \"updatedAt\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW()) ON CONFLICT (\"raceId\", \"sourceProvider\", \"kind\") DO UPDATE SET \"sourceId\" = EXCLUDED.\"sourceId\", \"pageUrl\" = EXCLUDED.\"pageUrl\", \"embedSourceType\" = EXCLUDED.\"embedSourceType\", \"sourceStatus\" = EXCLUDED.\"sourceStatus\", \"sourceCode\" = EXCLUDED.\"sourceCode\", \"streamUrl\" = COALESCE(EXCLUDED.\"streamUrl\", \"RaceVideo\".\"streamUrl\"), \"streamContentType\" = COALESCE(EXCLUDED.\"streamContentType\", \"RaceVideo\".\"streamContentType\"), \"title\" = EXCLUDED.\"title\", \"description\" = EXCLUDED.\"description\", \"sourceRawJson\" = EXCLUDED.\"sourceRawJson\", \"fetchedAt\" = COALESCE(EXCLUDED.\"fetchedAt\", \"RaceVideo\".\"fetchedAt\"), \"lastSyncedAt\" = EXCLUDED.\"lastSyncedAt\", \"updatedAt\" = NOW()",
+          "sha256": "d69d0e579a21a3b39239fb9a323d05897447e6a030ab6a2fb9b9837c47197bed",
+          "parameterCount": 16,
+          "persistedParameterValues": false
+        }
+      },
+      {
+        "table": "Dog",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"public\".\"Dog\" (\"id\",\"name\",\"earBrand\",\"colour\",\"sex\",\"createdAt\",\"updatedAt\") VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING",
+          "sha256": "de88e4d95896e7c0b1e0da06a2a6a4ab74cc2d2dae20cc3e8a7fc18dd8dfeeaf",
+          "parameterCount": 7,
+          "persistedParameterValues": false
+        }
+      },
+      {
+        "table": "Trainer",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"public\".\"Trainer\" (\"id\",\"name\",\"createdAt\") VALUES ($1,$2,$3)",
+          "sha256": "38d1fa769b812e17d9b5f7c8dd1e90f1ef2e5b4ca4327ba5fbfd267d6736cd42",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        }
+      },
+      {
+        "table": "Runner",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"Runner\" (\"id\", \"raceId\", \"boxNumber\", \"dogId\", \"weight\", \"trainerId\", \"scratched\", \"sourceProvider\", \"sourceId\", \"sourceRawJson\", \"createdAt\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW()) ON CONFLICT (\"raceId\", \"boxNumber\") DO UPDATE SET \"dogId\" = EXCLUDED.\"dogId\", \"weight\" = EXCLUDED.\"weight\", \"trainerId\" = EXCLUDED.\"trainerId\", \"scratched\" = EXCLUDED.\"scratched\", \"sourceProvider\" = EXCLUDED.\"sourceProvider\", \"sourceId\" = EXCLUDED.\"sourceId\", \"sourceRawJson\" = EXCLUDED.\"sourceRawJson\"",
+          "sha256": "d0e6eb885f122a3ed4ee4786371737a255d66e63c8623fb0a77816a62da2d1c6",
+          "parameterCount": 10,
+          "persistedParameterValues": false
+        }
+      },
+      {
+        "table": "Result",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"Result\" (\"id\", \"runnerId\", \"raceId\", \"finishingPosition\", \"runningTime\", \"margin\", \"prizeMoneyWon\", \"splitTime\", \"sectionals\", \"sourceProvider\", \"sourceId\", \"sourceRawJson\", \"lastSyncedAt\", \"createdAt\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW()) ON CONFLICT (\"runnerId\") DO UPDATE SET \"raceId\" = EXCLUDED.\"raceId\", \"finishingPosition\" = EXCLUDED.\"finishingPosition\", \"runningTime\" = COALESCE(EXCLUDED.\"runningTime\", \"Result\".\"runningTime\"), \"margin\" = COALESCE(EXCLUDED.\"margin\", \"Result\".\"margin\"), \"prizeMoneyWon\" = COALESCE(EXCLUDED.\"prizeMoneyWon\", \"Result\".\"prizeMoneyWon\"), \"splitTime\" = COALESCE(EXCLUDED.\"splitTime\", \"Result\".\"splitTime\"), \"sectionals\" = COALESCE(EXCLUDED.\"sectionals\", \"Result\".\"sectionals\"), \"sourceProvider\" = EXCLUDED.\"sourceProvider\", \"sourceId\" = EXCLUDED.\"sourceId\", \"sourceRawJson\" = COALESCE(EXCLUDED.\"sourceRawJson\", \"Result\".\"sourceRawJson\"), \"lastSyncedAt\" = EXCLUDED.\"lastSyncedAt\"",
+          "sha256": "7865f399bf9e8d7fa3fe4f8d4f2a980d01f6e4bca9c50e3903fefc1a4ba54da7",
+          "parameterCount": 13,
+          "persistedParameterValues": false
+        }
+      },
+      {
+        "table": "FormEntry",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"FormEntry\" (\"id\", \"dogId\", \"raceId\", \"trackId\", \"date\", \"boxNumber\", \"finish\", \"time\", \"distance\", \"grade\", \"weight\", \"createdAt\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW()) ON CONFLICT (\"dogId\", \"raceId\") DO UPDATE SET \"trackId\" = EXCLUDED.\"trackId\", \"date\" = EXCLUDED.\"date\", \"boxNumber\" = EXCLUDED.\"boxNumber\", \"finish\" = EXCLUDED.\"finish\", \"time\" = EXCLUDED.\"time\", \"distance\" = EXCLUDED.\"distance\", \"grade\" = EXCLUDED.\"grade\", \"weight\" = EXCLUDED.\"weight\"",
+          "sha256": "7cc41e290db97d92c186e1fe689b32338ed677484da7c90266066a0e0a115440",
+          "parameterCount": 11,
+          "persistedParameterValues": false
+        }
+      }
+    ],
+    "status": "verified"
+  },
+  "cleanup": {
+    "deleted": {
+      "Track": 1,
+      "Meeting": 1,
+      "Race": 1,
+      "RaceVideo": 1,
+      "Dog": 1,
+      "Trainer": 1,
+      "Runner": 1,
+      "Result": 1,
+      "FormEntry": 1
+    },
+    "remaining": {
+      "commit": {
+        "Track": 0,
+        "Meeting": 0,
+        "Race": 0,
+        "RaceVideo": 0,
+        "Dog": 0,
+        "Trainer": 0,
+        "Runner": 0,
+        "Result": 0,
+        "FormEntry": 0
+      },
+      "rollback": {
+        "Track": 0,
+        "Meeting": 0,
+        "Race": 0,
+        "RaceVideo": 0,
+        "Dog": 0,
+        "Trainer": 0,
+        "Runner": 0,
+        "Result": 0,
+        "FormEntry": 0
+      }
+    }
+  },
+  "verdict": "verified"
+}

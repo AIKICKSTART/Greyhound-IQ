@@ -12,6 +12,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { PageHero } from "@/components/page-hero";
+import { RateLimitRecoveryCard } from "@/components/rate-limit-recovery-card";
 import { getCurrentUser } from "@/lib/auth";
 import { getEntitlementLimitsForCurrentUser } from "@/lib/billing/entitlement-service";
 import type {
@@ -20,6 +21,7 @@ import type {
 } from "@/lib/billing/entitlements";
 import { safeQuery } from "@/lib/db";
 import { withDbRequestContext, type DbContextUser } from "@/lib/db-context";
+import { BILLING_RATE_LIMIT_RECOVERY_SECONDS } from "@/lib/rate-limit-recovery";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +31,7 @@ export const metadata = {
     "Review your GreyhoundIQ plan, billing status, invoices, and entitlement limits.",
 };
 
-const PANEL_CLASS = "giq-panel p-6";
+const PANEL_CLASS = "giq-panel p-5 sm:p-6";
 const ACTION_CLASS = "giq-outline-action";
 const PLAN_LABELS = {
   free: "Free",
@@ -53,37 +55,253 @@ const STATUS_BANNER_TONE_CLASS = {
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-AU", {
   day: "2-digit",
   month: "short",
+  timeZone: "Australia/Sydney",
   year: "numeric",
 });
 
 type BillingUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
+type BillingPageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
 
-export default async function BillingPage() {
+export default async function BillingPage({ searchParams }: BillingPageProps) {
   const user = await getCurrentUser();
+  const query = await searchParams;
 
   return (
     <div>
-      <PageHero
-        image="/images/wentworth-gate-hero.webp"
-        title={
-          <>
-            Account
-            <br />
-            <span className="gradient-text">billing.</span>
-          </>
+      {user ? (
+        <BillingMemberHeader tier={user.tier} />
+      ) : (
+        <PageHero
+          image="/images/feature-pricing-product.webp"
+          title={
+            <>
+              Account
+              <br />
+              <span className="gradient-text">billing.</span>
+            </>
+          }
+          subtitle="Plan, billing status, invoices, and entitlement limits for your account."
+        />
+      )}
+
+      <section
+        className={
+          user
+            ? "mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
+            : "mx-auto max-w-5xl px-6 py-12"
         }
-        subtitle="Plan, billing status, invoices, and entitlement limits for your account."
-      />
-
-      <section className="mx-auto max-w-5xl px-6 py-12">
-        <Link href="/account" className={`${ACTION_CLASS} mb-6 w-fit`}>
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to account
-        </Link>
-
-        {!user ? <SignedOutBilling /> : <SignedInBilling user={user} />}
+      >
+        <BillingOutcomeBanner query={query} />
+        {user ? (
+          <SignedInBilling user={user} />
+        ) : (
+          <>
+            <Link href="/account" className={`${ACTION_CLASS} mb-6 w-fit`}>
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              Back to account
+            </Link>
+            <SignedOutBilling />
+          </>
+        )}
       </section>
     </div>
+  );
+}
+
+function BillingOutcomeBanner({
+  query,
+}: {
+  query: { [key: string]: string | string[] | undefined };
+}) {
+  const checkout = singleQueryValue(query.checkout);
+  const portal = singleQueryValue(query.portal);
+  const billing = singleQueryValue(query.billing);
+  const interval =
+    query.interval === "monthly" || query.interval === "yearly"
+      ? query.interval
+      : null;
+
+  if (checkout === "success") {
+    return (
+      <div
+        aria-live="polite"
+        className="mb-6 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.08] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          Returned from Stripe Checkout
+        </p>
+        <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+          {query.plan === "pro"
+            ? `Your Pro${interval ? ` ${interval}` : ""} checkout return was received. `
+            : "Your checkout return was received. "}
+          The local plan only changes after the signed Stripe webhook is
+          verified, which may take a moment.
+        </p>
+        <Link href="/account/billing" className={`${ACTION_CLASS} mt-3 w-fit`}>
+          Refresh billing status
+        </Link>
+      </div>
+    );
+  }
+
+  if (checkout === "cancelled") {
+    const retryQuery = new URLSearchParams({ checkout: "cancelled" });
+    if (query.plan === "pro") retryQuery.set("plan", "pro");
+    if (interval) retryQuery.set("interval", interval);
+    return (
+      <div
+        aria-live="polite"
+        className="mb-6 rounded-xl border border-amber-300/30 bg-amber-300/[0.08] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          Checkout cancelled — no plan change was made
+        </p>
+        <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+          Your current tier is unchanged. Return to pricing to retry securely.
+        </p>
+        <Link
+          href={`/pricing?${retryQuery.toString()}`}
+          className={`${ACTION_CLASS} mt-3 w-fit`}
+        >
+          Retry checkout
+        </Link>
+      </div>
+    );
+  }
+
+  if (billing === "failed") {
+    return (
+      <div
+        role="alert"
+        className="mb-6 rounded-xl border border-rose-400/30 bg-rose-400/[0.08] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          Secure billing portal could not be opened
+        </p>
+        <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+          Your subscription and payment method were not changed. Retry the
+          secure Stripe portal when you are ready.
+        </p>
+        <BillingPortalAction className="mt-3">
+          Retry secure billing portal
+        </BillingPortalAction>
+      </div>
+    );
+  }
+
+  if (billing === "rate-limited") {
+    return (
+      <div className="mb-6">
+        <RateLimitRecoveryCard
+          title="Billing portal paused briefly"
+          detail="We limited repeated portal attempts to protect your account. Your subscription and payment method were not changed."
+          retryAfterSeconds={BILLING_RATE_LIMIT_RECOVERY_SECONDS}
+          action={
+            <BillingPortalAction>Retry secure billing portal</BillingPortalAction>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (portal === "returned") {
+    return (
+      <div
+        aria-live="polite"
+        className="mb-6 rounded-xl border border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          Returned from the secure Stripe billing portal
+        </p>
+        <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+          Any subscription or payment-method changes may take a moment to appear
+          while the signed webhook updates this read-only snapshot.
+        </p>
+      </div>
+    );
+  }
+
+  if (portal === "no_customer" || billing === "not_started") {
+    return (
+      <div
+        aria-live="polite"
+        className="mb-6 rounded-xl border border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          No Stripe billing profile yet
+        </p>
+        <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+          Start a paid plan before opening the billing portal.
+        </p>
+        <Link href="/pricing" className={`${ACTION_CLASS} mt-3 w-fit`}>
+          View plans
+        </Link>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function BillingPortalAction({
+  children,
+  className = "",
+  showIcon = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  showIcon?: boolean;
+}) {
+  return (
+    <form action="/api/billing/portal" method="post" className={className}>
+      <button type="submit" className={`${ACTION_CLASS} w-full sm:w-auto`}>
+        {showIcon ? (
+          <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
+        ) : null}
+        {children}
+      </button>
+    </form>
+  );
+}
+
+function singleQueryValue(value: string | string[] | undefined) {
+  return typeof value === "string" ? value : undefined;
+}
+
+function BillingMemberHeader({ tier }: { tier: BillingUser["tier"] }) {
+  return (
+    <header className="relative overflow-hidden border-b border-white/[0.07] bg-[linear-gradient(135deg,hsl(var(--card)/0.92),hsl(var(--background))_72%)]">
+      <div
+        aria-hidden="true"
+        className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[hsl(var(--primary-bright)/0.12)] blur-3xl"
+      />
+      <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-8">
+        <div className="max-w-2xl">
+          <p className="program-label">Member settings</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+            Billing
+          </h1>
+          <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
+            Review your plan, billing status, invoices, and account limits.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className="giq-status-pill giq-status-pill-purple min-h-8 px-3"
+            aria-label={`Current tier ${PLAN_LABELS[tier]}`}
+          >
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+            {PLAN_LABELS[tier]}
+          </span>
+          <Link href="/account" className={ACTION_CLASS}>
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            Back to account
+          </Link>
+        </div>
+      </div>
+    </header>
   );
 }
 
@@ -98,11 +316,14 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
       : "No subscription";
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-      <section className={PANEL_CLASS}>
+    <div className="grid gap-5 sm:gap-6 lg:grid-cols-12">
+      <section className={`${PANEL_CLASS} lg:col-span-5`}>
         <div className="mb-5 flex items-center gap-3">
-          <CreditCard className="h-5 w-5 text-[hsl(var(--secondary))]" />
-          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+          <CreditCard
+            className="h-5 w-5 text-[hsl(var(--secondary))]"
+            aria-hidden="true"
+          />
+          <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
             Plan
           </h2>
         </div>
@@ -115,19 +336,19 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
           />
         ) : null}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Metric label="Plan" value={formatPlanCode(planCode)} />
           <Metric label="Status" value={status} />
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-3">
-          <form action="/api/billing/portal" method="post">
-            <button className={ACTION_CLASS} type="submit">
-              <CreditCard className="h-3.5 w-3.5" />
-              Manage billing
-            </button>
-          </form>
-          <Link href="/pricing" className={ACTION_CLASS}>
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <BillingPortalAction
+            className="w-full sm:w-auto"
+            showIcon
+          >
+            Manage billing
+          </BillingPortalAction>
+          <Link href="/pricing" className={`${ACTION_CLASS} w-full sm:w-auto`}>
             Change plan
           </Link>
         </div>
@@ -162,17 +383,20 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
         )}
       </section>
 
-      <section className={PANEL_CLASS}>
+      <section className={`${PANEL_CLASS} lg:col-span-7`}>
         <div className="mb-5 flex items-center gap-3">
-          <Gauge className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+          <Gauge
+            className="h-5 w-5 text-[hsl(var(--primary-bright))]"
+            aria-hidden="true"
+          />
+          <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
             Entitlements
           </h2>
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <span className="giq-status-pill giq-status-pill-purple">
-            <ShieldCheck className="h-3.5 w-3.5" />
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
             {overview.entitlementSnapshot ? "Local snapshot" : "Tier defaults"}
           </span>
           <span className="text-[12px] text-[hsl(var(--muted-foreground))]">
@@ -180,7 +404,7 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {ENTITLEMENT_SUMMARY.map((item) => (
             <Metric
               key={item.key}
@@ -191,10 +415,13 @@ async function SignedInBilling({ user }: { user: BillingUser }) {
         </div>
       </section>
 
-      <section className={`${PANEL_CLASS} lg:col-span-2`}>
+      <section className={`${PANEL_CLASS} lg:col-span-12`}>
         <div className="mb-5 flex items-center gap-3">
-          <FileText className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-          <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+          <FileText
+            className="h-5 w-5 text-[hsl(var(--primary-bright))]"
+            aria-hidden="true"
+          />
+          <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
             Invoices
           </h2>
         </div>
@@ -254,8 +481,8 @@ function SignedOutBilling() {
         Sign in to view billing
       </h2>
       <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-        Billing snapshots are attached to the local user row created after the
-        WorkOS AuthKit callback.
+        Sign in securely to review your plan, invoices, billing status, and
+        current account limits.
       </p>
       <a
         href="/sign-in"

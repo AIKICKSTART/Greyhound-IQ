@@ -7,6 +7,7 @@ type DatabaseUrlDefaults = {
 type DatabaseUrlPolicy = {
   production?: boolean;
   required?: boolean;
+  allowManagedSupabase?: boolean;
 };
 
 export function runtimeDatabaseUrl(rawUrl: string, defaults: DatabaseUrlDefaults = {}) {
@@ -14,11 +15,18 @@ export function runtimeDatabaseUrl(rawUrl: string, defaults: DatabaseUrlDefaults
     const url = new URL(rawUrl);
     const isSupabasePooler = isSupabasePoolerUrl(url);
     const isSupavisorTransactionPooler = isSupabasePooler && url.port === "6543";
+    const isAlloyDbManagedPooler = url.port === "6432";
 
-    if (isSupavisorTransactionPooler && !url.searchParams.has("pgbouncer")) {
+    if (
+      (isSupavisorTransactionPooler || isAlloyDbManagedPooler) &&
+      !url.searchParams.has("pgbouncer")
+    ) {
       url.searchParams.set("pgbouncer", "true");
     }
-    if (isSupabasePooler && !url.searchParams.has("sslmode")) {
+    if (
+      (isSupabasePooler || isAlloyDbManagedPooler) &&
+      !url.searchParams.has("sslmode")
+    ) {
       url.searchParams.set("sslmode", "require");
     }
     if (!url.searchParams.has("connection_limit")) {
@@ -63,8 +71,12 @@ export function databaseUrlConfigurationError(
 
   try {
     const host = new URL(value).hostname.toLowerCase();
-    if (policy.production && isManagedSupabaseDatabaseHost(host)) {
-      return "must point at the self-hosted Supabase/Postgres database, not a managed Supabase database host";
+    if (
+      policy.production &&
+      !policy.allowManagedSupabase &&
+      isManagedSupabaseDatabaseHost(host)
+    ) {
+      return "must point at the approved PostgreSQL database, such as AlloyDB, not a managed Supabase database host";
     }
     return null;
   } catch {

@@ -12,7 +12,7 @@ export default function RacesError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Race route error:", error);
+    console.error("races.segment_error", { digest: error.digest ?? "unknown" });
   }, [error]);
 
   return (

@@ -2,17 +2,21 @@ export const SITE_ASSETS_BUCKET = "site-assets";
 export const PUBLIC_USER_MEDIA_BUCKET = "public-user-media";
 export const PRIVATE_USER_MEDIA_BUCKET = "private-user-media";
 
-export const SUPABASE_STORAGE_BUCKETS = [
+export const OBJECT_STORAGE_BUCKETS = [
   SITE_ASSETS_BUCKET,
   PUBLIC_USER_MEDIA_BUCKET,
   PRIVATE_USER_MEDIA_BUCKET,
 ] as const;
 
-export type SupabaseStorageBucket = (typeof SUPABASE_STORAGE_BUCKETS)[number];
+export type ObjectStorageBucket = (typeof OBJECT_STORAGE_BUCKETS)[number];
+
+// Transitional compatibility aliases. Runtime storage callers can move to the
+// provider-neutral names without changing the current Supabase implementation.
+export const SUPABASE_STORAGE_BUCKETS = OBJECT_STORAGE_BUCKETS;
+export type SupabaseStorageBucket = ObjectStorageBucket;
 
 const PUBLIC_BUCKETS = new Set<SupabaseStorageBucket>([
   SITE_ASSETS_BUCKET,
-  PUBLIC_USER_MEDIA_BUCKET,
 ]);
 
 const SITE_ASSET_SECTIONS: Record<string, string> = {
@@ -68,7 +72,13 @@ const SITE_ASSET_SECTIONS: Record<string, string> = {
 export function isSupabaseStorageBucket(
   value: string
 ): value is SupabaseStorageBucket {
-  return SUPABASE_STORAGE_BUCKETS.includes(value as SupabaseStorageBucket);
+  return isObjectStorageBucket(value);
+}
+
+export function isObjectStorageBucket(
+  value: string
+): value is ObjectStorageBucket {
+  return OBJECT_STORAGE_BUCKETS.includes(value as ObjectStorageBucket);
 }
 
 export function isPublicStorageBucket(bucket: string) {
@@ -101,6 +111,10 @@ export function siteAssetObjectPath(localPath: string) {
   const normalized = localPath.replace(/^\/+/, "");
   const filename = normalized.split("/").filter(Boolean).pop();
   if (!filename) return "site/general/asset";
+
+  if (normalized.startsWith("images/tracks/")) {
+    return `site/tracks/${normalized.slice("images/tracks/".length)}`;
+  }
 
   const section = SITE_ASSET_SECTIONS[filename] ?? "general";
   return `site/${section}/${filename}`;

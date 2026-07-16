@@ -1,4 +1,6 @@
 import { resolveTheDogsRaceReplay } from "./thedogs-replay";
+import { fetchPublicInternetOrigin } from "@/lib/public-network";
+import { readBoundedTextResponse } from "@/lib/remote-response";
 
 const RACING_QUEENSLAND_BASE =
   process.env.RACING_QUEENSLAND_BASE_URL ??
@@ -6,6 +8,11 @@ const RACING_QUEENSLAND_BASE =
 const TASRACING_REPLAY_BUCKET =
   "https://tasracing-race-replays.s3.ap-southeast-2.amazonaws.com";
 const REPLAY_FETCH_TIMEOUT_MS = 15_000;
+const REPLAY_PAGE_MAX_BYTES = 2 * 1024 * 1024;
+const HTML_RESPONSE_POLICY = {
+  maxBytes: REPLAY_PAGE_MAX_BYTES,
+  allowedContentTypes: ["text/html", "application/xhtml+xml"],
+} as const;
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 
@@ -139,8 +146,9 @@ export async function resolveRacingQueenslandReplay(
   if (!safePageUrl) return storedReplay(fallback);
 
   try {
-    const response = await fetch(safePageUrl, {
+    const response = await fetchPublicInternetOrigin(safePageUrl, {
       cache: "no-store",
+      redirect: "manual",
       signal: AbortSignal.timeout(REPLAY_FETCH_TIMEOUT_MS),
       headers: {
         accept: "text/html,application/xhtml+xml",
@@ -148,7 +156,10 @@ export async function resolveRacingQueenslandReplay(
         "user-agent": USER_AGENT,
       },
     });
-    const html = await response.text();
+    const html = response.ok
+      ? await readBoundedTextResponse(response, HTML_RESPONSE_POLICY)
+      : "";
+    if (!response.ok) await response.body?.cancel();
     const streamUrl = response.ok ? extractRacingQueenslandStreamUrl(html) : null;
     return {
       pageUrl: safePageUrl,
@@ -240,11 +251,20 @@ export function youtubeEmbedUrlFromPage(value: string | null | undefined) {
   if (!value) return null;
   try {
     const url = new URL(value);
+    if (
+      (url.protocol !== "http:" && url.protocol !== "https:") ||
+      url.username ||
+      url.password
+    ) {
+      return null;
+    }
     const host = url.hostname.replace(/^www\./, "");
     const id =
       host === "youtu.be"
         ? url.pathname.split("/").filter(Boolean)[0]
-        : host.endsWith("youtube.com")
+        : host === "youtube.com" ||
+            host === "m.youtube.com" ||
+            host === "youtube-nocookie.com"
           ? url.searchParams.get("v") ?? youtubePathId(url.pathname)
           : null;
     if (!id || !/^[A-Za-z0-9_-]{6,}$/.test(id)) return null;
@@ -258,6 +278,13 @@ export function vimeoEmbedUrlFromPage(value: string | null | undefined) {
   if (!value) return null;
   try {
     const url = new URL(value);
+    if (
+      (url.protocol !== "http:" && url.protocol !== "https:") ||
+      url.username ||
+      url.password
+    ) {
+      return null;
+    }
     const host = url.hostname.replace(/^www\./, "");
     const hash = url.searchParams.get("h");
     const id =
@@ -338,8 +365,11 @@ async function resolveVimeoReplay(
 
 async function fetchVimeoEmbedUrl(pageUrl: string) {
   try {
-    const response = await fetch(pageUrl, {
+    const safePageUrl = vimeoPageUrl(pageUrl);
+    if (!safePageUrl) return null;
+    const response = await fetchPublicInternetOrigin(safePageUrl, {
       cache: "no-store",
+      redirect: "manual",
       signal: AbortSignal.timeout(REPLAY_FETCH_TIMEOUT_MS),
       headers: {
         accept: "text/html,application/xhtml+xml",
@@ -347,12 +377,27 @@ async function fetchVimeoEmbedUrl(pageUrl: string) {
         "user-agent": USER_AGENT,
       },
     });
-    if (!response.ok) return null;
-    const html = (await response.text()).replaceAll("\\/", "/");
+    if (!response.ok) {
+      await response.body?.cancel();
+      return null;
+    }
+    const html = (await readBoundedTextResponse(response, HTML_RESPONSE_POLICY))
+      .replaceAll("\\/", "/");
     return (
       html.match(/https:\/\/player\.vimeo\.com\/video\/\d+\?h=[A-Za-z0-9]+/i)?.[0] ??
       null
     );
+  } catch {
+    return null;
+  }
+}
+
+function vimeoPageUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.origin === "https://vimeo.com"
+      ? url.toString()
+      : null;
   } catch {
     return null;
   }
@@ -363,9 +408,9 @@ function racingQueenslandPageUrl(value: string | null | undefined) {
   if (!url) return null;
   try {
     const parsed = new URL(url);
-    const baseHost = new URL(RACING_QUEENSLAND_BASE).hostname.replace(/^www\./, "");
-    const host = parsed.hostname.replace(/^www\./, "");
-    return host === baseHost &&
+    const base = new URL(RACING_QUEENSLAND_BASE);
+    return parsed.protocol === "https:" &&
+      parsed.origin === base.origin &&
       parsed.pathname.includes("/racing/replays/tab-race-replays/race-player/")
       ? parsed.toString()
       : null;

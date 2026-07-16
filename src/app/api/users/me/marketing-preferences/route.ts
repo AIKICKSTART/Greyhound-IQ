@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { jsonError } from "@/lib/api-errors";
+import {
+  accountMarketingPreferenceSchema,
+  MARKETING_EMAIL_CHANNEL,
+} from "@/lib/account-validation";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { withDbRequestContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
-const EMAIL_CHANNEL = "email";
+const EMAIL_CHANNEL = MARKETING_EMAIL_CHANNEL;
 const MARKETING_PREFERENCE_RATE_LIMIT = 20;
 const MARKETING_PREFERENCE_RATE_LIMIT_WINDOW_MS = 60_000;
 
-const marketingPreferenceSchema = z.object({
-  channel: z.literal(EMAIL_CHANNEL).optional(),
-  optedIn: z.boolean(),
-});
+const marketingPreferenceSchema = accountMarketingPreferenceSchema;
 
 function toMarketingPreferenceResponse(preference: { optedIn: boolean } | null) {
   return {
@@ -55,20 +57,18 @@ export async function POST(request: Request) {
       MARKETING_PREFERENCE_RATE_LIMIT_WINDOW_MS
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        MARKETING_PREFERENCE_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const parsed = marketingPreferenceSchema.parse(await request.json());
-    const preference = await withDbRequestContext(current, (tx) =>
-      tx.marketingPreference.upsert({
+    const parsed = marketingPreferenceSchema.parse(
+      await readBoundedJsonRequest(request),
+    );
+    const preference = await withDbRequestContext(current, async (tx) => {
+      const updated = await tx.marketingPreference.upsert({
         where: {
           userId_channel: {
             userId: current.dbUserId,
@@ -86,8 +86,22 @@ export async function POST(request: Request) {
         select: {
           optedIn: true,
         },
-      })
-    );
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: current.dbUserId,
+          actorType: "user",
+          action: "marketing_preference.update",
+          targetType: "user",
+          targetId: current.dbUserId,
+          metadata: JSON.stringify({
+            channel: EMAIL_CHANNEL,
+            optedIn: parsed.optedIn,
+          }),
+        },
+      });
+      return updated;
+    });
 
     return NextResponse.json({
       item: toMarketingPreferenceResponse(preference),

@@ -1,0 +1,1223 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "user-export-read-disposable-proof",
+  "generatedAt": "2026-07-15T14:23:23.500Z",
+  "safety": {
+    "scope": "literal-loopback-disposable-replay-only",
+    "providerContact": false,
+    "runtimeRole": "login-nonsuperuser-nobypassrls",
+    "cleanup": "exact-proof-identifiers-only"
+  },
+  "sourceBinding": {
+    "files": {
+      "prisma/schema.prisma": "b0e50aa4850eebd5e3095bba619c87370b78f249fbeabf5b8691e169f3c02b22",
+      "prisma/migrations/20260706223000_add_rls_entitlement_policies/migration.sql": "953db33c0662f936b67a88b8859fd49b5d76b28e90f2a5e8851669fb5ff6334e",
+      "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d",
+      "prisma/migrations/20260708210000_memory_owner_writes/migration.sql": "8bdac9e206b834d4ddc7130fdf2c097695a1ae5de0f0ca1dbcce61f3512c9146",
+      "scripts/check-user-export-read-postgres.ts": "86cd4b49c5917ddc9c1a87cb2c745ee8668a1f1d7f0be83d80bae6ecb922c5e2",
+      "scripts/check-user-export-read-postgres.test.ts": "6c80cb13ca8b4de4d4741c1a9cc459513811eb46e8f72cb2396ba2601f0ec19e",
+      "security/database-operations.ts": "ed32b2c91f41b2608ebb7f3797c79361cf6b07e54b2d1e4587893bc96d6f52e7",
+      "src/app/api/users/me/export/route.ts": "c1e770c1eeec68fbb5742d789db9898da51459cc34f4288f23a4f99aa5c0ce92",
+      "src/app/api/users/me/export/route.test.ts": "24b8038a14b5950e86eab37f161031d9864b7ca05cf3a5a2c81239ccde939cbc",
+      "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
+      "src/lib/db.ts": "3f2df86c14ebb983246293aee66fb14a40b2fe09da1c70908b6d2ea547ade5f0",
+      "src/lib/user-export-policy.ts": "200cae1d60920fb548aabeb7e0be7a966269d7ef9b6021a79debe32e8ee1a485",
+      "src/lib/user-export-policy.test.ts": "ffa3ed507e10db9617b0a221f7e5e183fec5db0e580bf29bc5b1766711b7ccdb",
+      "src/lib/user-export-service.ts": "f3eb4b201aa556665825eb94327161dc43315ffac1fb059874c672062700e34b"
+    },
+    "combinedSha256": "4eea2dfe68a54743bddcdb2ad1f8abbd6feb6881d9184605f837c0e9350bc098"
+  },
+  "proof": {
+    "queryId": "DB.ACCOUNT.DATA_EXPORT.READ",
+    "sourceFile": "src/lib/user-export-service.ts",
+    "sourceSymbol": "readUserExportData",
+    "collectionTake": 501,
+    "nestedCollectionTake": 21,
+    "expectedMaximumRows": 41502,
+    "maximumRowDerivation": {
+      "identityRows": 2,
+      "acceptedTopLevelRows": 5000,
+      "conservativeRelatedProjectionRows": 5000,
+      "perParentNestedSentinelRows": 31500,
+      "total": 41502
+    },
+    "normal": {
+      "ownerRecord": 1,
+      "profileRecord": 1,
+      "threads": 1,
+      "posts": 1,
+      "listings": 1,
+      "conversations": 1,
+      "messagesSent": 1,
+      "messagesReceived": 1,
+      "mediaAssets": 3,
+      "memoryEntries": 1,
+      "agentRuns": 1
+    },
+    "isolation": {
+      "otherOwnedThreads": 0,
+      "otherOwnedListings": 0,
+      "otherOwnedMedia": 0,
+      "otherOwnedMemories": 0,
+      "otherOwnedAgentRuns": 0,
+      "exactStatementReplay": "owner-other-anonymous-counts-recorded-per-variant"
+    },
+    "overflow": {
+      "topLevelSentinelRows": 501,
+      "nestedSentinelRows": 21,
+      "result": "both-rejected-before-export-completion"
+    },
+    "exclusions": {
+      "providerReferences": true,
+      "storageCoordinatesAndHashes": true,
+      "rawAgentInputsAndOutputs": true,
+      "memorySourceReferences": true,
+      "dtoForbiddenFieldScan": true
+    },
+    "statementCount": 18,
+    "statements": [
+      {
+        "variant": "export-read-01",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"AgentRun\".\"id\", \"public\".\"AgentRun\".\"agentType\", \"public\".\"AgentRun\".\"status\", \"public\".\"AgentRun\".\"durationMs\", \"public\".\"AgentRun\".\"createdAt\", \"public\".\"AgentRun\".\"completedAt\" FROM \"public\".\"AgentRun\" WHERE \"public\".\"AgentRun\".\"userId\" = $1 ORDER BY \"public\".\"AgentRun\".\"createdAt\" DESC LIMIT $2 OFFSET $3",
+          "sha256": "21d409d351b43657a5053e408e66af0d11b2119647079b2696422e2ff097f34c",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 0,
+          "anonymousRows": 0
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 2.38,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "estimatedRows": 1,
+                "totalCost": 2.38,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "AgentRun",
+                    "indexName": null,
+                    "joinType": null,
+                    "estimatedRows": 1,
+                    "totalCost": 2.37,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "1a038c047b08433ee6e2d3d6d559051c1d57d3b2794e4f77c9dde1f407263bc0"
+        }
+      },
+      {
+        "variant": "export-read-02",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"Conversation\".\"id\", \"public\".\"Conversation\".\"lastMessageAt\", \"public\".\"Conversation\".\"blockedAt\", \"public\".\"Conversation\".\"createdAt\", \"public\".\"Conversation\".\"updatedAt\", \"public\".\"Conversation\".\"participantAId\", \"public\".\"Conversation\".\"participantBId\" FROM \"public\".\"Conversation\" WHERE (\"public\".\"Conversation\".\"participantAId\" = $1 OR \"public\".\"Conversation\".\"participantBId\" = $2) ORDER BY \"public\".\"Conversation\".\"lastMessageAt\" DESC, \"public\".\"Conversation\".\"createdAt\" DESC LIMIT $3 OFFSET $4",
+          "sha256": "e7a03935bf0875910cba7560c3f022cfcd0013af4e62116e41ff18a445db958f",
+          "parameterCount": 4,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 1,
+          "anonymousRows": 0
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 1.01,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "estimatedRows": 1,
+                "totalCost": 1.01,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "Conversation",
+                    "indexName": null,
+                    "joinType": null,
+                    "estimatedRows": 1,
+                    "totalCost": 1,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "8531821922776d5d27d0d7f4cd946c379326c0a116ab67d5138499ab92c5e134"
+        }
+      },
+      {
+        "variant": "export-read-03",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"DogOwnership\".\"id\", \"public\".\"DogOwnership\".\"role\", \"public\".\"DogOwnership\".\"verified\", \"public\".\"DogOwnership\".\"status\", \"public\".\"DogOwnership\".\"evidence\", \"public\".\"DogOwnership\".\"reviewedAt\", \"public\".\"DogOwnership\".\"rejectionReason\", \"public\".\"DogOwnership\".\"createdAt\", \"public\".\"DogOwnership\".\"dogId\" FROM \"public\".\"DogOwnership\" WHERE \"public\".\"DogOwnership\".\"profileId\" = $1 ORDER BY \"public\".\"DogOwnership\".\"verified\" DESC, \"public\".\"DogOwnership\".\"createdAt\" DESC LIMIT $2 OFFSET $3",
+          "sha256": "9adfff78268868561061dd8ed0241ee70bc97cc2e0c678094161c820c43ae7a1",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 0,
+          "otherRows": 0,
+          "anonymousRows": 0
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 2.23,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "estimatedRows": 1,
+                "totalCost": 2.23,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "DogOwnership",
+                    "indexName": null,
+                    "joinType": null,
+                    "estimatedRows": 1,
+                    "totalCost": 2.21,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "1116d70d778a8c42c191ee3fa9306ffe432e0a70ccc9fc44bfd93a81890deb8b"
+        }
+      },
+      {
+        "variant": "export-read-04",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"ForumCategory\".\"id\", \"public\".\"ForumCategory\".\"name\", \"public\".\"ForumCategory\".\"slug\" FROM \"public\".\"ForumCategory\" WHERE \"public\".\"ForumCategory\".\"id\" IN ($1) OFFSET $2",
+          "sha256": "e7c6667052166e5b295a13919c1c4ef3f790853be6785a17e7b4494d562fa0b0",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 1,
+          "anonymousRows": 1
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Index Scan",
+            "relationName": "ForumCategory",
+            "indexName": "ForumCategory_pkey",
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 8.17,
+            "children": []
+          },
+          "planSha256": "56a7aaf0a8f2dcc4157367d3b2e5887f053a28c38667434caf3429d624b815e4"
+        }
+      },
+      {
+        "variant": "export-read-05",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"ForumCategory\".\"id\", \"public\".\"ForumCategory\".\"name\", \"public\".\"ForumCategory\".\"slug\", \"public\".\"ForumCategory\".\"description\" FROM \"public\".\"ForumCategory\" WHERE \"public\".\"ForumCategory\".\"id\" IN ($1) OFFSET $2",
+          "sha256": "8fbfefa16a3a7e27fdb48bbd3ef47571faabc96f4aa84e481b74ffc08490e2e2",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 1,
+          "anonymousRows": 1
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Index Scan",
+            "relationName": "ForumCategory",
+            "indexName": "ForumCategory_pkey",
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 8.17,
+            "children": []
+          },
+          "planSha256": "56a7aaf0a8f2dcc4157367d3b2e5887f053a28c38667434caf3429d624b815e4"
+        }
+      },
+      {
+        "variant": "export-read-06",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"Listing\".\"id\", \"public\".\"Listing\".\"type\", \"public\".\"Listing\".\"listingType\", \"public\".\"Listing\".\"title\", \"public\".\"Listing\".\"description\", \"public\".\"Listing\".\"price\", \"public\".\"Listing\".\"currency\", \"public\".\"Listing\".\"negotiable\", \"public\".\"Listing\".\"condition\", \"public\".\"Listing\".\"contactPreference\", \"public\".\"Listing\".\"state\", \"public\".\"Listing\".\"status\", \"public\".\"Listing\".\"moderationStatus\", \"public\".\"Listing\".\"moderationReason\", \"public\".\"Listing\".\"greyhoundName\", \"public\".\"Listing\".\"greyhoundEarbrand\", \"public\".\"Listing\".\"greyhoundMicrochip\", \"public\".\"Listing\".\"greyhoundWhelpedAt\", \"public\".\"Listing\".\"greyhoundSex\", \"public\".\"Listing\".\"greyhoundColor\", \"public\".\"Listing\".\"welfareAcknowledgedAt\", \"public\".\"Listing\".\"legalAcknowledgedAt\", \"public\".\"Listing\".\"itemBrand\", \"public\".\"Listing\".\"itemModel\", \"public\".\"Listing\".\"itemCondition\", \"public\".\"Listing\".\"itemSerialOrIdentifier\", \"public\".\"Listing\".\"expiresAt\", \"public\".\"Listing\".\"soldAt\", \"public\".\"Listing\".\"archivedAt\", \"public\".\"Listing\".\"views\", \"public\".\"Listing\".\"createdAt\", \"public\".\"Listing\".\"updatedAt\", \"public\".\"Listing\".\"dogId\" FROM \"public\".\"Listing\" WHERE \"public\".\"Listing\".\"profileId\" = $1 ORDER BY \"public\".\"Listing\".\"createdAt\" DESC LIMIT $2 OFFSET $3",
+          "sha256": "48342d16d16f99638796d0516cb422625d899337e1345ec38ea50ef6ac00b72f",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 0,
+          "anonymousRows": 0
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 1.01,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "estimatedRows": 1,
+                "totalCost": 1.01,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "Listing",
+                    "indexName": null,
+                    "joinType": null,
+                    "estimatedRows": 1,
+                    "totalCost": 1,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "ee4c800e914cfa2302602deb3146a62c321e110fe7de7594b93a3fe2b7bca270"
+        }
+      },
+      {
+        "variant": "export-read-07",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"MediaAsset\".\"id\", \"public\".\"MediaAsset\".\"originalName\", \"public\".\"MediaAsset\".\"mediaType\", \"public\".\"MediaAsset\".\"mimeType\", \"public\".\"MediaAsset\".\"sizeBytes\", \"public\".\"MediaAsset\".\"widthPx\", \"public\".\"MediaAsset\".\"heightPx\", \"public\".\"MediaAsset\".\"durationSec\", \"public\".\"MediaAsset\".\"scanStatus\", \"public\".\"MediaAsset\".\"scanCompletedAt\", \"public\".\"MediaAsset\".\"processingStatus\", \"public\".\"MediaAsset\".\"altText\", \"public\".\"MediaAsset\".\"expiresAt\", \"public\".\"MediaAsset\".\"deletedAt\", \"public\".\"MediaAsset\".\"createdAt\", \"public\".\"MediaAsset\".\"updatedAt\" FROM \"public\".\"MediaAsset\" WHERE \"public\".\"MediaAsset\".\"uploaderId\" = $1 ORDER BY \"public\".\"MediaAsset\".\"createdAt\" DESC LIMIT $2 OFFSET $3",
+          "sha256": "67a851ce2855463b367422c69a3e734165fa0500177665c79e0b44f57c48fa60",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 3,
+          "otherRows": 0,
+          "anonymousRows": 0
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 33.51,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "MediaAsset",
+                "indexName": "MediaAsset_uploaderId_createdAt_idx",
+                "joinType": null,
+                "estimatedRows": 1,
+                "totalCost": 33.51,
+                "children": [
+                  {
+                    "nodeType": "Nested Loop",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": "Inner",
+                    "estimatedRows": 1,
+                    "totalCost": 27.58,
+                    "children": [
+                      {
+                        "nodeType": "Seq Scan",
+                        "relationName": "Message",
+                        "indexName": null,
+                        "joinType": null,
+                        "estimatedRows": 1,
+                        "totalCost": 8.62,
+                        "children": []
+                      },
+                      {
+                        "nodeType": "Index Only Scan",
+                        "relationName": "MessageMedia",
+                        "indexName": "MessageMedia_pkey",
+                        "joinType": null,
+                        "estimatedRows": 1,
+                        "totalCost": 12.69,
+                        "children": [
+                          {
+                            "nodeType": "Seq Scan",
+                            "relationName": "Message",
+                            "indexName": null,
+                            "joinType": null,
+                            "estimatedRows": 1,
+                            "totalCost": 2.38,
+                            "children": []
+                          },
+                          {
+                            "nodeType": "Seq Scan",
+                            "relationName": "Message",
+                            "indexName": null,
+                            "joinType": null,
+                            "estimatedRows": 2,
+                            "totalCost": 2,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "1b83e917cba43501ed19cf0ea514f101784aa94cd69bc7cde7e5ad484b3430f7"
+        }
+      },
+      {
+        "variant": "export-read-08",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"MemoryEntry\".\"id\", \"public\".\"MemoryEntry\".\"kind\", \"public\".\"MemoryEntry\".\"content\", \"public\".\"MemoryEntry\".\"source\", \"public\".\"MemoryEntry\".\"importance\", \"public\".\"MemoryEntry\".\"lastAccessedAt\", \"public\".\"MemoryEntry\".\"lastMaintainedAt\", \"public\".\"MemoryEntry\".\"accessCount\", \"public\".\"MemoryEntry\".\"supersededAt\", \"public\".\"MemoryEntry\".\"deletedAt\", \"public\".\"MemoryEntry\".\"createdAt\", \"public\".\"MemoryEntry\".\"updatedAt\" FROM \"public\".\"MemoryEntry\" WHERE \"public\".\"MemoryEntry\".\"userId\" = $1 ORDER BY \"public\".\"MemoryEntry\".\"createdAt\" DESC LIMIT $2 OFFSET $3",
+          "sha256": "3a7d07283dcd56c515fbdf6123b923c5c424eccde0ff8f9c4f34f6fa632313ec",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 0,
+          "anonymousRows": 0
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 8.24,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "estimatedRows": 1,
+                "totalCost": 8.24,
+                "children": [
+                  {
+                    "nodeType": "Index Scan",
+                    "relationName": "MemoryEntry",
+                    "indexName": "MemoryEntry_userId_lastAccessedAt_idx",
+                    "joinType": null,
+                    "estimatedRows": 1,
+                    "totalCost": 8.23,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "76bf6a6766a4bf03df8a5fca1683b35f827737b1131f86913dae74536687d0a9"
+        }
+      },
+      {
+        "variant": "export-read-09",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"Message\".\"id\", \"public\".\"Message\".\"body\", \"public\".\"Message\".\"read\", \"public\".\"Message\".\"readAt\", \"public\".\"Message\".\"deletedBySenderAt\", \"public\".\"Message\".\"deletedByRecipientAt\", \"public\".\"Message\".\"createdAt\", \"public\".\"Message\".\"recipientId\" FROM \"public\".\"Message\" WHERE \"public\".\"Message\".\"senderId\" = $1 ORDER BY \"public\".\"Message\".\"createdAt\" DESC LIMIT $2 OFFSET $3",
+          "sha256": "addad384d78d2ee0cf097122b70bac0644f4ef42e227ee884bd5477de7b8a7a5",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 1,
+          "anonymousRows": 0
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 2.08,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "estimatedRows": 1,
+                "totalCost": 2.08,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "Message",
+                    "indexName": null,
+                    "joinType": null,
+                    "estimatedRows": 1,
+                    "totalCost": 2.06,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "d483d533ed3d79128ceaceda6e3ff9c4aa1c0ad67bd9913b3ba9c1dcbfdbcdd6"
+        }
+      },
+      {
+        "variant": "export-read-10",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"Message\".\"id\", \"public\".\"Message\".\"body\", \"public\".\"Message\".\"read\", \"public\".\"Message\".\"readAt\", \"public\".\"Message\".\"deletedBySenderAt\", \"public\".\"Message\".\"deletedByRecipientAt\", \"public\".\"Message\".\"createdAt\", \"public\".\"Message\".\"senderId\" FROM \"public\".\"Message\" WHERE \"public\".\"Message\".\"recipientId\" = $1 ORDER BY \"public\".\"Message\".\"createdAt\" DESC LIMIT $2 OFFSET $3",
+          "sha256": "385ca14e407055bb7d9ccecdb586a3c3eeb293674e532ed291cc09c6b1e92d02",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 1,
+          "anonymousRows": 0
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 2.08,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "estimatedRows": 1,
+                "totalCost": 2.08,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "Message",
+                    "indexName": null,
+                    "joinType": null,
+                    "estimatedRows": 1,
+                    "totalCost": 2.06,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "d483d533ed3d79128ceaceda6e3ff9c4aa1c0ad67bd9913b3ba9c1dcbfdbcdd6"
+        }
+      },
+      {
+        "variant": "export-read-11",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"Post\".\"id\", \"public\".\"Post\".\"body\", \"public\".\"Post\".\"editedAt\", \"public\".\"Post\".\"createdAt\", \"public\".\"Post\".\"threadId\" FROM \"public\".\"Post\" WHERE \"public\".\"Post\".\"authorId\" = $1 ORDER BY \"public\".\"Post\".\"createdAt\" DESC LIMIT $2 OFFSET $3",
+          "sha256": "961087caccf4e1ef2ed66dd86bd5ef413a9cbb1071ddc1b11daebebc74db3f56",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 1,
+          "anonymousRows": 1
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 1.01,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "estimatedRows": 1,
+                "totalCost": 1.01,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "Post",
+                    "indexName": null,
+                    "joinType": null,
+                    "estimatedRows": 1,
+                    "totalCost": 1,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "9e53fdba8679fc1030e2d3cf931dc294872454b28c37d875cc5619ca78a1199d"
+        }
+      },
+      {
+        "variant": "export-read-12",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"Profile\".\"id\", \"public\".\"Profile\".\"displayName\" FROM \"public\".\"Profile\" WHERE \"public\".\"Profile\".\"id\" IN ($1) OFFSET $2",
+          "sha256": "19409c35478cccb70b4cc21e5e66aad4a0e7dd27b78bc0eedb3195c049877db9",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 1,
+          "anonymousRows": 1
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Seq Scan",
+            "relationName": "Profile",
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 1.01,
+            "children": []
+          },
+          "planSha256": "acd8164c52c5f3a55f1620c36355ac6d3b1c1fba754e7436b539e7a0714f9a15"
+        }
+      },
+      {
+        "variant": "export-read-13",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"Profile\".\"id\", \"public\".\"Profile\".\"displayName\", \"public\".\"Profile\".\"bio\", \"public\".\"Profile\".\"state\", \"public\".\"Profile\".\"kennelName\", \"public\".\"Profile\".\"kennelPrefix\", \"public\".\"Profile\".\"role\", \"public\".\"Profile\".\"verified\", \"public\".\"Profile\".\"website\", \"public\".\"Profile\".\"phone\", \"public\".\"Profile\".\"createdAt\", \"public\".\"Profile\".\"updatedAt\" FROM \"public\".\"Profile\" WHERE (\"public\".\"Profile\".\"id\" = $1 AND 1=1) LIMIT $2 OFFSET $3",
+          "sha256": "e1e5433d2acd0ebd6f80ee1992f8e6af54785cb53a2513ef506b267a8651a545",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 1,
+          "anonymousRows": 1
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 1.01,
+            "children": [
+              {
+                "nodeType": "Seq Scan",
+                "relationName": "Profile",
+                "indexName": null,
+                "joinType": null,
+                "estimatedRows": 1,
+                "totalCost": 1.01,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "91ae749fab9bddfc67b92b157e77803014fad7ae08fa0356ccd1277d025af8c1"
+        }
+      },
+      {
+        "variant": "export-read-14",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"Thread\".\"id\", \"public\".\"Thread\".\"title\", \"public\".\"Thread\".\"categoryId\" FROM \"public\".\"Thread\" WHERE \"public\".\"Thread\".\"id\" IN ($1) OFFSET $2",
+          "sha256": "31fc8ec56c219e929c857929f797f3a02355a32c6d98122d90688577edce668e",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 1,
+          "anonymousRows": 1
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Seq Scan",
+            "relationName": "Thread",
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 1.56,
+            "children": []
+          },
+          "planSha256": "2094aba9595e529230bb9456cd8923ce7250b8fe6da3363b2bd44ed731059204"
+        }
+      },
+      {
+        "variant": "export-read-15",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"Thread\".\"id\", \"public\".\"Thread\".\"title\", \"public\".\"Thread\".\"pinned\", \"public\".\"Thread\".\"locked\", \"public\".\"Thread\".\"views\", \"public\".\"Thread\".\"createdAt\", \"public\".\"Thread\".\"updatedAt\", \"public\".\"Thread\".\"categoryId\", COALESCE(\"aggr_selection_0_Post\".\"_aggr_count_posts\", 0) AS \"_aggr_count_posts\" FROM \"public\".\"Thread\" LEFT JOIN (SELECT \"public\".\"Post\".\"threadId\", COUNT(*) AS \"_aggr_count_posts\" FROM \"public\".\"Post\" WHERE 1=1 GROUP BY \"public\".\"Post\".\"threadId\") AS \"aggr_selection_0_Post\" ON (\"public\".\"Thread\".\"id\" = \"aggr_selection_0_Post\".\"threadId\") WHERE \"public\".\"Thread\".\"authorId\" = $1 ORDER BY \"public\".\"Thread\".\"createdAt\" DESC LIMIT $2 OFFSET $3",
+          "sha256": "0b7106715594d93b071bc58719d9e18fe697aecb7ca60e610796a22b9ae6e122",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 1,
+          "anonymousRows": 1
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 2.61,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "estimatedRows": 1,
+                "totalCost": 2.61,
+                "children": [
+                  {
+                    "nodeType": "Nested Loop",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": "Left",
+                    "estimatedRows": 1,
+                    "totalCost": 2.6,
+                    "children": [
+                      {
+                        "nodeType": "Seq Scan",
+                        "relationName": "Thread",
+                        "indexName": null,
+                        "joinType": null,
+                        "estimatedRows": 1,
+                        "totalCost": 1.56,
+                        "children": []
+                      },
+                      {
+                        "nodeType": "Aggregate",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "estimatedRows": 1,
+                        "totalCost": 1.01,
+                        "children": [
+                          {
+                            "nodeType": "Seq Scan",
+                            "relationName": "Post",
+                            "indexName": null,
+                            "joinType": null,
+                            "estimatedRows": 1,
+                            "totalCost": 1,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "253f7b7f4872fb44aa476c470a34994c43aa078ccee47ab7ed2a77e36b02abee"
+        }
+      },
+      {
+        "variant": "export-read-16",
+        "observedSql": {
+          "normalizedSql": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"email\", \"public\".\"User\".\"name\", \"public\".\"User\".\"subscriptionTier\", \"public\".\"User\".\"isBanned\", \"public\".\"User\".\"deletionRequestedAt\", \"public\".\"User\".\"createdAt\", \"public\".\"User\".\"updatedAt\" FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"id\" = $1 AND 1=1) LIMIT $2 OFFSET $3",
+          "sha256": "3eb2c5c7814a69ed18660693d6a1a6a6f2390bb57a6e4f79463e4f2c22122d66",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 0,
+          "anonymousRows": 0
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 1.04,
+            "children": [
+              {
+                "nodeType": "Seq Scan",
+                "relationName": "User",
+                "indexName": null,
+                "joinType": null,
+                "estimatedRows": 1,
+                "totalCost": 1.04,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "521435fdd6894a8625123c8a5a71c2aba27d4a0bee282297ce01b15548d64206"
+        }
+      },
+      {
+        "variant": "export-read-17",
+        "observedSql": {
+          "normalizedSql": "SELECT bounded.\"parentId\", bounded.position, bounded.\"linkCreatedAt\", bounded.\"originalName\", bounded.\"mediaType\", bounded.\"mimeType\", bounded.\"sizeBytes\", bounded.\"widthPx\", bounded.\"heightPx\", bounded.\"durationSec\", bounded.\"scanStatus\", bounded.\"scanCompletedAt\", bounded.\"processingStatus\", bounded.\"altText\", bounded.\"expiresAt\", bounded.\"deletedAt\", bounded.\"mediaCreatedAt\", bounded.\"mediaUpdatedAt\" FROM (VALUES ($1)) AS selected(\"parentId\") CROSS JOIN LATERAL ( SELECT lm.\"listingId\" AS \"parentId\", lm.position, lm.\"createdAt\" AS \"linkCreatedAt\", media.\"originalName\", media.\"mediaType\", media.\"mimeType\", media.\"sizeBytes\", media.\"widthPx\", media.\"heightPx\", media.\"durationSec\", media.\"scanStatus\", media.\"scanCompletedAt\", media.\"processingStatus\", media.\"altText\", media.\"expiresAt\", media.\"deletedAt\", media.\"createdAt\" AS \"mediaCreatedAt\", media.\"updatedAt\" AS \"mediaUpdatedAt\" FROM \"ListingMedia\" AS lm INNER JOIN \"MediaAsset\" AS media ON media.id = lm.\"mediaId\" WHERE lm.\"listingId\" = selected.\"parentId\" ORDER BY lm.position ASC, lm.\"mediaId\" ASC LIMIT $2 ) AS bounded ORDER BY bounded.\"parentId\" ASC, bounded.position ASC",
+          "sha256": "d7b23c7eee3032554817653c70ba448eabc4c0331a29530e7e26dcd00f086240",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 0,
+          "anonymousRows": 0
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Sort",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 1,
+            "totalCost": 42.73,
+            "children": [
+              {
+                "nodeType": "Subquery Scan",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "estimatedRows": 1,
+                "totalCost": 42.72,
+                "children": [
+                  {
+                    "nodeType": "Limit",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "estimatedRows": 1,
+                    "totalCost": 42.71,
+                    "children": [
+                      {
+                        "nodeType": "Sort",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "estimatedRows": 1,
+                        "totalCost": 42.71,
+                        "children": [
+                          {
+                            "nodeType": "Nested Loop",
+                            "relationName": null,
+                            "indexName": null,
+                            "joinType": "Inner",
+                            "estimatedRows": 1,
+                            "totalCost": 42.69,
+                            "children": [
+                              {
+                                "nodeType": "Seq Scan",
+                                "relationName": "ListingMedia",
+                                "indexName": null,
+                                "joinType": null,
+                                "estimatedRows": 1,
+                                "totalCost": 1,
+                                "children": [
+                                  {
+                                    "nodeType": "Seq Scan",
+                                    "relationName": "Listing",
+                                    "indexName": null,
+                                    "joinType": null,
+                                    "estimatedRows": 1,
+                                    "totalCost": 1,
+                                    "children": []
+                                  },
+                                  {
+                                    "nodeType": "Seq Scan",
+                                    "relationName": "Listing",
+                                    "indexName": null,
+                                    "joinType": null,
+                                    "estimatedRows": 1,
+                                    "totalCost": 1,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "nodeType": "Index Scan",
+                                "relationName": "MediaAsset",
+                                "indexName": "MediaAsset_pkey",
+                                "joinType": null,
+                                "estimatedRows": 1,
+                                "totalCost": 35.76,
+                                "children": [
+                                  {
+                                    "nodeType": "Nested Loop",
+                                    "relationName": null,
+                                    "indexName": null,
+                                    "joinType": "Inner",
+                                    "estimatedRows": 1,
+                                    "totalCost": 27.58,
+                                    "children": [
+                                      {
+                                        "nodeType": "Seq Scan",
+                                        "relationName": "Message",
+                                        "indexName": null,
+                                        "joinType": null,
+                                        "estimatedRows": 1,
+                                        "totalCost": 8.62,
+                                        "children": []
+                                      },
+                                      {
+                                        "nodeType": "Index Only Scan",
+                                        "relationName": "MessageMedia",
+                                        "indexName": "MessageMedia_pkey",
+                                        "joinType": null,
+                                        "estimatedRows": 1,
+                                        "totalCost": 12.69,
+                                        "children": [
+                                          {
+                                            "nodeType": "Seq Scan",
+                                            "relationName": "Message",
+                                            "indexName": null,
+                                            "joinType": null,
+                                            "estimatedRows": 1,
+                                            "totalCost": 2.38,
+                                            "children": []
+                                          },
+                                          {
+                                            "nodeType": "Seq Scan",
+                                            "relationName": "Message",
+                                            "indexName": null,
+                                            "joinType": null,
+                                            "estimatedRows": 2,
+                                            "totalCost": 2,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "904d0835420efd1e3e125dd75f6b83ad8ca05d394162509e10cfe2de00317154"
+        }
+      },
+      {
+        "variant": "export-read-18",
+        "observedSql": {
+          "normalizedSql": "SELECT bounded.\"parentId\", bounded.position, bounded.\"linkCreatedAt\", bounded.\"originalName\", bounded.\"mediaType\", bounded.\"mimeType\", bounded.\"sizeBytes\", bounded.\"widthPx\", bounded.\"heightPx\", bounded.\"durationSec\", bounded.\"scanStatus\", bounded.\"scanCompletedAt\", bounded.\"processingStatus\", bounded.\"altText\", bounded.\"expiresAt\", bounded.\"deletedAt\", bounded.\"mediaCreatedAt\", bounded.\"mediaUpdatedAt\" FROM (VALUES ($1)) AS selected(\"parentId\") CROSS JOIN LATERAL ( SELECT mm.\"messageId\" AS \"parentId\", mm.position, mm.\"createdAt\" AS \"linkCreatedAt\", media.\"originalName\", media.\"mediaType\", media.\"mimeType\", media.\"sizeBytes\", media.\"widthPx\", media.\"heightPx\", media.\"durationSec\", media.\"scanStatus\", media.\"scanCompletedAt\", media.\"processingStatus\", media.\"altText\", media.\"expiresAt\", media.\"deletedAt\", media.\"createdAt\" AS \"mediaCreatedAt\", media.\"updatedAt\" AS \"mediaUpdatedAt\" FROM \"MessageMedia\" AS mm INNER JOIN \"MediaAsset\" AS media ON media.id = mm.\"mediaId\" WHERE mm.\"messageId\" = selected.\"parentId\" ORDER BY mm.position ASC, mm.\"mediaId\" ASC LIMIT $2 ) AS bounded ORDER BY bounded.\"parentId\" ASC, bounded.position ASC",
+          "sha256": "3b34a0c6101fb400e67a066d8bba872bbf1b13febde7168431839bcd1eeff0d8",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "replay": {
+          "ownerRows": 1,
+          "otherRows": 0,
+          "anonymousRows": 0
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Sort",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "estimatedRows": 3,
+            "totalCost": 126.13,
+            "children": [
+              {
+                "nodeType": "Subquery Scan",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "estimatedRows": 3,
+                "totalCost": 126.1,
+                "children": [
+                  {
+                    "nodeType": "Limit",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "estimatedRows": 3,
+                    "totalCost": 126.07,
+                    "children": [
+                      {
+                        "nodeType": "Sort",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "estimatedRows": 3,
+                        "totalCost": 126.07,
+                        "children": [
+                          {
+                            "nodeType": "Nested Loop",
+                            "relationName": null,
+                            "indexName": null,
+                            "joinType": "Inner",
+                            "estimatedRows": 3,
+                            "totalCost": 126.04,
+                            "children": [
+                              {
+                                "nodeType": "Bitmap Heap Scan",
+                                "relationName": "MessageMedia",
+                                "indexName": null,
+                                "joinType": null,
+                                "estimatedRows": 3,
+                                "totalCost": 30.7,
+                                "children": [
+                                  {
+                                    "nodeType": "Bitmap Index Scan",
+                                    "relationName": null,
+                                    "indexName": "MessageMedia_messageId_position_key",
+                                    "joinType": null,
+                                    "estimatedRows": 4,
+                                    "totalCost": 4.18,
+                                    "children": []
+                                  },
+                                  {
+                                    "nodeType": "Seq Scan",
+                                    "relationName": "Message",
+                                    "indexName": null,
+                                    "joinType": null,
+                                    "estimatedRows": 1,
+                                    "totalCost": 2.38,
+                                    "children": []
+                                  },
+                                  {
+                                    "nodeType": "Seq Scan",
+                                    "relationName": "Message",
+                                    "indexName": null,
+                                    "joinType": null,
+                                    "estimatedRows": 2,
+                                    "totalCost": 2,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "nodeType": "Memoize",
+                                "relationName": null,
+                                "indexName": null,
+                                "joinType": null,
+                                "estimatedRows": 1,
+                                "totalCost": 31.77,
+                                "children": [
+                                  {
+                                    "nodeType": "Index Scan",
+                                    "relationName": "MediaAsset",
+                                    "indexName": "MediaAsset_pkey",
+                                    "joinType": null,
+                                    "estimatedRows": 1,
+                                    "totalCost": 31.76,
+                                    "children": [
+                                      {
+                                        "nodeType": "Nested Loop",
+                                        "relationName": null,
+                                        "indexName": null,
+                                        "joinType": "Inner",
+                                        "estimatedRows": 1,
+                                        "totalCost": 27.58,
+                                        "children": [
+                                          {
+                                            "nodeType": "Seq Scan",
+                                            "relationName": "Message",
+                                            "indexName": null,
+                                            "joinType": null,
+                                            "estimatedRows": 1,
+                                            "totalCost": 8.62,
+                                            "children": []
+                                          },
+                                          {
+                                            "nodeType": "Index Only Scan",
+                                            "relationName": "MessageMedia",
+                                            "indexName": "MessageMedia_pkey",
+                                            "joinType": null,
+                                            "estimatedRows": 1,
+                                            "totalCost": 12.69,
+                                            "children": [
+                                              {
+                                                "nodeType": "Seq Scan",
+                                                "relationName": "Message",
+                                                "indexName": null,
+                                                "joinType": null,
+                                                "estimatedRows": 1,
+                                                "totalCost": 2.38,
+                                                "children": []
+                                              },
+                                              {
+                                                "nodeType": "Seq Scan",
+                                                "relationName": "Message",
+                                                "indexName": null,
+                                                "joinType": null,
+                                                "estimatedRows": 2,
+                                                "totalCost": 2,
+                                                "children": []
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "848af89f8c3c795f4fab183a6044a93911c4e1bed77f025c71180e3371725728"
+        }
+      }
+    ],
+    "cleanup": {
+      "messageMediaRowsDeleted": 2,
+      "listingMediaRowsDeleted": 21,
+      "mediaRowsDeleted": 23,
+      "messageRowsDeleted": 2,
+      "conversationRowsDeleted": 1,
+      "listingRowsDeleted": 1,
+      "postRowsDeleted": 1,
+      "threadRowsDeleted": 1,
+      "categoryRowsDeleted": 1,
+      "memoryRowsDeleted": 1,
+      "agentRunRowsDeleted": 1,
+      "socialActorRowsDeleted": 2,
+      "profileRowsDeleted": 2,
+      "userRowsDeleted": 2
+    },
+    "cases": {
+      "memberRead": "explicit-projections-and-owner-predicates",
+      "sensitiveRls": "owner-visible-other-and-anonymous-denied",
+      "publicRows": "owner-predicate-remains-server-derived",
+      "topLevelBound": "sentinel-row-rejected",
+      "nestedBound": "lateral-database-limit-sentinel-rejected",
+      "cacheAndResponseBound": "route-and-policy-source-bound"
+    },
+    "status": "verified"
+  },
+  "verdict": "verified"
+}

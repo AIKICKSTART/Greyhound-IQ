@@ -11,8 +11,9 @@ import {
 } from "../../../scripts/audit-design-lab-hydrated-wave2";
 import { DESIGN_LAB_STORY_AUDIT_PATH } from "../../../scripts/audit-design-lab-user-stories";
 import {
-  getDesignLabSourceFingerprint,
+  fingerprintRepositoryFiles,
   getRepositoryHeadSha,
+  parseDesignLabSourceFiles,
 } from "../../../scripts/design-lab-source-fingerprint";
 
 import {
@@ -43,7 +44,7 @@ const expected = {
       "DL.ACTION.SCENARIO.URL.COPY",
       "DL.ACTION.SCENARIO.DESTRUCTIVE.SIMULATE",
     ],
-    states: 40,
+    states: 50,
     fixtures: 12,
     tests: [
       "DL-STORY-MANIFEST",
@@ -240,10 +241,12 @@ if (promotedWave2Routes.length > 0) {
     "Wave 2 inventory coverage cannot be promoted without its companion HTTP artifact",
   );
   const companionJson = readFileSync(DESIGN_LAB_STORY_AUDIT_PATH, "utf8");
-  const currentSource = getDesignLabSourceFingerprint(process.cwd());
   const wave2Audit = JSON.parse(
     readFileSync(DESIGN_LAB_HYDRATED_WAVE2_AUDIT_PATH, "utf8"),
   );
+  const sourceFiles = parseDesignLabSourceFiles(wave2Audit);
+  assert.ok(sourceFiles, "Wave 2 audit must declare its source-file manifest");
+  const currentSource = fingerprintRepositoryFiles(process.cwd(), sourceFiles);
   assert.deepEqual(
     findDesignLabHydratedWave2AuditIssues(wave2Audit, {
       headSha: getRepositoryHeadSha(process.cwd()),

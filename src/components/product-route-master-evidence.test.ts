@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { getDesignLabSourceFingerprint } from "../../scripts/design-lab-source-fingerprint";
+import {
+  fingerprintRepositoryFiles,
+  parseDesignLabSourceFiles,
+} from "../../scripts/design-lab-source-fingerprint";
 import {
   DEMO_ROUTE_AUDIT_EVALUATION,
   DEMO_SCREEN_FAMILIES,
@@ -25,7 +28,9 @@ const audit = JSON.parse(
     "utf8",
   ),
 ) as { sourceSha256: string; sourceFileCount: number };
-const fingerprint = getDesignLabSourceFingerprint(repositoryRoot);
+const sourceFiles = parseDesignLabSourceFiles(audit);
+assert.ok(sourceFiles, "Canonical route audit must declare its source-file manifest");
+const fingerprint = fingerprintRepositoryFiles(repositoryRoot, sourceFiles);
 const auditCurrent =
   audit.sourceSha256 === fingerprint.sha256 &&
   audit.sourceFileCount === fingerprint.fileCount;

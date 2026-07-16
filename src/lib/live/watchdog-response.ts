@@ -4,11 +4,24 @@ const WATCHDOG_BASE =
   process.env.WATCHDOG_BASE_URL ?? "https://watchdog.grv.org.au";
 
 const identifierSchema = z.union([
-  z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
-  z.string().trim().min(1).max(128).regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/),
+  z
+    .number()
+    .int()
+    .min(Number.MIN_SAFE_INTEGER)
+    .max(Number.MAX_SAFE_INTEGER)
+    .refine((value) => value !== 0, "identifier must be non-zero"),
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(128)
+    .regex(/^(?:-[1-9][0-9]*|[A-Za-z0-9][A-Za-z0-9._:-]*)$/),
 ]);
 const shortTextSchema = z.string().trim().min(1).max(200);
-const optionalShortTextSchema = shortTextSchema.nullish();
+const optionalShortTextSchema = z.preprocess(
+  emptyStringToNull,
+  shortTextSchema.nullish(),
+);
 const participantNameSchema = z.string().trim().max(200).nullish();
 const participantDogIdSchema = z.preprocess(
   (value) =>
@@ -110,9 +123,12 @@ const watchdogParticipantSchema = z.object({
   trainer: optionalShortTextSchema,
   trainerId: identifierSchema.nullish(),
   owner: optionalShortTextSchema,
-  last5: z.string().trim().min(1).max(32).nullish(),
+  last5: z.preprocess(
+    emptyStringToNull,
+    z.string().trim().min(1).max(32).nullish(),
+  ),
   averageFirstSplitSpeed: optionalNumber(0, 200),
-  resultPlace: optionalNumber(0, 64),
+  resultPlace: z.union([boundedNumber(0, 64), z.literal("F")]).nullish(),
   resultWeight: optionalNumber(0, 100),
   resultMargin: z
     .union([boundedNumber(-1_000, 1_000), z.string().trim().min(1).max(32)])
@@ -224,6 +240,10 @@ function isValidProviderTimestamp(value: string) {
   return month >= 1 && month <= 12 && day >= 1 && day <= daysInMonth[month - 1];
 }
 
+function emptyStringToNull(value: unknown) {
+  return typeof value === "string" && value.trim().length === 0 ? null : value;
+}
+
 function isAllowedWatchdogUrl(value: string) {
   try {
     const base = new URL(WATCHDOG_BASE);
@@ -233,6 +253,7 @@ function isAllowedWatchdogUrl(value: string) {
       "watchdog.grv.org.au",
       "fasttrack.grv.org.au",
       "www.grv.org.au",
+      "grvaueprdfasttrackstr03.blob.core.windows.net",
     ]);
     if (candidate.username || candidate.password) return false;
     return (

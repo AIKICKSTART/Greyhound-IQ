@@ -211,6 +211,46 @@ async function assertTransportBoundaries() {
 }
 
 function assertWatchdogSchema() {
+  const currentSignedIdentifiers = parseWatchdogPayload({
+    meetings: [
+      {
+        id: 1_303_026_371,
+        meetingDate: "2026-07-16T00:00:00.000Z",
+      },
+    ],
+    races: [
+      {
+        id: -2_092_194_025,
+        meetingId: 1_303_026_371,
+        number: 1,
+        videoId: "VkYs8pUf-tk",
+        photoFinishUrl:
+          "https://grvaueprdfasttrackstr03.blob.core.windows.net/photos/current.jpg",
+      },
+    ],
+    participants: [
+      {
+        id: "-20921940258",
+        raceId: -2_092_194_025,
+        dogId: 12_345,
+        dogName: "Current Watchdog Runner",
+        last5: " ",
+        resultPlace: "F",
+      },
+    ],
+  });
+  assert.equal(currentSignedIdentifiers.races?.[0]?.id, -2_092_194_025);
+  assert.equal(
+    currentSignedIdentifiers.participants?.[0]?.id,
+    "-20921940258",
+  );
+  assert.equal(currentSignedIdentifiers.participants?.[0]?.last5, null);
+  assert.equal(currentSignedIdentifiers.participants?.[0]?.resultPlace, "F");
+  assert.equal(
+    currentSignedIdentifiers.races?.[0]?.photoFinishUrl,
+    "https://grvaueprdfasttrackstr03.blob.core.windows.net/photos/current.jpg",
+  );
+
   const parsed = parseWatchdogPayload({
     meetings: [
       {

@@ -28,6 +28,8 @@ param(
   [ValidateSet("true", "false")]
   [string]$ActorConversationMultiplexEnabled = "false",
   [ValidateSet("true", "false", IgnoreCase = $false)]
+  [string]$EnableDevicePreviews = "false",
+  [ValidateSet("true", "false", IgnoreCase = $false)]
   [string]$SearchDisabled = "false",
   [ValidateSet("true", "false", IgnoreCase = $false)]
   [string]$UploadDisabled = "false",
@@ -527,7 +529,8 @@ $substitutions = @(
   "_NEXT_PUBLIC_SUPABASE_URL=$NextPublicSupabaseUrl",
   "_NEXT_PUBLIC_SUPABASE_ANON_KEY=$NextPublicSupabaseAnonKey",
   "_NEXT_PUBLIC_WORKOS_REDIRECT_URI=$NextPublicWorkosRedirectUri",
-  "_NEXT_PUBLIC_LIVEKIT_URL=$NextPublicLivekitUrl"
+  "_NEXT_PUBLIC_LIVEKIT_URL=$NextPublicLivekitUrl",
+  "_ENABLE_DEVICE_PREVIEWS=$EnableDevicePreviews"
 ) -join ","
 
 Invoke-Gcloud builds submit . `

@@ -17,7 +17,9 @@ import {
 } from "../../scripts/audit-design-lab-user-stories";
 import {
   fingerprintRepositoryFiles,
+  getDesignLabSourceChangesBetween,
   getRepositoryHeadSha,
+  isRepositoryCommitAncestor,
   parseDesignLabSourceFiles,
 } from "../../scripts/design-lab-source-fingerprint";
 
@@ -218,11 +220,34 @@ assert.deepEqual(
 );
 
 function sourceBinding(audit: unknown) {
+  assert.ok(audit && typeof audit === "object", "Audit must be a JSON object");
+  const testedCommitSha = Reflect.get(audit, "testedCommitSha");
+  assert.match(
+    typeof testedCommitSha === "string" ? testedCommitSha : "",
+    /^[a-f0-9]{40}$/,
+    "Audit tested commit must be a Git SHA",
+  );
   const sourceFiles = parseDesignLabSourceFiles(audit);
   assert.ok(sourceFiles, "Audit must declare a canonical source-file set");
+  const currentHeadSha = getRepositoryHeadSha(repositoryRoot);
+  assert.equal(
+    isRepositoryCommitAncestor(repositoryRoot, testedCommitSha, currentHeadSha),
+    true,
+    "Audit tested commit must be an ancestor of the current HEAD",
+  );
+  assert.deepEqual(
+    getDesignLabSourceChangesBetween(
+      repositoryRoot,
+      testedCommitSha,
+      currentHeadSha,
+      sourceFiles,
+    ),
+    [],
+    "Audit source files must not change after the tested commit",
+  );
   const fingerprint = fingerprintRepositoryFiles(repositoryRoot, sourceFiles);
   return {
-    headSha: getRepositoryHeadSha(repositoryRoot),
+    headSha: testedCommitSha,
     sourceSha256: fingerprint.sha256,
     sourceFileCount: fingerprint.fileCount,
   };

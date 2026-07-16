@@ -81,12 +81,13 @@ for (const testCase of viewportCases) {
     width: testCase.width,
   };
   const layout = resolveInteractiveHelpPopupLayout(viewport, null);
+  const bounds = popupVerticalBounds(layout);
   observedDeviceClasses.add(layout.deviceClass);
   assert.equal(layout.deviceClass, testCase.expected, `${testCase.width}px`);
   assert.ok(layout.width <= testCase.width - (layout.mobile ? 24 : 40));
-  assert.ok(layout.top - layout.maxHeight / 2 >= viewport.offsetTop);
+  assert.ok(bounds.top >= viewport.offsetTop);
   assert.ok(
-    layout.top + layout.maxHeight / 2 <=
+    bounds.bottom <=
       viewport.offsetTop + viewport.height - layout.navigationClearance,
   );
 }
@@ -103,10 +104,16 @@ const phoneViewport: InteractiveHelpViewport = {
 };
 const upperLayout = resolveInteractiveHelpPopupLayout(phoneViewport, "upper");
 const lowerLayout = resolveInteractiveHelpPopupLayout(phoneViewport, "lower");
-assert.ok(upperLayout.top - upperLayout.maxHeight / 2 >= 112);
+const upperBounds = popupVerticalBounds(upperLayout);
+const lowerBounds = popupVerticalBounds(lowerLayout);
+assert.equal(upperLayout.scrollBlock, "start");
+assert.equal(lowerLayout.scrollBlock, "end");
+assert.ok(upperBounds.top >= phoneViewport.offsetTop);
 assert.ok(
-  lowerLayout.top + lowerLayout.maxHeight / 2 <=
-    phoneViewport.height - lowerLayout.navigationClearance - 112,
+  lowerBounds.bottom <=
+    phoneViewport.offsetTop +
+      phoneViewport.height -
+      lowerLayout.navigationClearance,
 );
 
 const keyboardViewport: InteractiveHelpViewport = {
@@ -121,12 +128,12 @@ const keyboardLayout = resolveInteractiveHelpPopupLayout(
 );
 assert.equal(keyboardLayout.keyboardOpen, true);
 assert.equal(keyboardLayout.navigationClearance, 12);
+const keyboardBounds = popupVerticalBounds(keyboardLayout);
 assert.ok(
-  keyboardLayout.top - keyboardLayout.maxHeight / 2 >=
-    keyboardViewport.offsetTop,
+  keyboardBounds.top >= keyboardViewport.offsetTop,
 );
 assert.ok(
-  keyboardLayout.top + keyboardLayout.maxHeight / 2 <=
+  keyboardBounds.bottom <=
     keyboardViewport.offsetTop + keyboardViewport.height - 12,
 );
 
@@ -145,7 +152,10 @@ for (const sourceContract of [
 ]) {
   assert.match(interactiveHelp, sourceContract);
 }
-assert.match(interactiveHelpStyles, /\.popup\s*{\s*overscroll-behavior:\s*contain;/);
+assert.match(
+  interactiveHelpStyles,
+  /\.content\s*{[\s\S]*?overscroll-behavior:\s*contain;/,
+);
 
 console.log(
   `Product onboarding viewport source evidence passed: ${viewportCases.length} cases across all ${INTERACTIVE_HELP_DEVICE_CLASSES.length} device classes preserve the bounded popover layout contract.`,
@@ -153,4 +163,13 @@ console.log(
 
 function source(path: string) {
   return readFileSync(path, "utf8");
+}
+
+function popupVerticalBounds(
+  layout: ReturnType<typeof resolveInteractiveHelpPopupLayout>,
+) {
+  if (layout.placement === "above") {
+    return { bottom: layout.top, top: layout.top - layout.maxHeight };
+  }
+  return { bottom: layout.top + layout.maxHeight, top: layout.top };
 }

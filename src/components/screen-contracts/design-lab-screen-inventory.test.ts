@@ -12,7 +12,9 @@ import {
 import { DESIGN_LAB_STORY_AUDIT_PATH } from "../../../scripts/audit-design-lab-user-stories";
 import {
   fingerprintRepositoryFiles,
+  getDesignLabSourceChangesBetween,
   getRepositoryHeadSha,
+  isRepositoryCommitAncestor,
   parseDesignLabSourceFiles,
 } from "../../../scripts/design-lab-source-fingerprint";
 
@@ -246,10 +248,32 @@ if (promotedWave2Routes.length > 0) {
   );
   const sourceFiles = parseDesignLabSourceFiles(wave2Audit);
   assert.ok(sourceFiles, "Wave 2 audit must declare its source-file manifest");
+  const testedCommitSha = Reflect.get(wave2Audit, "testedCommitSha");
+  assert.match(
+    typeof testedCommitSha === "string" ? testedCommitSha : "",
+    /^[a-f0-9]{40}$/,
+    "Wave 2 audit tested commit must be a Git SHA",
+  );
+  const currentHeadSha = getRepositoryHeadSha(process.cwd());
+  assert.equal(
+    isRepositoryCommitAncestor(process.cwd(), testedCommitSha, currentHeadSha),
+    true,
+    "Wave 2 audit tested commit must be an ancestor of the current HEAD",
+  );
+  assert.deepEqual(
+    getDesignLabSourceChangesBetween(
+      process.cwd(),
+      testedCommitSha,
+      currentHeadSha,
+      sourceFiles,
+    ),
+    [],
+    "Wave 2 audit source files must not change after the tested commit",
+  );
   const currentSource = fingerprintRepositoryFiles(process.cwd(), sourceFiles);
   assert.deepEqual(
     findDesignLabHydratedWave2AuditIssues(wave2Audit, {
-      headSha: getRepositoryHeadSha(process.cwd()),
+      headSha: testedCommitSha,
       sourceSha256: currentSource.sha256,
       sourceFileCount: currentSource.fileCount,
       companionHttpAuditSha256: createHash("sha256")

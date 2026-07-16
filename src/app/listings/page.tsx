@@ -17,6 +17,7 @@ import { AutoSubmitSelect } from "@/components/auto-submit-select";
 import { MarketplaceDogPlayerCard } from "@/components/marketplace-dog-player-card";
 import { MARKETPLACE_TEMPLATE_LISTINGS } from "@/components/marketplace-template-data";
 import { PageHero } from "@/components/page-hero";
+import { PageTitle } from "@/components/page-title";
 import { getCurrentUser } from "@/lib/auth";
 import { getDemoListingImages } from "@/lib/demo-listing-media";
 import { getSavedListingIdsForProfile } from "@/lib/listing-service";
@@ -149,9 +150,9 @@ function MarketplaceMemberHeader() {
       <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:py-8">
         <div className="max-w-2xl">
           <p className="program-label">Member marketplace</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+          <PageTitle className="mt-2">
             Marketplace
-          </h1>
+          </PageTitle>
           <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
             Browse pups, dogs, stud services, and wanted ads with seller and
             racing context in one place.

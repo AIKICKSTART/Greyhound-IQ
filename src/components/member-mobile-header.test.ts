@@ -15,6 +15,10 @@ const mobileMenuLinks = readFileSync(
   join(__dirname, "mobile-menu-close-link.tsx"),
   "utf8"
 );
+const supportHelp = readFileSync(
+  join(__dirname, "account-support-help-centre.tsx"),
+  "utf8"
+);
 
 assert.ok(
   siteHeader.match(/aria-label="Open navigation menu"/g)?.length === 2,
@@ -55,10 +59,10 @@ assert.match(
   /giq-mobile-menu-label[^>]*[^<]*Menu/,
   "The hamburger control must have a visible Menu label"
 );
-assert.match(
+assert.doesNotMatch(
   siteHeader,
   /function AccountNavigationMenu[\s\S]*Help &amp; onboarding[\s\S]*InteractiveHelpMenuControls/,
-  "The real profile sheet must expose the shared interactive-help controls"
+  "The real profile sheet must not retain onboarding controls when help is disabled"
 );
 assert.match(
   siteHeader,
@@ -90,10 +94,15 @@ assert.match(
   /PrototypeAccountNavigationMenu[\s\S]*SheetTitle className="sr-only">Demo account menu/,
   "The DF profile trigger must open a keyboard-managed account sheet"
 );
-assert.match(
+assert.doesNotMatch(
   prototypeHeader,
   /function PrototypeAccountNavigationMenu[\s\S]*Help &amp; onboarding[\s\S]*InteractiveHelpMenuControls/,
-  "The demo profile sheet must expose the same interactive-help controls"
+  "The demo profile sheet must not retain obsolete onboarding controls"
+);
+assert.match(
+  supportHelp,
+  /Onboarding preferences[\s\S]*InteractiveHelpMenuControls/,
+  "Account Support must expose the intentional onboarding restart and preference controls"
 );
 assert.match(
   prototypeHeader,

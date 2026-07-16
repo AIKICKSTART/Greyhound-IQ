@@ -33,6 +33,7 @@ export type InteractiveHelpPlacement =
   "above" | "below" | "left" | "right" | "viewport";
 
 export type InteractiveHelpPopupLayout = {
+  arrowOffset: number | null;
   deviceClass: InteractiveHelpDeviceClass;
   keyboardOpen: boolean;
   left: number;
@@ -53,6 +54,7 @@ const MIN_POPUP_HEIGHT = 180;
 const MAX_POPUP_HEIGHT = 360;
 const MAX_POPUP_WIDTH = 360;
 const TARGET_GAP = 10;
+const ARROW_EDGE_CLEARANCE = 22;
 
 export function classifyInteractiveHelpDevice(
   width: number,
@@ -95,6 +97,7 @@ export function resolveInteractiveHelpPopupLayout(
   );
   const maxHeight = Math.min(MAX_POPUP_HEIGHT, availableHeight);
   const base = {
+    arrowOffset: null,
     deviceClass: classifyInteractiveHelpDevice(width),
     keyboardOpen,
     maxHeight,
@@ -127,29 +130,41 @@ export function resolveInteractiveHelpPopupLayout(
   const roomAbove = targetBounds.top - contentTop - TARGET_GAP;
 
   if (!mobile && roomRight >= popupWidth) {
+    const top = clamp(
+      targetCenterY - maxHeight / 2,
+      contentTop,
+      contentBottom - maxHeight,
+    );
     return {
       ...base,
+      arrowOffset: clamp(
+        targetCenterY - top,
+        ARROW_EDGE_CLEARANCE,
+        maxHeight - ARROW_EDGE_CLEARANCE,
+      ),
       left: targetBounds.right + TARGET_GAP,
       placement: "right",
-      top: clamp(
-        targetCenterY - maxHeight / 2,
-        contentTop,
-        contentBottom - maxHeight,
-      ),
+      top,
       transform: "none",
     };
   }
 
   if (!mobile && roomLeft >= popupWidth) {
+    const top = clamp(
+      targetCenterY - maxHeight / 2,
+      contentTop,
+      contentBottom - maxHeight,
+    );
     return {
       ...base,
+      arrowOffset: clamp(
+        targetCenterY - top,
+        ARROW_EDGE_CLEARANCE,
+        maxHeight - ARROW_EDGE_CLEARANCE,
+      ),
       left: targetBounds.left - TARGET_GAP - popupWidth,
       placement: "left",
-      top: clamp(
-        targetCenterY - maxHeight / 2,
-        contentTop,
-        contentBottom - maxHeight,
-      ),
+      top,
       transform: "none",
     };
   }
@@ -162,6 +177,11 @@ export function resolveInteractiveHelpPopupLayout(
   if (roomBelow >= MIN_POPUP_HEIGHT || roomBelow >= roomAbove) {
     return {
       ...base,
+      arrowOffset: clamp(
+        targetCenterX - horizontalLeft,
+        ARROW_EDGE_CLEARANCE,
+        popupWidth - ARROW_EDGE_CLEARANCE,
+      ),
       left: horizontalLeft,
       maxHeight: Math.max(1, Math.min(maxHeight, roomBelow)),
       placement: "below",
@@ -172,6 +192,11 @@ export function resolveInteractiveHelpPopupLayout(
 
   return {
     ...base,
+    arrowOffset: clamp(
+      targetCenterX - horizontalLeft,
+      ARROW_EDGE_CLEARANCE,
+      popupWidth - ARROW_EDGE_CLEARANCE,
+    ),
     left: horizontalLeft,
     maxHeight: Math.max(1, Math.min(maxHeight, roomAbove)),
     placement: "above",

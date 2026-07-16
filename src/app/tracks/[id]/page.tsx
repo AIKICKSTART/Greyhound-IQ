@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CalendarDays, Clock, MapPin, Route, Trophy } from "lucide-react";
 import { getBoxColourStyle } from "@/lib/box-colours";
 import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
+import { PageTitle } from "@/components/page-title";
 import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
 import { resolveDemoProviderRouteId } from "@/lib/demo-route-samples";
 import { getTrackById } from "@/lib/queries";
@@ -126,9 +127,9 @@ export default async function TrackDetailPage({
           </div>
           <div className="grid gap-8 lg:grid-cols-[1fr_360px] lg:items-end">
             <div>
-              <h1 className="text-4xl font-semibold leading-tight text-[hsl(var(--foreground))] md:text-6xl">
+              <PageTitle size="display">
                 {track.name}
-              </h1>
+              </PageTitle>
               <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                 {track.state} track guide with recent meetings, race distances,
                 box-bias signals, and current seeded records.

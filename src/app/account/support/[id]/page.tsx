@@ -7,6 +7,7 @@ import {
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { PageTitle } from "@/components/page-title";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import {
   getSupportTicketForCurrentUser,
@@ -53,9 +54,9 @@ export default async function AccountSupportTicketPage({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="program-label">Member support</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-[-0.025em] text-[hsl(var(--foreground))] sm:text-3xl">
+            <PageTitle size="compact" className="mt-2">
               {formatLabel(ticket.category)} support ticket
-            </h1>
+            </PageTitle>
             <p className="mt-2 text-[13px] leading-6 text-[hsl(var(--muted-foreground))]">
               Created {formatDateTime(ticket.createdAt)} · Last updated{" "}
               {formatDateTime(ticket.updatedAt)}

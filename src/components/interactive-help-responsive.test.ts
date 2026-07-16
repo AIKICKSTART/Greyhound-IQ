@@ -99,9 +99,11 @@ assert.equal(upperTargetLayout.scrollBlock, "start");
 assert.equal(lowerTargetLayout.scrollBlock, "end");
 assert.equal(upperTargetLayout.placement, "below");
 assert.ok(upperTargetLayout.top >= 170);
+assert.ok((upperTargetLayout.arrowOffset ?? 0) >= 22);
 assert.equal(lowerTargetLayout.placement, "above");
 assert.ok(lowerTargetLayout.top <= 690);
 assert.equal(lowerTargetLayout.transform, "translateY(-100%)");
+assert.ok((lowerTargetLayout.arrowOffset ?? 0) >= 22);
 assert.equal(resolveInteractiveHelpTargetSide(phoneViewport, 120), "upper");
 assert.equal(resolveInteractiveHelpTargetSide(phoneViewport, 720), "lower");
 
@@ -119,6 +121,7 @@ const desktopTargetLayout = resolveInteractiveHelpPopupLayout(
 );
 assert.equal(desktopTargetLayout.placement, "right");
 assert.ok(desktopTargetLayout.left >= 370);
+assert.ok((desktopTargetLayout.arrowOffset ?? 0) >= 22);
 
 const keyboardViewport: InteractiveHelpViewport = {
   height: 360,
@@ -147,6 +150,7 @@ for (const sourceContract of [
   /data-help-device=\{popupLayout\.deviceClass\}/,
   /data-help-keyboard=\{popupLayout\.keyboardOpen \? "open" : "closed"\}/,
   /data-help-placement=\{popupLayout\.placement\}/,
+  /data-help-ready=\{coachmarkReady \? "true" : "false"\}/,
   /data-help-target-side=\{targetSide \?\? "none"\}/,
   /resolveInteractiveHelpTargetSide/,
   /sameTargetBounds/,
@@ -159,6 +163,7 @@ for (const sourceContract of [
   /popupLayout\.top/,
   /popupLayout\.transform/,
   /popupLayout\.width/,
+  /popupLayout\.arrowOffset/,
   /interactiveHelpOwner/,
   /if \(!ownsInteractiveHelp\) return null/,
 ]) {
@@ -168,21 +173,25 @@ assert.doesNotMatch(source, /<Sheet|SheetContent|backdrop-blur/);
 assert.doesNotMatch(moduleStyles, /sheet-overlay/);
 assert.match(moduleStyles, /\.popup[\s\S]*position: fixed/);
 assert.match(moduleStyles, /\.popup[\s\S]*pointer-events: auto/);
-assert.match(moduleStyles, /\.popup[\s\S]*overscroll-behavior: contain/);
+assert.match(moduleStyles, /\.popup::after[\s\S]*transform: rotate\(45deg\)/);
+assert.match(moduleStyles, /\.content[\s\S]*overflow-y: auto/);
+assert.match(moduleStyles, /\.content[\s\S]*overscroll-behavior: contain/);
+assert.match(moduleStyles, /data-help-ready="false"[\s\S]*visibility: hidden/);
 assert.match(
   source,
   /const routeAutoOpen = Boolean\([\s\S]*state\.enabled[\s\S]*routeProgress\.enabled/,
 );
 assert.match(
   source,
-  /function disableHelp\(\) \{\s*updateInteractiveHelp\("disable"\)/,
+  /function dismissHelp\(\)[\s\S]*updateInteractiveHelpProgress\(progressStorageKey, "disable"\)[\s\S]*updateInteractiveHelp\("disable"\)/,
 );
 assert.match(
   source,
   /function openHelp\(\)[\s\S]*if \(!state\.enabled\) updateInteractiveHelp\("enable"\)/,
 );
 assert.doesNotMatch(source, /function useMobileViewport/);
+assert.doesNotMatch(source, /Help off|Skip tour|Turn off/);
 
 console.log(
-  "Interactive help responsive contract passed: eight device classes, target-adjacent coachmarks, persistent navigation access and Visual Viewport keyboard bounds.",
+  "Interactive help responsive contract passed: eight device classes, target-adjacent coachmarks with arrows, persistent dismissal and Visual Viewport keyboard bounds.",
 );

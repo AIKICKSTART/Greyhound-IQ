@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { claimDogOwnership } from "@/app/actions";
 import { FinishBadge } from "@/components/finish-badge";
+import { PageTitle } from "@/components/page-title";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveDemoProviderRouteId } from "@/lib/demo-route-samples";
@@ -124,11 +125,9 @@ export default async function DogProfilePage({
       <RacingDataDisclosure className="mb-8" />
       {/* Header */}
       <div className="mb-8">
-        <h1
-          className="text-4xl font-semibold text-[hsl(var(--foreground))] tracking-[-0.03em]"
-        >
+        <PageTitle>
           {dog.name}
-        </h1>
+        </PageTitle>
         <div
           className="flex flex-wrap gap-3 mt-2 text-[13px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]"
         >

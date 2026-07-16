@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, MapPin, RadioTower } from "lucide-react";
 
 import { MeetingDetailRaceCard } from "@/components/meeting-detail-race-card";
+import { PageTitle } from "@/components/page-title";
 import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
 import {
   formatRaceDateInput,
@@ -76,9 +77,9 @@ export default async function MeetingPage({ params }: MeetingPageProps) {
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div>
             <p className="program-label">Race meeting</p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-[hsl(var(--foreground))] sm:text-4xl">
+            <PageTitle className="mt-3">
               {meeting.track.name}
-            </h1>
+            </PageTitle>
             <p className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[13px] text-[hsl(var(--muted-foreground))]">
               <span className="inline-flex items-center gap-1.5">
                 <CalendarDays className="h-4 w-4" aria-hidden="true" />

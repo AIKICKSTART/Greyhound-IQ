@@ -6,6 +6,10 @@ const supportHistorySource = readFileSync(
   "src/app/account/support/page.tsx",
   "utf8",
 );
+const supportHelpSource = readFileSync(
+  "src/components/account-support-help-centre.tsx",
+  "utf8",
+);
 
 assert.match(contactSource, /htmlFor="support-category"/);
 assert.match(contactSource, /id="support-category"/);
@@ -24,7 +28,14 @@ assert.match(supportHistorySource, /No support tickets yet/);
 assert.match(supportHistorySource, /Tickets you create from the contact page will appear here/);
 assert.match(supportHistorySource, /href="\/contact"/);
 assert.match(supportHistorySource, /Create ticket/);
+assert.match(supportHistorySource, /profileScope=\{current\.profileId\}/);
+assert.match(supportHelpSource, /Onboarding preferences/);
+assert.match(supportHelpSource, /Guided help controls/);
+assert.match(
+  supportHelpSource,
+  /<InteractiveHelpMenuControls profileScope=\{profileScope\} \/>/,
+);
 
 console.log(
-  "Support onboarding surface passed: labelled field guidance, a safe inline example and actionable empty history.",
+  "Support onboarding surface passed: labelled field guidance, intentional onboarding controls, a safe inline example and actionable empty history.",
 );

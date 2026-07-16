@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CookiePreferencePanel } from "@/components/cookie-consent";
+import { PageTitle } from "@/components/page-title";
 
 export const metadata = {
   title: "Privacy Policy — GreyhoundIQ",
@@ -9,10 +10,9 @@ export const metadata = {
 export default function PrivacyPage() {
   return (
     <div className="giq-legal-page mx-auto max-w-3xl px-6 py-16">
-      <div className="race-box-strip mb-5 w-40" />
-      <h1 className="mb-2 text-3xl text-[hsl(var(--foreground))]">
+      <PageTitle className="mb-2">
         Privacy Policy
-      </h1>
+      </PageTitle>
       <p className="mb-8 text-[13px] text-[hsl(var(--subtle-foreground))]">
         Last updated: 3 July 2026
       </p>

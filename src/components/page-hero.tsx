@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { PageTitle } from "@/components/page-title";
 import { siteAssetUrl } from "@/lib/storage-paths";
 
 interface PageHeroProps {
@@ -30,10 +31,6 @@ export function PageHero({
 }: PageHeroProps) {
   const imageSrc = siteAssetUrl(image);
   const minH = size === "tall" ? "min-h-[620px]" : "min-h-[420px]";
-  const titleClass =
-    size === "tall"
-      ? "text-[2.1rem] sm:text-5xl md:text-6xl xl:text-7xl"
-      : "text-[2.1rem] sm:text-4xl md:text-5xl";
   const py = size === "tall" ? "py-16 md:py-24" : "py-14 md:py-20";
   const mediaClass = "aspect-[16/9]";
 
@@ -51,11 +48,12 @@ export function PageHero({
               <span>{badge}</span>
             </div>
           )}
-          <h1
-            className={`giq-page-hero-title ${titleClass} max-w-full break-words font-normal leading-[1.05] text-[hsl(var(--foreground))]`}
+          <PageTitle
+            size={size === "tall" ? "display" : "page"}
+            className="giq-page-hero-title"
           >
             {title}
-          </h1>
+          </PageTitle>
           <p
             className="giq-page-hero-subtitle mt-4 max-w-[21rem] text-base leading-[1.55] text-[hsl(var(--muted-foreground))] sm:max-w-xl md:text-lg"
           >

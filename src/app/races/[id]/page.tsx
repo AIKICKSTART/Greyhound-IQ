@@ -12,6 +12,7 @@ import {
 import { resolveDemoProviderRouteId } from "@/lib/demo-route-samples";
 import { getPreviousRaceVideoRunners, getRaceById } from "@/lib/queries";
 import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
+import { PageTitle } from "@/components/page-title";
 import { RaceReplayPlayer } from "@/components/race-replay-player";
 import { RaceMeetingNavigation } from "@/components/race-meeting-navigation";
 import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
@@ -265,14 +266,14 @@ export default async function RacePage({
             {racePresentationStatus.label}
           </span>
         </div>
-        <h1 className="text-3xl font-semibold tracking-[-0.04em] text-[hsl(var(--foreground))] md:text-5xl">
+        <PageTitle>
           Race {race.raceNumber}
           <span className="text-[hsl(var(--muted-foreground))]">
             {" "}
             / {race.distance}m
             {race.grade && ` / ${race.grade}`}
           </span>
-        </h1>
+        </PageTitle>
         {race.name && (
           <p className="mt-3 max-w-3xl text-[15px] leading-6 text-[hsl(215_14%_70%)]">
             {race.name}

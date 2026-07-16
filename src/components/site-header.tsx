@@ -37,7 +37,6 @@ import {
 import { getCurrentUser, isModeratorRole } from "@/lib/auth";
 import { HeaderNav } from "@/components/header-nav";
 import { ActorMediaImage } from "@/components/actor-media-image";
-import { InteractiveHelpMenuControls } from "@/components/interactive-help";
 import {
   MemberHeaderSection,
   MemberHeaderShell,
@@ -450,10 +449,6 @@ function AccountNavigationMenu({
           </div>
         </section>
 
-        <section className="giq-mobile-menu-section">
-          <h2>Help &amp; onboarding</h2>
-          <InteractiveHelpMenuControls profileScope={user.profileId} />
-        </section>
       </div>
     </SheetContent>
   );

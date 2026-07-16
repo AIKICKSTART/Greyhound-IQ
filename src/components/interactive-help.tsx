@@ -19,6 +19,7 @@ import {
   ToggleLeft,
   ToggleRight,
   UserRound,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -28,6 +29,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type CSSProperties,
 } from "react";
 
 import {
@@ -140,7 +142,7 @@ const HELP_STEPS: readonly HelpStep[] = [
     id: ONBOARDING_ANALYTICS_LEGACY_STEP_IDS[4],
     icon: UserRound,
     title: "Your help stays under your control",
-    body: "Open your profile for billing, security, notifications and support. You can turn interactive help off, restart this tour, or open it again from the Help launcher at any time.",
+    body: "Open Account > Support to turn guided help on or off, restart this tour, or reset completed walkthroughs. While help is enabled, the Guide button keeps it close at hand.",
     actionHref: "/account",
     actionLabel: "Open account",
   },
@@ -189,6 +191,10 @@ const progressMemorySnapshots = new Map<string, string>();
 const intentMemorySnapshots = new Map<string, string>();
 let interactiveHelpOwner: string | null = null;
 const interactiveHelpOwnerListeners = new Set<() => void>();
+const SERVER_INTERACTIVE_HELP_SNAPSHOT = serializeInteractiveHelpState({
+  completed: true,
+  enabled: false,
+});
 
 export function InteractiveHelp({
   allowAutomaticOpen = true,
@@ -249,11 +255,19 @@ export function InteractiveHelp({
   const [legacyStepIndex, setLegacyStepIndex] = useState(0);
   const [manualOpen, setManualOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState<
-    "primary" | "revealing" | "controller" | "fallback" | "missing"
-  >("primary");
+    | "resolving"
+    | "primary"
+    | "revealing"
+    | "controller"
+    | "fallback"
+    | "missing"
+  >("resolving");
   const [targetSide, setTargetSide] = useState<InteractiveHelpTargetSide>(null);
   const [targetBounds, setTargetBounds] =
     useState<InteractiveHelpTargetBounds | null>(null);
+  const [resolvedTargetKey, setResolvedTargetKey] = useState<string | null>(
+    null,
+  );
   const coachmarkRef = useRef<HTMLElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const revealAttemptRef = useRef(new Set<string>());
@@ -278,13 +292,16 @@ export function InteractiveHelp({
     !routeProgress.dismissed,
   );
   const autoOpen = routeTour ? routeAutoOpen : legacyAutoOpen;
-  const open = autoOpen || manualOpen;
+  const open = state.enabled && (autoOpen || manualOpen);
   const requestedStepIndex = routeTour ? routeProgress.step : legacyStepIndex;
   const stepIndex = Math.min(
     activeSteps.length - 1,
     Math.max(0, requestedStepIndex),
   );
   const step = activeSteps[stepIndex];
+  const targetResolutionKey = `${pathname}:${step.id ?? step.title}:${step.targetId ?? "viewport"}`;
+  const coachmarkReady =
+    !routeTour || !step.targetId || resolvedTargetKey === targetResolutionKey;
   const StepIcon = step.icon;
   const lastStep = stepIndex === activeSteps.length - 1;
   const analyticsTourId =
@@ -322,7 +339,8 @@ export function InteractiveHelp({
   }, [analyticsTourId, progressStorageKey]);
 
   useEffect(() => {
-    if (open && !wasOpenRef.current) {
+    if (open && !coachmarkReady) return;
+    if (open && coachmarkReady && !wasOpenRef.current) {
       restoreFocusRef.current =
         document.activeElement instanceof HTMLElement
           ? document.activeElement
@@ -336,10 +354,10 @@ export function InteractiveHelp({
       });
     }
     wasOpenRef.current = open;
-  }, [open]);
+  }, [coachmarkReady, open]);
 
   useEffect(() => {
-    if (!open || !step.targetId || !step.fallbackTargetId) {
+    if (!open || !step.targetId) {
       return;
     }
 
@@ -352,7 +370,9 @@ export function InteractiveHelp({
     function resolveTarget() {
       scheduledFrame = null;
       const primary = findVisibleOnboardingTarget(step.targetId!);
-      const fallback = findVisibleOnboardingTarget(step.fallbackTargetId!);
+      const fallback = step.fallbackTargetId
+        ? findVisibleOnboardingTarget(step.fallbackTargetId)
+        : null;
       const revealController = primary
         ? null
         : findVisibleOnboardingRevealController(step.targetId!);
@@ -391,6 +411,7 @@ export function InteractiveHelp({
               ? "fallback"
               : "missing",
       );
+      setResolvedTargetKey(targetResolutionKey);
       setTargetSide((current) =>
         current === nextTargetSide ? current : nextTargetSide,
       );
@@ -474,6 +495,7 @@ export function InteractiveHelp({
     step.fallbackTargetId,
     step.id,
     step.targetId,
+    targetResolutionKey,
     viewport,
   ]);
 
@@ -531,11 +553,10 @@ export function InteractiveHelp({
       tourId: analyticsTourId,
     });
     if (progressStorageKey) {
-      updateInteractiveHelpProgress(progressStorageKey, "dismiss");
-      setManualOpen(false);
-      return;
+      updateInteractiveHelpProgress(progressStorageKey, "disable");
     }
-    updateInteractiveHelp("complete");
+    updateInteractiveHelp("disable");
+    setResolvedTargetKey(null);
     setManualOpen(false);
   }
 
@@ -546,6 +567,7 @@ export function InteractiveHelp({
       tourId: analyticsTourId,
     });
     if (!state.enabled) updateInteractiveHelp("enable");
+    setResolvedTargetKey(null);
     if (progressStorageKey) {
       updateInteractiveHelpProgress(progressStorageKey, "resume");
     } else {
@@ -553,14 +575,6 @@ export function InteractiveHelp({
       if (!state.enabled) updateInteractiveHelp("enable");
     }
     setManualOpen(true);
-  }
-
-  function disableHelp() {
-    updateInteractiveHelp("disable");
-    if (progressStorageKey) {
-      updateInteractiveHelpProgress(progressStorageKey, "disable");
-    }
-    setManualOpen(false);
   }
 
   function changeStep(nextStep: number) {
@@ -596,7 +610,10 @@ export function InteractiveHelp({
   const helpEnabled =
     state.enabled && (progressStorageKey ? routeProgress.enabled : true);
   const displayFloatingLauncher =
-    !open && showFloatingLauncher && (Boolean(routeTour) || role !== "visitor");
+    !open &&
+    helpEnabled &&
+    showFloatingLauncher &&
+    (Boolean(routeTour) || role !== "visitor");
 
   return (
     <>
@@ -604,16 +621,14 @@ export function InteractiveHelp({
         <button
           type="button"
           onClick={openHelp}
-          aria-label={
-            helpEnabled ? "Open interactive help" : "Turn on interactive help"
-          }
+          aria-label="Open guided help"
           className="fixed bottom-[calc(var(--giq-mobile-dock-clearance)+12px)] left-3 z-[72] inline-flex min-h-11 items-center gap-2 rounded-full border border-[hsl(var(--primary-light)/0.36)] bg-[hsl(var(--surface-1)/0.98)] px-3 text-[11px] font-bold text-[hsl(var(--foreground))] shadow-[0_14px_34px_hsl(0_0%_0%/0.44)] transition hover:border-[hsl(var(--primary-light)/0.7)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))] md:bottom-5 md:left-5"
         >
           <CircleHelp
             className="size-4 text-[hsl(var(--primary-light))]"
             aria-hidden="true"
           />
-          <span>{helpEnabled ? "Help" : "Help off"}</span>
+          <span>Guide</span>
         </button>
       ) : null}
 
@@ -624,6 +639,7 @@ export function InteractiveHelp({
           aria-modal="false"
           aria-labelledby={coachmarkTitleId}
           aria-describedby={coachmarkDescriptionId}
+          aria-busy={!coachmarkReady}
           tabIndex={-1}
           data-help-layout={
             mobileViewport ? "coachmark-mobile" : "coachmark-desktop"
@@ -631,26 +647,29 @@ export function InteractiveHelp({
           data-help-device={popupLayout.deviceClass}
           data-help-keyboard={popupLayout.keyboardOpen ? "open" : "closed"}
           data-help-placement={popupLayout.placement}
+          data-help-ready={coachmarkReady ? "true" : "false"}
           data-help-target-side={targetSide ?? "none"}
           data-onboarding-route={routeTour?.route}
           data-onboarding-step={routeTour ? step.id : undefined}
           data-onboarding-target-status={routeTour ? targetStatus : undefined}
           data-onboarding-tour={routeTour?.tourId}
           style={{
+            "--help-arrow-offset": `${popupLayout.arrowOffset ?? 0}px`,
             left: popupLayout.left,
             maxHeight: popupLayout.maxHeight,
             top: popupLayout.top,
             transform: popupLayout.transform,
             width: popupLayout.width,
-          }}
+          } as CSSProperties}
           onKeyDown={(event) => {
             if (event.key !== "Escape") return;
             event.stopPropagation();
             dismissHelp();
           }}
-          className={`${styles.popup} giq-interactive-help-popup z-[80] flex flex-col overflow-y-auto rounded-2xl border border-white/[0.14] bg-[hsl(var(--surface-1))] p-4 shadow-[0_18px_46px_hsl(0_0%_0%/0.48)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]`}
+          className={`${styles.popup} giq-interactive-help-popup z-[80] rounded-2xl border border-white/[0.14] bg-[hsl(var(--surface-1))] shadow-[0_18px_46px_hsl(0_0%_0%/0.48)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]`}
         >
-          <header className="flex items-start gap-3">
+          <div className={styles.content}>
+            <header className="flex items-start gap-3">
             <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-[hsl(var(--secondary)/0.28)] bg-[hsl(var(--secondary)/0.09)] text-[hsl(var(--secondary-light))]">
               <StepIcon className="size-4" aria-hidden="true" />
             </span>
@@ -665,10 +684,20 @@ export function InteractiveHelp({
                 {step.title}
               </h2>
             </div>
-            <span className="shrink-0 text-[10px] font-semibold tabular-nums text-[hsl(var(--muted-foreground))]">
-              {stepIndex + 1}/{activeSteps.length}
-            </span>
-          </header>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="text-[10px] font-semibold tabular-nums text-[hsl(var(--muted-foreground))]">
+                  {stepIndex + 1}/{activeSteps.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={dismissHelp}
+                  aria-label="Dismiss onboarding help"
+                  className="grid size-9 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] transition hover:bg-white/[0.07] hover:text-[hsl(var(--foreground))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]"
+                >
+                  <X className="size-4" aria-hidden="true" />
+                </button>
+              </div>
+            </header>
 
           <div
             className="mt-3 grid grid-cols-5 gap-1.5"
@@ -789,22 +818,9 @@ export function InteractiveHelp({
                   Skip step
                 </button>
               ) : null}
-              <button
-                type="button"
-                onClick={dismissHelp}
-                className="min-h-11 px-1 text-[11px] font-semibold text-[hsl(var(--foreground))] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]"
-              >
-                Skip tour
-              </button>
-              <button
-                type="button"
-                onClick={disableHelp}
-                className="min-h-11 px-1 text-[11px] font-semibold text-[hsl(var(--foreground))] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]"
-              >
-                Turn off
-              </button>
             </div>
           </footer>
+          </div>
         </aside>
       ) : null}
     </>
@@ -826,7 +842,7 @@ export function InteractiveHelpMenuControls({
     useRecentlyCompletedInteractiveHelpTours(profileScope);
 
   return (
-    <div className="grid gap-2" aria-label="Interactive help preferences">
+    <div className="grid gap-2" aria-label="Onboarding help preferences">
       <button
         type="button"
         onClick={() =>
@@ -842,7 +858,7 @@ export function InteractiveHelpMenuControls({
         ) : (
           <ToggleLeft className="h-3.5 w-3.5" aria-hidden="true" />
         )}
-        Interactive help: {state.enabled ? "On" : "Off"}
+        Guided help: {state.enabled ? "On" : "Off"}
       </button>
       <button
         type="button"
@@ -1037,7 +1053,7 @@ function useInteractiveHelpState() {
   const snapshot = useSyncExternalStore(
     subscribeToInteractiveHelp,
     readInteractiveHelpSnapshot,
-    () => "",
+    () => SERVER_INTERACTIVE_HELP_SNAPSHOT,
   );
   return parseInteractiveHelpState(snapshot);
 }

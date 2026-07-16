@@ -19,6 +19,7 @@ import {
 import { getRaceExplorerData } from "@/lib/queries";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
 import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
+import { PageTitle } from "@/components/page-title";
 import {
   buildRaceDetailHref,
   normaliseRaceListContext,
@@ -104,7 +105,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
           <div className="giq-race-commandbar">
             <div className="giq-race-command-copy">
               <p className="program-label">Race day explorer</p>
-              <h1 className="giq-race-command-title">
+              <PageTitle size="compact" className="giq-race-command-title">
                 Race control
                 <span>
                   {data.isGlobalSearch
@@ -112,7 +113,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                     : ` / ${formatRaceDayLabel(data.selectedDate)}`}
                   {selectedState ? ` / ${selectedState}` : ""}
                 </span>
-              </h1>
+              </PageTitle>
               <p className="giq-race-command-subtitle">
                 Find the next race, jump to a track, or search the full
                 historical archive from one race schedule.

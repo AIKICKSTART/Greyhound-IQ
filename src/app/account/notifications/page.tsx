@@ -14,6 +14,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/app/actions";
+import { PageTitle } from "@/components/page-title";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { safeQuery } from "@/lib/db";
@@ -71,9 +72,9 @@ export default async function AccountNotificationsPage() {
         <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-8">
           <div className="max-w-2xl">
             <p className="program-label">Account settings</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+            <PageTitle className="mt-2">
               Notifications
-            </h1>
+            </PageTitle>
             <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
               Review in-app updates and your recorded communication preferences.
             </p>

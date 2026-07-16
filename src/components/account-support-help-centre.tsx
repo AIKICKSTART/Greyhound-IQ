@@ -1,6 +1,8 @@
 import { BookOpen, ChevronRight, LifeBuoy, Search } from "lucide-react";
 import Link from "next/link";
 
+import { InteractiveHelpMenuControls } from "@/components/interactive-help";
+
 import {
   filterOnboardingHelpTours,
   filterSupportHelpTopics,
@@ -10,8 +12,10 @@ import {
 
 export function AccountSupportHelpCentre({
   query,
+  profileScope,
   role,
 }: {
+  profileScope: string;
   query: string | readonly string[] | null | undefined;
   role: string | null;
 }) {
@@ -24,6 +28,19 @@ export function AccountSupportHelpCentre({
 
   return (
     <section id="help-topics" className="giq-panel mb-6 p-5 sm:p-6">
+      <div className="mb-5 rounded-2xl border border-[hsl(var(--primary-light)/0.22)] bg-[hsl(var(--primary)/0.06)] p-4 sm:p-5">
+        <p className="program-label">Onboarding preferences</p>
+        <h2 className="mt-2 text-lg font-semibold text-[hsl(var(--foreground))]">
+          Guided help controls
+        </h2>
+        <p className="mt-2 max-w-2xl text-[12px] leading-5 text-[hsl(var(--muted-foreground))]">
+          Turn guided help on or off, restart the current walkthrough, or reset
+          completed tours on this device.
+        </p>
+        <div className="mt-4 max-w-md">
+          <InteractiveHelpMenuControls profileScope={profileScope} />
+        </div>
+      </div>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl">
           <p className="program-label">Guided help</p>

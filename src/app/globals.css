@@ -2116,6 +2116,92 @@ h2,
   line-height: var(--lh-snug);
 }
 
+/* Shared page-title signature: logo-adjacent chrome, gold and IQ purple
+   without reusing or distorting the wordmark itself. */
+.giq-page-title {
+  position: relative;
+  max-width: 100%;
+  padding-inline-start: clamp(0.8rem, 1.4vw, 1.1rem);
+  color: hsl(var(--metal-silver-bright));
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3.65rem);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.02;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.giq-page-title::before {
+  position: absolute;
+  inset: 0.08em auto 0.18em 0;
+  width: 0.34rem;
+  background: linear-gradient(
+    180deg,
+    hsl(var(--secondary-light)) 0 46%,
+    hsl(var(--primary-bright)) 54% 100%
+  );
+  clip-path: polygon(34% 0, 100% 0, 66% 100%, 0 100%);
+  content: "";
+}
+
+.giq-page-title::after {
+  display: block;
+  width: clamp(4.25rem, 15vw, 8.5rem);
+  height: 2px;
+  margin-top: 0.38rem;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--secondary-light)) 0 42%,
+    hsl(var(--primary-bright)) 58% 100%
+  );
+  clip-path: polygon(0 0, 100% 0, 94% 100%, 0 100%);
+  content: "";
+}
+
+.giq-page-title[data-page-title-size="compact"] {
+  font-size: clamp(1.65rem, 3vw, 2.3rem);
+  line-height: 1.06;
+}
+
+.giq-page-title[data-page-title-size="compact"]::after {
+  width: clamp(3.5rem, 11vw, 6.25rem);
+}
+
+.giq-page-title[data-page-title-size="display"] {
+  font-size: clamp(2.35rem, 5.2vw, 4.85rem);
+  line-height: 0.98;
+}
+
+@media (max-width: 640px) {
+  .giq-page-title {
+    padding-inline-start: 0.72rem;
+    font-size: clamp(1.8rem, 9.5vw, 2.65rem);
+    letter-spacing: -0.018em;
+  }
+
+  .giq-page-title[data-page-title-size="compact"] {
+    font-size: clamp(1.55rem, 7.5vw, 2rem);
+  }
+
+  .giq-page-title[data-page-title-size="display"] {
+    font-size: clamp(2rem, 10vw, 3.1rem);
+  }
+}
+
+@media (forced-colors: active) {
+  .giq-page-title {
+    color: CanvasText;
+  }
+
+  .giq-page-title::before,
+  .giq-page-title::after {
+    background: Highlight;
+  }
+}
+
 .giq-body-lg {
   color: hsl(var(--foreground));
   font-size: var(--text-md);
@@ -2402,11 +2488,6 @@ h2,
     max-width: 100%;
   }
 
-  .giq-page-hero-title {
-    font-size: 28px !important;
-    line-height: 1.08;
-  }
-
   .giq-page-hero-subtitle {
     max-width: 17.75rem;
     margin-top: 12px;
@@ -2431,11 +2512,6 @@ h2,
   .giq-website-header-inner {
     padding-top: 28px;
     padding-bottom: calc(var(--giq-mobile-dock-clearance) + 28px);
-  }
-
-  .giq-website-header-title {
-    font-size: 32px;
-    line-height: 1.08;
   }
 
   .giq-website-header-subtitle {
@@ -4211,11 +4287,6 @@ h2,
 
 .giq-race-command-title {
   margin-top: 6px;
-  color: hsl(var(--foreground));
-  font-size: clamp(28px, 4vw, 48px);
-  font-weight: 750;
-  letter-spacing: -0.045em;
-  line-height: 0.96;
 }
 
 .giq-race-command-title span {
@@ -5159,11 +5230,6 @@ h2,
   .giq-race-commandbar {
     gap: 14px;
     padding: 14px;
-  }
-
-  .giq-race-command-title {
-    font-size: 32px;
-    line-height: 1;
   }
 
   .giq-race-command-subtitle {
@@ -6982,9 +7048,13 @@ body:has([data-admin-shell]) #main-content {
 
 [data-onboarding-active="true"] {
   outline: 2px solid hsl(var(--primary-light));
-  outline-offset: 4px;
-  scroll-margin: 6rem;
-  transition: outline-color 160ms ease, outline-offset 160ms ease;
+  outline-offset: 6px;
+  scroll-margin: 8rem;
+  position: relative;
+  z-index: 73;
+  box-shadow: 0 0 0 6px hsl(var(--primary) / 0.14);
+  transition: outline-color 160ms ease, outline-offset 160ms ease,
+    box-shadow 160ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -208,7 +208,7 @@ const ACCOUNT_HELP_SOURCE_CHAIN = {
   requiredInterfaceCalls: ["useInteractiveHelpState", "updateInteractiveHelp"],
   delegatePath: "src/components/interactive-help-state.ts",
   delegateExport: "reduceInteractiveHelpState",
-  bindingPath: "src/components/site-header.tsx",
+  bindingPath: "src/components/account-support-help-centre.tsx",
 } as const;
 
 const COMMUNITY_DISCOVERY_SOURCE_CHAIN = {
@@ -3200,7 +3200,8 @@ export const PRODUCT_ROUTE_CAPABILITY_SOURCE_EVIDENCE_RECORDS = [
     ...ACCOUNT_HELP_SOURCE_CHAIN,
     requiredBindingSignals: [
       'import { InteractiveHelpMenuControls } from "@/components/interactive-help";',
-      "Help &amp; onboarding",
+      "Onboarding preferences",
+      "Guided help controls",
       "<InteractiveHelpMenuControls",
     ],
     sourceFunctionChecks: [
@@ -3508,7 +3509,8 @@ export const PRODUCT_ROUTE_CAPABILITY_SOURCE_EVIDENCE_RECORDS = [
     requirementId: "ROUTE.ACCOUNT.restart-reset-tour",
     ...ACCOUNT_HELP_SOURCE_CHAIN,
     requiredBindingSignals: [
-      "Help &amp; onboarding",
+      "Onboarding preferences",
+      "Guided help controls",
       "<InteractiveHelpMenuControls",
     ],
     additionalBindings: [

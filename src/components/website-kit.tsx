@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { PageTitle } from "@/components/page-title";
 
 type PageHeaderProps = {
   eyebrow?: string;
@@ -35,9 +36,9 @@ export function WebsitePageHeader({
         ) : null}
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
-            <h1 className="giq-website-header-title giq-h1-sm">
+            <PageTitle className="giq-website-header-title">
               {title} {accent ? <span className="gradient-text">{accent}</span> : null}
-            </h1>
+            </PageTitle>
             {subtitle ? (
               <p className="giq-website-header-subtitle giq-body-lg mt-2.5 max-w-[620px] text-[hsl(var(--muted-foreground))]">
                 {subtitle}

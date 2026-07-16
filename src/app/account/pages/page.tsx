@@ -10,6 +10,7 @@ import {
   Plus,
   Sparkles,
 } from "lucide-react";
+import { PageTitle } from "@/components/page-title";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { hasTier } from "@/lib/tier-access";
 import {
@@ -44,9 +45,9 @@ export default async function MyPagesPage({ searchParams }: MyPagesPageProps) {
     return (
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         <header>
-          <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))] sm:text-3xl">
+          <PageTitle size="compact">
             My pages
-          </h1>
+          </PageTitle>
           <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
             Build a polished public identity for your kennel, business, selections, or dogs.
           </p>
@@ -93,9 +94,9 @@ export default async function MyPagesPage({ searchParams }: MyPagesPageProps) {
             <PanelsTopLeft className="h-4 w-4" aria-hidden="true" />
             Managed identities
           </div>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[hsl(var(--foreground))]">
+          <PageTitle className="mt-2">
             My pages
-          </h1>
+          </PageTitle>
           <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
             Manage the public pages you can post, comment, and connect as across GreyhoundIQ.
           </p>

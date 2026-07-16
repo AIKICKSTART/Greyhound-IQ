@@ -17,6 +17,7 @@ import {
   Trash2,
   Unlock,
 } from "lucide-react";
+import { PageTitle } from "@/components/page-title";
 import {
   blockConversation,
   deleteConversationMessage,
@@ -258,9 +259,9 @@ export default async function MessageThreadPage({
               <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[hsl(var(--primary-bright))]">
                 Private Pulse conversation
               </p>
-              <h1 className="mt-2 truncate text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
+              <PageTitle size="compact" className="mt-2">
                 {otherLabel}
-              </h1>
+              </PageTitle>
               <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">
                 {other.kennelName ? `${other.kennelName} · ` : ""}
                 {other.state ?? "Australia"}

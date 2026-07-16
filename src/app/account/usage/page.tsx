@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, BarChart3, Crown, Lock, ShieldCheck } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
+import { PageTitle } from "@/components/page-title";
 import { getCurrentUser } from "@/lib/auth";
 import { getEntitlementLimitsForCurrentUser } from "@/lib/billing/entitlement-service";
 import {
@@ -87,9 +88,9 @@ function UsageMemberHeader({
       <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-8">
         <div className="max-w-2xl">
           <p className="program-label">Member settings</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+          <PageTitle className="mt-2">
             Usage
-          </h1>
+          </PageTitle>
           <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
             See your current tier limits and recent account usage.
           </p>

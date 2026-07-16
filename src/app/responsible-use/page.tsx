@@ -1,5 +1,6 @@
 import { CircleAlert, ExternalLink, HeartHandshake, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { PageTitle } from "@/components/page-title";
 
 export const metadata = {
   title: "Responsible Use — GreyhoundIQ",
@@ -36,11 +37,10 @@ const PRINCIPLES = [
 export default function ResponsibleUsePage() {
   return (
     <main className="giq-legal-page mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
-      <div className="race-box-strip mb-5 w-40" aria-hidden="true" />
       <p className="giq-eyebrow text-[hsl(var(--secondary-light))]">Responsible use</p>
-      <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-5xl">
+      <PageTitle className="mt-3 max-w-3xl">
         Racing intelligence should help you understand the race—not pressure you to bet.
-      </h1>
+      </PageTitle>
       <p className="mt-5 max-w-3xl text-[15px] leading-7 text-[hsl(var(--muted-foreground))]">
         Use GreyhoundIQ as one source of information, keep the limits of racing data and AI
         analysis in view, and make choices that protect your wellbeing.

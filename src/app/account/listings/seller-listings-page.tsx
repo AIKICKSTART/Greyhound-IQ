@@ -9,6 +9,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 
+import { PageTitle } from "@/components/page-title";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import {
   getSellerListingsForCurrentUser,
@@ -68,9 +69,9 @@ export async function SellerListingsViewPage({
         <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-8">
           <div className="max-w-3xl">
             <p className="program-label">Seller workspace</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+            <PageTitle className="mt-2">
               {copy.title}
-            </h1>
+            </PageTitle>
             <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))]">
               {copy.description}
             </p>

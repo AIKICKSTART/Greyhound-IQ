@@ -12,7 +12,6 @@ import type {
   DockSkinKey,
 } from "@/components/dock-skin-catalogue";
 import { HeaderNav } from "@/components/header-nav";
-import { InteractiveHelpMenuControls } from "@/components/interactive-help";
 import {
   buildPrototypeDemoHref,
   prototypeDockDestination,
@@ -426,10 +425,6 @@ function PrototypeAccountNavigationMenu({ firstName }: { firstName: string }) {
           </div>
         </section>
 
-        <section className="giq-mobile-menu-section">
-          <h2>Help &amp; onboarding</h2>
-          <InteractiveHelpMenuControls />
-        </section>
       </div>
     </SheetContent>
   );

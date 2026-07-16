@@ -4,6 +4,7 @@ import { ArrowLeft, Camera, ImageIcon, ShieldCheck } from "lucide-react";
 
 import { updatePersonalIdentityMedia } from "@/app/actions";
 import { MediaAlignmentUpload } from "@/components/media-alignment-upload";
+import { PageTitle } from "@/components/page-title";
 import { ProfileMediaStatus } from "@/components/profile-media-status";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser, requireCurrentUserProfile } from "@/lib/auth";
@@ -29,9 +30,9 @@ export default async function ProfileStudioPage() {
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </Link>
           <div>
-            <h1 className="font-[family-name:var(--font-audiowide)] text-xl uppercase tracking-wide text-[hsl(var(--foreground))] sm:text-2xl">
+            <PageTitle size="compact">
               Profile Studio
-            </h1>
+            </PageTitle>
             <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
               Customise your public profile. Your current images stay live until replacements pass safety processing.
             </p>

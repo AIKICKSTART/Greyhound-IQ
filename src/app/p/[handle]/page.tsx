@@ -18,6 +18,7 @@ import {
   UserRoundCheck,
   Users,
 } from "lucide-react";
+import { PageTitle } from "@/components/page-title";
 import {
   getPublishedCustomPageByHandle,
   resolveCustomPageMedia,
@@ -163,9 +164,9 @@ function PrivateProfileView({
           />
         </span>
         <p className="program-label mt-5">Private member profile</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-[-0.025em] text-[hsl(var(--foreground))] sm:text-3xl">
+        <PageTitle size="compact" className="mx-auto mt-2">
           {profile.actor.displayName}
-        </h1>
+        </PageTitle>
         <p className="mx-auto mt-3 max-w-xl text-[13px] leading-6 text-[hsl(var(--muted-foreground))]">
           {!viewer && membersOnly
             ? "Sign in to view this member profile."
@@ -311,9 +312,9 @@ function PersonalProfileView({
           </div>
           <div className="min-w-0 flex-1 pb-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="min-w-0 break-words text-2xl font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))] sm:text-3xl">
+              <PageTitle size="compact" className="min-w-0">
                 {profile.actor.displayName}
-              </h1>
+              </PageTitle>
               {personal.verified ? (
                 <BadgeCheck
                   className="h-5 w-5 shrink-0 text-[hsl(var(--primary-bright))]"
@@ -818,9 +819,9 @@ function ManagedPageView({
           </div>
           <div className="min-w-0 flex-1 pb-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="min-w-0 break-words text-2xl font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))] sm:text-3xl">
+              <PageTitle size="compact" className="min-w-0">
                 {page.title}
-              </h1>
+              </PageTitle>
               <span
                 className="rounded-full border bg-black/60 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white"
                 style={{ borderColor: accent }}

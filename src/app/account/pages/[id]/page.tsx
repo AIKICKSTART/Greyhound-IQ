@@ -12,6 +12,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
+import { PageTitle } from "@/components/page-title";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import {
   getOwnedCustomPage,
@@ -81,9 +82,9 @@ export default async function EditCustomPage({ params }: { params: Promise<{ id:
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             My pages
           </Link>
-          <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight text-[hsl(var(--foreground))] sm:text-3xl">
+          <PageTitle size="compact" className="mt-1">
             Manage {label.toLowerCase()} page
-          </h1>
+          </PageTitle>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
           <form action={publishAction}>

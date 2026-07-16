@@ -16,6 +16,7 @@ import {
 } from "@/components/appearance-preview-state";
 import { DOCK_SKIN_REGISTRY } from "@/components/dock-skin-catalogue";
 import { MARKETPLACE_TEMPLATE_OPTIONS } from "@/components/marketplace-template-variants";
+import { PageTitle } from "@/components/page-title";
 import {
   PROTOTYPE_TEMPLATE_COMPOSITIONS,
   PROTOTYPE_VARIANTS,
@@ -72,9 +73,9 @@ export default async function AccountAppearancePage({
               <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[hsl(var(--secondary-light))]">
                 Account · Design Lab
               </p>
-              <h1 className="mt-3 text-3xl font-black tracking-[-0.045em] sm:text-5xl">
+              <PageTitle className="mt-3">
                 Appearance Studio
-              </h1>
+              </PageTitle>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-white/58 sm:text-base">
                 Assemble an app template, dock skin and Marketplace layout for
                 review. Sponsored-card visibility is included so the complete

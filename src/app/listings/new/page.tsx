@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { createListing } from "@/app/actions";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
+import { PageTitle } from "@/components/page-title";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser, hasTier } from "@/lib/auth";
 import {
@@ -80,10 +81,9 @@ export default async function NewListingPage({
       </Link>
 
       <div className="giq-form-page-intro mb-6 sm:mb-8">
-        <div className="race-box-strip mb-4 w-40" />
-        <h1 className="text-3xl font-semibold tracking-tight text-[hsl(var(--foreground))] sm:text-4xl">
+        <PageTitle>
           Create a marketplace item
-        </h1>
+        </PageTitle>
         <p className="giq-form-page-subtitle mt-3 max-w-2xl text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
           Submit a listing connected to your GreyhoundIQ profile with clean,
           scanned media attached. It appears publicly after moderator approval.

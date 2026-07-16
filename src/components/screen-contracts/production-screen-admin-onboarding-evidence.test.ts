@@ -166,11 +166,11 @@ assert.match(interactiveHelpSource, /prefers-reduced-motion: reduce/);
 assert.match(interactiveHelpSource, /previousFocus\?\.isConnected/);
 assert.match(
   interactiveHelpSource,
-  /onOpenChange=\{\(nextOpen\)[\s\S]*if \(!nextOpen\) dismissHelp\(\)/,
+  /aria-label="Dismiss onboarding help"/,
 );
 assert.match(
   interactiveHelpSource,
-  /function dismissHelp\(\)[\s\S]*updateInteractiveHelpProgress\(progressStorageKey, "dismiss"\)/,
+  /function dismissHelp\(\)[\s\S]*updateInteractiveHelpProgress\(progressStorageKey, "disable"\)[\s\S]*updateInteractiveHelp\("disable"\)/,
 );
 
 const exclusionRoutes = Object.keys(

@@ -21,6 +21,7 @@ import {
   ShoppingBag,
   Tag,
 } from "lucide-react";
+import { PageTitle } from "@/components/page-title";
 import {
   archiveListing,
   markListingSold,
@@ -154,9 +155,9 @@ export default async function ListingDetailPage({
               {expired && listing.status === "active" ? "expired" : listing.status}
             </span>
           </div>
-          <h1 className="mt-5 max-w-4xl text-3xl font-semibold leading-tight tracking-[-0.03em] text-[hsl(var(--foreground))] sm:text-4xl">
+          <PageTitle size="compact" className="mt-5 max-w-4xl">
             {listing.title}
-          </h1>
+          </PageTitle>
           <p className="mt-4 inline-flex items-center gap-2 text-[13px] text-[hsl(var(--muted-foreground))]">
             <MapPin className="h-4 w-4 text-[hsl(var(--primary-bright))]" aria-hidden="true" />
             {locationLabel}

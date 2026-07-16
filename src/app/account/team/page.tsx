@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { TeamInvitationReview } from "@/app/account/team/team-invitation-review";
 import { TeamManagement } from "@/app/account/team/team-management";
+import { PageTitle } from "@/components/page-title";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import {
@@ -147,9 +148,9 @@ function TeamMemberHeader() {
       <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-8">
         <div className="max-w-2xl">
           <p className="program-label">Member settings</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+          <PageTitle className="mt-2">
             Team
-          </h1>
+          </PageTitle>
           <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
             Invite members, manage least-privilege roles, and transfer ownership safely.
           </p>

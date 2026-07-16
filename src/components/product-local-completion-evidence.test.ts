@@ -145,15 +145,29 @@ assert.deepEqual(
 const layout = readFileSync("src/app/layout.tsx", "utf8");
 const help = readFileSync("src/components/interactive-help.tsx", "utf8");
 const header = readFileSync("src/components/site-header.tsx", "utf8");
+const prototypeHeader = readFileSync(
+  "src/components/prototype-member-chrome.tsx",
+  "utf8",
+);
+const supportHelp = readFileSync(
+  "src/components/account-support-help-centre.tsx",
+  "utf8",
+);
 assert.match(layout, /<InteractiveHelp/);
 assert.match(layout, /showFloatingLauncher/);
 assert.match(layout, /role=\{user\?\.role \?\? "visitor"\}/);
-assert.match(help, /aria-label=\{helpEnabled \? "Open interactive help" : "Turn on interactive help"\}/);
-assert.match(help, /<span>\{helpEnabled \? "Help" : "Help off"\}<\/span>/);
+assert.match(help, /aria-label="Open guided help"/);
+assert.match(help, /<span>Guide<\/span>/);
+assert.match(help, /!open &&\s*helpEnabled &&\s*showFloatingLauncher/);
 assert.match(help, /href="\/account\/support#help-topics"/);
 assert.match(help, /href="\/contact"/);
-assert.match(header, /<h2>Help &amp; onboarding<\/h2>/);
-assert.match(header, /<InteractiveHelpMenuControls profileScope=\{user\.profileId\} \/>/);
+assert.doesNotMatch(header, /InteractiveHelpMenuControls|Help &amp; onboarding/);
+assert.doesNotMatch(
+  prototypeHeader,
+  /InteractiveHelpMenuControls|Help &amp; onboarding/,
+);
+assert.match(supportHelp, /Onboarding preferences/);
+assert.match(supportHelp, /<InteractiveHelpMenuControls profileScope=\{profileScope\} \/>/);
 
 assert.match(PRODUCT_LOCAL_COMPLETION_SCOPE, /87 canonical onboarding tours/i);
 assert.match(PRODUCT_LOCAL_COMPLETION_SCOPE, /435 steps/i);

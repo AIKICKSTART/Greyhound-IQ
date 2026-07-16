@@ -8,6 +8,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 
+import { PageTitle } from "@/components/page-title";
 import { getCurrentUser } from "@/lib/auth";
 import { directorySearchQuerySchema } from "@/lib/query-validation";
 import { discoverSocialActorsAndDogs } from "@/lib/social-discovery";
@@ -58,9 +59,9 @@ export default async function DiscoverPage({
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <p className="program-label">Community directory</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+            <PageTitle className="mt-2">
               Discover
-            </h1>
+            </PageTitle>
             <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
               Find people, managed pages, businesses, and greyhounds across
               GreyhoundIQ.

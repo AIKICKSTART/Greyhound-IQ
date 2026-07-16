@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Pencil } from "lucide-react";
 
 import { ListingEditForm } from "@/components/listing-edit-form";
+import { PageTitle } from "@/components/page-title";
 import { hasTier, requireCurrentUserProfile } from "@/lib/auth";
 import { getOwnedListingForCurrentUser } from "@/lib/listing-service";
 import { getMarketplaceCategories } from "@/lib/queries";
@@ -63,9 +64,9 @@ export default async function ListingEditPage({
             </span>
             <div className="min-w-0">
               <p className="program-label">Seller workspace</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[hsl(var(--foreground))] sm:text-4xl">
+              <PageTitle className="mt-2">
                 Edit marketplace listing
-              </h1>
+              </PageTitle>
               <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[hsl(var(--muted-foreground))]">
                 Update the listing you own. Active listing changes return to
                 moderation before becoming public again.

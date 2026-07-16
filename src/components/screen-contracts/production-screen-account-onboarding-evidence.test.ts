@@ -219,7 +219,7 @@ assert.match(interactiveHelpSource, /prefers-reduced-motion: reduce/);
 assert.match(interactiveHelpSource, /previousFocus\?\.isConnected/);
 assert.match(
   interactiveHelpSource,
-  /function dismissHelp\(\)[\s\S]*updateInteractiveHelpProgress\(progressStorageKey, "dismiss"\)/,
+  /function dismissHelp\(\)[\s\S]*updateInteractiveHelpProgress\(progressStorageKey, "disable"\)[\s\S]*updateInteractiveHelp\("disable"\)/,
 );
 
 assert.equal(

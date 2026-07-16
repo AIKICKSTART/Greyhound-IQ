@@ -9,7 +9,9 @@
 node_modules
 output
 !output/
+output/*
 !output/demo-route-audit/
+output/demo-route-audit/*
 !output/demo-route-audit/latest.json
 coverage
 playwright-report

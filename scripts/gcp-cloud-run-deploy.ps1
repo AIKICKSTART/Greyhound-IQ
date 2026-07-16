@@ -18,6 +18,10 @@ param(
   [string]$WebCpu = "2",
   [string]$WebMemory = "4Gi",
   [int]$WebConcurrency = 20,
+  [int]$WebMinInstances = 3,
+  [int]$WebMaxInstances = 10,
+  [string]$Network = "default",
+  [string]$Subnet = "default",
   [ValidateSet("metadata", "clamav")]
   [string]$MediaScannerMode = "clamav",
   [switch]$SkipSchedulerJobs,
@@ -578,8 +582,15 @@ if ($LagoFrontUrl) {
 }
 $plainEnv = $plainEnvItems -join ","
 
+if ($WebMinInstances -lt 0 -or $WebMaxInstances -lt 1 -or $WebMinInstances -gt $WebMaxInstances) {
+  throw "Web instance bounds must satisfy 0 <= min <= max."
+}
 $minInstances = "3"
 $maxInstances = "10"
+if ($Environment -eq "staging") {
+  $minInstances = [string]$WebMinInstances
+  $maxInstances = [string]$WebMaxInstances
+}
 
 $deployArgs = @(
   "run",
@@ -601,8 +612,8 @@ $deployArgs = @(
   "--max-instances=$maxInstances",
   "--no-traffic",
   "--tag=$candidateTag",
-  "--network=default",
-  "--subnet=default",
+  "--network=$Network",
+  "--subnet=$Subnet",
   "--vpc-egress=private-ranges-only",
   "--update-env-vars=$plainEnv",
   "--remove-env-vars=WORKOS_COOKIE_DOMAIN"
@@ -662,8 +673,8 @@ if (-not $SkipMediaScanner) {
     "--min-instances=0",
     "--max-instances=1",
     "--no-traffic",
-    "--network=default",
-    "--subnet=default",
+    "--network=$Network",
+    "--subnet=$Subnet",
     "--vpc-egress=private-ranges-only",
     "--update-env-vars=$scannerEnv",
     "--remove-env-vars=WORKOS_COOKIE_DOMAIN"

@@ -197,7 +197,7 @@ export const DESIGN_LAB_PREPRODUCTION_REQUIREMENTS: readonly DesignLabPreproduct
     requirement:
       "No Prisma model may copy rows directly from the production application database into Design Lab.",
     simulationContract:
-      "All 107 models have an explicit provider-public, metadata-only, reference-seed, synthetic-only or local-derived source policy while productionDatabaseCopy remains DENY.",
+      "All 113 models have an explicit provider-public, metadata-only, reference-seed, synthetic-only or local-derived source policy while productionDatabaseCopy remains DENY.",
     status: "verified",
     owner: "Privacy and database owner",
     evidence: [

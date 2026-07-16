@@ -20,6 +20,12 @@ assert.equal(
   ).toString(),
   runtimeUrl,
 );
+assert.doesNotThrow(() =>
+  assertHomeRaceMeetingsVerifierTarget(
+    "postgresql://greyhoundiq_runtime@[::1]:55734/greyhoundiq",
+    HOME_RACE_MEETINGS_VERIFY_CONFIRMATION,
+  ),
+);
 for (const invalid of [
   "postgresql://greyhoundiq_runtime@127.0.0.1:55733/greyhoundiq",
   "postgresql://postgres@127.0.0.1:55734/greyhoundiq",

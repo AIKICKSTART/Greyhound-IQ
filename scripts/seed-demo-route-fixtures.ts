@@ -88,7 +88,7 @@ export function assertDemoTarget(
   }
 
   const database = new URL(databaseUrl);
-  const loopback = ["localhost", "127.0.0.1", "::1"].includes(
+  const loopback = ["localhost", "127.0.0.1", "::1", "[::1]"].includes(
     database.hostname.toLowerCase(),
   );
   if (!loopback) {

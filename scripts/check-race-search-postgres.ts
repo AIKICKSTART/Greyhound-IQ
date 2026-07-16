@@ -104,7 +104,11 @@ export function assertRaceSearchVerifierTarget(
   assert.equal(confirmation, RACE_SEARCH_VERIFY_CONFIRMATION);
   const url = new URL(value);
   assert.ok(url.protocol === "postgresql:" || url.protocol === "postgres:");
-  assert.ok(url.hostname === "127.0.0.1" || url.hostname === "::1");
+  assert.ok(
+    url.hostname === "127.0.0.1" ||
+      url.hostname === "::1" ||
+      url.hostname === "[::1]",
+  );
   assert.equal(url.port, "55734");
   assert.equal(url.pathname, "/greyhoundiq");
   assert.equal(decodeURIComponent(url.username), "greyhoundiq_runtime");
@@ -171,7 +175,13 @@ export function validateRaceSearchEvidence(
     superuser: false,
     bypassRls: false,
   });
-  assert.deepEqual(evidence.safety, {
+  assert.ok(evidence.safety && typeof evidence.safety === "object");
+  const safety = evidence.safety as Record<string, unknown>;
+  assert.ok(
+    typeof safety.host === "string" &&
+      ["127.0.0.1", "::1", "[::1]"].includes(safety.host),
+  );
+  assert.deepEqual({ ...safety, host: "127.0.0.1" }, {
     scope: "literal-loopback-disposable-replay-only",
     host: "127.0.0.1",
     port: 55734,

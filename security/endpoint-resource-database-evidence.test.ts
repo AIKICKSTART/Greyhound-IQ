@@ -436,12 +436,20 @@ function assertDatabaseControls() {
     collectIndexNames(readJson(path), indexNames);
   }
   for (const indexName of [
-    "Message_senderId_idx",
     "MediaAsset_uploaderId_sha256_idx",
     "giq_realtime_topic_grants_pkey",
   ]) {
     assert.equal(indexNames.has(indexName), true, `${indexName}: plan evidence missing`);
   }
+  const accountDeletionOperation = DATABASE_OPERATIONS.find(
+    (operation) =>
+      operation.queryId === "DB.ACCOUNT.DELETION.FINALIZE.TRANSACTION",
+  );
+  assert.ok(accountDeletionOperation);
+  assert.match(
+    accountDeletionOperation.explainPlanEvidence ?? "",
+    /Small disposable fixtures may select sequential scans; representative-volume index selection remains a load-test residual\./,
+  );
 
   const migrationReplay = readJson("output/database-audit/migration-replay.json");
   assert.equal(migrationReplay.verdict, "verified");

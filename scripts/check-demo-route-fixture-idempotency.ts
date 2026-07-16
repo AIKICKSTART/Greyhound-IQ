@@ -31,7 +31,7 @@ export const DEMO_FIXTURE_VERIFY_CONFIRMATION =
 const REPLAY_PORT = "55734";
 const REPLAY_DATABASE = "/greyhoundiq";
 const RUNTIME_ROLE = "greyhoundiq_runtime";
-const LITERAL_LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1"]);
+const LITERAL_LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1", "[::1]"]);
 const ENDPOINT_OVERRIDE_PARAMETERS = new Set([
   "database",
   "dbname",

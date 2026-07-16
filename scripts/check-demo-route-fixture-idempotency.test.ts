@@ -12,6 +12,12 @@ const safe =
 assert.doesNotThrow(() =>
   assertDemoFixtureVerifierTarget(safe, DEMO_FIXTURE_VERIFY_CONFIRMATION),
 );
+assert.doesNotThrow(() =>
+  assertDemoFixtureVerifierTarget(
+    "postgresql://greyhoundiq_runtime@[::1]:55734/greyhoundiq",
+    DEMO_FIXTURE_VERIFY_CONFIRMATION,
+  ),
+);
 const runtimeTarget = assertDemoFixtureVerifierTarget(
   safe,
   DEMO_FIXTURE_VERIFY_CONFIRMATION,
@@ -119,7 +125,7 @@ for (const contract of [
 const databaseSource = readFileSync("src/lib/db.ts", "utf8");
 for (const contract of [
   "capture-sanitized-statements-on-disposable-loopback-55734",
-  'url.hostname === "127.0.0.1"',
+  '["127.0.0.1", "::1", "[::1]"].includes(url.hostname)',
   'url.port === "55734"',
   'url.pathname === "/greyhoundiq"',
   'decodeURIComponent(url.username) === "greyhoundiq_runtime"',

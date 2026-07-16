@@ -11,16 +11,22 @@ assert.deepEqual(
 );
 
 let state = nextMemberHeaderState({ compact: false, anchorY: 0 }, 30);
-assert.deepEqual(state, { compact: true, anchorY: 30 });
+assert.deepEqual(state, { compact: false, anchorY: 30 });
 
 state = nextMemberHeaderState(state, 52);
 assert.deepEqual(state, { compact: true, anchorY: 52 });
 
 state = nextMemberHeaderState(state, 38);
-assert.deepEqual(state, { compact: true, anchorY: 52 });
+assert.deepEqual(state, { compact: true, anchorY: 38 });
 
 state = nextMemberHeaderState(state, 27);
-assert.deepEqual(state, { compact: false, anchorY: 27 });
+assert.deepEqual(state, { compact: true, anchorY: 27 });
+
+state = nextMemberHeaderState(state, 13);
+assert.deepEqual(state, { compact: true, anchorY: 13 });
+
+state = nextMemberHeaderState(state, 12);
+assert.deepEqual(state, { compact: false, anchorY: 12 });
 
 assert.deepEqual(
   nextMemberHeaderState({ compact: true, anchorY: 80 }, 70, true),

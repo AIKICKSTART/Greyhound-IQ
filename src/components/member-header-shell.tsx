@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 const TOP_REGION = 12;
-const DIRECTION_THRESHOLD = 24;
+const COMPACT_REGION = 48;
 
 export type MemberHeaderState = {
   compact: boolean;
@@ -20,17 +20,10 @@ export function nextMemberHeaderState(
     return { compact: false, anchorY: scrollY };
   }
 
-  const distance = scrollY - state.anchorY;
-  if (!state.compact && distance >= DIRECTION_THRESHOLD) {
+  if (!state.compact && scrollY >= COMPACT_REGION) {
     return { compact: true, anchorY: scrollY };
   }
-  if (state.compact && distance <= -DIRECTION_THRESHOLD) {
-    return { compact: false, anchorY: scrollY };
-  }
-  if ((!state.compact && distance < 0) || (state.compact && distance > 0)) {
-    return { ...state, anchorY: scrollY };
-  }
-  return state;
+  return { ...state, anchorY: scrollY };
 }
 
 export function getMemberSectionLabel(pathname: string) {
@@ -45,6 +38,7 @@ export function getMemberSectionLabel(pathname: string) {
 export function MemberHeaderShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
+  const activeScrollY = useRef(0);
   const scrollState = useRef<MemberHeaderState>({ compact: false, anchorY: 0 });
   const [renderedState, setRenderedState] = useState({
     pathname,
@@ -54,43 +48,31 @@ export function MemberHeaderShell({ children }: { children: ReactNode }) {
     renderedState.pathname === pathname && renderedState.compact;
 
   useEffect(() => {
-    scrollState.current = { compact: false, anchorY: window.scrollY };
-    const anchors = new WeakMap<EventTarget, number>();
-    anchors.set(window, window.scrollY);
+    const containedScroller = document.querySelector<HTMLElement>(
+      "[data-feed-scroll]"
+    );
+    const readScrollY = () => containedScroller?.scrollTop ?? window.scrollY;
+    const scrollTarget: EventTarget = containedScroller ?? window;
 
-    const updateFrom = (source: EventTarget, scrollY: number) => {
+    const update = () => {
+      const scrollY = readScrollY();
+      activeScrollY.current = scrollY;
       const next = nextMemberHeaderState(
-        {
-          compact: scrollState.current.compact,
-          anchorY: anchors.get(source) ?? scrollY,
-        },
+        scrollState.current,
         scrollY,
         headerRef.current?.contains(document.activeElement) ?? false
       );
-      anchors.set(source, next.anchorY);
       if (next.compact !== scrollState.current.compact) {
         setRenderedState({ pathname, compact: next.compact });
       }
       scrollState.current = next;
     };
 
-    const handleWindowScroll = () => updateFrom(window, window.scrollY);
-    const containedScrollers = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-feed-scroll]")
-    );
-    const containedHandlers = containedScrollers.map((scroller) => {
-      anchors.set(scroller, scroller.scrollTop);
-      const handleScroll = () => updateFrom(scroller, scroller.scrollTop);
-      scroller.addEventListener("scroll", handleScroll, { passive: true });
-      return { scroller, handleScroll };
-    });
-
-    window.addEventListener("scroll", handleWindowScroll, { passive: true });
+    scrollState.current = { compact: false, anchorY: readScrollY() };
+    update();
+    scrollTarget.addEventListener("scroll", update, { passive: true });
     return () => {
-      window.removeEventListener("scroll", handleWindowScroll);
-      for (const { scroller, handleScroll } of containedHandlers) {
-        scroller.removeEventListener("scroll", handleScroll);
-      }
+      scrollTarget.removeEventListener("scroll", update);
     };
   }, [pathname]);
 
@@ -101,7 +83,10 @@ export function MemberHeaderShell({ children }: { children: ReactNode }) {
       className="giq-member-header sticky top-2 z-50 w-full px-3 md:px-5"
       onFocusCapture={() => {
         if (!scrollState.current.compact) return;
-        scrollState.current = { compact: false, anchorY: window.scrollY };
+        scrollState.current = {
+          compact: false,
+          anchorY: activeScrollY.current,
+        };
         setRenderedState({ pathname, compact: false });
       }}
     >

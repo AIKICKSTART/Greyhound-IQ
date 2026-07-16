@@ -123,8 +123,6 @@ try {
     "design-lab-database.test.ts",
     "local-database-policy.ts",
     "local-database-policy.test.ts",
-    "design-lab-release-evidence.ts",
-    "design-lab-release-evidence.test.ts",
     "seed-demo-route-fixtures.ts",
   ]) {
     writeFileSync(join(root, "scripts", script), `// ${script}\n`);
@@ -155,8 +153,6 @@ try {
     "design-lab-database.test.ts",
     "local-database-policy.ts",
     "local-database-policy.test.ts",
-    "design-lab-release-evidence.ts",
-    "design-lab-release-evidence.test.ts",
     "seed-demo-route-fixtures.ts",
   ]) {
     assert.ok(
@@ -232,8 +228,6 @@ try {
       "scripts/design-lab-database-parity-support.ts",
       "scripts/design-lab-database.test.ts",
       "scripts/design-lab-database.ts",
-      "scripts/design-lab-release-evidence.test.ts",
-      "scripts/design-lab-release-evidence.ts",
       "scripts/local-database-policy.test.ts",
       "scripts/local-database-policy.ts",
       "scripts/seed-demo-route-fixtures.ts",

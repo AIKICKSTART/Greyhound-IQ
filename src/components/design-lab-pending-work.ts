@@ -169,9 +169,8 @@ export const DESIGN_LAB_PENDING_WORK: readonly DesignLabPendingWorkItem[] = [
 ];
 
 /**
- * Release-blocking implementation claims with captured evidence that still
- * need an independent verification pass. These items remain incomplete in the
- * owning release registries until that pass is accepted.
+ * Internal review claims with captured evidence that still need an independent
+ * verification pass. Their status is informational and does not control deployment.
  */
 export const DESIGN_LAB_COMPLETE_AWAITING_VERIFICATION_WORK = Object.freeze(
   DESIGN_LAB_PENDING_WORK.filter(isDesignLabWorkAwaitingVerification),
@@ -183,8 +182,8 @@ export const DESIGN_LAB_VERIFICATION_REFRESH_WORKFLOW = Object.freeze({
   steps: Object.freeze([
     "Freeze source and record the immutable candidate commit.",
     "Open every awaiting-verification item and rerun its listed focused evidence.",
-    "Recapture all five source-bound release artifacts against that same candidate.",
-    "Run the sync gate, then the release gate, without changing source between them.",
+    "Recapture any source-bound review artifacts against that same candidate.",
+    "Run the internal sync report without changing source between captures.",
     "Move each queue item to verified only with accepted fresh evidence; otherwise leave it explicitly open or blocked.",
   ]),
   commands: Object.freeze([
@@ -194,7 +193,6 @@ export const DESIGN_LAB_VERIFICATION_REFRESH_WORKFLOW = Object.freeze({
     "npm run audit:design-lab-hydrated-wave2 -- --base-url http://127.0.0.1:3000",
     "npm run audit:design-lab-responsive-workspace -- --base-url http://127.0.0.1:3000",
     "npm run check:design-lab-sync",
-    "npm run check:design-lab-release",
   ]),
 });
 

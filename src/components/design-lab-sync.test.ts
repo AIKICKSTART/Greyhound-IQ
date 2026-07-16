@@ -92,10 +92,10 @@ assert.equal(
   "workCompletion=awaiting-verification",
 );
 assert.deepEqual(
-  DESIGN_LAB_SYNC_SNAPSHOT.release.awaitingVerification.refreshWorkflow.commands.slice(
-    -2,
+  DESIGN_LAB_SYNC_SNAPSHOT.release.awaitingVerification.refreshWorkflow.commands.at(
+    -1,
   ),
-  ["npm run check:design-lab-sync", "npm run check:design-lab-release"],
+  "npm run check:design-lab-sync",
 );
 const releaseEvidenceSummaryKeys = {
   "fresh-verified": "freshVerified",

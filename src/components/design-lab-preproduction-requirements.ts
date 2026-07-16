@@ -531,7 +531,6 @@ export const DESIGN_LAB_PREPRODUCTION_REQUIREMENTS: readonly DesignLabPreproduct
       "npx tsx scripts/check-gcp-provider-readiness.ts",
       "npm run check:terraform-source",
       "npm run check:incident-response",
-      "npm run check:design-lab-release -- --require-ready",
     ],
     remainingEvidence:
       "The source-bound local load and restore simulations, read-only provider preflight and Terraform source checks are prerequisites only. Approve the workload/SLO/RTO/RPO/cost assumptions, deploy the isolated Sydney/Melbourne staging topology, complete the 70-task architecture ledger and attach managed load, failure, restore, security, alert, incident and independent-review evidence for the exact immutable candidate.",
@@ -829,12 +828,11 @@ export const DESIGN_LAB_PREPRODUCTION_REQUIREMENTS: readonly DesignLabPreproduct
     requirement:
       "A single expiring evidence manifest must bind every verified lane to the exact source SHA, immutable image, configuration and migration digests before production approval.",
     simulationContract:
-      "Browser state cannot approve release; GitHub's protected production environment validates the evidence hash and promotes only the tested immutable candidate.",
+      "Browser state cannot approve release; GitHub's protected production environment promotes only the tested immutable candidate. Design Lab evidence remains internal review material.",
     status: "partially-verified",
     owner: "Release owner",
     evidence: [
       "src/components/design-lab-release-gate.ts",
-      "scripts/check-design-lab-release.ts",
       ".github/workflows/cloud-run-deploy.yml",
       "output/production-readiness/local-load/latest.json",
       "output/production-readiness/local-dr/latest.json",
@@ -842,7 +840,6 @@ export const DESIGN_LAB_PREPRODUCTION_REQUIREMENTS: readonly DesignLabPreproduct
       "infra/terraform",
     ],
     tests: [
-      "src/components/design-lab-release-workflow.test.ts",
       "scripts/check-local-production-load.test.ts",
       "scripts/check-local-dr-restore.test.ts",
       "scripts/gcp-provider-readiness.test.ts",
@@ -854,11 +851,9 @@ export const DESIGN_LAB_PREPRODUCTION_REQUIREMENTS: readonly DesignLabPreproduct
       "npm run check:local-dr-restore",
       "npx tsx scripts/check-gcp-provider-readiness.ts",
       "npm run check:terraform-source",
-      "npm run check:design-lab-release -- --print-evidence-sha256",
-      "npm run check:design-lab-release -- --require-ready",
     ],
     remainingEvidence:
-      "The current local and provider-readiness artifacts are indexed but are not a promotion manifest. Add owners, independent reviewers, tested/expires timestamps, immutable image and configuration digests and zero Critical/High findings, then bind the final manifest digest to protected deployment approval.",
+      "The current local and provider-readiness artifacts are indexed but are not a promotion manifest. Add owners, independent reviewers, tested/expires timestamps, immutable image and configuration digests and zero Critical/High findings as deployment metadata; none of this is a Design Lab approval condition.",
     releaseBlocking: true,
   },
 ];

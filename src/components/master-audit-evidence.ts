@@ -1591,7 +1591,6 @@ export const SECURITY_MASTER_EVIDENCE: Readonly<
       "src/lib/billing/stripe-webhook-settlement.test.ts",
       "src/lib/billing/stripe-readiness.test.ts",
       "src/app/account/billing/page.tsx",
-      "src/components/design-lab-release-workflow.test.ts",
     ],
   },
   "security.billing-control.authoritative-state": {

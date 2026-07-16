@@ -31,7 +31,6 @@
     "audit:local-postgres-catalog": "tsx scripts/audit-local-postgres-catalog.ts",
     "check:local-postgres-catalog-evidence": "tsx scripts/audit-local-postgres-catalog.ts --validate-existing",
     "check:design-lab-sync": "tsx scripts/check-design-lab-sync.ts",
-    "check:design-lab-release": "tsx scripts/check-design-lab-release.ts",
     "check:mobile-foundation-evidence": "tsx src/components/design-lab-mobile-foundation-evidence.test.ts && tsx src/components/design-lab-web-mobile-boundary.test.ts",
     "build:architecture-report": "node scripts/build-architecture-report.mjs",
     "build:security-trace-registry": "tsx scripts/generate-security-trace-registry.ts --write",

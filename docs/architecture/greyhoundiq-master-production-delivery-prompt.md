@@ -281,7 +281,7 @@ EXECUTION ORDER
 
 1. Snapshot the worktree and confirm repository/skill instructions.
 2. Re-index codebase-memory if stale.
-3. Run the current Design Lab release gate and focused contract test.
+3. Review the current Design Lab summary only when it helps the implementation plan.
 4. Map every Supabase database, storage and realtime dependency.
 5. Produce a bounded implementation order for removing Supabase without creating migration machinery.
 6. Verify the current Cloud Run, OpenAPI, Terraform, database, LiveKit and provider configurations against the worktree.

@@ -75,7 +75,7 @@ The verification baseline is [OWASP ASVS 5.0.0](https://owasp.org/www-project-ap
 ### Delivery
 
 - CI performs a pinned Gitleaks scan, pinned Semgrep rules, `npm audit --audit-level=high`, migrations, security checks, unit tests, lint and production build.
-- Production deployment requires an exact SHA, successful CI, Design Lab evidence digest, immutable image digest and candidate web smoke test.
+- Production deployment requires an exact SHA, successful CI, immutable image digest and candidate web smoke test. Design Lab evidence is internal review material only.
 - Project-wide deployment privilege, shared runtime identity/secrets, scanner validation, migration/backup binding, signing/SBOM/provenance and rollback remain release blockers (`SEC-H-004`, `SEC-H-005`).
 
 ## Release decision

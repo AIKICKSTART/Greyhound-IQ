@@ -105,7 +105,7 @@ Do not record a winning template merely because a frame renders. Approval requir
 
 ## Drift check
 
-Use this command before a Design Lab review or release:
+Use this command before an internal Design Lab review:
 
 ```powershell
 rg --files src/app -g 'page.tsx' | Sort-Object

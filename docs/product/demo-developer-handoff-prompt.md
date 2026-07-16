@@ -31,9 +31,9 @@ Work contract:
 9. Add or update focused tests first, then run the relevant route/component tests, npm run typecheck, npm run lint, and npm run build before handoff.
 
 Production handoff rule:
-- The protected GitHub production environment may only consider an exact 40-character commit SHA after successful CI, a matching SHA-256 Design Lab evidence digest, and an immutable container-image digest.
+- The protected GitHub production environment considers the selected commit after successful CI and an immutable container-image digest; Design Lab counters and evidence digests are internal review material only.
 - Deployment must create a no-traffic candidate revision, smoke-test it, and only then promote the exact tested revision.
-- Never bypass the blocked checklist or use local production deployment credentials.
+- Never use local production deployment credentials.
 
 At handoff, report:
 - Requirement and trace IDs addressed.

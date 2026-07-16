@@ -19,9 +19,9 @@ This file assigns one canonical Markdown owner to each product-audit topic. The 
 | `permissions` | `DOC.PATH.permissions` | [`permissions-matrix.md`](permissions-matrix.md) | screen permission and access-state contracts |
 | `states` | `DOC.PATH.states` | [`state-matrix.md`](state-matrix.md) | production screen-state contracts |
 | `onboarding` | `DOC.PATH.onboarding` | [`onboarding-map.md`](onboarding-map.md) | onboarding route-tour registries |
-| `design-lab` | `DOC.PATH.design-lab` | [`design-lab-coverage.md`](design-lab-coverage.md) | Design Lab screen registry and release gate |
+| `design-lab` | `DOC.PATH.design-lab` | [`design-lab-coverage.md`](design-lab-coverage.md) | Design Lab screen registry and internal review summary |
 | `parity` | `DOC.PATH.parity` | [`production-parity.md`](production-parity.md) | dated read-only production crawl plus current local registry |
-| `final` | `DOC.PATH.final` | [`final-audit-report.md`](final-audit-report.md) | aggregate master and release-gate registries |
+| `final` | `DOC.PATH.final` | [`final-audit-report.md`](final-audit-report.md) | aggregate master and internal review registries |
 
 ## Non-duplication rules
 

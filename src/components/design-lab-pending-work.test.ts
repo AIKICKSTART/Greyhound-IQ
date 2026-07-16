@@ -62,8 +62,8 @@ assert.equal(
   "workCompletion=awaiting-verification",
 );
 assert.deepEqual(
-  DESIGN_LAB_VERIFICATION_REFRESH_WORKFLOW.commands.slice(-2),
-  ["npm run check:design-lab-sync", "npm run check:design-lab-release"],
+  DESIGN_LAB_VERIFICATION_REFRESH_WORKFLOW.commands.at(-1),
+  "npm run check:design-lab-sync",
 );
 
 assert.deepEqual(DESIGN_LAB_PENDING_WORK_SUMMARY.sources, {

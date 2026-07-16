@@ -18,8 +18,14 @@ function createTestPort(
   overrides: Partial<ObjectStoragePort> = {},
 ): ObjectStoragePort {
   return {
+    provider: "supabase",
     async createSignedUpload(input) {
-      return { url: "https://storage.invalid/upload", token: null, key: input.key };
+      return {
+        url: "https://storage.invalid/upload",
+        token: null,
+        key: input.key,
+        headers: { "content-type": input.contentType },
+      };
     },
     async createSignedDownload() {
       return "https://storage.invalid/download";
@@ -225,9 +231,15 @@ async function main() {
   const supabasePort = createTestPort();
   const gcsCalls: string[] = [];
   const gcsPort = createTestPort({
+    provider: "gcs",
     async createSignedUpload(input) {
       gcsCalls.push("sign-upload");
-      return { url: "https://storage.invalid/upload", token: null, key: input.key };
+      return {
+        url: "https://storage.invalid/upload",
+        token: null,
+        key: input.key,
+        headers: { "content-type": input.contentType },
+      };
     },
     async createSignedDownload() {
       gcsCalls.push("sign-download");
@@ -251,7 +263,11 @@ async function main() {
   const gcsStorage = createObjectStorageFacade(
     resolveObjectStoragePort(" GCS ", { supabase: supabasePort, gcs: gcsPort }),
   );
-  await gcsStorage.createSignedUpload({ bucket: PUBLIC_USER_MEDIA_BUCKET, key: validKey });
+  await gcsStorage.createSignedUpload({
+    bucket: PUBLIC_USER_MEDIA_BUCKET,
+    key: validKey,
+    contentType: "image/png",
+  });
   await gcsStorage.createSignedDownload({
     bucket: PUBLIC_USER_MEDIA_BUCKET,
     key: validKey,

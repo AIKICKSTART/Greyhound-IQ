@@ -261,6 +261,22 @@ assertCallOrder(
   "objectStorage.createSignedUpload",
   "quota enforcement must run before issuing a provider grant",
 );
+assertCallOrder(
+  signedUploadSource,
+  "tx.mediaAsset.create",
+  "objectStorage.createSignedUpload",
+  "the owned database row must exist before issuing a bearer upload grant",
+);
+assert.match(
+  signedUploadSource,
+  /userId: current\.dbUserId,[\s\S]*objectStorage\.createSignedUpload\(\{[\s\S]*contentType: input\.mimeType/,
+  "The server-authenticated database user id must own the generated upload path",
+);
+assert.match(
+  signedUploadSource,
+  /uploadHeaders: signedUpload\.headers/,
+  "The signed upload response must carry provider-specific headers",
+);
 
 const signedDownloadSource =
   /export async function createMediaDownloadUrl\([\s\S]*?(?=\nexport async function deleteMediaForCurrentUser)/.exec(

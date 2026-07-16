@@ -15,7 +15,7 @@ export type ObjectStorageBucket = (typeof OBJECT_STORAGE_BUCKETS)[number];
 export const SUPABASE_STORAGE_BUCKETS = OBJECT_STORAGE_BUCKETS;
 export type SupabaseStorageBucket = ObjectStorageBucket;
 
-const PUBLIC_BUCKETS = new Set<SupabaseStorageBucket>([
+const PUBLIC_BUCKETS = new Set<ObjectStorageBucket>([
   SITE_ASSETS_BUCKET,
 ]);
 
@@ -82,7 +82,7 @@ export function isObjectStorageBucket(
 }
 
 export function isPublicStorageBucket(bucket: string) {
-  return PUBLIC_BUCKETS.has(bucket as SupabaseStorageBucket);
+  return PUBLIC_BUCKETS.has(bucket as ObjectStorageBucket);
 }
 
 export function mediaTypeForMimeType(mimeType: string) {
@@ -94,10 +94,11 @@ export function mediaTypeForMimeType(mimeType: string) {
 }
 
 export function publicStorageUrl(
-  bucket: SupabaseStorageBucket,
+  bucket: ObjectStorageBucket,
   objectPath: string
 ) {
   if (!isPublicStorageBucket(bucket)) return null;
+  if (selectedObjectStorageProvider() !== "supabase") return null;
   const supabaseUrl = configuredSupabaseUrl();
   if (!supabaseUrl) return null;
 
@@ -128,9 +129,16 @@ export function siteAssetUrl(localPath: string) {
 
 function shouldUseSupabaseSiteAssets() {
   return (
-    process.env.NEXT_PUBLIC_USE_SUPABASE_SITE_ASSETS === "true" ||
-    process.env.USE_SUPABASE_SITE_ASSETS === "true"
+    selectedObjectStorageProvider() === "supabase" &&
+    (process.env.NEXT_PUBLIC_USE_SUPABASE_SITE_ASSETS === "true" ||
+      process.env.USE_SUPABASE_SITE_ASSETS === "true")
   );
+}
+
+function selectedObjectStorageProvider() {
+  const value = process.env.OBJECT_STORAGE_PROVIDER?.trim().toLowerCase();
+  if (!value || value === "supabase") return "supabase";
+  return value === "gcs" ? "gcs" : null;
 }
 
 function configuredSupabaseUrl() {

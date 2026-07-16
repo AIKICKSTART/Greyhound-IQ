@@ -31,12 +31,15 @@ export type SignedUploadGrant = {
   url: string;
   token: string | null;
   key: string;
+  headers: Readonly<Record<string, string>>;
 };
 
 export type ObjectStoragePort = {
+  provider: "gcs" | "supabase";
   createSignedUpload(input: {
     bucket: ObjectStorageBucket;
     key: string;
+    contentType: string;
   }): Promise<SignedUploadGrant>;
   createSignedDownload(input: {
     bucket: ObjectStorageBucket;
@@ -82,12 +85,19 @@ export type ObjectStoragePort = {
 
 export function createObjectStorageFacade(port: ObjectStoragePort) {
   return {
+    provider: port.provider,
+
     async createSignedUpload(input: {
       bucket: ObjectStorageBucket;
       key: string;
+      contentType: string;
     }) {
       const { bucket, key } = assertObjectStorageLocation(input);
-      return port.createSignedUpload({ bucket, key });
+      return port.createSignedUpload({
+        bucket,
+        key,
+        contentType: assertContentType(input.contentType),
+      });
     },
 
     async createSignedDownload(input: {
@@ -123,6 +133,9 @@ export function createObjectStorageFacade(port: ObjectStoragePort) {
       bytes: number;
     }) {
       const { bucket, key } = assertObjectStorageLocation(input);
+      if (!Number.isSafeInteger(input.bytes) || input.bytes <= 0) {
+        throw new Error("storage.invalid_head_size");
+      }
       return port.readObjectHead({ bucket, key, bytes: input.bytes });
     },
 
@@ -256,6 +269,18 @@ function assertObjectStorageRange(range: ObjectStorageRange) {
     throw new Error("storage.invalid_range");
   }
   return { start: range.start, end: range.end };
+}
+
+function assertContentType(contentType: string) {
+  const normalized = contentType.trim().toLowerCase();
+  if (
+    normalized.length === 0 ||
+    normalized.length > 255 ||
+    !/^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/.test(normalized)
+  ) {
+    throw new Error("storage.invalid_content_type");
+  }
+  return normalized;
 }
 
 function assertObjectStorageBucket(bucket: string): ObjectStorageBucket {

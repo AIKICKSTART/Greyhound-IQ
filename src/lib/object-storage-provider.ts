@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { ObjectStoragePort } from "@/lib/object-storage";
+import { createGoogleCloudStoragePort } from "@/lib/gcs-object-storage";
 import { supabaseObjectStoragePort } from "@/lib/supabase-object-storage";
 
 export function resolveObjectStoragePort(
@@ -18,5 +19,11 @@ export function resolveObjectStoragePort(
 
 export const objectStoragePort = resolveObjectStoragePort(
   process.env.OBJECT_STORAGE_PROVIDER,
-  { supabase: supabaseObjectStoragePort },
+  {
+    supabase: supabaseObjectStoragePort,
+    gcs:
+      process.env.OBJECT_STORAGE_PROVIDER?.trim().toLowerCase() === "gcs"
+        ? createGoogleCloudStoragePort()
+        : undefined,
+  },
 );

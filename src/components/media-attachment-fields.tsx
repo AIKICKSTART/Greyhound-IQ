@@ -73,6 +73,7 @@ interface UploadContext {
   previewUrl: string;
   mediaId?: string;
   uploadUrl?: string;
+  uploadHeaders?: Record<string, string>;
   uploadUrlExpiresAtMs?: number;
   altText?: string;
 }
@@ -271,6 +272,7 @@ export function MediaAttachmentFields({
         const signed = await postJson<{
           mediaId: string;
           uploadUrl: string;
+          uploadHeaders: Record<string, string>;
           expiresAt: string;
         }>("/api/media/sign-upload", {
           filename: ctx.file.name,
@@ -280,14 +282,20 @@ export function MediaAttachmentFields({
         });
         ctx.mediaId = signed.mediaId;
         ctx.uploadUrl = signed.uploadUrl;
+        ctx.uploadHeaders = signed.uploadHeaders;
         ctx.uploadUrlExpiresAtMs = Date.parse(signed.expiresAt);
         step = "uploading";
       }
 
       if (step === "uploading") {
         patchItem(key, { step: "uploading", progress: 0, error: undefined });
-        await putFile(xhrsRef.current, key, ctx.uploadUrl!, ctx.file, (pct) =>
-          patchItem(key, { progress: pct })
+        await putFile(
+          xhrsRef.current,
+          key,
+          ctx.uploadUrl!,
+          ctx.uploadHeaders ?? {},
+          ctx.file,
+          (pct) => patchItem(key, { progress: pct }),
         );
         step = "finalizing";
       }
@@ -737,12 +745,13 @@ function itemLabel(item: UploadItem) {
   }
 }
 
-// Raw PUT to the Supabase signed upload URL, mirroring the headers
-// @supabase/storage-js sends for a signed-url PUT so we get progress events.
+// Raw PUT preserves progress events. The server returns only the headers signed
+// by the active provider (for example, GCS must never receive Supabase x-upsert).
 function putFile(
   xhrs: Map<string, XMLHttpRequest>,
   key: string,
   url: string,
+  headers: Readonly<Record<string, string>>,
   file: File,
   onProgress: (pct: number) => void
 ) {
@@ -750,9 +759,9 @@ function putFile(
     const xhr = new XMLHttpRequest();
     xhrs.set(key, xhr);
     xhr.open("PUT", url, true);
-    xhr.setRequestHeader("content-type", file.type);
-    xhr.setRequestHeader("x-upsert", "false");
-    xhr.setRequestHeader("cache-control", "max-age=31536000");
+    for (const [name, value] of Object.entries(headers)) {
+      xhr.setRequestHeader(name, value);
+    }
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
         onProgress(Math.round((event.loaded / event.total) * 100));

@@ -13,8 +13,14 @@ function testPort(
   overrides: Partial<ObjectStoragePort> = {},
 ): ObjectStoragePort {
   return {
+    provider: "supabase",
     async createSignedUpload(input) {
-      return { url: "https://storage.invalid/upload", token: null, key: input.key };
+      return {
+        url: "https://storage.invalid/upload",
+        token: null,
+        key: input.key,
+        headers: { "content-type": input.contentType },
+      };
     },
     async createSignedDownload() {
       return "https://storage.invalid/download";
@@ -49,6 +55,7 @@ async function main() {
         url: "https://storage.invalid/upload",
         token: "upload-token",
         key: input.key,
+        headers: { "content-type": input.contentType },
       };
     },
     async createSignedDownload(input) {
@@ -83,11 +90,13 @@ async function main() {
     await storage.createSignedUpload({
       bucket: PRIVATE_USER_MEDIA_BUCKET,
       key,
+      contentType: "application/octet-stream",
     }),
     {
       url: "https://storage.invalid/upload",
       token: "upload-token",
       key,
+      headers: { "content-type": "application/octet-stream" },
     },
   );
   assert.equal(
@@ -160,7 +169,11 @@ async function main() {
   const callsBeforeInvalidInput = calls.length;
   const invalidKey = "users/user_1/../user_2/private.bin";
   for (const operation of [
-    () => storage.createSignedUpload({ bucket: PRIVATE_USER_MEDIA_BUCKET, key: invalidKey }),
+    () => storage.createSignedUpload({
+      bucket: PRIVATE_USER_MEDIA_BUCKET,
+      key: invalidKey,
+      contentType: "application/octet-stream",
+    }),
     () => storage.createSignedDownload({
       bucket: PRIVATE_USER_MEDIA_BUCKET,
       key: invalidKey,
@@ -265,8 +278,21 @@ async function main() {
   });
 
   assert.deepEqual(
-    await adapter.createSignedUpload({ bucket: PRIVATE_USER_MEDIA_BUCKET, key }),
-    { url: "https://storage.invalid/upload", token: "token", key },
+    await adapter.createSignedUpload({
+      bucket: PRIVATE_USER_MEDIA_BUCKET,
+      key,
+      contentType: "application/octet-stream",
+    }),
+    {
+      url: "https://storage.invalid/upload",
+      token: "token",
+      key,
+      headers: {
+        "cache-control": "max-age=31536000",
+        "content-type": "application/octet-stream",
+        "x-upsert": "false",
+      },
+    },
   );
   await adapter.createSignedDownload({
     bucket: PRIVATE_USER_MEDIA_BUCKET,

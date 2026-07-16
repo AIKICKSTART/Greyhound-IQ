@@ -608,7 +608,7 @@ $deployArgs = @(
   "--remove-env-vars=WORKOS_COOKIE_DOMAIN"
 )
 if ($secretMappings) {
-  $deployArgs += "--set-secrets=$secretMappings"
+  $deployArgs += "--update-secrets=$secretMappings"
 }
 $deployArgs += @("--project", $ProjectId)
 Invoke-Gcloud @deployArgs
@@ -669,7 +669,7 @@ if (-not $SkipMediaScanner) {
     "--remove-env-vars=WORKOS_COOKIE_DOMAIN"
   )
   if ($secretMappings) {
-    $scannerDeployArgs += "--set-secrets=$secretMappings"
+    $scannerDeployArgs += "--update-secrets=$secretMappings"
   }
   $scannerDeployArgs += @("--project", $ProjectId)
   Invoke-Gcloud @scannerDeployArgs

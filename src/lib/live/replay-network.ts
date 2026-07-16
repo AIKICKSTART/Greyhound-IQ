@@ -204,7 +204,7 @@ function parseIpv6(address: string): Uint8Array | null {
     ? halves[1].split(":")
     : [];
   if (halves.length === 1 && left.length !== 8) return null;
-  if (left.length + right.length > 7) return null;
+  if (halves.length === 2 && left.length + right.length > 7) return null;
 
   const zeroCount = halves.length === 2 ? 8 - left.length - right.length : 0;
   const words = [...left, ...Array<string>(zeroCount).fill("0"), ...right];

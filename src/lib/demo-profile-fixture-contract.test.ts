@@ -126,6 +126,13 @@ assert.doesNotThrow(() =>
     DATABASE_URL: "postgresql://demo:demo@127.0.0.1:55734/greyhoundiq_demo_replay",
   }),
 );
+assert.doesNotThrow(() =>
+  assertDemoTarget({
+    APP_ENV: "demo",
+    DEMO_AUTH_MODE: "full-access",
+    DATABASE_URL: "postgresql://demo:demo@[::1]:55734/greyhoundiq_demo_replay",
+  }),
+);
 assert.throws(
   () =>
     assertDemoTarget({

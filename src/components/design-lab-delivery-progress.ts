@@ -801,7 +801,7 @@ export const DESIGN_LAB_DELIVERY_PROGRESS: readonly DesignLabDeliveryProgressIte
         "Live Architecture UI returns 200 and renders 32 surfaces, 25 components, 16 flows, the source-static boundary and evidence-unverified warning",
         "Static contract: 30 ordered sections, eight Mermaid diagrams and 70 task entries",
         "Architecture skill validator PASS",
-        "ARCH-401 source inventory PASS: 107 models, 93 reviewed migrations and frozen schema/migration SHA-256 digests; deployed catalog parity remains unverified",
+        "ARCH-401 source inventory PASS: 113 models, 100 reviewed migrations and frozen schema/migration SHA-256 digests; deployed catalog parity remains unverified",
         "AU target-policy, database-inventory, request-correlation and log-redaction focused tests PASS",
         "Readiness database work is bounded to a 1s pool wait and 2s transaction timeout, uses a cheap indexed lookup and returns generic no-store failures",
         "Power-outage recovery restored the existing loopback Postgres volume, applied the pending forward-only migration and rebound localhost to the local database; readiness is 200",

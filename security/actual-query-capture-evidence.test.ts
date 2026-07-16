@@ -170,7 +170,7 @@ const databaseSource = readFileSync("src/lib/db.ts", "utf8");
 for (const guard of [
   "capture-sanitized-statements-on-disposable-loopback-55734",
   'process.env.NODE_ENV === "production"',
-  'url.hostname === "127.0.0.1"',
+  '["127.0.0.1", "::1", "[::1]"].includes(url.hostname)',
   'url.port === "55734"',
   'url.pathname === "/greyhoundiq"',
   'decodeURIComponent(url.username) === "greyhoundiq_runtime"',
@@ -256,7 +256,13 @@ function validateArtifactSafety(
   assert.equal(document.verdict, "verified", `${artifactPath}: verdict`);
   const safety = asRecord(document.safety, `${artifactPath}: safety`);
   assert.match(requiredString(safety.scope, `${artifactPath}: scope`), /loopback/);
-  if (safety.host !== undefined) assert.equal(safety.host, "127.0.0.1");
+  if (safety.host !== undefined) {
+    assert.ok(
+      typeof safety.host === "string" &&
+        ["127.0.0.1", "::1", "[::1]"].includes(safety.host),
+      `${artifactPath}: literal loopback host`,
+    );
+  }
   if (safety.port !== undefined) assert.equal(safety.port, 55734);
   const noExternalContact =
     safety.productionOrProviderSystemsContacted === false ||

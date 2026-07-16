@@ -201,7 +201,7 @@ function isDisposableReplayQueryEvidenceEnabled() {
     const url = new URL(process.env.DATABASE_URL ?? "");
     return (
       url.protocol === "postgresql:" &&
-      url.hostname === "127.0.0.1" &&
+      ["127.0.0.1", "::1", "[::1]"].includes(url.hostname) &&
       url.port === "55734" &&
       url.pathname === "/greyhoundiq" &&
       decodeURIComponent(url.username) === "greyhoundiq_runtime" &&

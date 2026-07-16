@@ -376,6 +376,10 @@ rejectsMutation("extra nested field", (candidate) => {
   objectAt(candidate, "safety").unexpected = true;
 }, /evidence\.safety keys/);
 
+rejectsMutation("non-loopback evidence host", (candidate) => {
+  objectAt(candidate, "safety").host = "database.example.test";
+}, /literal loopback address/);
+
 rejectsMutation("password-bearing URL", (candidate) => {
   objectAt(candidate, "safety").cleanup =
     "postgresql://runtime:secret@127.0.0.1:55734/greyhoundiq";

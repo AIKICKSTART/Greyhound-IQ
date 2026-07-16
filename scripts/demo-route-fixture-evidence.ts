@@ -877,6 +877,11 @@ const EXPECTED_SAFETY = {
   externalRealtimeAndNetworkEffects:
     "Realtime broadcast was disabled; Stripe signature generation and verification used a synthetic local secret without provider delivery or network access; Storage cleanup was directed only to a loopback-unreachable endpoint with a rejected placeholder service role, so the real best-effort error path ran without any provider or external network access.",
 } as const;
+const LITERAL_LOOPBACK_EVIDENCE_HOSTS = new Set([
+  "127.0.0.1",
+  "::1",
+  "[::1]",
+]);
 
 const EXPECTED_CLEANUP_DELETIONS = {
   ...DEMO_FIXTURE_EXPECTED_MODEL_COUNTS,
@@ -985,7 +990,16 @@ export function validateDemoFixtureEvidence(
   );
 
   const safety = exactObject(evidence.safety, SAFETY_KEYS, "evidence.safety");
-  assert.deepEqual(safety, EXPECTED_SAFETY, "evidence.safety values");
+  assert.ok(
+    typeof safety.host === "string" &&
+      LITERAL_LOOPBACK_EVIDENCE_HOSTS.has(safety.host),
+    "evidence.safety host must be a literal loopback address",
+  );
+  assert.deepEqual(
+    { ...safety, host: EXPECTED_SAFETY.host },
+    EXPECTED_SAFETY,
+    "evidence.safety values",
+  );
 
   const runtimeIdentity = exactObject(
     evidence.runtimeIdentity,

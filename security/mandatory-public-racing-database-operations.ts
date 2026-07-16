@@ -883,7 +883,7 @@ export const MANDATORY_PUBLIC_RACING_DATABASE_OPERATIONS = [
           'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."earBrand", "public"."Dog"."colour", "public"."Dog"."sex", "public"."Dog"."whelpDate", "public"."Dog"."sireId", "public"."Dog"."damId", "public"."Dog"."trainerId", "public"."Dog"."sourceProvider", "public"."Dog"."sourceId", "public"."Dog"."profileUrl", "public"."Dog"."ownerName", "public"."Dog"."careerStarts", "public"."Dog"."careerWins", "public"."Dog"."careerSeconds", "public"."Dog"."careerThirds", "public"."Dog"."prizeMoney", "public"."Dog"."winPercentage", "public"."Dog"."placePercentage", "public"."Dog"."profileStatsJson", "public"."Dog"."bestTimesJson", "public"."Dog"."boxHistoryJson", "public"."Dog"."distanceHistoryJson", "public"."Dog"."profileSourceRawJson", "public"."Dog"."lastProfileSyncedAt", "public"."Dog"."retiredAt", "public"."Dog"."createdAt", "public"."Dog"."updatedAt" FROM "public"."Dog" WHERE "public"."Dog"."id" IN ($1) OFFSET $2',
         boundParameters: ["loaded dog IDs ($1)", "Prisma skip=0 ($2)"],
         explainPlanEvidence:
-          "Schema-v16 disposable proof: Seq Scan on the one-row Dog fixture; plan SHA-256 3534b3791c3900f0c1994c65e6243b2e6969362e507495fd8d1a343ff2631053.",
+          "Schema-v16 disposable proofs observed either an Index Scan on Dog_pkey (fresh IPv6 replay plan SHA-256 d5d21a85b8436a49e00b3214a5e42a7e2a4d783518fe15f5652282aac35ca096) or a Seq Scan on the same one-row fixture (original plan SHA-256 3534b3791c3900f0c1994c65e6243b2e6969362e507495fd8d1a343ff2631053); the tiny-fixture planner choice is non-semantic.",
       },
       {
         variant: "results",

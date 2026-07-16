@@ -79,7 +79,7 @@ const records = registry.internalLinks.flatMap((link) =>
 );
 const expectedObservationIds = records.map(({ id }) => id);
 
-assert.equal(records.length, 2_292);
+assert.equal(records.length, 2_242);
 assert.equal(new Set(expectedObservationIds).size, records.length);
 assert.deepEqual(
   findProductCrawlDesignLabParityIssues(records, expectedObservationIds),
@@ -94,12 +94,12 @@ assert.deepEqual(
 );
 assert.equal(
   new Set(records.map(({ matchedRoutePattern }) => matchedRoutePattern)).size,
-  80,
+  78,
 );
 
 const representedRecords = records.filter(({ designLabExists }) => designLabExists);
 const absentRecords = records.filter(({ designLabExists }) => !designLabExists);
-assert.equal(representedRecords.length, 2_244);
+assert.equal(representedRecords.length, 2_194);
 assert.equal(absentRecords.length, 48);
 assert.equal(
   representedRecords.every(({ designLabFixtureIds }) => designLabFixtureIds.length > 0),
@@ -182,8 +182,8 @@ assert.ok(
   issueCodes([validScreenRecord], []).includes("UNEXPECTED_OBSERVATION"),
 );
 
-assert.match(PRODUCT_CRAWL_DESIGN_LAB_PARITY_SCOPE, /all 2,292/i);
-assert.match(PRODUCT_CRAWL_DESIGN_LAB_PARITY_SCOPE, /2,244 page-destination/i);
+assert.match(PRODUCT_CRAWL_DESIGN_LAB_PARITY_SCOPE, /all 2,242/i);
+assert.match(PRODUCT_CRAWL_DESIGN_LAB_PARITY_SCOPE, /2,194 page-destination/i);
 assert.match(PRODUCT_CRAWL_DESIGN_LAB_PARITY_SCOPE, /41 \/sign-in/i);
 assert.match(PRODUCT_CRAWL_DESIGN_LAB_PARITY_SCOPE, /seven \/api\/media/i);
 assert.match(PRODUCT_CRAWL_DESIGN_LAB_PARITY_SCOPE, /recording only/i);

@@ -24,7 +24,7 @@ const EVIDENCE = [
   PRODUCT_FOCUS_VISIBLE_SOURCE_EVIDENCE_FILE,
   PRODUCT_FOCUS_VISIBLE_SOURCE_TEST_FILE,
   "src/app/globals.css",
-  "src/components/feed-system-prototype.tsx",
+  "src/components/interactive-help.tsx",
   "src/components/product-automated-source-gate-registry.ts",
 ] as const;
 

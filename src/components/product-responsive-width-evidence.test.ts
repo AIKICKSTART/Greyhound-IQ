@@ -14,8 +14,10 @@ import {
   type ResponsiveAuditReport,
 } from "../../scripts/audit-design-lab-responsive-workspace";
 import {
+  getDesignLabSourceChangesBetween,
   getDesignLabSourceFingerprint,
   getRepositoryHeadSha,
+  isRepositoryCommitAncestor,
 } from "../../scripts/design-lab-source-fingerprint";
 import { PRODUCT_MASTER_REQUIREMENTS } from "./product-master-requirements";
 import {
@@ -62,8 +64,24 @@ const report = JSON.parse(
 ) as ResponsiveAuditReport;
 const fingerprint = getDesignLabSourceFingerprint(repositoryRoot);
 const auditScriptPath = "scripts/audit-design-lab-responsive-workspace.ts";
+const headSha = getRepositoryHeadSha(repositoryRoot);
+assert.equal(
+  isRepositoryCommitAncestor(repositoryRoot, report.testedCommitSha, headSha),
+  true,
+  "Responsive workspace audit tested commit must be an ancestor of the current HEAD",
+);
+assert.deepEqual(
+  getDesignLabSourceChangesBetween(
+    repositoryRoot,
+    report.testedCommitSha,
+    headSha,
+    report.sourceFiles,
+  ),
+  [],
+  "Responsive workspace audit fingerprinted source changed after its tested commit",
+);
 const issues = findDesignLabResponsiveWorkspaceAuditIssues(report, {
-  headSha: getRepositoryHeadSha(repositoryRoot),
+  headSha: report.testedCommitSha,
   sourceSha256: fingerprint.sha256,
   sourceFileCount: fingerprint.fileCount,
   auditScriptSha256: sha256(readFileSync(auditScriptPath)),

@@ -26,7 +26,7 @@ const audit = auditMigrationIndexCreation(sources);
 
 assert.ok(sources.length >= 90, "migration source inventory must be non-vacuous");
 assert.deepEqual(audit.issues, []);
-assert.equal(audit.occurrences, 429);
+assert.equal(audit.occurrences, 462);
 assert.equal(audit.records.length, audit.occurrences);
 assert.equal(audit.existingImmediateBatches.length, 22);
 assert.equal(REVIEWED_EXISTING_RELATION_INDEX_BATCHES.length, 22);
@@ -37,7 +37,7 @@ assert.equal(
   ),
   67,
 );
-assert.equal(count("new-relation-immediate"), 361);
+assert.equal(count("new-relation-immediate"), 394);
 assert.equal(count("existing-relation-reviewed-immediate"), 67);
 assert.equal(count("existing-relation-concurrent"), 1);
 assert.equal(count("existing-relation-unreviewed"), 0);
@@ -130,7 +130,7 @@ assertIssueWithReviews(
 );
 
 console.log(
-  `Migration index-creation review passed: ${audit.records.length}/${audit.occurrences} indexes across ${sources.length} migrations classified; 361 new-relation, 1 concurrent and 67 exact pre-production immediate builds reviewed.`,
+  `Migration index-creation review passed: ${audit.records.length}/${audit.occurrences} indexes across ${sources.length} migrations classified; 394 new-relation, 1 concurrent and 67 exact pre-production immediate builds reviewed.`,
 );
 
 function count(strategy: (typeof audit.records)[number]["strategy"]) {

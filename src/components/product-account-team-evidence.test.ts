@@ -293,7 +293,8 @@ for (const assertion of [
   "pending ? \"Creating...\"",
   'state.status === "error"',
   'state.status === "success"',
-  'role={state.status === "error" ? "alert" : "status"}',
+  'const hasError = state.status === "error"',
+  'role={hasError ? "alert" : "status"}',
   'aria-live="polite"',
   "navigator.clipboard.writeText",
 ]) {

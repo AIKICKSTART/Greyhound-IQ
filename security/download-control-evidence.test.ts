@@ -26,7 +26,7 @@ assert.match(mediaService, /assertMediaReady\(media\)/);
 
 assert.match(
   storagePaths,
-  /const PUBLIC_BUCKETS = new Set<SupabaseStorageBucket>\(\[\s*SITE_ASSETS_BUCKET,\s*\]\)/,
+  /const PUBLIC_BUCKETS = new Set<ObjectStorageBucket>\(\[\s*SITE_ASSETS_BUCKET,\s*\]\)/,
 );
 assert.doesNotMatch(
   storagePaths.match(/const PUBLIC_BUCKETS[\s\S]*?\]\);/)?.[0] ?? "",

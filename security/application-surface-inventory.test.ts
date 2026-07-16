@@ -57,7 +57,7 @@ assert.deepEqual(APPLICATION_SURFACE_SUMMARY, {
   open: 0,
   pages: 97,
   httpMethods: 106,
-  serverActions: 79,
+  serverActions: 81,
   scheduledDestinations: 7,
 });
 assert.equal(recordsByKey.size, APPLICATION_SURFACE_INVENTORY.length);
@@ -142,7 +142,7 @@ const registeredPages = SCREEN_CONTRACTS.map(
 assert.deepEqual(record("route-handler").members, discoveredHttp);
 assert.deepEqual(record("server-action").members, discoveredActions);
 assert.equal(discoveredHttp.length, 106);
-assert.equal(discoveredActions.length, 79);
+assert.equal(discoveredActions.length, 81);
 assert.equal(registeredPages.length, 97);
 
 const expectedPublic = [

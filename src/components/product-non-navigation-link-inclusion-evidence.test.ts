@@ -252,10 +252,10 @@ const dynamicRecordRows = recordsFromRegistry(
   "dynamic-record",
   dynamicRecordLinks,
 );
-assert.equal(dynamicRecordRows.length, 110);
+assert.equal(dynamicRecordRows.length, 111);
 assert.equal(
   new Set(dynamicRecordRows.map(({ sourceFile }) => sourceFile)).size,
-  42,
+  43,
 );
 
 function matchingHrefAttributes(
@@ -303,7 +303,7 @@ const inclusionRows = [
   ...emailRows,
   ...notificationRows,
 ];
-assert.equal(inclusionRows.length, 143);
+assert.equal(inclusionRows.length, 144);
 assert.deepEqual(findNonNavigationLinkIssues(inclusionRows), []);
 assert.deepEqual(
   new Set(inclusionRows.map(({ category }) => category)),
@@ -397,7 +397,7 @@ for (const fixture of negativeFixtures) {
 }
 
 assert.match(PRODUCT_NON_NAVIGATION_LINK_SCOPE, /all six non-navigation categories/i);
-assert.match(PRODUCT_NON_NAVIGATION_LINK_SCOPE, /143 category-tagged exact source rows/i);
+assert.match(PRODUCT_NON_NAVIGATION_LINK_SCOPE, /144 category-tagged exact source rows/i);
 assert.match(PRODUCT_NON_NAVIGATION_LINK_SCOPE, /rather than a sitemap or top-navigation-only list/i);
 assert.match(PRODUCT_NON_NAVIGATION_LINK_SCOPE, /does not claim browser visibility/i);
 assert.match(PRODUCT_NON_NAVIGATION_LINK_SCOPE, /authentication-provider behavior/i);
@@ -409,5 +409,5 @@ assert.doesNotMatch(evidenceSource, /from ["']node:/);
 assert.doesNotMatch(evidenceSource, /\breadFileSync\b|\bprocess\.cwd\b/);
 
 console.log(
-  "Product non-navigation link inclusion evidence passed: all six required categories have 143 exact source rows; exact +1 gate.",
+  "Product non-navigation link inclusion evidence passed: all six required categories have 144 exact source rows; exact +1 gate.",
 );

@@ -127,33 +127,28 @@ export const PRODUCTION_DESTRUCTIVE_ACTION_CLASSIFICATIONS = [
     reason: "Removing an accepted friendship removes a cross-user relationship and is recorded as friend.remove.",
   },
   {
-    actionId: "src/lib/listing-service.ts:305:listingMedia.deleteMany",
+    actionId: "src/lib/listing-service.ts:326:listingMedia.deleteMany",
     disposition: "derived-replacement",
     reason: "Listing-media links are replaced from the validated listing update; media assets are retained.",
   },
   {
-    actionId: "src/lib/listing-service.ts:792:savedListing.delete",
+    actionId: "src/lib/listing-service.ts:890:savedListing.delete",
     disposition: "reversible-association",
     reason: "Saved-listing toggles are user-local associations and can be recreated by the same bounded operation.",
   },
   {
-    actionId: "src/lib/listing-service.ts:1203:listingAttribute.deleteMany",
+    actionId: "src/lib/listing-service.ts:1301:listingAttribute.deleteMany",
     disposition: "derived-replacement",
     reason: "Listing attributes are replaced from the validated listing update in the same operation.",
   },
   {
-    actionId: "src/lib/live/dog-profile-sync.ts:155:dogProfileForm.deleteMany",
-    disposition: "derived-replacement",
-    reason: "Provider form rows are replaced by the same source snapshot; this is not a user-initiated destruction path.",
-  },
-  {
-    actionId: "src/lib/media-service.ts:659:feedPostMedia.deleteMany",
+    actionId: "src/lib/media-service.ts:663:feedPostMedia.deleteMany",
     disposition: "audit-required",
     auditEventId: "AUDIT.MEDIA.DELETE",
     reason: "Media detachment occurs only inside the audited media tombstone and storage-cleanup operation.",
   },
   {
-    actionId: "src/lib/media-service.ts:1871:actorGalleryMedia.deleteMany",
+    actionId: "src/lib/media-service.ts:1875:actorGalleryMedia.deleteMany",
     disposition: "derived-replacement",
     reason: "A ready personal avatar or cover replaces one derived gallery slot; media assets are retained.",
   },

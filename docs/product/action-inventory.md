@@ -14,7 +14,7 @@ The managed registry block below is checked by `npm run docs:check`. Complete cl
 
 ## Machine-readable completeness boundary
 
-`src/components/demo-experience-registry.ts` is the authoritative screen-to-action index. It currently maps all 97 registered screen cells to 427 route-scoped action entries: 87 production action contracts, four tested zero-action exclusions with an owner and reason, and six source-mapped Design Lab manifests. Stable ids are unique within each route; repeated ids on a legacy redirect and its canonical destination intentionally describe the same canonical control surface.
+`src/components/demo-experience-registry.ts` is the authoritative screen-to-action index. It currently maps all 97 registered screen cells to 431 route-scoped action entries: 87 production action contracts, four tested zero-action exclusions with an owner and reason, and six source-mapped Design Lab manifests. Stable ids are unique within each route; repeated ids on a legacy redirect and its canonical destination intentionally describe the same canonical control surface.
 
 The focused action-inventory test compares every registered page's recursive local import closure with its action contract, zero-action exclusion or Design Lab manifest. This completes inventory and source mapping only. It does not prove hydrated execution, pending, success, failure or permission-denied behavior, server authorization, mutation results, analytics or audit events, accessibility, current browser-audit freshness, deployed parity or production readiness.
 

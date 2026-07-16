@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "auditKind": "database-sequence-inventory",
-  "generatedAt": "2026-07-15T22:51:15.367+10:00",
+  "generatedAt": "2026-07-17T04:48:40.113+10:00",
   "safety": {
     "scope": "literal-loopback-disposable-replay-read-only",
     "host": "127.0.0.1",
@@ -11,9 +11,9 @@
     "productionOrProviderSystemsContacted": false
   },
   "sourceBinding": {
-    "prismaSchemaSha256": "b0e50aa4850eebd5e3095bba619c87370b78f249fbeabf5b8691e169f3c02b22",
-    "migrationsSha256": "4812e2d48b9e24ed89dae0c79fb2ff1966b73539bb1ae92a804c2c2ffef1162f",
-    "migrationCount": 97,
+    "prismaSchemaSha256": "ff7158c8900a4fc914bb0a09bc27e41bba4271a0144afee675a53b8e526a93fc",
+    "migrationsSha256": "4e96cb5413d55c83e18622019527349f9f6c8f50b72b8bc27d1d07a80bc53fec",
+    "migrationCount": 100,
     "baselineMigrationSha256": "1c3bf7960da1a93de65bac113d53524392fd10c48e0bb519f07b21ca38dfb759"
   },
   "runtimeIdentity": {

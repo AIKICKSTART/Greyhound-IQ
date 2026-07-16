@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "auditKind": "account-deletion-finalize-disposable-proof",
-  "generatedAt": "2026-07-15T14:07:53.509Z",
+  "generatedAt": "2026-07-16T18:04:48.794Z",
   "safety": {
     "scope": "literal-loopback-disposable-replay-only",
     "host": "127.0.0.1",
@@ -22,7 +22,7 @@
   },
   "sourceBinding": {
     "files": {
-      "prisma/schema.prisma": "b0e50aa4850eebd5e3095bba619c87370b78f249fbeabf5b8691e169f3c02b22",
+      "prisma/schema.prisma": "ff7158c8900a4fc914bb0a09bc27e41bba4271a0144afee675a53b8e526a93fc",
       "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d",
       "prisma/migrations/20260715053000_add_account_deletion_pending_index/migration.sql": "a6052fc820a613128afec7457724c4fb0f0311ea07b2d9cdd8fdf87b6eb4ad11",
       "scripts/check-account-deletion-finalize-postgres.ts": "2b1e3e2cbcc8835e4390644014bef3a0958325b67640993fdfd0eb43b3a09a59",
@@ -33,7 +33,7 @@
       "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
       "src/lib/db.ts": "3f2df86c14ebb983246293aee66fb14a40b2fe09da1c70908b6d2ea547ade5f0"
     },
-    "combinedSha256": "2548cb5bb530efb3fbcf57ac0c4146da5a5224e7f8a25e6b300fcda44aec96b2"
+    "combinedSha256": "7d04982d643418099e8e3d4aa475608ac5c5dea60a3cb0b7df8568f3151f623a"
   },
   "proof": {
     "queryId": "DB.ACCOUNT.DELETION.FINALIZE.TRANSACTION",
@@ -250,7 +250,7 @@
             "joinType": null,
             "scanDirection": null,
             "estimatedRows": 1,
-            "totalCost": 1.05,
+            "totalCost": 1.28,
             "children": [
               {
                 "nodeType": "Seq Scan",
@@ -259,12 +259,12 @@
                 "joinType": null,
                 "scanDirection": null,
                 "estimatedRows": 1,
-                "totalCost": 1.04,
+                "totalCost": 1.27,
                 "children": []
               }
             ]
           },
-          "planSha256": "366297f7958e0baa548f7951e583a05ff077ffc15a033d6c4ab60b1a9233c4bd"
+          "planSha256": "e24814138225cacfcbe63dec6e9060453387f603e3ba516fd473c32baa99560a"
         }
       },
       {
@@ -367,7 +367,7 @@
             "joinType": null,
             "scanDirection": null,
             "estimatedRows": 1,
-            "totalCost": 1.05,
+            "totalCost": 1.27,
             "children": [
               {
                 "nodeType": "Seq Scan",
@@ -376,12 +376,12 @@
                 "joinType": null,
                 "scanDirection": null,
                 "estimatedRows": 1,
-                "totalCost": 1.05,
+                "totalCost": 1.27,
                 "children": []
               }
             ]
           },
-          "planSha256": "fe1cda7415f8e35dc5905072b71dda85fcd7ace8f33116b9c102b9b60bfc1c35"
+          "planSha256": "6f94f86394550420812b955fa1c883dac9fd62f6acf4d465d90c68cd62639627"
         }
       },
       {
@@ -445,7 +445,7 @@
             "joinType": null,
             "scanDirection": null,
             "estimatedRows": 1,
-            "totalCost": 1.05,
+            "totalCost": 1.27,
             "children": [
               {
                 "nodeType": "Seq Scan",
@@ -454,12 +454,12 @@
                 "joinType": null,
                 "scanDirection": null,
                 "estimatedRows": 1,
-                "totalCost": 1.05,
+                "totalCost": 1.27,
                 "children": []
               }
             ]
           },
-          "planSha256": "a8698ea20ae3f34142b6af98efffa601b3612bb2c95371a662cb84f90b552a13"
+          "planSha256": "29da3b354149fbca2dadfa05d6cb8e2356538a41314ae7dcd7c86f74f8904d12"
         }
       },
       {
@@ -804,7 +804,7 @@
             "joinType": null,
             "scanDirection": null,
             "estimatedRows": 1,
-            "totalCost": 2.07,
+            "totalCost": 137.17,
             "children": [
               {
                 "nodeType": "Limit",
@@ -813,7 +813,7 @@
                 "joinType": null,
                 "scanDirection": null,
                 "estimatedRows": 1,
-                "totalCost": 1.02,
+                "totalCost": 55.87,
                 "children": [
                   {
                     "nodeType": "LockRows",
@@ -822,7 +822,7 @@
                     "joinType": null,
                     "scanDirection": null,
                     "estimatedRows": 1,
-                    "totalCost": 1.02,
+                    "totalCost": 55.87,
                     "children": [
                       {
                         "nodeType": "Sort",
@@ -831,16 +831,16 @@
                         "joinType": null,
                         "scanDirection": null,
                         "estimatedRows": 1,
-                        "totalCost": 1.01,
+                        "totalCost": 55.86,
                         "children": [
                           {
-                            "nodeType": "Seq Scan",
+                            "nodeType": "Index Scan",
                             "relationName": "MediaAsset",
-                            "indexName": null,
+                            "indexName": "MediaAsset_uploaderId_sha256_idx",
                             "joinType": null,
-                            "scanDirection": null,
+                            "scanDirection": "Forward",
                             "estimatedRows": 1,
-                            "totalCost": 1,
+                            "totalCost": 55.84,
                             "children": [
                               {
                                 "nodeType": "Nested Loop",
@@ -973,16 +973,26 @@
                 "joinType": "Inner",
                 "scanDirection": null,
                 "estimatedRows": 1,
-                "totalCost": 1.04,
+                "totalCost": 81.31,
                 "children": [
                   {
-                    "nodeType": "Seq Scan",
-                    "relationName": "MediaAsset",
+                    "nodeType": "CTE Scan",
+                    "relationName": null,
                     "indexName": null,
                     "joinType": null,
                     "scanDirection": null,
                     "estimatedRows": 1,
-                    "totalCost": 1,
+                    "totalCost": 0.02,
+                    "children": []
+                  },
+                  {
+                    "nodeType": "Index Scan",
+                    "relationName": "MediaAsset",
+                    "indexName": "MediaAsset_pkey",
+                    "joinType": null,
+                    "scanDirection": "Forward",
+                    "estimatedRows": 1,
+                    "totalCost": 58.09,
                     "children": [
                       {
                         "nodeType": "Nested Loop",
@@ -1101,16 +1111,6 @@
                         ]
                       }
                     ]
-                  },
-                  {
-                    "nodeType": "CTE Scan",
-                    "relationName": null,
-                    "indexName": null,
-                    "joinType": null,
-                    "scanDirection": null,
-                    "estimatedRows": 1,
-                    "totalCost": 0.02,
-                    "children": []
                   }
                 ]
               },
@@ -1232,7 +1232,7 @@
               }
             ]
           },
-          "planSha256": "44fff86bbbf89d24673e96fe675f53a0c05141340fd2640644393d0dd93218be"
+          "planSha256": "1be1e70e8d01de8417b8cd8e519b88c6063b98638ee68d92032125c780621f02"
         }
       },
       {

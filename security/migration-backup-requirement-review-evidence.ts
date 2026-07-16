@@ -202,7 +202,7 @@ function collectCreatedRelations(sql: string) {
 
 function maskNonMutationUpdateKeywords(source: string) {
   return source.replace(
-    /\b(?:DO\s+UPDATE|FOR\s+(?:NO\s+KEY\s+)?UPDATE|ON\s+UPDATE|BEFORE\s+UPDATE|AFTER\s+UPDATE|OR\s+UPDATE)\b/giu,
+    /\b(?:DO\s+UPDATE|FOR\s+(?:NO\s+KEY\s+)?UPDATE|ON\s+UPDATE|BEFORE\s+UPDATE|AFTER\s+UPDATE|OR\s+UPDATE|(?:GRANT|REVOKE)\s+(?:(?:SELECT|INSERT|UPDATE|DELETE|TRUNCATE|REFERENCES|TRIGGER)\s*,\s*)*(?:SELECT|INSERT|UPDATE|DELETE|TRUNCATE|REFERENCES|TRIGGER)\s+ON)\b/giu,
     (value) => " ".repeat(value.length),
   );
 }

@@ -123,7 +123,7 @@ const expectedRecordIds = SCREEN_CONTRACTS.flatMap((screen) =>
 assert.equal(SCREEN_CONTRACTS.length, 97);
 assert.ok(registry.auditedRoutes.length >= 60);
 assert.ok(registry.auditedSourceFiles.length >= 250);
-assert.ok(registry.records.length >= 146);
+assert.ok(registry.records.length >= 145);
 assert.deepEqual(registry.discoveredRecordIds, expectedRecordIds);
 assert.deepEqual(
   registry.records.map(({ id }) => id),
@@ -195,13 +195,12 @@ for (const record of registry.records) {
 
 assert.deepEqual(
   [...mutationKinds].toSorted(),
-  ["client-state", "http-mutation", "read-query", "server-action"],
+  ["http-mutation", "read-query", "server-action"],
 );
 assert.deepEqual(
   [...updateStrategies].toSorted(),
   [
     "not-applicable-read-query",
-    "optimistic-client-state",
     "pessimistic-server-confirmed",
   ],
 );

@@ -624,7 +624,11 @@ function proveResultPage(
     );
   }
   const runners = parsed.runners.map((runner, index) => {
-    const dogId = runner.dog.earBrand?.match(/^thedogs:([0-9]+)$/)?.[1];
+    const dogId =
+      runner.dog.sourceProvider === "thedogs" &&
+      /^\d+$/.test(runner.dog.sourceId ?? "")
+        ? runner.dog.sourceId
+        : undefined;
     let rawDogId: unknown;
     try {
       rawDogId = JSON.parse(runner.sourceRawJson ?? "{}").dogId;

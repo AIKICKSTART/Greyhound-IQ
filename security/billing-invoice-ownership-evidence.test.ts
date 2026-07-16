@@ -101,7 +101,7 @@ const invoicePolicyMigration = readFileSync(
 );
 assert.match(
   invoicePolicyMigration,
-  /ALTER POLICY giq_invoice_read[\s\S]*?"userId" = public\.giq_current_user_id\(\)[\s\S]*?public\.giq_is_admin\(\)[\s\S]*?;/,
+  /CREATE POLICY giq_invoice_read[\s\S]*?FOR SELECT[\s\S]*?"userId" = public\.giq_current_user_id\(\)[\s\S]*?public\.giq_is_admin\(\)[\s\S]*?;/,
 );
 const schema = readFileSync("prisma/schema.prisma", "utf8");
 assert.match(

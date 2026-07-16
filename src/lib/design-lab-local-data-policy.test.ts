@@ -35,7 +35,7 @@ assert.deepEqual(
 );
 assert.equal(DESIGN_LAB_LOCAL_DATA_POLICY_SUMMARY.totalModels, prismaModels.length);
 assert.equal(DESIGN_LAB_LOCAL_DATA_POLICY_SUMMARY.productionDatabaseCopyAllowed, 0);
-assert.equal(DESIGN_LAB_LOCAL_DATA_POLICY_SUMMARY.providerPublic, 10);
+assert.equal(DESIGN_LAB_LOCAL_DATA_POLICY_SUMMARY.providerPublic, 13);
 assert.equal(DESIGN_LAB_LOCAL_DATA_POLICY_SUMMARY.providerMetadataOnly, 2);
 
 for (const entry of Object.values(DESIGN_LAB_LOCAL_DATA_POLICY)) {

@@ -27,6 +27,8 @@ async function main() {
     process.env.LIVEKIT_API_KEY = "livekit_test_key";
     process.env.LIVEKIT_API_SECRET = "livekit_test_secret"; // gitleaks:allow - test sentinel
     process.env.LIVEKIT_URL = "wss://livekit.invalid";
+    process.env.LIVEKIT_TOPOLOGY = "single";
+    process.env.NEXT_PUBLIC_LIVEKIT_URL = "wss://livekit.invalid";
 
     const stripePayload = JSON.stringify({
       id: "evt_webhook_evidence",

@@ -110,6 +110,7 @@ assert.equal(callRoomIdSchema.safeParse("x".repeat(121)).success, false);
 const callToken = source("src/lib/call-token.ts");
 const callService = source("src/lib/call-service.ts");
 const liveKitAdmin = source("src/lib/livekit-admin.ts");
+const liveKitConfig = source("src/lib/livekit-config.ts");
 const createRoute = source("src/app/api/calls/rooms/route.ts");
 const tokenRoute = source("src/app/api/calls/[roomId]/token/route.ts");
 const inviteRoute = source("src/app/api/calls/[roomId]/invite/route.ts");
@@ -125,7 +126,8 @@ assert.match(callToken, /canPublishData: false/);
 assert.doesNotMatch(callToken, /createHmac|sign\s*\(/);
 
 assert.match(liveKitAdmin, /^import "server-only";/);
-assert.match(liveKitAdmin, /process\.env\.LIVEKIT_API_SECRET/);
+assert.match(liveKitAdmin, /readLiveKitDeploymentConfig\(process\.env\)/);
+assert.match(liveKitConfig, /env\[`\$\{prefix\}_API_SECRET`\]/);
 assert.doesNotMatch(tokenRoute, /LIVEKIT_API_SECRET|apiSecret/);
 
 const createTokenBody = exportedFunction(callService, "createCallTokenForCurrentUser");

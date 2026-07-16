@@ -37,11 +37,11 @@ const indexAudit = auditMigrationIndexCreation(sources as MigrationIndexSource[]
 
 assert.deepEqual(databaseCompatibilityInventoryDiff(compatibility), []);
 assert.deepEqual(compatibility, DATABASE_COMPATIBILITY_BASELINE);
-assert.equal(sources.length, 97);
+assert.equal(sources.length, 100);
 assert.deepEqual(lockAudit.issues, []);
-assert.equal(lockAudit.records.length, 409);
+assert.equal(lockAudit.records.length, 435);
 assert.deepEqual(lockAudit.counts, {
-  "new-relation-operation": 199,
+  "new-relation-operation": 225,
   "existing-catalog-operation": 179,
   "existing-validation-scan": 23,
   "existing-rewrite-operation": 0,
@@ -49,8 +49,8 @@ assert.deepEqual(lockAudit.counts, {
 });
 assert.equal(REVIEWED_BLOCKING_ALTER_TABLES.length, 8);
 assert.deepEqual(indexAudit.issues, []);
-assert.equal(indexAudit.occurrences, 429);
-assert.equal(indexCount("new-relation-immediate"), 361);
+assert.equal(indexAudit.occurrences, 462);
+assert.equal(indexCount("new-relation-immediate"), 394);
 assert.equal(indexCount("existing-relation-reviewed-immediate"), 67);
 assert.equal(indexCount("existing-relation-concurrent"), 1);
 assert.equal(indexCount("existing-relation-unreviewed"), 0);

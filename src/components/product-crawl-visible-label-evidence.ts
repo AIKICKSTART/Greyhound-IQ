@@ -9,7 +9,7 @@ export const PRODUCT_CRAWL_VISIBLE_LABEL_REQUIREMENT_ID =
   "DISC.CRAWL.visible-label" as const;
 
 export const PRODUCT_CRAWL_VISIBLE_LABEL_SCOPE =
-  "Deterministic local source-crawl inventory for all 5,467 production-owned discovery rows: 2,345 internal-link rows and 3,122 interactive-action rows across the 89 production routes with a discovered link or action. Each row records directly source-visible static text, dynamic expression, visible label/title/placeholder attribute, or navigation-object label property, or one explicit source-visible absence reason. Accessible-only names are deliberately not counted as visible labels. This closes only visible-label recording for the current static source crawl; it does not prove rendered text, dynamic runtime values, responsive visibility, accessible naming, action behavior, deployed crawling, or production readiness.";
+  "Deterministic local source-crawl inventory for all 5,279 production-owned discovery rows: 2,242 internal-link rows and 3,037 interactive-action rows across the 89 production routes with a discovered link or action. Each row records directly source-visible static text, dynamic expression, visible label/title/placeholder attribute, or navigation-object label property, or one explicit source-visible absence reason. Accessible-only names are deliberately not counted as visible labels. This closes only visible-label recording for the current static source crawl; it does not prove rendered text, dynamic runtime values, responsive visibility, accessible naming, action behavior, deployed crawling, or production readiness.";
 
 export type ProductCrawlVisibleLabelSource = {
   kind:

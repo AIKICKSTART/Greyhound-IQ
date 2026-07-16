@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "auditKind": "rls-access-matrix",
-  "generatedAt": "2026-07-16T04:51:52.971Z",
+  "generatedAt": "2026-07-16T18:39:13.304Z",
   "safety": {
     "scope": "literal-loopback-disposable-database",
     "target": {
@@ -15,11 +15,11 @@
   },
   "sourceBinding": {
     "dbContextSha256": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
-    "billingPageSha256": "361dedb18e5ac7e5beb4154f872bd30c3f3402a007f37de4457c19aedf534cd7",
-    "sensitiveAdminPolicyMigrationSha256": "b1f70e24b86df1b2829ff5366718eeab4b146ee47f28c5acb6508e561906e7c7",
-    "migrationsSha256": "c0cb7f4abdb276ca282adc379e44af01aca0b8ecac18d67f434d5a24bb1f47b0",
-    "prismaSchemaSha256": "b0e50aa4850eebd5e3095bba619c87370b78f249fbeabf5b8691e169f3c02b22",
-    "verifierSha256": "1a88af2fc5b958d2dc3cf1b18f214f5934b7c60a2c9817b055772c81d025acd1"
+    "billingPageSha256": "75dc4b0a10b5a1a0b65b2fad0666cce0df4d93aead1643f743546360b23206fb",
+    "sensitiveAdminPolicyMigrationSha256": "38ed8c2b14183b2b55211b137cbc09c800a490861317148513571a68a511a918",
+    "migrationsSha256": "4e96cb5413d55c83e18622019527349f9f6c8f50b72b8bc27d1d07a80bc53fec",
+    "prismaSchemaSha256": "ff7158c8900a4fc914bb0a09bc27e41bba4271a0144afee675a53b8e526a93fc",
+    "verifierSha256": "e28a086db61a1ef079962e9248f5b1fdc1755699d87ee8f56d1ff6ddea2f1da7"
   },
   "runtimeIdentity": {
     "currentRole": "greyhoundiq_runtime",
@@ -56,7 +56,7 @@
       "adminOptionCount": 0
     },
     "directGrants": {
-      "applicationDmlTableCount": 107,
+      "applicationDmlTableCount": 113,
       "projectionReadCount": 6,
       "sequenceUsageCount": 1,
       "routineCount": 45,
@@ -77,9 +77,9 @@
     }
   },
   "catalog": {
-    "applicationModelCount": 107,
-    "forceRlsCount": 107,
-    "rlsEnabledCount": 107
+    "applicationModelCount": 113,
+    "forceRlsCount": 113,
+    "rlsEnabledCount": 113
   },
   "invoiceOwnership": {
     "policy": {

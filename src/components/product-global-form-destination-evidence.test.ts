@@ -18,11 +18,6 @@ import {
 import { PRODUCT_MASTER_REQUIREMENTS } from "./product-master-requirements";
 
 const REQUIREMENT_ID = "GLOBAL.FUNC.forms" as const;
-const LOCAL_SIMULATIONS = new Set([
-  "FeedSystemPrototype.chat",
-  "FeedSystemPrototype.comment",
-  "FeedSystemPrototype.post",
-]);
 
 assert.deepEqual(PRODUCT_GLOBAL_FORM_DESTINATION_REQUIREMENT_IDS, [
   REQUIREMENT_ID,
@@ -44,7 +39,7 @@ assert.deepEqual(PRODUCT_MASTER_EVIDENCE[REQUIREMENT_ID], evidence);
 evidence.evidence.forEach((file) => assert.equal(existsSync(file), true, file));
 
 const registry = buildProductFormOperationalContractRegistry();
-assert.equal(registry.records.length, 146);
+assert.equal(registry.records.length, 145);
 assert.equal(
   new Set(registry.records.map(({ id }) => id)).size,
   registry.records.length,
@@ -55,8 +50,6 @@ const routeHandlers = new Set(
   discoverRouteHandlers().map(({ method, route }) => `${method} ${route}`),
 );
 const serverActions = new Set(discoverServerActions().map(({ handler }) => handler));
-const observedLocalSimulations = new Set<string>();
-
 for (const record of registry.records) {
   assert.notEqual(record.mutation.kind, "unclassified", record.id);
   if (record.mutation.kind === "read-query") {
@@ -73,26 +66,10 @@ for (const record of registry.records) {
     }
     continue;
   }
-  assert.equal(LOCAL_SIMULATIONS.has(record.mutation.operation), true, record.id);
-  observedLocalSimulations.add(record.mutation.operation);
-}
-assert.deepEqual(observedLocalSimulations, LOCAL_SIMULATIONS);
-
-const prototypeSource = readFileSync(
-  "src/components/feed-system-prototype.tsx",
-  "utf8",
-);
-assert.equal((prototypeSource.match(/onSubmit=\{\(event\) => \{/g) ?? []).length, 3);
-assert.equal((prototypeSource.match(/event\.preventDefault\(\);/g) ?? []).length, 3);
-for (const feedback of [
-  "Demo post published",
-  "Comment added to this demo post.",
-  "Demo message sent locally.",
-]) {
-  assert.match(prototypeSource, new RegExp(feedback.replaceAll(".", "\\.")));
+  assert.fail(`${record.id}: unsupported mutation kind ${record.mutation.kind}`);
 }
 
-assert.match(PRODUCT_GLOBAL_FORM_DESTINATION_SCOPE, /all 146 registered/i);
+assert.match(PRODUCT_GLOBAL_FORM_DESTINATION_SCOPE, /all 145 registered/i);
 assert.match(PRODUCT_GLOBAL_FORM_DESTINATION_SCOPE, /existing page/i);
 assert.match(PRODUCT_GLOBAL_FORM_DESTINATION_SCOPE, /does not prove hydrated/i);
 assert.doesNotMatch(
@@ -101,7 +78,7 @@ assert.doesNotMatch(
 );
 
 console.log(
-  "Global form-destination evidence passed: all 146 registered forms resolve to real or explicitly local simulated destinations.",
+  "Global form-destination evidence passed: all 145 registered forms resolve to real destinations.",
 );
 
 function discoverPageRoutes(directory: string): string[] {

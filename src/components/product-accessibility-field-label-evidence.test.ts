@@ -16,7 +16,7 @@ import { PRODUCT_MASTER_REQUIREMENTS } from "./product-master-requirements";
 
 const REPOSITORY_ROOT = path.resolve(__dirname, "../..");
 const NATIVE_FORM_CONTROL_TAGS = new Set(["input", "select", "textarea"]);
-const EXPECTED_DIRECT_FIELD_COUNT = 214;
+const EXPECTED_DIRECT_FIELD_COUNT = 213;
 
 assert.deepEqual(PRODUCT_ACCESSIBILITY_FIELD_LABEL_REQUIREMENT_IDS, [
   "GLOBAL.A11Y.names",

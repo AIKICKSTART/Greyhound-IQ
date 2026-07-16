@@ -42,6 +42,7 @@ export const XSS_CURRENT_CONTROL_STATUSES = [
   "validated-url-and-react-text-render-observed",
   "stored-content-not-rendered",
   "raw-error-react-text-render-observed",
+  "generic-error-react-text-render-observed",
 ] as const;
 export const XSS_STORED_RENDER_VALIDATION_STATUSES = [
   "required-open",
@@ -783,24 +784,24 @@ export const XSS_SURFACE_REVIEW_RECORDS = [
     reviewStatus: "source-reviewed",
     persistence: "non-stored",
     renderMode: "react-text-node",
-    currentControlStatus: "raw-error-react-text-render-observed",
+    currentControlStatus: "generic-error-react-text-render-observed",
     sourceAnchors: [
       {
         path: "src/app/admin/site-content/page.tsx",
-        needle: "error: err instanceof Error ? err.message : \"unknown\"",
-        purpose: "A third-party Stripe error message is captured for the admin UI.",
+        needle: "return { monthly: null, yearly: null, unavailable: true };",
+        purpose: "A third-party Stripe failure is reduced to a boolean UI state without exposing the provider error.",
       },
       {
         path: "src/components/race-replay-player.tsx",
-        needle: "const [error, setError] = useState<string | null>(null);",
-        purpose: "The replay client maintains a reflected runtime error string.",
+        needle: "setError(\"Replay stream could not be loaded. Try again later.\");",
+        purpose: "The replay client maps media failures to a fixed user-safe message.",
       },
     ],
     renderAnchors: [
       {
         path: "src/app/admin/site-content/page.tsx",
-        needle: "Could not read Stripe prices: {stripe.error}",
-        purpose: "The third-party error is rendered as a React text child.",
+        needle: "Could not read Stripe prices. Try again later.",
+        purpose: "The fixed Stripe failure message is rendered as a React text child.",
       },
       {
         path: "src/components/race-replay-player.tsx",
@@ -809,10 +810,9 @@ export const XSS_SURFACE_REVIEW_RECORDS = [
       },
     ],
     observedControls: [
-      "Reviewed error values enter React text children rather than HTML sinks.",
+      "Reviewed provider and media failures are mapped to fixed messages and enter React text children rather than HTML sinks.",
     ],
     knownGaps: [
-      "Raw third-party Error.message text can disclose operational details even when React escapes it.",
       "Other toast, API, server-error, and logging paths require separate inventory before any global control can close.",
     ],
     storedRenderValidation: {

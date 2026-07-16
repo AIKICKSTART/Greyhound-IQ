@@ -35,6 +35,7 @@ export const BROWSER_URL_SURFACE_FILES = [
   "src/app/admin/users/page.tsx",
   "src/app/races/page.tsx",
   "src/components/appearance-preview-state.ts",
+  "src/components/authentication-navigation-feedback.tsx",
   "src/components/conversation-call-panel.tsx",
   "src/components/design-lab-contract-inspector-prototype.tsx",
   "src/components/design-lab-contract-inspector.tsx",
@@ -60,6 +61,7 @@ export const BROWSER_URL_SURFACE_FILES = [
   "src/components/screen-contracts/production-screen-member-support-interactions.ts",
   "src/lib/json-request.ts",
   "src/lib/marketplace-navigation.ts",
+  "src/lib/query-validation.ts",
   "src/lib/race-navigation.ts",
   "src/lib/workos-redirect.ts",
 ] as const;

@@ -118,18 +118,10 @@ for (const retiredAsset of [
   );
 }
 
-assert.equal(
-  feedPageSource.match(/<FeedSystemPrototype[\s\S]*?firstName="Daniel"/g)
-    ?.length,
-  2,
-  "Both full-prototype entry branches must use the fixed Daniel founder fixture",
-);
-
-assert.equal(
-  feedPageSource.match(/showDemoAdvertiserConcepts={showSponsoredMarketplace}/g)
-    ?.length,
-  1,
-  "Third-party advertiser concepts must be enabled only by the explicit demo branch",
+assert.doesNotMatch(
+  feedPageSource,
+  /FeedSystemPrototype|showSponsoredMarketplace/,
+  "The production feed must not embed the Design Lab prototype or its advertiser demo branch",
 );
 
 console.log("Feed prototype media contract tests passed");

@@ -153,7 +153,8 @@ const DOG_SEARCH_SOURCE_CHAIN = {
     "isEmergencyControlActive",
     "getClientIp",
     "checkRateLimit",
-    "searchParams.get",
+    "queryParamsObject",
+    "directorySearchQuerySchema.safeParse",
     "searchDogs",
     "NextResponse.json",
   ],
@@ -1674,7 +1675,7 @@ export const PRODUCT_ROUTE_CAPABILITY_SOURCE_EVIDENCE_RECORDS = [
       '<ListingTable listings={pending} mode="pending" />',
       "<form action={approveAction}>",
       '<form action={rejectAction} className="flex gap-2">',
-      '<form action={removeAction} className="flex min-w-[220px] gap-2">',
+      '<form action={removeAction} className="grid min-w-[220px] gap-2">',
     ],
     sourceFunctionChecks: [
       {
@@ -2771,7 +2772,8 @@ export const PRODUCT_ROUTE_CAPABILITY_SOURCE_EVIDENCE_RECORDS = [
     requirementId: "ROUTE.RACING.validate-id",
     ...RACE_DETAIL_SOURCE_CHAIN,
     requiredBindingSignals: [
-      "const { id } = await params;",
+      "const [{ id: routeId }, detailSearchParams] = await Promise.all([params, searchParams]);",
+      'const id = await resolveDemoProviderRouteId("race", routeId);',
       "const race = await getRaceById(id);",
       "if (!race) notFound();",
     ],
@@ -3137,8 +3139,9 @@ export const PRODUCT_ROUTE_CAPABILITY_SOURCE_EVIDENCE_RECORDS = [
     ],
     bindingPath: "src/components/user-data-export-form.tsx",
     requiredBindingSignals: [
-      'action="/api/users/me/export"',
-      'method="post"',
+      'fetch("/api/users/me/export", {',
+      'method: "POST"',
+      "onSubmit={downloadExport}",
       'type="submit"',
     ],
     additionalBindings: [
@@ -3520,7 +3523,7 @@ export const PRODUCT_ROUTE_CAPABILITY_SOURCE_EVIDENCE_RECORDS = [
           'event: "tour-restarted"',
           'updateInteractiveHelp("restart");',
           "Restart guided tour",
-          'aria-label="Interactive help preferences"',
+          'aria-label="Onboarding help preferences"',
         ],
       },
     ],

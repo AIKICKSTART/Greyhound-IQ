@@ -411,9 +411,9 @@ const actionRows = registry.interactiveControls.flatMap((record) => {
 });
 const rows = [...linkRows, ...actionRows];
 
-assert.equal(linkRows.length, 2_345);
-assert.equal(actionRows.length, 3_122);
-assert.equal(rows.length, 5_467);
+assert.equal(linkRows.length, 2_242);
+assert.equal(actionRows.length, 3_037);
+assert.equal(rows.length, 5_279);
 assert.equal(new Set(rows.map(({ id }) => id)).size, rows.length);
 assert.deepEqual(findCrawlAccessibleLabelIssues(rows), []);
 
@@ -423,7 +423,7 @@ const rowsWithSources = rows.filter(
 const rowsWithRecordedAbsence = rows.filter(
   ({ accessibleLabelSources }) => accessibleLabelSources.length === 0,
 );
-assert.equal(rowsWithSources.length + rowsWithRecordedAbsence.length, 5_467);
+assert.equal(rowsWithSources.length + rowsWithRecordedAbsence.length, 5_279);
 assert.ok(rowsWithSources.length > 0);
 assert.ok(rowsWithRecordedAbsence.length > 0);
 assert.equal(
@@ -538,7 +538,7 @@ for (const fixture of negativeFixtures) {
   );
 }
 
-assert.match(PRODUCT_CRAWL_ACCESSIBLE_LABEL_SCOPE, /all 5,467 production-owned/iu);
+assert.match(PRODUCT_CRAWL_ACCESSIBLE_LABEL_SCOPE, /all 5,279 production-owned/iu);
 assert.match(PRODUCT_CRAWL_ACCESSIBLE_LABEL_SCOPE, /explicit absence reason/iu);
 assert.match(PRODUCT_CRAWL_ACCESSIBLE_LABEL_SCOPE, /static source crawl/iu);
 assert.match(
@@ -566,23 +566,22 @@ const absenceReasonCounts = rowsWithRecordedAbsence.reduce<
   return counts;
 }, {});
 
-assert.equal(rowsWithSources.length, 3_570);
-assert.equal(rowsWithRecordedAbsence.length, 1_897);
+assert.equal(rowsWithSources.length, 3_389);
+assert.equal(rowsWithRecordedAbsence.length, 1_890);
 assert.deepEqual(sourceKindCounts, {
-  content: 4_111,
-  "label-property": 1_144,
-  "aria-label": 2_145,
-  "html-naming-attribute": 29,
-  "associated-label": 484,
+  content: 4_010,
+  "label-property": 1_054,
+  "aria-label": 2_109,
+  "html-naming-attribute": 28,
+  "associated-label": 479,
   "aria-labelledby": 21,
 });
 assert.deepEqual(absenceReasonCounts, {
   "programmatic navigation has no user-facing control to label": 1_325,
-  "navigation object has no source-level accessible label candidate": 2,
   "navigation control has no source-level accessible label candidate": 1,
-  "interactive control has no source-level accessible label candidate": 569,
+  "interactive control has no source-level accessible label candidate": 564,
 });
 
 console.log(
-  `Product crawl accessible-label evidence passed: ${rowsWithSources.length}/5,467 rows record source-level accessible-label provenance and ${rowsWithRecordedAbsence.length}/5,467 record explicit absence; source kinds ${JSON.stringify(sourceKindCounts)}; absence reasons ${JSON.stringify(absenceReasonCounts)}.`,
+  `Product crawl accessible-label evidence passed: ${rowsWithSources.length}/5,279 rows record source-level accessible-label provenance and ${rowsWithRecordedAbsence.length}/5,279 record explicit absence; source kinds ${JSON.stringify(sourceKindCounts)}; absence reasons ${JSON.stringify(absenceReasonCounts)}.`,
 );

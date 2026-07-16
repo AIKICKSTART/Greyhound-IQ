@@ -169,6 +169,27 @@ export const LOG_CALLSITE_REGISTRY: readonly LogCallsiteRegistryEntry[] = [
     "mixed",
   ),
   entry(
+    "src/lib/live/provider.ts",
+    "fetch",
+    "live.composite.provider_failed",
+    "logExecutionWarn",
+    "mixed",
+  ),
+  entry(
+    "src/lib/live/sync.ts",
+    "logDogIdentitySkip",
+    "live.dog_identity.skipped",
+    "logCorrelatedWarn",
+    "mixed",
+  ),
+  entry(
+    "src/lib/live/sync.ts",
+    "ensureTrainers",
+    "live.trainer_identity.skipped",
+    "logCorrelatedWarn",
+    "mixed",
+  ),
+  entry(
     "src/lib/live/sync.ts",
     "syncLiveData",
     "live_sync.provider_not_configured",

@@ -249,7 +249,7 @@ for (const token of [
 const supportPage = source("src/app/account/support/page.tsx");
 assert.match(
   supportPage,
-  /<AccountSupportHelpCentre query=\{query\.q\} role=\{current\.role\} \/>/,
+  /<AccountSupportHelpCentre\s+profileScope=\{current\.profileId\}\s+query=\{query\.q\}\s+role=\{current\.role\}\s+\/>/,
 );
 const helpCentre = source("src/components/account-support-help-centre.tsx");
 assert.match(helpCentre, /normalizeHelpSearchQuery\(query\)/);

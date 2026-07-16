@@ -8,7 +8,7 @@ export const MIGRATION_ROLLBACK_STRATEGY =
   "Applied database history is never reversed or edited in place. A schema correction is delivered as a newly reviewed forward-fix migration; application-image rollback and data restore are separate operational controls and are not proved by this source gate.";
 
 export const MIGRATION_ROLLBACK_STRATEGY_REVIEW_SCOPE =
-  "Deterministic source review of the binding forward-only migration policies and every current Prisma migration directory. It proves that the 97-directory history contains only canonical migration.sql artifacts and no executable ROLLBACK statement. It does not prove application-image rollback, database backup or restore, deployed mixed-version compatibility, provider behavior, or production readiness.";
+  "Deterministic source review of the binding forward-only migration policies and every current Prisma migration directory. It proves that the 100-directory history contains only canonical migration.sql artifacts and no executable ROLLBACK statement. It does not prove application-image rollback, database backup or restore, deployed mixed-version compatibility, provider behavior, or production readiness.";
 
 export const MIGRATION_ROLLBACK_STRATEGY_REVIEW_MASTER_EVIDENCE = {
   [MIGRATION_ROLLBACK_STRATEGY_REVIEW_REQUIREMENT_ID]: {

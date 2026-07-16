@@ -188,7 +188,7 @@ export const DESIGN_LAB_PREPRODUCTION_REQUIREMENTS: readonly DesignLabPreproduct
       "npm run check:local-dr-restore",
     ],
     remainingEvidence:
-      "The exact Prisma schema and all 97 current forward migrations reproduce the isolated replay with No difference detected. The healthy running Design Lab database currently has four current migrations pending, while its canonical parity artifact records only 90 migrations and fails the exact source, commit, cluster, runtime-role, catalog and application-binding validator. Apply the pending migrations forward-only, then recapture and validate the running Design Lab catalog from one clean committed HEAD; this requirement must remain partially verified until that succeeds. Managed production compatibility is tracked separately and is not claimed by this local proof.",
+      "The exact Prisma schema and all 100 current forward migrations reproduce the isolated replay with No difference detected. The last healthy running Design Lab capture had four of the then-current migrations pending; three newer migrations now exist, so that current pending count is stale. Its canonical parity artifact records only 90 migrations and fails the exact source, commit, cluster, runtime-role, catalog and application-binding validator. Apply every pending migration forward-only, then recapture and validate the running Design Lab catalog from one clean committed HEAD; this requirement must remain partially verified until that succeeds. Managed production compatibility is tracked separately and is not claimed by this local proof.",
     releaseBlocking: true,
   },
   {

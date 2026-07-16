@@ -17,6 +17,9 @@ export type DesignLabLocalDataPolicy = {
 const PROVIDER_PUBLIC_MODELS = [
   "Dog",
   "DogProfileForm",
+  "DogProfileObservation",
+  "DogSourceIdentity",
+  "PedigreeAssertion",
   "Trainer",
   "Track",
   "Meeting",
@@ -43,6 +46,9 @@ const REFERENCE_SEED_MODELS = [
 
 const LOCAL_DERIVED_MODELS = [
   "UsageAggregate",
+  "DogProfileMergeLedger",
+  "PedigreeImportRun",
+  "PedigreeMergeLedger",
   "ListingSearchIndex",
   "AuditLog",
   "JobRun",

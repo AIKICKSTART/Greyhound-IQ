@@ -116,10 +116,10 @@ const actionRows = registry.interactiveControls.flatMap((record) =>
 );
 const accessRows = [...linkRows, ...actionRows];
 
-assert.equal(linkRows.length, 2_345);
-assert.equal(actionRows.length, 3_122);
-assert.equal(accessRows.length, 5_467);
-assert.equal(new Set(accessRows.map(({ id }) => id)).size, 5_467);
+assert.equal(linkRows.length, 2_242);
+assert.equal(actionRows.length, 3_037);
+assert.equal(accessRows.length, 5_279);
+assert.equal(new Set(accessRows.map(({ id }) => id)).size, 5_279);
 assert.deepEqual(findCrawlAccessMetadataIssues(accessRows), []);
 
 const discoveredRoutes = new Set(accessRows.map(({ sourceRoute }) => sourceRoute));
@@ -147,11 +147,11 @@ assert.deepEqual(accessSetCounts(accessRows, ({ roleRequirements }) => roleRequi
   "ai-tools-user|administrator": 78,
   "marketplace-seller": 56,
   "member|admin|owner": 36,
-  "member|page-manager|team-member": 689,
+  "member|page-manager|team-member": 715,
   "support-operator|moderator|administrator": 2_454,
   "visitor|marketplace-buyer|marketplace-seller": 484,
   "visitor|member": 132,
-  "visitor|member|community-participant|page-manager": 1_379,
+  "visitor|member|community-participant|page-manager": 1_165,
   "visitor|racing-member": 159,
 });
 assert.deepEqual(
@@ -160,7 +160,7 @@ assert.deepEqual(
     ({ subscriptionRequirements }) => subscriptionRequirements,
   ),
   {
-    "free|pro|pro_plus": 5_333,
+    "free|pro|pro_plus": 5_145,
     "pro|pro_plus": 134,
   },
 );
@@ -239,7 +239,7 @@ for (const fixture of negativeFixtures) {
   );
 }
 
-assert.match(PRODUCT_CRAWL_ACCESS_METADATA_SCOPE, /all 5,467 production-owned discovery rows/i);
+assert.match(PRODUCT_CRAWL_ACCESS_METADATA_SCOPE, /all 5,279 production-owned discovery rows/i);
 assert.match(PRODUCT_CRAWL_ACCESS_METADATA_SCOPE, /nine distinct role sets/i);
 assert.match(PRODUCT_CRAWL_ACCESS_METADATA_SCOPE, /134 paid-only pro\/pro_plus rows/i);
 assert.match(PRODUCT_CRAWL_ACCESS_METADATA_SCOPE, /\/statistics route contains no discovered/i);
@@ -253,5 +253,5 @@ assert.doesNotMatch(evidenceSource, /from ["']node:/);
 assert.doesNotMatch(evidenceSource, /\breadFileSync\b|\bprocess\.cwd\b/);
 
 console.log(
-  "Product crawl access-metadata evidence passed: 5,467 rows record nine canonical role sets and two subscription-tier sets; exact +2 gates.",
+  "Product crawl access-metadata evidence passed: 5,279 rows record nine canonical role sets and two subscription-tier sets; exact +2 gates.",
 );

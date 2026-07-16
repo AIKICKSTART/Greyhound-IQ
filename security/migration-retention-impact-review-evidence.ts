@@ -65,6 +65,8 @@ const SIGNUP_OUTBOX =
   "prisma/migrations/20260714004000_add_signup_acceptance_outbox/migration.sql";
 const USAGE_OUTBOX_LEASE =
   "prisma/migrations/20260715110000_add_usage_outbox_delivery_lease/migration.sql";
+const PEDIGREE_PROVENANCE =
+  "prisma/migrations/20260716154500_add_pedigree_provenance_foundation/migration.sql";
 
 export const REVIEWED_MIGRATION_RETENTION_IMPACTS = [
   ...bindToSchedule(
@@ -119,6 +121,7 @@ export const REVIEWED_MIGRATION_RETENTION_IMPACTS = [
       key(RETENTION_FOUNDATIONS, "RetentionPolicy", "retentionDays", "create-column"),
       key(RETENTION_FOUNDATIONS, "DeletionJob", "scheduledFor", "create-column"),
       key(RETENTION_FOUNDATIONS, "DeletionJob", "completedAt", "create-column"),
+      key(PEDIGREE_PROVENANCE, "PedigreeImportRun", "completedAt", "create-column"),
     ],
     "lifecycle-marker-only",
     "These fields record processing, administration, policy metadata, or deletion-workflow timing. They can support later retention enforcement, but none is itself a record-specific disposal deadline or proof that primary/provider data was removed.",
@@ -247,7 +250,9 @@ export function discoverRetentionCandidates(
     /CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+"([^"]+)"\s*\(([\s\S]*?)\)\s*;/giu,
   )) {
     const [, relation, body] = match;
-    for (const columnMatch of body.matchAll(/^\s*"([^"]+)"\s+[^,\r\n]+/gmu)) {
+    for (const columnMatch of body.matchAll(
+      /^\s*"([^"]+)"\s+(?!IS\b|IN\b|LIKE\b|BETWEEN\b)[A-Za-z][A-Za-z0-9_]*/gmu,
+    )) {
       const column = columnMatch[1];
       if (RETENTION_SEMANTIC_COLUMN.test(column)) {
         candidates.push(candidate(path, relation, column, "create-column"));

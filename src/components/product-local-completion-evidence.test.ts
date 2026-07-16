@@ -137,10 +137,16 @@ const excludedProductRequirements = MASTER_AUDIT_REQUIREMENTS.filter(
     requirement.prompt === "product" && requirement.status === "excluded",
 );
 assert.deepEqual(
-  excludedProductRequirements,
-  [],
-  "Any future product exclusion must replace this zero-exclusion proof with explicit owner-and-reason evidence.",
+  excludedProductRequirements.map(({ id }) => id).toSorted(),
+  ["ROUTE.COMMUNITY.message-edit", "SYSTEM.unsupported-browser"],
 );
+for (const exclusion of excludedProductRequirements) {
+  assert.ok(exclusion.owner?.trim(), `${exclusion.id}: exclusion owner`);
+  assert.ok(exclusion.evidence.length >= 2, `${exclusion.id}: exclusion evidence`);
+  exclusion.evidence.forEach((evidencePath) =>
+    assert.equal(existsSync(evidencePath), true, evidencePath),
+  );
+}
 
 const layout = readFileSync("src/app/layout.tsx", "utf8");
 const help = readFileSync("src/components/interactive-help.tsx", "utf8");
@@ -171,7 +177,7 @@ assert.match(supportHelp, /<InteractiveHelpMenuControls profileScope=\{profileSc
 
 assert.match(PRODUCT_LOCAL_COMPLETION_SCOPE, /87 canonical onboarding tours/i);
 assert.match(PRODUCT_LOCAL_COMPLETION_SCOPE, /435 steps/i);
-assert.match(PRODUCT_LOCAL_COMPLETION_SCOPE, /zero excluded requirements/i);
+assert.match(PRODUCT_LOCAL_COMPLETION_SCOPE, /two explicitly excluded requirements/i);
 assert.match(PRODUCT_LOCAL_COMPLETION_SCOPE, /does not prove browser rendering/i);
 assert.match(PRODUCT_LOCAL_COMPLETION_SCOPE, /user comprehension/i);
 assert.match(PRODUCT_LOCAL_COMPLETION_SCOPE, /open requirements are exclusions/i);
@@ -197,5 +203,5 @@ assert.equal(
 );
 
 console.log(
-  "Product local completion evidence passed: 87 tours/435 Design Lab preview steps, zero exclusions, and universal labelled help close exactly 3 local requirements.",
+  "Product local completion evidence passed: 87 tours/435 Design Lab preview steps, two owned exclusions, and universal labelled help close exactly 3 local requirements.",
 );

@@ -45,6 +45,15 @@ const SENSITIVE_ADMIN_POLICY_NAMES = [
   "giq_webhook_event_system",
 ] as const;
 
+const REDUCED_RUNTIME_DML_GRANTS = new Map<string, readonly string[]>([
+  ["DogProfileMergeLedger", ["INSERT", "SELECT"]],
+  ["DogProfileObservation", ["INSERT", "SELECT"]],
+  ["DogSourceIdentity", ["INSERT", "SELECT"]],
+  ["PedigreeAssertion", ["INSERT", "SELECT"]],
+  ["PedigreeImportRun", ["INSERT", "SELECT", "UPDATE"]],
+  ["PedigreeMergeLedger", ["INSERT", "SELECT"]],
+]);
+
 type ContextCounts = {
   membershipA: number;
   membershipB: number;
@@ -402,7 +411,12 @@ async function main() {
             .filter((grant) => grant.name === name)
             .map((grant) => grant.privilege),
         ),
-        ["DELETE", "INSERT", "SELECT", "UPDATE"],
+        REDUCED_RUNTIME_DML_GRANTS.get(name) ?? [
+          "DELETE",
+          "INSERT",
+          "SELECT",
+          "UPDATE",
+        ],
         `${name}: ordinary runtime DML grant drift`,
       );
     }

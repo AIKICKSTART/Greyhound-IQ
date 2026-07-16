@@ -68,7 +68,7 @@ const evidenceSource = readFileSync(
 assert.doesNotMatch(evidenceSource, /from ["']node:/);
 assert.doesNotMatch(evidenceSource, /\breadFileSync\b|\bprocess\.cwd\b/);
 assert.match(PRODUCT_FORM_CONTRACT_CORE_SCOPE, /all 97 registered screens/i);
-assert.match(PRODUCT_FORM_CONTRACT_CORE_SCOPE, /146 route-scoped form contracts/i);
+assert.match(PRODUCT_FORM_CONTRACT_CORE_SCOPE, /145 route-scoped form contracts/i);
 assert.match(PRODUCT_FORM_CONTRACT_CORE_SCOPE, /core form inventory metadata/i);
 assert.match(PRODUCT_FORM_CONTRACT_CORE_SCOPE, /does not prove complete field-level mapping/i);
 assert.match(PRODUCT_FORM_CONTRACT_CORE_SCOPE, /does not prove.*hydrated submission/i);
@@ -127,12 +127,12 @@ function verifyForm(route: string, form: Form) {
 
 for (const screen of SCREEN_CONTRACTS) verifyScreen(screen);
 
-assert.equal(formCount, 146);
-assert.equal(routeFormPairs.size, 146);
+assert.equal(formCount, 145);
+assert.equal(routeFormPairs.size, 145);
 assert.equal(excludedScreenCount, 34);
 
 console.log(
-  "Product form core evidence passed in isolation: 97 screens map to 146 route-scoped forms or 34 explicit zero-form exclusions; exact +3 central wiring is ready.",
+  "Product form core evidence passed in isolation: 97 screens map to 145 route-scoped forms or 34 explicit zero-form exclusions; exact +3 central wiring is ready.",
 );
 
 function verifyScreen(screen: ScreenContract) {

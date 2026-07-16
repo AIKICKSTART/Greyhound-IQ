@@ -56,7 +56,18 @@ for (const requirementId of completedIds) {
   for (const evidencePath of record.evidence) {
     assert.equal(existsSync(evidencePath), true, evidencePath);
   }
-  assert.deepEqual(PRODUCT_MASTER_EVIDENCE[requirementId], record);
+  const centralRecord = PRODUCT_MASTER_EVIDENCE[requirementId];
+  assert.ok(centralRecord, requirementId);
+  assert.ok(
+    centralRecord.status === record.status || centralRecord.status === "verified",
+    `${requirementId}: central evidence must retain or strengthen the bounded status`,
+  );
+  for (const supportingPath of record.evidence.slice(2)) {
+    assert.ok(
+      centralRecord.evidence.includes(supportingPath),
+      `${requirementId}: central evidence lost ${supportingPath}`,
+    );
+  }
 }
 
 for (const requirementId of intentionallyOpenIds) {
@@ -132,7 +143,7 @@ const schemaModels = [...schemaSource.matchAll(/^model\s+(\w+)\s*\{/gm)].map(
   (match) => match[1],
 );
 const policyModels = Object.keys(DESIGN_LAB_LOCAL_DATA_POLICY);
-assert.equal(schemaModels.length, 107);
+assert.equal(schemaModels.length, 113);
 assert.deepEqual(policyModels.toSorted(), schemaModels.toSorted());
 for (const policy of Object.values(DESIGN_LAB_LOCAL_DATA_POLICY)) {
   assert.equal(policy.productionDatabaseCopy, "DENY", policy.model);

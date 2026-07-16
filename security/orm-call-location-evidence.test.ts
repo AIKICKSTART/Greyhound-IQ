@@ -23,9 +23,9 @@ const current = auditOrmCallLocations(
 
 assert.ok(sources.length > 600);
 assert.deepEqual(current.issues, []);
-assert.equal(current.locations.length, 940);
+assert.equal(current.locations.length, 944);
 assert.equal(current.digest, PRODUCTION_ORM_LOCATION_BASELINE.digest);
-assert.equal(new Set(current.locations.map(({ key }) => key)).size, 940);
+assert.equal(new Set(current.locations.map(({ key }) => key)).size, 944);
 assert.equal(
   new Set(current.locations.map(({ sourceFile }) => sourceFile)).size,
   99,
@@ -36,44 +36,44 @@ assert.equal(
       ({ sourceFile, sourceSymbol }) => `${sourceFile}:${sourceSymbol}`,
     ),
   ).size,
-  446,
+  448,
 );
 assert.equal(
   current.locations.filter(({ model }) => model !== null).length,
-  864,
+  866,
 );
 assert.equal(
   current.locations.filter(({ model }) => model === null).length,
-  76,
+  78,
 );
 assert.equal(
   current.locations.filter(({ invocation }) => invocation === "call").length,
-  878,
+  880,
 );
 assert.equal(
   current.locations.filter(({ invocation }) => invocation === "tagged-template")
     .length,
-  62,
+  64,
 );
 assert.deepEqual(operationCounts(current.locations), {
   $executeRaw: 21,
-  $queryRaw: 50,
+  $queryRaw: 52,
   $transaction: 5,
   aggregate: 2,
   count: 84,
-  create: 91,
-  createMany: 15,
+  create: 92,
+  createMany: 13,
   delete: 11,
-  deleteMany: 43,
-  findFirst: 116,
+  deleteMany: 42,
+  findFirst: 115,
   findFirstOrThrow: 3,
-  findMany: 185,
-  findUnique: 94,
+  findMany: 186,
+  findUnique: 98,
   findUniqueOrThrow: 3,
   groupBy: 17,
-  update: 119,
+  update: 118,
   updateMany: 50,
-  upsert: 31,
+  upsert: 32,
 });
 
 const requirement = SECURITY_MASTER_REQUIREMENTS.find(

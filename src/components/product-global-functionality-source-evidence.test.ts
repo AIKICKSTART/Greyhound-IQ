@@ -78,7 +78,7 @@ assert.doesNotMatch(evidenceSource, /\breadFileSync\b|\bprocess\.cwd\b/);
 
 const linkRegistry = buildProductAutomatedSourceGateRegistry();
 assert.ok(linkRegistry.auditedSourceFiles.length >= 400);
-assert.ok(linkRegistry.internalLinks.length >= 446);
+assert.ok(linkRegistry.internalLinks.length >= 419);
 assert.deepEqual(linkRegistry.internalLinkIssues, []);
 for (const link of linkRegistry.internalLinks) {
   assert.ok(link.sourceLine > 0, link.id);

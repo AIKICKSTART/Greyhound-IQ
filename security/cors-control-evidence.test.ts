@@ -139,7 +139,11 @@ assert.match(callToken, /roomJoin: true/);
 assert.match(callToken, /canPublishData: false/);
 
 const csp = readFileSync("src/lib/csp.ts", "utf8");
-assert.match(csp, /join\("connect-src 'self'", supa, supaWs, lk, devWs\)/);
+assert.match(
+  csp,
+  /OBJECT_STORAGE_PROVIDER[\s\S]*?=== "gcs"[\s\S]*?"https:\/\/storage\.googleapis\.com"/,
+);
+assert.match(csp, /join\("connect-src 'self'", supa, supaWs, gcs, lk, devWs\)/);
 assert.doesNotMatch(csp, /connect-src[^\n]*\*/);
 
 const routeSources = collectTypeScriptFiles(join("src", "app", "api"))

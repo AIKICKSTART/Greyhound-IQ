@@ -91,8 +91,10 @@ const createListing = between(
   "export async function createListingForCurrentUser",
   "export async function updateListingForCurrentUser",
 );
-assert.match(createListing, /status: LISTING_STATUS_PENDING_REVIEW/);
-assert.match(createListing, /moderationStatus: LISTING_STATUS_PENDING_REVIEW/);
+assert.match(createListing, /input\.submissionIntent === "draft"/);
+assert.match(createListing, /\? LISTING_STATUS_DRAFT\s+: LISTING_STATUS_PENDING_REVIEW/);
+assert.match(createListing, /status: nextStatus/);
+assert.match(createListing, /moderationStatus: nextStatus/);
 const approveListing = between(
   listingService,
   "export async function approveListingForModerator",

@@ -84,9 +84,9 @@ for (const testCase of viewportCases) {
   observedDeviceClasses.add(layout.deviceClass);
   assert.equal(layout.deviceClass, testCase.expected, `${testCase.width}px`);
   assert.ok(layout.width <= testCase.width - (layout.mobile ? 24 : 40));
-  assert.ok(layout.top - layout.maxHeight / 2 >= viewport.offsetTop);
+  assert.ok(layout.top >= viewport.offsetTop);
   assert.ok(
-    layout.top + layout.maxHeight / 2 <=
+    layout.top + layout.maxHeight <=
       viewport.offsetTop + viewport.height - layout.navigationClearance,
   );
 }
@@ -101,12 +101,37 @@ const phoneViewport: InteractiveHelpViewport = {
   offsetTop: 0,
   width: 390,
 };
-const upperLayout = resolveInteractiveHelpPopupLayout(phoneViewport, "upper");
-const lowerLayout = resolveInteractiveHelpPopupLayout(phoneViewport, "lower");
-assert.ok(upperLayout.top - upperLayout.maxHeight / 2 >= 112);
+const upperTarget = {
+  bottom: 112,
+  height: 40,
+  left: 24,
+  right: 64,
+  top: 72,
+  width: 40,
+};
+const lowerTarget = {
+  bottom: 732,
+  height: 40,
+  left: 326,
+  right: 366,
+  top: 692,
+  width: 40,
+};
+const upperLayout = resolveInteractiveHelpPopupLayout(
+  phoneViewport,
+  "upper",
+  upperTarget,
+);
+const lowerLayout = resolveInteractiveHelpPopupLayout(
+  phoneViewport,
+  "lower",
+  lowerTarget,
+);
+assert.equal(upperLayout.placement, "below");
+assert.ok(upperLayout.top >= upperTarget.bottom);
+assert.equal(lowerLayout.placement, "above");
 assert.ok(
-  lowerLayout.top + lowerLayout.maxHeight / 2 <=
-    phoneViewport.height - lowerLayout.navigationClearance - 112,
+  lowerLayout.top <= lowerTarget.top,
 );
 
 const keyboardViewport: InteractiveHelpViewport = {
@@ -122,11 +147,10 @@ const keyboardLayout = resolveInteractiveHelpPopupLayout(
 assert.equal(keyboardLayout.keyboardOpen, true);
 assert.equal(keyboardLayout.navigationClearance, 12);
 assert.ok(
-  keyboardLayout.top - keyboardLayout.maxHeight / 2 >=
-    keyboardViewport.offsetTop,
+  keyboardLayout.top >= keyboardViewport.offsetTop,
 );
 assert.ok(
-  keyboardLayout.top + keyboardLayout.maxHeight / 2 <=
+  keyboardLayout.top + keyboardLayout.maxHeight <=
     keyboardViewport.offsetTop + keyboardViewport.height - 12,
 );
 
@@ -145,7 +169,10 @@ for (const sourceContract of [
 ]) {
   assert.match(interactiveHelp, sourceContract);
 }
-assert.match(interactiveHelpStyles, /\.popup\s*{\s*overscroll-behavior:\s*contain;/);
+assert.match(
+  interactiveHelpStyles,
+  /\.content\s*{[\s\S]*?overscroll-behavior:\s*contain;/,
+);
 
 console.log(
   `Product onboarding viewport source evidence passed: ${viewportCases.length} cases across all ${INTERACTIVE_HELP_DEVICE_CLASSES.length} device classes preserve the bounded popover layout contract.`,

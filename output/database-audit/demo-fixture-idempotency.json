@@ -1,7 +1,7 @@
 {
   "schemaVersion": 16,
   "auditKind": "synthetic-private-fixture-idempotency",
-  "generatedAt": "2026-07-15T14:14:05.110Z",
+  "generatedAt": "2026-07-16T18:07:23.401Z",
   "safety": {
     "scope": "literal-loopback-disposable-replay-only",
     "host": "127.0.0.1",
@@ -26,9 +26,9 @@
   },
   "sourceBinding": {
     "files": {
-      "package.json": "5fe570044f267a5f511167b614fb84d95c504a3ef6e4ee2cc6d92578b2c4b5ae",
-      "package-lock.json": "6754e3392765cce4f646108bf5ae330c8341aa455cdba390a28e723cd705d259",
-      "prisma/schema.prisma": "b0e50aa4850eebd5e3095bba619c87370b78f249fbeabf5b8691e169f3c02b22",
+      "package.json": "9ebd0d7e9ea9c77db75d9d34f8e1da4af39e38a4a431c0c322b3b8ef0d91c7c0",
+      "package-lock.json": "d0a60e9ae88cf63d0fca60c4d7d795e7449f33426baab9011063f43fd5722d08",
+      "prisma/schema.prisma": "ff7158c8900a4fc914bb0a09bc27e41bba4271a0144afee675a53b8e526a93fc",
       "prisma/migrations/20260630093000_baseline/migration.sql": "1c3bf7960da1a93de65bac113d53524392fd10c48e0bb519f07b21ca38dfb759",
       "prisma/migrations/20260706223000_add_rls_entitlement_policies/migration.sql": "953db33c0662f936b67a88b8859fd49b5d76b28e90f2a5e8851669fb5ff6334e",
       "prisma/migrations/20260708192000_restrict_audit_ratelimit_rls/migration.sql": "4263b9bd24355d0f49e5cecf1199ca8056f535be6942e37459086fbf87feb5ce",
@@ -46,7 +46,7 @@
       "docs/security/data-classification.md": "d9e6fc063b769cf26ae4b4165fcaff1799546da5fe1d38cad43447ecac3aaf89",
       "src/app/api/users/me/export/route.ts": "c1e770c1eeec68fbb5742d789db9898da51459cc34f4288f23a4f99aa5c0ce92",
       "src/lib/account-service.ts": "2a10581b11cc1426006fe40c6083d3e412fc7bb97f084d0ab67de3f8a6ff165f",
-      "src/lib/auth-sync.ts": "e3713cc05de5d5cb1b0d01d759594afedf11d97054d3299b7d1b38a827227b84",
+      "src/lib/auth-sync.ts": "c95ec06ac44e37d7a4899adc14481a57dc12067e193fc6821f72a8b60fa00234",
       "src/lib/billing/stripe-client.ts": "99283ccc895d7a009a6faaee913062de2cec6f0ae90f6c6cc38e35afbcc12812",
       "src/lib/billing/stripe-env.ts": "51b4a7160d04ec42a3f21b9b531e58f2ca1636d5c328348c0211493e5c6df2ef",
       "src/lib/billing/stripe-webhooks.ts": "2ee6917bc852f7090ec29fe91a095617e75637de4a3393d101f907fc9a81867e",
@@ -58,14 +58,14 @@
       "src/lib/conversation-service.ts": "ae9a79650a1d596055e0b10765222b2c5eef9e5d99faf2d3f9e5f27769ef8542",
       "src/lib/db.ts": "3f2df86c14ebb983246293aee66fb14a40b2fe09da1c70908b6d2ea547ade5f0",
       "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
-      "src/lib/listing-service.ts": "a8905d1be95be854a3e2579ca201762827d63e058b6779fdf80d35271cc4886c",
-      "src/lib/media-service.ts": "d762706db72059eece36c6cf358076c691edf52c31a38d3186b8aa4fca9fd19d",
+      "src/lib/listing-service.ts": "12954bae603b92edec6e10a638c1952765e92dbe444c538ad0fe3bb72ad47784",
+      "src/lib/media-service.ts": "40aca6a62e277ab1b7c344435722362ac7aa53919c2ade1de337931a05670155",
       "src/lib/queries.ts": "b6195a482ab5d3387dd1fb2c2cde16fb76ba7011cc0baf36b7989f9c0df2895e",
       "src/lib/realtime-service.ts": "bd488e6f06099d756c108bd1330750aba5d2aec83d240be90f34430bdecd14a6",
       "src/lib/social-actor-service.ts": "f662173f7c4f4f9dae26e9a1eeb3e385b84ade53bd494a2a5ad6e3f09ad02d82",
       "src/lib/signup-acceptance.ts": "3762304e4f242146fc90a0bdc754a4ba7b068d469bfb59aa3042bc95d7142948",
       "src/lib/signup-acceptance-worker-store.ts": "e3b94adee26017e450f9ff4428ac8da5789435d6a7cd39b929f800728e3cc48d",
-      "src/lib/storage-paths.ts": "e75e2b85d7766d2341ee105406fb52ae5a79557fbda582255e04dfb50569c09f",
+      "src/lib/storage-paths.ts": "bed89a27218b9dd3429c50c6b2a955bf80d619bd80460f72958740bd5de30865",
       "src/lib/supabase-storage.ts": "276baf7722eda2b2df01e86458f8666c3b08cca4cadf8aa6353647795a67ff26"
     },
     "assets": {
@@ -124,7 +124,7 @@
         "provenanceId": "prov-control-room-gallery-ai-v1"
       }
     },
-    "combinedSha256": "1fe9bef21fe6db75a07ef375786eb6a15ddb504914f1a857ac3f8714e03ad449"
+    "combinedSha256": "6e1cd0f7b6505177676f01e4e9d196bb81e33d80311a8d6340030c84fb26c9ac"
   },
   "collisionRollbackProbes": [
     {
@@ -216,7 +216,7 @@
           "joinType": null,
           "scanDirection": null,
           "estimatedRows": 1,
-          "totalCost": 1.06,
+          "totalCost": 1.29,
           "children": [
             {
               "nodeType": "Sort",
@@ -225,7 +225,7 @@
               "joinType": null,
               "scanDirection": null,
               "estimatedRows": 1,
-              "totalCost": 1.06,
+              "totalCost": 1.29,
               "children": [
                 {
                   "nodeType": "Seq Scan",
@@ -234,14 +234,14 @@
                   "joinType": null,
                   "scanDirection": null,
                   "estimatedRows": 1,
-                  "totalCost": 1.04,
+                  "totalCost": 1.27,
                   "children": []
                 }
               ]
             }
           ]
         },
-        "planSha256": "06877cbafcce9deaf31787d6189defafea11ca74cf1b57aac65a60d05cc61435"
+        "planSha256": "39a4c1ea4ca5cc7a4f4ba7c25bffbacc1be1ce3f8c42469a82e3377308e1a1c0"
       },
       "variants": [
         {
@@ -292,7 +292,7 @@
               "joinType": null,
               "scanDirection": null,
               "estimatedRows": 1,
-              "totalCost": 1.06,
+              "totalCost": 1.29,
               "children": [
                 {
                   "nodeType": "Sort",
@@ -301,7 +301,7 @@
                   "joinType": null,
                   "scanDirection": null,
                   "estimatedRows": 1,
-                  "totalCost": 1.06,
+                  "totalCost": 1.29,
                   "children": [
                     {
                       "nodeType": "Seq Scan",
@@ -310,14 +310,14 @@
                       "joinType": null,
                       "scanDirection": null,
                       "estimatedRows": 1,
-                      "totalCost": 1.04,
+                      "totalCost": 1.27,
                       "children": []
                     }
                   ]
                 }
               ]
             },
-            "planSha256": "06877cbafcce9deaf31787d6189defafea11ca74cf1b57aac65a60d05cc61435"
+            "planSha256": "39a4c1ea4ca5cc7a4f4ba7c25bffbacc1be1ce3f8c42469a82e3377308e1a1c0"
           }
         },
         {
@@ -362,7 +362,7 @@
               "joinType": null,
               "scanDirection": null,
               "estimatedRows": 1,
-              "totalCost": 1.06,
+              "totalCost": 1.28,
               "children": [
                 {
                   "nodeType": "Sort",
@@ -371,7 +371,7 @@
                   "joinType": null,
                   "scanDirection": null,
                   "estimatedRows": 1,
-                  "totalCost": 1.06,
+                  "totalCost": 1.28,
                   "children": [
                     {
                       "nodeType": "Seq Scan",
@@ -380,14 +380,14 @@
                       "joinType": null,
                       "scanDirection": null,
                       "estimatedRows": 1,
-                      "totalCost": 1.04,
+                      "totalCost": 1.27,
                       "children": []
                     }
                   ]
                 }
               ]
             },
-            "planSha256": "06877cbafcce9deaf31787d6189defafea11ca74cf1b57aac65a60d05cc61435"
+            "planSha256": "ef5aba5c1d9e108f46cf5e59be079e4ea8e87547363bdf7f1bd992f8f62f7372"
           }
         },
         {
@@ -829,7 +829,7 @@
               "joinType": null,
               "scanDirection": null,
               "estimatedRows": 1,
-              "totalCost": 1.05,
+              "totalCost": 1.27,
               "children": [
                 {
                   "nodeType": "Seq Scan",
@@ -838,12 +838,12 @@
                   "joinType": null,
                   "scanDirection": null,
                   "estimatedRows": 1,
-                  "totalCost": 1.05,
+                  "totalCost": 1.27,
                   "children": []
                 }
               ]
             },
-            "planSha256": "a8698ea20ae3f34142b6af98efffa601b3612bb2c95371a662cb84f90b552a13"
+            "planSha256": "29da3b354149fbca2dadfa05d6cb8e2356538a41314ae7dcd7c86f74f8904d12"
           }
         },
         {
@@ -2209,7 +2209,7 @@
           "joinType": null,
           "scanDirection": null,
           "estimatedRows": 1,
-          "totalCost": 1.05,
+          "totalCost": 1.28,
           "children": [
             {
               "nodeType": "Seq Scan",
@@ -2218,12 +2218,12 @@
               "joinType": null,
               "scanDirection": null,
               "estimatedRows": 1,
-              "totalCost": 1.05,
+              "totalCost": 1.28,
               "children": []
             }
           ]
         },
-        "planSha256": "a8698ea20ae3f34142b6af98efffa601b3612bb2c95371a662cb84f90b552a13"
+        "planSha256": "889c504b25d1f58ce5defcc4fbe4aca1418e46159c7e31aef3b6010f59ba96fb"
       },
       "variants": [
         {
@@ -2280,7 +2280,7 @@
               "joinType": null,
               "scanDirection": null,
               "estimatedRows": 1,
-              "totalCost": 1.05,
+              "totalCost": 1.28,
               "children": [
                 {
                   "nodeType": "Seq Scan",
@@ -2289,12 +2289,12 @@
                   "joinType": null,
                   "scanDirection": null,
                   "estimatedRows": 1,
-                  "totalCost": 1.05,
+                  "totalCost": 1.28,
                   "children": []
                 }
               ]
             },
-            "planSha256": "a8698ea20ae3f34142b6af98efffa601b3612bb2c95371a662cb84f90b552a13"
+            "planSha256": "889c504b25d1f58ce5defcc4fbe4aca1418e46159c7e31aef3b6010f59ba96fb"
           }
         },
         {

@@ -1106,9 +1106,9 @@ async function loadExactDogIdentityClaims(
         sourceProvider: true,
         sourceId: true,
       },
-      take: LOOKUP_QUERY_LIMIT + 1,
+      take: LOOKUP_QUERY_LIMIT,
     });
-    if (rows.length > LOOKUP_QUERY_LIMIT) {
+    if (rows.length >= LOOKUP_QUERY_LIMIT) {
       for (const claim of claimChunk) saturatedClaims.add(claim.key);
       continue;
     }
@@ -1135,9 +1135,9 @@ async function loadExactDogIdentityClaims(
         sourceProvider: true,
         sourceId: true,
       },
-      take: LOOKUP_QUERY_LIMIT + 1,
+      take: LOOKUP_QUERY_LIMIT,
     });
-    if (sourceIdentities.length > LOOKUP_QUERY_LIMIT) {
+    if (sourceIdentities.length >= LOOKUP_QUERY_LIMIT) {
       for (const claim of claimChunk) saturatedClaims.add(claim.key);
       continue;
     }
@@ -1185,11 +1185,11 @@ async function loadNaturalDogCandidates(
         },
       },
     },
-    take: LOOKUP_QUERY_LIMIT + 1,
+    take: LOOKUP_QUERY_LIMIT,
   });
   return {
     rows: rows.slice(0, LOOKUP_QUERY_LIMIT) as DogIdentityRow[],
-    saturated: rows.length > LOOKUP_QUERY_LIMIT,
+    saturated: rows.length >= LOOKUP_QUERY_LIMIT,
   };
 }
 

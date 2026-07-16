@@ -6,7 +6,7 @@ export const PRODUCT_LOCAL_COMPLETION_TEST_FILE =
   "src/components/product-local-completion-evidence.test.ts" as const;
 
 export const PRODUCT_LOCAL_COMPLETION_SCOPE =
-  "Focused source and unit verification of three current completion claims: all 87 canonical onboarding tours and 435 steps resolve through the same synthetic preview resolver used by Design Lab; the normal product shell exposes a clearly labelled Help launcher for every toured page and signed-in role plus persistent support and contact destinations; and the derived product requirement registry currently contains zero excluded requirements, so there is no remaining exclusion requiring an owner and reason. This proves current local source contracts only; it does not prove browser rendering, user comprehension, provider behavior, deployed parity, production readiness, or that open requirements are exclusions.";
+  "Focused source and unit verification of three current completion claims: all 87 canonical onboarding tours and 435 steps resolve through the same synthetic preview resolver used by Design Lab; the normal product shell exposes a clearly labelled Help launcher for every toured page and signed-in role plus persistent support and contact destinations; and the derived product requirement registry contains two explicitly excluded requirements with named owners and focused evidence. This proves current local source contracts only; it does not prove browser rendering, user comprehension, provider behavior, deployed parity, production readiness, or that open requirements are exclusions.";
 
 export const PRODUCT_LOCAL_COMPLETION_REQUIREMENT_IDS = [
   "COMPLETE.EVIDENCE.tour-lab-coverage",
@@ -45,6 +45,10 @@ export const PRODUCT_LOCAL_COMPLETION_MASTER_EVIDENCE = {
     evidence: [
       ...COMMON_EVIDENCE,
       "src/components/master-audit-requirements.ts",
+      "src/components/product-message-edit-exclusion-evidence.ts",
+      "src/components/product-message-edit-exclusion-evidence.test.ts",
+      "src/components/product-local-residual-gates-evidence.ts",
+      "src/components/product-local-residual-gates-evidence.test.ts",
     ],
   },
   "COMPLETE.UNDERSTAND.help": {

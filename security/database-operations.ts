@@ -1470,7 +1470,7 @@ const DATABASE_OPERATION_RECORDS: readonly DatabaseOperationContract[] = [
       "Thread_authorId_createdAt_idx",
       "Listing_profileId_idx",
       "DeletionJob_targetUserId_idx",
-      "MediaAsset_uploaderId_createdAt_idx",
+      "MediaAsset_uploaderId_sha256_idx",
       "MemoryEntry_userId_kind_idx",
       "ConversationContext_userId_agentType_key",
       "AgentRun_userId_idx",

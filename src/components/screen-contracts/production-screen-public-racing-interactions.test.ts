@@ -38,7 +38,8 @@ const EXPECTED_PUBLIC_RACING_INTERACTIONS = {
     actionIds: ["DOGS.ACTION.SEARCH", "DOGS.ACTION.DOG.OPEN"],
     forms: [],
     sourceAssertions: [
-      'const initialQuery = Array.isArray(q) ? q[0] : (q ?? "");',
+      "directorySearchQuerySchema.safeParse({ q: rawQuery.q })",
+      'const initialQuery = parsedQuery.success ? parsedQuery.data.q : "";',
       "<DogSearch initialQuery={initialQuery} />",
     ],
   },
@@ -285,7 +286,9 @@ for (const assertion of [
   "isEmergencyControlActive(process.env.SEARCH_DISABLED)",
   "const rateLimit = await checkRateLimit(",
   'clientIp || "missing-forwarded-for"',
-  "const results = await searchDogs(q, 20);",
+  "directorySearchQuerySchema.safeParse(",
+  "queryParamsObject(searchParams)",
+  "const results = await searchDogs(query.data.q, 20);",
 ]) {
   assert.ok(
     dogSearchRouteSource.includes(assertion),

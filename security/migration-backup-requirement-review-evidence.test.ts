@@ -47,7 +47,7 @@ const nonDmlRiskKeys = [
 
 assert.deepEqual(databaseCompatibilityInventoryDiff(compatibility), []);
 assert.deepEqual(compatibility, DATABASE_COMPATIBILITY_BASELINE);
-assert.equal(sources.length, 97);
+assert.equal(sources.length, 100);
 assert.deepEqual(mutationAudit.issues, []);
 assert.equal(mutationAudit.records.length, 21);
 assert.equal(mutationAudit.requiredBackupCount, 20);
@@ -109,9 +109,13 @@ assertMutationIssue(
   [source("UPDATE existing SET value = 1;"), source("UPDATE existing SET value = 1;")],
   "MIGRATION_BACKUP_SOURCE_PATH_INVALID",
 );
-assertMutationIssue(
-  [source("GRANT UPDATE ON existing TO runtime;")],
-  "MIGRATION_BACKUP_MUTATION_CONTEXT_UNREVIEWED",
+const grantFixtureAudit = auditMigrationBackupRequirements([
+  source("GRANT SELECT, INSERT, UPDATE ON existing TO runtime;\nUPDATE existing SET value = 1;"),
+]);
+assert.deepEqual(grantFixtureAudit.issues, []);
+assert.deepEqual(
+  grantFixtureAudit.records.map(({ operation, relation }) => ({ operation, relation })),
+  [{ operation: "update", relation: "existing" }],
 );
 
 const fixtureAudit = auditMigrationBackupRequirements([
@@ -177,7 +181,7 @@ assertNonDmlIssue(
 );
 
 console.log(
-  "Migration backup-requirement review passed: 21 executable data mutations across 97 migrations have explicit source decisions (20 production backup required, 1 new relation); 1 contract rename and 1 disposable-table rewrite have exact bound decisions.",
+  "Migration backup-requirement review passed: 21 executable data mutations across 100 migrations have explicit source decisions (20 production backup required, 1 new relation); 1 contract rename and 1 disposable-table rewrite have exact bound decisions.",
 );
 
 function assertMutationIssue(

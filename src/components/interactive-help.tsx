@@ -1,5 +1,6 @@
 "use client";
 
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -268,7 +269,7 @@ export function InteractiveHelp({
   const [resolvedTargetKey, setResolvedTargetKey] = useState<string | null>(
     null,
   );
-  const coachmarkRef = useRef<HTMLElement | null>(null);
+  const coachmarkRef = useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const revealAttemptRef = useRef(new Set<string>());
   const wasOpenRef = useRef(false);
@@ -616,58 +617,63 @@ export function InteractiveHelp({
     (Boolean(routeTour) || role !== "visitor");
 
   return (
-    <>
+    <DialogPrimitive.Root
+      open={open}
+      modal={false}
+      disablePointerDismissal
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && open) dismissHelp();
+      }}
+    >
       {displayFloatingLauncher ? (
-        <button
-          type="button"
-          onClick={openHelp}
-          aria-label="Open guided help"
-          className="fixed bottom-[calc(var(--giq-mobile-dock-clearance)+12px)] left-3 z-[72] inline-flex min-h-11 items-center gap-2 rounded-full border border-[hsl(var(--primary-light)/0.36)] bg-[hsl(var(--surface-1)/0.98)] px-3 text-[11px] font-bold text-[hsl(var(--foreground))] shadow-[0_14px_34px_hsl(0_0%_0%/0.44)] transition hover:border-[hsl(var(--primary-light)/0.7)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))] md:bottom-5 md:left-5"
+        <DialogPrimitive.Trigger
+          render={
+            <button
+              type="button"
+              onClick={openHelp}
+              aria-label="Open guided help"
+              className="fixed bottom-[calc(var(--giq-mobile-dock-clearance)+12px)] left-3 z-[72] inline-flex min-h-11 items-center gap-2 rounded-full border border-[hsl(var(--primary-light)/0.36)] bg-[hsl(var(--surface-1)/0.98)] px-3 text-[11px] font-bold text-[hsl(var(--foreground))] shadow-[0_14px_34px_hsl(0_0%_0%/0.44)] transition hover:border-[hsl(var(--primary-light)/0.7)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))] md:bottom-5 md:left-5"
+            />
+          }
         >
           <CircleHelp
             className="size-4 text-[hsl(var(--primary-light))]"
             aria-hidden="true"
           />
           <span>Guide</span>
-        </button>
+        </DialogPrimitive.Trigger>
       ) : null}
 
       {open ? (
-        <aside
-          ref={coachmarkRef}
-          role="dialog"
-          aria-modal="false"
-          aria-labelledby={coachmarkTitleId}
-          aria-describedby={coachmarkDescriptionId}
-          aria-busy={!coachmarkReady}
-          tabIndex={-1}
-          data-help-layout={
-            mobileViewport ? "coachmark-mobile" : "coachmark-desktop"
-          }
-          data-help-device={popupLayout.deviceClass}
-          data-help-keyboard={popupLayout.keyboardOpen ? "open" : "closed"}
-          data-help-placement={popupLayout.placement}
-          data-help-ready={coachmarkReady ? "true" : "false"}
-          data-help-target-side={targetSide ?? "none"}
-          data-onboarding-route={routeTour?.route}
-          data-onboarding-step={routeTour ? step.id : undefined}
-          data-onboarding-target-status={routeTour ? targetStatus : undefined}
-          data-onboarding-tour={routeTour?.tourId}
-          style={{
-            "--help-arrow-offset": `${popupLayout.arrowOffset ?? 0}px`,
-            left: popupLayout.left,
-            maxHeight: popupLayout.maxHeight,
-            top: popupLayout.top,
-            transform: popupLayout.transform,
-            width: popupLayout.width,
-          } as CSSProperties}
-          onKeyDown={(event) => {
-            if (event.key !== "Escape") return;
-            event.stopPropagation();
-            dismissHelp();
-          }}
-          className={`${styles.popup} giq-interactive-help-popup z-[80] rounded-2xl border border-white/[0.14] bg-[hsl(var(--surface-1))] shadow-[0_18px_46px_hsl(0_0%_0%/0.48)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]`}
-        >
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Popup
+            ref={coachmarkRef}
+            aria-labelledby={coachmarkTitleId}
+            aria-describedby={coachmarkDescriptionId}
+            aria-busy={!coachmarkReady}
+            tabIndex={-1}
+            data-help-layout={
+              mobileViewport ? "coachmark-mobile" : "coachmark-desktop"
+            }
+            data-help-device={popupLayout.deviceClass}
+            data-help-keyboard={popupLayout.keyboardOpen ? "open" : "closed"}
+            data-help-placement={popupLayout.placement}
+            data-help-ready={coachmarkReady ? "true" : "false"}
+            data-help-target-side={targetSide ?? "none"}
+            data-onboarding-route={routeTour?.route}
+            data-onboarding-step={routeTour ? step.id : undefined}
+            data-onboarding-target-status={routeTour ? targetStatus : undefined}
+            data-onboarding-tour={routeTour?.tourId}
+            style={{
+              "--help-arrow-offset": `${popupLayout.arrowOffset ?? 0}px`,
+              left: popupLayout.left,
+              maxHeight: popupLayout.maxHeight,
+              top: popupLayout.top,
+              transform: popupLayout.transform,
+              width: popupLayout.width,
+            } as CSSProperties}
+            className={`${styles.popup} giq-interactive-help-popup z-[80] rounded-2xl border border-white/[0.14] bg-[hsl(var(--surface-1))] shadow-[0_18px_46px_hsl(0_0%_0%/0.48)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]`}
+          >
           <div className={styles.content}>
             <header className="flex items-start gap-3">
             <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-[hsl(var(--secondary)/0.28)] bg-[hsl(var(--secondary)/0.09)] text-[hsl(var(--secondary-light))]">
@@ -821,9 +827,10 @@ export function InteractiveHelp({
             </div>
           </footer>
           </div>
-        </aside>
+          </DialogPrimitive.Popup>
+        </DialogPrimitive.Portal>
       ) : null}
-    </>
+    </DialogPrimitive.Root>
   );
 }
 

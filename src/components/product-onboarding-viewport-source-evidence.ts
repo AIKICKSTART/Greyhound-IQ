@@ -6,7 +6,7 @@ export const PRODUCT_ONBOARDING_VIEWPORT_SOURCE_TEST_FILE =
   "src/components/product-onboarding-viewport-source-evidence.test.ts" as const;
 
 export const PRODUCT_ONBOARDING_VIEWPORT_SOURCE_SCOPE =
-  "Deterministic source-static and focused-unit verification that onboarding popover layout stays within its calculated viewport across all eight declared device classes, opposite-side target clearance and Visual Viewport keyboard conditions. The mounted component binds those calculated width, height and top values, observes viewport resize and scroll, preserves mobile-dock clearance and contains popup overscroll. This proves repository source and layout calculations only; it does not prove browser rendering, zoom behaviour, operating-system keyboard geometry, assistive-technology outcomes, deployed viewport containment or any other global responsive requirement.";
+  "Deterministic source-static and focused-unit verification that onboarding popover layout stays within its calculated viewport across all eight declared device classes, opposite-side target clearance and Visual Viewport keyboard conditions. The mounted component binds those calculated width, height and top values, observes viewport resize and scroll, preserves mobile-dock clearance and contains overscroll within the popup content. This proves repository source and layout calculations only; it does not prove browser rendering, zoom behaviour, operating-system keyboard geometry, assistive-technology outcomes, deployed viewport containment or any other global responsive requirement.";
 
 export const PRODUCT_ONBOARDING_VIEWPORT_SOURCE_REQUIREMENT_IDS = [
   "GLOBAL.RESP.tour",

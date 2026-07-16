@@ -12,7 +12,7 @@ import {
 
 const ARCHITECTURE_REPORT_HREF =
   "/greyhoundiq-production-architecture.html";
-const ARCHITECTURE_REPORT_SRC = `${ARCHITECTURE_REPORT_HREF}?sha=fe4f3852539c311ad619a8361ff08a8e4f86484978ea721558a9953b55f8f8f3`;
+const ARCHITECTURE_REPORT_SRC = `${ARCHITECTURE_REPORT_HREF}?sha=f4dc9e6315dba4eb7521ba16297c9c535fa792aa1e0849a178f4f35e89b57cb8`;
 
 export function DesignLabArchitectureLab() {
   return (

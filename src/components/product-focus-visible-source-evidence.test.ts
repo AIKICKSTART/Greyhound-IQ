@@ -41,7 +41,7 @@ assert.match(
 
 const sourceRegistry = buildProductAutomatedSourceGateRegistry();
 assert.ok(sourceRegistry.auditedSourceFiles.length >= 400);
-assert.ok(sourceRegistry.auditedSourceFiles.includes("src/components/feed-system-prototype.tsx"));
+assert.ok(sourceRegistry.auditedSourceFiles.includes("src/components/interactive-help.tsx"));
 
 const missingIndicators = sourceRegistry.auditedSourceFiles.flatMap((sourceFile) =>
   findOutlineRemovalsWithoutFocusIndicator(sourceFile),

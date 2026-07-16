@@ -24,7 +24,7 @@ for (const contract of [
 }
 assert.match(
   pageSource,
-  /<AccountSupportHelpCentre query=\{query\.q\} role=\{current\.role\} \/>/,
+  /<AccountSupportHelpCentre\s+profileScope=\{current\.profileId\}\s+query=\{query\.q\}\s+role=\{current\.role\}\s+\/>/,
 );
 assert.match(menuSource, /Reset all tours on this device/);
 assert.match(menuSource, /href="\/account\/support#help-topics"/);

@@ -24,6 +24,7 @@ const EXPECTED_RAW_SQL_SOURCE_PATHS = [
   "src/lib/db-stats.ts",
   "src/lib/db.ts",
   "src/lib/feed-service.ts",
+  "src/lib/live/dog-profile-sync.ts",
   "src/lib/live/status.ts",
   "src/lib/live/sync.ts",
   "src/lib/media-service.ts",
@@ -44,8 +45,8 @@ assert.deepEqual(
   sources.map(({ path }) => path),
   EXPECTED_RAW_SQL_SOURCE_PATHS,
 );
-assert.equal(audit.sourceCount, 21);
-assert.equal(audit.rawQueryPrimitiveCount, 116);
+assert.equal(audit.sourceCount, 22);
+assert.equal(audit.rawQueryPrimitiveCount, 118);
 assert.deepEqual(audit.issues, []);
 assert.deepEqual(audit.records, [
   {

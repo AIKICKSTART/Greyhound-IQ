@@ -543,7 +543,9 @@ for (const sourceContract of [
   /popupLayout\.maxHeight/,
   /popupLayout\.arrowOffset/,
   /window\.visualViewport/,
-  /aria-modal="false"/,
+  /DialogPrimitive\.Root/,
+  /modal=\{false\}/,
+  /DialogPrimitive\.Popup/,
   /giq-mobile-dock-clearance/,
 ]) {
   assert.match(helpSource, sourceContract);

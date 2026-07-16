@@ -44,44 +44,44 @@ const inventories = {
 } as const;
 
 const expectedCounts = {
-  serverComponentData: 731,
+  serverComponentData: 744,
   worker: 17,
   queuePublisher: 10,
   queueConsumer: 6,
-  databaseFunction: 57,
-  databaseTrigger: 15,
+  databaseFunction: 60,
+  databaseTrigger: 21,
   searchIndex: 87,
-  cache: 264,
+  cache: 275,
   rpc: 2,
   realtimeConnection: 7,
   realtimeEvent: 69,
-  adminCli: 72,
+  adminCli: 73,
   clientSearch: 4,
   emailWorkerSearch: 4,
 } as const;
 
 const expectedDigests = {
   serverComponentData:
-    "c0d97a58daae9705779bb82a8fbdfc6a6825447fa7e0d33397e951bc7422f7af",
+    "81bbb3d4dd9296c8eda287169e2b3018ee1366c45af95b406eb03570a6dae41d",
   worker: "22e462a7185be9ecc52051c1cdc3b28f296f6440061c616256923fc30ad205eb",
   queuePublisher:
     "d6776df6c198950b39573cf710e98f6fff341f6c195276a1d03aaa0dcda7db2b",
   queueConsumer:
     "0eae0c98347873771e614442cb780b9fd921f38f1872ee617abe532939116eb8",
   databaseFunction:
-    "ca17e0585a7331ee5dd1c9b5bae48d4c55a8c6a567126f4bfd40720020257c60",
+    "ef16370c1ed17e8219428291d868438a158395a2800d39c1b72eee136d368f4f",
   databaseTrigger:
-    "ebb2518a53236e5ed0c9154fa4ae20f7ef9cfacccf93265f63f4409280ddb530",
+    "6987d2cb4a13dd58063df215d327552c8cecc5d4c0a082ef9be6ad406869f16b",
   searchIndex:
     "0ff7a75667f873e8a32f3c89bd339c9bc3247af9b2826daf6c06e211d5365acb",
-  cache: "965781b1cda197b0b836d4f0c472cc2f81099452640f0c0bb25c8ca6fd116cca",
+  cache: "4e29068925037c424bc5e77f2b6a9b79b1742f8d89fa13559ab55829a65cc9d4",
   rpc: "787958d1c1d51dc3050d1a27deed55f0329bb4a832bd3ae59aa5685797e6d1e9",
   realtimeConnection:
     "de8d002b265408f9c7d46ad5ab46f0f4364f0923e19d0716ed0a55eadc2fc966",
   realtimeEvent:
     "b58b931a0fffe410d88ad6e52460a042fe2733cfceecc3de5f64a4be0b9dc957",
   adminCli:
-    "27c242771ceecd156a8411a3a9b12539c792ef99b40c79f1790a9e19597f3143",
+    "8e9e88c4889d676902df4ecd1ad9abe3f78afbf35fd18e7c9ff3ee60a1002cdb",
   clientSearch:
     "f1291446c4fb21044bbc02ede994121a291cb1662836f891d43ac880ad09f44d",
   emailWorkerSearch:

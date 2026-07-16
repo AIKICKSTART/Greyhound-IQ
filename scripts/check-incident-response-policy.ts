@@ -196,7 +196,7 @@ export function validateIncidentResponsePolicy(value: unknown, ownerPolicy: unkn
       }
     }
   }
-  for (const status of ["repository-implemented", "manual-documented", "unimplemented"]) {
+  for (const status of ["repository-implemented", "unimplemented"]) {
     if (!implementationStates.has(status)) {
       findings.push(`controls: missing ${status} classification`);
     }
@@ -281,9 +281,11 @@ export function validateEmergencyControlDeploymentSources(
   localDeploy: string,
 ) {
   const findings: string[] = [];
+  const emergencyFlagNormalizer =
+    workflow.match(/normalize_emergency_flag\(\)\s*\{[\s\S]*?\n\s*\}/)?.[0] ?? "";
   if (
     !/normalize_emergency_flag\(\)[\s\S]*case "\$value" in[\s\S]*""\|false\)[\s\S]*true\)[\s\S]*\*\)[\s\S]*exit 1[\s\S]*esac/.test(
-      workflow,
+      emergencyFlagNormalizer,
     )
   ) {
     findings.push("deploy.workflow: emergency flag validation must fail closed");

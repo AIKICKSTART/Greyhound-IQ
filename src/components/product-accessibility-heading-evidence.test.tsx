@@ -8,6 +8,7 @@ import { SCREEN_CONTRACTS } from "./demo-experience-registry";
 import { HomeHero } from "./home-hero";
 import { MeetingCard } from "./meeting-card";
 import { PageHero } from "./page-hero";
+import { PageTitle } from "./page-title";
 import {
   PRODUCT_ACCESSIBILITY_HEADING_EVIDENCE_FILE,
   PRODUCT_ACCESSIBILITY_HEADING_EXPECTED_GAIN,
@@ -82,6 +83,10 @@ const pageHeroHeadings = headingLevels(
 );
 assert.deepEqual(pageHeroHeadings, [1]);
 assert.deepEqual(headingLevels(renderToStaticMarkup(<HomeHero />)), [1]);
+assert.deepEqual(
+  headingLevels(renderToStaticMarkup(<PageTitle>Test title</PageTitle>)),
+  [1],
+);
 assert.deepEqual(headingLevels(renderToStaticMarkup(<SiteFooter />)), [2, 2, 2]);
 assert.deepEqual(
   headingLevels(
@@ -109,7 +114,7 @@ for (const route of PUBLIC_ROUTES) {
   assert.ok(sourcePath, route);
   const source = readFileSync(resolve(sourcePath), "utf8");
   const directHeadings = headingLevels(source);
-  const usesSharedHero = /<(?:PageHero|HomeHero)\b/.test(source);
+  const usesSharedHero = /<(?:PageHero|HomeHero|PageTitle)\b/.test(source);
   const levels = [
     ...(usesSharedHero ? [1] : []),
     ...directHeadings,

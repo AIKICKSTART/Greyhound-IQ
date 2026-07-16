@@ -17,6 +17,7 @@ import { logRequestError } from "@/lib/logger";
 
 const DEFAULT_LIMIT = 15;
 const MAX_LIMIT = 50;
+const DOG_IDENTITY_QUERY_LIMIT = 5_000;
 const PAUSE_MS = 500;
 const THEDOGS_PROVIDER = "thedogs";
 const THEDOGS_ORIGIN = new URL(
@@ -552,12 +553,21 @@ export async function resolveExactDogIdentity(
         sourceId: true,
         earBrand: true,
       },
+      take: DOG_IDENTITY_QUERY_LIMIT,
     }),
     tx.dogSourceIdentity.findMany({
       where: { sourceProvider: THEDOGS_PROVIDER, sourceId },
       select: { dogId: true, verificationStatus: true },
+      take: DOG_IDENTITY_QUERY_LIMIT,
     }),
   ]);
+
+  if (
+    dogs.length >= DOG_IDENTITY_QUERY_LIMIT ||
+    identityClaims.length >= DOG_IDENTITY_QUERY_LIMIT
+  ) {
+    throw new Error("The Dogs identity lookup exceeded its safe bound");
+  }
 
   for (const dog of dogs) {
     const providerMatch =

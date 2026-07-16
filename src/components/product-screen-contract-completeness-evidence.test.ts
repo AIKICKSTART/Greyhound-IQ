@@ -132,6 +132,7 @@ for (const screen of SCREEN_CONTRACTS) {
 assert.deepEqual(
   [...new Set(SCREEN_CONTRACTS.flatMap(({ roles }) => roles))].toSorted(),
   [
+    "admin",
     "administrator",
     "ai-tools-user",
     "community-participant",
@@ -139,6 +140,7 @@ assert.deepEqual(
     "marketplace-seller",
     "member",
     "moderator",
+    "owner",
     "page-manager",
     "racing-member",
     "reviewer",

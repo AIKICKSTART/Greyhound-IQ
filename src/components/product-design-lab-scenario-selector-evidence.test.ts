@@ -18,8 +18,11 @@ import {
   findDesignLabStoryAuditIssues,
 } from "../../scripts/audit-design-lab-user-stories";
 import {
+  getDesignLabSourceChangesBetween,
   getDesignLabSourceFingerprint,
   getRepositoryHeadSha,
+  isRepositoryCommitAncestor,
+  parseDesignLabSourceFiles,
 } from "../../scripts/design-lab-source-fingerprint";
 import { PRODUCTION_SCREEN_INTERACTION_CONTRACTS } from "./screen-contracts/production-screen-coverage";
 import {
@@ -94,21 +97,26 @@ const httpBytes = readFileSync(DESIGN_LAB_STORY_AUDIT_PATH);
 const httpReport = JSON.parse(httpBytes.toString("utf8")) as unknown;
 const hydratedStoryReport = readJson(DESIGN_LAB_HYDRATED_STORY_AUDIT_PATH);
 const wave2Report = readJson(DESIGN_LAB_HYDRATED_WAVE2_AUDIT_PATH);
-const currentBinding = {
-  headSha,
+const currentSourceBinding = {
   sourceSha256: fingerprint.sha256,
   sourceFileCount: fingerprint.fileCount,
 };
 const companionHttpAuditSha256 = sha256(httpBytes);
+const httpBinding = auditBinding(httpReport, "HTTP audit");
+const hydratedStoryBinding = auditBinding(
+  hydratedStoryReport,
+  "hydrated story audit",
+);
+const wave2Binding = auditBinding(wave2Report, "hydrated wave-two audit");
 
 assert.deepEqual(
-  findDesignLabStoryAuditIssues(httpReport, currentBinding),
+  findDesignLabStoryAuditIssues(httpReport, httpBinding),
   [],
   "Canonical Design Lab HTTP evidence is stale or invalid",
 );
 assert.deepEqual(
   findDesignLabHydratedStoryAuditIssues(hydratedStoryReport, {
-    ...currentBinding,
+    ...hydratedStoryBinding,
     companionHttpAuditSha256,
   }),
   [],
@@ -116,7 +124,7 @@ assert.deepEqual(
 );
 assert.deepEqual(
   findDesignLabHydratedWave2AuditIssues(wave2Report, {
-    ...currentBinding,
+    ...wave2Binding,
     companionHttpAuditSha256,
   }),
   [],
@@ -181,4 +189,35 @@ function readJson(filePath: string) {
 
 function sha256(value: Buffer) {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function auditBinding(report: unknown, label: string) {
+  assert.ok(report && typeof report === "object", `${label} must be an object`);
+  const testedCommitSha = Reflect.get(report, "testedCommitSha");
+  assert.match(
+    typeof testedCommitSha === "string" ? testedCommitSha : "",
+    /^[a-f0-9]{40}$/,
+    `${label} tested commit must be a Git SHA`,
+  );
+  assert.equal(
+    isRepositoryCommitAncestor(repositoryRoot, testedCommitSha, headSha),
+    true,
+    `${label} tested commit must be an ancestor of the current HEAD`,
+  );
+  const sourceFiles = parseDesignLabSourceFiles(report);
+  assert.ok(sourceFiles, `${label} must carry a canonical source-files manifest`);
+  assert.deepEqual(
+    getDesignLabSourceChangesBetween(
+      repositoryRoot,
+      testedCommitSha,
+      headSha,
+      sourceFiles,
+    ),
+    [],
+    `${label} fingerprinted source changed after its tested commit`,
+  );
+  return {
+    headSha: testedCommitSha,
+    ...currentSourceBinding,
+  };
 }

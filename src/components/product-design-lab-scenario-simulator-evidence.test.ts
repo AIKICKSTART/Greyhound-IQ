@@ -9,8 +9,11 @@ import {
 } from "../../scripts/audit-design-lab-hydrated-stories";
 import { DESIGN_LAB_STORY_AUDIT_PATH } from "../../scripts/audit-design-lab-user-stories";
 import {
+  getDesignLabSourceChangesBetween,
   getDesignLabSourceFingerprint,
   getRepositoryHeadSha,
+  isRepositoryCommitAncestor,
+  parseDesignLabSourceFiles,
 } from "../../scripts/design-lab-source-fingerprint";
 import {
   DESIGN_LAB_SCENARIO_DIMENSIONS,
@@ -120,9 +123,28 @@ const storyBytes = readFileSync(DESIGN_LAB_STORY_AUDIT_PATH);
 const hydratedReport = JSON.parse(
   readFileSync(DESIGN_LAB_HYDRATED_STORY_AUDIT_PATH, "utf8"),
 ) as unknown;
+const headSha = getRepositoryHeadSha(repositoryRoot);
+const testedCommitSha = readTestedCommitSha(hydratedReport);
+const sourceFiles = parseDesignLabSourceFiles(hydratedReport);
+assert.equal(
+  isRepositoryCommitAncestor(repositoryRoot, testedCommitSha, headSha),
+  true,
+  "Hydrated story audit tested commit must be an ancestor of the current HEAD",
+);
+assert.ok(sourceFiles, "Hydrated story audit must carry a source-files manifest");
+assert.deepEqual(
+  getDesignLabSourceChangesBetween(
+    repositoryRoot,
+    testedCommitSha,
+    headSha,
+    sourceFiles,
+  ),
+  [],
+  "Hydrated story audit fingerprinted source changed after its tested commit",
+);
 assert.deepEqual(
   findDesignLabHydratedStoryAuditIssues(hydratedReport, {
-    headSha: getRepositoryHeadSha(repositoryRoot),
+    headSha: testedCommitSha,
     sourceSha256: fingerprint.sha256,
     sourceFileCount: fingerprint.fileCount,
     companionHttpAuditSha256: createHash("sha256")
@@ -176,4 +198,13 @@ console.log(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readTestedCommitSha(report: unknown) {
+  assert.ok(isRecord(report));
+  assert.match(
+    typeof report.testedCommitSha === "string" ? report.testedCommitSha : "",
+    /^[a-f0-9]{40}$/,
+  );
+  return report.testedCommitSha as string;
 }

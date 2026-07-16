@@ -35,6 +35,7 @@ const TABLES = [
   "Result",
   "FormEntry",
 ] as const;
+const MUTATED_TABLES = TABLES.filter((table) => table !== "Trainer");
 const SOURCE_FILES = [
   "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql",
   "scripts/check-live-provider-ingest-postgres.ts",
@@ -180,7 +181,7 @@ export function validateLiveProviderIngestEvidence(
   >;
   assert.deepEqual(
     statements.map((statement) => statement.table),
-    TABLES,
+    MUTATED_TABLES,
   );
   for (const statement of statements) {
     const observedSql = statement.observedSql as Record<string, unknown>;
@@ -259,7 +260,7 @@ export async function runLiveProviderIngestVerifier(root = process.cwd()) {
     });
     assertTransactionOutcome(committed.queries, "COMMIT");
     const systemContext = capturedSystemContext(committed.queries);
-    const statements = TABLES.map((table) =>
+    const statements = MUTATED_TABLES.map((table) =>
       mutationEvidence(exactTableMutation(committed.queries, table), table),
     );
     const afterCommit = await countFixtureRows(cleanupPrisma);
@@ -388,6 +389,8 @@ function commitMeeting(): LiveMeeting {
             sourceId: "commit-runner",
             boxNumber: 1,
             dog: {
+              sourceProvider: "thedogs",
+              sourceId: "provider-ingest-commit-dog-proof",
               name: "Provider Ingest Commit Dog",
               earBrand: COMMIT_DOG_EAR_BRAND,
               sex: "M",
@@ -423,8 +426,13 @@ function rollbackMeeting(): LiveMeeting {
           {
             sourceProvider: PROVIDER,
             sourceId: "rollback-runner",
-            boxNumber: 1,
-            dog: null,
+            boxNumber: null,
+            dog: {
+              sourceProvider: "thedogs",
+              sourceId: "provider-ingest-rollback-dog-proof",
+              name: "Provider Ingest Rollback Dog",
+              earBrand: ROLLBACK_DOG_EAR_BRAND,
+            },
             trainerName: ROLLBACK_TRAINER,
           },
         ],
@@ -450,7 +458,9 @@ function zeroCounts(): FixtureCounts {
 }
 
 function oneCounts(): FixtureCounts {
-  return Object.fromEntries(TABLES.map((table) => [table, 1])) as FixtureCounts;
+  return Object.fromEntries(
+    TABLES.map((table) => [table, table === "Trainer" ? 0 : 1]),
+  ) as FixtureCounts;
 }
 
 function splitCounts(commit: FixtureCounts, rollback: FixtureCounts) {

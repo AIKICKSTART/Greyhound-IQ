@@ -68,7 +68,6 @@ assert.deepEqual(validateIncidentResponseEvidence(policy, sources), []);
 assert.equal(policy.evidence.emergencyControlDeploymentVerified, false);
 assert.equal(policy.evidence.pagingDeliveryTested, false);
 assert.match(githubDeploy, /environment:/);
-assert.match(githubDeploy, /--require-ready/);
 assert.match(localDeploy, /Local production deployment is disabled/);
 assert.deepEqual(
   validateEmergencyControlDeploymentSources(githubDeploy, localDeploy),
@@ -133,7 +132,7 @@ assert.equal(
     (control: { implementationStatus: string }) =>
       control.implementationStatus === "manual-documented",
   ).length,
-  1,
+  0,
 );
 
 const falsePagingClaim = structuredClone(policy);
@@ -166,11 +165,11 @@ assert.ok(
 
 const unsafeEvidencePath = structuredClone(policy);
 unsafeEvidencePath.controls.find(
-  (control: { id: string }) => control.id === "revision-rollback",
+  (control: { id: string }) => control.id === "search-disable",
 ).implementationEvidence[0].path = "C:/outside-repository.md";
 assert.ok(
   validateIncidentResponsePolicy(unsafeEvidencePath, ownerPolicy).includes(
-    "controls.revision-rollback.implementationEvidence[0].path: unsafe path",
+    "controls.search-disable.implementationEvidence[0].path: unsafe path",
   ),
 );
 

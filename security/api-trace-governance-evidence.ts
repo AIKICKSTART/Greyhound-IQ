@@ -2,6 +2,7 @@ import {
   MANDATORY_PUBLIC_RACING_TRACE_BINDINGS,
   MANDATORY_PUBLIC_RACING_TRACE_MASTER_EVIDENCE,
 } from "./mandatory-public-racing-trace-evidence";
+import { MANDATORY_LISTING_DRAFT_TRACE_MASTER_EVIDENCE } from "./mandatory-listing-draft-trace-evidence";
 
 const API_EVIDENCE = [
   "security/api-trace-governance-evidence.ts",
@@ -90,7 +91,7 @@ export const MANDATORY_ACTION_TRACE_COVERAGE = {
   ),
   "security.trace.23.marketplace-search": routeTrace(
     "src/app/api/listings/route.ts",
-    ["export async function GET", 'q: searchParams.get("q")'],
+    ["export async function GET", "listingApiQuerySchema.parse", "q: query.q"],
   ),
   "security.trace.24.marketplace-open": routeTrace(
     "src/app/api/listings/[id]/route.ts",
@@ -103,6 +104,14 @@ export const MANDATORY_ACTION_TRACE_COVERAGE = {
   "security.trace.26.marketplace-enquire": routeTrace(
     "src/app/api/listings/[id]/enquiry/route.ts",
     ["export async function POST", "requireCurrentUserProfile"],
+  ),
+  "security.trace.27.listing-draft-create": routeTrace(
+    "src/app/actions.ts",
+    [
+      "export async function createListing",
+      'submissionIntent: field(formData, "submissionIntent")',
+      "createListingForCurrentUser(current",
+    ],
   ),
   "security.trace.32.profile-update": routeTrace(
     "src/app/api/users/me/profile/route.ts",
@@ -171,8 +180,6 @@ export const MANDATORY_ACTION_TRACE_COVERAGE = {
 export const MANDATORY_ACTION_TRACE_OPEN_GAPS = {
   "security.trace.17.group-join":
     "No production group-membership model, join mutation, authorization boundary, or bound join control exists.",
-  "security.trace.27.listing-draft-create":
-    "Seller listing creation currently submits a pending-review listing; there is no separate seller-owned draft transition to trace.",
   "security.trace.29.listing-publish":
     "Publishing is a moderator approval transition, not a seller-owned publish operation, so the requested seller trace is absent.",
   "security.trace.34.security-change":
@@ -225,6 +232,7 @@ export const API_TRACE_GOVERNANCE_MASTER_EVIDENCE = {
       },
     ]),
   ),
+  ...MANDATORY_LISTING_DRAFT_TRACE_MASTER_EVIDENCE,
   "security.api-inventory-management.all-apis": {
     status: "verified",
     evidence: API_EVIDENCE,

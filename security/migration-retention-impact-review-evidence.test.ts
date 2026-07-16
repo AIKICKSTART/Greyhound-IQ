@@ -40,14 +40,14 @@ const current = auditMigrationRetentionImpacts(
 
 assert.deepEqual(databaseCompatibilityInventoryDiff(compatibility), []);
 assert.deepEqual(compatibility, DATABASE_COMPATIBILITY_BASELINE);
-assert.equal(sources.length, 97);
+assert.equal(sources.length, 100);
 assert.deepEqual(current.issues, []);
-assert.equal(current.candidates.length, 26);
-assert.equal(REVIEWED_MIGRATION_RETENTION_IMPACTS.length, 26);
+assert.equal(current.candidates.length, 27);
+assert.equal(REVIEWED_MIGRATION_RETENTION_IMPACTS.length, 27);
 assert.equal(
   current.candidates.filter(({ operation }) => operation === "create-column")
     .length,
-  22,
+  23,
 );
 assert.equal(
   current.candidates.filter(({ operation }) => operation === "add-column").length,
@@ -69,7 +69,7 @@ assert.equal(
   REVIEWED_MIGRATION_RETENTION_IMPACTS.filter(
     ({ decision }) => decision === "lifecycle-marker-only",
   ).length,
-  6,
+  7,
 );
 assert.deepEqual(
   [
@@ -225,7 +225,7 @@ assertIssue(
 );
 
 console.log(
-  "Migration retention-impact review passed: 26 retention-semantic column changes across 97 migrations have exact decisions (14 schedule-bound, 6 operational-validity, 6 lifecycle-only).",
+  "Migration retention-impact review passed: 27 retention-semantic column changes across 100 migrations have exact decisions (14 schedule-bound, 6 operational-validity, 7 lifecycle-only).",
 );
 
 function assertIssue(

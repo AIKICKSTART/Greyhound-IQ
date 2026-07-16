@@ -219,16 +219,16 @@ const FEATURE_FLAG_ENVIRONMENT_VARIABLES = [
 
 const INVENTORY_SNAPSHOTS = {
   databaseModels: {
-    count: 107,
-    sha256: "3f321b00faca9d4ec68339094903f94eca2a2b65f3a5fb042cf82a6cbe37b97f",
+    count: 113,
+    sha256: "d93cb59fd5a9b30b7997232151a00c5d7b21a9230a0e18ab99f50f82892ce4d9",
   },
   sourceEnvironmentReferences: {
-    count: 133,
-    sha256: "b8f5857276b16e31b6df5affc5fa8df663d89cc51a4b99135be1d364642d196f",
+    count: 129,
+    sha256: "0151334da98aa8b5692e7f59c46675a2d4ed917b50d06775a601e10fc025d8e1",
   },
   featureFlagReferences: {
-    count: 29,
-    sha256: "71cf191502d23e32057c7f0b73d91d84aaac1afae45ce4732eff4b6bb8a1b6d5",
+    count: 28,
+    sha256: "e85f61c6d6bee0bde4eea554db0ae26ec29a619585f570835fce9580baca4c2d",
   },
   authenticationFlowMembers: {
     count: 205,
@@ -252,7 +252,7 @@ const INVENTORY_SNAPSHOTS = {
   },
   routeCapabilitySources: {
     count: 122,
-    sha256: "febd099183bc8f1a854f80488971da782abdb10ebf14aebead8a772fa798527e",
+    sha256: "f31f6547f09e0767a319d8bc9dd4f2b214315749b05755938b2c143b14f86e14",
   },
 } as const;
 

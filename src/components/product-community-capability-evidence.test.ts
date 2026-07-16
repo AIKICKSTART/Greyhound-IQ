@@ -438,7 +438,7 @@ assertIncludes("scripts/seed-demo-route-fixtures.ts", fixtureSeed, [
   "export function assertDemoTarget(",
   "demo_fixtures.blocked_production_host",
   "remote database project ref mismatch",
-  'sourceProvider === "greyhoundiq-demo"',
+  "demo_fixtures.provider_samples_missing: load approved provider data before private fixtures",
 ]);
 
 console.log(

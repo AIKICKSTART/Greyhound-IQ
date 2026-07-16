@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import {
+  getDesignLabSourceChangesBetween,
   getDesignLabSourceFingerprint,
   getRepositoryHeadSha,
+  isRepositoryCommitAncestor,
 } from "../../scripts/design-lab-source-fingerprint";
 import {
   DEMO_ROUTE_AUDIT_EXPECTED_ROWS,
@@ -95,6 +97,7 @@ type Audit = {
   testedCommitSha: string;
   sourceSha256: string;
   sourceFileCount: number;
+  sourceFiles: string[];
   expected: number;
   passed: number;
   failed: number;
@@ -105,8 +108,21 @@ const audit = JSON.parse(
   readFileSync("output/demo-route-audit/latest.json", "utf8"),
 ) as Audit;
 const fingerprint = getDesignLabSourceFingerprint(process.cwd());
+const headSha = getRepositoryHeadSha(process.cwd());
 assert.equal(audit.schemaVersion, 2);
-assert.equal(audit.testedCommitSha, getRepositoryHeadSha(process.cwd()));
+assert.equal(
+  isRepositoryCommitAncestor(process.cwd(), audit.testedCommitSha, headSha),
+  true,
+);
+assert.deepEqual(
+  getDesignLabSourceChangesBetween(
+    process.cwd(),
+    audit.testedCommitSha,
+    headSha,
+    audit.sourceFiles,
+  ),
+  [],
+);
 assert.equal(audit.sourceSha256, fingerprint.sha256);
 assert.equal(audit.sourceFileCount, fingerprint.fileCount);
 assert.equal(audit.expected, screens.length);

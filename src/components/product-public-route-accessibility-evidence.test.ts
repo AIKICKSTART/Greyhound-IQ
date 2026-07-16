@@ -76,7 +76,7 @@ const publicSourceFiles = [
       .filter((sourceFile) => sourceFile.endsWith(".tsx")),
   ),
 ].toSorted();
-assert.equal(publicSourceFiles.length, 34);
+assert.equal(publicSourceFiles.length, 36);
 
 const issues = publicSourceFiles.flatMap((sourceFile) =>
   findAccessibilityIssues(source(sourceFile), sourceFile),

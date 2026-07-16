@@ -278,10 +278,10 @@ const breakpointCounts = breakpointLinkRecords.reduce<Record<string, number>>(
   {},
 );
 
-assert.equal(breakpointLinkRecords.length, 6);
-assert.equal(sourceLinkCount, 6);
+assert.equal(breakpointLinkRecords.length, 3);
+assert.equal(sourceLinkCount, 3);
 assert.equal(routeCount, 1);
-assert.equal(targetCount, 6);
+assert.equal(targetCount, 3);
 assert.deepEqual(
   [...new Set(breakpointLinkRecords.map(({ sourceRoute }) => sourceRoute))],
   ["/feed"],
@@ -289,16 +289,13 @@ assert.deepEqual(
 assert.deepEqual(
   [...new Set(breakpointLinkRecords.map(({ normalizedTarget }) => normalizedTarget))].sort(),
   [
-    "/account",
-    "/account/notifications",
     "/discover",
     "/pulse",
     "/pulse/__GIQ_DYNAMIC_SEGMENT__",
-    "/races",
   ],
 );
-assert.deepEqual(originCounts, { ancestor: 3, link: 3 });
-assert.deepEqual(breakpointCounts, { lg: 4, md: 2 });
+assert.deepEqual(originCounts, { ancestor: 2, link: 1 });
+assert.deepEqual(breakpointCounts, { lg: 3 });
 
 const validRecord = {
   id: "/fixture:src/app/fixture/page.tsx:10:3:jsx-href:/pricing",
@@ -447,7 +444,7 @@ for (const fixture of negativeFixtures) {
   );
 }
 
-assert.match(PRODUCT_BREAKPOINT_LINK_CRAWL_SCOPE, /all six discovered/iu);
+assert.match(PRODUCT_BREAKPOINT_LINK_CRAWL_SCOPE, /all three discovered/iu);
 assert.match(PRODUCT_BREAKPOINT_LINK_CRAWL_SCOPE, /ancestor class source/iu);
 assert.match(PRODUCT_BREAKPOINT_LINK_CRAWL_SCOPE, /does not prove rendered CSS/iu);
 const evidenceSource = readFileSync(

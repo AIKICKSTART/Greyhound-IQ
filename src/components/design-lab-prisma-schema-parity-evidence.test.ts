@@ -19,7 +19,7 @@ const migrationReplay = JSON.parse(
 ) as Record<string, unknown>;
 const replaySource = migrationReplay.sourceBinding as Record<string, unknown>;
 const replayResult = migrationReplay.replay as Record<string, unknown>;
-assert.equal(current.migrationCount, 97);
+assert.equal(current.migrationCount, 100);
 assert.equal(replaySource.migrationCount, current.migrationCount);
 assert.equal(replaySource.prismaSchemaSha256, current.prismaSchemaSha256);
 assert.equal(replaySource.migrationsSha256, current.migrationsSha256);
@@ -67,10 +67,11 @@ assert.ok(
     "src/components/design-lab-prisma-schema-parity-evidence.test.ts",
   ),
 );
-assert.match(requirement.remainingEvidence, /four current migrations pending/);
+assert.match(requirement.remainingEvidence, /four of the then-current migrations pending/);
+assert.match(requirement.remainingEvidence, /current pending count is stale/);
 assert.match(requirement.remainingEvidence, /records only 90 migrations/);
 assert.match(requirement.remainingEvidence, /must remain partially verified/);
 
 console.log(
-  "Design Lab Prisma parity evidence passed: current 97-migration replay is exact, while the stale 90-migration canonical artifact remains fail-closed",
+  "Design Lab Prisma parity evidence passed: current 100-migration replay is exact, while the stale 90-migration canonical artifact remains fail-closed",
 );

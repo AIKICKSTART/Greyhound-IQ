@@ -344,9 +344,9 @@ const actionRows = registry.interactiveControls.flatMap((record) => {
 });
 const rows = [...linkRows, ...actionRows];
 
-assert.equal(linkRows.length, 2_345);
-assert.equal(actionRows.length, 3_122);
-assert.equal(rows.length, 5_467);
+assert.equal(linkRows.length, 2_242);
+assert.equal(actionRows.length, 3_037);
+assert.equal(rows.length, 5_279);
 assert.equal(new Set(rows.map(({ id }) => id)).size, rows.length);
 assert.deepEqual(findCrawlVisibleLabelIssues(rows), []);
 
@@ -356,7 +356,7 @@ const rowsWithSources = rows.filter(
 const rowsWithRecordedAbsence = rows.filter(
   ({ visibleLabelSources }) => visibleLabelSources.length === 0,
 );
-assert.equal(rowsWithSources.length + rowsWithRecordedAbsence.length, 5_467);
+assert.equal(rowsWithSources.length + rowsWithRecordedAbsence.length, 5_279);
 assert.ok(rowsWithSources.length > 0);
 assert.ok(rowsWithRecordedAbsence.length > 0);
 assert.equal(
@@ -463,7 +463,7 @@ for (const fixture of negativeFixtures) {
   );
 }
 
-assert.match(PRODUCT_CRAWL_VISIBLE_LABEL_SCOPE, /5,467 production-owned/iu);
+assert.match(PRODUCT_CRAWL_VISIBLE_LABEL_SCOPE, /5,279 production-owned/iu);
 assert.match(
   PRODUCT_CRAWL_VISIBLE_LABEL_SCOPE,
   /explicit source-visible absence reason/iu,
@@ -491,21 +491,20 @@ const absenceReasonCounts = rowsWithRecordedAbsence.reduce<
   return counts;
 }, {});
 
-assert.equal(rowsWithSources.length, 3_174);
-assert.equal(rowsWithRecordedAbsence.length, 2_293);
+assert.equal(rowsWithSources.length, 3_008);
+assert.equal(rowsWithRecordedAbsence.length, 2_271);
 assert.deepEqual(sourceKindCounts, {
-  "static-text": 3_317,
-  "label-property": 704,
-  "dynamic-expression": 752,
-  "visible-attribute": 1_763,
+  "static-text": 3_276,
+  "label-property": 618,
+  "dynamic-expression": 692,
+  "visible-attribute": 1_749,
 });
 assert.deepEqual(absenceReasonCounts, {
   "programmatic navigation has no source-visible control": 1_325,
-  "navigation control has no source-visible label": 21,
-  "navigation object has no source-visible label property": 2,
-  "interactive control has no source-visible label": 945,
+  "navigation control has no source-visible label": 19,
+  "interactive control has no source-visible label": 927,
 });
 
 console.log(
-  `Product crawl visible-label evidence passed: ${rowsWithSources.length}/5,467 rows record source-visible label provenance and ${rowsWithRecordedAbsence.length}/5,467 record explicit absence; source kinds ${JSON.stringify(sourceKindCounts)}; absence reasons ${JSON.stringify(absenceReasonCounts)}.`,
+  `Product crawl visible-label evidence passed: ${rowsWithSources.length}/5,279 rows record source-visible label provenance and ${rowsWithRecordedAbsence.length}/5,279 record explicit absence; source kinds ${JSON.stringify(sourceKindCounts)}; absence reasons ${JSON.stringify(absenceReasonCounts)}.`,
 );

@@ -29,8 +29,8 @@ assert.deepEqual(
 assert.deepEqual(current, {
   policyFilesReviewed: 3,
   policyClausesReviewed: 4,
-  migrationDirectoriesReviewed: 97,
-  migrationSqlFilesReviewed: 97,
+  migrationDirectoriesReviewed: 100,
+  migrationSqlFilesReviewed: 100,
   issues: [],
 });
 
@@ -49,7 +49,7 @@ for (const path of evidence.evidence) {
 
 assert.match(MIGRATION_ROLLBACK_STRATEGY, /newly reviewed forward-fix migration/iu);
 assert.match(MIGRATION_ROLLBACK_STRATEGY, /separate operational controls/iu);
-assert.match(MIGRATION_ROLLBACK_STRATEGY_REVIEW_SCOPE, /97-directory history/iu);
+assert.match(MIGRATION_ROLLBACK_STRATEGY_REVIEW_SCOPE, /100-directory history/iu);
 assert.match(MIGRATION_ROLLBACK_STRATEGY_REVIEW_SCOPE, /does not prove/iu);
 assert.match(MIGRATION_ROLLBACK_STRATEGY_REVIEW_SCOPE, /backup or restore/iu);
 
@@ -166,7 +166,7 @@ try {
 }
 
 console.log(
-  "Migration rollback-strategy review passed: 97/97 canonical forward-only migrations, four policy clauses, and fail-closed reverse-artifact/executable-rollback fixtures.",
+  "Migration rollback-strategy review passed: 100/100 canonical forward-only migrations, four policy clauses, and fail-closed reverse-artifact/executable-rollback fixtures.",
 );
 
 function createRepositoryFixture(migrationSql: string) {

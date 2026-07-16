@@ -39,10 +39,10 @@ const promotedIds = Object.keys(
 ) as PromotedId[];
 const evidenceRecords = Object.values(API_TRACE_GOVERNANCE_MASTER_EVIDENCE);
 
-assert.equal(promotedIds.length, 58);
+assert.equal(promotedIds.length, 59);
 assert.equal(
   evidenceRecords.filter((record) => record.status === "verified").length,
-  55,
+  56,
 );
 assert.equal(
   evidenceRecords.filter(
@@ -55,14 +55,16 @@ for (const id of promotedIds) {
   const requirement = MASTER_AUDIT_REQUIREMENTS.find(
     (candidate) => candidate.prompt === "security" && candidate.id === id,
   );
+  const evidence = API_TRACE_GOVERNANCE_MASTER_EVIDENCE[id];
   assert.ok(requirement, `${id} must remain an immutable requirement`);
+  assert.ok(evidence, `${id} must retain API trace governance evidence`);
   assert.deepEqual(
     SECURITY_MASTER_EVIDENCE[id],
-    API_TRACE_GOVERNANCE_MASTER_EVIDENCE[id],
+    evidence,
   );
   assert.equal(isMasterRequirementComplete(requirement), true);
 
-  for (const evidencePath of API_TRACE_GOVERNANCE_MASTER_EVIDENCE[id].evidence) {
+  for (const evidencePath of evidence.evidence) {
     assert.ok(existsSync(evidencePath), `${id}: missing ${evidencePath}`);
   }
 }
@@ -105,8 +107,8 @@ const coveredActionTraceIds = Object.keys(MANDATORY_ACTION_TRACE_COVERAGE);
 const openActionTraceIds = Object.keys(MANDATORY_ACTION_TRACE_OPEN_GAPS);
 
 assert.equal(mandatoryActionTraceIds.length, 32);
-assert.equal(coveredActionTraceIds.length, 27);
-assert.equal(openActionTraceIds.length, 5);
+assert.equal(coveredActionTraceIds.length, 28);
+assert.equal(openActionTraceIds.length, 4);
 assert.deepEqual(
   [...coveredActionTraceIds, ...openActionTraceIds].toSorted(),
   [...mandatoryActionTraceIds].toSorted(),
@@ -123,6 +125,7 @@ for (const [id, coverage] of Object.entries(MANDATORY_ACTION_TRACE_COVERAGE)) {
     API_TRACE_GOVERNANCE_MASTER_EVIDENCE[
       id as keyof typeof API_TRACE_GOVERNANCE_MASTER_EVIDENCE
     ];
+  assert.ok(evidence, `${id}: missing API trace governance evidence`);
   assert.equal(evidence.status, "verified");
   const evidencePaths: readonly string[] = evidence.evidence;
   assert.ok(evidencePaths.includes(coverage.sourceFile));
@@ -156,7 +159,7 @@ for (const [id, gap] of Object.entries(MANDATORY_ACTION_TRACE_OPEN_GAPS)) {
 const discoveredHttp = discoverRouteHandlers(repositoryRoot);
 const discoveredActions = discoverServerActions(repositoryRoot);
 assert.equal(discoveredHttp.length, 106);
-assert.equal(discoveredActions.length, 79);
+assert.equal(discoveredActions.length, 81);
 assert.equal(ENDPOINTS.length, discoveredHttp.length + discoveredActions.length);
 assert.deepEqual(
   ENDPOINTS.map(
@@ -211,12 +214,12 @@ assert.deepEqual(
 );
 assert.equal(DATABASE_OPERATIONS.length, 27);
 
-assert.equal(AUDIT_EVENTS.length, 22);
+assert.equal(AUDIT_EVENTS.length, 24);
 assert.equal(
   AUDIT_EVENTS.reduce((total, event) => total + event.traceIds.length, 0),
-  10,
+  12,
 );
-assert.equal(AUDIT_EVENTS.filter((event) => event.traceIds.length > 0).length, 9);
+assert.equal(AUDIT_EVENTS.filter((event) => event.traceIds.length > 0).length, 11);
 assert.ok(
   AUDIT_EVENTS.every(
     (event) =>

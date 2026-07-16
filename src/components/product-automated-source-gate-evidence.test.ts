@@ -95,7 +95,7 @@ assert.deepEqual(
 assert.ok(registry.auditedSourceFiles.length >= 400);
 assert.ok(registry.routePatterns.length >= SCREEN_CONTRACTS.length);
 
-assert.ok(registry.internalLinks.length >= 446);
+assert.ok(registry.internalLinks.length >= 419);
 assert.deepEqual(registry.internalLinkIssues, []);
 for (const link of registry.internalLinks) {
   assert.ok(link.sourceLine > 0, link.id);

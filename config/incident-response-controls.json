@@ -217,18 +217,13 @@
     {
       "id": "revision-rollback",
       "title": "Cloud Run revision rollback",
-      "implementationStatus": "manual-documented",
-      "deploymentStatus": "unverified",
+      "implementationStatus": "unimplemented",
+      "deploymentStatus": "not-deployed",
       "ownerRole": "platform-sre-on-call",
       "fallbackOwnerRole": "incident-commander",
-      "activationMethod": "After approval, manually shift traffic to an immutable last-known-good revision using the documented procedure.",
-      "rollbackMethod": "Restore the candidate progressively only after external smoke, telemetry and data validation.",
-      "implementationEvidence": [
-        {
-          "path": "docs/gcp-cloud-run-migration-plan.md",
-          "needle": "--to-revisions LAST_KNOWN_GOOD_REVISION=100"
-        }
-      ],
+      "activationMethod": "No approved production revision-rollback procedure exists for the selected Australia production architecture.",
+      "rollbackMethod": "Not available; immutable revision selection, approval, traffic restoration and validation must be implemented and exercised before launch.",
+      "implementationEvidence": [],
       "auditEventStatus": "unverified",
       "testStatus": "unverified"
     },

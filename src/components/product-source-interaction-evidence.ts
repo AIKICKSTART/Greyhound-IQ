@@ -62,8 +62,8 @@ export const PRODUCT_SOURCE_INTERACTION_INVENTORY_SNAPSHOTS =
     },
     "DISC.SRC.footer-navigation": {
       state: "present",
-      count: 1,
-      sha256: "236dd55d570139264b2b3b75a405e281aabda6d7e8f46b8ce6feb39fdf73a708",
+      count: 2,
+      sha256: "45b93aa273a695d839689c30ad424086b5ffa58a9b3c6b3989bdc442923fa24c",
     },
     "DISC.SRC.account-navigation": {
       state: "present",
@@ -122,13 +122,13 @@ export const PRODUCT_SOURCE_INTERACTION_INVENTORY_SNAPSHOTS =
     },
     "DISC.SRC.dialogs": {
       state: "present",
-      count: 1,
-      sha256: "48665101cc83e0b7a67a368c2098d809aab0e983fe0a0001027028efa6d84823",
+      count: 6,
+      sha256: "ee5d31a1d11700e1f8e1e8b8993d54b09e5e8c8438250ab500a1923cac85be77",
     },
     "DISC.SRC.drawers": {
       state: "present",
-      count: 11,
-      sha256: "a9ab7734a713bd7942a72171209bdf8bf0e31421c264939362fc7c901843eb63",
+      count: 9,
+      sha256: "eb224dc6c37f7020524704726678f63934c37c5de76281d1873d0df1138c902e",
     },
     "DISC.SRC.popovers": {
       state: "absent",
@@ -147,13 +147,13 @@ export const PRODUCT_SOURCE_INTERACTION_INVENTORY_SNAPSHOTS =
     },
     "DISC.SRC.empty-state-actions": {
       state: "present",
-      count: 47,
-      sha256: "16cb156f86654d91bb05ce1357aad87242c2db8b864712411ffc5095c04aebef",
+      count: 48,
+      sha256: "44a27b0e86cfb6f794acbc545e0c4056fea2a63ee5f8e96f69820586cf5f1e2e",
     },
     "DISC.SRC.error-state-actions": {
       state: "present",
-      count: 40,
-      sha256: "7e3eaff234d1adf2a44e5eda8902a429398f80c555e25b260f197e5dcc13c632",
+      count: 44,
+      sha256: "d3953b1f5620ac5649906d91d8bf69f09165b6143dca116d10fed61097d27bd4",
     },
     "DISC.SRC.invitation-links": {
       state: "present",
@@ -172,8 +172,8 @@ export const PRODUCT_SOURCE_INTERACTION_INVENTORY_SNAPSHOTS =
     },
     "DISC.SRC.deep-links": {
       state: "present",
-      count: 101,
-      sha256: "eb18e951083fda434379d73a0073ec5dc9c98d88b00222a3199614ce1edfdcdb",
+      count: 102,
+      sha256: "7457647b0fe2962037a01f9f829b2f66fd7cc23e853243b4168ed3730282815d",
     },
     "DISC.SRC.role-gated-routes": {
       state: "present",

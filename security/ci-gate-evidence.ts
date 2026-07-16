@@ -393,7 +393,7 @@ export function findSecurityCiWiringIssues({
   }
   if (
     manifest.scripts?.["check:terraform-source"] !==
-      "node infra/terraform/contract.test.mjs && node infra/terraform/private-datastore-policy.test.mjs" ||
+      "node infra/terraform/contract.test.mjs && node infra/terraform/private-datastore-policy.test.mjs && node infra/terraform-production/contract.test.mjs" ||
     !/npm run check:terraform-source/.test(workflow)
   ) {
     issues.push("PRIVATE_DATASTORE_EXPOSURE_GATE_MISSING");

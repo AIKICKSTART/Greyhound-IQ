@@ -171,7 +171,10 @@ const callbackSource = readFileSync("src/app/callback/route.ts", "utf8");
 assert.match(callbackSource, /export const GET = handleAuth/);
 assert.match(callbackSource, /baseURL: resolveWorkosBaseUrl\(\)/);
 assert.match(callbackSource, /onSuccess: async \(\{ user \}\)/);
-assert.match(callbackSource, /await syncAuthUser\(user\)/);
+assert.match(
+  callbackSource,
+  /await syncAuthUser\(user, \{ auditAuthenticationSuccess: true \}\)/,
+);
 assert.match(callbackSource, /throw new Error\("auth\.local_acceptance_failed"\)/);
 assert.match(callbackSource, /onError:/);
 assert.match(callbackSource, /new URL\("\/auth\/error", baseUrl\)/);

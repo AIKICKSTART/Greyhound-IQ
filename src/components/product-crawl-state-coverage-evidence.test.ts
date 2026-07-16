@@ -74,7 +74,7 @@ const records = registry.internalLinks.flatMap((link) =>
 );
 const expectedObservationIds = records.map(({ id }) => id);
 
-assert.equal(records.length, 2_292);
+assert.equal(records.length, 2_242);
 assert.equal(new Set(expectedObservationIds).size, records.length);
 assert.deepEqual(
   findProductCrawlStateCoverageIssues(records, expectedObservationIds),
@@ -89,7 +89,7 @@ assert.deepEqual(
 );
 assert.equal(
   new Set(records.map(({ matchedRoutePattern }) => matchedRoutePattern)).size,
-  80,
+  78,
 );
 
 const screenRecords = records.filter(({ destinationKind }) => destinationKind === "screen");
@@ -99,10 +99,10 @@ const routeHandlerRecords = records.filter(
 const completeRecords = records.filter(({ complete }) => complete);
 const incompleteRecords = records.filter(({ complete }) => !complete);
 
-assert.equal(screenRecords.length, 2_244);
+assert.equal(screenRecords.length, 2_194);
 assert.equal(routeHandlerRecords.length, 48);
-assert.equal(completeRecords.length, 33);
-assert.equal(incompleteRecords.length, 2_259);
+assert.equal(completeRecords.length, 28);
+assert.equal(incompleteRecords.length, 2_214);
 assert.deepEqual(
   [...new Set(completeRecords.map(({ matchedRoutePattern }) => matchedRoutePattern))].sort(),
   ["/", "/races", "/races/[id]"],
@@ -204,9 +204,9 @@ assert.ok(
   issueCodes([validCompleteRecord], []).includes("UNEXPECTED_OBSERVATION"),
 );
 
-assert.match(PRODUCT_CRAWL_STATE_COVERAGE_SCOPE, /all 2,292/i);
-assert.match(PRODUCT_CRAWL_STATE_COVERAGE_SCOPE, /Thirty-three observations/i);
-assert.match(PRODUCT_CRAWL_STATE_COVERAGE_SCOPE, /other 2,259/i);
+assert.match(PRODUCT_CRAWL_STATE_COVERAGE_SCOPE, /all 2,242/i);
+assert.match(PRODUCT_CRAWL_STATE_COVERAGE_SCOPE, /Twenty-eight observations/i);
+assert.match(PRODUCT_CRAWL_STATE_COVERAGE_SCOPE, /other 2,214/i);
 assert.match(PRODUCT_CRAWL_STATE_COVERAGE_SCOPE, /48 non-screen Route Handler/i);
 assert.match(PRODUCT_CRAWL_STATE_COVERAGE_SCOPE, /explicit canonical ID suffixes only/i);
 assert.match(PRODUCT_CRAWL_STATE_COVERAGE_SCOPE, /does not claim that incomplete destinations are complete/i);

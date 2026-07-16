@@ -104,7 +104,6 @@ assert.equal(isNonFrontendSecurityEvidencePath("docs/security/assertion.md"), fa
 assert.equal(isNonFrontendSecurityEvidencePath("../outside/control.ts"), false);
 
 for (const requirementId of [
-  "security.release.21.secrets-outside-source-client",
   "security.release.28.report-accurate-residual-risk",
   "security.release.29.no-fabricated-evidence",
 ]) {

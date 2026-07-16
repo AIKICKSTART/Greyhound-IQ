@@ -40,7 +40,8 @@ export const SSRF_CONTROL_BINDINGS = [
     'redirect: "manual"',
   ]),
   binding("dog-card source media", "src/lib/dog-card-service.ts", [
-    "downloadStorageObject",
+    "objectStorage.streamObject({",
+    "isObjectStorageBucket(source.storageBucket)",
     "resolveBundledDogCardPhotoPath",
     "MAX_DOG_CARD_SOURCE_BYTES",
     'redirect: "manual"',

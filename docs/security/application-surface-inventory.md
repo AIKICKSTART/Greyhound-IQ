@@ -15,7 +15,7 @@ A completed category proves only exhaustive source-static discovery inside its n
 | Open | 0 |
 | Total immutable requirements | 45 |
 
-The tested inventories bind 97 page routes, 106 route-handler methods, 79 server actions and 7 unique scheduled internal destinations.
+The tested inventories bind 97 page routes, 106 route-handler methods, 81 server actions and 7 unique scheduled internal destinations.
 
 ## Requirement decisions
 
@@ -27,7 +27,7 @@ The tested inventories bind 97 page routes, 106 route-handler methods, 79 server
 | `security.architecture-application-surface.administration-route` | Verified | 32 | Every registered administrator page route. Administrator server actions remain separately covered by server-action discovery. |
 | `security.architecture-application-surface.api-route` | Verified | 104 | Every exported HTTP method below /api/. |
 | `security.architecture-application-surface.route-handler` | Verified | 106 | Every exported HTTP method in src/app/**/route.ts, including non-API authentication handlers. |
-| `security.architecture-application-surface.server-action` | Verified | 79 | Every exported or inline Next.js server action discovered outside route-handler folders. |
+| `security.architecture-application-surface.server-action` | Verified | 81 | Every exported or inline Next.js server action discovered outside route-handler folders. |
 | `security.architecture-application-surface.rpc` | Verified | 2 | Every outbound Supabase RPC callsite in production application source. Database routine definitions are inventoried separately; runtime provider parity remains unverified. |
 | `security.architecture-application-surface.graphql-query` | Not applicable with justification | 0 | No GraphQL runtime dependency, handler, or application endpoint exists in the tested source inventory. |
 | `security.architecture-application-surface.graphql-mutation` | Not applicable with justification | 0 | No GraphQL runtime dependency, handler, or application endpoint exists in the tested source inventory. |
@@ -50,10 +50,10 @@ The tested inventories bind 97 page routes, 106 route-handler methods, 79 server
 | `security.architecture-application-surface.queue-publisher` | Verified | 10 | Every durable database queue, outbox, notification, and webhook-event create/createMany/upsert operation in production application source. |
 | `security.architecture-application-surface.queue-consumer` | Verified | 6 | Every source-implemented durable database queue/event consumer entry function. UsageEvent and UsageOutbox remain explicitly unwired implementation gaps, not undiscovered consumers. |
 | `security.architecture-application-surface.worker` | Verified | 17 | Every exported background maintenance, cleanup, sync, or batch-worker entry function in src/lib. Runtime scheduling and deployment wiring remain separately gated. |
-| `security.architecture-application-surface.database-trigger` | Verified | 15 | Every active PostgreSQL trigger after ordered CREATE/DROP replay of the tracked Prisma migration set. |
-| `security.architecture-application-surface.database-function` | Verified | 57 | Every PostgreSQL function or procedure defined by tracked Prisma migrations and reviewed Supabase policy SQL, with application, migration-temporary, and Supabase Realtime database scopes kept distinct. |
+| `security.architecture-application-surface.database-trigger` | Verified | 21 | Every active PostgreSQL trigger after ordered CREATE/DROP replay of the tracked Prisma migration set. |
+| `security.architecture-application-surface.database-function` | Verified | 60 | Every PostgreSQL function or procedure defined by tracked Prisma migrations and reviewed Supabase policy SQL, with application, migration-temporary, and Supabase Realtime database scopes kept distinct. |
 | `security.architecture-application-surface.search-index` | Verified | 87 | Every tracked PostgreSQL full-text, trigram, prefix, ListingSearchIndex, and aggregate materialized-index operation in application, migration, seed, and benchmark sources. No external search runtime is declared. |
-| `security.architecture-application-surface.cache` | Verified | 264 | Every tracked process-cache call, Next cache invalidation/directive, route cache mode, fetch cache mode, and HTTP/browser Cache-Control operation. Deployed CDN configuration remains a separate runtime gate. |
+| `security.architecture-application-surface.cache` | Verified | 275 | Every tracked process-cache call, Next cache invalidation/directive, route cache mode, fetch cache mode, and HTTP/browser Cache-Control operation. Deployed CDN configuration remains a separate runtime gate. |
 | `security.architecture-application-surface.ai-tool` | Verified | 7 | Agent execution, history, cancellation, and AI image-generation entry points. |
 | `security.architecture-application-surface.admin-cli` | Verified | 73 | Every package-exposed or directly executable script with source-static database, cloud, container, storage, worker, or HTTP state-change signals. Authorization and runtime side effects remain separately gated. |
 | `security.architecture-application-surface.design-lab-simulation` | Verified | 4 | Every registered page in the Design Lab route tree; simulations reuse these product pages with isolated fixtures rather than dedicated HTTP endpoints. |

@@ -345,7 +345,7 @@ function assertDatabaseControls() {
     "all six runtime-role privilege probes must be denied",
   );
 
-  assert.equal(DATABASE_OPERATIONS.length, 26);
+  assert.equal(DATABASE_OPERATIONS.length, 27);
   assert.ok(DATABASE_OPERATIONS.some((operation) => operation.ownershipPredicate));
   assert.ok(
     DATABASE_OPERATIONS.every(
@@ -437,7 +437,7 @@ function assertDatabaseControls() {
   }
   for (const indexName of [
     "Message_senderId_idx",
-    "MediaAsset_uploaderId_createdAt_idx",
+    "MediaAsset_uploaderId_sha256_idx",
     "giq_realtime_topic_grants_pkey",
   ]) {
     assert.equal(indexNames.has(indexName), true, `${indexName}: plan evidence missing`);

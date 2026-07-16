@@ -173,10 +173,10 @@ const actionRows = registry.interactiveControls.flatMap((record) =>
 );
 const provenanceRows = [...linkRows, ...actionRows];
 
-assert.equal(linkRows.length, 2_345);
-assert.equal(actionRows.length, 3_122);
-assert.equal(provenanceRows.length, 5_467);
-assert.equal(new Set(provenanceRows.map(({ id }) => id)).size, 5_467);
+assert.equal(linkRows.length, 2_242);
+assert.equal(actionRows.length, 3_037);
+assert.equal(provenanceRows.length, 5_279);
+assert.equal(new Set(provenanceRows.map(({ id }) => id)).size, 5_279);
 assert.deepEqual(findSourceCrawlProvenanceIssues(provenanceRows), []);
 
 const routesWithDiscoveries = new Set(
@@ -249,7 +249,7 @@ for (const fixture of negativeFixtures) {
   );
 }
 
-assert.match(PRODUCT_SOURCE_CRAWL_PROVENANCE_SCOPE, /5,467 production-owned discovery rows/i);
+assert.match(PRODUCT_SOURCE_CRAWL_PROVENANCE_SCOPE, /5,279 production-owned discovery rows/i);
 assert.match(PRODUCT_SOURCE_CRAWL_PROVENANCE_SCOPE, /89 production routes/i);
 assert.match(PRODUCT_SOURCE_CRAWL_PROVENANCE_SCOPE, /\/statistics route contains no discovered/i);
 assert.match(PRODUCT_SOURCE_CRAWL_PROVENANCE_SCOPE, /nearest enclosing named source symbol/i);
@@ -263,5 +263,5 @@ assert.doesNotMatch(evidenceSource, /from ["']node:/);
 assert.doesNotMatch(evidenceSource, /\breadFileSync\b|\bprocess\.cwd\b/);
 
 console.log(
-  "Product source-crawl provenance evidence passed: 5,467 production-owned link/action rows record source route and nearest source symbol; exact +2 gates.",
+  "Product source-crawl provenance evidence passed: 5,279 production-owned link/action rows record source route and nearest source symbol; exact +2 gates.",
 );

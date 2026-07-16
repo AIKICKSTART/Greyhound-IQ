@@ -120,10 +120,12 @@ export const SCHEDULED_TASK_SOURCE_INVENTORY = [
       evidence("src/lib/live/dog-profile-sync.ts", [
         "lastProfileSyncedAt: null",
         "take: Math.min(Math.max(1, Math.trunc(limit)), MAX_LIMIT)",
-        "tx.dog.upsert({",
+        "occurrenceRetryAlreadyCompleted(tx, dogId, profile, occurrence)",
+        "tx.dogProfileObservation.create({",
+        "tx.dogProfileMergeLedger.create({",
       ]),
     ],
-    "Replay the capped unsynchronised-dog selector; saved profiles leave the pending set and parent dogs upsert.",
+    "Replay the capped unsynchronised-dog selector; completed occurrence ledgers short-circuit retries and accepted canonical fields only fill missing values.",
   ),
   task(
     "listing-expiry",

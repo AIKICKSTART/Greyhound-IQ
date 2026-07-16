@@ -204,7 +204,11 @@ test("archiver retries transient failures, archives verified raw evidence, then 
       }) as typeof fetch,
     });
     assert.equal(requests, 2);
-    assert.equal(result.archived, 1);
+    assert.equal(
+      result.archived,
+      1,
+      `unexpected retry outcome: ${JSON.stringify(result)} ${await readFile(ledger, "utf8")}`,
+    );
     const outcome = JSON.parse((await readFile(ledger, "utf8")).trim());
     assert.equal(outcome.outcome, "archived-unverified");
     assert.equal(outcome.attempts, 2);

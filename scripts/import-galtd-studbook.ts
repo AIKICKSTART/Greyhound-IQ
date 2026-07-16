@@ -1,378 +1,873 @@
 /**
- * Import the Greyhounds Australasia (GALTD) Stud Book into the Dog pedigree graph.
+ * Strict, database-free audit of official Greyhounds Australasia stud books.
  *
- * Source: free public PDFs at https://galtd.org.au/participant-services/studbook/studbook-download/
- * Each volume lists one year of registrations in a hierarchical sire -> dam -> progeny layout,
- * and every named dog carries a `by Sire-Dam` clause. Parsing that gives us the pedigree links.
+ * This command never imports or links dogs. It records immutable PDF/text
+ * fingerprints and page/line provenance, rejects ambiguous source observations,
+ * and leaves canonical identity resolution to the reviewed merge workflow.
  *
  * Usage:
- *   npx tsx scripts/import-galtd-studbook.ts --file <vol.pdf|vol.txt> --vol 73 --dry-run
- *   npx tsx scripts/import-galtd-studbook.ts --file <vol.pdf> --vol 73
+ *   npx tsx scripts/import-galtd-studbook.ts --file <vol.pdf|vol.txt>
+ *   npx tsx scripts/import-galtd-studbook.ts --dir <folder> --expected-volumes 66-73
  *
- * .pdf input requires poppler's `pdftotext` on PATH (operator/backfill machine). Pass a
- * pre-extracted `.txt` (from `pdftotext -layout`) to skip that dependency.
- *
- * ponytail: identity is name-slug within the `galtd` namespace. Greyhound names are unique
- * within a long window under GA rules, so name-collision across eras is rare and accepted here.
- * Reconciling galtd dogs against existing `thedogs` dogs (by name + whelp year) is a separate pass.
+ * PDF input requires `pdftotext` (Poppler). Set PDFTOTEXT_PATH or pass
+ * `--pdftotext <executable>` when it is not on PATH.
  */
 import { spawnSync } from "node:child_process";
-import { readFileSync, readdirSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
-import "./load-import-env";
-import { prisma } from "../src/lib/db";
+import { createHash } from "node:crypto";
+import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { basename, extname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const SOURCE = "galtd";
-
+const PARSER_VERSION = "galtd-studbook-audit-v1";
+const UNKNOWN_SIRE = Symbol("unknown-sire");
+const MONTH_PATTERN = "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec";
 const MONTHS: Record<string, number> = {
-  Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6,
-  Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12,
+  Jan: 1,
+  Feb: 2,
+  Mar: 3,
+  Apr: 4,
+  May: 5,
+  Jun: 6,
+  Jul: 7,
+  Aug: 8,
+  Sep: 9,
+  Oct: 10,
+  Nov: 11,
+  Dec: 12,
 };
 
-interface DogRecord {
-  slug: string;
-  name: string;
+export type EvidenceLocation = {
+  sourcePage?: number;
+  sourceLine?: number;
+  artifactOffsetLine: number;
+  evidenceSha256: string;
+};
+
+export type DogObservation = EvidenceLocation & {
+  sourceId: string;
+  sourceName: string;
+  normalizedName: string;
+  registryToken?: string;
+  imported: boolean;
+  dna: boolean;
   sex?: "M" | "F";
   colour?: string;
   whelpDate?: Date;
-  owner?: string;
-  firstVol?: number;
-  dna?: boolean;
   sireName?: string;
   damName?: string;
-  raw: string;
-}
+  sireEvidence?: EvidenceLocation;
+  damEvidence?: EvidenceLocation;
+};
 
-interface ParseResult {
-  dogs: Map<string, DogRecord>;
-  namedLitters: number;
+export type ParseIssue = {
+  code: string;
+  message: string;
+  sourcePage?: number;
+  sourceLine?: number;
+  artifactOffsetLine?: number;
+  relatedSourceIds?: string[];
+  relatedEvidenceSha256?: string[];
+};
+
+export type StudBookParseResult = {
+  observations: DogObservation[];
+  namedPuppies: number;
   unnamedLitters: number;
-  linkedParents: number;
+  assertions: number;
+  importedEntries: number;
+  entryPages: number;
+  issues: ParseIssue[];
+};
+
+type Artifact = {
+  file: string;
+  name: string;
+  volume: number;
+  bytes: number;
+  sha256: string;
+  text: string;
+};
+
+type ParsedEntry = {
+  isSire: boolean;
+  name: string;
+  registryToken?: string;
+  imported: boolean;
+  dna: boolean;
+  colour: string;
+  sex: "M" | "F";
+  whelpDate?: Date;
+  tail: string;
+};
+
+type ParentPair = { sireName: string; damName: string };
+
+const entryTailPattern = new RegExp(
+  `^(\\s*)(.+?)\\s+([A-Z/]{1,8}),\\s+(${MONTH_PATTERN})\\s+(\\d{1,4})(.*)$`,
+  "u",
+);
+const puppyPattern = new RegExp(
+  `^(\\s{5,})(\\S.*?)\\s+([a-z]{1,8})\\s+([db]),\\s+(${MONTH_PATTERN})\\s+(\\d{4});\\s*(.*)$`,
+  "u",
+);
+const unnamedLitterPattern = new RegExp(
+  `^\\s{5,}(?:(?:\\d+\\s+dogs?\\([^)]*\\))(?:\\s+(?:\\d+\\s+bitch(?:es)?\\([^)]*\\)))?|(?:\\d+\\s+bitch(?:es)?\\([^)]*\\))),\\s+(${MONTH_PATTERN})\\s+\\d{4}\\s*$`,
+  "iu",
+);
+const datedCandidatePattern = new RegExp(
+  `\\b(${MONTH_PATTERN})\\s+\\d{1,4}\\b`,
+  "u",
+);
+const puppyCandidatePattern = new RegExp(
+  `\\b(${MONTH_PATTERN})\\s+\\d{4};`,
+  "u",
+);
+const entryCandidatePattern = new RegExp(
+  `\\b[A-Z/]{1,8},\\s+(?:${MONTH_PATTERN})\\s+\\d{1,4}\\b`,
+  "u",
+);
+
+function sha256(value: string | Buffer): string {
+  return createHash("sha256").update(value).digest("hex");
 }
 
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/['’.]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+function normalizeName(value: string): string {
+  return value
+    .normalize("NFKC")
+    .replace(/[’]/gu, "'")
+    .replace(/\s*\((?:eire|old|imp)\)\s*$/iu, "")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .toLocaleLowerCase("en-AU");
 }
 
-function toWhelpDate(mon: string, year: string): Date | undefined {
-  const m = MONTHS[mon];
-  if (!m) return undefined;
-  return new Date(Date.UTC(Number(year), m - 1, 1));
+function cleanName(value: string): string {
+  return value.normalize("NFKC").replace(/\s+/gu, " ").trim();
 }
 
-/** Pull `by Sire-Dam` from a tail/continuation string. Splits on the first hyphen. */
-function parseParents(text: string): { sireName?: string; damName?: string } {
-  const m = text.match(/\bby\s+(.+?)-(.+?)\s*$/);
-  if (!m) return {};
-  const sireName = m[1].trim();
-  const damName = m[2].replace(/\s*\(.*$/, "").trim(); // drop trailing group flags etc.
-  if (!sireName || !damName) return {};
-  return { sireName, damName };
+function isSireName(value: string): boolean {
+  const letters = value.replace(/[^\p{L}]/gu, "");
+  return Boolean(letters) && letters === letters.toLocaleUpperCase("en-AU");
 }
 
-/** First balanced parenthetical after the whelp year is the owner. */
-function parseOwner(tail: string): string | undefined {
-  const m = tail.match(/\(([^()]*(?:\([^()]*\)[^()]*)*)\)/);
-  if (!m) return undefined;
-  const owner = m[1].trim();
-  if (!owner || /^DNA$/i.test(owner) || /^\d+$/.test(owner)) return undefined;
-  return owner;
-}
-
-// A sire/dam entry: `Name (DNA)? (vol) COLOUR, Mon Year ...tail`
-const ENTRY_RE =
-  /^(\s*)(\S.*?)\s+(?:\(DNA\)\s+)?\((\d+)\)\s+([A-Z]+),\s+([A-Z][a-z]{2})\s+(\d{4})(.*)$/;
-// A named puppy: `Name colour d|b, Mon Year; Owner`
-const PUPPY_RE =
-  /^(\s{6,})(\S.*?)\s+([a-z]{1,6})\s+([db]),\s+([A-Z][a-z]{2})\s+(\d{4});\s*(.*)$/;
-// An unnamed litter summary: `N dogs(...) M bitches(...), Mon Year`
-const UNNAMED_RE = /^\s{6,}\d+\s+dogs?\(/i;
-// A continuation line carrying `by Sire-Dam`
-const BY_CONT_RE = /^\s+by\s+\S.*-\S.*$/;
-
-function mergeRecord(map: Map<string, DogRecord>, rec: DogRecord): DogRecord {
-  const existing = map.get(rec.slug);
-  if (!existing) {
-    map.set(rec.slug, rec);
-    return rec;
+function toWhelpDate(month: string, year: string): Date | undefined {
+  const monthNumber = MONTHS[month];
+  const yearNumber = Number(year);
+  if (
+    !monthNumber ||
+    !Number.isInteger(yearNumber) ||
+    yearNumber < 1900 ||
+    yearNumber > 2100
+  ) {
+    return undefined;
   }
-  // Prefer non-empty fields; keep earliest firstVol.
-  existing.sex ??= rec.sex;
-  existing.colour ??= rec.colour;
-  existing.whelpDate ??= rec.whelpDate;
-  existing.owner ??= rec.owner;
-  existing.dna ||= rec.dna;
-  existing.sireName ??= rec.sireName;
-  existing.damName ??= rec.damName;
-  if (rec.firstVol && (!existing.firstVol || rec.firstVol < existing.firstVol)) {
-    existing.firstVol = rec.firstVol;
-  }
-  return existing;
+  return new Date(Date.UTC(yearNumber, monthNumber - 1, 1));
 }
 
-function parseStudBook(text: string): ParseResult {
-  const lines = text.split(/\r?\n/);
-  const dogs = new Map<string, DogRecord>();
-  let namedLitters = 0;
+function popTrailingParenthetical(value: string) {
+  const trimmed = value.trimEnd();
+  if (!trimmed.endsWith(")")) return undefined;
+  let depth = 0;
+  for (let index = trimmed.length - 1; index >= 0; index -= 1) {
+    const character = trimmed[index];
+    if (character === ")") depth += 1;
+    if (character !== "(") continue;
+    depth -= 1;
+    if (depth === 0) {
+      return {
+        before: trimmed.slice(0, index).trimEnd(),
+        value: trimmed.slice(index + 1, -1).trim(),
+      };
+    }
+  }
+  return undefined;
+}
+
+function parseEntry(line: string): ParsedEntry | undefined {
+  const matched = line.match(entryTailPattern);
+  if (!matched) return undefined;
+  const [, , metadata, colour, month, year, tail] = matched;
+  let nameAndMarkers = metadata;
+  let registryToken: string | undefined;
+  let dna = false;
+  let imported = false;
+  for (;;) {
+    const marker = popTrailingParenthetical(nameAndMarkers);
+    if (!marker) break;
+    if (/^DNA$/iu.test(marker.value)) {
+      dna = true;
+      nameAndMarkers = marker.before;
+      continue;
+    }
+    if (/^Imp$/iu.test(marker.value)) {
+      imported = true;
+      nameAndMarkers = marker.before;
+      continue;
+    }
+    if (!registryToken && /^[\p{L}\p{N} .()/-]+$/u.test(marker.value)) {
+      registryToken = cleanName(marker.value);
+      nameAndMarkers = marker.before;
+      continue;
+    }
+    break;
+  }
+
+  const name = cleanName(nameAndMarkers);
+  const whelpDate = toWhelpDate(month, year);
+  if (!name) return undefined;
+  return {
+    isSire: isSireName(name),
+    name,
+    registryToken,
+    imported,
+    dna,
+    colour,
+    sex: isSireName(name) ? "M" : "F",
+    whelpDate,
+    tail,
+  };
+}
+
+function parseParents(value: string): ParentPair | undefined {
+  const trimmed = value.trim();
+  const lower = trimmed.toLocaleLowerCase("en-AU");
+  const markers: number[] = lower.startsWith("by ") ? [0] : [];
+  let depth = 0;
+  for (let index = 0; index < lower.length - 3; index += 1) {
+    if (lower[index] === "(") depth += 1;
+    if (lower[index] === ")") depth = Math.max(0, depth - 1);
+    if (depth === 0 && lower.slice(index, index + 4) === " by ") {
+      markers.push(index + 1);
+    }
+  }
+  for (const marker of markers) {
+    const clause = trimmed
+      .slice(marker + 3)
+      .replace(/[–—]/gu, "-")
+      .trim();
+    const separator = clause.indexOf("-");
+    if (separator <= 0 || separator !== clause.lastIndexOf("-")) continue;
+    const sireName = cleanName(clause.slice(0, separator));
+    const damName = cleanName(clause.slice(separator + 1));
+    if (sireName && damName) return { sireName, damName };
+  }
+  const lastClosingParenthesis = lower.lastIndexOf(")");
+  const fallback = lower.indexOf(" by ", lastClosingParenthesis + 1);
+  if (fallback >= 0) {
+    const clause = trimmed
+      .slice(fallback + 4)
+      .replace(/[–—]/gu, "-")
+      .trim();
+    const separator = clause.indexOf("-");
+    if (separator > 0 && separator === clause.lastIndexOf("-")) {
+      const sireName = cleanName(clause.slice(0, separator));
+      const damName = cleanName(clause.slice(separator + 1));
+      if (sireName && damName) return { sireName, damName };
+    }
+  }
+  return undefined;
+}
+
+function printedPageNumber(page: string): number | undefined {
+  const candidates = page
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+  for (const line of candidates) {
+    const matched = line.match(/^(?:\d{1,3}\s+)?(\d{1,3})$/u);
+    if (matched) return Number(matched[1]);
+  }
+  return undefined;
+}
+
+function indexReferenceCount(page: string): number {
+  return [...page.matchAll(/,\s*(?:d,\s*)?\d{2,3}(?=\s*(?:,|$))/gmu)].length;
+}
+
+function evidence(
+  line: string,
+  sourcePage: number | undefined,
+  sourceLine: number,
+  artifactOffsetLine: number,
+): EvidenceLocation {
+  return {
+    sourcePage,
+    sourceLine,
+    artifactOffsetLine,
+    evidenceSha256: sha256(line.normalize("NFKC").trim()),
+  };
+}
+
+function contextualEvidence(
+  line: string,
+  location: EvidenceLocation,
+  relationship: "sire" | "dam",
+  parentSourceId: string,
+): EvidenceLocation {
+  return {
+    ...location,
+    evidenceSha256: sha256(
+      `${line.normalize("NFKC").trim()}\n${relationship}:${parentSourceId}`,
+    ),
+  };
+}
+
+function sourceId(volume: number, location: EvidenceLocation): string {
+  const page =
+    location.sourcePage == null ? "unknown" : String(location.sourcePage);
+  const line =
+    location.sourceLine == null ? "unknown" : String(location.sourceLine);
+  return `${SOURCE}:vol-${volume}:page-${page}:line-${line}:offset-${location.artifactOffsetLine}`;
+}
+
+export function parseStudBook(
+  text: string,
+  volume: number,
+): StudBookParseResult {
+  const pages = text.replace(/\r\n?/gu, "\n").split("\f");
+  const startPage = pages.findIndex((page) =>
+    page.includes("ENTRIES RECEIVED BETWEEN"),
+  );
+  const issues: ParseIssue[] = [];
+  if (startPage < 0) {
+    return {
+      observations: [],
+      namedPuppies: 0,
+      unnamedLitters: 0,
+      assertions: 0,
+      importedEntries: 0,
+      entryPages: 0,
+      issues: [
+        {
+          code: "entries_marker_missing",
+          message: "stud-book entries marker is missing",
+        },
+      ],
+    };
+  }
+
+  const indexPage = pages.findIndex(
+    (page, pageIndex) =>
+      pageIndex > startPage &&
+      !datedCandidatePattern.test(page) &&
+      indexReferenceCount(page) >= 20,
+  );
+  if (indexPage < 0) {
+    return {
+      observations: [],
+      namedPuppies: 0,
+      unnamedLitters: 0,
+      assertions: 0,
+      importedEntries: 0,
+      entryPages: 0,
+      issues: [
+        {
+          code: "index_boundary_missing",
+          message: "stud-book index boundary is missing",
+        },
+      ],
+    };
+  }
+
+  const observations: DogObservation[] = [];
+  let namedPuppies = 0;
   let unnamedLitters = 0;
+  let importedEntries = 0;
+  let offset = 1;
+  let currentSire: DogObservation | typeof UNKNOWN_SIRE | undefined;
+  let currentDam: DogObservation | undefined;
+  let pendingEntry: DogObservation | undefined;
 
-  let currentSire: DogRecord | undefined;
-  let currentDam: DogRecord | undefined;
-  let lastEntry: DogRecord | undefined; // for `by` continuation lines
-
-  for (const line of lines) {
-    if (!line.trim()) continue;
-
-    // Continuation `by Sire-Dam` for the previous entry.
-    if (lastEntry && !lastEntry.sireName && BY_CONT_RE.test(line)) {
-      const parents = parseParents(line);
-      if (parents.sireName) {
-        lastEntry.sireName = parents.sireName;
-        lastEntry.damName = parents.damName;
-      }
-      lastEntry = undefined;
+  for (let pageIndex = 0; pageIndex < pages.length; pageIndex += 1) {
+    const page = pages[pageIndex];
+    const lines = page.split("\n");
+    if (pageIndex < startPage || pageIndex >= indexPage) {
+      offset += lines.length;
       continue;
     }
+    const sourcePage = printedPageNumber(page);
 
-    const puppy = line.match(PUPPY_RE);
-    if (puppy && currentSire && currentDam) {
-      const [, , rawName, colour, sexCode, mon, year, owner] = puppy;
-      const name = rawName.trim();
-      const rec: DogRecord = {
-        slug: slugify(name),
-        name,
-        sex: sexCode === "d" ? "M" : "F",
-        colour: colour.toUpperCase(),
-        whelpDate: toWhelpDate(mon, year),
-        owner: owner.trim() || undefined,
-        sireName: currentSire.name,
-        damName: currentDam.name,
-        raw: line.trim(),
-      };
-      if (rec.slug) mergeRecord(dogs, rec);
-      namedLitters++;
-      lastEntry = undefined;
-      continue;
-    }
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+      const line = lines[lineIndex];
+      const trimmed = line.trim();
+      const location = evidence(
+        line,
+        sourcePage,
+        lineIndex + 1,
+        offset + lineIndex,
+      );
+      if (!trimmed) continue;
 
-    if (UNNAMED_RE.test(line)) {
-      unnamedLitters++;
-      lastEntry = undefined;
-      continue;
-    }
-
-    const entry = line.match(ENTRY_RE);
-    if (entry) {
-      const [, indent, rawName, vol, colour, mon, year, tail] = entry;
-      const name = rawName.trim();
-      const slug = slugify(name);
-      if (!slug) continue;
-      const isSire = indent.length === 0;
-      const parents = parseParents(tail);
-      const rec: DogRecord = {
-        slug,
-        name,
-        sex: isSire ? "M" : "F",
-        colour: colour.toUpperCase(),
-        whelpDate: toWhelpDate(mon, year),
-        owner: parseOwner(tail),
-        firstVol: Number(vol),
-        dna: /\(DNA\)/.test(line),
-        sireName: parents.sireName,
-        damName: parents.damName,
-        raw: line.trim(),
-      };
-      const merged = mergeRecord(dogs, rec);
-      if (isSire) {
-        currentSire = merged;
+      if (/^[A-Z]$/u.test(trimmed)) {
+        currentSire = undefined;
         currentDam = undefined;
-      } else {
-        currentDam = merged;
+        pendingEntry = undefined;
+        continue;
       }
-      lastEntry = merged;
-      continue;
-    }
 
-    lastEntry = undefined;
+      if (/^UNKNOWN SIRE(?:\s+\(MIG\))?$/u.test(trimmed)) {
+        currentSire = UNKNOWN_SIRE;
+        currentDam = undefined;
+        pendingEntry = undefined;
+        continue;
+      }
+
+      if (
+        /^by\s+/iu.test(trimmed) &&
+        !datedCandidatePattern.test(line) &&
+        !puppyCandidatePattern.test(line)
+      ) {
+        const parents = parseParents(trimmed);
+        if (!pendingEntry || pendingEntry.sireName || !parents) {
+          issues.push({
+            code: "orphan_or_ambiguous_parent_continuation",
+            message:
+              "a parent continuation is not bound to one immediately preceding entry",
+            ...location,
+          });
+          pendingEntry = undefined;
+          continue;
+        }
+        pendingEntry.sireName = parents.sireName;
+        pendingEntry.damName = parents.damName;
+        pendingEntry.sireEvidence = location;
+        pendingEntry.damEvidence = location;
+        pendingEntry = undefined;
+        continue;
+      }
+
+      const puppy = line.match(puppyPattern);
+      if (puppy) {
+        pendingEntry = undefined;
+        const [, , rawName, colour, sexCode, month, year] = puppy;
+        const name = cleanName(rawName);
+        const whelpDate = toWhelpDate(month, year);
+        if (
+          currentSire === undefined ||
+          !currentDam ||
+          !name ||
+          !whelpDate
+        ) {
+          issues.push({
+            code: "puppy_without_current_litter",
+            message:
+              "a named puppy is not bound to an unambiguous sire and dam",
+            ...location,
+          });
+          continue;
+        }
+        const observation: DogObservation = {
+          ...location,
+          sourceId: sourceId(volume, location),
+          sourceName: name,
+          normalizedName: normalizeName(name),
+          imported: false,
+          dna: false,
+          sex: sexCode === "d" ? "M" : "F",
+          colour: colour.toUpperCase(),
+          whelpDate,
+          sireName:
+            currentSire === UNKNOWN_SIRE ? undefined : currentSire.sourceName,
+          damName: currentDam.sourceName,
+          sireEvidence:
+            currentSire === UNKNOWN_SIRE
+              ? undefined
+              : contextualEvidence(
+                  line,
+                  location,
+                  "sire",
+                  currentSire.sourceId,
+                ),
+          damEvidence: contextualEvidence(
+            line,
+            location,
+            "dam",
+            currentDam.sourceId,
+          ),
+        };
+        observations.push(observation);
+        namedPuppies += 1;
+        continue;
+      }
+
+      if (unnamedLitterPattern.test(line)) {
+        pendingEntry = undefined;
+        if (currentSire === undefined || !currentDam) {
+          issues.push({
+            code: "unnamed_litter_without_current_parents",
+            message:
+              "an unnamed litter is not bound to an unambiguous sire and dam",
+            ...location,
+          });
+          continue;
+        }
+        unnamedLitters += 1;
+        continue;
+      }
+
+      const entry = parseEntry(line);
+      if (entry) {
+        const parents = parseParents(entry.tail);
+        if (/\sby\s/iu.test(entry.tail) && entry.tail.includes("-") && !parents) {
+          issues.push({
+            code: "ambiguous_inline_parent_clause",
+            message:
+              "an inline parent clause does not contain exactly one sire-dam separator",
+            ...location,
+          });
+        }
+        const observation: DogObservation = {
+          ...location,
+          sourceId: sourceId(volume, location),
+          sourceName: entry.name,
+          normalizedName: normalizeName(entry.name),
+          registryToken: entry.registryToken,
+          imported: entry.imported,
+          dna: entry.dna,
+          sex: entry.sex,
+          colour: entry.colour,
+          whelpDate: entry.whelpDate,
+          sireName: parents?.sireName,
+          damName: parents?.damName,
+          sireEvidence: parents ? location : undefined,
+          damEvidence: parents ? location : undefined,
+        };
+        observations.push(observation);
+        if (entry.imported) importedEntries += 1;
+        if (entry.isSire) {
+          currentSire = observation;
+          currentDam = undefined;
+        } else if (currentSire === undefined) {
+          issues.push({
+            code: "dam_without_current_sire",
+            message: "an indented dam entry is not bound to a current sire",
+            ...location,
+          });
+          currentDam = undefined;
+        } else {
+          currentDam = observation;
+        }
+        pendingEntry = observation;
+        continue;
+      }
+
+      if (
+        (datedCandidatePattern.test(line) &&
+          entryCandidatePattern.test(line)) ||
+        puppyCandidatePattern.test(line) ||
+        /^\s{5,}\d+\s+(?:dogs?|bitch(?:es)?)\b/iu.test(line)
+      ) {
+        issues.push({
+          code: "unparsed_pedigree_record",
+          message:
+            "a pedigree-shaped source line did not match the strict grammar",
+          ...location,
+        });
+        currentSire = undefined;
+        currentDam = undefined;
+        pendingEntry = undefined;
+      }
+    }
+    offset += lines.length;
   }
 
-  return { dogs, namedLitters, unnamedLitters, linkedParents: 0 };
+  const assertions = observations.reduce(
+    (total, observation) =>
+      total +
+      Number(Boolean(observation.sireName)) +
+      Number(Boolean(observation.damName)),
+    0,
+  );
+  for (const observation of observations) {
+    if (
+      (observation.sireName && !observation.sireEvidence) ||
+      (observation.damName && !observation.damEvidence)
+    ) {
+      issues.push({
+        code: "assertion_without_evidence",
+        message: "a parsed parent assertion is missing deterministic provenance",
+        sourcePage: observation.sourcePage,
+        sourceLine: observation.sourceLine,
+        artifactOffsetLine: observation.artifactOffsetLine,
+      });
+    }
+  }
+  issues.push(...findConflictingObservations(observations));
+  return {
+    observations,
+    namedPuppies,
+    unnamedLitters,
+    assertions,
+    importedEntries,
+    entryPages: indexPage - startPage,
+    issues,
+  };
 }
 
-function extractText(file: string): string {
-  if (file.toLowerCase().endsWith(".txt")) return readFileSync(file, "utf8");
-  const out = join(tmpdir(), `galtd-${Date.now()}.txt`);
-  const res = spawnSync("pdftotext", ["-layout", file, out], { encoding: "utf8" });
-  if (res.status !== 0) {
-    throw new Error(`pdftotext failed (is poppler installed?): ${res.stderr || res.error}`);
+export function findConflictingObservations(
+  observations: DogObservation[],
+): ParseIssue[] {
+  const byNaturalEvidence = new Map<string, DogObservation[]>();
+  for (const observation of observations) {
+    if (!observation.whelpDate) continue;
+    const month = observation.whelpDate.toISOString().slice(0, 7);
+    const key = `${observation.normalizedName}|${month}`;
+    const rows = byNaturalEvidence.get(key) ?? [];
+    rows.push(observation);
+    byNaturalEvidence.set(key, rows);
   }
-  return readFileSync(out, "utf8");
+
+  const issues: ParseIssue[] = [];
+  for (const rows of byNaturalEvidence.values()) {
+    if (rows.length < 2) continue;
+    const sexes = new Set(rows.map((row) => row.sex).filter(Boolean));
+    const parentPairs = new Set(
+      rows
+        .filter((row) => row.sireName && row.damName)
+        .map(
+          (row) =>
+            `${normalizeName(row.sireName!)}|${normalizeName(row.damName!)}`,
+        ),
+    );
+    if (sexes.size <= 1 && parentPairs.size <= 1) continue;
+    const first = rows[0];
+    issues.push({
+      code: "conflicting_source_observation",
+      message:
+        "the same normalized name and whelp month has conflicting sex or parent evidence",
+      sourcePage: first.sourcePage,
+      sourceLine: first.sourceLine,
+      artifactOffsetLine: first.artifactOffsetLine,
+      relatedSourceIds: rows.map((row) => row.sourceId).sort(),
+      relatedEvidenceSha256: rows
+        .map((row) => row.evidenceSha256)
+        .sort(),
+    });
+  }
+  return issues;
+}
+
+function inferVolume(file: string): number | undefined {
+  const matched = basename(file).match(
+    /(?:vol(?:ume)?|stud[-_ ]?book)[-_ ]?(\d{2})/iu,
+  );
+  return matched ? Number(matched[1]) : undefined;
+}
+
+function extractArtifact(file: string, volumeOverride?: number): Artifact {
+  const bytes = readFileSync(file);
+  const volume = volumeOverride ?? inferVolume(file);
+  if (!volume || volume < 1 || volume > 999) {
+    throw new Error(
+      `Cannot infer a stud-book volume from ${basename(file)}; pass --volume for one file.`,
+    );
+  }
+  let text: string;
+  if (extname(file).toLocaleLowerCase("en-AU") === ".txt") {
+    text = bytes.toString("utf8");
+  } else {
+    const executable =
+      arg("pdftotext") ?? process.env.PDFTOTEXT_PATH ?? "pdftotext";
+    const extracted = spawnSync(
+      executable,
+      ["-layout", "-enc", "UTF-8", file, "-"],
+      { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, windowsHide: true },
+    );
+    if (extracted.error || extracted.status !== 0) {
+      const reason =
+        (extracted.error?.message ?? extracted.stderr.trim()) ||
+        `exit ${extracted.status}`;
+      throw new Error(`pdftotext failed for ${basename(file)}: ${reason}`);
+    }
+    text = extracted.stdout;
+  }
+  return {
+    file,
+    name: basename(file),
+    volume,
+    bytes: statSync(file).size,
+    sha256: sha256(bytes),
+    text,
+  };
 }
 
 function arg(name: string): string | undefined {
-  const i = process.argv.indexOf(`--${name}`);
-  return i >= 0 ? process.argv[i + 1] : undefined;
-}
-
-function chunk<T>(arr: readonly T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
-
-const isCuid = (s: string): boolean => /^[a-z0-9]+$/i.test(s);
-
-/**
- * Batched write over a remote pooler: createMany the dogs + referenced-parent stubs,
- * resolve slug->id, then bulk-link sire/dam via UPDATE ... FROM (VALUES ...).
- * skipDuplicates makes re-runs idempotent (existing rows keep their first-seen values).
- */
-async function writeGraph(records: DogRecord[]): Promise<{ inserted: number; linked: number }> {
-  // 1. Stubs for parents referenced by name but with no own entry.
-  const bySlug = new Map(records.map((r) => [r.slug, r]));
-  const stubs = new Map<string, { name: string; sex: "M" | "F" }>();
-  for (const r of records) {
-    if (r.sireName) {
-      const s = slugify(r.sireName);
-      if (s && !bySlug.has(s) && !stubs.has(s)) stubs.set(s, { name: r.sireName, sex: "M" });
-    }
-    if (r.damName) {
-      const s = slugify(r.damName);
-      if (s && !bySlug.has(s) && !stubs.has(s)) stubs.set(s, { name: r.damName, sex: "F" });
-    }
-  }
-
-  // 2. Bulk insert dogs + stubs.
-  const dogRows = records.map((r) => ({
-    name: r.name,
-    earBrand: `${SOURCE}:${r.slug}`,
-    sourceProvider: SOURCE,
-    sourceId: r.slug,
-    sex: r.sex,
-    colour: r.colour,
-    whelpDate: r.whelpDate,
-    ownerName: r.owner,
-    profileSourceRawJson: JSON.stringify({ firstVol: r.firstVol, dna: r.dna }),
-  }));
-  const stubRows = [...stubs.entries()].map(([slug, s]) => ({
-    name: s.name,
-    earBrand: `${SOURCE}:${slug}`,
-    sourceProvider: SOURCE,
-    sourceId: slug,
-    sex: s.sex,
-  }));
-  let inserted = 0;
-  for (const c of chunk([...dogRows, ...stubRows], 1000)) {
-    const res = await prisma.dog.createMany({ data: c, skipDuplicates: true });
-    inserted += res.count;
-    console.log(`  inserted ${inserted} (skipDuplicates)`);
-  }
-
-  // 3. slug -> id map.
-  const allSlugs = [...new Set([...records.map((r) => r.slug), ...stubs.keys()])];
-  const idMap = new Map<string, string>();
-  for (const c of chunk(allSlugs, 1000)) {
-    const rows = await prisma.dog.findMany({
-      where: { earBrand: { in: c.map((s) => `${SOURCE}:${s}`) } },
-      select: { earBrand: true, id: true },
-    });
-    for (const row of rows) idMap.set(row.earBrand!.slice(SOURCE.length + 1), row.id);
-  }
-
-  // 4. Bulk link sire/dam.
-  const links: { id: string; sireId?: string; damId?: string }[] = [];
-  for (const r of records) {
-    if (!r.sireName && !r.damName) continue;
-    const id = idMap.get(r.slug);
-    if (!id || !isCuid(id)) continue;
-    const sireId = r.sireName ? idMap.get(slugify(r.sireName)) : undefined;
-    const damId = r.damName ? idMap.get(slugify(r.damName)) : undefined;
-    if (sireId || damId) links.push({ id, sireId, damId });
-  }
-
-  let linked = 0;
-  for (const c of chunk(links, 500)) {
-    const tuples = c
-      .map((l) => {
-        const sid = l.sireId && isCuid(l.sireId) ? `'${l.sireId}'` : "''";
-        const did = l.damId && isCuid(l.damId) ? `'${l.damId}'` : "''";
-        return `('${l.id}',${sid},${did})`;
-      })
-      .join(",");
-    // Values are cuids validated by isCuid ([a-z0-9]) — no injection surface.
-    await prisma.$executeRawUnsafe(
-      `UPDATE "Dog" AS d SET "sireId" = NULLIF(v.sid,''), "damId" = NULLIF(v.did,'') ` +
-        `FROM (VALUES ${tuples}) AS v(id, sid, did) WHERE d.id = v.id`
-    );
-    linked += c.length;
-    console.log(`  linked ${linked}/${links.length}`);
-  }
-
-  return { inserted, linked };
+  const index = process.argv.indexOf(`--${name}`);
+  return index >= 0 ? process.argv[index + 1] : undefined;
 }
 
 function resolveFiles(): string[] {
-  const dir = arg("dir");
-  if (dir) {
-    return readdirSync(dir)
-      .filter((f) => /\.(pdf|txt)$/i.test(f))
-      .sort()
-      .map((f) => join(dir, f));
+  const directory = arg("dir");
+  if (directory) {
+    return readdirSync(directory)
+      .filter((file) => /\.(pdf|txt)$/iu.test(file))
+      .sort((left, right) => left.localeCompare(right, "en-AU"))
+      .map((file) => join(directory, file));
   }
   const file = arg("file");
-  if (!file) throw new Error("--file <path.pdf|.txt> or --dir <folder> is required");
+  if (!file)
+    throw new Error("--file <path.pdf|.txt> or --dir <folder> is required");
   return [file];
 }
 
-async function main(): Promise<void> {
-  const dryRun = process.argv.includes("--dry-run");
-  const limit = Number(arg("limit") ?? "0");
-  const files = resolveFiles();
-
-  // Parse + merge every volume into one graph (cross-volume dedup by slug).
-  const dogs = new Map<string, DogRecord>();
-  let namedLitters = 0;
-  let unnamedLitters = 0;
-  for (const f of files) {
-    const parsed = parseStudBook(extractText(f));
-    for (const rec of parsed.dogs.values()) mergeRecord(dogs, rec);
-    namedLitters += parsed.namedLitters;
-    unnamedLitters += parsed.unnamedLitters;
-    console.log(`Parsed ${f}: +${parsed.dogs.size} dogs (running total ${dogs.size})`);
-  }
-
-  let records = [...dogs.values()];
-  if (limit > 0) records = records.slice(0, limit);
-  const withParents = records.filter((r) => r.sireName && r.damName).length;
-  console.log(
-    `Corpus: ${records.length} unique dogs, ${namedLitters} named pups, ` +
-      `${unnamedLitters} unnamed litters, ${withParents} with sire+dam.`
-  );
-
-  if (dryRun) {
-    for (const r of records.slice(0, 12)) {
-      console.log(
-        `  ${r.name} [${r.sex ?? "?"} ${r.colour ?? "?"} ${
-          r.whelpDate?.toISOString().slice(0, 7) ?? "?"
-        }] by ${r.sireName ?? "?"} / ${r.damName ?? "?"}`
-      );
-    }
-    return;
-  }
-
-  const { inserted, linked } = await writeGraph(records);
-  console.log(`Done: ${inserted} new dogs inserted, ${linked} linked to sire/dam.`);
+function expectedVolumes(value: string | undefined): number[] | undefined {
+  if (!value) return undefined;
+  const range = value.match(/^(\d{1,3})-(\d{1,3})$/u);
+  if (!range)
+    throw new Error("--expected-volumes must be a closed range such as 66-73");
+  const first = Number(range[1]);
+  const last = Number(range[2]);
+  if (first > last || last - first > 100)
+    throw new Error("--expected-volumes range is invalid");
+  return Array.from({ length: last - first + 1 }, (_, index) => first + index);
 }
 
-main()
-  .catch((err) => {
-    console.error(err);
+export function verifyVolumeSet(
+  actual: readonly number[],
+  expected: readonly number[],
+): void {
+  const sortedActual = [...actual].sort((left, right) => left - right);
+  const sortedExpected = [...expected].sort((left, right) => left - right);
+  if (new Set(sortedActual).size !== sortedActual.length) {
+    throw new Error("duplicate stud-book volumes are not allowed");
+  }
+  if (JSON.stringify(sortedActual) !== JSON.stringify(sortedExpected)) {
+    throw new Error(
+      `expected volumes ${sortedExpected.join(",")}; received ${sortedActual.join(",")}`,
+    );
+  }
+}
+
+async function main(): Promise<void> {
+  if (
+    ["--apply", "--import", "--write"].some((flag) =>
+      process.argv.includes(flag),
+    )
+  ) {
+    throw new Error(
+      "This command is parse-only and cannot write pedigree data.",
+    );
+  }
+  const files = resolveFiles();
+  const singleVolume =
+    files.length === 1 && arg("volume") ? Number(arg("volume")) : undefined;
+  const artifacts = files.map((file) => extractArtifact(file, singleVolume));
+  const expected = expectedVolumes(arg("expected-volumes"));
+  if (expected)
+    verifyVolumeSet(
+      artifacts.map((artifact) => artifact.volume),
+      expected,
+    );
+
+  const sources = artifacts.map((artifact) => {
+    const parsed = parseStudBook(artifact.text, artifact.volume);
+    return { artifact, parsed };
+  });
+  const issues = [
+    ...sources.flatMap(({ artifact, parsed }) =>
+      parsed.issues.map((issue) => ({ artifact: artifact.name, ...issue })),
+    ),
+    ...findConflictingObservations(
+      sources.flatMap(({ parsed }) => parsed.observations),
+    ).map((issue) => ({ artifact: "combined-volumes", ...issue })),
+  ];
+  const report = {
+    schemaVersion: 1,
+    parserVersion: PARSER_VERSION,
+    mode: "parse-only",
+    status: issues.length === 0 ? "passed" : "failed",
+    generatedAt: new Date().toISOString(),
+    sourceProvider: SOURCE,
+    sources: sources.map(({ artifact, parsed }) => ({
+      artifact: artifact.name,
+      artifactSha256: artifact.sha256,
+      artifactBytes: artifact.bytes,
+      volume: artifact.volume,
+      entryPages: parsed.entryPages,
+      observations: parsed.observations.length,
+      assertions: parsed.assertions,
+      namedPuppies: parsed.namedPuppies,
+      unnamedLitters: parsed.unnamedLitters,
+      importedEntries: parsed.importedEntries,
+      issues: parsed.issues.length,
+    })),
+    findings: issues.map((issue) => ({
+      artifact: issue.artifact,
+      code: issue.code,
+      sourcePage: issue.sourcePage,
+      sourceLine: issue.sourceLine,
+      artifactOffsetLine: issue.artifactOffsetLine,
+      relatedSourceIds: issue.relatedSourceIds,
+      relatedEvidenceSha256: issue.relatedEvidenceSha256,
+    })),
+    totals: {
+      observations: sources.reduce(
+        (sum, source) => sum + source.parsed.observations.length,
+        0,
+      ),
+      assertions: sources.reduce(
+        (sum, source) => sum + source.parsed.assertions,
+        0,
+      ),
+      namedPuppies: sources.reduce(
+        (sum, source) => sum + source.parsed.namedPuppies,
+        0,
+      ),
+      unnamedLitters: sources.reduce(
+        (sum, source) => sum + source.parsed.unnamedLitters,
+        0,
+      ),
+      importedEntries: sources.reduce(
+        (sum, source) => sum + source.parsed.importedEntries,
+        0,
+      ),
+      issues: issues.length,
+    },
+  };
+  const reportPath = arg("report");
+  if (reportPath)
+    writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  if (issues.length > 0) {
+    for (const issue of issues.slice(0, 25)) {
+      const location = issue.sourcePage
+        ? ` page ${issue.sourcePage}${issue.sourceLine ? ` line ${issue.sourceLine}` : ""}`
+        : issue.artifactOffsetLine
+          ? ` offset-line ${issue.artifactOffsetLine}`
+          : "";
+      console.error(
+        `[galtd-audit] ${issue.artifact}${location}: ${issue.code}`,
+      );
+    }
+    throw new Error(
+      `strict GALTD audit rejected ${issues.length} unparsed or ambiguous observations`,
+    );
+  }
+  for (const source of report.sources) {
+    console.log(
+      `[galtd-audit] volume ${source.volume}: ${source.observations} observations, ` +
+        `${source.assertions} assertions, sha256=${source.artifactSha256}`,
+    );
+  }
+  console.log(
+    `[galtd-audit] PASS parse-only: ${report.totals.observations} observations, ` +
+      `${report.totals.assertions} assertions, 0 issues`,
+  );
+}
+
+function isMainModule(): boolean {
+  return Boolean(
+    process.argv[1] &&
+    pathToFileURL(resolve(process.argv[1])).href === import.meta.url,
+  );
+}
+
+if (isMainModule()) {
+  main().catch((error: unknown) => {
+    console.error(
+      `[galtd-audit] failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
     process.exitCode = 1;
-  })
-  .finally(() => prisma.$disconnect());
+  });
+}

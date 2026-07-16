@@ -6,6 +6,8 @@ const UPLOAD_CONTROL_EVIDENCE = [
   "src/lib/media-sniff.test.ts",
   "src/lib/object-storage.ts",
   "src/lib/object-storage.test.ts",
+  "src/lib/gcs-object-storage.ts",
+  "src/lib/gcs-object-storage.test.ts",
   "src/lib/supabase-object-storage.ts",
   "src/lib/supabase-storage.ts",
   "security/upload-untrusted-claim-evidence.test.ts",

@@ -62,10 +62,10 @@ assert.equal(
   sha256(readFileSync("src/app/account/billing/page.tsx")),
 );
 assert.equal(
-  report.sourceBinding.invoicePolicyMigrationSha256,
+  report.sourceBinding.sensitiveAdminPolicyMigrationSha256,
   sha256(
     readFileSync(
-      "prisma/migrations/20260706223000_add_rls_entitlement_policies/migration.sql",
+      "prisma/migrations/20260716120000_restrict_sensitive_rls_to_admin/migration.sql",
     ),
   ),
 );
@@ -78,7 +78,8 @@ assert.deepEqual(report.invoiceOwnership, {
     anonymous: { invoiceA: 0, invoiceB: 0 },
     ownerA: { invoiceA: 1, invoiceB: 0 },
     ownerB: { invoiceA: 0, invoiceB: 1 },
-    privilegedModerator: { invoiceA: 1, invoiceB: 1 },
+    privilegedAdmin: { invoiceA: 1, invoiceB: 1 },
+    privilegedModerator: { invoiceA: 1, invoiceB: 0 },
     systemWorker: { invoiceA: 1, invoiceB: 1 },
   },
   rollback: { invoiceA: 0, invoiceB: 0, verified: true },
@@ -95,12 +96,12 @@ assert.match(
 );
 
 const invoicePolicyMigration = readFileSync(
-  "prisma/migrations/20260706223000_add_rls_entitlement_policies/migration.sql",
+  "prisma/migrations/20260716120000_restrict_sensitive_rls_to_admin/migration.sql",
   "utf8",
 );
 assert.match(
   invoicePolicyMigration,
-  /CREATE POLICY giq_invoice_read ON "InvoiceRecord" FOR SELECT USING \("userId" = public\.giq_current_user_id\(\) OR public\.giq_is_system\(\) OR public\.giq_is_moderator\(\)\);/,
+  /ALTER POLICY giq_invoice_read[\s\S]*?"userId" = public\.giq_current_user_id\(\)[\s\S]*?public\.giq_is_admin\(\)[\s\S]*?;/,
 );
 const schema = readFileSync("prisma/schema.prisma", "utf8");
 assert.match(
@@ -109,6 +110,10 @@ assert.match(
 );
 
 assert.match(BILLING_INVOICE_OWNERSHIP_BOUNDARY.verifiedScope, /only their own/);
+assert.match(
+  BILLING_INVOICE_OWNERSHIP_BOUNDARY.privilegedScope,
+  /moderators remain owner-scoped/,
+);
 assert.match(BILLING_INVOICE_OWNERSHIP_BOUNDARY.deployedScope, /No staging or production/);
 
 console.log(
@@ -134,9 +139,9 @@ type RuntimeReport = {
   };
   sourceBinding: {
     billingPageSha256: string;
-    invoicePolicyMigrationSha256: string;
     migrationsSha256: string;
     prismaSchemaSha256: string;
+    sensitiveAdminPolicyMigrationSha256: string;
     verifierSha256: string;
   };
   runtimeIdentity: {
@@ -151,6 +156,7 @@ type RuntimeReport = {
       anonymous: InvoiceCounts;
       ownerA: InvoiceCounts;
       ownerB: InvoiceCounts;
+      privilegedAdmin: InvoiceCounts;
       privilegedModerator: InvoiceCounts;
       systemWorker: InvoiceCounts;
     };

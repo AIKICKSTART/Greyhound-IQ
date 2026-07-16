@@ -13,6 +13,17 @@ interface RaceReplayPlayerProps {
   raceTimeLabel: string;
 }
 
+export async function tryStartReplayPlayback(
+  media: Pick<HTMLMediaElement, "play">
+) {
+  try {
+    await media.play();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function RaceReplayPlayer({
   streamUrl,
   streamContentType,
@@ -24,6 +35,7 @@ export function RaceReplayPlayer({
   const [activated, setActivated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [playbackPrompt, setPlaybackPrompt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activated) return;
@@ -36,12 +48,25 @@ export function RaceReplayPlayer({
     const finishLoading = () => {
       if (!cancelled) setLoading(false);
     };
+    const handlePlaying = () => {
+      if (!cancelled) setPlaybackPrompt(null);
+      finishLoading();
+    };
+    const handleMediaError = () => {
+      if (!cancelled) {
+        setError("Replay stream could not be loaded. Try again later.");
+        setPlaybackPrompt(null);
+        finishLoading();
+      }
+    };
     media.addEventListener("canplay", finishLoading);
-    media.addEventListener("playing", finishLoading);
+    media.addEventListener("playing", handlePlaying);
+    media.addEventListener("error", handleMediaError);
 
     async function attachStream() {
       setLoading(true);
       setError(null);
+      setPlaybackPrompt(null);
 
       try {
         const canPlayNativeHls = Boolean(
@@ -53,7 +78,12 @@ export function RaceReplayPlayer({
 
         if (!isHlsStream || canPlayNativeHls) {
           media.src = streamUrl;
-          await media.play();
+          const started = await tryStartReplayPlayback(media);
+          if (!started && !cancelled && !media.error) {
+            setPlaybackPrompt(
+              "Press play in the video controls to start the replay."
+            );
+          }
           finishLoading();
           return;
         }
@@ -76,13 +106,21 @@ export function RaceReplayPlayer({
         nextHls.attachMedia(media);
         nextHls.on(Hls.Events.MANIFEST_PARSED, () => {
           if (!cancelled) {
-            void media.play();
-            finishLoading();
+            void tryStartReplayPlayback(media).then((started) => {
+              if (cancelled) return;
+              if (!started) {
+                setPlaybackPrompt(
+                  "Press play in the video controls to start the replay."
+                );
+              }
+              finishLoading();
+            });
           }
         });
         nextHls.on(Hls.Events.ERROR, (_event, data) => {
-          if (isFatalHlsError(data)) {
+          if (!cancelled && isFatalHlsError(data)) {
             setError("Replay stream could not be loaded. Try again later.");
+            setPlaybackPrompt(null);
             finishLoading();
           }
         });
@@ -100,7 +138,8 @@ export function RaceReplayPlayer({
       cancelled = true;
       hls?.destroy();
       media.removeEventListener("canplay", finishLoading);
-      media.removeEventListener("playing", finishLoading);
+      media.removeEventListener("playing", handlePlaying);
+      media.removeEventListener("error", handleMediaError);
       media.pause();
       media.removeAttribute("src");
       media.load();
@@ -169,6 +208,16 @@ export function RaceReplayPlayer({
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {!error && playbackPrompt && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="border-t border-white/[0.07] bg-white/[0.025] px-4 py-3 text-[12px] text-[hsl(var(--muted-foreground))]"
+        >
+          {playbackPrompt}
         </div>
       )}
     </section>

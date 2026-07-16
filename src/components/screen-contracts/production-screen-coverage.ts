@@ -492,7 +492,7 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
   },
   ...PRODUCTION_SCREEN_PUBLIC_RACING_INTERACTION_CONTRACTS,
   "/feed": {
-    queryParameters: ["demo", "dock", "mode", "sponsored", "variant"],
+    queryParameters: ["mode"],
     actions: [
       communityAction(
         "FEED.ACTION.ORDER.SELECT",
@@ -600,16 +600,6 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
         "Call APIs require the current profile and participant access; starting is server-tier-gated, while microphone, camera, screen-share, and device controls operate on the connected LiveKit room.",
       ),
       communityAction(
-        "FEED.ACTION.RACE.SEARCH",
-        "Submits race search text from the device-preview header.",
-        "Both prototype search forms submit by GET to /races with q and the fixed relevance sort.",
-      ),
-      communityAction(
-        "FEED.ACTION.PROTOTYPE.INTERACT",
-        "Exercises the enabled device-preview composer, comment, save, share, and quick-chat controls locally.",
-        "FeedSystemPrototype prevents native submission and changes only component-local demo state; it is reachable only when the page's device-preview gate accepts the requested variant.",
-      ),
-      communityAction(
         "FEED.ACTION.HUB.NAVIGATE",
         "Opens a fixed hub, account, racing, marketplace, group, profile, or support destination.",
         "The navigation surfaces use fixed same-origin routes or identifiers from the current member's request-scoped records.",
@@ -660,31 +650,6 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
         "FEED.FORM.IDENTITY",
         "SERVER ACTION setActiveIdentityAction",
         "identity:personal|owned-page-id",
-      ),
-      communityForm(
-        "FEED.FORM.PROTOTYPE-POST",
-        "CLIENT STATE FeedSystemPrototype.post",
-        "draft?:string,attachment?:Photo|Video",
-      ),
-      communityForm(
-        "FEED.FORM.PROTOTYPE-COMMENT",
-        "CLIENT STATE FeedSystemPrototype.comment",
-        "postId:demo-post-id,draft:trimmed-string",
-      ),
-      communityForm(
-        "FEED.FORM.PROTOTYPE-CHAT",
-        "CLIENT STATE FeedSystemPrototype.chat",
-        "draft?:string,attachment?:file|photo",
-      ),
-      communityForm(
-        "FEED.FORM.PROTOTYPE-RACE-SEARCH",
-        "GET /races",
-        "q?:string,sort:relevance",
-      ),
-      communityForm(
-        "FEED.FORM.PROTOTYPE-MOBILE-RACE-SEARCH",
-        "GET /races",
-        "q?:string,sort:relevance",
       ),
       communityForm(
         "FEED.FORM.POST-REPORT",

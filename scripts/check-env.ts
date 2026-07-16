@@ -1,5 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { databaseUrlConfigurationError } from "../src/lib/database-url";
+import { resolveGcsBucketNames } from "../src/lib/gcs-object-storage-config";
 import { resolveNotificationWebhookConfig } from "../src/lib/notification-webhook-policy";
 
 loadEnvConfig(process.cwd());
@@ -43,24 +44,24 @@ const specs: EnvSpec[] = [
   },
   {
     names: ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"],
-    description: "Supabase project URL for database-adjacent services and Storage",
+    description: "Supabase project URL for Realtime and Supabase-compatible development",
     productionOnly: true,
     validate: validateUrl,
   },
   {
     names: ["NEXT_PUBLIC_SUPABASE_URL"],
-    description: "browser-visible Supabase project URL for Storage uploads",
+    description: "browser-visible Supabase project URL for Realtime compatibility",
     productionOnly: true,
     validate: validateUrl,
   },
   {
     names: ["NEXT_PUBLIC_SUPABASE_ANON_KEY"],
-    description: "browser-visible Supabase anon key for Storage signed uploads",
+    description: "browser-visible Supabase anon key for Realtime compatibility",
     productionOnly: true,
   },
   {
     names: ["SUPABASE_SERVICE_ROLE_KEY"],
-    description: "server-only Supabase service-role key for signed Storage operations",
+    description: "server-only Supabase service-role key for Realtime grants and development storage",
     productionOnly: true,
   },
   {
@@ -161,6 +162,10 @@ const optional = [
   "DIRECT_URL",
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "OBJECT_STORAGE_PROVIDER",
+  "GCS_SITE_ASSETS_BUCKET",
+  "GCS_PUBLIC_USER_MEDIA_BUCKET",
+  "GCS_PRIVATE_USER_MEDIA_BUCKET",
   "LAGO_API_URL",
   "LAGO_FRONT_URL",
   "LAGO_API_KEY",
@@ -247,6 +252,20 @@ for (const name of optionalDatabaseUrlNames) {
   });
   if (validationError) {
     failures.push(`${name} ${validationError}`);
+  }
+}
+
+const objectStorageProvider =
+  process.env.OBJECT_STORAGE_PROVIDER?.trim().toLowerCase() || "supabase";
+if (objectStorageProvider !== "supabase" && objectStorageProvider !== "gcs") {
+  failures.push("OBJECT_STORAGE_PROVIDER must be supabase or gcs");
+} else if (objectStorageProvider === "gcs") {
+  try {
+    resolveGcsBucketNames(process.env);
+  } catch (error) {
+    failures.push(
+      error instanceof Error ? error.message : "storage.gcs_configuration_invalid",
+    );
   }
 }
 

@@ -26,6 +26,7 @@
 - `UsageOutbox` is the delivery queue for the immutable local `UsageEvent` ledger. Preserve one row per idempotency key, nullable forward-compatible lease fields, fenced settlement by lease token, bounded terminal dead-letter state, and indexes for both due retries and expired-lease recovery.
 - Keep the `User(isBanned, deletionRequestedAt, id)` index aligned with the bounded oldest-first account-deletion candidate selector; build replacements concurrently so maintenance hardening does not block production writes.
 - Member-authored `SupportMessage` inserts must bind both `userId` and the referenced `SupportTicket.userId` to the request-context user; moderator and system contexts retain their explicit policy access.
+- Pedigree source identities, assertions, import runs, and merge decisions are evidence records: preserve artifact/page/line hashes, allow only system-context writes, expose only verified linked identity/assertion rows publicly, keep the merge ledger append-only, and never resolve an identity from a name alone.
 
 # Work Guidance
 

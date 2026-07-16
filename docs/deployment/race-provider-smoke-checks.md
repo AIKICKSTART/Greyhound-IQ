@@ -120,12 +120,42 @@ DATABASE_IMPORT_URL="$STAGING_DATABASE_URL" npm run audit:thedogs:race-videos --
 DATABASE_IMPORT_URL="$STAGING_DATABASE_URL" npm run backfill:thedogs:race-videos -- --from YYYY-MM-DD --to YYYY-MM-DD --full --concurrency 4 --pause-ms 250 --continue-on-error
 DATABASE_IMPORT_URL="$STAGING_DATABASE_URL" npm run audit:thedogs:race-videos -- --from YYYY-MM-DD --to YYYY-MM-DD
 
-DATABASE_URL="$STAGING_DATABASE_URL" npm run backfill:thedogs:dog-profiles -- --limit 100 --continue-on-error
+npm run backfill:thedogs:dog-profile-raw -- --limit 100 --concurrency 2 --pause-ms 1000 --continue-on-error
+npm run audit:thedogs:dog-profiles -- --sample-limit 100 --output-file .backfill/reports/thedogs-dog-profile-staging-smoke.json
 DATABASE_IMPORT_URL="$STAGING_DATABASE_URL" npm run status:thedogs:harvest
 ```
 
+The direct canonical dog-profile backfill/import paths are disabled. Raw profile
+evidence must pass exact provider-identity audit and enter a candidate through
+the identity-audited v2 full-history workflow; never replay profiles directly
+into staging or production canonical `Dog`, parent, trainer, or form rows.
+
 The replay backfill treats `RaceVideo` rows with `streamUrl = null` as pending,
 so reruns keep retrying provider responses until a playable stream is stored.
+
+For an isolated AlloyDB merge candidate, normalize recognized historical
+`Race.replayUrl` references before provider resolution. Never run these commands
+against the current production database. Use one bounded date/state slice for
+the first dry run, inspect `perSourceDate`, `jurisdictionIntegrity` and
+`unresolvedSamples`, then run the same slice without `--dry-run` only after the
+candidate target has been independently confirmed:
+
+```bash
+DATABASE_IMPORT_URL="$CANDIDATE_DATABASE_URL" npm run backfill:race-videos -- --from YYYY-MM-DD --to YYYY-MM-DD --state NSW --normalize-only --full --dry-run
+DATABASE_IMPORT_URL="$CANDIDATE_DATABASE_URL" npm run backfill:race-videos -- --from YYYY-MM-DD --to YYYY-MM-DD --state NSW --normalize-only --full
+DATABASE_IMPORT_URL="$CANDIDATE_DATABASE_URL" npm run backfill:race-videos -- --from YYYY-MM-DD --to YYYY-MM-DD --state NSW --full --dry-run
+DATABASE_IMPORT_URL="$CANDIDATE_DATABASE_URL" npm run backfill:race-videos -- --from YYYY-MM-DD --to YYYY-MM-DD --state NSW --full
+```
+
+Repeat explicitly for `NSW`, `NT`, `QLD`, `SA`, `TAS`, `VIC` and `WA`.
+ACT or blank/unknown jurisdictions remain quarantined unless a verified provider
+supplies an attributable race. Legacy normalization accepts only recognized
+public TheDogs race replay pages, Racing Queensland replay pages, Tasracing HLS
+objects and YouTube/Vimeo replay references. Meeting previews, live-meeting
+pages and unknown hosts are reported but not promoted. Inserts preserve an
+existing `RaceVideo` with the same `(raceId, sourceProvider, kind)` key; later
+provider refreshes retain non-null provenance while recording source status,
+source code and the normalized provider identifier.
 
 ## Provider Expectations
 

@@ -87,7 +87,7 @@ No command in this file authorises project creation, provider access, billing at
 |----------|--------|-----------|
 | App server | AI Kick Start Google Cloud VPS | Owned production runtime, full control, fits app, workers, billing, and AI harnesses |
 | Database | Self-hosted Postgres 16 on the VPS | Local source of truth for app data, auth linkage, entitlements, jobs, and audit records |
-| File storage | Supabase Storage integration | Current signed upload/download and bucket policy implementation remains storage-only |
+| File storage | Private Australian Google Cloud Storage | ADC-backed signed upload/download through provider-neutral logical buckets; Supabase is compatibility-only |
 | Auth | WorkOS AuthKit | Production identity and session provider; no Supabase identity provider |
 | Billing | Self-hosted Lago | Source of truth for plans, usage, subscriptions, invoices, entitlements, and dunning |
 | Email | Resend | Modern API, good deliverability, $0-20/mo |

@@ -29,18 +29,18 @@ export type MigrationSource = {
 
 // Update only after reviewing the compatibility impact of the source change.
 export const DATABASE_COMPATIBILITY_BASELINE: DatabaseCompatibilityInventory = {
-  schemaSha256: "b0e50aa4850eebd5e3095bba619c87370b78f249fbeabf5b8691e169f3c02b22",
-  migrationsSha256: "4812e2d48b9e24ed89dae0c79fb2ff1966b73539bb1ae92a804c2c2ffef1162f",
+  schemaSha256: "ff7158c8900a4fc914bb0a09bc27e41bba4271a0144afee675a53b8e526a93fc",
+  migrationsSha256: "4e96cb5413d55c83e18622019527349f9f6c8f50b72b8bc27d1d07a80bc53fec",
   counts: {
-    models: 107,
-    migrations: 97,
+    models: 113,
+    migrations: 100,
     extensions: 1,
-    functions: 54,
-    triggers: 15,
-    policies: 252,
+    functions: 57,
+    triggers: 21,
+    policies: 264,
     ordinaryViews: 1,
     materializedViews: 5,
-    indexes: 428,
+    indexes: 461,
     createdRoles: 1,
   },
 };

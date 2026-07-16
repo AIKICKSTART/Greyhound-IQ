@@ -3,8 +3,8 @@ import {
   PRIVATE_USER_MEDIA_BUCKET,
   PUBLIC_USER_MEDIA_BUCKET,
   SITE_ASSETS_BUCKET,
-  isSupabaseStorageBucket,
-  type SupabaseStorageBucket,
+  isObjectStorageBucket,
+  type ObjectStorageBucket,
 } from "@/lib/storage-paths";
 
 export const MEDIA_CONTEXTS = [
@@ -34,7 +34,7 @@ export const MEDIA_MIME_LIMITS = {
   "application/pdf": 25 * 1024 * 1024,
 } as const;
 
-const BUCKET_MIME_TYPES: Record<SupabaseStorageBucket, MediaMimeType[]> = {
+const BUCKET_MIME_TYPES: Record<ObjectStorageBucket, MediaMimeType[]> = {
   [SITE_ASSETS_BUCKET]: [
     "image/jpeg",
     "image/png",
@@ -67,7 +67,7 @@ const BUCKET_MIME_TYPES: Record<SupabaseStorageBucket, MediaMimeType[]> = {
   ],
 };
 
-export type MediaBucket = SupabaseStorageBucket;
+export type MediaBucket = ObjectStorageBucket;
 export type MediaContext = (typeof MEDIA_CONTEXTS)[number];
 export type MediaMimeType = keyof typeof MEDIA_MIME_LIMITS;
 
@@ -120,7 +120,7 @@ const bucketOrLegacyContextSchema = z
   .trim()
   .refine(
     (value) =>
-      isSupabaseStorageBucket(value) ||
+      isObjectStorageBucket(value) ||
       MEDIA_CONTEXTS.includes(value as MediaContext),
     "Unsupported media bucket or context"
   );
@@ -308,7 +308,7 @@ export function resolveMediaContext(input: {
 }
 
 export function mediaMaxBytes(
-  bucket: SupabaseStorageBucket,
+  bucket: ObjectStorageBucket,
   mimeType: MediaMimeType
 ) {
   if (!BUCKET_MIME_TYPES[bucket].includes(mimeType)) {
@@ -317,7 +317,7 @@ export function mediaMaxBytes(
   return MEDIA_MIME_LIMITS[mimeType];
 }
 
-export function bucketAllowedMimeTypes(bucket: SupabaseStorageBucket) {
+export function bucketAllowedMimeTypes(bucket: ObjectStorageBucket) {
   return BUCKET_MIME_TYPES[bucket];
 }
 

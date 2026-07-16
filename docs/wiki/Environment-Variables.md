@@ -135,7 +135,14 @@ conveniences only and are not production persistence or feed layers.
 
 `npm run check:env -- --production` requires the Stripe variables above for production. Store production values in Google Secret Manager, not repo files.
 
-Supabase Storage browser uploads require `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Server-side signed upload/download operations require `SUPABASE_SERVICE_ROLE_KEY`; keep it server-only in the VPS/runtime environment and GitHub secrets.
+Production object storage requires `OBJECT_STORAGE_PROVIDER=gcs` plus
+`GCS_SITE_ASSETS_BUCKET`, `GCS_PUBLIC_USER_MEDIA_BUCKET`, and
+`GCS_PRIVATE_USER_MEDIA_BUCKET`. Cloud Run uses Application Default
+Credentials; do not configure a service-account key file. The three physical
+buckets must be distinct Australian GCS buckets with uniform access and public
+access prevention. Supabase URL/key values remain required for Realtime and the
+local/staging compatibility adapter; `SUPABASE_SERVICE_ROLE_KEY` stays
+server-only.
 
 ## CI/CD secrets
 

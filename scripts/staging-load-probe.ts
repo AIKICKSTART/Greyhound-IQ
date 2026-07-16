@@ -14,7 +14,10 @@ import {
   type StagingLoadSample,
 } from "./staging-load-evidence";
 import {
+  resolveApprovedGcsSignedUploadUrl,
   resolveApprovedSignedUploadUrl,
+  resolveLoadObjectStorageProvider,
+  resolveSignedUploadHeaders,
   resolveStagingLoadBaseUrl,
   resolveStagingRequestUrl,
   resolveStagingSupabaseUrl,
@@ -62,14 +65,27 @@ const requestTimeoutMs = positiveInt(process.env.LOAD_REQUEST_TIMEOUT_MS, 60_000
 const includeRealtime = process.env.LOAD_INCLUDE_REALTIME === "true";
 const realtimeClients = positiveInt(process.env.LOAD_REALTIME_CLIENTS, 5);
 const includeMediaFlow = process.env.LOAD_INCLUDE_MEDIA_FLOW === "true";
+const objectStorageProvider = resolveLoadObjectStorageProvider(
+  process.env.LOAD_OBJECT_STORAGE_PROVIDER ??
+    process.env.OBJECT_STORAGE_PROVIDER
+);
 const supabaseUrl =
-  includeRealtime || includeMediaFlow
+  includeRealtime ||
+  (includeMediaFlow && objectStorageProvider === "supabase")
     ? resolveStagingSupabaseUrl(
         process.env.LOAD_SUPABASE_URL,
         process.env.LOAD_APPROVED_SUPABASE_HOST
       )
     : undefined;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+const approvedGcsBucket =
+  includeMediaFlow && objectStorageProvider === "gcs"
+    ? process.env.LOAD_APPROVED_GCS_BUCKET?.trim()
+    : undefined;
+const mediaStorageApproved =
+  objectStorageProvider === "gcs"
+    ? Boolean(approvedGcsBucket)
+    : Boolean(supabaseUrl);
 
 const includeCallTokenLoad = process.env.LOAD_INCLUDE_CALL_TOKEN_LOAD === "true";
 const callTokenConcurrency = positiveInt(process.env.LOAD_CALL_TOKEN_CONCURRENCY, 10);
@@ -454,9 +470,16 @@ async function runMediaFlowProbe(targets: ProbeTargets): Promise<Result[]> {
   const signData = recordValue(sign.data);
   const mediaId = stringValue(signData?.mediaId);
   const uploadUrl = stringValue(signData?.uploadUrl);
-  if (!sign.result.ok || !mediaId || !uploadUrl) return results;
+  const objectPath = stringValue(signData?.objectPath);
+  if (!sign.result.ok || !mediaId || !uploadUrl || !objectPath) return results;
 
-  results.push(await runUploadToSignedUrl(uploadUrl));
+  results.push(
+    await runUploadToSignedUrl(
+      uploadUrl,
+      objectPath,
+      signData?.uploadHeaders
+    )
+  );
 
   const finalize = await runProbeWithBody({
     label: "media flow: finalize",
@@ -470,23 +493,34 @@ async function runMediaFlowProbe(targets: ProbeTargets): Promise<Result[]> {
   return results;
 }
 
-async function runUploadToSignedUrl(uploadUrl: string): Promise<Result> {
+async function runUploadToSignedUrl(
+  uploadUrl: string,
+  objectPath: string,
+  uploadHeaders: unknown
+): Promise<Result> {
   const started = Date.now();
   const bytes = pngBytes();
   try {
-    if (!supabaseUrl) {
-      throw new Error("Approved staging Supabase origin is unavailable");
-    }
-    const approvedUploadUrl = resolveApprovedSignedUploadUrl(
-      uploadUrl,
-      supabaseUrl
+    const approvedUploadUrl = objectStorageProvider === "gcs"
+      ? resolveApprovedGcsSignedUploadUrl(
+          uploadUrl,
+          approvedGcsBucket,
+          objectPath
+        )
+      : resolveApprovedSignedUploadUrl(
+          uploadUrl,
+          supabaseUrl ?? ""
+        );
+    const approvedHeaders = resolveSignedUploadHeaders(
+      uploadHeaders,
+      objectStorageProvider,
+      "image/png"
     );
-    // Supabase signed upload URLs accept a PUT of the raw object body.
     const response = await fetch(approvedUploadUrl, {
       method: "PUT",
       redirect: "manual",
       signal: AbortSignal.timeout(requestTimeoutMs),
-      headers: { "content-type": "image/png" },
+      headers: approvedHeaders,
       body: bytes,
     });
     await response.arrayBuffer();
@@ -897,7 +931,9 @@ function configuredLoadLanes(): StagingLoadLane[] {
     ...(includeRealtime && supabaseUrl && supabaseAnonKey
       ? (["realtime"] as const)
       : []),
-    ...(includeMediaFlow && cookie && supabaseUrl ? (["media"] as const) : []),
+    ...(includeMediaFlow && cookie && mediaStorageApproved
+      ? (["media"] as const)
+      : []),
     ...(includeCallTokenLoad ? (["call-token"] as const) : []),
     ...(includePoolSaturation ? (["pool-saturation"] as const) : []),
   ];

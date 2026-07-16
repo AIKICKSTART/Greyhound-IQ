@@ -66,6 +66,7 @@ export const REVIEWED_LIFECYCLE_SCRIPTS = [
 export const RUNTIME_DEPENDENCY_CLASSIFICATION = {
   runtime: [
     "@base-ui/react",
+    "@google-cloud/storage",
     "@hookform/resolvers",
     "@prisma/client",
     "@supabase/ssr",

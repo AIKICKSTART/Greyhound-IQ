@@ -7,6 +7,7 @@ void main();
 async function main() {
   await acceptsAndNormalizesAllowlistedPayloads();
   await rejectsInvalidFieldTypes();
+  await rejectsPlaceholderOrUnidentifiedDogs();
   await rejectsMalformedAndOversizedResponses();
   await rejectsUnboundedCollections();
   await retriesOnlyWithinTheBoundedPolicy();
@@ -45,7 +46,14 @@ async function acceptsAndNormalizesAllowlistedPayloads() {
             injectedHtml: "<script>unsafe()</script>",
             runs: [
               {
+                runId: 420101,
+                dogId: 12345,
                 dogName: "Safe Runner",
+                sireId: 111,
+                sireName: "Verified Sire",
+                damId: 222,
+                damName: "Verified Dam",
+                dateWhelped: "2024-01-02",
                 boxNumber: 1,
                 place: 1,
                 providerCredential: "must-not-propagate",
@@ -61,8 +69,24 @@ async function acceptsAndNormalizesAllowlistedPayloads() {
   assert.equal(meetings.length, 1);
   assert.equal(meetings[0]?.sourceId, "42");
   assert.equal(meetings[0]?.races[0]?.sourceId, "4201");
-  assert.equal(meetings[0]?.races[0]?.runners[0]?.dog.name, "Safe Runner");
-  assert.equal(meetings[0]?.races[0]?.runners[0]?.prizeMoneyWon, 10_000);
+  const runner = meetings[0]?.races[0]?.runners[0];
+  assert.equal(runner?.sourceProvider, "topaz");
+  assert.equal(runner?.sourceId, "420101");
+  assert.equal(runner?.dog.sourceProvider, "topaz");
+  assert.equal(runner?.dog.sourceId, "12345");
+  assert.equal(runner?.dog.name, "Safe Runner");
+  assert.equal(runner?.dog.whelpDate, "2024-01-02");
+  assert.deepEqual(runner?.dog.sire, {
+    sourceProvider: "topaz",
+    sourceId: "111",
+    name: "Verified Sire",
+  });
+  assert.deepEqual(runner?.dog.dam, {
+    sourceProvider: "topaz",
+    sourceId: "222",
+    name: "Verified Dam",
+  });
+  assert.equal(runner?.prizeMoneyWon, 10_000);
   const normalized = JSON.stringify(meetings);
   assert.ok(!normalized.includes("unexpectedPrivilege"));
   assert.ok(!normalized.includes("providerSecret"));
@@ -91,7 +115,7 @@ async function rejectsInvalidFieldTypes() {
       raceNumber: 1,
       distance: 515,
       raceStart: "2026-07-15T09:00:00.000Z",
-      runs: [{ dogName: "Runner", boxNumber: "one" }],
+      runs: [{ dogId: 100, dogName: "Runner", boxNumber: "one" }],
     },
   ]);
   await assert.rejects(
@@ -99,6 +123,30 @@ async function rejectsInvalidFieldTypes() {
     (error: unknown) =>
       error instanceof Error && error.message === "topaz.response_invalid",
   );
+}
+
+async function rejectsPlaceholderOrUnidentifiedDogs() {
+  for (const run of [
+    { dogName: "Real Name", boxNumber: 1 },
+    { dogId: 100, dogName: "Unknown runner", boxNumber: 1 },
+    { dogId: 100, dogName: "Vacant Box", boxNumber: 1 },
+  ]) {
+    const provider = providerReturning([
+      {
+        raceId: 7,
+        trackName: "Sandown Park",
+        raceNumber: 1,
+        distance: 515,
+        raceStart: "2026-07-15T09:00:00.000Z",
+        runs: [run],
+      },
+    ]);
+    await assert.rejects(
+      () => provider.fetchResults(1),
+      (error: unknown) =>
+        error instanceof Error && error.message === "topaz.response_invalid",
+    );
+  }
 }
 
 async function rejectsMalformedAndOversizedResponses() {

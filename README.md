@@ -12,7 +12,7 @@ Current delivery model:
 - **Database:** Supabase Postgres via Prisma
 - **Auth:** WorkOS AuthKit only
 - **Billing:** Stripe Checkout/Billing for subscriptions; Lago remains legacy metering/snapshot infrastructure
-- **Storage/runtime integrations:** Supabase Storage, internal maintenance APIs
+- **Storage/runtime integrations:** Australian Google Cloud Storage, Supabase Realtime, internal maintenance APIs
 - **Production hosting:** Google Cloud Run on Google Cloud
 - **Staging hosting:** Google Cloud Run staging service
 - **Review gates:** GitHub Actions, Codex PR review, human approval
@@ -68,7 +68,7 @@ Copy `.env.example` to `.env`. Required production-class values include:
 - `INTERNAL_API_SECRET`
 - `CRON_SECRET`
 
-Supabase values are required for database/storage-backed runtime features, not production auth or billing:
+Supabase values remain required for Realtime and Supabase-compatible local/staging storage, not production auth or billing:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
@@ -76,7 +76,21 @@ Supabase values are required for database/storage-backed runtime features, not p
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-Supabase Storage uses `site-assets`, `public-user-media`, and `private-user-media` buckets. After migrations, run `npm run storage:upload-site-assets` to upload public website media into the `site-assets` bucket.
+Production object storage uses Application Default Credentials with
+`OBJECT_STORAGE_PROVIDER=gcs` and the logical-to-physical mappings
+`GCS_SITE_ASSETS_BUCKET`, `GCS_PUBLIC_USER_MEDIA_BUCKET`, and
+`GCS_PRIVATE_USER_MEDIA_BUCKET`. All three GCS buckets use uniform access and
+public-access prevention; authorized media is signed or streamed through the
+application. `npm run storage:upload-site-assets` uploads bundled site media
+through the selected adapter. Supabase remains the default adapter when
+`OBJECT_STORAGE_PROVIDER` is unset for local development.
+
+For an authenticated staging media load probe, set
+`LOAD_OBJECT_STORAGE_PROVIDER=gcs` and the exact non-production physical bucket
+in `LOAD_APPROVED_GCS_BUCKET`. The probe validates the V4 bucket/key/signature
+shape and forwards only the signed headers returned by the application. The
+Supabase staging adapter instead requires its existing explicitly approved
+origin variables.
 
 Pre-launch demo boundary:
 
@@ -162,7 +176,9 @@ The production deployment path is Google Cloud Run:
 - WorkOS is the only production auth system.
 - Stripe is the subscription checkout and payment path.
 - Lago remains legacy billing snapshot/metering infrastructure until removed.
-- Supabase remains the database/storage provider.
+- AlloyDB is the production database target; Australian Google Cloud Storage is
+  the production object store, while Supabase remains the Realtime and
+  local/staging compatibility service.
 
 See [docs/gcp-cloud-run-migration-plan.md](docs/gcp-cloud-run-migration-plan.md).
 

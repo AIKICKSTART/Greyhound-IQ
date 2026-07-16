@@ -1,15 +1,8 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { FeedInfiniteList } from "@/components/feed-infinite-list";
+import { FeedRaceDayCommand } from "@/components/feed-race-day-command";
 import { runFeedReadTasks } from "@/app/feed/feed-read-tasks";
-import { resolveSponsoredMarketplaceVisibility } from "@/components/appearance-preview-state";
-import {
-  isDockSkinKey,
-  type DockSkinKey,
-} from "@/components/dock-skin-catalogue";
-import { FeedHeaderPlannerPrototype } from "@/components/feed-header-planner-prototype";
-import { FeedSystemPrototype } from "@/components/feed-system-prototype";
-import { HomeHero } from "@/components/home-hero";
 import { HubIdentityBanner } from "@/components/hub/hub-identity-banner";
 import { HubLeftSidebar } from "@/components/hub/hub-left-sidebar";
 import {
@@ -38,6 +31,7 @@ import {
 import { resolvePageAvatarUrls } from "@/lib/custom-page-service";
 import { withDbRequestContext } from "@/lib/db-context";
 import { getFeedPageForViewer, getFeedTopics } from "@/lib/feed-service";
+import { buildFeedRaceDayData } from "@/lib/feed-race-day";
 import type { FeedMode } from "@/lib/feed-pagination";
 import {
   listFriendRequestsForProfile,
@@ -51,10 +45,7 @@ import {
   ensureOwnedPageActor,
   ensurePersonalActor,
 } from "@/lib/social-actor-service";
-import {
-  isPrototypeVariant,
-  type PrototypeVariant,
-} from "@/components/prototype-variants";
+import { getTodaysMeetings } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -74,63 +65,14 @@ export default async function FeedPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    demo?: string | string[];
-    dock?: string | string[];
     mode?: string;
-    sponsored?: string | string[];
-    variant?: string | string[];
   }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const requestedMode = resolvedSearchParams.mode;
   const mode: FeedMode = requestedMode === "latest" ? "latest" : "for-you";
-  const requestedVariant = Array.isArray(resolvedSearchParams.variant)
-    ? resolvedSearchParams.variant[0]
-    : resolvedSearchParams.variant;
-  const requestedDock = Array.isArray(resolvedSearchParams.dock)
-    ? resolvedSearchParams.dock[0]
-    : resolvedSearchParams.dock;
-  const requestedDemo = Array.isArray(resolvedSearchParams.demo)
-    ? resolvedSearchParams.demo[0]
-    : resolvedSearchParams.demo;
-  const showSponsoredMarketplace =
-    resolveSponsoredMarketplaceVisibility(resolvedSearchParams.sponsored) ===
-    "on";
-  const devicePreviewsEnabled =
-    process.env.NODE_ENV !== "production" ||
-    process.env.ENABLE_DEVICE_PREVIEWS === "true";
-  const prototypeVariant: PrototypeVariant | null =
-    devicePreviewsEnabled && isPrototypeVariant(requestedVariant)
-      ? requestedVariant
-      : null;
-  const prototypeDockSkin: DockSkinKey = isDockSkinKey(requestedDock)
-    ? requestedDock
-    : "D1";
-
-  if (prototypeVariant && requestedDemo === "1") {
-    return (
-      <FeedSystemPrototype
-        dockSkin={prototypeDockSkin}
-        variant={prototypeVariant}
-        firstName="Daniel"
-        showDemoAdvertiserConcepts={showSponsoredMarketplace}
-        showMarketplacePreview={showSponsoredMarketplace}
-        standalone
-      />
-    );
-  }
 
   const user = await getCurrentUser();
-
-  if (prototypeVariant && user && (!user.dbUserId || !user.profileId)) {
-    return (
-      <FeedSystemPrototype
-        variant={prototypeVariant}
-        firstName="Daniel"
-        showMarketplacePreview={showSponsoredMarketplace}
-      />
-    );
-  }
 
   if (!user?.dbUserId || !user.profileId) {
     const [topics, feedPage] = await Promise.all([
@@ -216,6 +158,7 @@ export default async function FeedPage({
     unreadByConversation,
     pendingInvites,
     profile,
+    todaysMeetings,
   ] = await runFeedReadTasks([
     () => getFeedTopics(),
     () => getFeedPageForViewer({
@@ -241,8 +184,10 @@ export default async function FeedPage({
         },
       })
     ),
+    () => getTodaysMeetings(),
   ], isFullAccessDemo());
   const posts = feedPage.items;
+  const raceDayData = buildFeedRaceDayData(todaysMeetings, new Date());
   const canUseFeedAsActiveIdentity = !activePage || isPro;
 
   const pagesInPosts = posts
@@ -310,14 +255,10 @@ export default async function FeedPage({
 
   return (
     <div className="giq-social-hub mx-auto w-full max-w-[1680px] px-2 py-4 sm:px-4 lg:px-5 2xl:px-6">
-      {prototypeVariant ? (
-        <FeedHeaderPlannerPrototype
-          variant={prototypeVariant}
-          firstName={user.firstName || user.name}
-        />
-      ) : (
-        <HomeHero compact primaryHref="/races" />
-      )}
+      <FeedRaceDayCommand
+        firstName={user.firstName || user.name}
+        data={raceDayData}
+      />
       <div className="giq-social-hub-grid mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_300px] 2xl:grid-cols-[260px_minmax(0,1fr)_340px]">
         <aside className="hidden lg:block" aria-label="Hub navigation">
           <div className="sticky top-[84px] max-h-[calc(100dvh-105px)] overflow-y-auto pr-1">

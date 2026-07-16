@@ -120,9 +120,7 @@ export class WatchdogProvider implements LiveDataProvider {
 export function mapWatchdogPayload(payload: WatchdogPayload): LiveMeeting[] {
   const meetings = ensureArray(payload.meetings);
   const races = ensureArray(payload.races);
-  const participants = ensureArray(payload.participants).filter(
-    (participant) => participant.dogId != null && Boolean(participant.dogName?.trim()),
-  );
+  const participants = ensureArray(payload.participants);
 
   return meetings
     .map((meeting) => {
@@ -188,8 +186,9 @@ function mapWatchdogRace(
   const prizeMoneyByPosition = placePrizeMoney(race);
   const runners = participants
     .map(mapWatchdogRunner)
+    .filter((runner): runner is LiveRunner => runner != null)
     .map((runner) => applyPrizeMoneyWon(runner, prizeMoneyByPosition))
-    .filter((runner): runner is LiveRunner => runner.boxNumber > 0)
+    .filter((runner) => runner.boxNumber > 0)
     .sort((a, b) => a.boxNumber - b.boxNumber);
 
   return {
@@ -235,11 +234,13 @@ function mapWatchdogRace(
   };
 }
 
-function mapWatchdogRunner(participant: WatchdogParticipant): LiveRunner {
+function mapWatchdogRunner(participant: WatchdogParticipant): LiveRunner | null {
   const boxNumber = Math.trunc(
     numberOr(participant.box, numberOr(participant.rugNumber, 0))
   );
-  const dogSourceId = participant.dogId == null ? undefined : String(participant.dogId);
+  const dogSourceId = stableSourceId(participant.dogId);
+  const dogName = participant.dogName?.trim();
+  if (!dogSourceId || !isRealDogName(dogName)) return null;
 
   return {
     sourceId:
@@ -248,6 +249,7 @@ function mapWatchdogRunner(participant: WatchdogParticipant): LiveRunner {
         : participant.raceId != null
           ? `${participant.raceId}:box:${boxNumber}`
           : undefined,
+    sourceProvider: "watchdog",
     sourceRawJson: JSON.stringify({
       id: participant.id,
       raceId: participant.raceId,
@@ -281,10 +283,14 @@ function mapWatchdogRunner(participant: WatchdogParticipant): LiveRunner {
     }),
     boxNumber,
     dog: {
-      name: participant.dogName?.trim() || "Unknown runner",
-      earBrand: dogSourceId ? `watchdog:${dogSourceId}` : undefined,
+      sourceProvider: "watchdog",
+      sourceId: dogSourceId,
+      name: dogName,
       sex: participant.sex ?? undefined,
       colour: participant.colour ?? undefined,
+      whelpDate: participant.whelpedDate ?? undefined,
+      sire: parentEvidence(participant.sireId, participant.sireName),
+      dam: parentEvidence(participant.damId, participant.damName),
     },
     trainerName: participant.trainer ?? undefined,
     weight: numberOrNull(participant.resultWeight) ?? undefined,
@@ -296,6 +302,35 @@ function mapWatchdogRunner(participant: WatchdogParticipant): LiveRunner {
     margin: parseMargin(participant.resultMargin) ?? undefined,
     splitTime: numberOrNull(participant.resultFirstSplitTime) ?? undefined,
   };
+}
+
+function parentEvidence(
+  id: WatchdogParticipant["sireId"] | WatchdogParticipant["damId"],
+  name: string | null | undefined,
+) {
+  const sourceId = stableSourceId(id);
+  if (!sourceId && !isRealDogName(name)) return undefined;
+  return {
+    sourceProvider: sourceId ? "watchdog" : undefined,
+    sourceId,
+    name: isRealDogName(name) ? name.trim() : undefined,
+  };
+}
+
+function stableSourceId(value: string | number | null | undefined) {
+  if (value == null) return undefined;
+  const sourceId = String(value).trim();
+  return sourceId && sourceId.length <= 128 ? sourceId : undefined;
+}
+
+function isRealDogName(value?: string | null): value is string {
+  const name = value?.trim();
+  return Boolean(
+    name &&
+      !/^(?:unknown(?:\s+(?:dog|runner))?|unnamed|tba|tbd|n\/?a|vacant(?:\s+box)?|no\s+reserve|runner\s+\d+|dog\s+\d+|-)$/i.test(
+        name,
+      ),
+  );
 }
 
 function totalPrizeMoney(race: WatchdogRace) {

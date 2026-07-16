@@ -8,11 +8,10 @@ import type { CurrentUserProfile } from "@/lib/auth-types";
 import { assertPaidFeatureAccess } from "@/lib/tier-access";
 import { getPlatformFlag, PLATFORM_FLAGS } from "@/lib/platform-settings";
 import {
-  downloadStorageObject,
-} from "@/lib/supabase-storage";
-import { objectStorage } from "@/lib/object-storage";
+  objectStorage,
+} from "@/lib/object-storage";
 import {
-  isSupabaseStorageBucket,
+  isObjectStorageBucket,
   PUBLIC_USER_MEDIA_BUCKET,
   publicStorageUrl,
 } from "@/lib/storage-paths";
@@ -236,18 +235,19 @@ async function readDogCardPhoto(contentJson: string | null, actorId: string) {
     const source = preferredIds.map((id) => byId.get(id)).find(Boolean);
     if (source) {
       if (
-        !isSupabaseStorageBucket(source.storageBucket) ||
+        !isObjectStorageBucket(source.storageBucket) ||
         !source.mimeType.startsWith("image/") ||
         source.sizeBytes <= 0 ||
         source.sizeBytes > MAX_DOG_CARD_SOURCE_BYTES
       ) {
         throw new Error("dog_card.photo_invalid");
       }
-      const blob = await downloadStorageObject(
-        source.storageBucket,
-        source.storagePath,
-      );
-      const bytes = Buffer.from(await blob.arrayBuffer());
+      const body = await objectStorage.streamObject({
+        bucket: source.storageBucket,
+        key: source.storagePath,
+        range: { start: 0, end: source.sizeBytes - 1 },
+      });
+      const bytes = Buffer.from(await new Response(body).arrayBuffer());
       assertDogCardPhotoSize(bytes.byteLength, source.sizeBytes);
       return bytes;
     }

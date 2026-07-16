@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "reviewDate": "2026-07-15",
+  "reviewDate": "2026-07-17",
   "registrySource": "https://registry.npmjs.org",
-  "lockReviewHash": "e5ed09bfc21297aa2cfa18867fa41ae1adb8490e3fc39a20bb8ce8756bec4a75",
+  "lockReviewHash": "a863fe642e1cf326b5a4b3e09177dbd2308294fdd20cf0a7d31a911daffeaad0",
   "directDependencies": [
     {
       "name": "@auth/prisma-adapter",
@@ -29,6 +29,18 @@
       "repository": "git+https://github.com/mui/base-ui.git"
     },
     {
+      "name": "@google-cloud/storage",
+      "group": "dependencies",
+      "declaredSpecifier": "7.21.0",
+      "lockedVersion": "7.21.0",
+      "latestVersion": "7.21.0",
+      "registryModifiedAt": "2026-06-08T20:55:24.906Z",
+      "deprecated": null,
+      "maintainers": 1,
+      "publisher": "google-wombot",
+      "repository": "git+https://github.com/googleapis/google-cloud-node.git"
+    },
+    {
       "name": "@hookform/resolvers",
       "group": "dependencies",
       "declaredSpecifier": "^5.4.0",
@@ -46,7 +58,7 @@
       "declaredSpecifier": "16.2.10",
       "lockedVersion": "16.2.10",
       "latestVersion": "16.2.10",
-      "registryModifiedAt": "2026-07-13T23:52:52.886Z",
+      "registryModifiedAt": "2026-07-15T23:58:18.457Z",
       "deprecated": null,
       "maintainers": 2,
       "publisher": "GitHub Actions",
@@ -58,7 +70,7 @@
       "declaredSpecifier": "^6.19.3",
       "lockedVersion": "6.19.3",
       "latestVersion": "7.8.0",
-      "registryModifiedAt": "2026-07-14T18:00:25.050Z",
+      "registryModifiedAt": "2026-07-16T16:25:02.435Z",
       "deprecated": null,
       "maintainers": 2,
       "publisher": "GitHub Actions",
@@ -105,8 +117,8 @@
       "group": "dependencies",
       "declaredSpecifier": "^2.108.2",
       "lockedVersion": "2.108.2",
-      "latestVersion": "2.110.5",
-      "registryModifiedAt": "2026-07-14T15:24:47.055Z",
+      "latestVersion": "2.110.7",
+      "registryModifiedAt": "2026-07-16T12:32:24.985Z",
       "deprecated": null,
       "maintainers": 2,
       "publisher": "GitHub Actions",
@@ -117,8 +129,8 @@
       "group": "devDependencies",
       "declaredSpecifier": "^4",
       "lockedVersion": "4.3.1",
-      "latestVersion": "4.3.2",
-      "registryModifiedAt": "2026-07-14T16:52:11.422Z",
+      "latestVersion": "4.3.3",
+      "registryModifiedAt": "2026-07-16T17:23:45.805Z",
       "deprecated": null,
       "maintainers": 3,
       "publisher": "GitHub Actions",
@@ -238,7 +250,7 @@
       "declaredSpecifier": "16.2.10",
       "lockedVersion": "16.2.10",
       "latestVersion": "16.2.10",
-      "registryModifiedAt": "2026-07-13T23:53:30.104Z",
+      "registryModifiedAt": "2026-07-15T23:59:03.876Z",
       "deprecated": null,
       "maintainers": 3,
       "publisher": "GitHub Actions",
@@ -250,7 +262,7 @@
       "declaredSpecifier": "^1.6.16",
       "lockedVersion": "1.6.16",
       "latestVersion": "1.6.16",
-      "registryModifiedAt": "2026-07-14T19:16:06.266Z",
+      "registryModifiedAt": "2026-07-15T21:55:27.218Z",
       "deprecated": null,
       "maintainers": 4,
       "publisher": "GitHub Actions",
@@ -310,7 +322,7 @@
       "declaredSpecifier": "16.2.10",
       "lockedVersion": "16.2.10",
       "latestVersion": "16.2.10",
-      "registryModifiedAt": "2026-07-13T23:54:09.563Z",
+      "registryModifiedAt": "2026-07-15T23:59:36.385Z",
       "deprecated": null,
       "maintainers": 4,
       "publisher": "GitHub Actions",
@@ -334,7 +346,7 @@
       "declaredSpecifier": "^6.19.3",
       "lockedVersion": "6.19.3",
       "latestVersion": "7.8.0",
-      "registryModifiedAt": "2026-07-14T18:01:03.573Z",
+      "registryModifiedAt": "2026-07-16T16:25:36.727Z",
       "deprecated": null,
       "maintainers": 2,
       "publisher": "GitHub Actions",
@@ -346,7 +358,7 @@
       "declaredSpecifier": "19.2.4",
       "lockedVersion": "19.2.4",
       "latestVersion": "19.2.7",
-      "registryModifiedAt": "2026-07-14T16:40:48.619Z",
+      "registryModifiedAt": "2026-07-16T16:41:36.767Z",
       "deprecated": null,
       "maintainers": 2,
       "publisher": "react-bot",
@@ -358,7 +370,7 @@
       "declaredSpecifier": "19.2.4",
       "lockedVersion": "19.2.4",
       "latestVersion": "19.2.7",
-      "registryModifiedAt": "2026-07-14T16:41:01.665Z",
+      "registryModifiedAt": "2026-07-16T16:41:50.447Z",
       "deprecated": null,
       "maintainers": 2,
       "publisher": "react-bot",
@@ -405,8 +417,8 @@
       "group": "dependencies",
       "declaredSpecifier": "^22.3.0",
       "lockedVersion": "22.3.0",
-      "latestVersion": "22.3.1",
-      "registryModifiedAt": "2026-07-09T17:59:46.714Z",
+      "latestVersion": "22.3.2",
+      "registryModifiedAt": "2026-07-16T00:41:24.049Z",
       "deprecated": null,
       "maintainers": 1,
       "publisher": "GitHub Actions",
@@ -429,8 +441,8 @@
       "group": "devDependencies",
       "declaredSpecifier": "^4",
       "lockedVersion": "4.3.1",
-      "latestVersion": "4.3.2",
-      "registryModifiedAt": "2026-07-14T16:51:55.387Z",
+      "latestVersion": "4.3.3",
+      "registryModifiedAt": "2026-07-16T17:23:30.098Z",
       "deprecated": null,
       "maintainers": 3,
       "publisher": "GitHub Actions",
@@ -454,7 +466,7 @@
       "declaredSpecifier": "^5",
       "lockedVersion": "5.9.3",
       "latestVersion": "7.0.2",
-      "registryModifiedAt": "2026-07-14T08:23:32.009Z",
+      "registryModifiedAt": "2026-07-15T08:31:49.372Z",
       "deprecated": null,
       "maintainers": 7,
       "publisher": "typescript-bot",
@@ -636,6 +648,21 @@
           "version": "1.0.9",
           "instances": 1,
           "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "agent-base",
+      "versions": [
+        {
+          "version": "6.0.2",
+          "instances": 2,
+          "runtimeIncluded": true
+        },
+        {
+          "version": "7.1.4",
+          "instances": 1,
+          "runtimeIncluded": true
         }
       ]
     },
@@ -830,7 +857,7 @@
         {
           "version": "4.4.3",
           "instances": 1,
-          "runtimeIncluded": false
+          "runtimeIncluded": true
         }
       ]
     },
@@ -1030,6 +1057,21 @@
       ]
     },
     {
+      "name": "https-proxy-agent",
+      "versions": [
+        {
+          "version": "5.0.1",
+          "instances": 1,
+          "runtimeIncluded": true
+        },
+        {
+          "version": "7.0.6",
+          "instances": 1,
+          "runtimeIncluded": true
+        }
+      ]
+    },
+    {
       "name": "human-signals",
       "versions": [
         {
@@ -1094,8 +1136,8 @@
       "versions": [
         {
           "version": "2.0.1",
-          "instances": 1,
-          "runtimeIncluded": false
+          "instances": 2,
+          "runtimeIncluded": true
         },
         {
           "version": "4.0.1",
@@ -1275,6 +1317,36 @@
       ]
     },
     {
+      "name": "mime-db",
+      "versions": [
+        {
+          "version": "1.52.0",
+          "instances": 1,
+          "runtimeIncluded": true
+        },
+        {
+          "version": "1.54.0",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
+      "name": "mime-types",
+      "versions": [
+        {
+          "version": "2.1.35",
+          "instances": 1,
+          "runtimeIncluded": true
+        },
+        {
+          "version": "3.0.2",
+          "instances": 1,
+          "runtimeIncluded": false
+        }
+      ]
+    },
+    {
       "name": "mimic-fn",
       "versions": [
         {
@@ -1360,7 +1432,7 @@
         {
           "version": "3.1.0",
           "instances": 1,
-          "runtimeIncluded": false
+          "runtimeIncluded": true
         }
       ]
     },

@@ -438,10 +438,25 @@ function stampMeetings(meetings: LiveMeeting[], fallbackProvider: string) {
     return {
       ...meeting,
       sourceProvider,
-      races: meeting.races.map((race) => ({
-        ...race,
-        sourceProvider: race.sourceProvider ?? sourceProvider,
-      })),
+      races: meeting.races.map((race) => {
+        const raceProvider = race.sourceProvider ?? sourceProvider;
+        return {
+          ...race,
+          sourceProvider: raceProvider,
+          runners: race.runners.map((runner) => {
+            const runnerProvider = runner.sourceProvider ?? raceProvider;
+            return {
+              ...runner,
+              sourceProvider: runnerProvider,
+              dog: {
+                ...runner.dog,
+                sourceProvider:
+                  runner.dog.sourceProvider ?? runnerProvider,
+              },
+            };
+          }),
+        };
+      }),
     };
   });
 }
@@ -516,13 +531,16 @@ async function upsertMeetings(
   const dogIds = await syncStage(
     "ensureDogs",
     { runners: runnerItems.length },
-    () => ensureDogs(db, runnerItems.map((item) => item.runner.dog)),
+    () => ensureDogs(db, runnerItems.map((item) => item.runner.dog), logContext),
     logContext
   );
   const trainerIds = await syncStage(
     "ensureTrainers",
     { runners: runnerItems.length },
-    () => ensureTrainers(db, runnerItems.map((item) => item.runner.trainerName)),
+    () => ensureTrainers(
+      runnerItems.map((item) => item.runner.trainerName),
+      logContext,
+    ),
     logContext
   );
   const runnerRows = await syncStage(
@@ -874,140 +892,518 @@ async function bulkUpsertRaceChunkSet(
   }
 }
 
-async function ensureDogs(db: LiveSyncDbClient, dogs: LiveDog[]) {
-  const byKey = new Map<string, LiveDog>();
+type DogIdentityDbClient = Pick<
+  LiveSyncDbClient,
+  "dog" | "dogSourceIdentity"
+>;
+
+type DogIdentityClaim = {
+  key: string;
+  legacyKey: string;
+  sourceProvider: string;
+  sourceId: string;
+  dog: LiveDog;
+  whelpDate: Date | null;
+};
+
+type DogIdentityParentRow = {
+  name: string;
+  earBrand: string | null;
+  sourceProvider: string | null;
+  sourceId: string | null;
+};
+
+type DogIdentityRow = DogIdentityParentRow & {
+  id: string;
+  whelpDate: Date | null;
+  sire: DogIdentityParentRow | null;
+  dam: DogIdentityParentRow | null;
+};
+
+const AUTHORITATIVE_DOG_CREATION_PROVIDERS = new Set([
+  "thedogs",
+  "topaz",
+  "watchdog",
+]);
+
+export async function ensureDogs(
+  db: DogIdentityDbClient,
+  dogs: LiveDog[],
+  logContext: LogCorrelationContext = { requestId: null, traceId: null },
+) {
+  const groupedClaims = new Map<string, DogIdentityClaim[]>();
   for (const dog of dogs) {
-    const key = dogKey(dog);
-    if (key && !byKey.has(key)) byKey.set(key, dog);
-  }
-
-  const values = [...byKey.values()];
-  if (values.length === 0) return new Map<string, string>();
-  const existing: Array<{ id: string; name: string; earBrand: string | null }> = [];
-  for (const valueChunk of chunks(values, LOOKUP_QUERY_CHUNK_SIZE)) {
-    const names = [...new Set(valueChunk.map((dog) => dog.name).filter(Boolean))];
-    const earBrands = [
-      ...new Set(valueChunk
-        .map((dog) => dog.earBrand)
-        .filter((value): value is string => Boolean(value))),
-    ];
-    existing.push(...await db.dog.findMany({
-      where: {
-        OR: [
-          ...(names.length > 0 ? [{ name: { in: names } }] : []),
-          ...(earBrands.length > 0 ? [{ earBrand: { in: earBrands } }] : []),
-        ],
-      },
-      select: { id: true, name: true, earBrand: true },
-      take: LOOKUP_QUERY_LIMIT,
-    }));
-  }
-  const ids = new Map<string, string>();
-  for (const dog of existing) {
-    if (dog.earBrand) ids.set(dog.earBrand, dog.id);
-    ids.set(dog.name, dog.id);
-  }
-
-  for (const dog of values) {
-    const existingId = dog.earBrand ? ids.get(dog.earBrand) : undefined;
-    const nameId = ids.get(dog.name);
-    if (existingId || !nameId || !dog.earBrand) continue;
-    try {
-      await db.dog.update({
-        where: { id: nameId },
-        data: {
-          earBrand: dog.earBrand,
-          sex: dog.sex,
-          colour: dog.colour,
-        },
+    const sourceProvider = normalizeProvider(dog.sourceProvider);
+    const sourceId = normalizeSourceId(dog.sourceId);
+    const name = cleanDogName(dog.name);
+    if (!name) {
+      logDogIdentitySkip(logContext, "invalid_or_placeholder_name", {
+        sourceProvider,
+        sourceId,
       });
-      ids.set(dog.earBrand, nameId);
-    } catch (err) {
-      if (!isUniqueConstraintError(err)) throw err;
+      continue;
+    }
+    if (!sourceProvider || !sourceId) {
+      logDogIdentitySkip(logContext, "missing_stable_provider_identity", {
+        sourceProvider,
+        sourceId,
+        dogName: name,
+      });
+      continue;
+    }
+
+    const key = exactDogKey(sourceProvider, sourceId);
+    const claim: DogIdentityClaim = {
+      key,
+      legacyKey: `${sourceProvider}:${sourceId}`,
+      sourceProvider,
+      sourceId,
+      dog: {
+        ...dog,
+        sourceProvider,
+        sourceId,
+        name,
+        earBrand: cleanRegistryToken(dog.earBrand),
+      },
+      whelpDate: parseOptionalDate(dog.whelpDate),
+    };
+    const claims = groupedClaims.get(key) ?? [];
+    claims.push(claim);
+    groupedClaims.set(key, claims);
+  }
+
+  const claims: DogIdentityClaim[] = [];
+  for (const grouped of groupedClaims.values()) {
+    const merged = mergeCompatibleClaims(grouped);
+    if (!merged) {
+      const first = grouped[0];
+      logDogIdentitySkip(logContext, "conflicting_provider_observations", {
+        sourceProvider: first?.sourceProvider,
+        sourceId: first?.sourceId,
+        observations: grouped.length,
+      });
+      continue;
+    }
+    claims.push(merged);
+  }
+
+  if (claims.length === 0) return new Map<string, string>();
+
+  const ids = new Map<string, string>();
+  const initialExact = await loadExactDogIdentityClaims(db, claims);
+  const unresolved: DogIdentityClaim[] = [];
+  for (const claim of claims) {
+    const exactIds = initialExact.idsByClaim.get(claim.key) ?? new Set<string>();
+    if (initialExact.saturatedClaims.has(claim.key)) {
+      logDogIdentitySkip(logContext, "exact_identity_lookup_saturated", claim);
+      continue;
+    }
+    if (exactIds.size > 1) {
+      logDogIdentitySkip(logContext, "ambiguous_exact_identity", {
+        ...claim,
+        matchingCanonicalRecords: exactIds.size,
+      });
+      continue;
+    }
+    const exactId = exactIds.values().next().value as string | undefined;
+    if (exactId) {
+      ids.set(claim.key, exactId);
+      continue;
+    }
+    unresolved.push(claim);
+  }
+
+  const eligibleForCreation: DogIdentityClaim[] = [];
+  for (const claimChunk of chunks(unresolved, LOOKUP_QUERY_CHUNK_SIZE)) {
+    const natural = await loadNaturalDogCandidates(db, claimChunk);
+    if (natural.saturated) {
+      for (const claim of claimChunk) {
+        logDogIdentitySkip(logContext, "natural_identity_lookup_saturated", claim);
+      }
+      continue;
+    }
+
+    for (const claim of claimChunk) {
+      const possibleCandidates = natural.rows.filter((row) =>
+        isPossibleDogCandidate(row, claim),
+      );
+      if (possibleCandidates.length > 0) {
+        logDogIdentitySkip(logContext, "possible_existing_candidate", {
+          ...claim,
+          matchingCanonicalRecords: possibleCandidates.length,
+        });
+        continue;
+      }
+      if (!AUTHORITATIVE_DOG_CREATION_PROVIDERS.has(claim.sourceProvider)) {
+        logDogIdentitySkip(logContext, "provider_not_approved_for_creation", claim);
+        continue;
+      }
+      eligibleForCreation.push(claim);
     }
   }
 
-  const missing = values.filter((dog) => !ids.has(dogKey(dog)));
+  if (eligibleForCreation.length === 0) return ids;
 
-  if (missing.length > 0) {
-    await db.dog.createMany({
-      data: missing.map((dog) => ({
-        name: dog.name,
-        earBrand: dog.earBrand,
-        sex: dog.sex,
-        colour: dog.colour,
-      })),
-      skipDuplicates: true,
-    });
-    const created: Array<{ id: string; name: string; earBrand: string | null }> = [];
-    for (const missingChunk of chunks(missing, LOOKUP_QUERY_CHUNK_SIZE)) {
-      created.push(...await db.dog.findMany({
-        where: {
-          OR: [
-            { name: { in: missingChunk.map((dog) => dog.name) } },
-            {
-              earBrand: {
-                in: missingChunk
-                  .map((dog) => dog.earBrand)
-                  .filter((value): value is string => Boolean(value)),
-              },
-            },
-          ],
-        },
-        select: { id: true, name: true, earBrand: true },
-        take: LOOKUP_QUERY_LIMIT,
-      }));
+  await db.dog.createMany({
+    data: eligibleForCreation.map((claim) => ({
+      name: claim.dog.name,
+      earBrand: claim.dog.earBrand,
+      sex: cleanOptionalText(claim.dog.sex, 32),
+      colour: cleanOptionalText(claim.dog.colour, 64),
+      whelpDate: claim.whelpDate,
+      sourceProvider: claim.sourceProvider,
+      sourceId: claim.sourceId,
+    })),
+    skipDuplicates: true,
+  });
+
+  const confirmed = await loadExactDogIdentityClaims(db, eligibleForCreation);
+  for (const claim of eligibleForCreation) {
+    const exactIds = confirmed.idsByClaim.get(claim.key) ?? new Set<string>();
+    if (confirmed.saturatedClaims.has(claim.key) || exactIds.size > 1) {
+      logDogIdentitySkip(logContext, "created_identity_confirmation_ambiguous", {
+        ...claim,
+        matchingCanonicalRecords: exactIds.size,
+      });
+      continue;
     }
-    for (const dog of created) {
-      if (!ids.has(dog.name)) ids.set(dog.name, dog.id);
-      if (dog.earBrand && !ids.has(dog.earBrand)) ids.set(dog.earBrand, dog.id);
+    const dogId = exactIds.values().next().value as string | undefined;
+    if (!dogId) {
+      logDogIdentitySkip(logContext, "created_identity_not_confirmed", claim);
+      continue;
     }
+    ids.set(claim.key, dogId);
   }
 
   return ids;
 }
 
-function isUniqueConstraintError(err: unknown) {
-  return (
-    err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002"
+async function loadExactDogIdentityClaims(
+  db: DogIdentityDbClient,
+  claims: DogIdentityClaim[],
+) {
+  const idsByClaim = new Map<string, Set<string>>();
+  const saturatedClaims = new Set<string>();
+
+  for (const claimChunk of chunks(claims, LOOKUP_QUERY_CHUNK_SIZE)) {
+    const claimKeys = new Set(claimChunk.map((claim) => claim.key));
+    const keyByLegacy = new Map(
+      claimChunk.map((claim) => [claim.legacyKey, claim.key]),
+    );
+    const rows = await db.dog.findMany({
+      where: {
+        OR: claimChunk.flatMap((claim) => [
+          {
+            sourceProvider: claim.sourceProvider,
+            sourceId: claim.sourceId,
+          },
+          { earBrand: claim.legacyKey },
+        ]),
+      },
+      select: {
+        id: true,
+        earBrand: true,
+        sourceProvider: true,
+        sourceId: true,
+      },
+      take: LOOKUP_QUERY_LIMIT + 1,
+    });
+    if (rows.length > LOOKUP_QUERY_LIMIT) {
+      for (const claim of claimChunk) saturatedClaims.add(claim.key);
+      continue;
+    }
+    for (const row of rows) {
+      const directKey = exactDogKey(row.sourceProvider, row.sourceId);
+      if (directKey && claimKeys.has(directKey)) {
+        addDogIdentityClaim(idsByClaim, directKey, row.id);
+      }
+      const legacyKey = row.earBrand ? keyByLegacy.get(row.earBrand) : undefined;
+      if (legacyKey) addDogIdentityClaim(idsByClaim, legacyKey, row.id);
+    }
+
+    const sourceIdentities = await db.dogSourceIdentity.findMany({
+      where: {
+        verificationStatus: "verified",
+        dogId: { not: null },
+        OR: claimChunk.map((claim) => ({
+          sourceProvider: claim.sourceProvider,
+          sourceId: claim.sourceId,
+        })),
+      },
+      select: {
+        dogId: true,
+        sourceProvider: true,
+        sourceId: true,
+      },
+      take: LOOKUP_QUERY_LIMIT + 1,
+    });
+    if (sourceIdentities.length > LOOKUP_QUERY_LIMIT) {
+      for (const claim of claimChunk) saturatedClaims.add(claim.key);
+      continue;
+    }
+    for (const identity of sourceIdentities) {
+      const key = exactDogKey(identity.sourceProvider, identity.sourceId);
+      if (identity.dogId && key && claimKeys.has(key)) {
+        addDogIdentityClaim(idsByClaim, key, identity.dogId);
+      }
+    }
+  }
+
+  return { idsByClaim, saturatedClaims };
+}
+
+async function loadNaturalDogCandidates(
+  db: DogIdentityDbClient,
+  claims: DogIdentityClaim[],
+) {
+  const where = claims.flatMap((claim) => naturalCandidateConditions(claim));
+  if (where.length === 0) return { rows: [] as DogIdentityRow[], saturated: false };
+
+  const rows = await db.dog.findMany({
+    where: { OR: where },
+    select: {
+      id: true,
+      name: true,
+      earBrand: true,
+      sourceProvider: true,
+      sourceId: true,
+      whelpDate: true,
+      sire: {
+        select: {
+          name: true,
+          earBrand: true,
+          sourceProvider: true,
+          sourceId: true,
+        },
+      },
+      dam: {
+        select: {
+          name: true,
+          earBrand: true,
+          sourceProvider: true,
+          sourceId: true,
+        },
+      },
+    },
+    take: LOOKUP_QUERY_LIMIT + 1,
+  });
+  return {
+    rows: rows.slice(0, LOOKUP_QUERY_LIMIT) as DogIdentityRow[],
+    saturated: rows.length > LOOKUP_QUERY_LIMIT,
+  };
+}
+
+function naturalCandidateConditions(claim: DogIdentityClaim) {
+  const conditions: Prisma.DogWhereInput[] = [
+    { name: { equals: claim.dog.name, mode: "insensitive" } },
+  ];
+  if (claim.dog.earBrand) conditions.push({ earBrand: claim.dog.earBrand });
+  if (claim.whelpDate) conditions.push({ whelpDate: claim.whelpDate });
+  for (const [relation, parent] of [
+    ["sire", claim.dog.sire],
+    ["dam", claim.dog.dam],
+  ] as const) {
+    const parentConditions = parentNaturalConditions(parent);
+    if (parentConditions.length > 0) {
+      conditions.push({ [relation]: { is: { OR: parentConditions } } });
+    }
+  }
+  return conditions;
+}
+
+function parentNaturalConditions(parent: LiveDog["sire"]) {
+  if (!parent) return [];
+  const conditions: Prisma.DogWhereInput[] = [];
+  const provider = normalizeProvider(parent.sourceProvider);
+  const sourceId = normalizeSourceId(parent.sourceId);
+  if (provider && sourceId) {
+    conditions.push({ sourceProvider: provider, sourceId });
+    conditions.push({ earBrand: `${provider}:${sourceId}` });
+  }
+  const name = cleanDogName(parent.name);
+  if (name) conditions.push({ name: { equals: name, mode: "insensitive" } });
+  return conditions;
+}
+
+function isPossibleDogCandidate(row: DogIdentityRow, claim: DogIdentityClaim) {
+  if (normalizeDogName(row.name) === normalizeDogName(claim.dog.name)) return true;
+  if (claim.dog.earBrand && row.earBrand === claim.dog.earBrand) return true;
+
+  const sameWhelpDate =
+    claim.whelpDate != null &&
+    row.whelpDate != null &&
+    row.whelpDate.toISOString().slice(0, 10) ===
+      claim.whelpDate.toISOString().slice(0, 10);
+  const sireMatch = parentEvidenceMatches(row.sire, claim.dog.sire);
+  const damMatch = parentEvidenceMatches(row.dam, claim.dog.dam);
+  return (sameWhelpDate && (sireMatch || damMatch)) || (sireMatch && damMatch);
+}
+
+function parentEvidenceMatches(
+  row: DogIdentityParentRow | null,
+  evidence: LiveDog["sire"],
+) {
+  if (!row || !evidence) return false;
+  const provider = normalizeProvider(evidence.sourceProvider);
+  const sourceId = normalizeSourceId(evidence.sourceId);
+  if (provider && sourceId) {
+    if (row.sourceProvider === provider && row.sourceId === sourceId) return true;
+    if (row.earBrand === `${provider}:${sourceId}`) return true;
+  }
+  const name = cleanDogName(evidence.name);
+  return Boolean(name && normalizeDogName(row.name) === normalizeDogName(name));
+}
+
+function mergeCompatibleClaims(claims: DogIdentityClaim[]) {
+  const first = claims[0];
+  if (!first) return null;
+  const nameValues = distinctEvidence(claims, (claim) =>
+    normalizeDogName(claim.dog.name),
+  );
+  const registryValues = distinctEvidence(claims, (claim) => claim.dog.earBrand);
+  const sexValues = distinctEvidence(claims, (claim) =>
+    cleanOptionalText(claim.dog.sex, 32)?.toLocaleUpperCase("en-AU"),
+  );
+  const colourValues = distinctEvidence(claims, (claim) =>
+    cleanOptionalText(claim.dog.colour, 64)?.toLocaleUpperCase("en-AU"),
+  );
+  const whelpValues = distinctEvidence(claims, (claim) =>
+    claim.whelpDate?.toISOString().slice(0, 10),
+  );
+  const sireValues = distinctEvidence(claims, (claim) => parentExactKey(claim.dog.sire));
+  const damValues = distinctEvidence(claims, (claim) => parentExactKey(claim.dog.dam));
+  if (
+    nameValues.size !== 1 ||
+    registryValues.size > 1 ||
+    sexValues.size > 1 ||
+    colourValues.size > 1 ||
+    whelpValues.size > 1 ||
+    sireValues.size > 1 ||
+    damValues.size > 1
+  ) {
+    return null;
+  }
+
+  return claims.slice(1).reduce<DogIdentityClaim>(
+    (merged, claim) => ({
+      ...merged,
+      dog: {
+        ...merged.dog,
+        earBrand: merged.dog.earBrand ?? claim.dog.earBrand,
+        sex: merged.dog.sex ?? claim.dog.sex,
+        colour: merged.dog.colour ?? claim.dog.colour,
+        whelpDate: merged.dog.whelpDate ?? claim.dog.whelpDate,
+        sire: merged.dog.sire ?? claim.dog.sire,
+        dam: merged.dog.dam ?? claim.dog.dam,
+      },
+      whelpDate: merged.whelpDate ?? claim.whelpDate,
+    }),
+    first,
   );
 }
 
-async function ensureTrainers(db: LiveSyncDbClient, names: Array<string | undefined>) {
-  const uniqueNames = [
-    ...new Set(names.filter((name): name is string => Boolean(name))),
-  ];
-  if (uniqueNames.length === 0) return new Map<string, string>();
+function distinctEvidence(
+  claims: DogIdentityClaim[],
+  select: (claim: DogIdentityClaim) => string | undefined,
+) {
+  return new Set(claims.map(select).filter((value): value is string => Boolean(value)));
+}
 
-  const existing: Array<{ id: string; name: string }> = [];
-  for (const nameChunk of chunks(uniqueNames, LOOKUP_QUERY_CHUNK_SIZE)) {
-    existing.push(...await db.trainer.findMany({
-      where: { name: { in: nameChunk } },
-      select: { id: true, name: true },
-      take: LOOKUP_QUERY_LIMIT,
-    }));
-  }
-  const ids = new Map(existing.map((trainer) => [trainer.name, trainer.id]));
-  const missing = uniqueNames.filter((name) => !ids.has(name));
+function parentExactKey(parent: LiveDog["sire"]) {
+  return exactDogKey(parent?.sourceProvider, parent?.sourceId) || undefined;
+}
 
-  if (missing.length > 0) {
-    await db.trainer.createMany({
-      data: missing.map((name) => ({ name })),
+function addDogIdentityClaim(
+  idsByClaim: Map<string, Set<string>>,
+  key: string,
+  dogId: string,
+) {
+  const ids = idsByClaim.get(key) ?? new Set<string>();
+  ids.add(dogId);
+  idsByClaim.set(key, ids);
+}
+
+function logDogIdentitySkip(
+  logContext: LogCorrelationContext,
+  reason: string,
+  value: Partial<DogIdentityClaim> & {
+    dogName?: string;
+    observations?: number;
+    matchingCanonicalRecords?: number;
+  },
+) {
+  logCorrelatedWarn(logContext, "live.dog_identity.skipped", {
+    reason,
+    provider: value.sourceProvider,
+    sourceId: value.sourceId,
+    dogName: value.dogName ?? value.dog?.name,
+    observations: value.observations,
+    matchingCanonicalRecords: value.matchingCanonicalRecords,
+  });
+}
+
+function normalizeProvider(value?: string | null) {
+  const provider = value?.trim().toLowerCase();
+  return provider &&
+    provider.length <= 64 &&
+    /^[a-z0-9][a-z0-9._-]*$/.test(provider)
+    ? provider
+    : undefined;
+}
+
+function normalizeSourceId(value?: string | null) {
+  const sourceId = value?.trim();
+  return sourceId && sourceId.length <= 256 && !/[\u0000-\u001f\u007f]/.test(sourceId)
+    ? sourceId
+    : undefined;
+}
+
+function cleanRegistryToken(value?: string | null) {
+  const token = value?.trim();
+  return token && token.length <= 128 && !/[\u0000-\u001f\u007f]/.test(token)
+    ? token
+    : undefined;
+}
+
+function cleanDogName(value?: string | null) {
+  const name = value?.normalize("NFKC").replace(/\s+/g, " ").trim();
+  if (!name || name.length > 200) return undefined;
+  return /^(?:unknown(?:\s+(?:dog|runner))?|unnamed|tba|tbd|n\/?a|vacant(?:\s+box)?|no\s+reserve|runner\s+\d+|dog\s+\d+|-)$/i.test(
+    name,
+  )
+    ? undefined
+    : name;
+}
+
+function normalizeDogName(value: string) {
+  return value.normalize("NFKC").replace(/\s+/g, " ").trim().toLocaleUpperCase("en-AU");
+}
+
+function cleanOptionalText(value: string | undefined, maximum: number) {
+  const text = value?.trim();
+  return text && text.length <= maximum ? text : null;
+}
+
+function parseOptionalDate(value?: string) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
+async function ensureTrainers(
+  names: Array<string | undefined>,
+  logContext: LogCorrelationContext,
+) {
+  const observedNames = new Set(
+    names.map((name) => name?.trim()).filter((name): name is string => Boolean(name)),
+  );
+  if (observedNames.size > 0) {
+    logCorrelatedWarn(logContext, "live.trainer_identity.skipped", {
+      reason: "stable_provider_identity_not_modelled",
+      observations: observedNames.size,
     });
-    const created: Array<{ id: string; name: string }> = [];
-    for (const nameChunk of chunks(missing, LOOKUP_QUERY_CHUNK_SIZE)) {
-      created.push(...await db.trainer.findMany({
-        where: { name: { in: nameChunk } },
-        select: { id: true, name: true },
-        take: LOOKUP_QUERY_LIMIT,
-      }));
-    }
-    for (const trainer of created) {
-      if (!ids.has(trainer.name)) ids.set(trainer.name, trainer.id);
-    }
   }
-
-  return ids;
+  return new Map<string, string>();
 }
 
 async function ensureRunners(
@@ -1255,7 +1651,16 @@ function runnerKey(raceId: string, boxNumber: number) {
 }
 
 function dogKey(dog: LiveDog) {
-  return dog.earBrand ?? dog.name;
+  return exactDogKey(dog.sourceProvider, dog.sourceId);
+}
+
+function exactDogKey(
+  sourceProvider: string | null | undefined,
+  sourceId: string | null | undefined,
+) {
+  const provider = normalizeProvider(sourceProvider);
+  const id = normalizeSourceId(sourceId);
+  return provider && id ? `${provider}:${id}` : "";
 }
 
 function inferEmbedSourceType(url: string) {

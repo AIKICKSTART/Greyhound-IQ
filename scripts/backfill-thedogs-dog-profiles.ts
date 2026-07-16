@@ -21,6 +21,7 @@ import {
 import { sanitizeRawJson } from "../src/lib/live/raw-sanitizer";
 
 const DEFAULT_PROGRESS = ".backfill/thedogs-dog-profile-progress.jsonl";
+const CANONICAL_BACKFILL_DISABLED_EXIT_CODE = 64;
 
 type Options = {
   full: boolean;
@@ -47,6 +48,12 @@ type DogSeed = {
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
+  console.error(
+    "[backfill:thedogs:dog-profiles] direct canonical profile backfill is disabled: harvest raw evidence with backfill:thedogs:dog-profile-raw, audit exact identity, then use the identity-audited v2 full-history merge",
+  );
+  process.exitCode = CANONICAL_BACKFILL_DISABLED_EXIT_CODE;
+  return;
+
   const completed = options.resume
     ? await readCompletedDogIds(options.progressFile)
     : new Set<string>();

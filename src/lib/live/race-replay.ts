@@ -1,4 +1,7 @@
-import { resolveTheDogsRaceReplay } from "./thedogs-replay";
+import {
+  absoluteTheDogsUrl,
+  resolveTheDogsRaceReplay,
+} from "./thedogs-replay";
 import { fetchPublicInternetOrigin } from "@/lib/public-network";
 import { readBoundedTextResponse } from "@/lib/remote-response";
 
@@ -7,6 +10,7 @@ const RACING_QUEENSLAND_BASE =
   "https://www.racingqueensland.com.au";
 const TASRACING_REPLAY_BUCKET =
   "https://tasracing-race-replays.s3.ap-southeast-2.amazonaws.com";
+const SA_RACE_REPLAY_CHANNEL = "/@saracereplays";
 const REPLAY_FETCH_TIMEOUT_MS = 15_000;
 const REPLAY_PAGE_MAX_BYTES = 2 * 1024 * 1024;
 const HTML_RESPONSE_POLICY = {
@@ -41,6 +45,16 @@ export type RaceVideoReplayRecord = {
   description?: string | null;
   sourceStatus?: number | null;
   sourceCode?: string | null;
+};
+
+export type NormalisedLegacyReplaySource = {
+  sourceProvider: string;
+  sourceId: string;
+  pageUrl: string;
+  embedSourceType: string;
+  streamUrl: string | null;
+  streamContentType: string | null;
+  sourceCode: string;
 };
 
 export async function resolveRaceVideoReplay(
@@ -178,7 +192,7 @@ export async function resolveRacingQueenslandReplay(
 }
 
 export function extractRacingQueenslandStreamUrl(html: string) {
-  const match = html.match(
+  const match = html.replaceAll("\\/", "/").match(
     /https:\/\/mediarqs\.skyracing\.com\.au\/[^"' <]+\.mp4[^"' <]*/i
   );
   return match ? decodeEntities(match[0]) : null;
@@ -191,7 +205,10 @@ export function tasracingStreamUrl(stream: string) {
 }
 
 export function parseGreyhoundsWaVimeoVideos(html: string) {
-  const videos = new Map<number, { raceNumber: number; videoId: string; pageUrl: string }>();
+  const videos = new Map<
+    number,
+    { raceNumber: number; videoId: string; pageUrl: string } | null
+  >();
   const pattern =
     /"name":"\d{8}R(\d{2})"[\s\S]*?"embedUrl":"(https:\/\/player\.vimeo\.com\/video\/(\d+)(?:\?h=[A-Za-z0-9]+)?)/g;
   for (const match of html.matchAll(pattern)) {
@@ -199,13 +216,56 @@ export function parseGreyhoundsWaVimeoVideos(html: string) {
     const embedUrl = decodeEntities(match[2] ?? "");
     const videoId = match[3];
     if (!Number.isFinite(raceNumber) || !videoId || !embedUrl) continue;
-    videos.set(raceNumber, {
+    const video = {
       raceNumber,
       videoId,
       pageUrl: embedUrl,
-    });
+    };
+    const existing = videos.get(raceNumber);
+    videos.set(
+      raceNumber,
+      existing === undefined ||
+        (existing?.videoId === videoId && existing.pageUrl === embedUrl)
+        ? video
+        : null
+    );
   }
-  return [...videos.values()].sort((a, b) => a.raceNumber - b.raceNumber);
+  return [...videos.values()]
+    .filter((video): video is NonNullable<typeof video> => video !== null)
+    .sort((a, b) => a.raceNumber - b.raceNumber);
+}
+
+export function parseSaRaceReplayVideoIds(html: string, exactTitle: string) {
+  const ids = new Set<string>();
+  const marker = '"videoRenderer":{';
+  let start = html.indexOf(marker);
+  while (start >= 0) {
+    const next = html.indexOf(marker, start + marker.length);
+    const block = html.slice(
+      start,
+      Math.min(next >= 0 ? next : html.length, start + 20_000)
+    );
+    const videoId = block.match(/"videoId":"([A-Za-z0-9_-]{11})"/)?.[1];
+    const encodedTitle = block.match(
+      /"title":\{"runs":\[\{"text":"((?:\\.|[^"\\])*)"/
+    )?.[1];
+    const channel = block.match(
+      /"longBylineText":\{"runs":\[\{"text":"((?:\\.|[^"\\])*)"/
+    )?.[1];
+    const channelPath = block.match(
+      /"canonicalBaseUrl":"((?:\\.|[^"\\])*)"/
+    )?.[1];
+    if (
+      videoId &&
+      decodeJsonString(encodedTitle) === exactTitle &&
+      decodeJsonString(channel) === "SA Race Replay" &&
+      decodeJsonString(channelPath) === SA_RACE_REPLAY_CHANNEL
+    ) {
+      ids.add(videoId);
+    }
+    start = next;
+  }
+  return [...ids].sort();
 }
 
 export function parseTheDogsReplayCards(html: string) {
@@ -312,6 +372,114 @@ export function streamContentType(value: string | null | undefined) {
     return null;
   }
   return null;
+}
+
+export function normaliseLegacyRaceReplaySource({
+  sourceProvider,
+  replayUrl,
+}: {
+  sourceProvider?: string | null;
+  replayUrl?: string | null;
+}): NormalisedLegacyReplaySource | null {
+  const rawUrl = replayUrl?.trim();
+  if (!rawUrl) return null;
+
+  const theDogs = normaliseLegacyTheDogsReplay(rawUrl);
+  if (theDogs) return theDogs;
+
+  const racingQueensland = normaliseLegacyRacingQueenslandReplay(rawUrl);
+  if (racingQueensland) return racingQueensland;
+
+  const tasracing = normaliseLegacyTasracingReplay(rawUrl);
+  if (tasracing) return tasracing;
+
+  const embed = embedUrlFromReplayPage(rawUrl);
+  if (!embed) return null;
+  const originalProvider = normaliseKey(sourceProvider);
+  const provider =
+    embed.type === "youtube" &&
+    (originalProvider === "watchdog" || originalProvider === "sa-race-replay")
+      ? originalProvider
+      : embed.type === "vimeo" && originalProvider === "greyhoundswa"
+        ? originalProvider
+        : embed.type;
+  const sourceId = new URL(embed.embedUrl).pathname.split("/").filter(Boolean).at(-1);
+  if (!sourceId) return null;
+
+  return {
+    sourceProvider: provider,
+    sourceId,
+    pageUrl: embed.embedUrl,
+    embedSourceType: embed.type,
+    streamUrl: null,
+    streamContentType: null,
+    sourceCode: `legacy-${embed.type}-replay-url`,
+  };
+}
+
+function normaliseLegacyTheDogsReplay(
+  replayUrl: string
+): NormalisedLegacyReplaySource | null {
+  try {
+    const pageUrl = absoluteTheDogsUrl(replayUrl);
+    const parsed = new URL(pageUrl);
+    const match = parsed.pathname.match(/^\/videos\/watch\/races\/(\d+)\/replay\/?$/i);
+    if (!match?.[1]) return null;
+    return {
+      sourceProvider: "thedogs",
+      sourceId: match[1],
+      pageUrl: `${parsed.origin}${parsed.pathname}`,
+      embedSourceType: "race-replay",
+      streamUrl: null,
+      streamContentType: null,
+      sourceCode: "legacy-thedogs-race-replay-url",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function normaliseLegacyRacingQueenslandReplay(
+  replayUrl: string
+): NormalisedLegacyReplaySource | null {
+  const pageUrl = racingQueenslandPageUrl(replayUrl);
+  if (!pageUrl) return null;
+  const match = new URL(pageUrl).pathname.match(
+    /\/race-player\/greyhound\/([^/]+)\/(\d{8})\/race\/(\d+)\/?$/i
+  );
+  const trackCode = safeDecodeURIComponent(match?.[1] ?? "").trim().toLowerCase();
+  if (!trackCode || !match?.[2] || !match[3]) return null;
+  return {
+    sourceProvider: "racing-queensland",
+    sourceId: `${trackCode}:${match[2]}:${match[3]}`,
+    pageUrl,
+    embedSourceType: "racing-queensland",
+    streamUrl: null,
+    streamContentType: null,
+    sourceCode: "legacy-racing-queensland-replay-url",
+  };
+}
+
+function normaliseLegacyTasracingReplay(
+  replayUrl: string
+): NormalisedLegacyReplaySource | null {
+  const publicUrl = normalisePublicUrl(replayUrl);
+  if (!publicUrl) return null;
+  const parsed = new URL(publicUrl);
+  if (parsed.origin !== TASRACING_REPLAY_BUCKET) return null;
+  const match = parsed.pathname.match(/^\/([^/]+)\/index\.m3u8$/i);
+  const sourceId = safeDecodeURIComponent(match?.[1] ?? "");
+  const streamUrl = sourceId ? tasracingStreamUrl(sourceId) : null;
+  if (!streamUrl) return null;
+  return {
+    sourceProvider: "tasracing",
+    sourceId,
+    pageUrl: streamUrl,
+    embedSourceType: "tasracing-hls",
+    streamUrl,
+    streamContentType: streamContentType(streamUrl),
+    sourceCode: "legacy-tasracing-replay-url",
+  };
 }
 
 function storedReplay(video: RaceVideoReplayRecord): ResolvedRaceReplay | null {
@@ -467,4 +635,21 @@ function decodeEntities(value: string) {
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
     .replace(/&apos;/gi, "'");
+}
+
+function safeDecodeURIComponent(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return "";
+  }
+}
+
+function decodeJsonString(value: string | undefined) {
+  if (value == null) return null;
+  try {
+    return JSON.parse(`"${value}"`) as string;
+  } catch {
+    return null;
+  }
 }

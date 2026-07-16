@@ -11,6 +11,14 @@ const migrationPath = join(
 );
 
 const sql = readFileSync(migrationPath, "utf8");
+const sensitiveAdminMigrationPath = join(
+  process.cwd(),
+  "prisma",
+  "migrations",
+  "20260716120000_restrict_sensitive_rls_to_admin",
+  "migration.sql"
+);
+const sensitiveAdminSql = readFileSync(sensitiveAdminMigrationPath, "utf8");
 const findings: string[] = [];
 
 const rlsTables = [
@@ -87,18 +95,6 @@ const requiredPatterns: [RegExp, string][] = [
     /CREATE POLICY giq_message_update ON "Message" FOR UPDATE USING \(\s*public\.giq_is_moderator\(\)\s*OR \(public\.giq_is_pro\(\) AND "senderId" = public\.giq_current_profile_id\(\)\)/,
     "Message update must require Pro for participants",
   ],
-  [
-    /CREATE POLICY giq_billing_customer_write ON "BillingCustomer" FOR ALL USING \(public\.giq_is_system\(\) OR public\.giq_is_moderator\(\)\)/,
-    "BillingCustomer writes must be system or moderator only",
-  ],
-  [
-    /CREATE POLICY giq_subscription_write ON "Subscription" FOR ALL USING \(public\.giq_is_system\(\) OR public\.giq_is_moderator\(\)\)/,
-    "Subscription writes must be system or moderator only",
-  ],
-  [
-    /CREATE POLICY giq_entitlement_snapshot_write ON "EntitlementSnapshot" FOR ALL USING \(public\.giq_is_system\(\) OR public\.giq_is_moderator\(\)\)/,
-    "EntitlementSnapshot writes must be system or moderator only",
-  ],
 ];
 
 const forbiddenPatterns: [RegExp, string][] = [
@@ -122,6 +118,131 @@ for (const [pattern, label] of requiredPatterns) {
 
 for (const [pattern, label] of forbiddenPatterns) {
   mustNotMatch(pattern, label);
+}
+
+const sensitiveAdminPolicies = [
+  "giq_user_select",
+  "giq_user_update",
+  "giq_profile_update",
+  "giq_media_select",
+  "giq_media_update",
+  "giq_media_delete",
+  "giq_plan_write",
+  "giq_price_catalog_write",
+  "giq_plan_entitlement_write",
+  "giq_billing_customer_read",
+  "giq_billing_customer_write",
+  "giq_subscription_read",
+  "giq_subscription_write",
+  "giq_entitlement_snapshot_read",
+  "giq_entitlement_snapshot_write",
+  "giq_invoice_read",
+  "giq_invoice_write",
+  "giq_payment_read",
+  "giq_payment_write",
+  "giq_refund_read",
+  "giq_refund_write",
+  "giq_credit_note_read",
+  "giq_credit_note_write",
+  "giq_billing_event_read",
+  "giq_billing_event_write",
+  "giq_usage_event_read",
+  "giq_usage_event_write",
+  "giq_usage_outbox_read",
+  "giq_usage_outbox_write",
+  "giq_usage_aggregate_read",
+  "giq_usage_aggregate_write",
+  "giq_webhook_event_system",
+] as const;
+
+for (const needle of [
+  "CREATE OR REPLACE FUNCTION public.giq_is_admin()",
+  "SET search_path = ''",
+  "public.giq_current_role() = 'admin'",
+  "REVOKE ALL ON FUNCTION public.giq_is_admin() FROM PUBLIC",
+  "GRANT EXECUTE ON FUNCTION public.giq_is_admin() TO greyhoundiq_runtime",
+  "GRANT EXECUTE ON FUNCTION public.giq_is_admin() TO greyhoundiq_app",
+]) {
+  if (!sensitiveAdminSql.includes(needle)) {
+    findings.push("sensitive administrator RLS missing: " + needle);
+  }
+}
+
+function sensitivePolicyStatement(policyName: string) {
+  const alterStart = sensitiveAdminSql.indexOf("ALTER POLICY " + policyName);
+  const createStart = sensitiveAdminSql.indexOf("CREATE POLICY " + policyName);
+  const start = alterStart >= 0 ? alterStart : createStart;
+  if (start < 0) return undefined;
+  const end = sensitiveAdminSql.indexOf(";", start);
+  return end < 0 ? undefined : sensitiveAdminSql.slice(start, end + 1);
+}
+
+for (const policyName of sensitiveAdminPolicies) {
+  const statement = sensitivePolicyStatement(policyName);
+  if (!statement) {
+    findings.push("sensitive administrator RLS policy missing: " + policyName);
+    continue;
+  }
+  if (!statement.includes("public.giq_is_admin()")) {
+    findings.push(policyName + " must use the administrator predicate");
+  }
+  if (statement.includes("public.giq_is_moderator()")) {
+    findings.push(policyName + " must not grant moderator access");
+  }
+}
+
+for (const policyName of [
+  "giq_billing_customer_read",
+  "giq_subscription_read",
+  "giq_entitlement_snapshot_read",
+  "giq_invoice_read",
+  "giq_payment_read",
+  "giq_refund_read",
+  "giq_credit_note_read",
+  "giq_billing_event_read",
+  "giq_usage_event_read",
+  "giq_usage_outbox_read",
+  "giq_usage_aggregate_read",
+]) {
+  const statement = sensitivePolicyStatement(policyName);
+  if (!statement?.includes('"userId" = public.giq_current_user_id()')) {
+    findings.push(policyName + " must preserve owner reads");
+  }
+}
+
+for (const policyName of [
+  "giq_plan_write",
+  "giq_price_catalog_write",
+  "giq_plan_entitlement_write",
+  "giq_billing_customer_write",
+  "giq_subscription_write",
+  "giq_entitlement_snapshot_write",
+  "giq_invoice_write",
+  "giq_payment_write",
+  "giq_refund_write",
+  "giq_credit_note_write",
+  "giq_billing_event_write",
+  "giq_usage_event_write",
+  "giq_usage_outbox_write",
+  "giq_usage_aggregate_write",
+  "giq_webhook_event_system",
+]) {
+  const statement = sensitivePolicyStatement(policyName);
+  if (statement?.includes("public.giq_current_user_id()")) {
+    findings.push(policyName + " must remain administrator/system-write only");
+  }
+}
+
+const mediaSelectPolicy = sensitivePolicyStatement("giq_media_select");
+for (const predicate of [
+  '"uploaderId" = public.giq_current_user_id()',
+  '"storageBucket" IN (\'site-assets\', \'public-user-media\')',
+  'attachment."mediaId" = "MediaAsset".id',
+  'public.giq_media_owned_by_actor(message."senderActorId", "MediaAsset".id)',
+]) {
+  if (!mediaSelectPolicy?.includes(predicate)) {
+    findings.push("giq_media_select must preserve scoped access: " + predicate);
+  }
 }
 
 if (!/\bNOBYPASSRLS\b/.test(sql)) {
@@ -1260,8 +1381,18 @@ async function checkSocialWriteReturningRls(
         err && typeof err === "object" && "code" in err
           ? ` (${String(err.code)})`
           : "";
+      const detail =
+        err &&
+        typeof err === "object" &&
+        "meta" in err &&
+        err.meta &&
+        typeof err.meta === "object" &&
+        "message" in err.meta &&
+        typeof err.meta.message === "string"
+          ? `: ${err.meta.message.split("\n")[0]}`
+          : "";
       findings.push(
-        `SocialActor/FeedPost RETURNING fails under ${role} context${code}`,
+        `SocialActor/FeedPost RETURNING fails under ${role} context${code}${detail}`,
       );
     }
   }

@@ -9,12 +9,30 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+**/.env
+**/.env.*
+!**/.env.example
 
 docs/**/*.html
 docs/**/*.pdf
 coverage
 playwright-report
 test-results
+.backfill
+certificates
+output/*
+!output/demo-route-audit/
+output/demo-route-audit/*
+!output/demo-route-audit/latest.json
+!output/database-audit/
+output/database-audit/*
+!output/database-audit/account-deletion-finalize.json
+!output/database-audit/live-provider-ingest.json
+!output/database-audit/user-export-read.json
+**/*.dump
+**/*.backup
+**/*.key
+**/*-key.pem
 
 Dockerfile*
 docker-compose*.yml

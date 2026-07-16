@@ -44,6 +44,9 @@ if (Get-Variable PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyCo
 if ($Environment -eq "prod") {
   throw "Local production deployment is disabled. Promote an exact Design Lab-approved commit through the protected Cloud Run Deploy GitHub workflow."
 }
+if (-not $SkipMediaScanner) {
+  throw "The legacy scanner deploy path is disabled. Re-run with -SkipMediaScanner and reconcile the scanner separately with scripts/gcp-media-scanner-reconcile.ps1."
+}
 
 function Add-GcloudToPath {
   $paths = @(

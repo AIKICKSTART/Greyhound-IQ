@@ -208,10 +208,6 @@ export async function createSignedUploadIntent(
     linkedEntityId: input.linkedEntityId,
     filename: input.filename,
   });
-  const signedUpload = await objectStorage.createSignedUpload({
-    bucket,
-    key: objectPath,
-  });
   const publicUrl =
     bucket === SITE_ASSETS_BUCKET ? publicUrlForMedia(bucket, objectPath) : null;
   const expiresAt = new Date(Date.now() + UPLOAD_URL_TTL_MS);
@@ -232,6 +228,13 @@ export async function createSignedUploadIntent(
       scanStatus: "pending",
     },
   }));
+  // Persist ownership before issuing a bearer grant. If the database write
+  // fails, no still-valid signed URL can create an untracked storage object.
+  const signedUpload = await objectStorage.createSignedUpload({
+    bucket,
+    key: objectPath,
+    contentType: input.mimeType,
+  });
 
   await createAuditLog({
     actorId: current.dbUserId,
@@ -245,7 +248,7 @@ export async function createSignedUploadIntent(
       mediaContext,
       mimeType: input.mimeType,
       sizeBytes: input.sizeBytes,
-      storageMode: "supabase_storage",
+      storageMode: `${objectStorage.provider}_storage`,
     },
   });
 
@@ -254,10 +257,11 @@ export async function createSignedUploadIntent(
     bucket,
     objectPath,
     uploadUrl: signedUpload.url,
+    uploadHeaders: signedUpload.headers,
     uploadToken: signedUpload.token,
     publicUrl,
     expiresAt: expiresAt.toISOString(),
-    storageMode: "supabase_storage",
+    storageMode: `${objectStorage.provider}_storage`,
   };
 }
 
@@ -379,7 +383,7 @@ export async function finalizeMediaUpload(
       mimeType: finalized.mimeType,
       sizeBytes: finalized.sizeBytes,
       scanStatus: finalized.scanStatus,
-      storageMode: "supabase_storage",
+      storageMode: `${objectStorage.provider}_storage`,
     },
   });
 
@@ -612,7 +616,7 @@ export async function createMediaDownloadUrl(
       url: publicUrl,
       expiresAt: null,
       variant,
-      storageMode: "supabase_public",
+      storageMode: `${objectStorage.provider}_public`,
     };
   }
 
@@ -628,7 +632,7 @@ export async function createMediaDownloadUrl(
     url: signedUrl,
     expiresAt: expiresAt.toISOString(),
     variant,
-    storageMode: "supabase_signed",
+    storageMode: `${objectStorage.provider}_signed`,
   };
 }
 

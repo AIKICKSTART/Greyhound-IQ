@@ -14,7 +14,7 @@ Owner role: Platform and application security
 - The policy queries the npm advisory service through the approved npm registry and fails closed on an incomplete schema, inconsistent counts, a non-zero command exit, or any high or critical finding. The 2026-07-14 local run reported zero info, low, moderate, high or critical known advisories.
 - The Gitleaks and Semgrep container references in the CI `gate` job must use exact 64-hex SHA-256 digests. Their findings remain separate controls from dependency advisories.
 - All 13 third-party `uses:` references across the repository workflows are pinned to full 40-hex commit SHAs. The policy rejects mutable tags, branches, short SHAs and missing revisions in every workflow file; the adjacent comments retain the reviewed major-version intent for maintainers.
-- `security/supply-chain-review.snapshot.json` records official npm registry metadata for all 40 direct dependencies and is cryptographically bound to the complete `package-lock.json` package inventory. The policy rejects an older-than-31-day review, a changed lock tree, missing direct package, deprecated direct package, unowned package publication, or unreviewed stale package.
+- `security/supply-chain-review.snapshot.json` records official npm registry metadata for all 41 direct dependencies and is cryptographically bound to the complete `package-lock.json` package inventory. The policy rejects an older-than-31-day review, a changed lock tree, missing direct package, deprecated direct package, unowned package publication, or unreviewed stale package.
 - Every current lifecycle hook is allowlisted by package name, exact version and exact hook command. A new `hasInstallScript` package, changed version or changed published hook fails the review. The root `postinstall` is separately pinned to `prisma generate`.
 - The dependency review snapshot is bound to the complete lockfile package inventory and expires after 31 days.
 
@@ -36,11 +36,11 @@ The root `postinstall` command runs the reviewed `prisma generate` code-generati
 
 ## Maintenance, duplicate and runtime review
 
-- All 40 direct packages were reviewed against official npm registry metadata on 2026-07-15. No direct locked package is marked deprecated. A direct package with no maintainer or publisher fails the policy.
+- All 41 direct packages were reviewed against official npm registry metadata on 2026-07-17. No direct locked package is marked deprecated. A direct package with no maintainer or publisher fails the policy.
 - Registry metadata older than 730 days requires an explicit stable-package disposition. Current reviewed exceptions are the `server-only` framework sentinel, the stable `clsx` leaf utility, and the development-only OWASP Spectral ruleset. An exception is not a permanent waiver; it is re-reviewed with each snapshot refresh.
-- The current lock contains 72 package names at more than one version: 14 have at least one runtime instance and 58 are development-only. Every name, version, instance count and runtime classification is recorded in the lock-bound snapshot. This is reviewed compatibility and attack-surface debt, not a claim that duplication is harmless.
+- The current lock contains 76 package names at more than one version: 21 have at least one runtime instance and 55 are development-only. Every name, version, instance count and runtime classification is recorded in the lock-bound snapshot. This is reviewed compatibility and attack-surface debt, not a claim that duplication is harmless.
 - Three deprecated packages remain, all development-only transitives in the Spectral ruleset bundling chain: `glob@7.2.3`, `inflight@1.0.6`, and `sourcemap-codec@1.4.8`. They are excluded from the standalone production runtime and tracked for upstream replacement. A deprecated runtime-tree package fails the policy.
-- All 29 manifest `dependencies` entries have an explicit disposition. Twenty-four are application runtime dependencies; `@next/env`, `prisma`, and `tsx` are build or operations-only; `@auth/prisma-adapter` and `next-auth` are currently unused removal debt. Unused or build-only runtime dependencies remain removal debt; review completion does not claim they are necessary at runtime.
+- All 30 manifest `dependencies` entries have an explicit disposition. Twenty-five are application runtime dependencies; `@next/env`, `prisma`, and `tsx` are build or operations-only; `@auth/prisma-adapter` and `next-auth` are currently unused removal debt. Unused or build-only runtime dependencies remain removal debt; review completion does not claim they are necessary at runtime.
 
 ## Package-name and internal publishing review
 

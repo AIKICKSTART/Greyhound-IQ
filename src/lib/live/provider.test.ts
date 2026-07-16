@@ -30,6 +30,14 @@ async function main() {
       assert.equal(meetings.length, 1);
       assert.equal(meetings[0]?.sourceProvider, "thedogs");
       assert.equal(meetings[0]?.races[0]?.sourceProvider, "thedogs");
+      assert.equal(
+        meetings[0]?.races[0]?.runners[0]?.sourceProvider,
+        "thedogs",
+      );
+      assert.equal(
+        meetings[0]?.races[0]?.runners[0]?.dog.sourceProvider,
+        "thedogs",
+      );
     }
   } finally {
     console.warn = originalWarn;
@@ -92,7 +100,13 @@ function meeting(): LiveMeeting {
         raceNumber: 1,
         raceTime: "2026-07-16T09:00:00.000Z",
         distance: 520,
-        runners: [],
+        runners: [
+          {
+            sourceId: "runner-1",
+            boxNumber: 1,
+            dog: { sourceId: "dog-1", name: "Safe Dog" },
+          },
+        ],
       },
     ],
   };

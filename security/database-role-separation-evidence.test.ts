@@ -67,7 +67,7 @@ assert.equal(
 );
 assert.equal(directGrants.projectionReadCount, 6);
 assert.equal(directGrants.sequenceUsageCount, 1);
-assert.equal(directGrants.routineCount, 44);
+assert.equal(directGrants.routineCount, 45);
 assert.equal(directGrants.securityDefinerRoutineCount, 27);
 assert.equal(directGrants.grantableCount, 0);
 assert.deepEqual(roleSeparation.systemCatalog, {

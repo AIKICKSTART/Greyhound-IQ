@@ -1,0 +1,24 @@
+[
+  {
+    "origin": [
+      "https://greyhoundsiq.com.au",
+      "https://www.greyhoundsiq.com.au"
+    ],
+    "method": [
+      "GET",
+      "HEAD",
+      "PUT"
+    ],
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "Content-Range",
+      "Range",
+      "ETag",
+      "x-goog-generation",
+      "x-goog-hash",
+      "x-goog-if-generation-match"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

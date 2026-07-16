@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
 
 import {
+  resolveApprovedGcsSignedUploadUrl,
   resolveApprovedSignedUploadUrl,
+  resolveLoadObjectStorageProvider,
+  resolveSignedUploadHeaders,
   resolveStagingLoadBaseUrl,
   resolveStagingRedirectUrl,
   resolveStagingRequestUrl,
   resolveStagingSupabaseUrl,
 } from "./staging-load-policy";
+
+assert.equal(resolveLoadObjectStorageProvider(undefined), "supabase");
+assert.equal(resolveLoadObjectStorageProvider(" GCS "), "gcs");
+assert.throws(() => resolveLoadObjectStorageProvider("s3"));
 
 const accepted: Array<[string, string]> = [
   ["http://localhost:3000/path?ignored=true", "http://localhost:3000"],
@@ -136,5 +143,81 @@ for (const value of [
     resolveApprovedSignedUploadUrl(value, approvedSupabaseOrigin)
   );
 }
+
+const approvedGcsBucket = "giq-private-user-media-staging";
+const expectedObjectPath = "users/user_1/quarantine/avatars/pending/load-probe.png";
+const approvedGcsUpload = new URL(
+  `https://storage.googleapis.com/${approvedGcsBucket}/${expectedObjectPath}`
+);
+approvedGcsUpload.searchParams.set("X-Goog-Algorithm", "GOOG4-RSA-SHA256");
+approvedGcsUpload.searchParams.set(
+  "X-Goog-Credential",
+  "staging@example.invalid/20260716/auto/storage/goog4_request"
+);
+approvedGcsUpload.searchParams.set("X-Goog-Date", "20260716T000000Z");
+approvedGcsUpload.searchParams.set("X-Goog-Expires", "7200");
+approvedGcsUpload.searchParams.set("X-Goog-SignedHeaders", "content-type;host");
+approvedGcsUpload.searchParams.set("X-Goog-Signature", "deadbeef");
+assert.equal(
+  resolveApprovedGcsSignedUploadUrl(
+    approvedGcsUpload.toString(),
+    approvedGcsBucket,
+    expectedObjectPath
+  ),
+  approvedGcsUpload.toString()
+);
+for (const value of [
+  approvedGcsUpload.toString().replace(approvedGcsBucket, "production-bucket"),
+  approvedGcsUpload.toString().replace("storage.googleapis.com", "attacker.example"),
+  approvedGcsUpload.toString().replace("X-Goog-Expires=7200", "X-Goog-Expires=7201"),
+  approvedGcsUpload.toString().replace("content-type%3Bhost", "host"),
+]) {
+  assert.throws(() =>
+    resolveApprovedGcsSignedUploadUrl(
+      value,
+      approvedGcsBucket,
+      expectedObjectPath
+    )
+  );
+}
+
+assert.deepEqual(
+  resolveSignedUploadHeaders(
+    { "content-type": "image/png" },
+    "gcs",
+    "image/png"
+  ),
+  { "content-type": "image/png" }
+);
+assert.deepEqual(
+  resolveSignedUploadHeaders(
+    {
+      "cache-control": "max-age=31536000",
+      "content-type": "image/png",
+      "x-upsert": "false",
+    },
+    "supabase",
+    "image/png"
+  ),
+  {
+    "cache-control": "max-age=31536000",
+    "content-type": "image/png",
+    "x-upsert": "false",
+  }
+);
+assert.throws(() =>
+  resolveSignedUploadHeaders(
+    { "content-type": "image/png", "x-upsert": "false" },
+    "gcs",
+    "image/png"
+  )
+);
+assert.throws(() =>
+  resolveSignedUploadHeaders(
+    { "content-type": "image/png", authorization: "Bearer secret" },
+    "gcs",
+    "image/png"
+  )
+);
 
 console.log("staging load policy tests passed");

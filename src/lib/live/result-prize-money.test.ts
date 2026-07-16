@@ -54,9 +54,9 @@ const topazRace = mapRace({
   prizeMoney1: 1000,
   prizeMoney2: 300,
   runs: [
-    { dogName: "Topaz One", boxNumber: 1, place: 2 },
-    { dogName: "Topaz Two", boxNumber: 2, place: 1 },
-    { dogName: "Topaz Three", boxNumber: 3, place: 3 },
+    { dogId: 101, dogName: "Topaz One", boxNumber: 1, place: 2 },
+    { dogId: 102, dogName: "Topaz Two", boxNumber: 2, place: 1 },
+    { dogId: 103, dogName: "Topaz Three", boxNumber: 3, place: 3 },
   ],
 });
 

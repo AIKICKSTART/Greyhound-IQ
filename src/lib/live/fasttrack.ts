@@ -260,23 +260,26 @@ function parseResultRunners(section: string): LiveRunner[] {
   if (!table) return [];
 
   return parseTableRows(table)
-    .map((cells, index) => {
-      const dog = parseDog(cells[1] ?? "Unknown runner");
-      const finishingPosition = parseInteger(cells[0]);
-      const runningTime = parseNumber(cells[8]);
-      const margin = parseNumber(cells[9]);
-      const weight = parseNumber(cells[5]);
-      return {
+    .flatMap<LiveRunner>((cells, index) => {
+      const dog = parseDog(cells[1]?.raw ?? "");
+      if (!dog) return [];
+      const finishingPosition = parseInteger(cells[0]?.text);
+      const runningTime = parseNumber(cells[8]?.text);
+      const margin = parseNumber(cells[9]?.text);
+      const weight = parseNumber(cells[5]?.text);
+      return [{
         boxNumber:
-          parseInteger(cells[3]) ?? parseInteger(cells[4]) ?? index + 1,
+          parseInteger(cells[3]?.text) ??
+          parseInteger(cells[4]?.text) ??
+          index + 1,
         dog,
-        trainerName: optionalText(cells[2]),
+        trainerName: optionalText(cells[2]?.text),
         weight: weight && weight > 0 ? weight : undefined,
         scratched: finishingPosition == null && (runningTime == null || runningTime === 0),
         finishingPosition: finishingPosition ?? undefined,
         runningTime: runningTime && runningTime > 0 ? runningTime : undefined,
         margin: margin && margin > 0 ? margin : undefined,
-      } satisfies LiveRunner;
+      } satisfies LiveRunner];
     })
     .filter(isRealRunner);
 }
@@ -290,15 +293,16 @@ function parseFormGuideRunners(section: string): LiveRunner[] {
 
   return rows
     .slice(0, 32)
-    .map((match, index) => {
+    .flatMap<LiveRunner>((match, index) => {
       const cells = parseCells(match[1]);
-      const dog = parseDog(cells[2] ?? "Unknown runner");
-      return {
-        boxNumber: parseInteger(cells[1]) ?? index + 1,
+      const dog = parseDog(cells[2]?.raw ?? "");
+      if (!dog) return [];
+      return [{
+        boxNumber: parseInteger(cells[1]?.text) ?? index + 1,
         dog,
-        trainerName: optionalText(cells[6]),
-        scratched: /scratched/i.test(cells.join(" ")),
-      } satisfies LiveRunner;
+        trainerName: optionalText(cells[6]?.text),
+        scratched: /scratched/i.test(cells.map((cell) => cell.text).join(" ")),
+      } satisfies LiveRunner];
     })
     .filter(isRealRunner);
 }
@@ -312,9 +316,10 @@ function parseTableRows(tableHtml: string) {
 }
 
 function parseCells(rowHtml: string) {
-  return [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((match) =>
-    cleanHtml(match[1])
-  );
+  return [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((match) => ({
+    raw: match[1] ?? "",
+    text: cleanHtml(match[1] ?? ""),
+  }));
 }
 
 function parseDistance(section: string) {
@@ -423,20 +428,36 @@ function dayValue(isoDate: string) {
 
 function parseDog(raw: string) {
   const text = cleanHtml(raw);
+  const sourceId =
+    firstMatch(raw, /\bdata-(?:dog|greyhound)-id=["']([1-9][0-9]*)["']/i) ||
+    firstMatch(raw, /[?&](?:dogId|greyhoundId)=([1-9][0-9]*)(?:[&#"']|$)/i);
   const sex = text.match(/\[([MF])\]\s*$/i)?.[1]?.toUpperCase();
   const name =
     text
       .replace(/\[[^\]]+\]/g, "")
       .replace(/\s+\([A-Z]{2,4}\)\s*$/i, "")
-      .trim() || "Unknown runner";
+      .trim();
 
-  return { name, sex };
+  if (!sourceId || !isRealDogName(name)) return null;
+  return {
+    sourceProvider: "fasttrack-prototype",
+    sourceId,
+    name,
+    sex,
+  };
 }
 
 function isRealRunner(runner: LiveRunner) {
-  return (
-    runner.dog.name !== "Unknown runner" &&
-    !/\b(?:VACANT BOX|NO RESERVE)\b/i.test(runner.dog.name)
+  return isRealDogName(runner.dog.name) && Boolean(runner.dog.sourceId);
+}
+
+function isRealDogName(value?: string | null): value is string {
+  const name = value?.trim();
+  return Boolean(
+    name &&
+      !/^(?:unknown(?:\s+(?:dog|runner))?|unnamed|tba|tbd|n\/?a|vacant(?:\s+box)?|no\s+reserve|runner\s+\d+|dog\s+\d+|-)$/i.test(
+        name,
+      ),
   );
 }
 

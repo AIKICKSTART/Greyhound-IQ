@@ -189,8 +189,8 @@ if (!cloudRunDeploy.includes("--concurrency 20")) {
 if (!cloudRunDeploy.includes("--cpu-boost")) {
   findings.push("cloud-run-deploy.yml: startup CPU boost must stay enabled");
 }
-if (!cloudRunDeploy.includes("for secret_name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY SUPABASE_JWT_SECRET NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY")) {
-  findings.push("cloud-run-deploy.yml: missing scanner Supabase secret preflight");
+if (!cloudRunDeploy.includes("SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY SUPABASE_JWT_SECRET NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY")) {
+  findings.push("cloud-run-deploy.yml: missing web Supabase secret preflight");
 }
 for (const publicSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) {
   if (
@@ -219,6 +219,48 @@ for (const stripeSecret of [
 if (!cloudRunDeploy.includes("STRIPE_APP_URL=$nextauth_url")) {
   findings.push("cloud-run-deploy.yml: STRIPE_APP_URL must follow NEXTAUTH_URL");
 }
+if (
+  !cloudRunDeploy.includes(
+    'scanner_service_account="giq-media-scanner-$env_name@$project_id.iam.gserviceaccount.com"',
+  ) ||
+  !cloudRunDeploy.includes('--service-account "$scanner_service_account"')
+) {
+  findings.push(
+    "cloud-run-deploy.yml: scanner must use its dedicated runtime service account",
+  );
+}
+for (const required of [
+  "OBJECT_STORAGE_PROVIDER=gcs",
+  "GCS_SITE_ASSETS_BUCKET=$site_assets_bucket",
+  "GCS_PUBLIC_USER_MEDIA_BUCKET=$public_user_media_bucket",
+  "GCS_PRIVATE_USER_MEDIA_BUCKET=$private_user_media_bucket",
+  'scanner_secrets="DATABASE_URL=$database_secret:latest,INTERNAL_API_SECRET=$internal_api_secret:latest"',
+  'runtime_sa" != "giq-web-$env_name@$project_id.iam.gserviceaccount.com',
+  '${{ vars.MEDIA_SCANNER_INTERNAL_API_SECRET_NAME }}',
+  '[ "$reviewed_internal_api_secret" = "giq-internal-api-secret" ]',
+  '--set-secrets "$scanner_secrets"',
+  '"--vpc-egress=$vpc_egress"',
+  '.httpTarget.httpMethod == "POST"',
+  '.httpTarget.oidcToken.audience == $audience',
+  '.attemptDeadline == "900s"',
+]) {
+  if (!cloudRunDeploy.includes(required)) {
+    findings.push(`cloud-run-deploy.yml: missing scanner fail-closed contract ${required}`);
+  }
+}
+const workflowScannerBlock =
+  /scanner_service="greyhoundiq-media-scanner-\$env_name"([\s\S]*?)echo "scanner_service=/.exec(
+    cloudRunDeploy,
+  )?.[1] ?? "";
+if (
+  !workflowScannerBlock ||
+  workflowScannerBlock.includes('--update-secrets "$secrets"') ||
+  workflowScannerBlock.includes('scanner_env_vars="${env_vars')
+) {
+  findings.push(
+    "cloud-run-deploy.yml: scanner must not inherit the web environment or full secret bundle",
+  );
+}
 for (const publicSupabaseSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) {
   if (!cloudRunDeploy.includes(`${publicSupabaseSecret}=greyhoundiq-$env_name-${publicSupabaseSecret}:latest`)) {
     findings.push(`cloud-run-deploy.yml: missing ${publicSupabaseSecret} runtime secret mapping`);
@@ -234,6 +276,18 @@ const cloudRunDeployPs1 = readFileSync(
 );
 if (!cloudRunDeployPs1.includes('[int]$WebConcurrency = 20')) {
   findings.push("gcp-cloud-run-deploy.ps1: web concurrency must stay at the tuned value");
+}
+const legacyScannerGuard = cloudRunDeployPs1.indexOf("if (-not $SkipMediaScanner)");
+const legacyCloudSetup = cloudRunDeployPs1.search(/\r?\nAdd-GcloudToPath\r?\n/);
+if (
+  legacyScannerGuard < 0 ||
+  legacyCloudSetup < 0 ||
+  legacyScannerGuard > legacyCloudSetup ||
+  !cloudRunDeployPs1.includes("legacy scanner deploy path is disabled")
+) {
+  findings.push(
+    "gcp-cloud-run-deploy.ps1: legacy scanner deployment must fail before Cloud SDK setup",
+  );
 }
 if (!cloudRunDeployPs1.includes('"--cpu-boost"')) {
   findings.push("gcp-cloud-run-deploy.ps1: startup CPU boost must stay enabled");
@@ -372,6 +426,90 @@ for (const publicSupabaseSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUP
   if (!cloudRunBootstrapSh.includes(publicSupabaseSecret)) {
     findings.push(`gcp-cloud-run-bootstrap.sh: must create ${publicSupabaseSecret} secret shell`);
   }
+}
+
+const gcsCorsPolicy = JSON.parse(
+  readFileSync(join(root, "config", "gcs-object-storage-cors.json"), "utf8"),
+);
+const expectedGcsCorsPolicy = [
+  {
+    origin: [
+      "https://greyhoundsiq.com.au",
+      "https://www.greyhoundsiq.com.au",
+    ],
+    method: ["GET", "HEAD", "PUT"],
+    responseHeader: [
+      "Content-Type",
+      "Content-Length",
+      "Content-Range",
+      "Range",
+      "ETag",
+      "x-goog-generation",
+      "x-goog-hash",
+      "x-goog-if-generation-match",
+    ],
+    maxAgeSeconds: 3600,
+  },
+];
+if (JSON.stringify(gcsCorsPolicy) !== JSON.stringify(expectedGcsCorsPolicy)) {
+  findings.push(
+    "gcs-object-storage-cors.json: must keep the exact approved origins, methods, response headers and max age",
+  );
+}
+const gcsObjectStorageReconciler = readFileSync(
+  join(root, "scripts", "gcp-object-storage-reconcile.ps1"),
+  "utf8",
+);
+for (const required of [
+  '"giq-site-assets-$ProjectId"',
+  '"giq-public-user-media-$ProjectId"',
+  '"giq-private-user-media-$ProjectId"',
+  '"--uniform-bucket-level-access"',
+  '"--public-access-prevention"',
+  '"--cors-file=$corsFile"',
+  "Write-CorsBackup",
+  "RestoreDirectory",
+]) {
+  if (!gcsObjectStorageReconciler.includes(required)) {
+    findings.push(`gcp-object-storage-reconcile.ps1: missing ${required}`);
+  }
+}
+const mediaScannerReconciler = readFileSync(
+  join(root, "scripts", "gcp-media-scanner-reconcile.ps1"),
+  "utf8",
+);
+for (const required of [
+  '"greyhoundiq-media-scanner-$Environment"',
+  '"greyhoundiq-$Environment-media-maintenance"',
+  '"giq-media-scanner-$Environment@$ProjectId.iam.gserviceaccount.com"',
+  'MEDIA_SCAN_MODE = "clamav"',
+  'REALTIME_BROADCAST_DISABLED = "true"',
+  'DATABASE_URL = $databaseSecretRef',
+  'INTERNAL_API_SECRET = $internalSecretRef',
+  "Get-ScannerEnvironmentDrift",
+  "Get-NetworkContract",
+  "Get-DirectSecretAccess",
+  "Test-ProjectSecretAccessor",
+  "ReviewedInternalApiSecretName",
+  '"--no-allow-unauthenticated"',
+  '"--oidc-service-account-email=$webServiceAccount"',
+  '"--oidc-token-audience=$scannerUrl"',
+  '"--attempt-deadline=900s"',
+  '"--role=roles/storage.objectUser"',
+]) {
+  if (!mediaScannerReconciler.includes(required)) {
+    findings.push(`gcp-media-scanner-reconcile.ps1: missing ${required}`);
+  }
+}
+if (/run", "deploy", \$WebServiceName/.test(mediaScannerReconciler)) {
+  findings.push(
+    "gcp-media-scanner-reconcile.ps1: scanner drift repair must not redeploy the web service",
+  );
+}
+if (/foreach \(\$entry in @\(\$webContainer\.env\)\)/.test(mediaScannerReconciler)) {
+  findings.push(
+    "gcp-media-scanner-reconcile.ps1: scanner must not clone every web environment or secret binding",
+  );
 }
 
 const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {

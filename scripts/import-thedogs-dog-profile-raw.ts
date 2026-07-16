@@ -18,11 +18,13 @@ import {
   sanitizeProviderHtml,
   sanitizeRawJson,
 } from "../src/lib/live/raw-sanitizer";
+import { verifyTheDogsProfileArchiveIdentity } from "./thedogs-profile-archive-identity";
 
 const DEFAULT_PROFILE_DIR = ".backfill/thedogs-dog-profiles-raw";
 const DEFAULT_PROGRESS = ".backfill/thedogs-dog-profile-import-progress.jsonl";
 const DB_UNAVAILABLE_EXIT_CODE = 75;
 const DB_PREFLIGHT_TIMEOUT_MS = 30_000;
+const CANONICAL_IMPORT_DISABLED_EXIT_CODE = 64;
 
 type Options = {
   sourceId?: string;
@@ -145,6 +147,13 @@ type NormalizedProfileForm = Omit<
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
+  if (!options.dryRun && !options.archiveOnly) {
+    console.error(
+      "[import:thedogs:dog-profiles:raw] direct canonical Dog import is disabled: use the identity-audited v2 full-history merge so whole-database matching, provenance, relationship review, and no-loss checks run before any canonical write",
+    );
+    process.exitCode = CANONICAL_IMPORT_DISABLED_EXIT_CODE;
+    return;
+  }
   const completed = options.resume
     ? await readImportedSourceIds(options.progressFile)
     : new Set<string>();
@@ -761,6 +770,12 @@ async function readProfileArchive(
   if (!archive.parsed) throw new Error(`${candidate.profilePath} is missing parsed`);
   if (!Array.isArray(archive.parsed.formRows)) {
     throw new Error(`${candidate.profilePath} is missing parsed.formRows[]`);
+  }
+  const identity = verifyTheDogsProfileArchiveIdentity(candidate.sourceId, archive);
+  if (!identity.verified) {
+    throw new Error(
+      `${candidate.profilePath} failed exact provider identity verification: ${identity.reasons.join("; ")}`,
+    );
   }
   return archive;
 }

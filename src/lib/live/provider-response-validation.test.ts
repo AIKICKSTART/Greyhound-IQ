@@ -6,7 +6,7 @@ import {
   parseTheDogsRaceResult,
   TheDogsProvider,
 } from "./thedogs";
-import { WatchdogProvider } from "./watchdog";
+import { mapWatchdogPayload, WatchdogProvider } from "./watchdog";
 import { parseWatchdogPayload } from "./watchdog-response";
 
 void main();
@@ -64,6 +64,12 @@ async function assertTheDogsFollowUpBoundaries() {
   assert.equal(meetings.length, 1);
   assert.equal(meetings[0]?.races.length, 1);
   assert.equal(meetings[0]?.races[0]?.runners[0]?.dog.name, "Safe Dog");
+  assert.equal(
+    meetings[0]?.races[0]?.runners[0]?.dog.sourceProvider,
+    "thedogs",
+  );
+  assert.equal(meetings[0]?.races[0]?.runners[0]?.dog.sourceId, "202");
+  assert.equal(meetings[0]?.races[0]?.runners[0]?.dog.earBrand, undefined);
   assert.equal(requestedUrls.length, 3);
   assert.deepEqual(
     [...new Set(requestedUrls.map((url) => url.origin))],
@@ -359,6 +365,57 @@ function assertWatchdogSchema() {
   });
   assert.equal(participants.participants?.length, 1);
   assert.equal(participants.participants?.[0]?.dogId, "dog-1");
+
+  const [watchdogMeeting] = mapWatchdogPayload(
+    parseWatchdogPayload({
+      meetings: [
+        {
+          id: "meeting-1",
+          trackName: "Sandown Park",
+          meetingDate: "2026-07-16",
+        },
+      ],
+      races: [
+        {
+          id: "race-1",
+          meetingId: "meeting-1",
+          raceNumber: 1,
+          distance: 515,
+          startTime: "2026-07-16T09:00:00.000Z",
+        },
+      ],
+      participants: [
+        {
+          id: "runner-1",
+          raceId: "race-1",
+          dogId: "dog-1",
+          dogName: "Verified Watchdog Dog",
+          box: 1,
+          sireId: "sire-1",
+          sireName: "Verified Sire",
+          damId: "dam-1",
+          damName: "Verified Dam",
+          whelpedDate: "2024-01-02",
+        },
+        {
+          id: "runner-2",
+          raceId: "race-1",
+          dogId: "dog-2",
+          dogName: "Unknown runner",
+          box: 2,
+        },
+      ],
+    }),
+  );
+  const watchdogRunner = watchdogMeeting?.races[0]?.runners[0];
+  assert.equal(watchdogMeeting?.races[0]?.runners.length, 1);
+  assert.equal(watchdogRunner?.sourceProvider, "watchdog");
+  assert.equal(watchdogRunner?.dog.sourceProvider, "watchdog");
+  assert.equal(watchdogRunner?.dog.sourceId, "dog-1");
+  assert.equal(watchdogRunner?.dog.earBrand, undefined);
+  assert.equal(watchdogRunner?.dog.whelpDate, "2024-01-02");
+  assert.equal(watchdogRunner?.dog.sire?.sourceId, "sire-1");
+  assert.equal(watchdogRunner?.dog.dam?.sourceId, "dam-1");
 }
 
 function assertHtmlParserBounds() {
@@ -416,10 +473,32 @@ function assertHtmlParserBounds() {
       <div>${"padding ".repeat(200)}</div>
       <div>515 metres</div>
       <div>Stakemoney Of $2,000</div>
+      <table class="raceResultsTable"><tbody><tr>
+        <td>1</td><td>Unidentified Runner [M]</td><td>Trainer</td>
+        <td>1</td><td>1</td><td>30</td><td></td><td></td><td>29.5</td><td>0</td>
+      </tr></tbody></table>
     </div>
   `);
   assert.equal(boundedFastTrackRace.races[0]?.distance, 515);
   assert.equal(boundedFastTrackRace.races[0]?.prizeMoney, 2_000);
+  assert.equal(boundedFastTrackRace.races[0]?.runners.length, 0);
+
+  const identifiedFastTrackRace = parseFastTrackMeeting(`
+    <title>Sandown Park 15/07/2026</title>
+    <div class="race-detail clear-both">
+      <div class="race-number">1</div>
+      <div class="race-time">7:30 pm</div>
+      <div>515 metres</div>
+      <table class="raceResultsTable"><tbody><tr>
+        <td>1</td><td><a data-dog-id="12345">Identified Runner [M]</a></td><td>Trainer</td>
+        <td>1</td><td>1</td><td>30</td><td></td><td></td><td>29.5</td><td>0</td>
+      </tr></tbody></table>
+    </div>
+  `);
+  const fastTrackRunner = identifiedFastTrackRace.races[0]?.runners[0];
+  assert.equal(fastTrackRunner?.dog.sourceProvider, "fasttrack-prototype");
+  assert.equal(fastTrackRunner?.dog.sourceId, "12345");
+  assert.equal(fastTrackRunner?.dog.name, "Identified Runner");
 }
 
 function fetchReturning(response: Response): typeof fetch {

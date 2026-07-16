@@ -71,5 +71,15 @@ assert.ok(
   source.includes('item.step === "done" && item.mediaId'),
   "Only finalized media IDs may be submitted",
 );
+assert.ok(
+  source.includes("ctx.uploadHeaders = signed.uploadHeaders") &&
+    source.includes("Object.entries(headers)"),
+  "The browser upload must use only provider-signed response headers",
+);
+assert.equal(
+  source.includes('xhr.setRequestHeader("x-upsert"'),
+  false,
+  "GCS uploads must not inherit the Supabase-only x-upsert header",
+);
 
 console.log("media attachment form guard tests passed");

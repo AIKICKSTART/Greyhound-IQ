@@ -13,6 +13,7 @@ import { UPLOAD_CONTROL_MASTER_EVIDENCE } from "./upload-control-evidence";
 const mediaService = readFileSync("src/lib/media-service.ts", "utf8");
 const objectStorage = readFileSync("src/lib/object-storage.ts", "utf8");
 const storageAdapter = readFileSync("src/lib/supabase-object-storage.ts", "utf8");
+const gcsStorageAdapter = readFileSync("src/lib/gcs-object-storage.ts", "utf8");
 const storage = readFileSync("src/lib/supabase-storage.ts", "utf8");
 const mediaTests = readFileSync("src/lib/media-service.test.ts", "utf8");
 
@@ -26,17 +27,24 @@ assert.match(
 );
 assert.match(
   mediaService,
-  /objectStorage\.createSignedUpload\(\{\s*bucket,\s*key: objectPath,\s*\}\)/,
+  /objectStorage\.createSignedUpload\(\{\s*bucket,\s*key: objectPath,\s*contentType: input\.mimeType,\s*\}\)/,
 );
 assert.match(
   storageAdapter,
   /createSignedUpload\(input\)[\s\S]*operations\.createSignedUpload\(\s*input\.bucket,\s*input\.key/,
 );
-assert.match(objectStorage, /port\.createSignedUpload\(\{ bucket, key \}\)/);
+assert.match(
+  objectStorage,
+  /port\.createSignedUpload\(\{\s*bucket,\s*key,\s*contentType:/,
+);
 assert.match(
   storage,
   /createSignedUploadUrl\(objectPath, \{ upsert: false \}\)/,
 );
+assert.match(gcsStorageAdapter, /action: "write"[\s\S]*version: "v4"/);
+assert.match(gcsStorageAdapter, /action: "read"[\s\S]*version: "v4"/);
+assert.match(gcsStorageAdapter, /preconditionOpts: \{ ifGenerationMatch: 0 \}/);
+assert.doesNotMatch(gcsStorageAdapter, /keyFilename|credentials:/);
 assert.doesNotMatch(mediaService, /public\/uploads|src\/app\/uploads/);
 
 for (const context of [

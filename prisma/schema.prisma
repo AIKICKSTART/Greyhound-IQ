@@ -12,47 +12,53 @@ datasource db {
 // ponytail: Supabase Postgres for dev + prod. Same Prisma client everywhere.
 
 model Dog {
-  id                   String              @id @default(cuid())
-  name                 String
-  earBrand             String?             @unique
-  colour               String?
-  sex                  String?
-  whelpDate            DateTime?
-  sireId               String?
-  damId                String?
-  sire                 Dog?                @relation("SireRelation", fields: [sireId], references: [id])
-  dam                  Dog?                @relation("DamRelation", fields: [damId], references: [id])
-  progenySire          Dog[]               @relation("SireRelation")
-  progenyDam           Dog[]               @relation("DamRelation")
-  trainerId            String?
-  trainer              Trainer?            @relation(fields: [trainerId], references: [id])
-  sourceProvider       String?
-  sourceId             String?
-  profileUrl           String?
-  ownerName            String?
-  careerStarts         Int?
-  careerWins           Int?
-  careerSeconds        Int?
-  careerThirds         Int?
-  prizeMoney           Float?
-  winPercentage        Float?
-  placePercentage      Float?
-  profileStatsJson     String?
-  bestTimesJson        String?
-  boxHistoryJson       String?
-  distanceHistoryJson  String?
-  profileSourceRawJson String?
-  lastProfileSyncedAt  DateTime?
-  retiredAt            DateTime?
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-  runners              Runner[]
-  formEntries          FormEntry[]
-  profileForms         DogProfileForm[]
-  profileArchives      DogProfileArchive[]
-  ownership            DogOwnership[]
-  listings             Listing[]
-  customPages          CustomPage[]        @relation("DogCustomPages")
+  id                       String                @id @default(cuid())
+  name                     String
+  earBrand                 String?               @unique
+  colour                   String?
+  sex                      String?
+  whelpDate                DateTime?
+  sireId                   String?
+  damId                    String?
+  sire                     Dog?                  @relation("SireRelation", fields: [sireId], references: [id])
+  dam                      Dog?                  @relation("DamRelation", fields: [damId], references: [id])
+  progenySire              Dog[]                 @relation("SireRelation")
+  progenyDam               Dog[]                 @relation("DamRelation")
+  trainerId                String?
+  trainer                  Trainer?              @relation(fields: [trainerId], references: [id])
+  sourceProvider           String?
+  sourceId                 String?
+  profileUrl               String?
+  ownerName                String?
+  careerStarts             Int?
+  careerWins               Int?
+  careerSeconds            Int?
+  careerThirds             Int?
+  prizeMoney               Float?
+  winPercentage            Float?
+  placePercentage          Float?
+  profileStatsJson         String?
+  bestTimesJson            String?
+  boxHistoryJson           String?
+  distanceHistoryJson      String?
+  profileSourceRawJson     String?
+  lastProfileSyncedAt      DateTime?
+  retiredAt                DateTime?
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  runners                  Runner[]
+  formEntries              FormEntry[]
+  profileForms             DogProfileForm[]
+  profileArchives          DogProfileArchive[]
+  ownership                DogOwnership[]
+  listings                 Listing[]
+  customPages              CustomPage[]          @relation("DogCustomPages")
+  pedigreeSourceIdentities DogSourceIdentity[]   @relation("PedigreeCanonicalDog")
+  pedigreeMergeSubjects    PedigreeMergeLedger[] @relation("PedigreeMergeSubjectDog")
+  pedigreeMergeExisting    PedigreeMergeLedger[] @relation("PedigreeMergeExistingParent")
+  pedigreeMergeProposed    PedigreeMergeLedger[] @relation("PedigreeMergeProposedParent")
+  profileObservations      DogProfileObservation[] @relation("LiveProfileObservationDog")
+  profileMergeDecisions    DogProfileMergeLedger[] @relation("LiveProfileMergeDog")
 
   @@unique([sourceProvider, sourceId])
   @@index([name])
@@ -60,6 +66,178 @@ model Dog {
   @@index([damId])
   @@index([trainerId])
   @@index([sourceProvider])
+}
+
+model DogProfileObservation {
+  id                 String                 @id
+  dogId              String
+  dog                Dog                    @relation("LiveProfileObservationDog", fields: [dogId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceProvider     String
+  sourceId           String
+  requestUrl         String
+  requestSha256      String
+  observedAt         DateTime
+  evidenceSha256     String
+  evidenceJson       String
+  verificationStatus String
+  createdAt          DateTime               @default(now())
+  mergeDecision      DogProfileMergeLedger?
+
+  @@unique([id, dogId, sourceProvider, sourceId, requestSha256, evidenceSha256])
+  @@index([dogId, observedAt])
+  @@index([sourceProvider, sourceId, observedAt])
+  @@index([evidenceSha256])
+}
+
+model DogProfileMergeLedger {
+  id                 String                @id @default(cuid())
+  observationId      String                @unique
+  dogId              String
+  sourceProvider     String
+  sourceId           String
+  requestSha256      String
+  evidenceSha256     String
+  observation        DogProfileObservation @relation(fields: [observationId, dogId, sourceProvider, sourceId, requestSha256, evidenceSha256], references: [id, dogId, sourceProvider, sourceId, requestSha256, evidenceSha256], onDelete: Restrict, onUpdate: Restrict)
+  dog                Dog                   @relation("LiveProfileMergeDog", fields: [dogId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  decision           String
+  reasonCode         String
+  verificationStatus String
+  fieldDecisionsJson String
+  createdAt          DateTime              @default(now())
+
+  @@unique([observationId, dogId, sourceProvider, sourceId, requestSha256, evidenceSha256])
+  @@index([dogId, createdAt])
+  @@index([sourceProvider, sourceId, createdAt])
+  @@index([decision, verificationStatus, createdAt])
+  @@index([evidenceSha256])
+}
+
+model PedigreeImportRun {
+  id                 String                @id @default(cuid())
+  sourceProvider     String
+  sourceAuthority    Int
+  verificationStatus String                @default("parsed")
+  status             String                @default("parsing")
+  artifactUri        String
+  artifactSha256     String
+  artifactBytes      BigInt
+  sourceVolume       String?
+  parserVersion      String
+  recordsObserved    Int                   @default(0)
+  assertionsObserved Int                   @default(0)
+  issuesObserved     Int                   @default(0)
+  startedAt          DateTime              @default(now())
+  completedAt        DateTime?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  sourceIdentities   DogSourceIdentity[]
+  assertions         PedigreeAssertion[]
+  mergeEntries       PedigreeMergeLedger[]
+
+  @@index([sourceProvider, artifactSha256])
+  @@unique([id, sourceProvider, artifactSha256])
+  @@index([sourceProvider, sourceAuthority])
+  @@index([status, createdAt])
+  @@index([verificationStatus, completedAt])
+}
+
+model DogSourceIdentity {
+  id                 String              @id @default(cuid())
+  dogId              String?
+  dog                Dog?                @relation("PedigreeCanonicalDog", fields: [dogId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  importRunId        String
+  sourceProvider     String
+  artifactSha256     String
+  importRun          PedigreeImportRun   @relation(fields: [importRunId, sourceProvider, artifactSha256], references: [id, sourceProvider, artifactSha256], onDelete: Restrict, onUpdate: Restrict)
+  sourceId           String
+  sourceName         String
+  normalizedName     String
+  registryToken      String?
+  imported           Boolean             @default(false)
+  observedSex        String?
+  observedColour     String?
+  observedWhelpDate  DateTime?
+  sourceAuthority    Int
+  verificationStatus String              @default("parsed")
+  sourcePage         Int?
+  sourceLine         Int?
+  artifactOffsetLine Int
+  evidenceSha256     String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  subjectAssertions  PedigreeAssertion[] @relation("PedigreeAssertionSubject")
+  parentAssertions   PedigreeAssertion[] @relation("PedigreeAssertionParent")
+
+  @@index([sourceProvider, sourceId, artifactSha256])
+  @@unique([id, importRunId, sourceProvider, artifactSha256])
+  @@index([importRunId, artifactOffsetLine])
+  @@index([sourceProvider, sourceId])
+  @@index([dogId, verificationStatus])
+  @@index([normalizedName, observedWhelpDate])
+  @@index([importRunId, sourcePage, sourceLine])
+}
+
+model PedigreeAssertion {
+  id                           String                @id @default(cuid())
+  importRunId                  String
+  sourceProvider               String
+  artifactSha256               String
+  importRun                    PedigreeImportRun     @relation(fields: [importRunId, sourceProvider, artifactSha256], references: [id, sourceProvider, artifactSha256], onDelete: Restrict, onUpdate: Restrict)
+  subjectIdentityId            String
+  subjectIdentity              DogSourceIdentity     @relation("PedigreeAssertionSubject", fields: [subjectIdentityId, importRunId, sourceProvider, artifactSha256], references: [id, importRunId, sourceProvider, artifactSha256], onDelete: Restrict, onUpdate: Restrict)
+  parentIdentityId             String?
+  parentIdentity               DogSourceIdentity?    @relation("PedigreeAssertionParent", fields: [parentIdentityId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  relationship                 String
+  assertedParentName           String
+  assertedParentNormalizedName String
+  assertedParentRegistryToken  String?
+  sourceAuthority              Int
+  verificationStatus           String                @default("parsed")
+  sourcePage                   Int?
+  sourceLine                   Int?
+  artifactOffsetLine           Int
+  evidenceSha256               String
+  createdAt                    DateTime              @default(now())
+  updatedAt                    DateTime              @updatedAt
+  candidateMergeEntries        PedigreeMergeLedger[] @relation("PedigreeMergeCandidateAssertion")
+  winningMergeEntries          PedigreeMergeLedger[] @relation("PedigreeMergeWinningAssertion")
+
+  @@index([subjectIdentityId, relationship])
+  @@unique([id, importRunId, sourceProvider, artifactSha256])
+  @@index([importRunId, artifactOffsetLine, relationship])
+  @@index([parentIdentityId, verificationStatus])
+  @@index([assertedParentNormalizedName])
+  @@index([importRunId, sourcePage, sourceLine])
+}
+
+model PedigreeMergeLedger {
+  id                  String             @id @default(cuid())
+  importRunId         String
+  sourceProvider      String
+  artifactSha256      String
+  importRun           PedigreeImportRun  @relation(fields: [importRunId, sourceProvider, artifactSha256], references: [id, sourceProvider, artifactSha256], onDelete: Restrict, onUpdate: Restrict)
+  assertionId         String
+  assertion           PedigreeAssertion  @relation("PedigreeMergeCandidateAssertion", fields: [assertionId, importRunId, sourceProvider, artifactSha256], references: [id, importRunId, sourceProvider, artifactSha256], onDelete: Restrict, onUpdate: Restrict)
+  winningAssertionId  String?
+  winningAssertion    PedigreeAssertion? @relation("PedigreeMergeWinningAssertion", fields: [winningAssertionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  dogId               String
+  dog                 Dog                @relation("PedigreeMergeSubjectDog", fields: [dogId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  existingParentDogId String?
+  existingParentDog   Dog?               @relation("PedigreeMergeExistingParent", fields: [existingParentDogId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  proposedParentDogId String?
+  proposedParentDog   Dog?               @relation("PedigreeMergeProposedParent", fields: [proposedParentDogId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  relationship        String
+  decision            String
+  reasonCode          String
+  sourceAuthority     Int
+  verificationStatus  String
+  createdAt           DateTime           @default(now())
+
+  @@index([assertionId, dogId, decision, createdAt])
+  @@index([importRunId, createdAt])
+  @@index([dogId, relationship, createdAt])
+  @@index([decision, verificationStatus, createdAt])
+  @@index([winningAssertionId])
 }
 
 model DogProfileForm {

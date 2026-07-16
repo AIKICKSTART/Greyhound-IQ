@@ -22,6 +22,15 @@ const compatibility = collectDatabaseCompatibilityInventory();
 const sourceBinding = report.sourceBinding as Record<string, unknown>;
 const catalog = report.catalog as Record<string, unknown>;
 const cases = report.cases as Record<string, unknown>;
+const sensitiveAuthorization = report.sensitiveAuthorization as Record<
+  string,
+  unknown
+>;
+const sensitiveCases = sensitiveAuthorization.cases as Record<string, unknown>;
+const sensitiveMutations = sensitiveAuthorization.mutations as Record<
+  string,
+  unknown
+>;
 
 assert.equal(report.schemaVersion, 1);
 assert.equal(report.auditKind, "rls-access-matrix");
@@ -77,6 +86,13 @@ assert.deepEqual(cases.privilegedModerator, {
   organizationB: 1,
   signupOutbox: 0,
 });
+assert.deepEqual(cases.privilegedAdmin, {
+  membershipA: 1,
+  membershipB: 1,
+  organizationA: 1,
+  organizationB: 1,
+  signupOutbox: 0,
+});
 assert.deepEqual(cases.systemWorker, {
   membershipA: 1,
   membershipB: 1,
@@ -85,6 +101,34 @@ assert.deepEqual(cases.systemWorker, {
   signupOutbox: 1,
 });
 assert.deepEqual(report.rollback, { ...zeroCounts(), verified: true });
+assert.equal(sensitiveAuthorization.moderatorPredicateAbsent, true);
+assert.equal((sensitiveAuthorization.policies as unknown[]).length, 32);
+assert.deepEqual(sensitiveCases.anonymous, sensitiveCounts("none"));
+assert.deepEqual(sensitiveCases.ownerA, sensitiveCounts("a"));
+assert.deepEqual(sensitiveCases.ownerB, sensitiveCounts("b"));
+assert.deepEqual(sensitiveCases.privilegedModerator, sensitiveCounts("a"));
+assert.deepEqual(sensitiveCases.privilegedAdmin, sensitiveCounts("all"));
+assert.deepEqual(sensitiveCases.systemWorker, sensitiveCounts("all"));
+assert.deepEqual(sensitiveMutations, {
+  privilegedAdmin: {
+    invoiceB: 1,
+    privateMediaB: 1,
+    profileB: 1,
+    userB: 1,
+    webhookB: 1,
+  },
+  privilegedModerator: {
+    invoiceB: 0,
+    privateMediaB: 0,
+    profileB: 0,
+    userB: 0,
+    webhookB: 0,
+  },
+});
+assert.deepEqual(sensitiveAuthorization.rollback, {
+  ...sensitiveCounts("none"),
+  verified: true,
+});
 assert.equal(report.poolContextReset, true);
 
 const dbContext = readFileSync("src/lib/db-context.ts", "utf8");
@@ -143,6 +187,30 @@ function ownerCounts() {
     organizationA: 1,
     organizationB: 0,
     signupOutbox: 0,
+  };
+}
+
+function sensitiveCounts(scope: "a" | "all" | "b" | "none") {
+  const owned = {
+    a: scope === "a" || scope === "all" ? 1 : 0,
+    b: scope === "b" || scope === "all" ? 1 : 0,
+  };
+  const webhooks = scope === "all" ? { a: 1, b: 1 } : { a: 0, b: 0 };
+  return {
+    billingCustomers: { ...owned },
+    billingEvents: { ...owned },
+    creditNotes: { ...owned },
+    entitlementSnapshots: { ...owned },
+    invoices: { ...owned },
+    payments: { ...owned },
+    privateMedia: { ...owned },
+    refunds: { ...owned },
+    subscriptions: { ...owned },
+    usageAggregates: { ...owned },
+    usageEvents: { ...owned },
+    usageOutbox: { ...owned },
+    users: { ...owned },
+    webhooks,
   };
 }
 

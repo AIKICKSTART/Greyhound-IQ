@@ -10,6 +10,41 @@ export const RLS_ACCESS_MATRIX_CONFIRMATION =
 export const RLS_ACCESS_MATRIX_OUTPUT =
   "security/row-level-security-runtime-evidence.json";
 
+const SENSITIVE_ADMIN_POLICY_NAMES = [
+  "giq_billing_customer_read",
+  "giq_billing_customer_write",
+  "giq_billing_event_read",
+  "giq_billing_event_write",
+  "giq_credit_note_read",
+  "giq_credit_note_write",
+  "giq_entitlement_snapshot_read",
+  "giq_entitlement_snapshot_write",
+  "giq_invoice_read",
+  "giq_invoice_write",
+  "giq_media_delete",
+  "giq_media_select",
+  "giq_media_update",
+  "giq_payment_read",
+  "giq_payment_write",
+  "giq_plan_entitlement_write",
+  "giq_plan_write",
+  "giq_price_catalog_write",
+  "giq_profile_update",
+  "giq_refund_read",
+  "giq_refund_write",
+  "giq_subscription_read",
+  "giq_subscription_write",
+  "giq_usage_aggregate_read",
+  "giq_usage_aggregate_write",
+  "giq_usage_event_read",
+  "giq_usage_event_write",
+  "giq_usage_outbox_read",
+  "giq_usage_outbox_write",
+  "giq_user_select",
+  "giq_user_update",
+  "giq_webhook_event_system",
+] as const;
+
 type ContextCounts = {
   membershipA: number;
   membershipB: number;
@@ -22,6 +57,54 @@ type InvoiceOwnershipCounts = {
   invoiceA: number;
   invoiceB: number;
 };
+
+type SensitivePairCounts = { a: number; b: number };
+
+type SensitiveAccessCounts = {
+  billingCustomers: SensitivePairCounts;
+  billingEvents: SensitivePairCounts;
+  creditNotes: SensitivePairCounts;
+  entitlementSnapshots: SensitivePairCounts;
+  invoices: SensitivePairCounts;
+  payments: SensitivePairCounts;
+  privateMedia: SensitivePairCounts;
+  refunds: SensitivePairCounts;
+  subscriptions: SensitivePairCounts;
+  usageAggregates: SensitivePairCounts;
+  usageEvents: SensitivePairCounts;
+  usageOutbox: SensitivePairCounts;
+  users: SensitivePairCounts;
+  webhooks: SensitivePairCounts;
+};
+
+type SensitiveMutationCounts = {
+  invoiceB: number;
+  privateMediaB: number;
+  profileB: number;
+  userB: number;
+  webhookB: number;
+};
+
+type SensitiveFixturePrefix =
+  | "billingCustomer"
+  | "billingEvent"
+  | "creditNote"
+  | "entitlementSnapshot"
+  | "invoice"
+  | "media"
+  | "payment"
+  | "refund"
+  | "subscription"
+  | "usageAggregate"
+  | "usageEvent"
+  | "usageOutbox"
+  | "user"
+  | "webhook";
+
+type SensitiveFixtureIds = Record<
+  `${SensitiveFixturePrefix}${"A" | "B"}`,
+  string
+>;
 
 const inputUrl = process.env.RLS_ACCESS_MATRIX_DATABASE_URL?.trim();
 assert.ok(inputUrl, "RLS_ACCESS_MATRIX_DATABASE_URL is required");
@@ -71,8 +154,32 @@ async function main() {
     membershipA: `${marker}-membership-a`,
     membershipB: `${marker}-membership-b`,
     outbox: `${marker}-outbox`,
+    billingCustomerA: `${marker}-billing-customer-a`,
+    billingCustomerB: `${marker}-billing-customer-b`,
+    billingEventA: `${marker}-billing-event-a`,
+    billingEventB: `${marker}-billing-event-b`,
+    creditNoteA: `${marker}-credit-note-a`,
+    creditNoteB: `${marker}-credit-note-b`,
+    entitlementSnapshotA: `${marker}-entitlement-a`,
+    entitlementSnapshotB: `${marker}-entitlement-b`,
     invoiceA: `${marker}-invoice-a`,
     invoiceB: `${marker}-invoice-b`,
+    mediaA: `${marker}-media-a`,
+    mediaB: `${marker}-media-b`,
+    paymentA: `${marker}-payment-a`,
+    paymentB: `${marker}-payment-b`,
+    refundA: `${marker}-refund-a`,
+    refundB: `${marker}-refund-b`,
+    subscriptionA: `${marker}-subscription-a`,
+    subscriptionB: `${marker}-subscription-b`,
+    usageAggregateA: `${marker}-usage-aggregate-a`,
+    usageAggregateB: `${marker}-usage-aggregate-b`,
+    usageEventA: `${marker}-usage-event-a`,
+    usageEventB: `${marker}-usage-event-b`,
+    usageOutboxA: `${marker}-usage-outbox-a`,
+    usageOutboxB: `${marker}-usage-outbox-b`,
+    webhookA: `${marker}-webhook-a`,
+    webhookB: `${marker}-webhook-b`,
   } as const;
   const rollbackMarker = "rls-access-matrix.rollback";
   const denialName = `giq_role_matrix_${randomUUID().replaceAll("-", "")}`;
@@ -81,6 +188,7 @@ async function main() {
         anonymous: ContextCounts;
         ownerA: ContextCounts;
         ownerB: ContextCounts;
+        privilegedAdmin: ContextCounts;
         privilegedModerator: ContextCounts;
         systemWorker: ContextCounts;
       }
@@ -90,8 +198,25 @@ async function main() {
         anonymous: InvoiceOwnershipCounts;
         ownerA: InvoiceOwnershipCounts;
         ownerB: InvoiceOwnershipCounts;
+        privilegedAdmin: InvoiceOwnershipCounts;
         privilegedModerator: InvoiceOwnershipCounts;
         systemWorker: InvoiceOwnershipCounts;
+      }
+    | undefined;
+  let sensitiveAccessCases:
+    | {
+        anonymous: SensitiveAccessCounts;
+        ownerA: SensitiveAccessCounts;
+        ownerB: SensitiveAccessCounts;
+        privilegedAdmin: SensitiveAccessCounts;
+        privilegedModerator: SensitiveAccessCounts;
+        systemWorker: SensitiveAccessCounts;
+      }
+    | undefined;
+  let sensitiveMutationCases:
+    | {
+        privilegedAdmin: SensitiveMutationCounts;
+        privilegedModerator: SensitiveMutationCounts;
       }
     | undefined;
 
@@ -384,15 +509,45 @@ async function main() {
       ),
     } as const;
 
-    const invoicePolicies = await prisma.$queryRaw<
-      Array<{ command: string; policyName: string }>
+    const catalogPolicies = await prisma.$queryRaw<
+      Array<{
+        command: string;
+        policyName: string;
+        qualifier: string | null;
+        tableName: string;
+        withCheck: string | null;
+      }>
     >`
-      SELECT policyname AS "policyName", cmd AS "command"
+      SELECT
+        policyname AS "policyName",
+        tablename AS "tableName",
+        cmd AS "command",
+        qual AS "qualifier",
+        with_check AS "withCheck"
       FROM pg_policies
       WHERE schemaname = 'public'
-        AND tablename = 'InvoiceRecord'
-        AND policyname = 'giq_invoice_read'
+      ORDER BY policyname
     `;
+    const sensitivePolicyNames = new Set<string>(SENSITIVE_ADMIN_POLICY_NAMES);
+    const sensitivePolicies = catalogPolicies.filter((policy) =>
+      sensitivePolicyNames.has(policy.policyName),
+    );
+    assert.deepEqual(
+      sensitivePolicies.map((policy) => policy.policyName).sort(),
+      [...SENSITIVE_ADMIN_POLICY_NAMES].sort(),
+    );
+    for (const policy of sensitivePolicies) {
+      const predicate = `${policy.qualifier ?? ""} ${policy.withCheck ?? ""}`;
+      assert.match(predicate, /giq_is_admin\(\)/u, policy.policyName);
+      assert.doesNotMatch(
+        predicate,
+        /giq_is_moderator\(\)/u,
+        policy.policyName,
+      );
+    }
+    const invoicePolicies = sensitivePolicies
+      .filter((policy) => policy.policyName === "giq_invoice_read")
+      .map(({ command, policyName }) => ({ command, policyName }));
     assert.deepEqual(invoicePolicies, [
       { command: "SELECT", policyName: "giq_invoice_read" },
     ]);
@@ -476,6 +631,207 @@ async function main() {
               },
             ],
           });
+          const occurredAt = new Date("2026-01-01T00:00:00.000Z");
+          await tx.mediaAsset.createMany({
+            data: [
+              {
+                id: ids.mediaA,
+                mimeType: "application/octet-stream",
+                sizeBytes: 1,
+                storageBucket: "private-user-media",
+                storagePath: ids.mediaA,
+                uploaderId: ids.userA,
+              },
+              {
+                id: ids.mediaB,
+                mimeType: "application/octet-stream",
+                sizeBytes: 1,
+                storageBucket: "private-user-media",
+                storagePath: ids.mediaB,
+                uploaderId: ids.userB,
+              },
+            ],
+          });
+          await tx.billingCustomer.createMany({
+            data: [
+              {
+                id: ids.billingCustomerA,
+                lagoCustomerId: `${ids.billingCustomerA}-provider`,
+                userId: ids.userA,
+              },
+              {
+                id: ids.billingCustomerB,
+                lagoCustomerId: `${ids.billingCustomerB}-provider`,
+                userId: ids.userB,
+              },
+            ],
+          });
+          await tx.subscription.createMany({
+            data: [
+              {
+                id: ids.subscriptionA,
+                lagoSubscriptionId: `${ids.subscriptionA}-provider`,
+                status: "active",
+                userId: ids.userA,
+              },
+              {
+                id: ids.subscriptionB,
+                lagoSubscriptionId: `${ids.subscriptionB}-provider`,
+                status: "active",
+                userId: ids.userB,
+              },
+            ],
+          });
+          await tx.entitlementSnapshot.createMany({
+            data: [
+              {
+                entitlementsJson: "{}",
+                id: ids.entitlementSnapshotA,
+                userId: ids.userA,
+              },
+              {
+                entitlementsJson: "{}",
+                id: ids.entitlementSnapshotB,
+                userId: ids.userB,
+              },
+            ],
+          });
+          await tx.paymentRecord.createMany({
+            data: [
+              {
+                amountCents: 1,
+                currency: "AUD",
+                id: ids.paymentA,
+                status: "succeeded",
+                userId: ids.userA,
+              },
+              {
+                amountCents: 1,
+                currency: "AUD",
+                id: ids.paymentB,
+                status: "succeeded",
+                userId: ids.userB,
+              },
+            ],
+          });
+          await tx.refundRecord.createMany({
+            data: [
+              {
+                amountCents: 1,
+                currency: "AUD",
+                id: ids.refundA,
+                status: "succeeded",
+                userId: ids.userA,
+              },
+              {
+                amountCents: 1,
+                currency: "AUD",
+                id: ids.refundB,
+                status: "succeeded",
+                userId: ids.userB,
+              },
+            ],
+          });
+          await tx.creditNoteRecord.createMany({
+            data: [
+              {
+                amountCents: 1,
+                currency: "AUD",
+                id: ids.creditNoteA,
+                status: "issued",
+                userId: ids.userA,
+              },
+              {
+                amountCents: 1,
+                currency: "AUD",
+                id: ids.creditNoteB,
+                status: "issued",
+                userId: ids.userB,
+              },
+            ],
+          });
+          await tx.billingEvent.createMany({
+            data: [
+              {
+                eventType: "rls.matrix",
+                id: ids.billingEventA,
+                userId: ids.userA,
+              },
+              {
+                eventType: "rls.matrix",
+                id: ids.billingEventB,
+                userId: ids.userB,
+              },
+            ],
+          });
+          await tx.usageEvent.createMany({
+            data: [
+              {
+                id: ids.usageEventA,
+                idempotencyKey: ids.usageEventA,
+                metricKey: "rls_matrix",
+                occurredAt,
+                userId: ids.userA,
+              },
+              {
+                id: ids.usageEventB,
+                idempotencyKey: ids.usageEventB,
+                metricKey: "rls_matrix",
+                occurredAt,
+                userId: ids.userB,
+              },
+            ],
+          });
+          await tx.usageOutbox.createMany({
+            data: [
+              {
+                id: ids.usageOutboxA,
+                idempotencyKey: ids.usageOutboxA,
+                metricKey: "rls_matrix",
+                occurredAt,
+                userId: ids.userA,
+              },
+              {
+                id: ids.usageOutboxB,
+                idempotencyKey: ids.usageOutboxB,
+                metricKey: "rls_matrix",
+                occurredAt,
+                userId: ids.userB,
+              },
+            ],
+          });
+          await tx.usageAggregate.createMany({
+            data: [
+              {
+                id: ids.usageAggregateA,
+                metricKey: "rls_matrix",
+                periodEnd: new Date("2026-02-01T00:00:00.000Z"),
+                periodStart: occurredAt,
+                userId: ids.userA,
+              },
+              {
+                id: ids.usageAggregateB,
+                metricKey: "rls_matrix",
+                periodEnd: new Date("2026-02-01T00:00:00.000Z"),
+                periodStart: occurredAt,
+                userId: ids.userB,
+              },
+            ],
+          });
+          await tx.webhookEvent.createMany({
+            data: [
+              {
+                eventType: "rls.matrix",
+                id: ids.webhookA,
+                payloadJson: "{}",
+              },
+              {
+                eventType: "rls.matrix",
+                id: ids.webhookB,
+                payloadJson: "{}",
+              },
+            ],
+          });
 
           await tx.$executeRaw`SELECT
             set_config('app.current_user_id', '', true),
@@ -486,6 +842,7 @@ async function main() {
             set_config('app.system', 'false', true)`;
           const anonymous = await readCounts(tx, ids);
           const anonymousInvoices = await readInvoiceCounts(tx, ids);
+          const anonymousSensitive = await readSensitiveAccessCounts(tx, ids);
 
           await setDbRequestContext(tx, {
             dbUserId: ids.userA,
@@ -495,6 +852,7 @@ async function main() {
           });
           const ownerA = await readCounts(tx, ids);
           const ownerAInvoices = await readInvoiceCounts(tx, ids);
+          const ownerASensitive = await readSensitiveAccessCounts(tx, ids);
 
           await setDbRequestContext(tx, {
             dbUserId: ids.userB,
@@ -504,6 +862,7 @@ async function main() {
           });
           const ownerB = await readCounts(tx, ids);
           const ownerBInvoices = await readInvoiceCounts(tx, ids);
+          const ownerBSensitive = await readSensitiveAccessCounts(tx, ids);
 
           await setDbRequestContext(tx, {
             dbUserId: ids.userA,
@@ -513,14 +872,40 @@ async function main() {
           });
           const privilegedModerator = await readCounts(tx, ids);
           const privilegedModeratorInvoices = await readInvoiceCounts(tx, ids);
+          const privilegedModeratorSensitive = await readSensitiveAccessCounts(
+            tx,
+            ids,
+          );
+          const privilegedModeratorMutations =
+            await attemptCrossCustomerSensitiveMutations(tx, ids);
+
+          await setDbRequestContext(tx, {
+            dbUserId: ids.userA,
+            profileId: ids.profileA,
+            profileRole: "admin",
+            tier: "pro_plus",
+          });
+          const privilegedAdmin = await readCounts(tx, ids);
+          const privilegedAdminInvoices = await readInvoiceCounts(tx, ids);
+          const privilegedAdminSensitive = await readSensitiveAccessCounts(
+            tx,
+            ids,
+          );
+          const privilegedAdminMutations =
+            await attemptCrossCustomerSensitiveMutations(tx, ids);
 
           await setDbSystemContext(tx);
           const systemWorker = await readCounts(tx, ids);
           const systemWorkerInvoices = await readInvoiceCounts(tx, ids);
+          const systemWorkerSensitive = await readSensitiveAccessCounts(
+            tx,
+            ids,
+          );
           cases = {
             anonymous,
             ownerA,
             ownerB,
+            privilegedAdmin,
             privilegedModerator,
             systemWorker,
           };
@@ -528,8 +913,21 @@ async function main() {
             anonymous: anonymousInvoices,
             ownerA: ownerAInvoices,
             ownerB: ownerBInvoices,
+            privilegedAdmin: privilegedAdminInvoices,
             privilegedModerator: privilegedModeratorInvoices,
             systemWorker: systemWorkerInvoices,
+          };
+          sensitiveAccessCases = {
+            anonymous: anonymousSensitive,
+            ownerA: ownerASensitive,
+            ownerB: ownerBSensitive,
+            privilegedAdmin: privilegedAdminSensitive,
+            privilegedModerator: privilegedModeratorSensitive,
+            systemWorker: systemWorkerSensitive,
+          };
+          sensitiveMutationCases = {
+            privilegedAdmin: privilegedAdminMutations,
+            privilegedModerator: privilegedModeratorMutations,
           };
 
           throw new Error(rollbackMarker);
@@ -570,6 +968,13 @@ async function main() {
       organizationB: 1,
       signupOutbox: 0,
     });
+    assert.deepEqual(cases.privilegedAdmin, {
+      membershipA: 1,
+      membershipB: 1,
+      organizationA: 1,
+      organizationB: 1,
+      signupOutbox: 0,
+    });
     assert.deepEqual(cases.systemWorker, {
       membershipA: 1,
       membershipB: 1,
@@ -582,11 +987,39 @@ async function main() {
       anonymous: { invoiceA: 0, invoiceB: 0 },
       ownerA: { invoiceA: 1, invoiceB: 0 },
       ownerB: { invoiceA: 0, invoiceB: 1 },
-      privilegedModerator: { invoiceA: 1, invoiceB: 1 },
+      privilegedAdmin: { invoiceA: 1, invoiceB: 1 },
+      privilegedModerator: { invoiceA: 1, invoiceB: 0 },
       systemWorker: { invoiceA: 1, invoiceB: 1 },
     });
+    assert.ok(sensitiveAccessCases);
+    assert.deepEqual(sensitiveAccessCases, {
+      anonymous: expectedSensitiveAccess("none"),
+      ownerA: expectedSensitiveAccess("a"),
+      ownerB: expectedSensitiveAccess("b"),
+      privilegedAdmin: expectedSensitiveAccess("all"),
+      privilegedModerator: expectedSensitiveAccess("a"),
+      systemWorker: expectedSensitiveAccess("all"),
+    });
+    assert.deepEqual(sensitiveMutationCases, {
+      privilegedAdmin: {
+        invoiceB: 1,
+        privateMediaB: 1,
+        profileB: 1,
+        userB: 1,
+        webhookB: 1,
+      },
+      privilegedModerator: {
+        invoiceB: 0,
+        privateMediaB: 0,
+        profileB: 0,
+        userB: 0,
+        webhookB: 0,
+      },
+    });
 
-    const rollbackCounts = await withDbSystemContext((tx) => readCounts(tx, ids));
+    const rollbackCounts = await withDbSystemContext((tx) =>
+      readCounts(tx, ids),
+    );
     assert.deepEqual(rollbackCounts, {
       membershipA: 0,
       membershipB: 0,
@@ -598,6 +1031,10 @@ async function main() {
       readInvoiceCounts(tx, ids),
     );
     assert.deepEqual(invoiceRollbackCounts, { invoiceA: 0, invoiceB: 0 });
+    const sensitiveRollbackCounts = await withDbSystemContext((tx) =>
+      readSensitiveAccessCounts(tx, ids),
+    );
+    assert.deepEqual(sensitiveRollbackCounts, expectedSensitiveAccess("none"));
     const [freshContext] = await prisma.$queryRaw<
       Array<{ profileId: string | null; system: string | null; userId: string | null }>
     >`SELECT
@@ -623,9 +1060,9 @@ async function main() {
         billingPageSha256: sha256(
           readFileSync("src/app/account/billing/page.tsx"),
         ),
-        invoicePolicyMigrationSha256: sha256(
+        sensitiveAdminPolicyMigrationSha256: sha256(
           readFileSync(
-            "prisma/migrations/20260706223000_add_rls_entitlement_policies/migration.sql",
+            "prisma/migrations/20260716120000_restrict_sensitive_rls_to_admin/migration.sql",
           ),
         ),
         migrationsSha256: compatibility.migrationsSha256,
@@ -665,6 +1102,19 @@ async function main() {
         cases: invoiceOwnershipCases,
         rollback: { ...invoiceRollbackCounts, verified: true },
       },
+      sensitiveAuthorization: {
+        policies: sensitivePolicies.map(
+          ({ command, policyName, tableName }) => ({
+            command,
+            policyName,
+            tableName,
+          }),
+        ),
+        moderatorPredicateAbsent: true,
+        cases: sensitiveAccessCases,
+        mutations: sensitiveMutationCases,
+        rollback: { ...sensitiveRollbackCounts, verified: true },
+      },
       cases,
       rollback: { ...rollbackCounts, verified: true },
       poolContextReset: true,
@@ -673,7 +1123,7 @@ async function main() {
 
     writeReportAtomically(RLS_ACCESS_MATRIX_OUTPUT, `${JSON.stringify(report, null, 2)}\n`);
     console.log(
-      `RLS access matrix passed: ${modelNames.length}/${modelNames.length} application models forced, owner/tenant/moderator/system/anonymous contexts verified`,
+      `RLS access matrix passed: ${modelNames.length}/${modelNames.length} application models forced, owner/tenant/moderator/admin/system/anonymous contexts verified`,
     );
 
     async function expectInsufficientPrivilege(
@@ -747,6 +1197,153 @@ async function readInvoiceCounts(
     tx.invoiceRecord.count({ where: { id: ids.invoiceB } }),
   ]);
   return { invoiceA, invoiceB };
+}
+
+async function readSensitiveAccessCounts(
+  tx: import("../src/lib/db-context").DbContextClient,
+  ids: SensitiveFixtureIds,
+): Promise<SensitiveAccessCounts> {
+  const [row] = await tx.$queryRaw<
+    Array<{
+      billingCustomerA: number;
+      billingCustomerB: number;
+      billingEventA: number;
+      billingEventB: number;
+      creditNoteA: number;
+      creditNoteB: number;
+      entitlementSnapshotA: number;
+      entitlementSnapshotB: number;
+      invoiceA: number;
+      invoiceB: number;
+      mediaA: number;
+      mediaB: number;
+      paymentA: number;
+      paymentB: number;
+      refundA: number;
+      refundB: number;
+      subscriptionA: number;
+      subscriptionB: number;
+      usageAggregateA: number;
+      usageAggregateB: number;
+      usageEventA: number;
+      usageEventB: number;
+      usageOutboxA: number;
+      usageOutboxB: number;
+      userA: number;
+      userB: number;
+      webhookA: number;
+      webhookB: number;
+    }>
+  >`
+    SELECT
+      (SELECT COUNT(*)::integer FROM public."User" WHERE id = ${ids.userA}) AS "userA",
+      (SELECT COUNT(*)::integer FROM public."User" WHERE id = ${ids.userB}) AS "userB",
+      (SELECT COUNT(*)::integer FROM public."MediaAsset" WHERE id = ${ids.mediaA}) AS "mediaA",
+      (SELECT COUNT(*)::integer FROM public."MediaAsset" WHERE id = ${ids.mediaB}) AS "mediaB",
+      (SELECT COUNT(*)::integer FROM public."BillingCustomer" WHERE id = ${ids.billingCustomerA}) AS "billingCustomerA",
+      (SELECT COUNT(*)::integer FROM public."BillingCustomer" WHERE id = ${ids.billingCustomerB}) AS "billingCustomerB",
+      (SELECT COUNT(*)::integer FROM public."Subscription" WHERE id = ${ids.subscriptionA}) AS "subscriptionA",
+      (SELECT COUNT(*)::integer FROM public."Subscription" WHERE id = ${ids.subscriptionB}) AS "subscriptionB",
+      (SELECT COUNT(*)::integer FROM public."EntitlementSnapshot" WHERE id = ${ids.entitlementSnapshotA}) AS "entitlementSnapshotA",
+      (SELECT COUNT(*)::integer FROM public."EntitlementSnapshot" WHERE id = ${ids.entitlementSnapshotB}) AS "entitlementSnapshotB",
+      (SELECT COUNT(*)::integer FROM public."InvoiceRecord" WHERE id = ${ids.invoiceA}) AS "invoiceA",
+      (SELECT COUNT(*)::integer FROM public."InvoiceRecord" WHERE id = ${ids.invoiceB}) AS "invoiceB",
+      (SELECT COUNT(*)::integer FROM public."PaymentRecord" WHERE id = ${ids.paymentA}) AS "paymentA",
+      (SELECT COUNT(*)::integer FROM public."PaymentRecord" WHERE id = ${ids.paymentB}) AS "paymentB",
+      (SELECT COUNT(*)::integer FROM public."RefundRecord" WHERE id = ${ids.refundA}) AS "refundA",
+      (SELECT COUNT(*)::integer FROM public."RefundRecord" WHERE id = ${ids.refundB}) AS "refundB",
+      (SELECT COUNT(*)::integer FROM public."CreditNoteRecord" WHERE id = ${ids.creditNoteA}) AS "creditNoteA",
+      (SELECT COUNT(*)::integer FROM public."CreditNoteRecord" WHERE id = ${ids.creditNoteB}) AS "creditNoteB",
+      (SELECT COUNT(*)::integer FROM public."BillingEvent" WHERE id = ${ids.billingEventA}) AS "billingEventA",
+      (SELECT COUNT(*)::integer FROM public."BillingEvent" WHERE id = ${ids.billingEventB}) AS "billingEventB",
+      (SELECT COUNT(*)::integer FROM public."UsageEvent" WHERE id = ${ids.usageEventA}) AS "usageEventA",
+      (SELECT COUNT(*)::integer FROM public."UsageEvent" WHERE id = ${ids.usageEventB}) AS "usageEventB",
+      (SELECT COUNT(*)::integer FROM public."UsageOutbox" WHERE id = ${ids.usageOutboxA}) AS "usageOutboxA",
+      (SELECT COUNT(*)::integer FROM public."UsageOutbox" WHERE id = ${ids.usageOutboxB}) AS "usageOutboxB",
+      (SELECT COUNT(*)::integer FROM public."UsageAggregate" WHERE id = ${ids.usageAggregateA}) AS "usageAggregateA",
+      (SELECT COUNT(*)::integer FROM public."UsageAggregate" WHERE id = ${ids.usageAggregateB}) AS "usageAggregateB",
+      (SELECT COUNT(*)::integer FROM public."WebhookEvent" WHERE id = ${ids.webhookA}) AS "webhookA",
+      (SELECT COUNT(*)::integer FROM public."WebhookEvent" WHERE id = ${ids.webhookB}) AS "webhookB"
+  `;
+  assert.ok(row);
+  return {
+    billingCustomers: { a: row.billingCustomerA, b: row.billingCustomerB },
+    billingEvents: { a: row.billingEventA, b: row.billingEventB },
+    creditNotes: { a: row.creditNoteA, b: row.creditNoteB },
+    entitlementSnapshots: {
+      a: row.entitlementSnapshotA,
+      b: row.entitlementSnapshotB,
+    },
+    invoices: { a: row.invoiceA, b: row.invoiceB },
+    payments: { a: row.paymentA, b: row.paymentB },
+    privateMedia: { a: row.mediaA, b: row.mediaB },
+    refunds: { a: row.refundA, b: row.refundB },
+    subscriptions: { a: row.subscriptionA, b: row.subscriptionB },
+    usageAggregates: { a: row.usageAggregateA, b: row.usageAggregateB },
+    usageEvents: { a: row.usageEventA, b: row.usageEventB },
+    usageOutbox: { a: row.usageOutboxA, b: row.usageOutboxB },
+    users: { a: row.userA, b: row.userB },
+    webhooks: { a: row.webhookA, b: row.webhookB },
+  };
+}
+
+async function attemptCrossCustomerSensitiveMutations(
+  tx: import("../src/lib/db-context").DbContextClient,
+  ids: SensitiveFixtureIds & { profileB: string },
+): Promise<SensitiveMutationCounts> {
+  const userB = await tx.user.updateMany({
+    data: { name: "RLS matrix privileged update" },
+    where: { id: ids.userB },
+  });
+  const profileB = await tx.profile.updateMany({
+    data: { bio: "RLS matrix privileged update" },
+    where: { id: ids.profileB },
+  });
+  const privateMediaB = await tx.mediaAsset.updateMany({
+    data: { altText: "RLS matrix privileged update" },
+    where: { id: ids.mediaB },
+  });
+  const invoiceB = await tx.invoiceRecord.updateMany({
+    data: { rawJson: "{}" },
+    where: { id: ids.invoiceB },
+  });
+  const webhookB = await tx.webhookEvent.updateMany({
+    data: { error: "rls.matrix.privileged_update" },
+    where: { id: ids.webhookB },
+  });
+  return {
+    invoiceB: invoiceB.count,
+    privateMediaB: privateMediaB.count,
+    profileB: profileB.count,
+    userB: userB.count,
+    webhookB: webhookB.count,
+  };
+}
+
+function expectedSensitiveAccess(
+  scope: "a" | "all" | "b" | "none",
+): SensitiveAccessCounts {
+  const owned = {
+    a: scope === "a" || scope === "all" ? 1 : 0,
+    b: scope === "b" || scope === "all" ? 1 : 0,
+  };
+  const webhooks = scope === "all" ? { a: 1, b: 1 } : { a: 0, b: 0 };
+  return {
+    billingCustomers: { ...owned },
+    billingEvents: { ...owned },
+    creditNotes: { ...owned },
+    entitlementSnapshots: { ...owned },
+    invoices: { ...owned },
+    payments: { ...owned },
+    privateMedia: { ...owned },
+    refunds: { ...owned },
+    subscriptions: { ...owned },
+    usageAggregates: { ...owned },
+    usageEvents: { ...owned },
+    usageOutbox: { ...owned },
+    users: { ...owned },
+    webhooks,
+  };
 }
 
 function sha256(value: string | Buffer) {

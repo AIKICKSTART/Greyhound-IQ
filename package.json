@@ -113,6 +113,8 @@
     "report:thedogs:trend": "tsx scripts/report-thedogs-harvest-trend.ts",
     "report:thedogs:archive": "tsx scripts/report-thedogs-archive.ts",
     "export:thedogs:datasets": "tsx scripts/export-thedogs-archive-datasets.ts",
+    "audit:galtd:studbooks": "tsx scripts/import-galtd-studbook.ts",
+    "check:pedigree-provenance": "tsx scripts/import-galtd-studbook.test.ts",
     "backfill:thedogs:race-videos": "tsx scripts/backfill-thedogs-race-videos.ts",
     "backfill:race-videos": "tsx scripts/backfill-race-videos.ts",
     "import:thedogs:dog-profiles:raw": "tsx --conditions=react-server scripts/import-thedogs-dog-profile-raw.ts",
@@ -129,7 +131,7 @@
     "check:env": "tsx scripts/check-env.ts",
     "inspect:lago-webhook-replay": "tsx scripts/lago-webhook-replay.ts",
     "inspect:usage-outbox": "tsx scripts/usage-outbox-delivery.ts",
-    "storage:upload-site-assets": "tsx scripts/upload-site-assets.ts",
+    "storage:upload-site-assets": "tsx --conditions=react-server scripts/upload-site-assets.ts",
     "test:smoke": "tsx scripts/smoke-production.ts",
     "test:staging-load": "tsx scripts/staging-load-probe.ts",
     "test:local-production-load": "tsx scripts/check-local-production-load.test.ts && tsx scripts/check-local-production-load.ts",
@@ -153,6 +155,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
     "@base-ui/react": "^1.6.0",
+    "@google-cloud/storage": "7.21.0",
     "@hookform/resolvers": "^5.4.0",
     "@next/env": "16.2.10",
     "@prisma/client": "^6.19.3",
@@ -199,6 +202,12 @@
       "postcss": "8.5.16"
     },
     "next-auth": {
+      "uuid": "11.1.1"
+    },
+    "gaxios": {
+      "uuid": "11.1.1"
+    },
+    "teeny-request": {
       "uuid": "11.1.1"
     }
   }

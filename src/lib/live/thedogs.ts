@@ -529,7 +529,7 @@ function parseRunner(row: string, index: number): LiveRunner | null {
   const dog = parseDog(row);
   const rawDogName = dog.name;
   const dogName = rawDogName.replace(/\s*\(SCR\)\s*$/i, "").trim();
-  if (!dogName || /vacant box/i.test(dogName)) return null;
+  if (!dog.sourceId || !isRealDogName(dogName)) return null;
 
   const colourSex = cleanHtml(
     firstMatch(
@@ -558,6 +558,7 @@ function parseRunner(row: string, index: number): LiveRunner | null {
 
   return {
     sourceId: dog.sourceId ? `dog:${dog.sourceId}:box:${boxNumber}` : undefined,
+    sourceProvider: "thedogs",
     sourceRawJson: JSON.stringify({
       dogId: dog.sourceId,
       dogProfileUrl: dog.url,
@@ -576,8 +577,9 @@ function parseRunner(row: string, index: number): LiveRunner | null {
     }),
     boxNumber,
     dog: {
+      sourceProvider: "thedogs",
+      sourceId: dog.sourceId,
       name: dogName,
-      earBrand: dog.sourceId ? `thedogs:${dog.sourceId}` : undefined,
       colour: parseColour(colourSex),
       sex: parseSex(colourSex),
     },
@@ -593,6 +595,16 @@ function parseRunner(row: string, index: number): LiveRunner | null {
     splitTime: sectionals[0],
     sectionals: sectionals.length > 0 ? JSON.stringify(sectionals) : undefined,
   };
+}
+
+function isRealDogName(value?: string | null): value is string {
+  const name = value?.trim();
+  return Boolean(
+    name &&
+      !/^(?:unknown(?:\s+(?:dog|runner))?|unnamed|tba|tbd|n\/?a|vacant(?:\s+box)?|no\s+reserve|runner\s+\d+|dog\s+\d+|-)$/i.test(
+        name,
+      ),
+  );
 }
 
 function parseDog(row: string) {

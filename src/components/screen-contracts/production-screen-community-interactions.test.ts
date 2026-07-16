@@ -17,7 +17,7 @@ import {
 // screen-evidence-test-id: PRODUCTION-SCREEN-COMMUNITY-INTERACTIONS
 
 const EXPECTED = {
-  "/feed": { query: ["demo", "dock", "mode", "sponsored", "variant"], actions: 25, forms: 15, implementation: "src/app/feed/page.tsx" },
+  "/feed": { query: ["mode"], actions: 23, forms: 10, implementation: "src/app/feed/page.tsx" },
   "/groups": { query: [], actions: 4, forms: 0, implementation: "src/app/forum/page.tsx" },
   "/groups/[slug]": { query: [], actions: 4, forms: 1, implementation: "src/app/forum/[slug]/page.tsx" },
   "/groups/threads/[id]": { query: [], actions: 3, forms: 1, implementation: "src/app/forum/threads/[id]/page.tsx" },
@@ -97,9 +97,9 @@ for (const route of PRODUCTION_SCREEN_COMMUNITY_INTERACTION_ROUTES) {
 
 assert.equal(new Set(actionIds).size, actionIds.length);
 assert.equal(new Set(formIds).size, formIds.length);
-assert.equal(actionIds.length, 59);
-assert.equal(formIds.length, 26);
+assert.equal(actionIds.length, 57);
+assert.equal(formIds.length, 21);
 
 console.log(
-  "Community interaction coverage passed: 7 canonical action routes, 5 verified form routes, 2 form exclusions, 59 actions, 26 forms, onboarding unchanged",
+  "Community interaction coverage passed: 7 canonical action routes, 5 verified form routes, 2 form exclusions, 57 production actions, 21 production forms, onboarding unchanged",
 );

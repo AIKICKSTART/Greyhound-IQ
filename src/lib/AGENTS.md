@@ -7,7 +7,13 @@
 - `db.ts`, `database-url.ts`, and query/service modules own database access patterns.
 - `*-validation.ts` files own input validation contracts.
 - Auth and internal auth helpers own trust boundaries and identity assumptions.
-- Storage and media helpers own Supabase storage paths and upload rules.
+- Storage and media helpers own provider-neutral object paths, upload rules, and
+  authorized delivery.
+- `object-storage.ts` is the only application storage boundary. Production uses
+  ADC-backed Australian GCS through `OBJECT_STORAGE_PROVIDER=gcs`; Supabase
+  Storage remains a local/staging compatibility adapter. Logical bucket names
+  and server-generated `users/<dbUserId>/...` keys are provider-independent,
+  and both user-media buckets remain private behind application authorization.
 - `live/` owns live race data helpers.
 
 # Local Contracts

@@ -2,6 +2,7 @@ const RLS_EVIDENCE = [
   "prisma/schema.prisma",
   "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql",
   "prisma/migrations/20260714004000_add_signup_acceptance_outbox/migration.sql",
+  "prisma/migrations/20260716120000_restrict_sensitive_rls_to_admin/migration.sql",
   "src/lib/db-context.ts",
   "scripts/check-rls-access-matrix-postgres.ts",
   "security/row-level-security-runtime-evidence.json",

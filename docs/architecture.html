@@ -701,16 +701,16 @@ Client: request signed upload URL from /api/media/sign-upload
         │
         ▼
 Server: validates user, creates MediaAsset row (pending),
-        returns signed Supabase Storage URL
+        returns provider-specific signed upload URL + required headers
         │
         ▼
-Browser: PUT file directly to Supabase Storage
+Browser: PUT file directly to private Australian GCS in production
         │
         ▼
 Client: POST /api/media/:id/finalize — triggers virus scan + thumbnail
         │
         ▼
-Edge Function: ClamAV scan, ffmpeg metadata extract, update MediaAsset
+Cloud Run maintenance: ClamAV scan, ffmpeg metadata extract, update MediaAsset
         │
         ▼
 Client: attaches MediaAsset.id to message via MessageMedia</pre>

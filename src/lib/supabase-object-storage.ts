@@ -45,6 +45,8 @@ export function createSupabaseObjectStoragePort(
 ): ObjectStoragePort {
   const operations = { ...defaultOperations, ...overrides };
   return {
+    provider: "supabase",
+
     async createSignedUpload(input) {
       const result = await operations.createSignedUpload(
         input.bucket,
@@ -54,6 +56,11 @@ export function createSupabaseObjectStoragePort(
         url: result.signedUrl,
         token: result.token,
         key: result.path,
+        headers: {
+          "cache-control": "max-age=31536000",
+          "content-type": input.contentType,
+          "x-upsert": "false",
+        },
       };
     },
 

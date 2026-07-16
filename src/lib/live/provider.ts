@@ -7,11 +7,23 @@ import { TheDogsProvider } from "./thedogs";
 import { TopazProvider } from "./topaz";
 import { WatchdogProvider } from "./watchdog";
 
+export interface LiveDogParentEvidence {
+  sourceProvider?: string;
+  sourceId?: string;
+  name?: string;
+}
+
 export interface LiveDog {
+  sourceProvider?: string;
+  sourceId?: string;
   name: string;
+  // Actual registry ear brand only. Provider IDs belong in sourceId.
   earBrand?: string;
   sex?: string;
   colour?: string;
+  whelpDate?: string;
+  sire?: LiveDogParentEvidence;
+  dam?: LiveDogParentEvidence;
 }
 
 export interface LiveRunner {
@@ -219,10 +231,25 @@ function withSourceProvider(meetings: LiveMeeting[], sourceProvider: string) {
   return meetings.map((meeting) => ({
     ...meeting,
     sourceProvider,
-    races: meeting.races.map((race) => ({
-      ...race,
-      sourceProvider,
-    })),
+    races: meeting.races.map((race) => {
+      const raceProvider = race.sourceProvider ?? sourceProvider;
+      return {
+        ...race,
+        sourceProvider: raceProvider,
+        runners: race.runners.map((runner) => {
+          const runnerProvider = runner.sourceProvider ?? raceProvider;
+          return {
+            ...runner,
+            sourceProvider: runnerProvider,
+            dog: {
+              ...runner.dog,
+              sourceProvider:
+                runner.dog.sourceProvider ?? runnerProvider,
+            },
+          };
+        }),
+      };
+    }),
   }));
 }
 

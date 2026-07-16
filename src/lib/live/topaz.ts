@@ -54,8 +54,14 @@ interface TopazRace {
 }
 
 interface TopazRun {
-  dogName?: string | null;
-  name?: string | null;
+  runId?: number | null;
+  dogId: number;
+  dogName: string;
+  sireId?: number | null;
+  sireName?: string | null;
+  damId?: number | null;
+  damName?: string | null;
+  dateWhelped?: string | null;
   boxNumber?: number | null;
   rugNumber?: number | null;
   trainer?: string | null;
@@ -104,24 +110,32 @@ const timestampSchema = z
 const optionalTimestampSchema = timestampSchema.nullish();
 const moneySchema = z.number().finite().min(0).max(100_000_000).nullish();
 
-const topazRunSchema: z.ZodType<TopazRun> = z.object({
-  dogName: optionalShortTextSchema,
-  name: optionalShortTextSchema,
-  boxNumber: z.number().int().min(0).max(20).nullish(),
-  rugNumber: z.number().int().min(0).max(20).nullish(),
-  trainer: optionalShortTextSchema,
-  trainerName: optionalShortTextSchema,
-  weightInKg: z.number().finite().min(0).max(100).nullish(),
-  weight: z.number().finite().min(0).max(100).nullish(),
-  scratched: z.boolean().nullish(),
-  scratchIsScratched: z.boolean().nullish(),
-  isLateScratching: z.boolean().nullish(),
-  sex: z.string().trim().min(1).max(32).nullish(),
-  colourCode: z.string().trim().min(1).max(32).nullish(),
-  place: z.number().int().min(0).max(32).nullish(),
-  resultTime: z.number().finite().min(0).max(1_000).nullish(),
-  resultMargin: z.number().finite().min(0).max(1_000).nullish(),
-});
+const topazRunSchema: z.ZodType<TopazRun> = z
+  .object({
+    runId: identifierSchema.nullish(),
+    dogId: identifierSchema,
+    dogName: shortTextSchema,
+    sireId: identifierSchema.nullish(),
+    sireName: optionalShortTextSchema,
+    damId: identifierSchema.nullish(),
+    damName: optionalShortTextSchema,
+    dateWhelped: optionalTimestampSchema,
+    boxNumber: z.number().int().min(0).max(20).nullish(),
+    rugNumber: z.number().int().min(0).max(20).nullish(),
+    trainer: optionalShortTextSchema,
+    trainerName: optionalShortTextSchema,
+    weightInKg: z.number().finite().min(0).max(100).nullish(),
+    weight: z.number().finite().min(0).max(100).nullish(),
+    scratched: z.boolean().nullish(),
+    scratchIsScratched: z.boolean().nullish(),
+    isLateScratching: z.boolean().nullish(),
+    sex: z.string().trim().min(1).max(32).nullish(),
+    colourCode: z.string().trim().min(1).max(32).nullish(),
+    place: z.number().int().min(0).max(32).nullish(),
+    resultTime: z.number().finite().min(0).max(1_000).nullish(),
+    resultMargin: z.number().finite().min(0).max(1_000).nullish(),
+  })
+  .refine((run) => isRealDogName(run.dogName), "real dog name required");
 
 const topazRaceSchema: z.ZodType<TopazRace> = z
   .object({
@@ -316,11 +330,18 @@ export function mapRace(race: TopazRace): LiveRace {
 
 export function mapRun(run: TopazRun): LiveRunner {
   return {
+    sourceId: run.runId != null ? String(run.runId) : undefined,
+    sourceProvider: "topaz",
     boxNumber: Math.trunc(numberOr(run.boxNumber ?? run.rugNumber, 0)),
     dog: {
-      name: run.dogName ?? run.name ?? "Unknown runner",
+      sourceProvider: "topaz",
+      sourceId: String(run.dogId),
+      name: run.dogName.trim(),
       sex: run.sex ?? undefined,
       colour: run.colourCode ?? undefined,
+      whelpDate: run.dateWhelped ?? undefined,
+      sire: parentEvidence(run.sireId, run.sireName),
+      dam: parentEvidence(run.damId, run.damName),
     },
     trainerName: run.trainerName ?? run.trainer ?? undefined,
     weight: numberOrNull(run.weightInKg ?? run.weight) ?? undefined,
@@ -330,6 +351,25 @@ export function mapRun(run: TopazRun): LiveRunner {
     runningTime: numberOrNull(run.resultTime) ?? undefined,
     margin: numberOrNull(run.resultMargin) ?? undefined,
   };
+}
+
+function parentEvidence(id?: number | null, name?: string | null) {
+  if (id == null && !isRealDogName(name)) return undefined;
+  return {
+    sourceProvider: id == null ? undefined : "topaz",
+    sourceId: id == null ? undefined : String(id),
+    name: isRealDogName(name) ? name?.trim() : undefined,
+  };
+}
+
+function isRealDogName(value?: string | null): value is string {
+  const name = value?.trim();
+  return Boolean(
+    name &&
+      !/^(?:unknown(?:\s+(?:dog|runner))?|unnamed|tba|tbd|n\/?a|vacant(?:\s+box)?|no\s+reserve|runner\s+\d+|dog\s+\d+|-)$/i.test(
+        name,
+      ),
+  );
 }
 
 function groupRecentResults(races: TopazRecentResult[]): LiveMeeting[] {

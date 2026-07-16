@@ -416,9 +416,6 @@ if (-not $NextPublicWorkosRedirectUri) {
 if (-not $NextPublicLivekitUrl) {
   $NextPublicLivekitUrl = DotEnv-Value "NEXT_PUBLIC_LIVEKIT_URL"
 }
-if (-not $WorkosCookieDomain) {
-  $WorkosCookieDomain = DotEnv-Value "WORKOS_COOKIE_DOMAIN"
-}
 if (-not $LagoApiUrl) {
   $LagoApiUrl = DotEnv-Value "LAGO_API_URL"
 }
@@ -439,10 +436,6 @@ if (
 ) {
   $NextPublicWorkosRedirectUri = $derivedWorkosRedirectUri
 }
-if (-not $WorkosCookieDomain) {
-  $WorkosCookieDomain = Get-SharedCookieDomain $NextAuthUrl
-}
-
 $requiredSecrets = @(
   "DATABASE_URL",
   "NEXTAUTH_SECRET",
@@ -562,9 +555,6 @@ $plainEnvItems = @(
   "AI_DISABLED=$AiDisabled",
   "REALTIME_BROADCAST_DISABLED=$RealtimeBroadcastDisabled"
 )
-if ($WorkosCookieDomain) {
-  $plainEnvItems += "WORKOS_COOKIE_DOMAIN=$WorkosCookieDomain"
-}
 if ($LagoApiUrl) {
   $plainEnvItems += "LAGO_API_URL=$LagoApiUrl"
 }

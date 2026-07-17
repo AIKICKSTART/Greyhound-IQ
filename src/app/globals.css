@@ -42,6 +42,29 @@
   --surface-2: 270 14% 10%;
   --surface-3: 272 12% 16%;
 
+  /* Fine 2x2 graphite twill shared by carbon-fiber controls and surfaces. */
+  --carbon-fiber-twill-highlight: repeating-linear-gradient(
+    52deg,
+    hsl(0 0% 100% / 0.052) 0 1px,
+    hsl(0 0% 100% / 0.012) 1px 2px,
+    hsl(0 0% 0% / 0.26) 2px 3px,
+    transparent 3px 8px
+  );
+  --carbon-fiber-twill-shadow: repeating-linear-gradient(
+    128deg,
+    transparent 0 2px,
+    hsl(0 0% 100% / 0.032) 2px 3px,
+    hsl(0 0% 0% / 0.30) 3px 5px,
+    transparent 5px 8px
+  );
+  --carbon-fiber-image:
+    radial-gradient(ellipse 88% 70% at 50% -18%, hsl(0 0% 100% / 0.11), transparent 58%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.045), transparent 30%, hsl(0 0% 0% / 0.38)),
+    var(--carbon-fiber-twill-highlight),
+    var(--carbon-fiber-twill-shadow),
+    linear-gradient(145deg, hsl(258 9% 5%), hsl(260 7% 10%) 52%, hsl(258 8% 6%));
+  --carbon-fiber-position: 0 0, 0 0, 0 0, 3px 0, 0 0;
+
   /* Text (never pure white) */
   --foreground: 45 18% 94%;
   --muted-foreground: 40 8% 69%;
@@ -409,12 +432,9 @@ body {
   --giq-btn-border: hsl(var(--metal-silver) / 0.38);
   --giq-btn-glow: hsl(var(--primary-light) / 0.20);
   background-color: hsl(var(--surface-1));
-  background-image:
-    linear-gradient(180deg, hsl(0 0% 100% / 0.13), hsl(0 0% 100% / 0.02) 28%, hsl(0 0% 0% / 0.58)),
-    repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.052) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.38) 5px 7px, transparent 7px 11px),
-    repeating-linear-gradient(135deg, hsl(0 0% 100% / 0.04) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.42) 5px 7px, transparent 7px 11px),
-    linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--surface-2)) 52%, hsl(var(--surface-1)) 100%);
-  background-size: auto, 12px 12px, 12px 12px, auto;
+  background-image: var(--carbon-fiber-image);
+  background-position: var(--carbon-fiber-position);
+  background-size: auto;
 }
 
 .giq-button-chrome {
@@ -2702,12 +2722,9 @@ h2,
 
 .giq-carbon-surface {
   background-color: hsl(var(--surface-1));
-  background-image:
-    linear-gradient(180deg, hsl(0 0% 100% / 0.10), hsl(0 0% 100% / 0.015) 24%, hsl(0 0% 0% / 0.32) 100%),
-    repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.05) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.34) 5px 7px, transparent 7px 11px),
-    repeating-linear-gradient(135deg, hsl(0 0% 100% / 0.038) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.38) 5px 7px, transparent 7px 11px),
-    linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--surface-2)) 55%, hsl(var(--surface-1)) 100%);
-  background-size: auto, auto, auto, 12px 12px, 12px 12px, auto;
+  background-image: var(--carbon-fiber-image);
+  background-position: var(--carbon-fiber-position);
+  background-size: auto;
 }
 
 .giq-liquid-purple-button {
@@ -3543,10 +3560,11 @@ h2,
     radial-gradient(ellipse 42% 46% at 12% -8%, hsl(197 96% 62% / 0.12), transparent 70%),
     radial-gradient(ellipse 32% 38% at 88% 0%, hsl(var(--secondary-light) / 0.11), transparent 72%),
     linear-gradient(180deg, hsl(0 0% 100% / 0.12), hsl(0 0% 100% / 0.025) 24%, hsl(0 0% 0% / 0.48) 100%),
-    repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.052) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.38) 5px 7px, transparent 7px 11px),
-    repeating-linear-gradient(135deg, hsl(0 0% 100% / 0.04) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.42) 5px 7px, transparent 7px 11px),
+    var(--carbon-fiber-twill-highlight),
+    var(--carbon-fiber-twill-shadow),
     linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--surface-2)) 52%, hsl(var(--surface-1)) 100%);
-  background-size: auto, auto, auto, 12px 12px, 12px 12px, auto;
+  background-position: 0 0, 0 0, 0 0, 0 0, 3px 0, 0 0;
+  background-size: auto;
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.18),
     inset 0 24px 40px -26px hsl(197 96% 62% / 0.26),
@@ -4261,8 +4279,8 @@ h2,
   background:
     radial-gradient(ellipse 62% 80% at 18% -16%, hsl(var(--primary) / 0.17), transparent 66%),
     linear-gradient(180deg, hsl(0 0% 100% / 0.055), hsl(0 0% 100% / 0.018)),
-    repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.035) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.28) 5px 7px, transparent 7px 11px),
-    repeating-linear-gradient(135deg, hsl(0 0% 100% / 0.025) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.30) 5px 7px, transparent 7px 11px),
+    var(--carbon-fiber-twill-highlight),
+    var(--carbon-fiber-twill-shadow),
     hsl(var(--surface-1) / 0.90);
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.16),
@@ -4622,8 +4640,8 @@ h2,
   border-radius: 10px;
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.042), hsl(0 0% 100% / 0.014)),
-    repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.030) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.22) 5px 7px, transparent 7px 11px),
-    repeating-linear-gradient(135deg, hsl(0 0% 100% / 0.020) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.24) 5px 7px, transparent 7px 11px),
+    var(--carbon-fiber-twill-highlight),
+    var(--carbon-fiber-twill-shadow),
     hsl(var(--surface-1) / 0.72);
   color: hsl(var(--foreground));
   padding: 14px;
@@ -4652,8 +4670,8 @@ h2,
   border-color: hsl(0 83% 62% / 0.46);
   background:
     radial-gradient(ellipse 82% 80% at 16% -20%, hsl(0 83% 55% / 0.18), transparent 66%),
-    repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.030) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.22) 5px 7px, transparent 7px 11px),
-    repeating-linear-gradient(135deg, hsl(0 0% 100% / 0.020) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.24) 5px 7px, transparent 7px 11px),
+    var(--carbon-fiber-twill-highlight),
+    var(--carbon-fiber-twill-shadow),
     hsl(var(--surface-1) / 0.78);
 }
 
@@ -4742,8 +4760,8 @@ h2,
   border-radius: 12px;
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.038), hsl(0 0% 100% / 0.012)),
-    repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.038) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.30) 5px 7px, transparent 7px 11px),
-    repeating-linear-gradient(135deg, hsl(0 0% 100% / 0.028) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.32) 5px 7px, transparent 7px 11px),
+    var(--carbon-fiber-twill-highlight),
+    var(--carbon-fiber-twill-shadow),
     hsl(var(--surface-1) / 0.74);
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.12),
@@ -4978,7 +4996,7 @@ h2,
   border-radius: 9px;
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.034), hsl(0 0% 100% / 0.010)),
-    repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.026) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.18) 5px 7px, transparent 7px 11px),
+    var(--carbon-fiber-twill-highlight),
     hsl(0 0% 100% / 0.032);
   color: hsl(var(--foreground));
   padding: 9px 10px;
@@ -5009,7 +5027,7 @@ h2,
   border-color: hsl(0 83% 62% / 0.48);
   background:
     radial-gradient(ellipse 90% 80% at 0% 0%, hsl(0 83% 55% / 0.16), transparent 68%),
-    repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.026) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.18) 5px 7px, transparent 7px 11px),
+    var(--carbon-fiber-twill-highlight),
     hsl(0 0% 100% / 0.036);
 }
 
@@ -5092,8 +5110,8 @@ h2,
   background:
     radial-gradient(ellipse 70% 56% at 12% -10%, hsl(var(--primary) / 0.10), transparent 62%),
     linear-gradient(180deg, hsl(0 0% 100% / 0.034), hsl(0 0% 100% / 0.012)),
-    repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.030) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.24) 5px 7px, transparent 7px 11px),
-    repeating-linear-gradient(135deg, hsl(0 0% 100% / 0.020) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.26) 5px 7px, transparent 7px 11px),
+    var(--carbon-fiber-twill-highlight),
+    var(--carbon-fiber-twill-shadow),
     hsl(var(--surface-1) / 0.70);
   padding: 18px;
 }
@@ -5102,8 +5120,8 @@ h2,
   background:
     radial-gradient(ellipse 70% 56% at 12% -10%, hsl(var(--primary) / 0.10), transparent 62%),
     linear-gradient(180deg, hsl(0 0% 100% / 0.034), hsl(0 0% 100% / 0.012)),
-    repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.030) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.24) 5px 7px, transparent 7px 11px),
-    repeating-linear-gradient(135deg, hsl(0 0% 100% / 0.020) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.26) 5px 7px, transparent 7px 11px),
+    var(--carbon-fiber-twill-highlight),
+    var(--carbon-fiber-twill-shadow),
     hsl(var(--surface-1) / 0.70);
 }
 
@@ -5720,12 +5738,9 @@ h2,
   border: 1px solid hsl(var(--metal-silver) / 0.16);
   border-radius: 14px;
   background-color: hsl(var(--surface-1));
-  background-image:
-    linear-gradient(180deg, hsl(0 0% 100% / 0.10), hsl(0 0% 100% / 0.015) 24%, hsl(0 0% 0% / 0.34) 100%),
-    repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.052) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.36) 5px 7px, transparent 7px 11px),
-    repeating-linear-gradient(135deg, hsl(0 0% 100% / 0.04) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.40) 5px 7px, transparent 7px 11px),
-    linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--surface-2)) 54%, hsl(var(--surface-1)) 100%);
-  background-size: auto, 12px 12px, 12px 12px, auto;
+  background-image: var(--carbon-fiber-image);
+  background-position: var(--carbon-fiber-position);
+  background-size: auto;
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.12),
     inset 0 0 30px hsl(var(--primary) / 0.08),
@@ -6350,12 +6365,9 @@ select.giq-form-control option:checked {
   border-color: hsl(var(--metal-silver) / 0.38);
   color: hsl(var(--foreground));
   background-color: hsl(var(--surface-1));
-  background-image:
-    linear-gradient(180deg, hsl(0 0% 100% / 0.13), hsl(0 0% 100% / 0.02) 28%, hsl(0 0% 0% / 0.58)),
-    repeating-linear-gradient(45deg, hsl(0 0% 100% / 0.052) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.38) 5px 7px, transparent 7px 11px),
-    repeating-linear-gradient(135deg, hsl(0 0% 100% / 0.04) 0 1px, transparent 1px 5px, hsl(0 0% 0% / 0.42) 5px 7px, transparent 7px 11px),
-    linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--surface-2)) 52%, hsl(var(--surface-1)) 100%);
-  background-size: auto, 12px 12px, 12px 12px, auto;
+  background-image: var(--carbon-fiber-image);
+  background-position: var(--carbon-fiber-position);
+  background-size: auto;
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.18),
     inset 0 -1px 0 hsl(0 0% 0% / 0.48),

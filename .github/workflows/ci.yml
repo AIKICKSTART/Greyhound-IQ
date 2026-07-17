@@ -140,11 +140,11 @@ jobs:
       - run: npm run check:marketplace-safety
       - run: npm run check:visibility-policies
       - run: npm run check:structured-logging
-      - run: npm run test:unit
       - run: npm run check:comms-security
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
+      - run: npm run test:unit
       - name: Verify built client bundles contain no configured server secrets
         run: npm run check:secret-boundaries -- --built
 

@@ -2,15 +2,15 @@
   "schemaVersion": 1,
   "auditKind": "design-lab-responsive-workspace",
   "evidenceBoundary": "Isolated loopback Chrome viewport evidence for local source and the hashed architecture report; not deployed-image or production evidence.",
-  "generatedAt": "2026-07-15T23:29:56.818Z",
+  "generatedAt": "2026-07-16T22:55:43.462Z",
   "baseUrl": "http://localhost:3000",
   "browser": {
     "product": "Chrome/150.0.7871.115",
     "protocolVersion": "1.3"
   },
-  "testedCommitSha": "4ed069251ab6a5e3eaf207125c4369145768475d",
-  "sourceSha256": "f2206252055d9eac7654d36d66e80919a09e4281ed3f36e7ec661fa7a4ede65b",
-  "sourceFileCount": 165,
+  "testedCommitSha": "6586448476d5b5aa10cb194fe2c3ffa3db561ceb",
+  "sourceSha256": "b910a389ff7e6924f1947c6488762b115f8d1261afbbe05aa3ffcad55f597aa9",
+  "sourceFileCount": 167,
   "sourceFiles": [
     "docs/architecture/greyhoundiq-production-architecture-report.html",
     "next.config.ts",
@@ -147,6 +147,8 @@
     "src/lib/design-lab-access-policy.ts",
     "src/lib/design-lab-access.ts",
     "src/lib/emergency-controls.ts",
+    "src/lib/gcs-object-storage-config.ts",
+    "src/lib/gcs-object-storage.ts",
     "src/lib/live/replay-network.ts",
     "src/lib/logger.ts",
     "src/lib/maintenance-mode.ts",
@@ -179,8 +181,8 @@
     "src/proxy.ts"
   ],
   "auditScriptSha256": "18e6d54524a8c605e705f9ffd6040a8a212f81b5131c323a508c7e097224aef8",
-  "architectureReportSha256": "7f4f5bef1594d4ff6d474181451a67e5857729fd7188b93b9829424d6378eb1a",
-  "architectureSourceSha256": "fe4f3852539c311ad619a8361ff08a8e4f86484978ea721558a9953b55f8f8f3",
+  "architectureReportSha256": "4e3234d93ece85afdffb43b19a5d042e17412e054b73d5a011f1eafa7fc037f8",
+  "architectureSourceSha256": "f4dc9e6315dba4eb7521ba16297c9c535fa792aa1e0849a178f4f35e89b57cb8",
   "architectureBuildSha256": "b45574fdf504d51aa933d2759c7c9148db8108b5638f2d1b77e241745d6b7533",
   "viewportWidths": [
     320,
@@ -214,7 +216,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 2048,
+      "durationMs": 966,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -255,7 +257,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 927,
+      "durationMs": 645,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -296,7 +298,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 840,
+      "durationMs": 474,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -337,7 +339,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 825,
+      "durationMs": 474,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -378,7 +380,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 891,
+      "durationMs": 462,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -419,7 +421,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 1034,
+      "durationMs": 459,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -460,7 +462,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1573,
+      "durationMs": 619,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -501,7 +503,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 1099,
+      "durationMs": 971,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -1554,7 +1556,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1105,
+      "durationMs": 458,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -1595,7 +1597,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 860,
+      "durationMs": 420,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -1636,7 +1638,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 1048,
+      "durationMs": 669,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -1677,7 +1679,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 968,
+      "durationMs": 452,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -1718,7 +1720,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1173,
+      "durationMs": 443,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -1759,7 +1761,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 952,
+      "durationMs": 454,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -1800,7 +1802,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1317,
+      "durationMs": 591,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -1841,7 +1843,7 @@
       "height": 800,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 852,
+      "durationMs": 829,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -2894,7 +2896,7 @@
       "height": 812,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 736,
+      "durationMs": 517,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -2935,7 +2937,7 @@
       "height": 812,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 953,
+      "durationMs": 434,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -2976,7 +2978,7 @@
       "height": 812,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 1465,
+      "durationMs": 689,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -3017,7 +3019,7 @@
       "height": 812,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 944,
+      "durationMs": 421,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -3058,7 +3060,7 @@
       "height": 812,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1080,
+      "durationMs": 433,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -3099,7 +3101,7 @@
       "height": 812,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 1081,
+      "durationMs": 441,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -3140,7 +3142,7 @@
       "height": 812,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1482,
+      "durationMs": 611,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -3181,7 +3183,7 @@
       "height": 812,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 897,
+      "durationMs": 828,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -4234,7 +4236,7 @@
       "height": 844,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 885,
+      "durationMs": 434,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -4275,7 +4277,7 @@
       "height": 844,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 996,
+      "durationMs": 503,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -4316,7 +4318,7 @@
       "height": 844,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 1402,
+      "durationMs": 453,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -4357,7 +4359,7 @@
       "height": 844,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 1060,
+      "durationMs": 533,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -4398,7 +4400,7 @@
       "height": 844,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1035,
+      "durationMs": 526,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -4439,7 +4441,7 @@
       "height": 844,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 1136,
+      "durationMs": 444,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -4480,7 +4482,7 @@
       "height": 844,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1912,
+      "durationMs": 638,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -4521,7 +4523,7 @@
       "height": 844,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 830,
+      "durationMs": 811,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -5574,7 +5576,7 @@
       "height": 932,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1015,
+      "durationMs": 487,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -5615,7 +5617,7 @@
       "height": 932,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 860,
+      "durationMs": 419,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -5656,7 +5658,7 @@
       "height": 932,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 1105,
+      "durationMs": 713,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -5697,7 +5699,7 @@
       "height": 932,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 935,
+      "durationMs": 454,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -5738,7 +5740,7 @@
       "height": 932,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1343,
+      "durationMs": 441,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -5779,7 +5781,7 @@
       "height": 932,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 987,
+      "durationMs": 445,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -5820,7 +5822,7 @@
       "height": 932,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1580,
+      "durationMs": 640,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -5861,7 +5863,7 @@
       "height": 932,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 898,
+      "durationMs": 846,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -6914,7 +6916,7 @@
       "height": 1024,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1062,
+      "durationMs": 472,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -6955,7 +6957,7 @@
       "height": 1024,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 963,
+      "durationMs": 452,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -6996,7 +6998,7 @@
       "height": 1024,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 1027,
+      "durationMs": 446,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -7037,7 +7039,7 @@
       "height": 1024,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 1036,
+      "durationMs": 544,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -7078,7 +7080,7 @@
       "height": 1024,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1155,
+      "durationMs": 488,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -7119,7 +7121,7 @@
       "height": 1024,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 958,
+      "durationMs": 478,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -7160,7 +7162,7 @@
       "height": 1024,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1598,
+      "durationMs": 613,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -7201,7 +7203,7 @@
       "height": 1024,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 858,
+      "durationMs": 853,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -8254,7 +8256,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1026,
+      "durationMs": 444,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -8295,7 +8297,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 902,
+      "durationMs": 600,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -8336,7 +8338,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 1266,
+      "durationMs": 440,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -8377,7 +8379,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 936,
+      "durationMs": 467,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -8418,7 +8420,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1355,
+      "durationMs": 497,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -8459,7 +8461,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 951,
+      "durationMs": 444,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -8500,7 +8502,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1588,
+      "durationMs": 631,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -8541,7 +8543,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 955,
+      "durationMs": 811,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -9594,7 +9596,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1045,
+      "durationMs": 515,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -9635,7 +9637,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 1381,
+      "durationMs": 519,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -9676,7 +9678,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 1226,
+      "durationMs": 439,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -9717,7 +9719,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 963,
+      "durationMs": 495,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -9758,7 +9760,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1765,
+      "durationMs": 432,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -9799,7 +9801,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 1065,
+      "durationMs": 522,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -9840,7 +9842,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1783,
+      "durationMs": 623,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -9881,7 +9883,7 @@
       "height": 1000,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 991,
+      "durationMs": 877,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -10934,7 +10936,7 @@
       "height": 768,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1103,
+      "durationMs": 460,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -10975,7 +10977,7 @@
       "height": 768,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 1454,
+      "durationMs": 410,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -11016,7 +11018,7 @@
       "height": 768,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 1844,
+      "durationMs": 1368,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -12069,7 +12071,7 @@
       "height": 768,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 1132,
+      "durationMs": 420,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -12110,7 +12112,7 @@
       "height": 768,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1509,
+      "durationMs": 446,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -12151,7 +12153,7 @@
       "height": 768,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 1208,
+      "durationMs": 575,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -12192,7 +12194,7 @@
       "height": 768,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1772,
+      "durationMs": 634,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -12233,7 +12235,7 @@
       "height": 768,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 919,
+      "durationMs": 825,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -13286,7 +13288,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1343,
+      "durationMs": 487,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -13327,7 +13329,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 1503,
+      "durationMs": 464,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -13368,7 +13370,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 1898,
+      "durationMs": 892,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -14421,7 +14423,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 1231,
+      "durationMs": 473,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -14462,7 +14464,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1377,
+      "durationMs": 446,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -14503,7 +14505,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 1291,
+      "durationMs": 574,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -14544,7 +14546,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1811,
+      "durationMs": 660,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -14585,7 +14587,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 993,
+      "durationMs": 851,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -15638,7 +15640,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1254,
+      "durationMs": 482,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -15679,17 +15681,17 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 1499,
+      "durationMs": 624,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
         "activeArea": "delivery",
         "declaredDiagramCount": null,
         "document": {
-          "clientWidth": 1271,
-          "scrollWidth": 1271,
-          "bodyClientWidth": 1271,
-          "bodyScrollWidth": 1271,
+          "clientWidth": 1279,
+          "scrollWidth": 1279,
+          "bodyClientWidth": 1279,
+          "bodyScrollWidth": 1279,
           "horizontalOverflow": false
         },
         "architectureEmbed": {
@@ -15720,7 +15722,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 2044,
+      "durationMs": 1360,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -16773,7 +16775,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 1242,
+      "durationMs": 511,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -16814,7 +16816,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1437,
+      "durationMs": 441,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -16855,7 +16857,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 1409,
+      "durationMs": 581,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -16896,7 +16898,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1696,
+      "durationMs": 665,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -16937,7 +16939,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 996,
+      "durationMs": 856,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -17990,7 +17992,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1335,
+      "durationMs": 473,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -18031,7 +18033,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 1650,
+      "durationMs": 484,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -18072,7 +18074,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 1916,
+      "durationMs": 1106,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -19125,7 +19127,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 1273,
+      "durationMs": 506,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -19166,7 +19168,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1471,
+      "durationMs": 454,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -19207,7 +19209,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 1326,
+      "durationMs": 584,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -19248,7 +19250,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1803,
+      "durationMs": 544,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -19289,7 +19291,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 1048,
+      "durationMs": 964,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -20342,7 +20344,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1658,
+      "durationMs": 550,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -20383,7 +20385,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 1677,
+      "durationMs": 494,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -20424,7 +20426,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 1794,
+      "durationMs": 883,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -21477,7 +21479,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 1349,
+      "durationMs": 470,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -21518,7 +21520,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1425,
+      "durationMs": 441,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -21559,7 +21561,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 1478,
+      "durationMs": 599,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -21600,7 +21602,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 2265,
+      "durationMs": 651,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -21641,7 +21643,7 @@
       "height": 900,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 717,
+      "durationMs": 681,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -22694,7 +22696,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1364,
+      "durationMs": 446,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -22735,7 +22737,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 1875,
+      "durationMs": 499,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -22776,7 +22778,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 1783,
+      "durationMs": 715,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -23829,17 +23831,17 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 1310,
+      "durationMs": 588,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
         "activeArea": "advertising",
         "declaredDiagramCount": null,
         "document": {
-          "clientWidth": 1527,
-          "scrollWidth": 1527,
-          "bodyClientWidth": 1527,
-          "bodyScrollWidth": 1527,
+          "clientWidth": 1535,
+          "scrollWidth": 1535,
+          "bodyClientWidth": 1535,
+          "bodyScrollWidth": 1535,
           "horizontalOverflow": false
         },
         "architectureEmbed": {
@@ -23870,7 +23872,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1507,
+      "durationMs": 678,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -23911,7 +23913,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 1466,
+      "durationMs": 517,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -23952,7 +23954,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1889,
+      "durationMs": 634,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -23993,7 +23995,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 764,
+      "durationMs": 704,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -25046,7 +25048,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1433,
+      "durationMs": 503,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -25087,7 +25089,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 1597,
+      "durationMs": 595,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -25128,7 +25130,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 2119,
+      "durationMs": 941,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -26181,7 +26183,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 1494,
+      "durationMs": 485,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -26222,7 +26224,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1590,
+      "durationMs": 470,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -26263,7 +26265,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 1521,
+      "durationMs": 596,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -26304,7 +26306,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 2053,
+      "durationMs": 624,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -26345,7 +26347,7 @@
       "height": 960,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 849,
+      "durationMs": 750,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -27398,7 +27400,7 @@
       "height": 1050,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1491,
+      "durationMs": 504,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -27439,7 +27441,7 @@
       "height": 1050,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 1718,
+      "durationMs": 575,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -27480,7 +27482,7 @@
       "height": 1050,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 2232,
+      "durationMs": 1148,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -28533,7 +28535,7 @@
       "height": 1050,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 1421,
+      "durationMs": 545,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -28574,7 +28576,7 @@
       "height": 1050,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1602,
+      "durationMs": 454,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -28615,7 +28617,7 @@
       "height": 1050,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 1656,
+      "durationMs": 653,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -28656,7 +28658,7 @@
       "height": 1050,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 1938,
+      "durationMs": 664,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -28697,7 +28699,7 @@
       "height": 1050,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 792,
+      "durationMs": 757,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",
@@ -29750,7 +29752,7 @@
       "height": 1080,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=overview",
-      "durationMs": 1546,
+      "durationMs": 438,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=overview",
         "title": "GreyhoundIQ Design Lab",
@@ -29791,7 +29793,7 @@
       "height": 1080,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=delivery",
-      "durationMs": 1752,
+      "durationMs": 585,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=delivery",
         "title": "GreyhoundIQ Design Lab",
@@ -29832,7 +29834,7 @@
       "height": 1080,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=architecture",
-      "durationMs": 2201,
+      "durationMs": 1162,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=architecture",
         "title": "GreyhoundIQ Design Lab",
@@ -30885,7 +30887,7 @@
       "height": 1080,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=advertising",
-      "durationMs": 1570,
+      "durationMs": 533,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=advertising",
         "title": "GreyhoundIQ Design Lab",
@@ -30926,7 +30928,7 @@
       "height": 1080,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=requirements",
-      "durationMs": 1640,
+      "durationMs": 452,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=requirements",
         "title": "GreyhoundIQ Design Lab",
@@ -30967,7 +30969,7 @@
       "height": 1080,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=readiness",
-      "durationMs": 1621,
+      "durationMs": 657,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=readiness",
         "title": "GreyhoundIQ Design Lab",
@@ -31008,7 +31010,7 @@
       "height": 1080,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/design-lab?area=screens",
-      "durationMs": 2040,
+      "durationMs": 655,
       "snapshot": {
         "locationUrl": "http://localhost:3000/design-lab?area=screens",
         "title": "GreyhoundIQ Design Lab",
@@ -31049,7 +31051,7 @@
       "height": 1080,
       "httpStatus": 200,
       "finalUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
-      "durationMs": 946,
+      "durationMs": 754,
       "snapshot": {
         "locationUrl": "http://localhost:3000/greyhoundiq-production-architecture.html",
         "title": "GreyhoundIQ Production Architecture · Australia",

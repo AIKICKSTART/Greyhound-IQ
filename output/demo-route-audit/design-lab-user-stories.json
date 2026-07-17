@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "auditKind": "design-lab-user-stories",
-  "generatedAt": "2026-07-15T23:30:21.241Z",
+  "generatedAt": "2026-07-16T22:52:35.468Z",
   "baseUrl": "http://localhost:3000",
-  "testedCommitSha": "4ed069251ab6a5e3eaf207125c4369145768475d",
-  "sourceSha256": "450af295bbf687120f3a158f53592da3792d5d90159fcc3a23b3254b23c11446",
-  "sourceFileCount": 175,
+  "testedCommitSha": "6586448476d5b5aa10cb194fe2c3ffa3db561ceb",
+  "sourceSha256": "11b51c609fe21770c7a1e3a2de7244af1c0d217e87c1387378bbf446c9521098",
+  "sourceFileCount": 177,
   "sourceFiles": [
     "next.config.ts",
     "scripts/audit-design-lab-user-stories.ts",
@@ -152,6 +152,8 @@
     "src/lib/design-lab-access-policy.ts",
     "src/lib/design-lab-access.ts",
     "src/lib/emergency-controls.ts",
+    "src/lib/gcs-object-storage-config.ts",
+    "src/lib/gcs-object-storage.ts",
     "src/lib/live/replay-network.ts",
     "src/lib/logger.ts",
     "src/lib/maintenance-mode.ts",
@@ -197,7 +199,7 @@
           "route": "/design-lab",
           "requestPath": "/design-lab?area=screens",
           "status": 200,
-          "durationMs": 667,
+          "durationMs": 125,
           "passed": true,
           "failures": []
         },
@@ -206,7 +208,7 @@
           "route": "/design-lab",
           "requestPath": "/design-lab?area=delivery",
           "status": 200,
-          "durationMs": 228,
+          "durationMs": 31,
           "passed": true,
           "failures": []
         },
@@ -215,7 +217,7 @@
           "route": "/design-lab",
           "requestPath": "/design-lab?area=screens",
           "status": 200,
-          "durationMs": 266,
+          "durationMs": 70,
           "passed": true,
           "failures": []
         }
@@ -230,7 +232,7 @@
           "route": "/design-lab/demo-experience",
           "requestPath": "/design-lab/demo-experience",
           "status": 200,
-          "durationMs": 1292,
+          "durationMs": 96,
           "passed": true,
           "failures": []
         },
@@ -239,7 +241,7 @@
           "route": "/design-lab/demo-experience",
           "requestPath": "/design-lab/demo-experience?view=admin-frames",
           "status": 200,
-          "durationMs": 177,
+          "durationMs": 26,
           "passed": true,
           "failures": []
         }
@@ -254,7 +256,7 @@
           "route": "/design-lab/dock-skins",
           "requestPath": "/design-lab/dock-skins?dock=D6",
           "status": 200,
-          "durationMs": 1061,
+          "durationMs": 20,
           "passed": true,
           "failures": []
         },
@@ -263,7 +265,7 @@
           "route": "/design-lab/dock-skins",
           "requestPath": "/design-lab/dock-skins?dock=unsupported",
           "status": 200,
-          "durationMs": 182,
+          "durationMs": 19,
           "passed": true,
           "failures": []
         }
@@ -278,7 +280,7 @@
           "route": "/design-lab/role-blueprints",
           "requestPath": "/design-lab/role-blueprints?role=punter&variant=C2",
           "status": 200,
-          "durationMs": 240,
+          "durationMs": 20,
           "passed": true,
           "failures": []
         },
@@ -287,7 +289,7 @@
           "route": "/design-lab/role-blueprints",
           "requestPath": "/design-lab/role-blueprints?role=unsupported&variant=Z9",
           "status": 200,
-          "durationMs": 193,
+          "durationMs": 23,
           "passed": true,
           "failures": []
         }
@@ -302,7 +304,7 @@
           "route": "/feed/device-preview",
           "requestPath": "/feed/device-preview?device=tablet&variant=C2&dock=D6&sponsored=off",
           "status": 200,
-          "durationMs": 244,
+          "durationMs": 23,
           "passed": true,
           "failures": []
         },
@@ -311,7 +313,7 @@
           "route": "/feed/device-preview",
           "requestPath": "/feed/device-preview?device=tablet&variant=C2&dock=D6&sponsored=off",
           "status": 200,
-          "durationMs": 199,
+          "durationMs": 21,
           "passed": true,
           "failures": []
         }
@@ -326,7 +328,7 @@
           "route": "/marketplace/design-lab",
           "requestPath": "/marketplace/design-lab?template=M6",
           "status": 200,
-          "durationMs": 322,
+          "durationMs": 20,
           "passed": true,
           "failures": []
         },
@@ -335,7 +337,7 @@
           "route": "/marketplace/design-lab",
           "requestPath": "/marketplace/design-lab?template=unsupported",
           "status": 200,
-          "durationMs": 186,
+          "durationMs": 20,
           "passed": true,
           "failures": []
         }

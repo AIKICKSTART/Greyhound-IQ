@@ -1118,7 +1118,9 @@ async function assertDogListingAllowed(
     return;
   }
 
-  // Non-pup dog listings: the dog itself must be registered + owned.
+  if (input.type === "stud_service" && !input.dogId) return;
+
+  // Linked studs and other non-pup dog listings must be registered + owned.
   if (!input.dogId) throw new Error("listing.dog_required");
   if (requireRegistered && !(await registered(input.dogId))) {
     throw new Error("listing.dog_not_registered");

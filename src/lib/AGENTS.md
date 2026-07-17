@@ -18,6 +18,7 @@
 - Runtime logs must use `logger.ts`, keep request-only correlation non-null, mark requestless execution explicitly, and sanitize sensitive key names and textual credential patterns before emission.
 - Keep modules side-effect-light. Avoid work at import time unless the existing pattern already requires it.
 - Prefer central fixes in shared services over patching every caller.
+- Stud-service listings may omit `dogId`; when supplied, the linked dog must still pass the existing flag-aware registration and approved-ownership checks.
 - LiveKit keeps the complete single-cell environment compatible by default. Regional mode requires complete, distinct Sydney and Melbourne cells with matching secure public origins, and may select a cell only from an explicitly persisted room-home region.
 - API routes using `checkRateLimit` must return denials through `rate-limit-response.ts`; raw route-level 429 responses and headerless `rate_limit.exceeded` throws are rejected by the route contract test.
 - Private Realtime topics retain HMAC-derived names, but access also requires a short-lived `SUPABASE_JWT_SECRET` token and an exact, unexpired grant in the self-hosted Supabase engine database accepted by `realtime.messages` RLS. Keep events content-free and Feed public-only.

@@ -126,6 +126,17 @@ assert.match(
 );
 assert.match(getOwnedListing, /throw new Error\("listing\.not_found"\)/);
 
+const dogListingGuard = functionSource(
+  listingService,
+  "assertDogListingAllowed",
+);
+assertInOrder(dogListingGuard, [
+  'if (input.type === "stud_service" && !input.dogId) return;',
+  'if (!input.dogId) throw new Error("listing.dog_required")',
+  "if (requireRegistered && !(await registered(input.dogId)))",
+  "if (requireOwnership && !(await owns(input.dogId)))",
+]);
+
 const saveListing = functionSource(
   listingService,
   "toggleSavedListingForCurrentUser",

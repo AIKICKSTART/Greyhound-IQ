@@ -106,7 +106,9 @@ export function proxiedStreamPath(
     "utf8",
   );
   const iv = randomBytes(REPLAY_CAPABILITY_IV_BYTES);
-  const cipher = createCipheriv("aes-256-gcm", capabilityKey(), iv);
+  const cipher = createCipheriv("aes-256-gcm", capabilityKey(), iv, {
+    authTagLength: REPLAY_CAPABILITY_TAG_BYTES,
+  });
   cipher.setAAD(REPLAY_CAPABILITY_AAD);
   const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   const token = Buffer.concat([
@@ -149,7 +151,9 @@ export function verifyStreamCapability(
     const iv = encoded.subarray(ivStart, tagStart);
     const tag = encoded.subarray(tagStart, ciphertextStart);
     const ciphertext = encoded.subarray(ciphertextStart);
-    const decipher = createDecipheriv("aes-256-gcm", capabilityKey(), iv);
+    const decipher = createDecipheriv("aes-256-gcm", capabilityKey(), iv, {
+      authTagLength: REPLAY_CAPABILITY_TAG_BYTES,
+    });
     decipher.setAAD(REPLAY_CAPABILITY_AAD);
     decipher.setAuthTag(tag);
     const plaintext = Buffer.concat([

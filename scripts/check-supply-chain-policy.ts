@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { resolve } from "node:path";
+import { basename, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 
@@ -601,7 +601,7 @@ export function collectLockComponentExpectations(lockfile: JsonObject) {
 
 export function assertCycloneDxSbom(
   sbom: JsonObject,
-  expectedRoot: { name: string; version: string },
+  expectedRoot: { name: string; version: string; sbomName?: string },
   expectedComponents: ReadonlyMap<string, LockComponentExpectation>,
 ) {
   if (sbom.bomFormat !== "CycloneDX" || sbom.specVersion !== "1.5") {
@@ -611,7 +611,8 @@ export function assertCycloneDxSbom(
   const root = asObject(metadata.component, "SBOM root component");
   const rootRef = `${expectedRoot.name}@${expectedRoot.version}`;
   if (
-    root.name !== expectedRoot.name ||
+    root.name !== (expectedRoot.sbomName ?? expectedRoot.name) ||
+    root.type !== "application" ||
     root.version !== expectedRoot.version ||
     root["bom-ref"] !== rootRef ||
     root.purl !== npmPurl(expectedRoot.name, expectedRoot.version)
@@ -789,6 +790,9 @@ export function runSupplyChainPolicy(root = process.cwd()): SupplyChainSummary {
     {
       name: requiredString(manifest.name, "package name"),
       version: requiredString(manifest.version, "package version"),
+      // npm 11 derives metadata.component.name from the checkout directory,
+      // while bom-ref and purl retain the package manifest identity.
+      sbomName: basename(resolve(root)),
     },
     expectedComponents,
   );

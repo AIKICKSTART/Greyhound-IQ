@@ -339,6 +339,7 @@ const validSbom = {
   specVersion: "1.5",
   metadata: {
     component: {
+      type: "application",
       name: manifest.name,
       version: manifest.version,
       "bom-ref": `${manifest.name}@${manifest.version}`,
@@ -358,6 +359,31 @@ assert.deepEqual(
     expectedComponents,
   ),
   { components: 2, dependencyNodes: 3 },
+);
+const checkoutNamedSbom = structuredClone(validSbom);
+checkoutNamedSbom.metadata.component.name = "Greyhound-IQ";
+assert.deepEqual(
+  assertCycloneDxSbom(
+    checkoutNamedSbom,
+    {
+      name: manifest.name,
+      version: manifest.version,
+      sbomName: "Greyhound-IQ",
+    },
+    expectedComponents,
+  ),
+  { components: 2, dependencyNodes: 3 },
+);
+const wrongRootTypeSbom = structuredClone(validSbom);
+wrongRootTypeSbom.metadata.component.type = "library";
+assert.throws(
+  () =>
+    assertCycloneDxSbom(
+      wrongRootTypeSbom,
+      { name: manifest.name, version: manifest.version },
+      expectedComponents,
+    ),
+  /root component/,
 );
 const missingComponentSbom = structuredClone(validSbom);
 missingComponentSbom.components.pop();

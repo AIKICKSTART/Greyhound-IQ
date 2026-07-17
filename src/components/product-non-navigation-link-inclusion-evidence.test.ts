@@ -56,7 +56,7 @@ assert.equal(
   PRODUCT_SOURCE_INTERACTION_INVENTORY_SNAPSHOTS[
     "DISC.SRC.footer-navigation"
   ].count,
-  1,
+  2,
 );
 assert.equal(
   PRODUCT_SOURCE_INTERACTION_INVENTORY_SNAPSHOTS["DISC.SRC.email-links"].count,

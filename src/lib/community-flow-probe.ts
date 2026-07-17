@@ -113,6 +113,8 @@ export async function runCommunityFlowProbe({
     if (strictRealtime) process.env.REALTIME_BROADCAST_STRICT = "true";
     if (liveKitMode === "fake") {
       process.env.LIVEKIT_URL = "wss://livekit.community-flow.example.test";
+      process.env.NEXT_PUBLIC_LIVEKIT_URL =
+        "wss://livekit.community-flow.example.test";
       process.env.LIVEKIT_API_KEY = "community-flow-key";
       process.env.LIVEKIT_API_SECRET = "community-flow-secret";
     }
@@ -1019,6 +1021,7 @@ async function cleanupCommunityFlowProbeRows({
 function captureProbeEnv() {
   return {
     LIVEKIT_URL: process.env.LIVEKIT_URL,
+    NEXT_PUBLIC_LIVEKIT_URL: process.env.NEXT_PUBLIC_LIVEKIT_URL,
     LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY,
     LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET,
     REALTIME_BROADCAST_STRICT: process.env.REALTIME_BROADCAST_STRICT,

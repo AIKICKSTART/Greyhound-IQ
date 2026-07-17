@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "auditKind": "live-provider-ingest-disposable-proof",
-  "generatedAt": "2026-07-16T18:11:07.448Z",
+  "generatedAt": "2026-07-16T22:28:35.544Z",
   "safety": {
     "scope": "literal-loopback-disposable-replay-only",
     "host": "127.0.0.1",
@@ -26,12 +26,12 @@
       "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d",
       "scripts/check-live-provider-ingest-postgres.ts": "861db7a73c1b923a32e34341c06cb6455fe770d79697e9dbbda025e01143113d",
       "scripts/check-live-provider-ingest-postgres.test.ts": "c771624441e058847e7ca4e4d429d5f9d04e2668a12d25f7461cdcf54deed765",
-      "security/mandatory-public-racing-database-operations.ts": "5857024ce844716a381f9a011b3a872cf5ead98d2ec62138eb7f1704f065c8af",
+      "security/mandatory-public-racing-database-operations.ts": "3b6f0afff9bcb5b6b31752fe82baa07d9a4f84c67f8f16dd0431cbbdd322390f",
       "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
-      "src/lib/db.ts": "3f2df86c14ebb983246293aee66fb14a40b2fe09da1c70908b6d2ea547ade5f0",
-      "src/lib/live/sync.ts": "9ba1b279b3b5ce6015c2295aa03ca619af5539492bd93e5611ec1411100c898f"
+      "src/lib/db.ts": "b11f3357d3daea521e825d8483b4bb8050c8c7d059e2aa311f1788b1b09d9035",
+      "src/lib/live/sync.ts": "70f605c00dc4b25630fa298506eae8fbe5ba53180e4d7184796516d42b05293f"
     },
-    "combinedSha256": "0c9bdf55898a5e9f6a7102344db4e03102f2a1ff006ba77b0d8e2c3e8bfec318"
+    "combinedSha256": "3521f869b9ad13f80ed03ef5fb532a3375a2c82122c6759c93f534397d3cfde9"
   },
   "proof": {
     "queryId": "DB.RACING.PROVIDER.INGEST.TRANSACTION",

@@ -1,0 +1,496 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "home-race-meetings-read-disposable-proof",
+  "generatedAt": "2026-07-17T02:10:59.765Z",
+  "safety": {
+    "scope": "literal-loopback-disposable-replay-only",
+    "host": "127.0.0.1",
+    "port": 55734,
+    "productionOrProviderSystemsContacted": false,
+    "fixtureOwner": "home-race-meetings-dedicated-proof",
+    "broadCleanupUsed": false
+  },
+  "runtimeIdentity": {
+    "role": "greyhoundiq_runtime",
+    "sessionRole": "greyhoundiq_runtime",
+    "database": "greyhoundiq",
+    "schema": "public",
+    "canLogin": true,
+    "superuser": false,
+    "bypassRls": false
+  },
+  "sourceBinding": {
+    "files": {
+      "prisma/migrations/20260706223000_add_rls_entitlement_policies/migration.sql": "953db33c0662f936b67a88b8859fd49b5d76b28e90f2a5e8851669fb5ff6334e",
+      "scripts/check-home-race-meetings-postgres.ts": "c227402f2c6d955c36ae9fb761e08cb5e7fce7bb5652650d8a22dc2a1236af4d",
+      "scripts/check-home-race-meetings-postgres.test.ts": "b11853d26d81d33c5047d912ea125c1aa88f8ef1c9c9879693a7cca1e8063c53",
+      "security/mandatory-public-racing-database-operations.ts": "3b6f0afff9bcb5b6b31752fe82baa07d9a4f84c67f8f16dd0431cbbdd322390f",
+      "src/lib/db.ts": "b11f3357d3daea521e825d8483b4bb8050c8c7d059e2aa311f1788b1b09d9035",
+      "src/lib/queries.ts": "b6195a482ab5d3387dd1fb2c2cde16fb76ba7011cc0baf36b7989f9c0df2895e",
+      "src/lib/race-time.ts": "69ecf3384c8190d169bf77edde1e3d6ca9bd434c57d1b0963c68eca388f8e9eb"
+    },
+    "combinedSha256": "288113c163752e24e6e066c8255dc7e09299413555206755b204016e9c47e8cd"
+  },
+  "proof": {
+    "queryId": "DB.PUBLIC.HOME.RACE_MEETINGS.READ_BUNDLE",
+    "sourceFile": "src/lib/queries.ts",
+    "sourceSymbol": "getTodaysMeetings -> getRaceExplorerMeetings",
+    "maximumRows": {
+      "meetings": 128,
+      "tracks": 128,
+      "races": 2048,
+      "runnerGroups": 2048,
+      "latestVideos": 2048,
+      "totalAcrossStatements": 6400
+    },
+    "fixtureRows": {
+      "meetings": 1,
+      "tracks": 1,
+      "races": 2,
+      "runnerGroups": 2,
+      "latestVideos": 2
+    },
+    "cases": {
+      "populatedBundle": "one-current-day-meeting-with-two-races-runner-counts-and-latest-videos",
+      "anonymousRlsReplay": "all-five-exact-selects-returned-public-fixture-rows",
+      "boundedQueries": "four-bulk-selects-carry-limit-binds-and-track-read-is-pk-bound-by-meeting-limit",
+      "latestVideoProjection": "at-most-one-video-returned-per-selected-race",
+      "emptyStateAfterCleanup": "returned-empty-meeting-array",
+      "mutation": "none"
+    },
+    "statements": [
+      {
+        "variant": "meetings",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Meeting\".\"id\", \"public\".\"Meeting\".\"meetingDate\", \"public\".\"Meeting\".\"sourceProvider\", \"public\".\"Meeting\".\"trackId\" FROM \"public\".\"Meeting\" LEFT JOIN \"public\".\"Track\" AS \"orderby_1\" ON (\"orderby_1\".\"id\") = (\"public\".\"Meeting\".\"trackId\") LEFT JOIN \"public\".\"Track\" AS \"orderby_2\" ON (\"orderby_2\".\"id\") = (\"public\".\"Meeting\".\"trackId\") WHERE EXISTS(SELECT \"t0\".\"meetingId\" FROM \"public\".\"Race\" AS \"t0\" WHERE (\"t0\".\"raceTime\" >= $1 AND \"t0\".\"raceTime\" < $2 AND (\"public\".\"Meeting\".\"id\") = (\"t0\".\"meetingId\") AND \"t0\".\"meetingId\" IS NOT NULL)) ORDER BY \"orderby_1\".\"state\" ASC, \"orderby_2\".\"name\" ASC LIMIT $3 OFFSET $4",
+          "sha256": "0c8d74e753d4f985f556098dd68b2a1798dd5e3f5e74d9f98906b86c1f833a21",
+          "parameterCount": 4,
+          "namedBinds": [
+            {
+              "name": "current Australia/Sydney race-day gte",
+              "positions": [
+                1
+              ]
+            },
+            {
+              "name": "current Australia/Sydney race-day lt",
+              "positions": [
+                2
+              ]
+            },
+            {
+              "name": "meeting take",
+              "positions": [
+                3
+              ]
+            },
+            {
+              "name": "meeting offset",
+              "positions": [
+                4
+              ]
+            }
+          ],
+          "persistedParameterValues": false
+        },
+        "returnedRows": 1,
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 17.03,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 17.03,
+                "children": [
+                  {
+                    "nodeType": "Nested Loop",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": "Left",
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 17.01,
+                    "children": [
+                      {
+                        "nodeType": "Nested Loop",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": "Left",
+                        "scanDirection": null,
+                        "estimatedRows": 1,
+                        "totalCost": 16.7,
+                        "children": [
+                          {
+                            "nodeType": "Nested Loop",
+                            "relationName": null,
+                            "indexName": null,
+                            "joinType": "Inner",
+                            "scanDirection": null,
+                            "estimatedRows": 1,
+                            "totalCost": 16.39,
+                            "children": [
+                              {
+                                "nodeType": "Aggregate",
+                                "relationName": null,
+                                "indexName": null,
+                                "joinType": null,
+                                "scanDirection": null,
+                                "estimatedRows": 1,
+                                "totalCost": 8.18,
+                                "children": [
+                                  {
+                                    "nodeType": "Index Scan",
+                                    "relationName": "Race",
+                                    "indexName": "Race_raceTime_idx",
+                                    "joinType": null,
+                                    "scanDirection": "Forward",
+                                    "estimatedRows": 1,
+                                    "totalCost": 8.16,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "nodeType": "Index Scan",
+                                "relationName": "Meeting",
+                                "indexName": "Meeting_pkey",
+                                "joinType": null,
+                                "scanDirection": "Forward",
+                                "estimatedRows": 1,
+                                "totalCost": 8.17,
+                                "children": []
+                              }
+                            ]
+                          },
+                          {
+                            "nodeType": "Index Scan",
+                            "relationName": "Track",
+                            "indexName": "Track_pkey",
+                            "joinType": null,
+                            "scanDirection": "Forward",
+                            "estimatedRows": 1,
+                            "totalCost": 0.31,
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "nodeType": "Index Scan",
+                        "relationName": "Track",
+                        "indexName": "Track_pkey",
+                        "joinType": null,
+                        "scanDirection": "Forward",
+                        "estimatedRows": 1,
+                        "totalCost": 0.31,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "2353c6eee5b3a55b1a7b0d4ddff7e9adbd4ac009e20d348820f813f4d8a3b1a6"
+        }
+      },
+      {
+        "variant": "tracks",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Track\".\"id\", \"public\".\"Track\".\"name\", \"public\".\"Track\".\"state\", \"public\".\"Track\".\"hasIsolynx\" FROM \"public\".\"Track\" WHERE \"public\".\"Track\".\"id\" IN ($1) OFFSET $2",
+          "sha256": "b6eaa026994f858b1bc77764295c0734a34d25770a88e0e1ca373cbf0bc2b299",
+          "parameterCount": 2,
+          "namedBinds": [
+            {
+              "name": "selected track id",
+              "positions": [
+                1
+              ]
+            },
+            {
+              "name": "track offset",
+              "positions": [
+                2
+              ]
+            }
+          ],
+          "persistedParameterValues": false
+        },
+        "returnedRows": 1,
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Index Scan",
+            "relationName": "Track",
+            "indexName": "Track_pkey",
+            "joinType": null,
+            "scanDirection": "Forward",
+            "estimatedRows": 1,
+            "totalCost": 8.17,
+            "children": []
+          },
+          "planSha256": "299aebd9e558147c3c1e950754b7835e7085c69b1eeccdf934ef3b5e94a7560d"
+        }
+      },
+      {
+        "variant": "races",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Race\".\"id\", \"public\".\"Race\".\"meetingId\", \"public\".\"Race\".\"raceNumber\", \"public\".\"Race\".\"raceTime\", \"public\".\"Race\".\"distance\", \"public\".\"Race\".\"grade\", \"public\".\"Race\".\"resultStatus\" FROM \"public\".\"Race\" WHERE (\"public\".\"Race\".\"raceTime\" >= $1 AND \"public\".\"Race\".\"raceTime\" < $2 AND \"public\".\"Race\".\"meetingId\" IN ($3)) ORDER BY \"public\".\"Race\".\"raceTime\" ASC LIMIT $4 OFFSET $5",
+          "sha256": "c825ebda344de4394ff16ac82dd326281d60a6ace4c44c45dfcd6820010982b3",
+          "parameterCount": 5,
+          "namedBinds": [
+            {
+              "name": "current Australia/Sydney race-day gte",
+              "positions": [
+                1
+              ]
+            },
+            {
+              "name": "current Australia/Sydney race-day lt",
+              "positions": [
+                2
+              ]
+            },
+            {
+              "name": "selected meeting id",
+              "positions": [
+                3
+              ]
+            },
+            {
+              "name": "race take",
+              "positions": [
+                4
+              ]
+            },
+            {
+              "name": "race offset",
+              "positions": [
+                5
+              ]
+            }
+          ],
+          "persistedParameterValues": false
+        },
+        "returnedRows": 2,
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 8.17,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "Race",
+                "indexName": "Race_raceTime_idx",
+                "joinType": null,
+                "scanDirection": "Forward",
+                "estimatedRows": 1,
+                "totalCost": 8.17,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "50dc1994073bbccc66314980397af47f9b487a212e37c6636e572866bbe0b389"
+        }
+      },
+      {
+        "variant": "runner-groups",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT COUNT(*) AS \"_count$_all\", \"public\".\"Runner\".\"raceId\" FROM \"public\".\"Runner\" WHERE \"public\".\"Runner\".\"raceId\" IN ($1,$2) GROUP BY \"public\".\"Runner\".\"raceId\" ORDER BY \"public\".\"Runner\".\"raceId\" ASC LIMIT $3 OFFSET $4",
+          "sha256": "6f72110123c1b495ec12636c4d9e647e74c1e235555537426f3979e5412688e1",
+          "parameterCount": 4,
+          "namedBinds": [
+            {
+              "name": "selected race ids",
+              "positions": [
+                1,
+                2
+              ]
+            },
+            {
+              "name": "runner-group take",
+              "positions": [
+                3
+              ]
+            },
+            {
+              "name": "runner-group offset",
+              "positions": [
+                4
+              ]
+            }
+          ],
+          "persistedParameterValues": false
+        },
+        "returnedRows": 2,
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 3,
+            "totalCost": 13.7,
+            "children": [
+              {
+                "nodeType": "Aggregate",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 3,
+                "totalCost": 13.7,
+                "children": [
+                  {
+                    "nodeType": "Sort",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 3,
+                    "totalCost": 13.66,
+                    "children": [
+                      {
+                        "nodeType": "Seq Scan",
+                        "relationName": "Runner",
+                        "indexName": null,
+                        "joinType": null,
+                        "scanDirection": null,
+                        "estimatedRows": 3,
+                        "totalCost": 13.62,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "4666c7bad91b6b6d08b0ee113eafa540bd0572c4d36a1dd6dce7a60a180c0528"
+        }
+      },
+      {
+        "variant": "latest-videos",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"RaceVideo\".\"id\", \"public\".\"RaceVideo\".\"raceId\", \"public\".\"RaceVideo\".\"streamUrl\", \"public\".\"RaceVideo\".\"sourceStatus\" FROM \"public\".\"RaceVideo\" WHERE \"public\".\"RaceVideo\".\"raceId\" IN ($1,$2) ORDER BY \"public\".\"RaceVideo\".\"fetchedAt\" DESC, \"public\".\"RaceVideo\".\"id\" ASC LIMIT $3 OFFSET $4",
+          "sha256": "a21248f53ea325f6409b6731d05a274d79e958a2ed3ec8a90dbd846771c41367",
+          "parameterCount": 4,
+          "namedBinds": [
+            {
+              "name": "selected race ids",
+              "positions": [
+                1,
+                2
+              ]
+            },
+            {
+              "name": "latest-video take",
+              "positions": [
+                3
+              ]
+            },
+            {
+              "name": "latest-video offset",
+              "positions": [
+                4
+              ]
+            }
+          ],
+          "persistedParameterValues": false
+        },
+        "returnedRows": 2,
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 2,
+            "totalCost": 12.14,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 2,
+                "totalCost": 12.14,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "RaceVideo",
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 2,
+                    "totalCost": 12.12,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "7050641052e4b75759ecc5388de642a6ffb058d78b6e33bb1686f9825caea649"
+        }
+      }
+    ],
+    "status": "verified"
+  },
+  "cleanup": {
+    "raceVideoRowsDeleted": 2,
+    "runnerRowsDeleted": 2,
+    "raceRowsDeleted": 2,
+    "meetingRowsDeleted": 1,
+    "trackRowsDeleted": 1,
+    "dogRowsDeleted": 2,
+    "remainingRows": 0
+  },
+  "verdict": "verified"
+}

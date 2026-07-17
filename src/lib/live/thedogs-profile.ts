@@ -1,9 +1,28 @@
+import { sanitizeProviderHtml } from "./raw-sanitizer";
+import { readBoundedTextResponse } from "../remote-response";
+
 const THEDOGS_BASE =
   process.env.THEDOGS_BASE_URL ?? "https://www.thedogs.com.au";
-const THEDOGS_FETCH_TIMEOUT_MS = positiveInt(
-  process.env.THEDOGS_FETCH_TIMEOUT_MS,
-  60_000
+const THEDOGS_ORIGIN = new URL(THEDOGS_BASE).origin;
+const THEDOGS_FETCH_TIMEOUT_MS = Math.min(
+  positiveInt(process.env.THEDOGS_FETCH_TIMEOUT_MS, 60_000),
+  120_000,
 );
+const THEDOGS_PROFILE_RESPONSE_POLICY = {
+  maxBytes: 5 * 1024 * 1024,
+  allowedContentTypes: ["text/html", "application/xhtml+xml"],
+} as const;
+const THEDOGS_FULL_FORM_RESPONSE_POLICY = {
+  maxBytes: 5 * 1024 * 1024,
+  allowedContentTypes: [
+    "text/html",
+    "application/xhtml+xml",
+    "application/json",
+    "application/javascript",
+    "text/javascript",
+    "+json",
+  ],
+} as const;
 const THEDOGS_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 
@@ -34,7 +53,6 @@ export type TheDogsDogProfileForm = {
   winnerDogName?: string;
   winnerDogSourceId?: string;
   inRunningPositions?: string;
-  startingPrice?: number;
   hasVideo: boolean;
   sourceRawJson: string;
 };
@@ -72,19 +90,41 @@ export class TheDogsDogProfileProvider {
   constructor(private readonly fetchImpl: FetchLike = fetch) {}
 
   async fetchProfile(pathOrUrl: string) {
-    return this.getText(pathOrUrl);
+    return this.getText(pathOrUrl, "profile");
   }
 
   async fetchFullForm(pathOrUrl: string) {
-    return this.getText(pathOrUrl, {
-      accept: "application/json, text/javascript, */*; q=0.01",
-      "X-Application-Layout": "injection",
-    });
+    return this.getText(
+      pathOrUrl,
+      "full-form",
+      {
+        accept: "application/json, text/javascript, */*; q=0.01",
+        "X-Application-Layout": "injection",
+      },
+    );
   }
 
-  private async getText(pathOrUrl: string, extraHeaders: Record<string, string> = {}) {
+  private async getText(
+    pathOrUrl: string,
+    kind: "profile" | "full-form",
+    extraHeaders: Record<string, string> = {},
+  ) {
     const url = new URL(pathOrUrl, THEDOGS_BASE);
+    const pathPattern = kind === "profile"
+      ? /^\/dogs\/\d+\/[^/?#]+\/?$/i
+      : /^\/dogs\/\d+\/[^/?#]+\/full-form\/?$/i;
+    if (
+      url.origin !== THEDOGS_ORIGIN ||
+      url.username ||
+      url.password ||
+      url.hash ||
+      url.search ||
+      !pathPattern.test(url.pathname)
+    ) {
+      throw new Error("thedogs.profile_request_url_invalid");
+    }
     const response = await this.fetchImpl(url, {
+      redirect: "error",
       signal: AbortSignal.timeout(THEDOGS_FETCH_TIMEOUT_MS),
       headers: {
         accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -98,7 +138,24 @@ export class TheDogsDogProfileProvider {
       throw new Error(`${response.status} ${response.statusText} for ${url}`);
     }
 
-    return response.text();
+    if (response.url) {
+      const finalUrl = new URL(response.url);
+      if (
+        finalUrl.origin !== url.origin ||
+        finalUrl.pathname !== url.pathname ||
+        finalUrl.search !== url.search ||
+        finalUrl.hash
+      ) {
+        throw new Error("thedogs.profile_response_url_mismatch");
+      }
+    }
+
+    return readBoundedTextResponse(
+      response,
+      kind === "profile"
+        ? THEDOGS_PROFILE_RESPONSE_POLICY
+        : THEDOGS_FULL_FORM_RESPONSE_POLICY,
+    );
   }
 }
 
@@ -139,8 +196,8 @@ export function parseTheDogsDogProfile(
     ),
     trainerName: parseLinkedValue(html, "Trainer")?.name,
     ownerName: parseLinkedValue(html, "Owner")?.name,
-    sire: parseParentDog(html, "S"),
-    dam: parseParentDog(html, "D"),
+    sire: parseParentDog(html, "S", sourceId),
+    dam: parseParentDog(html, "D", sourceId),
     colour: parseGeneralValue(html, "COLOUR"),
     sex: sexDob.sex,
     whelpDate: sexDob.whelpDate,
@@ -176,12 +233,12 @@ function parseProfileFormRows(html: string): TheDogsDogProfileForm[] {
 
 function parseProfileFormRow(row: string): TheDogsDogProfileForm | null {
   if (!row.includes("runner-form__finish-position")) return null;
-  const raceUrl = decodeEntities(
+  const raceUrl = normalizeTheDogsRaceUrl(decodeEntities(
     firstMatch(
       row,
       /<td class="runner-form__date">[\s\S]*?<a href="([^"]+)"/i
     )
-  );
+  ));
   const timestamp = Number(
     firstMatch(row, /<formatted-time[^>]*data-timestamp="(\d+)"/i)
   );
@@ -232,15 +289,12 @@ function parseProfileFormRow(row: string): TheDogsDogProfileForm | null {
       cleanHtml(
         firstMatch(row, /<td class="runner-form__in-running-places">([\s\S]*?)<\/td>/i)
       ) || undefined,
-    startingPrice: parseMoney(
-      firstMatch(row, /<td class="runner-form__starting-price">([\s\S]*?)<\/td>/i)
-    ),
     hasVideo: /runner-form__video[\s\S]*?href="[^"]+"/i.test(row),
     sourceRawJson: JSON.stringify({
       raceUrl,
       finishText,
       timeCells,
-      rowText: cleanHtml(row),
+      rowText: cleanHtml(sanitizeProviderHtml(row)),
     }),
   };
 }
@@ -259,16 +313,56 @@ function parseLinkedValue(html: string, label: string) {
   };
 }
 
-function parseParentDog(html: string, label: "S" | "D") {
+function parseParentDog(
+  html: string,
+  label: "S" | "D",
+  subjectSourceId: string
+) {
   const match = html.match(
     new RegExp(`${label}:\\s*<a href="\\/dogs\\/(\\d+)\\/([^"]+)">([^<]+)<\\/a>`, "i")
   );
-  if (!match) return undefined;
+  if (!match || match[1] === subjectSourceId) return undefined;
   return {
     sourceId: match[1] ?? "",
     url: `/dogs/${match[1]}/${match[2]}`,
     name: cleanHtml(match[3]),
   };
+}
+
+function normalizeTheDogsRaceUrl(value: string) {
+  let url: URL;
+  let providerOrigin: string;
+  try {
+    url = new URL(value, THEDOGS_BASE);
+    providerOrigin = new URL(THEDOGS_BASE).origin;
+  } catch {
+    return undefined;
+  }
+
+  const parameters = [...url.searchParams.entries()];
+  if (
+    url.origin !== providerOrigin ||
+    url.username !== "" ||
+    url.password !== "" ||
+    url.hash !== "" ||
+    parameters.length > 1 ||
+    parameters.some(([key, parameterValue]) =>
+      key !== "trial" || (parameterValue !== "true" && parameterValue !== "false")
+    )
+  ) {
+    return undefined;
+  }
+
+  const match = url.pathname.match(
+    /^\/racing\/([a-z0-9-]+)\/(\d{4}-\d{2}-\d{2})\/(\d+)(?:\/([a-z0-9-]+))?\/?$/i
+  );
+  if (!match) return undefined;
+
+  const [, track, date, raceNumber, slug] = match;
+  const path = slug
+    ? `/racing/${track}/${date}/${raceNumber}/${slug}`
+    : `/racing/${track}/${date}/${raceNumber}/`;
+  return `${path}${url.search}`;
 }
 
 function parseGeneralInformation(html: string) {

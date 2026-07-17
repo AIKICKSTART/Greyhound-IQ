@@ -23,6 +23,8 @@ export type EntitlementLimits = Record<
 >;
 export type TierEntitlementLimits = Record<BillingTier, EntitlementLimits>;
 
+export const GENERIC_ENTITLEMENT_LIMIT_MAX = 100_000_000;
+
 const MIB = 1024 ** 2;
 const GIB = 1024 ** 3;
 
@@ -74,3 +76,17 @@ export const DEFAULT_TIER_ENTITLEMENT_LIMITS = {
     advanced_prediction_agents: true,
   },
 } as const satisfies TierEntitlementLimits;
+
+export function maximumEntitlementLimit(key: EntitlementKey): number | null {
+  if (key === "priority_jobs" || key === "advanced_prediction_agents") {
+    return null;
+  }
+  if (key === "storage_bytes") {
+    return DEFAULT_TIER_ENTITLEMENT_LIMITS.pro_plus.storage_bytes;
+  }
+  if (key === "upload_file_size_bytes") {
+    return DEFAULT_TIER_ENTITLEMENT_LIMITS.pro_plus.upload_file_size_bytes;
+  }
+  if (key === "retention_days") return 3650;
+  return GENERIC_ENTITLEMENT_LIMIT_MAX;
+}

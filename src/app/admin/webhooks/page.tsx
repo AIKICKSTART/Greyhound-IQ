@@ -1,7 +1,7 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { StatusPill } from "@/components/admin/status-pill";
-import { requireModeratorProfile } from "@/lib/auth";
+import { requireAdminProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
 
@@ -27,7 +27,7 @@ type WebhookStatusCountRow = {
 };
 
 export default async function AdminWebhooksPage() {
-  await requireModeratorProfile();
+  await requireAdminProfile();
   const [events, statusCounts] = await Promise.all([
     getWebhookEvents(),
     getWebhookStatusCounts(),
@@ -133,6 +133,7 @@ function getWebhookStatusCounts() {
           by: ["status"],
           _count: { _all: true },
           orderBy: { status: "asc" },
+          take: 20,
         });
         return rows;
       }),

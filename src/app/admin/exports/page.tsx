@@ -1,6 +1,6 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { AdminExportForm, AdminStatusForm } from "@/app/admin/form-controls";
-import { requireModeratorProfile } from "@/lib/auth";
+import { requireAdminProfile } from "@/lib/auth";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { safeQuery } from "@/lib/db";
 import { withDbRequestContext } from "@/lib/db-context";
@@ -22,7 +22,7 @@ type ExportArtifactRow = {
 };
 
 export default async function AdminExportsPage() {
-  const current = await requireModeratorProfile();
+  const current = await requireAdminProfile();
   const artifacts = await getExportArtifacts(current);
 
   return (

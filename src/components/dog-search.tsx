@@ -7,6 +7,7 @@ import { AnimatePresence, m } from "motion/react";
 import { Input } from "@/components/ui/input";
 import { MotionIsland } from "@/components/motion/motion-island";
 import { cn } from "@/lib/utils";
+import { formatDogPrizeMoney } from "@/lib/dog-statistic-presentation";
 import Link from "next/link";
 
 type SearchResult = {
@@ -22,15 +23,6 @@ type SearchResult = {
   prizeMoney: number | null;
   _count: { formEntries: number };
 };
-
-function formatPrize(value: number | null) {
-  if (!value) return null;
-  return value.toLocaleString("en-AU", {
-    style: "currency",
-    currency: "AUD",
-    maximumFractionDigits: 0,
-  });
-}
 
 function DogSearchInner({ initialQuery = "" }: { initialQuery?: string }) {
   const [query, setQuery] = useState(initialQuery);
@@ -54,9 +46,9 @@ function DogSearchInner({ initialQuery = "" }: { initialQuery?: string }) {
         const data = (await res.json()) as SearchResult[];
         setResults(data);
         setActiveIndex(-1);
-      } catch (err) {
+      } catch {
         if (!controller.signal.aborted) {
-          console.error("[dog-search] failed:", err);
+          console.error("dog_search.request_failed");
           setResults([]);
         }
       } finally {
@@ -190,7 +182,8 @@ function DogSearchInner({ initialQuery = "" }: { initialQuery?: string }) {
                     <span className="text-[12px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em] tabular-nums">
                       {dog.careerStarts ?? dog._count.formEntries} starts
                       {dog.careerWins != null && ` · ${dog.careerWins}W`}
-                      {formatPrize(dog.prizeMoney) && ` · ${formatPrize(dog.prizeMoney)}`}
+                      {dog.prizeMoney !== null &&
+                        ` · ${formatDogPrizeMoney(dog.prizeMoney).text}`}
                     </span>
                   </div>
                   {(dog.sire || dog.dam) && (

@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   experimental: {
     authInterrupts: true,
+    serverActions: {
+      bodySizeLimit: "1mb",
+    },
   },
   images: {
     formats: ["image/avif", "image/webp"],
@@ -42,7 +45,16 @@ const nextConfig: NextConfig = {
             : []),
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+          {
+            key: "X-Frame-Options",
+            value:
+              process.env.NODE_ENV === "production" &&
+              process.env.ENABLE_DEVICE_PREVIEWS !== "true"
+                ? "DENY"
+                : "SAMEORIGIN",
+          },
           {
             key: "Permissions-Policy",
             value:
@@ -57,6 +69,16 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      ...(process.env.NODE_ENV !== "production"
+        ? [
+            {
+              source: "/:path*",
+              has: [{ type: "host" as const, value: "127.0.0.1" }],
+              destination: "http://localhost:3000/:path*",
+              permanent: false,
+            },
+          ]
+        : []),
       { source: "/listings", destination: "/marketplace", permanent: true },
       { source: "/listings/:path*", destination: "/marketplace/:path*", permanent: true },
       { source: "/forum", destination: "/groups", permanent: true },

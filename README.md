@@ -12,7 +12,7 @@ Current delivery model:
 - **Database:** Supabase Postgres via Prisma
 - **Auth:** WorkOS AuthKit only
 - **Billing:** Stripe Checkout/Billing for subscriptions; Lago remains legacy metering/snapshot infrastructure
-- **Storage/runtime integrations:** Supabase Storage, internal maintenance APIs
+- **Storage/runtime integrations:** Australian Google Cloud Storage, Supabase Realtime, internal maintenance APIs
 - **Production hosting:** Google Cloud Run on Google Cloud
 - **Staging hosting:** Google Cloud Run staging service
 - **Review gates:** GitHub Actions, Codex PR review, human approval
@@ -48,6 +48,7 @@ Database commands:
 
 ```bash
 npm run db:migrate       # apply Prisma migrations
+npm run db:indexes:prepare # prebuild large indexes without blocking writes
 npm run db:seed          # seed demo data
 npm run db:reset         # reset local database
 ```
@@ -67,7 +68,7 @@ Copy `.env.example` to `.env`. Required production-class values include:
 - `INTERNAL_API_SECRET`
 - `CRON_SECRET`
 
-Supabase values are required for database/storage-backed runtime features, not production auth or billing:
+Supabase values remain required for Realtime and Supabase-compatible local/staging storage, not production auth or billing:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
@@ -75,7 +76,21 @@ Supabase values are required for database/storage-backed runtime features, not p
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-Supabase Storage uses `site-assets`, `public-user-media`, and `private-user-media` buckets. After migrations, run `npm run storage:upload-site-assets` to upload public website media into the `site-assets` bucket.
+Production object storage uses Application Default Credentials with
+`OBJECT_STORAGE_PROVIDER=gcs` and the logical-to-physical mappings
+`GCS_SITE_ASSETS_BUCKET`, `GCS_PUBLIC_USER_MEDIA_BUCKET`, and
+`GCS_PRIVATE_USER_MEDIA_BUCKET`. All three GCS buckets use uniform access and
+public-access prevention; authorized media is signed or streamed through the
+application. `npm run storage:upload-site-assets` uploads bundled site media
+through the selected adapter. Supabase remains the default adapter when
+`OBJECT_STORAGE_PROVIDER` is unset for local development.
+
+For an authenticated staging media load probe, set
+`LOAD_OBJECT_STORAGE_PROVIDER=gcs` and the exact non-production physical bucket
+in `LOAD_APPROVED_GCS_BUCKET`. The probe validates the V4 bucket/key/signature
+shape and forwards only the signed headers returned by the application. The
+Supabase staging adapter instead requires its existing explicitly approved
+origin variables.
 
 Pre-launch demo boundary:
 
@@ -119,7 +134,7 @@ npm run backfill:thedogs:dog-profile-shards -- stop
 
 Backfill progress is written to `.backfill/thedogs-history-progress.jsonl`, which is ignored by git. Successful dates are skipped on the next run unless `--no-resume` is passed. Use `--continue-on-error` for full archive runs so an isolated malformed legacy page is logged and the job continues. For the full multi-year archive, prefer the shard launcher: it splits the remaining date range across non-overlapping local workers, writes one progress file per shard, and keeps a `.backfill/thedogs-shards-manifest.json` status/stop manifest. When using high shard counts, set `--provider-concurrency 1` so each worker fetches politely. The current Supabase session pool rejected 20 simultaneous workers with `EMAXCONNSESSION`; use 12 workers unless the database pool is increased.
 
-Dog profile enrichment uses the public dog profile pages to store source dog IDs, owner/trainer, sire/dam, DOB, career summary, prize money, win/place rates, best-time/box/distance table snapshots, and rich per-dog form rows including weight, box, track, distance, grade, run time, winner time, best-of-night, first sectional, margin, winner, PIR, and starting price. Progress is written to `.backfill/thedogs-dog-profile-progress.jsonl`; the dog-profile shard launcher partitions dogs by stable source-ID hash so workers do not overlap. Run dog-profile shards when the race archive is paused or with enough database connection headroom.
+Dog profile enrichment uses the public dog profile pages to store source dog IDs, owner/trainer, sire/dam, DOB, career summary, prize money, win/place rates, best-time/box/distance table snapshots, and rich per-dog form rows including weight, box, track, distance, grade, run time, winner time, best-of-night, first sectional, margin, winner, and PIR. Progress is written to `.backfill/thedogs-dog-profile-progress.jsonl`; the dog-profile shard launcher partitions dogs by stable source-ID hash so workers do not overlap. Run dog-profile shards when the race archive is paused or with enough database connection headroom.
 
 ### Local-first historic import
 
@@ -132,10 +147,11 @@ npm run db:local:import:race-archive
 npm run db:local:import:race-normalized
 npm run db:local:import:dog-archive
 npm run db:local:import:dog-normalized
+npm run db:local:analyze
 npm run db:local:status
 ```
 
-The local database listens on `localhost:55432` via `docker-compose.local-db.yml`. Override with `LOCAL_DATABASE_URL` when needed. Local import progress uses separate `.backfill/thedogs-local-*.jsonl` files so remote Supabase import progress is not reused accidentally.
+The Docker database listens on `127.0.0.1:55433` via `docker-compose.local-db.yml`; the dedicated port avoids collisions with installed PostgreSQL services. Override with `LOCAL_DATABASE_URL` when needed. Local import commands refresh planner statistics automatically; `db:local:analyze` is available after manual bulk changes. The managed Supabase migration workflow runs `db:indexes:prepare` before Prisma migrations so large indexes are built concurrently on populated databases. Local import progress uses separate `.backfill/thedogs-local-*.jsonl` files so remote Supabase import progress is not reused accidentally.
 
 Marketplace listing cards and details use optimized demo WebP media while `NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA` is enabled. Turn that flag off when real listing uploads should be the only displayed media.
 
@@ -160,7 +176,9 @@ The production deployment path is Google Cloud Run:
 - WorkOS is the only production auth system.
 - Stripe is the subscription checkout and payment path.
 - Lago remains legacy billing snapshot/metering infrastructure until removed.
-- Supabase remains the database/storage provider.
+- AlloyDB is the production database target; Australian Google Cloud Storage is
+  the production object store, while Supabase remains the Realtime and
+  local/staging compatibility service.
 
 See [docs/gcp-cloud-run-migration-plan.md](docs/gcp-cloud-run-migration-plan.md).
 
@@ -186,4 +204,4 @@ Open a PR and wait for CI, Codex review, and human approval.
 
 ## Responsible use
 
-GreyhoundIQ is a racing intelligence and community platform. It does not place bets, accept wagers, or provide guaranteed outcomes. Users must comply with local laws and responsible gambling guidance.
+GreyhoundIQ is a racing intelligence and community platform. Predictions are estimates, not guaranteed outcomes; verify important decisions against official race data.

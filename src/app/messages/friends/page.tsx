@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowLeft,
   Lock,
@@ -35,7 +36,7 @@ export default async function PulseFriendsPage() {
   return (
     <div>
       <PageHero
-        image="/images/wentworth-gate-hero.webp"
+        image="/images/feed/posts/owner-fiftieth-start.webp"
         title={
           <>
             Pulse friends.
@@ -83,17 +84,19 @@ export default async function PulseFriendsPage() {
             {friends.map((friend) => (
               <article key={friend.friendshipId} className="giq-panel p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="truncate text-[18px] font-semibold text-[hsl(var(--foreground))]">
-                      {friend.displayName}
-                    </h2>
-                    <p className="mt-1 truncate text-[13px] text-[hsl(var(--muted-foreground))]">
-                      {friend.email ?? friend.kennelName ?? friend.state ?? "GreyhoundIQ profile"}
-                    </p>
-                    <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
-                      {friend.kennelName ? `${friend.kennelName} · ` : ""}
-                      {friend.state ?? "Australia"}
-                    </p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <ProfileAvatar name={friend.displayName} src={friend.avatarUrl} />
+                    <div className="min-w-0">
+                      <h2 className="truncate text-[18px] font-semibold text-[hsl(var(--foreground))]">
+                        {friend.displayName}
+                      </h2>
+                      <p className="mt-1 truncate text-[13px] text-[hsl(var(--muted-foreground))]">
+                        {friend.kennelName ?? `${friend.role.charAt(0).toUpperCase()}${friend.role.slice(1)} profile`}
+                      </p>
+                      <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
+                        {friend.state ?? "Australia"}
+                      </p>
+                    </div>
                   </div>
                   {friend.verified && (
                     <span className="giq-status-pill giq-status-pill-purple">
@@ -137,5 +140,24 @@ export default async function PulseFriendsPage() {
         )}
       </section>
     </div>
+  );
+}
+
+function ProfileAvatar({ name, src }: { name: string; src: string | null }) {
+  return (
+    <span className="relative grid size-14 shrink-0 place-items-center rounded-full border border-white/10 bg-[hsl(var(--primary)/0.14)] text-[15px] font-semibold text-[hsl(var(--primary-light))]">
+      {src ? (
+        <Image
+          src={src}
+          alt=""
+          fill
+          className="rounded-full object-cover"
+          sizes="56px"
+          unoptimized={src.startsWith("/api/media/")}
+        />
+      ) : (
+        name.trim().charAt(0).toUpperCase() || "G"
+      )}
+    </span>
   );
 }

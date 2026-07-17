@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireCurrentUserProfile, requireModeratorProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { withDbRequestContext } from "@/lib/db-context";
 import { reportCreateSchema } from "@/lib/report-validation";
 import { createReportForUser } from "@/lib/report-service";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const REPORT_CREATE_RATE_LIMIT = 10;
 const REPORT_CREATE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -50,21 +52,18 @@ export async function POST(request: Request) {
     const rateLimit = await checkRateLimit(
       `report:create:${current.dbUserId}`,
       REPORT_CREATE_RATE_LIMIT,
-      REPORT_CREATE_RATE_LIMIT_WINDOW_MS
+      REPORT_CREATE_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true },
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        REPORT_CREATE_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const parsed = reportCreateSchema.parse(await request.json());
+    const parsed = reportCreateSchema.parse(await readBoundedJsonRequest(request));
     const report = await createReportForUser(current, parsed);
 
     return NextResponse.json({ item: report }, { status: 201 });

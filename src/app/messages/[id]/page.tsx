@@ -11,11 +11,13 @@ import {
   Loader2,
   Lock,
   Paperclip,
+  Search,
   ShieldAlert,
   ThumbsUp,
   Trash2,
   Unlock,
 } from "lucide-react";
+import { PageTitle } from "@/components/page-title";
 import {
   blockConversation,
   deleteConversationMessage,
@@ -25,10 +27,12 @@ import {
   unblockConversation,
 } from "@/app/actions";
 import { ConversationCallPanel } from "@/components/conversation-call-panel";
+import { ConversationDeliveryAcknowledger } from "@/components/conversation-delivery-acknowledger";
 import { InstantMessageComposer } from "@/components/instant-message-composer";
+import { ProcessedVideo } from "@/components/processed-video";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
 import { SubmitButton } from "@/components/submit-button";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, hasTier } from "@/lib/auth";
 import {
   getActiveCallRoomForConversation,
   getPendingCallInviteForConversation,
@@ -36,9 +40,10 @@ import {
 } from "@/lib/call-service";
 import {
   getConversationForProfile,
-  markConversationDelivered,
+  searchConversationMessages,
 } from "@/lib/conversation-service";
 import { withDbRequestContext } from "@/lib/db-context";
+import { messageThreadQuerySchema } from "@/lib/query-validation";
 import { conversationRealtimeChannel } from "@/lib/realtime-service";
 
 export const dynamic = "force-dynamic";
@@ -62,9 +67,13 @@ export default async function MessageThreadPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ before?: string | string[] }>;
+  searchParams: Promise<{
+    before?: string | string[];
+    call?: string | string[];
+    q?: string | string[];
+  }>;
 }) {
-  const [{ id }, query, user] = await Promise.all([
+  const [{ id }, rawQuery, user] = await Promise.all([
     params,
     searchParams,
     getCurrentUser(),
@@ -76,7 +85,14 @@ export default async function MessageThreadPage({
     profileRole: user.role ?? "member",
     tier: user.tier,
   };
-  const before = typeof query.before === "string" ? query.before : undefined;
+  const parsedQuery = messageThreadQuerySchema.safeParse({
+    before: rawQuery.before,
+    call: rawQuery.call,
+    q: rawQuery.q,
+  });
+  const before = parsedQuery.success ? parsedQuery.data.before : undefined;
+  const callIntent = parsedQuery.success ? (parsedQuery.data.call ?? null) : null;
+  const messageQuery = parsedQuery.success ? parsedQuery.data.q : "";
 
   let conversation: Awaited<ReturnType<typeof getConversationForProfile>>;
   try {
@@ -89,20 +105,32 @@ export default async function MessageThreadPage({
     notFound();
   }
 
-  const other =
-    conversation.participantAId === user.profileId
-      ? conversation.participantB
-      : conversation.participantA;
+  const currentIsParticipantA = conversation.participantAId === user.profileId;
+  const other = currentIsParticipantA
+    ? conversation.participantB
+    : conversation.participantA;
+  const selfActor = currentIsParticipantA
+    ? conversation.participantAActor
+    : conversation.participantBActor;
+  const otherActor = currentIsParticipantA
+    ? conversation.participantBActor
+    : conversation.participantAActor;
+  const selfLabel = selfActor?.displayName ?? user.name;
+  const otherLabel = otherActor?.displayName ?? other.displayName;
+  const otherAvatarUrl = otherActor?.avatarUrl ?? other.avatarUrl;
+  const isPageConversation =
+    conversation.participantAActor?.kind === "page" ||
+    conversation.participantBActor?.kind === "page";
   const [
     activeCallRoomResult,
     pendingCallInviteResult,
     callLogResult,
     otherPresenceResult,
   ] = await Promise.allSettled([
-      conversation.blockedAt
+      conversation.blockedAt || isPageConversation
         ? null
         : getActiveCallRoomForConversation(callContext, conversation.id),
-      conversation.blockedAt
+      conversation.blockedAt || isPageConversation
         ? null
         : getPendingCallInviteForConversation(callContext, conversation.id),
       getRecentCallLogForConversation(callContext, conversation.id),
@@ -112,8 +140,6 @@ export default async function MessageThreadPage({
           select: { lastSeenAt: true },
         })
       ),
-      // Recipient viewing the thread = messages delivered.
-      markConversationDelivered(callContext, conversation.id),
     ] as const);
   const activeCallRoom =
     activeCallRoomResult.status === "fulfilled"
@@ -149,9 +175,61 @@ export default async function MessageThreadPage({
       entry,
     })),
   ].sort((a, b) => a.at.getTime() - b.at.getTime());
+  const messageSearch =
+    messageQuery.length >= 2
+      ? await searchConversationMessages(
+          callContext,
+          conversation.id,
+          messageQuery,
+          { limit: 20 }
+        )
+      : null;
+  const callableIntent = isPageConversation ? null : callIntent;
+  const prioritizeCallPanel =
+    callableIntent !== null ||
+    activeCallRoom !== null ||
+    pendingCallInvite !== null;
+  const callPanel = (
+    <div
+      className={`${prioritizeCallPanel ? "border-b" : "border-t"} border-white/[0.06] p-5`}
+    >
+      <ConversationCallPanel
+        conversationId={conversation.id}
+        activeRoom={
+          activeCallRoom
+            ? {
+                id: activeCallRoom.id,
+                callType:
+                  activeCallRoom.callType === "voice" ? "voice" : "video",
+              }
+            : null
+        }
+        pendingInvite={
+          pendingCallInvite
+            ? {
+                id: pendingCallInvite.id,
+                roomId: pendingCallInvite.callRoomId,
+                callType:
+                  pendingCallInvite.callRoom.callType === "voice"
+                    ? "voice"
+                    : "video",
+                fromName: pendingCallInvite.fromProfile.displayName,
+                expiresAt: pendingCallInvite.expiresAt.toISOString(),
+                forMe: pendingCallInvite.toProfileId === user.profileId,
+              }
+            : null
+        }
+        blocked={Boolean(conversation.blockedAt)}
+        otherName={otherLabel}
+        canStartCall={hasTier(user.tier, "pro") && !isPageConversation}
+        autoCallIntent={callableIntent}
+      />
+    </div>
+  );
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
+    <div className="giq-social-thread mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
+      <ConversationDeliveryAcknowledger conversationId={conversation.id} />
       <Link
         href="/pulse"
         className="mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
@@ -160,19 +238,35 @@ export default async function MessageThreadPage({
         Pulse inbox
       </Link>
 
-      <header className="giq-panel mb-6 p-6">
+      <header className="giq-social-thread-header giq-panel mb-6 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[hsl(var(--primary-bright))]">
-              Private Pulse conversation
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
-              {other.displayName}
-            </h1>
-            <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">
-              {other.kennelName ? `${other.kennelName} · ` : ""}
-              {other.state ?? "Australia"}
-            </p>
+          <div className="flex min-w-0 items-center gap-4">
+            <span className="relative grid size-16 shrink-0 place-items-center rounded-full border border-white/12 bg-[hsl(var(--primary)/0.14)] text-[18px] font-semibold text-[hsl(var(--primary-light))]">
+              {otherAvatarUrl ? (
+                <NextImage
+                  src={otherAvatarUrl}
+                  alt=""
+                  fill
+                  className="rounded-full object-cover"
+                  sizes="64px"
+                  unoptimized={otherAvatarUrl.startsWith("/api/media/")}
+                />
+              ) : (
+                otherLabel.trim().charAt(0).toUpperCase() || "G"
+              )}
+            </span>
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[hsl(var(--primary-bright))]">
+                Private Pulse conversation
+              </p>
+              <PageTitle size="compact" className="mt-2">
+                {otherLabel}
+              </PageTitle>
+              <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">
+                {other.kennelName ? `${other.kennelName} · ` : ""}
+                {other.state ?? "Australia"}
+              </p>
+            </div>
             {realtimeChannel && (
               <RealtimeRefresh
                 channels={[
@@ -186,9 +280,9 @@ export default async function MessageThreadPage({
                     ],
                     presence: {
                       selfProfileId: user.profileId,
-                      selfLabel: user.name,
+                      selfLabel,
                       otherProfileId: other.id,
-                      otherLabel: other.displayName,
+                      otherLabel,
                       offlineLabel: otherPresence
                         ? lastSeenLabel(otherPresence.lastSeenAt)
                         : undefined,
@@ -196,7 +290,7 @@ export default async function MessageThreadPage({
                     typing: {
                       selfProfileId: user.profileId,
                       otherProfileId: other.id,
-                      otherLabel: other.displayName,
+                      otherLabel,
                     },
                   },
                 ]}
@@ -247,7 +341,73 @@ export default async function MessageThreadPage({
         )}
       </header>
 
-      <section className="giq-panel">
+      <section className="giq-social-thread-search giq-panel mb-6 p-5" aria-label="Search this conversation">
+        <form className="flex flex-wrap gap-2" action={`/pulse/${conversation.id}`}>
+          <label className="sr-only" htmlFor="message-search">
+            Search messages in this conversation
+          </label>
+          <input
+            id="message-search"
+            name="q"
+            type="search"
+            minLength={2}
+            maxLength={100}
+            defaultValue={messageQuery}
+            className="giq-form-control min-h-11 min-w-0 flex-1 px-3"
+            placeholder="Search this conversation"
+          />
+          <button
+            type="submit"
+            className="giq-button giq-button-glass min-h-11 px-4 text-[13px]"
+          >
+            <Search className="h-3.5 w-3.5" />
+            Search
+          </button>
+          {messageQuery && (
+            <Link
+              href={`/pulse/${conversation.id}`}
+              className="giq-outline-action min-h-11 px-3 text-[12px]"
+            >
+              Clear
+            </Link>
+          )}
+        </form>
+        {messageSearch && (
+          <div className="mt-4 border-t border-white/[0.06] pt-4">
+            <p className="text-[12px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
+              {messageSearch.items.length} result
+              {messageSearch.items.length === 1 ? "" : "s"}
+            </p>
+            {messageSearch.items.length > 0 ? (
+              <ol className="mt-3 space-y-2">
+                {messageSearch.items.map((message) => (
+                  <li key={message.id} className="giq-subpanel p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                      <span>
+                        {message.senderActor?.displayName ??
+                          message.sender.displayName}
+                      </span>
+                      <time dateTime={message.createdAt.toISOString()}>
+                        {message.createdAt.toLocaleString("en-AU")}
+                      </time>
+                    </div>
+                    <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[13px] text-[hsl(var(--muted-foreground))]">
+                      {message.body}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="mt-3 text-[13px] text-[hsl(var(--muted-foreground))]">
+                No matching messages.
+              </p>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="giq-social-thread-panel giq-panel">
+        {prioritizeCallPanel && callPanel}
         <div className="space-y-4 p-5">
           {(hasEarlierPage || before) && (
             <div className="flex flex-wrap items-center justify-center gap-2 pb-1">
@@ -313,7 +473,7 @@ export default async function MessageThreadPage({
               return (
                 <article
                   key={message.id}
-                  className={`rounded-lg border p-4 ${
+                  className={`giq-social-chat-bubble rounded-2xl border p-4 ${
                     isMine
                       ? "ml-auto max-w-[82%] border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--primary)/0.08)]"
                       : "mr-auto max-w-[82%] border-white/[0.06] bg-white/[0.03]"
@@ -321,7 +481,12 @@ export default async function MessageThreadPage({
                 >
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
                     <span className="text-[12px] font-semibold text-[hsl(var(--foreground))]">
-                      {isMine ? "You" : message.sender.displayName}
+                      {isMine
+                        ? selfActor?.kind === "page"
+                          ? `You as ${selfLabel}`
+                          : "You"
+                        : message.senderActor?.displayName ??
+                          message.sender.displayName}
                     </span>
                     <span className="text-[11px] text-[hsl(var(--subtle-foreground))]">
                       {message.createdAt.toLocaleString("en-AU", {
@@ -372,7 +537,7 @@ export default async function MessageThreadPage({
                       <form action={reactionAction}>
                         <SubmitButton
                           pendingLabel="..."
-                          className={`giq-outline-action min-h-8 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60 ${
+                          className={`giq-outline-action min-h-11 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60 ${
                             reactedByMe
                               ? "border-[hsl(var(--primary)/0.35)] bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary-bright))]"
                               : ""
@@ -382,10 +547,20 @@ export default async function MessageThreadPage({
                           {message.reactions.length}
                         </SubmitButton>
                       </form>
-                      <form action={deleteAction}>
+                      <form action={deleteAction} className="grid gap-1.5">
+                        <label className="flex items-center gap-1.5 text-[11px] text-[hsl(var(--muted-foreground))]">
+                          <input
+                            type="checkbox"
+                            name="confirmation"
+                            value="delete"
+                            required
+                            className="size-4 shrink-0 accent-[hsl(var(--primary))]"
+                          />
+                          Confirm delete
+                        </label>
                         <SubmitButton
                           pendingLabel="Deleting..."
-                          className="giq-outline-action min-h-8 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
+                          className="giq-outline-action min-h-11 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <Trash2 className="h-3 w-3" />
                           Delete
@@ -397,7 +572,7 @@ export default async function MessageThreadPage({
                             name="reason"
                             defaultValue="other"
                             aria-label="Report reason"
-                            className="giq-form-control h-8 w-32 px-2 py-1 text-[11px]"
+                            className="giq-form-control min-h-11 w-32 px-2 py-1 text-[11px]"
                           >
                             <option value="spam">Spam</option>
                             <option value="harassment">Harassment</option>
@@ -407,7 +582,7 @@ export default async function MessageThreadPage({
                           </select>
                           <SubmitButton
                             pendingLabel="..."
-                            className="giq-outline-action min-h-8 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="giq-outline-action min-h-11 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <Flag className="h-3 w-3" />
                             Report
@@ -421,38 +596,7 @@ export default async function MessageThreadPage({
             })
           )}
         </div>
-
-        <div className="border-t border-white/[0.06] p-5">
-          <ConversationCallPanel
-            conversationId={conversation.id}
-            activeRoom={
-              activeCallRoom
-                ? {
-                    id: activeCallRoom.id,
-                    callType:
-                      activeCallRoom.callType === "voice" ? "voice" : "video",
-                  }
-                : null
-            }
-            pendingInvite={
-              pendingCallInvite
-                ? {
-                    id: pendingCallInvite.id,
-                    roomId: pendingCallInvite.callRoomId,
-                    callType:
-                      pendingCallInvite.callRoom.callType === "voice"
-                        ? "voice"
-                        : "video",
-                    fromName: pendingCallInvite.fromProfile.displayName,
-                    expiresAt: pendingCallInvite.expiresAt.toISOString(),
-                    forMe: pendingCallInvite.toProfileId === user.profileId,
-                  }
-                : null
-            }
-            blocked={Boolean(conversation.blockedAt)}
-            otherName={other.displayName}
-          />
-        </div>
+        {!prioritizeCallPanel && callPanel}
 
         <InstantMessageComposer
           conversationId={conversation.id}
@@ -536,60 +680,147 @@ function MessageAttachment({
     widthPx: number | null;
     heightPx: number | null;
     scanStatus: string;
+    processingStatus: string;
+    playbackPath: string | null;
+    posterPath: string | null;
+    hlsPath: string | null;
+    altText: string | null;
+    captionPath: string | null;
   };
 }) {
   // Blob endpoints only serve clean media - never emit a link for non-clean.
   if (media.scanStatus === "pending") {
-    return (
-      <span
-        role="status"
-        className="inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[12px] text-[hsl(var(--muted-foreground))]"
-      >
-        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-        Scanning attachment…
-      </span>
-    );
+    return <AttachmentStatus label="Scanning attachment…" loading />;
   }
   if (media.scanStatus !== "clean") {
     return (
-      <span className="inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border border-white/[0.04] bg-white/[0.02] px-3 py-2 text-[12px] text-[hsl(var(--subtle-foreground))]">
-        <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />
-        Attachment removed (failed safety scan)
-      </span>
+      <AttachmentStatus
+        label={
+          media.scanStatus === "infected"
+            ? "Attachment removed by safety scan"
+            : "Attachment safety scan failed"
+        }
+        failed
+      />
+    );
+  }
+  if (media.processingStatus !== "ready") {
+    return (
+      <AttachmentStatus
+        label={
+          media.processingStatus === "failed"
+            ? "Attachment processing failed"
+            : media.processingStatus === "processing"
+              ? "Preparing attachment…"
+              : media.processingStatus === "scanning"
+                ? "Scanning attachment…"
+                : "Attachment queued for processing…"
+        }
+        loading={media.processingStatus !== "failed"}
+        failed={media.processingStatus === "failed"}
+      />
     );
   }
 
-  const url = `/api/media/${media.id}/blob`;
+  const originalUrl = `/api/media/${media.id}/blob`;
+  const playbackUrl = media.playbackPath
+    ? `${originalUrl}?variant=playback`
+    : originalUrl;
+  const label = media.altText ?? media.originalName ?? "Message attachment";
+
   if (media.mimeType.startsWith("image/")) {
     return (
       <a
-        href={url}
+        href={playbackUrl}
         target="_blank"
         rel="noreferrer"
-        className="giq-listing-media block"
+        className="giq-listing-media block overflow-hidden rounded-lg"
       >
         <NextImage
-          src={url}
-          alt={media.originalName ?? "Message media"}
+          src={playbackUrl}
+          alt={label}
           width={media.widthPx ?? 420}
           height={media.heightPx ?? 280}
           unoptimized
-          className="h-36 w-full object-cover"
+          className="max-h-44 w-full object-cover"
         />
       </a>
     );
   }
 
+  if (media.mimeType.startsWith("video/")) {
+    return (
+      <ProcessedVideo
+        playbackUrl={playbackUrl}
+        hlsUrl={media.hlsPath ? `${originalUrl}?variant=hls` : null}
+        posterUrl={media.posterPath ? `${originalUrl}?variant=poster` : null}
+        captionUrl={media.captionPath ? `${originalUrl}?variant=caption` : null}
+        label={label}
+        compact
+      />
+    );
+  }
+
+  if (media.mimeType.startsWith("audio/")) {
+    return (
+      <audio
+        controls
+        preload="metadata"
+        src={playbackUrl}
+        className="min-h-11 w-full"
+        aria-label={label}
+      />
+    );
+  }
+
   return (
     <a
-      href={url}
+      href={originalUrl}
       target="_blank"
       rel="noreferrer"
-      className="giq-outline-action min-h-14 px-3 py-2 text-[12px]"
+      className="giq-outline-action min-h-11 max-w-full px-3 py-2 text-[12px]"
     >
-      <Paperclip className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
+      <Paperclip
+        className="h-4 w-4 shrink-0 text-[hsl(var(--primary-bright))]"
+        aria-hidden="true"
+      />
       <span className="truncate">{media.originalName ?? media.mimeType}</span>
     </a>
+  );
+}
+
+function AttachmentStatus({
+  label,
+  loading = false,
+  failed = false,
+}: {
+  label: string;
+  loading?: boolean;
+  failed?: boolean;
+}) {
+  return (
+    <span
+      role="status"
+      className="inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.025] px-3 py-2 text-[12px] text-[hsl(var(--muted-foreground))]"
+    >
+      {loading ? (
+        <Loader2
+          className="h-3.5 w-3.5 shrink-0 animate-spin"
+          aria-hidden="true"
+        />
+      ) : failed ? (
+        <ShieldAlert
+          className="h-3.5 w-3.5 shrink-0"
+          aria-hidden="true"
+        />
+      ) : (
+        <Paperclip
+          className="h-3.5 w-3.5 shrink-0"
+          aria-hidden="true"
+        />
+      )}
+      <span>{label}</span>
+    </span>
   );
 }
 

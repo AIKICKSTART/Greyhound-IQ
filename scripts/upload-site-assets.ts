@@ -1,6 +1,6 @@
-import { readFile, readdir, stat } from "fs/promises";
+import { readdir, stat } from "fs/promises";
 import path from "path";
-import { createClient } from "@supabase/supabase-js";
+import { objectStorage } from "../src/lib/object-storage";
 import {
   SITE_ASSETS_BUCKET,
   siteAssetObjectPath,
@@ -9,32 +9,20 @@ import {
 const root = path.resolve(process.cwd(), "public", "images");
 
 async function main() {
-  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required");
-  }
-
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
   const files = await listFiles(root);
   for (const filePath of files) {
     const relativePublicPath = `/${path
       .relative(path.resolve(process.cwd(), "public"), filePath)
       .replace(/\\/g, "/")}`;
     const objectPath = siteAssetObjectPath(relativePublicPath);
-    const body = await readFile(filePath);
-    const { error } = await supabase.storage
-      .from(SITE_ASSETS_BUCKET)
-      .upload(objectPath, body, {
-        upsert: true,
-        contentType: contentTypeFor(filePath),
-        cacheControl: "31536000",
-      });
-
-    if (error) throw new Error(`${relativePublicPath}: ${error.message}`);
+    await objectStorage.putObjectFromFile({
+      bucket: SITE_ASSETS_BUCKET,
+      key: objectPath,
+      filePath,
+      upsert: true,
+      contentType: contentTypeFor(filePath),
+      cacheControl: "31536000",
+    });
     console.log(`${relativePublicPath} -> ${SITE_ASSETS_BUCKET}/${objectPath}`);
   }
 }

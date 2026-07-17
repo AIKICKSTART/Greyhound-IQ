@@ -1,0 +1,37 @@
+[agents]
+max_threads = 4
+max_depth = 1
+
+[agents.greyhound_explorer]
+description = "Read-only GreyhoundIQ code and evidence explorer."
+config_file = "agents/greyhound-explorer.toml"
+
+[agents.greyhound_implementer]
+description = "Bounded GreyhoundIQ implementer for pre-specified gate work."
+config_file = "agents/greyhound-implementer.toml"
+
+[agents.greyhound_verifier]
+description = "Independent GreyhoundIQ diff, test and evidence verifier."
+config_file = "agents/greyhound-verifier.toml"
+
+[agents.greyhound_researcher]
+description = "Read-only primary-source researcher for GreyhoundIQ release evidence."
+config_file = "agents/greyhound-researcher.toml"
+
+[mcp_servers."codebase-memory-mcp"]
+command = "codebase-memory-mcp"
+required = true
+default_tools_approval_mode = "approve"
+enabled_tools = [
+  "list_projects",
+  "index_status",
+  "index_repository",
+  "search_graph",
+  "search_code",
+  "trace_path",
+  "get_code_snippet",
+  "get_graph_schema",
+  "get_architecture",
+  "query_graph",
+  "detect_changes",
+]

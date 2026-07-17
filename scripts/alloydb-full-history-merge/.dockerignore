@@ -1,0 +1,4 @@
+*
+!merge.sh
+!sql/
+!sql/*.sql

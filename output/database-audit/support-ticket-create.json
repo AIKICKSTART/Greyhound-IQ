@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "support-ticket-create-disposable-proof",
+  "generatedAt": "2026-07-17T02:09:07.203Z",
+  "safety": {
+    "scope": "literal-loopback-disposable-replay-only",
+    "host": "127.0.0.1",
+    "port": 55734,
+    "productionOrProviderSystemsContacted": false,
+    "fixtureOwner": "support-ticket-create-dedicated-proof",
+    "broadCleanupUsed": false
+  },
+  "runtimeIdentity": {
+    "role": "greyhoundiq_runtime",
+    "sessionRole": "greyhoundiq_runtime",
+    "database": "greyhoundiq",
+    "schema": "public",
+    "canLogin": true,
+    "superuser": false,
+    "bypassRls": false
+  },
+  "sourceBinding": {
+    "files": {
+      "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d",
+      "prisma/migrations/20260715060000_harden_support_message_insert_rls/migration.sql": "a71720a4488cbc67a65bbaf7db2d37870c6eb703f2b3be2ae256ad614189588e",
+      "scripts/check-support-ticket-create-postgres.ts": "8aba1055bccd9080a481208a7dd82283ae336d5724d68b649f886f73c67a6998",
+      "scripts/check-support-ticket-create-postgres.test.ts": "c06df4bd01122a5841d30233099f5148602bebef88a0876d16a99963e2a5cb9d",
+      "security/mandatory-public-racing-database-operations.ts": "3b6f0afff9bcb5b6b31752fe82baa07d9a4f84c67f8f16dd0431cbbdd322390f",
+      "src/app/actions.ts": "a424d0e5a771ba1137ff63937ab607f9c087e85d06ea1d6d1a6f5f4d5180b896",
+      "src/lib/content.ts": "e22a482c71f205653b577ba03bf6405f7d2084bfb76ac88a0bd3601a431c8d82",
+      "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
+      "src/lib/db.ts": "b11f3357d3daea521e825d8483b4bb8050c8c7d059e2aa311f1788b1b09d9035"
+    },
+    "combinedSha256": "77c6f859421f7bba7b41a21f88e34ab6c8919ee3e0f36796f910d858acfcf2bc"
+  },
+  "proof": {
+    "queryId": "DB.SUPPORT.TICKET.CREATE.TRANSACTION",
+    "sourceFile": "src/app/actions.ts",
+    "sourceSymbol": "createSupportTicket",
+    "expectedMaximumRows": 2,
+    "rowCounts": {
+      "before": {
+        "tickets": 0,
+        "messages": 0
+      },
+      "afterFirstCommit": {
+        "tickets": 1,
+        "messages": 1
+      },
+      "afterRollback": {
+        "tickets": 1,
+        "messages": 1
+      },
+      "afterDeniedAttempts": {
+        "tickets": 1,
+        "messages": 1
+      },
+      "afterPermittedDuplicate": {
+        "tickets": 2,
+        "messages": 2
+      }
+    },
+    "cases": {
+      "successfulTransaction": "one-ticket-and-one-initial-message-committed",
+      "transactionOrder": "ticket-insert-before-message-insert-before-commit",
+      "sanitization": "nul-and-angle-brackets-removed-before-persistence",
+      "rollback": "both-inserts-absent-after-forced-rollback",
+      "duplicateSubmit": "second-permitted-submit-created-one-distinct-pair",
+      "crossAccountTicketInsert": "denied-by-ticket-owner-policy",
+      "crossAccountMessageInsert": "denied-even-when-message-author-matches-caller-because-ticket-owner-differs",
+      "anonymousTicketInsert": "denied-by-ticket-owner-policy",
+      "supportMessagePolicy": "effective-policy-requires-message-author-and-ticket-owner",
+      "transactionIsolation": "read committed"
+    },
+    "statements": [
+      {
+        "variant": "support-ticket-insert",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"public\".\"SupportTicket\" (\"id\",\"userId\",\"status\",\"priority\",\"category\",\"createdAt\",\"updatedAt\") VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING \"public\".\"SupportTicket\".\"id\", \"public\".\"SupportTicket\".\"userId\", \"public\".\"SupportTicket\".\"status\", \"public\".\"SupportTicket\".\"priority\", \"public\".\"SupportTicket\".\"category\", \"public\".\"SupportTicket\".\"createdAt\", \"public\".\"SupportTicket\".\"updatedAt\"",
+          "sha256": "ed7705a345635f8656c538f94f2052017ae089d176c98bcd9ee84234076bb19f",
+          "parameterCount": 7,
+          "namedBinds": [
+            {
+              "name": "generated SupportTicket.id",
+              "positions": [
+                1
+              ]
+            },
+            {
+              "name": "current.dbUserId",
+              "positions": [
+                2
+              ]
+            },
+            {
+              "name": "default open status",
+              "positions": [
+                3
+              ]
+            },
+            {
+              "name": "default normal priority",
+              "positions": [
+                4
+              ]
+            },
+            {
+              "name": "parsed category",
+              "positions": [
+                5
+              ]
+            },
+            {
+              "name": "Prisma createdAt and updatedAt",
+              "positions": [
+                6,
+                7
+              ]
+            }
+          ],
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "SupportTicket",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 0.02,
+            "children": [
+              {
+                "nodeType": "Result",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 0.02,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "098eaa000a3e86f48126606d31bc0307a3e40d44aac72a443ab784b7cb557df0"
+        }
+      },
+      {
+        "variant": "support-message-insert",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"public\".\"SupportMessage\" (\"id\",\"ticketId\",\"userId\",\"body\",\"createdAt\",\"updatedAt\") VALUES ($1,$2,$3,$4,$5,$6) RETURNING \"public\".\"SupportMessage\".\"id\", \"public\".\"SupportMessage\".\"ticketId\", \"public\".\"SupportMessage\".\"userId\", \"public\".\"SupportMessage\".\"body\", \"public\".\"SupportMessage\".\"createdAt\", \"public\".\"SupportMessage\".\"updatedAt\"",
+          "sha256": "20e2bc58db830c22d18fc73fead3cc84bf08e768a4107a677f3fe2f6405388ca",
+          "parameterCount": 6,
+          "namedBinds": [
+            {
+              "name": "generated SupportMessage.id",
+              "positions": [
+                1
+              ]
+            },
+            {
+              "name": "created SupportTicket.id",
+              "positions": [
+                2
+              ]
+            },
+            {
+              "name": "current.dbUserId",
+              "positions": [
+                3
+              ]
+            },
+            {
+              "name": "cleanText(parsed.body)",
+              "positions": [
+                4
+              ]
+            },
+            {
+              "name": "Prisma createdAt and updatedAt",
+              "positions": [
+                5,
+                6
+              ]
+            }
+          ],
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "SupportMessage",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 0.02,
+            "children": [
+              {
+                "nodeType": "Result",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 0.02,
+                "children": []
+              },
+              {
+                "nodeType": "Seq Scan",
+                "relationName": "SupportTicket",
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 1,
+                "children": []
+              },
+              {
+                "nodeType": "Seq Scan",
+                "relationName": "SupportTicket",
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 1,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "32aaf23bcb30be37ca71bb57bba56f095a1ec80c2e8322cf00cb8e0902b983a9"
+        }
+      }
+    ],
+    "status": "verified"
+  },
+  "cleanup": {
+    "supportMessageRowsDeleted": 2,
+    "supportTicketRowsDeleted": 2,
+    "profileRowsDeleted": 2,
+    "userRowsDeleted": 2,
+    "remainingSupportMessageRows": 0,
+    "remainingSupportTicketRows": 0,
+    "remainingProfileRows": 0,
+    "remainingUserRows": 0
+  },
+  "verdict": "verified"
+}

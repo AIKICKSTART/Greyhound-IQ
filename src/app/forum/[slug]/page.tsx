@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, MessageSquare, Pin, PlusCircle } from "lucide-react";
 import { createForumThread } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { PageTitle } from "@/components/page-title";
 import { getCurrentUser } from "@/lib/auth";
 import { getForumCategoryBySlug } from "@/lib/queries";
 
@@ -55,9 +56,9 @@ export default async function ForumCategoryPage({
         <main>
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
+              <PageTitle>
                 {category.name}
-              </h1>
+              </PageTitle>
               <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                 {category.description}
               </p>

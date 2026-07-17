@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "design-lab-user-stories",
+  "generatedAt": "2026-07-13T15:27:32.675Z",
+  "baseUrl": "http://localhost:3000",
+  "testedCommitSha": "f78ba76ee853344132e0e202b3e8671d76d59104",
+  "sourceSha256": "893ca592fbffad29776d8576453fbe0f2b0a9459563f014eafef4d892ccad957",
+  "sourceFileCount": 599,
+  "expectedRoutes": 6,
+  "passedRoutes": 6,
+  "expectedScenarios": 12,
+  "passedScenarios": 12,
+  "results": [
+    {
+      "route": "/design-lab",
+      "passed": true,
+      "scenarios": [
+        {
+          "id": "DL.STORY.CONTRACT-WORKSPACE.1",
+          "route": "/design-lab",
+          "requestPath": "/design-lab?area=screens",
+          "status": 200,
+          "durationMs": 2040,
+          "passed": true,
+          "failures": []
+        },
+        {
+          "id": "DL.STORY.CONTRACT-WORKSPACE.2",
+          "route": "/design-lab",
+          "requestPath": "/design-lab?area=delivery",
+          "status": 200,
+          "durationMs": 253,
+          "passed": true,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "route": "/design-lab/demo-experience",
+      "passed": true,
+      "scenarios": [
+        {
+          "id": "DL.STORY.DEMO-EXPERIENCE.1",
+          "route": "/design-lab/demo-experience",
+          "requestPath": "/design-lab/demo-experience",
+          "status": 200,
+          "durationMs": 1473,
+          "passed": true,
+          "failures": []
+        },
+        {
+          "id": "DL.STORY.DEMO-EXPERIENCE.2",
+          "route": "/design-lab/demo-experience",
+          "requestPath": "/design-lab/demo-experience?view=admin-frames",
+          "status": 200,
+          "durationMs": 209,
+          "passed": true,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "route": "/design-lab/dock-skins",
+      "passed": true,
+      "scenarios": [
+        {
+          "id": "DL.STORY.DOCK-SKINS.1",
+          "route": "/design-lab/dock-skins",
+          "requestPath": "/design-lab/dock-skins?dock=D6",
+          "status": 200,
+          "durationMs": 240,
+          "passed": true,
+          "failures": []
+        },
+        {
+          "id": "DL.STORY.DOCK-SKINS.2",
+          "route": "/design-lab/dock-skins",
+          "requestPath": "/design-lab/dock-skins?dock=unsupported",
+          "status": 200,
+          "durationMs": 197,
+          "passed": true,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "route": "/design-lab/role-blueprints",
+      "passed": true,
+      "scenarios": [
+        {
+          "id": "DL.STORY.ROLE-BLUEPRINTS.1",
+          "route": "/design-lab/role-blueprints",
+          "requestPath": "/design-lab/role-blueprints?role=punter&variant=C2",
+          "status": 200,
+          "durationMs": 283,
+          "passed": true,
+          "failures": []
+        },
+        {
+          "id": "DL.STORY.ROLE-BLUEPRINTS.2",
+          "route": "/design-lab/role-blueprints",
+          "requestPath": "/design-lab/role-blueprints?role=unsupported&variant=Z9",
+          "status": 200,
+          "durationMs": 253,
+          "passed": true,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "route": "/feed/device-preview",
+      "passed": true,
+      "scenarios": [
+        {
+          "id": "DL.STORY.FEED-DEVICE-PREVIEW.1",
+          "route": "/feed/device-preview",
+          "requestPath": "/feed/device-preview?device=tablet&variant=C2&dock=D6&sponsored=off",
+          "status": 200,
+          "durationMs": 282,
+          "passed": true,
+          "failures": []
+        },
+        {
+          "id": "DL.STORY.FEED-DEVICE-PREVIEW.2",
+          "route": "/feed/device-preview",
+          "requestPath": "/feed/device-preview?device=tablet&variant=C2&dock=D6&sponsored=off",
+          "status": 200,
+          "durationMs": 261,
+          "passed": true,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "route": "/marketplace/design-lab",
+      "passed": true,
+      "scenarios": [
+        {
+          "id": "DL.STORY.MARKETPLACE-TEMPLATES.1",
+          "route": "/marketplace/design-lab",
+          "requestPath": "/marketplace/design-lab?template=M6",
+          "status": 200,
+          "durationMs": 308,
+          "passed": true,
+          "failures": []
+        },
+        {
+          "id": "DL.STORY.MARKETPLACE-TEMPLATES.2",
+          "route": "/marketplace/design-lab",
+          "requestPath": "/marketplace/design-lab?template=unsupported",
+          "status": 200,
+          "durationMs": 245,
+          "passed": true,
+          "failures": []
+        }
+      ]
+    }
+  ]
+}

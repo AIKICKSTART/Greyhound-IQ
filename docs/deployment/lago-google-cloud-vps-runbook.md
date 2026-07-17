@@ -1,6 +1,12 @@
 # Lago Google Cloud VPS Runbook
 
-Purpose: self-host Lago for GreyhoundIQ billing on the AI Kick Start Google Cloud VPS, using the vendored `external/lago` checkout as the deployment source.
+Status: **Superseded and unapproved production deployment procedure. Do not execute.**
+
+Production architecture authority: [`../architecture/greyhoundiq-australia-production-architecture.md`](../architecture/greyhoundiq-australia-production-architecture.md). Lago may remain a planned billing component, but a Google Cloud VPS has not been selected or approved as its production host. The commands below are retained only as historical evaluation context until a separate billing-hosting decision covers Australian data paths, isolation, IAM, backups, restore, observability, failover and current cost.
+
+Nothing in this file authorises a VM, project, DNS, firewall, credential, secret, provider, billing attachment or upgrade, automatic payment, deployment, staging or production change. Any future rehearsal requires explicit approval for the exact environment, resources, credit impact, duration and teardown; paid billing requires a separate manual decision.
+
+Historical purpose: evaluate self-hosting Lago for GreyhoundIQ billing on an AI Kick Start Google Cloud VPS, using the vendored `external/lago` checkout as the deployment source.
 
 ## Scope
 

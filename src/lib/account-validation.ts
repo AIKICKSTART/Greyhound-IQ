@@ -45,7 +45,47 @@ export const profileUpdateSchema = z.object({
   kennelPrefix: optionalText(40),
   website: optionalWebsite,
   phone: optionalText(40),
+  profileVisibility: z
+    .enum(["public", "members", "connections", "only_me"])
+    .default("members"),
+  contactVisibility: z
+    .enum(["public", "members", "connections", "only_me"])
+    .default("only_me"),
 });
+
+const optionalMediaId = z
+  .string()
+  .trim()
+  .max(64)
+  .optional()
+  .nullable()
+  .transform((value) => value || null);
+
+const mediaRotation = z.coerce
+  .number()
+  .int()
+  .refine((value) => [0, 90, 180, 270].includes(value), {
+    message: "Rotation must be 0, 90, 180, or 270 degrees",
+  });
+
+export const personalActorMediaUpdateSchema = z.object({
+  avatarMediaId: optionalMediaId,
+  coverMediaId: optionalMediaId,
+  removeAvatar: z.boolean().default(false),
+  removeCover: z.boolean().default(false),
+  avatarFocalX: z.coerce.number().min(0).max(1).optional(),
+  avatarFocalY: z.coerce.number().min(0).max(1).optional(),
+  avatarZoom: z.coerce.number().min(1).max(3).default(1),
+  avatarRotation: mediaRotation.default(0),
+  coverFocalX: z.coerce.number().min(0).max(1).default(0.5),
+  coverFocalY: z.coerce.number().min(0).max(1).default(0.5),
+  coverZoom: z.coerce.number().min(1).max(3).default(1),
+  coverRotation: mediaRotation.default(0),
+});
+
+export type PersonalActorMediaUpdateInput = z.infer<
+  typeof personalActorMediaUpdateSchema
+>;
 
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
 
@@ -63,6 +103,17 @@ export const dogOwnershipRoleSchema = z.enum([
 export const dogOwnershipClaimSchema = z.object({
   role: dogOwnershipRoleSchema,
   evidence: optionalText(1000),
+});
+
+export const accountDeletionRequestSchema = z.object({
+  confirm: z.literal("DELETE"),
+});
+
+export const MARKETING_EMAIL_CHANNEL = "email";
+
+export const accountMarketingPreferenceSchema = z.object({
+  channel: z.literal(MARKETING_EMAIL_CHANNEL).optional(),
+  optedIn: z.boolean(),
 });
 
 export type DogOwnershipRole = z.infer<typeof dogOwnershipRoleSchema>;

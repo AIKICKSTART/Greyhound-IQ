@@ -38,6 +38,7 @@ type SupportTicketCounts = {
 
 export default async function AdminSupportPage() {
   const current = await requireModeratorProfile();
+  const canManageTickets = current.profileRole === "admin";
   const [ticketCounts, tickets] = await Promise.all([
     getSupportTicketCounts(current),
     getSupportTickets(current),
@@ -47,7 +48,11 @@ export default async function AdminSupportPage() {
     <main className="mx-auto max-w-6xl px-6 py-12">
       <AdminPageHeader
         title="Support ticket counts"
-        description="Aggregate support ticket counts and recent ticket rows. Status changes are audited; support message contents are not displayed."
+        description={
+          canManageTickets
+            ? "Aggregate support ticket counts and recent ticket rows. Status changes are audited; support message contents are not displayed."
+            : "Aggregate support ticket counts and recent ticket rows. Moderator access is read-only; an administrator is required to change status or send a support reply."
+        }
       />
 
       <section className="giq-panel p-6">
@@ -101,10 +106,14 @@ export default async function AdminSupportPage() {
                     <DateCell date={ticket.createdAt} />
                     <DateCell date={ticket.updatedAt} />
                     <td className="px-4 py-3">
-                      <AdminSupportTicketForm
-                        ticket={ticket}
-                        path="/admin/support"
-                      />
+                      {canManageTickets ? (
+                        <AdminSupportTicketForm
+                          ticket={ticket}
+                          path="/admin/support"
+                        />
+                      ) : (
+                        <AdminRequiredLabel />
+                      )}
                     </td>
                   </tr>
                 ))
@@ -114,6 +123,14 @@ export default async function AdminSupportPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function AdminRequiredLabel() {
+  return (
+    <span className="inline-flex min-h-11 items-center rounded-lg border border-amber-300/20 bg-amber-300/[0.07] px-3 text-[12px] font-semibold text-amber-200">
+      Administrator required
+    </span>
   );
 }
 
@@ -128,11 +145,13 @@ function getSupportTicketCounts(current: CurrentUserProfile) {
               by: ["status"],
               orderBy: { status: "asc" },
               _count: { _all: true },
+              take: 20,
             }),
             tx.supportTicket.groupBy({
               by: ["priority"],
               orderBy: { priority: "asc" },
               _count: { _all: true },
+              take: 20,
             }),
             tx.supportTicket.count(),
           ])

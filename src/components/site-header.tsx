@@ -8,20 +8,19 @@ import {
   Crown,
   CreditCard,
   Dna,
-  Download,
   Home,
+  Info,
   LifeBuoy,
   LogIn,
   LogOut,
   Map,
-  MessageSquare,
+  Mail,
   Search,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
   Trophy,
   User,
-  Users,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -37,17 +36,27 @@ import {
 } from "@/components/ui/sheet";
 import { getCurrentUser, isModeratorRole } from "@/lib/auth";
 import { HeaderNav } from "@/components/header-nav";
+import { ActorMediaImage } from "@/components/actor-media-image";
+import {
+  MemberHeaderSection,
+  MemberHeaderShell,
+} from "@/components/member-header-shell";
 import {
   MobileMenuAnchor,
   MobileMenuLink,
   MobileMenuSearchForm,
+  MobileMenuViewportClose,
 } from "@/components/mobile-menu-close-link";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
-import { countUnreadMessagesTotal } from "@/lib/conversation-service";
+import { UserDataExportForm } from "@/components/user-data-export-form";
 import { countUnreadNotificationsForUser } from "@/lib/notification-service";
 import { profileRealtimeChannel } from "@/lib/realtime-service";
 import { siteAssetUrl } from "@/lib/storage-paths";
 import { cached } from "@/lib/ttl-cache";
+import {
+  DANIEL_DEMO_PROFILE_ALIGNMENT,
+  DANIEL_DEMO_PROFILE_PORTRAIT,
+} from "@/lib/demo-profile-media";
 
 const TIER_BADGE: Record<string, { label: string; color: string }> = {
   free: { label: "Free", color: "var(--muted-foreground)" },
@@ -86,23 +95,74 @@ const NAV_SECTIONS: { title: string; links: NavLink[] }[] = [
     title: "Community",
     links: [
       { href: "/marketplace", label: "Marketplace", description: "Verified greyhound marketplace and saved dogs", icon: ShoppingBag },
-      { href: "/groups", label: "Groups", description: "Community groups, topics, and threads", icon: Users },
-      { href: "/feed", label: "Feed", description: "Personalised racing community updates", icon: MessageSquare },
-      { href: "/pulse", label: "Pulse", description: "Private conversations, enquiries, and calls", icon: Bell },
       { href: "/pricing", label: "Pricing", description: "Plans, limits, and Pro access", icon: CreditCard },
     ],
   },
+  {
+    title: "Company",
+    links: [
+      { href: "/about", label: "About", description: "GreyhoundIQ purpose, product, and team", icon: Info },
+      { href: "/contact", label: "Contact", description: "Questions, support, and partnership enquiries", icon: Mail },
+    ],
+  },
 ];
-const NAV_LINKS = NAV_SECTIONS.flatMap((section) =>
-  section.links.map(({ href, label }) => ({ href, label }))
-);
-
+const NAV_LINKS = [
+  { href: "/", label: "Home" },
+  {
+    label: "Racing",
+    links: [
+      { href: "/races", label: "Races" },
+      { href: "/results", label: "Results" },
+    ],
+  },
+  { href: "/tracks", label: "Tracks" },
+  { href: "/dogs", label: "Dogs" },
+  { href: "/breeding", label: "Breeding" },
+  { href: "/agents", label: "Agents" },
+  { href: "/marketplace", label: "Marketplace" },
+  { href: "/pricing", label: "Pricing" },
+  {
+    label: "Company",
+    links: [
+      { href: "/about", label: "About" },
+      { href: "/contact", label: "Contact" },
+    ],
+  },
+];
+const MEMBER_RACE_NAV_LINKS = [
+  { href: "/races", label: "Races" },
+  { href: "/results", label: "Results" },
+  { href: "/tracks", label: "Tracks" },
+  { href: "/dogs", label: "Dogs" },
+  { href: "/breeding", label: "Breeding" },
+  { href: "/statistics", label: "Statistics" },
+];
 const HEADER_BANNER_LANDSCAPE = siteAssetUrl("/images/wentworth-track-banner-landscape.webp");
 const HEADER_BANNER_MOBILE = siteAssetUrl("/images/wentworth-track-banner-mobile.webp");
 const LOGO_MAIN = "/images/logo-main-purple-gold.webp";
 const LOGO_MOBILE = "/images/logo-wordmark-purple-gold.webp";
+const DANIEL_PROFILE_PORTRAIT = DANIEL_DEMO_PROFILE_PORTRAIT;
 const ACCOUNT_MENU_ITEM_CLASS =
   "giq-button giq-button-carbon min-h-10 w-full justify-start px-3 text-[13px] font-semibold";
+
+function profileInitials(user: NonNullable<HeaderUser>) {
+  const names = [user.firstName, user.lastName].filter(
+    (name): name is string => Boolean(name?.trim())
+  );
+  const parts = names.length > 0 ? names : user.name.trim().split(/\s+/);
+  return parts
+    .slice(0, 2)
+    .map((name) => name[0])
+    .join("")
+    .toUpperCase() || "GI";
+}
+
+function isDanielFleuren(user: NonNullable<HeaderUser>) {
+  return (
+    user.firstName?.trim().toLowerCase() === "daniel" &&
+    user.lastName?.trim().toLowerCase() === "fleuren"
+  );
+}
 
 async function signOutAction() {
   "use server";
@@ -117,8 +177,6 @@ function AccountMenuItems({
   closeOnSelect?: boolean;
 }) {
   const AccountLink = closeOnSelect ? MobileMenuLink : Link;
-  const AccountAnchor = closeOnSelect ? MobileMenuAnchor : "a";
-
   return (
     <>
       <AccountLink href="/account" className={ACCOUNT_MENU_ITEM_CLASS}>
@@ -145,10 +203,7 @@ function AccountMenuItems({
         <Activity className="h-3.5 w-3.5" aria-hidden="true" />
         Usage
       </AccountLink>
-      <AccountAnchor href="/api/users/me/export" className={ACCOUNT_MENU_ITEM_CLASS}>
-        <Download className="h-3.5 w-3.5" aria-hidden="true" />
-        Data export
-      </AccountAnchor>
+      <UserDataExportForm className={ACCOUNT_MENU_ITEM_CLASS} />
       <AccountLink href="/account/support" className={ACCOUNT_MENU_ITEM_CLASS}>
         <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" />
         Support
@@ -186,9 +241,13 @@ function MobileNavigationMenu({
   badge: { label: string; color: string } | null;
   canAccessAdmin: boolean;
 }) {
+  const initials = user ? profileInitials(user) : "";
+  const showDanielPortrait = user ? isDanielFleuren(user) : false;
+
   return (
     <SheetContent side="right" showCloseButton={false} className="giq-mobile-menu-sheet">
       <SheetTitle className="sr-only">Navigation</SheetTitle>
+      <MobileMenuViewportClose />
       <div className="giq-mobile-menu-scroll">
         <div className="giq-mobile-menu-head">
           <div className="giq-mobile-menu-brand" aria-hidden="true">
@@ -218,18 +277,35 @@ function MobileNavigationMenu({
           <input type="hidden" name="sort" value="relevance" />
           <button type="submit" aria-label="Search races">
             <Search className="h-4 w-4" aria-hidden="true" />
+            <span>Search</span>
           </button>
         </MobileMenuSearchForm>
 
         <div className="giq-mobile-menu-cta">
           {user ? (
             <MobileMenuLink href="/account" className="giq-mobile-account-card">
-              <span className="giq-mobile-account-avatar" aria-hidden="true">
-                <User className="h-5 w-5" />
+              <span
+                className="giq-mobile-account-avatar"
+                data-tier={badge?.label.toLowerCase()}
+                aria-hidden={showDanielPortrait ? undefined : true}
+              >
+                {showDanielPortrait ? (
+                  <ActorMediaImage
+                    src={DANIEL_PROFILE_PORTRAIT}
+                    alt={`${user.firstName || user.name} profile portrait`}
+                    width={144}
+                    height={144}
+                    className="giq-mobile-profile-photo"
+                    {...DANIEL_DEMO_PROFILE_ALIGNMENT}
+                  />
+                ) : (
+                  initials
+                )}
+                <span className="giq-mobile-account-status" aria-hidden="true" />
               </span>
               <span className="min-w-0">
                 <strong>{user.firstName || user.name}</strong>
-                <small>{user.email}</small>
+                <small>Signed in · {badge?.label ?? "Free"} account</small>
               </span>
               {badge && <em>{badge.label}</em>}
             </MobileMenuLink>
@@ -253,6 +329,23 @@ function MobileNavigationMenu({
           )}
         </div>
 
+        {user && (
+          <nav aria-label="Quick actions" className="giq-mobile-menu-quick-actions">
+            <MobileMenuLink href="/races" className="giq-mobile-menu-quick-action">
+              <Activity aria-hidden="true" />
+              <span>Live races</span>
+            </MobileMenuLink>
+            <MobileMenuLink href="/feed" className="giq-mobile-menu-quick-action">
+              <Sparkles aria-hidden="true" />
+              <span>Feed</span>
+            </MobileMenuLink>
+            <MobileMenuLink href="/pulse" className="giq-mobile-menu-quick-action">
+              <Bell aria-hidden="true" />
+              <span>Chat</span>
+            </MobileMenuLink>
+          </nav>
+        )}
+
         <nav aria-label="Primary navigation" className="giq-mobile-menu-nav">
           {NAV_SECTIONS.map((section) => (
             <section key={section.title} className="giq-mobile-menu-section">
@@ -261,7 +354,11 @@ function MobileNavigationMenu({
                 {section.links.map((link) => {
                   const Icon = link.icon;
                   return (
-                    <MobileMenuLink key={link.href} href={link.href} className="giq-mobile-menu-link">
+                    <MobileMenuLink
+                      key={link.href}
+                      href={link.href}
+                      className="giq-mobile-menu-link"
+                    >
                       <span className="giq-mobile-menu-link-icon" aria-hidden="true">
                         <Icon className="h-4 w-4" />
                       </span>
@@ -293,11 +390,16 @@ function MobileNavigationMenu({
 
 function AccountNavigationMenu({
   user,
+  badge,
   canAccessAdmin,
 }: {
   user: NonNullable<HeaderUser>;
+  badge: { label: string; color: string } | null;
   canAccessAdmin: boolean;
 }) {
+  const initials = profileInitials(user);
+  const showDanielPortrait = isDanielFleuren(user);
+
   return (
     <SheetContent side="right" showCloseButton={false} className="giq-mobile-menu-sheet">
       <SheetTitle className="sr-only">Account menu</SheetTitle>
@@ -312,6 +414,33 @@ function AccountNavigationMenu({
           </SheetClose>
         </div>
 
+        <div className="giq-account-sheet-profile">
+          <span
+            className="giq-mobile-account-avatar"
+            data-tier={badge?.label.toLowerCase()}
+            aria-hidden={showDanielPortrait ? undefined : true}
+          >
+            {showDanielPortrait ? (
+              <ActorMediaImage
+                src={DANIEL_PROFILE_PORTRAIT}
+                alt={`${user.firstName || user.name} profile portrait`}
+                width={144}
+                height={144}
+                className="giq-mobile-profile-photo"
+                {...DANIEL_DEMO_PROFILE_ALIGNMENT}
+              />
+            ) : (
+              initials
+            )}
+            <span className="giq-mobile-account-status" aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <strong>{user.firstName || user.name}</strong>
+            <small>{user.email}</small>
+          </span>
+          {badge && <em>{badge.label}</em>}
+        </div>
+
         <section className="giq-mobile-menu-section">
           <h2>Account</h2>
           <div className="grid gap-2">
@@ -319,6 +448,7 @@ function AccountNavigationMenu({
             <SignOutMenuButton />
           </div>
         </section>
+
       </div>
     </SheetContent>
   );
@@ -364,7 +494,7 @@ function HeaderBannerImage() {
   });
 
   return (
-    <picture>
+    <picture className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
       <source media="(min-width: 768px)" srcSet={desktop} />
       <source srcSet={mobile} />
       <img {...rest} alt="" />
@@ -372,29 +502,227 @@ function HeaderBannerImage() {
   );
 }
 
-export async function SiteHeader() {
-  const user = await getCurrentUser();
+export async function SiteHeader({
+  user,
+  unreadMessages,
+}: {
+  user: HeaderUser;
+  unreadMessages: number;
+}) {
   const badge = user ? TIER_BADGE[user.tier] ?? TIER_BADGE.free : null;
   const canAccessAdmin = user ? isModeratorRole(user.role) : false;
-  const [unreadMessages, unreadNotifications] =
-    user?.profileId && user.dbUserId
-      ? await Promise.all([
-          countUnreadMessagesTotal({
-            dbUserId: user.dbUserId,
-            profileId: user.profileId,
-            profileRole: user.role ?? "member",
-            tier: user.tier,
-          }),
-          cached(`notif:unread:${user.dbUserId}`, 30_000, () =>
-            countUnreadNotificationsForUser(user.dbUserId!)
-          ),
-        ])
-      : [0, 0];
+  const unreadNotifications = user?.dbUserId
+    ? await cached(`notif:unread:${user.dbUserId}`, 30_000, () =>
+        countUnreadNotificationsForUser(user.dbUserId!)
+      )
+    : 0;
   const profileChannel = user?.profileId
     ? profileRealtimeChannel(user.profileId)
     : null;
+  const memberInitials = user ? profileInitials(user) : "";
+  const showDanielPortrait = user ? isDanielFleuren(user) : false;
 
-  return (
+  const memberHeader = user ? (
+      <>
+        {profileChannel && (
+          <RealtimeRefresh
+            channels={[
+              {
+                name: profileChannel,
+                events: [
+                  "message_created",
+                  "conversation_updated",
+                  "call_invite_created",
+                  "friend_updated",
+                ],
+              },
+            ]}
+          />
+        )}
+        <MemberHeaderShell>
+          <div className="giq-member-header-frame relative isolate mx-auto min-h-[68px] max-w-[1680px] overflow-hidden rounded-xl border border-white/25 bg-[hsl(var(--surface-3)/0.72)] shadow-[0_22px_55px_hsl(0_0%_0%/0.34)] backdrop-blur-xl md:min-h-[150px] md:rounded-2xl">
+            <HeaderBannerImage />
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 z-10 bg-[linear-gradient(90deg,hsl(var(--surface-1)/0.82)_0%,hsl(var(--surface-3)/0.38)_58%,hsl(var(--surface-1)/0.30)_100%)]"
+            />
+            <div aria-hidden="true" className="race-box-strip absolute inset-x-5 bottom-0 z-30 h-[3px] rounded-none opacity-95" />
+
+            <div className="giq-member-header-inner relative z-20 flex min-h-[68px] flex-col justify-between gap-3 px-3 py-3 md:min-h-[150px] md:px-6 md:py-4">
+              <div data-mobile-command-row className="giq-member-header-top-row flex items-center gap-2 md:items-start md:gap-3">
+                <Link
+                  href="/feed"
+                  aria-label="GreyhoundIQ feed"
+                  className="group flex min-w-0 shrink items-center transition-transform hover:-translate-y-px"
+                >
+                  <span className="giq-member-header-logo-desktop relative hidden h-[64px] w-[300px] shrink-0 overflow-hidden drop-shadow-[0_10px_20px_rgba(0,0,0,0.40)] md:block lg:w-[360px]">
+                    <Image
+                      src={LOGO_MAIN}
+                      alt=""
+                      fill
+                      priority
+                      className="object-contain object-left"
+                      sizes="(min-width: 1024px) 360px, 300px"
+                    />
+                  </span>
+                  <span className="giq-member-header-logo-mobile relative block h-9 w-[132px] max-w-[42vw] shrink-0 overflow-hidden md:hidden">
+                    <Image
+                      src={LOGO_MOBILE}
+                      alt=""
+                      fill
+                      priority
+                      className="object-contain object-left"
+                      sizes="132px"
+                    />
+                  </span>
+                </Link>
+
+                <MemberHeaderSection />
+
+                <div className="giq-header-actions ml-auto flex shrink-0 items-center gap-2">
+                  <form
+                    action="/races"
+                    role="search"
+                    aria-label="Search races"
+                    className="giq-search-shell hidden lg:flex"
+                  >
+                    <Search className="h-3.5 w-3.5" aria-hidden="true" />
+                    <input
+                      type="search"
+                      name="q"
+                      className="giq-search-input"
+                      placeholder="Search racing"
+                      aria-label="Search races, tracks, runners"
+                    />
+                    <input type="hidden" name="sort" value="relevance" />
+                  </form>
+
+                  <Sheet>
+                    <span className="relative inline-flex md:hidden">
+                      <SheetTrigger
+                        aria-label={`Open account menu for ${user.name}`}
+                        data-onboarding-target="account-navigation"
+                        className="giq-mobile-profile-button md:hidden"
+                        data-tier={badge?.label.toLowerCase()}
+                      >
+                        {showDanielPortrait ? (
+                          <ActorMediaImage
+                            src={DANIEL_PROFILE_PORTRAIT}
+                            alt=""
+                            width={144}
+                            height={144}
+                            className="giq-mobile-profile-photo"
+                            {...DANIEL_DEMO_PROFILE_ALIGNMENT}
+                          />
+                        ) : (
+                          <span className="giq-mobile-profile-initials" aria-hidden="true">
+                            {memberInitials}
+                          </span>
+                        )}
+                        <span className="giq-mobile-profile-status" aria-hidden="true" />
+                      </SheetTrigger>
+                      <CountBadge
+                        count={unreadNotifications}
+                        label={`${unreadNotifications} unread notifications`}
+                      />
+                    </span>
+                    <AccountNavigationMenu
+                      user={user}
+                      badge={badge}
+                      canAccessAdmin={canAccessAdmin}
+                    />
+                  </Sheet>
+
+                  <Sheet>
+                    <SheetTrigger
+                      aria-label="Open navigation menu"
+                      data-onboarding-target="racing-navigation community-navigation public-navigation marketplace-navigation agents-navigation design-lab-navigation"
+                      className="giq-mobile-menu-button md:hidden"
+                    >
+                      <span className="giq-premium-hamburger" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                      <span className="giq-mobile-menu-label" aria-hidden="true">Menu</span>
+                    </SheetTrigger>
+                    <MobileNavigationMenu
+                      user={user}
+                      badge={badge}
+                      canAccessAdmin={canAccessAdmin}
+                    />
+                  </Sheet>
+
+                  <Sheet>
+                    <span className="relative hidden md:inline-flex">
+                      <SheetTrigger
+                        aria-label={`Open account menu for ${user.name}`}
+                        data-onboarding-target="account-navigation"
+                        className="giq-button giq-button-glass min-h-11 px-3 text-[13px] font-semibold"
+                      >
+                        <span className="relative inline-flex size-7 shrink-0" aria-hidden="true">
+                          {showDanielPortrait ? (
+                            <span className="absolute inset-0 overflow-hidden rounded-full">
+                              <ActorMediaImage
+                                src={DANIEL_PROFILE_PORTRAIT}
+                                alt=""
+                                fill
+                                className="object-cover"
+                                sizes="56px"
+                                {...DANIEL_DEMO_PROFILE_ALIGNMENT}
+                              />
+                            </span>
+                          ) : (
+                            <span className="grid size-7 place-items-center rounded-full bg-white/[0.06]">
+                              <User className="h-4 w-4" />
+                            </span>
+                          )}
+                          <span className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full border border-[hsl(var(--surface-1))] bg-emerald-300" />
+                        </span>
+                        <span className="hidden max-w-[100px] truncate sm:inline">
+                          {user.firstName || user.name}
+                        </span>
+                        {badge && (
+                          <span
+                            className="hidden rounded-full px-2 py-0.5 text-[10px] font-semibold xl:inline-flex"
+                            style={{
+                              background: `hsl(${badge.color} / 0.14)`,
+                              color: `hsl(${badge.color})`,
+                            }}
+                          >
+                            {badge.label}
+                          </span>
+                        )}
+                        <ChevronDown className="hidden h-3.5 w-3.5 sm:block" aria-hidden="true" />
+                      </SheetTrigger>
+                      <CountBadge
+                        count={unreadNotifications}
+                        label={`${unreadNotifications} unread notifications`}
+                      />
+                    </span>
+                    <AccountNavigationMenu
+                      user={user}
+                      badge={badge}
+                      canAccessAdmin={canAccessAdmin}
+                    />
+                  </Sheet>
+                </div>
+              </div>
+
+              <nav
+                aria-label="Race navigation"
+                data-onboarding-target="racing-navigation community-navigation public-navigation marketplace-navigation agents-navigation design-lab-navigation"
+                className="giq-header-nav giq-member-race-nav hidden w-full gap-2 md:flex md:w-fit md:self-center md:items-center md:justify-center [scrollbar-width:thin]"
+              >
+                <HeaderNav links={MEMBER_RACE_NAV_LINKS} variant="desktop" />
+              </nav>
+            </div>
+          </div>
+        </MemberHeaderShell>
+      </>
+    ) : null;
+
+  const cinematicHeader = (
     <header className="giq-site-header sticky top-2 z-50 w-full px-3 md:px-5">
       {profileChannel && (
         <RealtimeRefresh
@@ -405,16 +733,17 @@ export async function SiteHeader() {
                 "message_created",
                 "conversation_updated",
                 "call_invite_created",
+                "friend_updated",
               ],
             },
           ]}
         />
       )}
-      <div className="giq-site-header-frame relative isolate mx-auto min-h-[150px] max-w-[70rem] overflow-hidden rounded-2xl border border-white/25 bg-[hsl(var(--surface-3)/0.68)] shadow-[0_22px_55px_hsl(0_0%_0%/0.34)] backdrop-blur-xl">
+      <div className="giq-site-header-frame relative isolate mx-auto min-h-[150px] max-w-[70rem] overflow-visible rounded-2xl border border-white/25 bg-[hsl(var(--surface-3)/0.68)] shadow-[0_22px_55px_hsl(0_0%_0%/0.34)] backdrop-blur-xl">
         <HeaderBannerImage />
         <div
           aria-hidden="true"
-          className="absolute inset-0 z-10 bg-[linear-gradient(90deg,hsl(var(--surface-1)/0.70)_0%,hsl(var(--surface-3)/0.25)_55%,transparent_100%)]"
+          className="absolute inset-0 z-10 rounded-[inherit] bg-[linear-gradient(90deg,hsl(var(--surface-1)/0.70)_0%,hsl(var(--surface-3)/0.25)_55%,transparent_100%)]"
         />
         <div aria-hidden="true" className="race-box-strip absolute inset-x-6 bottom-0 z-30 h-[3px] rounded-none opacity-95" />
 
@@ -466,14 +795,14 @@ export async function SiteHeader() {
               <span className="giq-header-notification relative hidden lg:inline-flex">
                 <Link
                   href="/pulse"
-                  aria-label="Pulse"
+                  aria-label="Chat"
                   className="giq-button giq-button-carbon giq-icon-button min-h-10 w-10 px-0"
                 >
                   <Bell className="h-4 w-4" />
                 </Link>
                 <CountBadge
                   count={unreadMessages}
-                  label={`${unreadMessages} unread Pulse messages`}
+                  label={`${unreadMessages} unread Chat messages`}
                 />
               </span>
 
@@ -482,14 +811,20 @@ export async function SiteHeader() {
                   <span className="giq-header-auth-action relative hidden md:inline-flex">
                     <SheetTrigger
                       aria-label={`Open account menu for ${user.name}`}
+                      data-onboarding-target="account-navigation"
                       className="giq-button giq-button-glass min-h-10 px-3 text-[13px] font-semibold md:px-4"
                     >
                       <User className="h-3.5 w-3.5" aria-hidden="true" />
-                      <span className="max-w-[100px] truncate">{user.firstName || user.name}</span>
+                      <span className="max-w-[100px] truncate">
+                        {user.firstName || user.name}
+                      </span>
                       {badge && (
                         <span
                           className="hidden rounded-full px-2 py-0.5 text-[10px] font-semibold lg:inline-flex"
-                          style={{ background: `hsl(${badge.color} / 0.14)`, color: `hsl(${badge.color})` }}
+                          style={{
+                            background: `hsl(${badge.color} / 0.14)`,
+                            color: `hsl(${badge.color})`,
+                          }}
                         >
                           {badge.label}
                         </span>
@@ -501,7 +836,11 @@ export async function SiteHeader() {
                       label={`${unreadNotifications} unread notifications`}
                     />
                   </span>
-                  <AccountNavigationMenu user={user} canAccessAdmin={canAccessAdmin} />
+                  <AccountNavigationMenu
+                    user={user}
+                    badge={badge}
+                    canAccessAdmin={canAccessAdmin}
+                  />
                 </Sheet>
               ) : (
                 <>
@@ -526,6 +865,7 @@ export async function SiteHeader() {
               <Sheet>
                 <SheetTrigger
                   aria-label="Open navigation menu"
+                  data-onboarding-target="racing-navigation community-navigation public-navigation marketplace-navigation agents-navigation design-lab-navigation"
                   className="giq-mobile-menu-button md:hidden"
                 >
                   <span className="giq-premium-hamburger" aria-hidden="true">
@@ -533,6 +873,7 @@ export async function SiteHeader() {
                     <span />
                     <span />
                   </span>
+                  <span className="giq-mobile-menu-label" aria-hidden="true">Menu</span>
                 </SheetTrigger>
                 <MobileNavigationMenu
                   user={user}
@@ -543,7 +884,10 @@ export async function SiteHeader() {
             </div>
           </div>
 
-          <nav className="giq-header-nav hidden w-full items-center justify-center gap-2 overflow-x-auto rounded-xl p-2 md:flex">
+          <nav
+            data-onboarding-target="racing-navigation community-navigation public-navigation marketplace-navigation agents-navigation design-lab-navigation"
+            className="giq-header-nav hidden w-full items-center justify-center gap-2 overflow-visible rounded-xl p-2 md:flex"
+          >
             <HeaderNav links={NAV_LINKS} variant="desktop" />
           </nav>
 
@@ -569,4 +913,8 @@ export async function SiteHeader() {
       </div>
     </header>
   );
+
+  if (!user) return cinematicHeader;
+
+  return memberHeader;
 }

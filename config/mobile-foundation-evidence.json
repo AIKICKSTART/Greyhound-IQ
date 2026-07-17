@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-15T02:59:01.713Z",
+  "product": "GreyhoundIQ Mobile",
+  "repository": "greyhoundiq-mobile",
+  "sourceEvidence": {
+    "path": "docs/evidence/mobile-foundation-latest.json",
+    "sha256": "d8fd900e024a27777f7fdf86cde6d4c6fe17bb9f4c4428536d1f7cebe399a09c"
+  },
+  "revision": "d8e1e93f6f62ebcae975b644181dc08b5b495728",
+  "branch": "master",
+  "dirty": true,
+  "repositoryRemoteConfigured": false,
+  "evidenceStatus": {
+    "status": "conditional",
+    "gateVerified": false,
+    "conditions": [
+      "independent-web-repository-boundary-attestation-missing",
+      "protected-mobile-release-environment-attestation-missing",
+      "worktree-is-dirty",
+      "remote-ci-attestation-missing"
+    ],
+    "claim": "Source-policy and bundle evidence only. Production verification requires independent release-gate approval."
+  },
+  "ciAttestation": {
+    "status": "missing",
+    "provider": "github-actions",
+    "runId": null,
+    "runAttempt": null,
+    "repository": null,
+    "revision": null,
+    "url": null
+  },
+  "sourceSha256": "c8291307097a114e55944b194e7c1852a0784c2867a6d3fdf46aeee40c73de75",
+  "sourceFileCount": 77,
+  "sourceManifest": {
+    "algorithm": "sha256-portable-manifest-v2"
+  },
+  "lockfile": {
+    "path": "package-lock.json",
+    "sha256": "d74f5722bc0f1be8863a32357adbf07ac6f7e286f58a6e1af728c3e2dd1960f1",
+    "bytes": 570927,
+    "normalization": "utf8-lf"
+  },
+  "clientTargets": [
+    "ios",
+    "ipados",
+    "android-phone",
+    "android-tablet"
+  ],
+  "bundleTargetsVerified": [
+    "ios",
+    "android",
+    "web"
+  ],
+  "buildArtifacts": {
+    "algorithm": "sha256-raw-artifact-manifest-v1",
+    "exportSha256": "1c51fd265efda549382dfa17191676a0acb2f59257451e27cbdd8f4d7ea7381e",
+    "exportFileCount": 63,
+    "exportBytes": 8964925,
+    "platforms": {
+      "ios": {
+        "path": "_expo/static/js/ios/entry-34e3fc8004655c9d711ea76f699bf751.hbc",
+        "sha256": "76be6e8dd35408df1ca939f94764c2659b2a722c4b53477bab70f2fe391c5cfd",
+        "bytes": 2975883
+      },
+      "android": {
+        "path": "_expo/static/js/android/entry-33b6cd68b3179c03e2bdf68ae76f43ad.hbc",
+        "sha256": "0e91827ccb4f45ffcc2c89c6f189a0ca795ef7caf5dec31a88405dd58f888c1c",
+        "bytes": 3277093
+      },
+      "web": {
+        "path": "_expo/static/js/web/entry-e0ad8ea33d0285abb3a0799068e94bbb.js",
+        "sha256": "33088d6193aa6dd7fb1879c25ca29e7a9b0f116fa051c6265cc28593a3e6897f",
+        "bytes": 1609532
+      }
+    }
+  },
+  "verification": {
+    "command": "npm run check",
+    "boundary": {
+      "status": "passed-source-policy",
+      "checks": 9
+    },
+    "typecheck": "passed",
+    "lint": "passed",
+    "unitTests": {
+      "status": "passed",
+      "commands": [
+        "npm test",
+        "npm run test:contracts"
+      ]
+    },
+    "expoDoctor": {
+      "status": "passed"
+    },
+    "bundles": {
+      "status": "passed",
+      "artifactsBoundByDigest": true
+    },
+    "dependencyAudit": {
+      "status": "passed-at-high-threshold"
+    }
+  },
+  "boundary": {
+    "mobileRepositorySourcePolicy": "passed-source-policy",
+    "signingSeparationPolicy": "passed-source-policy",
+    "deploymentSeparationPolicy": "passed-source-policy",
+    "webRepositoryIsolation": "not-attested-by-mobile-repository",
+    "sharedBackendConsumption": "published-api-contracts-only",
+    "credentiallessCiWorkflow": ".github/workflows/ci.yml",
+    "forbiddenArtifactCheck": "scripts/check-mobile-boundary.mjs",
+    "releaseBoundaryPolicy": "docs/architecture/mobile-release-boundary-policy.json",
+    "architectureDecision": "docs/architecture/mobile-adr.md"
+  },
+  "promotionEvidencePending": [
+    "clean committed and pushed mobile source candidate",
+    "remote GitHub Actions run for the exact revision and source digest",
+    "independent web repository source and deployment boundary attestation",
+    "protected mobile release environment and signing-isolation attestation"
+  ],
+  "externalEvidencePending": [
+    "protected-staging mobile auth and notification providers",
+    "TestFlight and Google Play internal tracks",
+    "real iPhone, iPad, Android phone and Android tablet evidence"
+  ]
+}

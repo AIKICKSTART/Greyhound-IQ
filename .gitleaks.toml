@@ -1,0 +1,12 @@
+title = "GreyhoundIQ Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Generated source-evidence SHA-256 fingerprints"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''^output/database-audit/demo-fixture-idempotency\.json$''']
+regexes = ['''^[[:space:]]*"src/lib/(auth-sync|demo-access)\.ts":[[:space:]]*"[0-9a-f]{64}",?[[:space:]]*$''']

@@ -16,9 +16,14 @@ export async function JsonLd({ data }: { data: JsonLdData | JsonLdData[] }) {
     <script
       type="application/ld+json"
       nonce={nonce}
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      suppressHydrationWarning
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(data) }}
     />
   );
+}
+
+export function serializeJsonLd(data: JsonLdData | JsonLdData[]) {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
 /** Sitewide Organization identity. */

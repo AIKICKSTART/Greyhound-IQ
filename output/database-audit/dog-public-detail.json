@@ -1,0 +1,1053 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "dog-public-detail-disposable-proof",
+  "generatedAt": "2026-07-17T02:08:59.968Z",
+  "safety": {
+    "scope": "literal-loopback-disposable-replay-only",
+    "host": "127.0.0.1",
+    "port": 55734,
+    "productionOrProviderSystemsContacted": false,
+    "fixtureOwner": "dog-public-detail-dedicated-proof",
+    "broadCleanupUsed": false
+  },
+  "runtimeIdentity": {
+    "role": "greyhoundiq_runtime",
+    "sessionRole": "greyhoundiq_runtime",
+    "database": "greyhoundiq",
+    "schema": "public",
+    "canLogin": true,
+    "superuser": false,
+    "bypassRls": false
+  },
+  "sourceBinding": {
+    "files": {
+      "prisma/schema.prisma": "ff7158c8900a4fc914bb0a09bc27e41bba4271a0144afee675a53b8e526a93fc",
+      "prisma/migrations/20260706223000_add_rls_entitlement_policies/migration.sql": "953db33c0662f936b67a88b8859fd49b5d76b28e90f2a5e8851669fb5ff6334e",
+      "prisma/migrations/20260708230000_dog_ownership_verification/migration.sql": "47193c42d9c7fd8c5942f8f22a78354a3dd7afff18b1204c095a147a31b2b75f",
+      "scripts/check-dog-public-detail-postgres.ts": "6383b2cd78e44c156c838fbcdd9b32b2a2bfada266f7f77cce1f31c30bb62747",
+      "scripts/check-dog-public-detail-postgres.test.ts": "d1e7b723c1d61e9d75f7537576e3bfed0fe6cdcf0e4323cf3e55001c35be8dd7",
+      "security/mandatory-public-racing-database-operations.ts": "3b6f0afff9bcb5b6b31752fe82baa07d9a4f84c67f8f16dd0431cbbdd322390f",
+      "src/app/dogs/[id]/page.tsx": "def2065050582bac9781edfd887cbbbc35b60f65e98b3ce909bde6048155690c",
+      "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
+      "src/lib/db.ts": "b11f3357d3daea521e825d8483b4bb8050c8c7d059e2aa311f1788b1b09d9035",
+      "src/lib/pedigree.ts": "bb4d0f3311246e41df70fc36ae7a2da7650636752f73fda48ca0677c04ba0f3e",
+      "src/lib/queries.ts": "b6195a482ab5d3387dd1fb2c2cde16fb76ba7011cc0baf36b7989f9c0df2895e"
+    },
+    "combinedSha256": "37a8469aebee23ad5da92d576c09c2482485a3faeac5d077788f6d6cad054ece"
+  },
+  "proof": {
+    "queryId": "DB.RACING.DOG.OPEN.PUBLIC_DETAIL_BUNDLE",
+    "sourceFile": "src/lib/queries.ts",
+    "sourceSymbol": "getDogById plus src/lib/pedigree.ts#getDogPedigree",
+    "expectedMaximumRows": 359,
+    "statementCount": 21,
+    "rowCounts": {
+      "before": 81,
+      "afterPopulatedRead": 81,
+      "afterEmptyRead": 81
+    },
+    "populated": {
+      "rootDog": "returned",
+      "careerStats": {
+        "starts": 3,
+        "wins": 1,
+        "placings": 2
+      },
+      "boundedFormEntries": 3,
+      "boundedProfileForms": 1,
+      "boundedRunners": 1,
+      "approvedOwnershipRows": 1,
+      "pendingOwnershipRows": 0,
+      "pedigreeNodes": 63,
+      "pedigreeDepth": 5,
+      "bridgedPedigreeNodes": 63,
+      "bridgedPedigreeDepth": 5
+    },
+    "empty": {
+      "dog": null,
+      "pedigree": null,
+      "mutation": "none"
+    },
+    "projection": {
+      "userTableQueried": false,
+      "ownershipProfileFields": [
+        "displayName",
+        "kennelName",
+        "state"
+      ],
+      "internalRawColumnsSelected": false
+    },
+    "rls": {
+      "anonymousReplayStatements": 21,
+      "anonymousReplayFailures": 0,
+      "anonymousApprovedOwnershipRows": 1,
+      "pendingClaimantApprovedOwnershipRows": 1,
+      "pendingClaimVisibleInPublicBundle": false
+    },
+    "cases": {
+      "formBound": "sixty-four-row-sql-limit",
+      "profileFormBound": "twenty-row-sql-limit",
+      "runnerBound": "twenty-row-sql-limit",
+      "ownershipBound": "sixteen-approved-rows-sql-limit",
+      "pedigreeBound": "input-nine-hundred-ninety-nine-clamped-to-five-generations",
+      "pedigreeBridge": "unlinked-provider-root-bridged-through-bounded-galtd-twin-query",
+      "accurateCareerStats": "bounded-count-and-three-finish-groups",
+      "publicProjection": "no-user-join-no-contact-or-billing-fields",
+      "notFound": "both-services-returned-null"
+    },
+    "statements": [
+      {
+        "phase": "detail",
+        "variant": "detail-01",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Dog\".\"id\", \"public\".\"Dog\".\"name\" FROM \"public\".\"Dog\" WHERE \"public\".\"Dog\".\"id\" IN ($1) OFFSET $2",
+          "sha256": "00aceaf0dc5b4bad255a5b7711bbb43bdce7cbf4c4a2341d626d2aaf0f51a00c",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Index Scan",
+            "relationName": "Dog",
+            "indexName": "Dog_pkey",
+            "joinType": null,
+            "scanDirection": "Forward",
+            "estimatedRows": 1,
+            "totalCost": 8.3,
+            "children": []
+          },
+          "planSha256": "5226e89be8ab223542afae7763714ab2481ec97f0e7f9d470cf51f171add8f67"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      },
+      {
+        "phase": "detail",
+        "variant": "detail-02",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Dog\".\"id\", \"public\".\"Dog\".\"name\", \"public\".\"Dog\".\"earBrand\", \"public\".\"Dog\".\"colour\", \"public\".\"Dog\".\"sex\", \"public\".\"Dog\".\"whelpDate\", \"public\".\"Dog\".\"prizeMoney\", \"public\".\"Dog\".\"trainerId\", \"public\".\"Dog\".\"sireId\", \"public\".\"Dog\".\"damId\" FROM \"public\".\"Dog\" WHERE (\"public\".\"Dog\".\"id\" = $1 AND 1=1) LIMIT $2 OFFSET $3",
+          "sha256": "9b03c2c8c44960e8d9d68525fa9ea0c921020502f3e8fda85ce29563ef32e3b6",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 8.3,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "Dog",
+                "indexName": "Dog_pkey",
+                "joinType": null,
+                "scanDirection": "Forward",
+                "estimatedRows": 1,
+                "totalCost": 8.3,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "8e126aea2a33139b96abd627da74796c0288a2f4138890c00523b1b01896f8cc"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      },
+      {
+        "phase": "detail",
+        "variant": "detail-03",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"DogOwnership\".\"id\", \"public\".\"DogOwnership\".\"role\", \"public\".\"DogOwnership\".\"status\", \"public\".\"DogOwnership\".\"profileId\", \"public\".\"DogOwnership\".\"dogId\" FROM \"public\".\"DogOwnership\" WHERE (\"public\".\"DogOwnership\".\"status\" = $1 AND \"public\".\"DogOwnership\".\"dogId\" IN ($2)) ORDER BY \"public\".\"DogOwnership\".\"verified\" DESC, \"public\".\"DogOwnership\".\"createdAt\" DESC LIMIT $3 OFFSET $4",
+          "sha256": "d443aee1c10703cdff62e7c0bb508e09c1f083f35a498ca8557ea022024cbfaf",
+          "parameterCount": 4,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 1.01,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 1.01,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "DogOwnership",
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 1,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "849cc50d5b40ef1078b7745aacc8d59715341b06a16e8ce4783ba1edc6051113"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      },
+      {
+        "phase": "detail",
+        "variant": "detail-04",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"DogProfileForm\".\"id\", \"public\".\"DogProfileForm\".\"sourceProvider\", \"public\".\"DogProfileForm\".\"raceUrl\", \"public\".\"DogProfileForm\".\"date\", \"public\".\"DogProfileForm\".\"trackCode\", \"public\".\"DogProfileForm\".\"trackName\", \"public\".\"DogProfileForm\".\"finishingPosition\", \"public\".\"DogProfileForm\".\"boxNumber\", \"public\".\"DogProfileForm\".\"weight\", \"public\".\"DogProfileForm\".\"distance\", \"public\".\"DogProfileForm\".\"grade\", \"public\".\"DogProfileForm\".\"runningTime\", \"public\".\"DogProfileForm\".\"firstSectional\", \"public\".\"DogProfileForm\".\"margin\", \"public\".\"DogProfileForm\".\"winnerDogName\", \"public\".\"DogProfileForm\".\"hasVideo\", \"public\".\"DogProfileForm\".\"dogId\" FROM \"public\".\"DogProfileForm\" WHERE \"public\".\"DogProfileForm\".\"dogId\" IN ($1) ORDER BY \"public\".\"DogProfileForm\".\"date\" DESC LIMIT $2 OFFSET $3",
+          "sha256": "83b2e74f6e2378fb37b31bcfd7237ec26598fed4e613127ebe556a05c252061a",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 1.19,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 1.19,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "DogProfileForm",
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 1.18,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "e074b151ff92f1dab656a8d62f09d3ecaf0c00e797dd6fd7c22ad6a5785bc0df"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      },
+      {
+        "phase": "detail",
+        "variant": "detail-05",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"FormEntry\".\"id\", \"public\".\"FormEntry\".\"raceId\", \"public\".\"FormEntry\".\"date\", \"public\".\"FormEntry\".\"boxNumber\", \"public\".\"FormEntry\".\"finish\", \"public\".\"FormEntry\".\"time\", \"public\".\"FormEntry\".\"distance\", \"public\".\"FormEntry\".\"grade\", \"public\".\"FormEntry\".\"weight\", \"public\".\"FormEntry\".\"trackId\", \"public\".\"FormEntry\".\"dogId\" FROM \"public\".\"FormEntry\" WHERE \"public\".\"FormEntry\".\"dogId\" IN ($1) ORDER BY \"public\".\"FormEntry\".\"date\" DESC LIMIT $2 OFFSET $3",
+          "sha256": "0d6b31804f61da6280c24bde0ee0147c4715dae0bc2bba46485128d62bc371fd",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 5.17,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 5.17,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "FormEntry",
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 5.15,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "195b4fa7ceb677f34cabce3f2ac1ccf8a3c39e29247ab6a70820a6767bb506cb"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 3
+        }
+      },
+      {
+        "phase": "detail",
+        "variant": "detail-06",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Meeting\".\"id\", \"public\".\"Meeting\".\"trackId\" FROM \"public\".\"Meeting\" WHERE \"public\".\"Meeting\".\"id\" IN ($1) OFFSET $2",
+          "sha256": "f819aeb31c62eb66e4ebecdd9da29730ed7e48dde41d06016fc6d69666ee02e6",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Seq Scan",
+            "relationName": "Meeting",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 3.26,
+            "children": []
+          },
+          "planSha256": "9d4b84e9d3a8acd666f02a086859db5227b34492353ab8dab83a72ad88da3343"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      },
+      {
+        "phase": "detail",
+        "variant": "detail-07",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Profile\".\"id\", \"public\".\"Profile\".\"displayName\", \"public\".\"Profile\".\"kennelName\", \"public\".\"Profile\".\"state\" FROM \"public\".\"Profile\" WHERE \"public\".\"Profile\".\"id\" IN ($1) OFFSET $2",
+          "sha256": "619a62d86a7d7915122019b654147df31415b201aad4dab9dc3089f4b7f379fc",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Seq Scan",
+            "relationName": "Profile",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 1.06,
+            "children": []
+          },
+          "planSha256": "b4bf30fae49c88caee35bba872b57c605bf9018d49ad992421a22d4c3e59db7e"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      },
+      {
+        "phase": "detail",
+        "variant": "detail-08",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Race\".\"id\", \"public\".\"Race\".\"raceTime\", \"public\".\"Race\".\"distance\", \"public\".\"Race\".\"grade\", \"public\".\"Race\".\"replayUrl\", \"public\".\"Race\".\"meetingId\" FROM \"public\".\"Race\" WHERE \"public\".\"Race\".\"id\" IN ($1) OFFSET $2",
+          "sha256": "27cef93e6ebcd4e373a0bfab5912d77793d3b80e81a8f400e15cfe44ac31569f",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Index Scan",
+            "relationName": "Race",
+            "indexName": "Race_pkey",
+            "joinType": null,
+            "scanDirection": "Forward",
+            "estimatedRows": 1,
+            "totalCost": 8.29,
+            "children": []
+          },
+          "planSha256": "7c54c4bc24cb3c394708d44588644ae19d35b84c1fb666bb0255660b8342eb9f"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      },
+      {
+        "phase": "detail",
+        "variant": "detail-09",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Result\".\"id\", \"public\".\"Result\".\"finishingPosition\", \"public\".\"Result\".\"runningTime\", \"public\".\"Result\".\"splitTime\", \"public\".\"Result\".\"margin\", \"public\".\"Result\".\"runnerId\" FROM \"public\".\"Result\" WHERE \"public\".\"Result\".\"runnerId\" IN ($1) OFFSET $2",
+          "sha256": "1be6f762ea68e226b3d5f2b9f64ddfbc3ac0c4913f6320c08447ab0371973aa0",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Index Scan",
+            "relationName": "Result",
+            "indexName": "Result_runnerId_key",
+            "joinType": null,
+            "scanDirection": "Forward",
+            "estimatedRows": 1,
+            "totalCost": 8.16,
+            "children": []
+          },
+          "planSha256": "8905ec6b68ce59a3a173a7651c00c74b3b5d53d9e0fd3002a9d6e8e4e369b3bf"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      },
+      {
+        "phase": "detail",
+        "variant": "detail-10",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Runner\".\"id\", \"public\".\"Runner\".\"boxNumber\", \"public\".\"Runner\".\"weight\", \"public\".\"Runner\".\"raceId\", \"public\".\"Runner\".\"dogId\" FROM \"public\".\"Runner\" WHERE \"public\".\"Runner\".\"dogId\" IN ($1) ORDER BY \"public\".\"Runner\".\"createdAt\" DESC LIMIT $2 OFFSET $3",
+          "sha256": "b0f3dda953f3619e1a176779639124817d27b27f2f567370da03cb0d8387f8a3",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 8.31,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 8.31,
+                "children": [
+                  {
+                    "nodeType": "Index Scan",
+                    "relationName": "Runner",
+                    "indexName": "Runner_dogId_idx",
+                    "joinType": null,
+                    "scanDirection": "Forward",
+                    "estimatedRows": 1,
+                    "totalCost": 8.29,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "13d3c10fb6900eb7ebeaa0a5086abad3f1123c77cb49e516513c890d12238511"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      },
+      {
+        "phase": "detail",
+        "variant": "detail-11",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Track\".\"id\", \"public\".\"Track\".\"name\" FROM \"public\".\"Track\" WHERE \"public\".\"Track\".\"id\" IN ($1) OFFSET $2",
+          "sha256": "b26e400f27b7253593326ffe1bc6ffcef42fddbe67826f8306d78c3ec84f7c93",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Seq Scan",
+            "relationName": "Track",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 1.24,
+            "children": []
+          },
+          "planSha256": "96fab8f702095feec723843ca717df17658947077de66e24e7114bbfb97b4e40"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      },
+      {
+        "phase": "detail",
+        "variant": "detail-12",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Trainer\".\"id\", \"public\".\"Trainer\".\"name\" FROM \"public\".\"Trainer\" WHERE \"public\".\"Trainer\".\"id\" IN ($1) OFFSET $2",
+          "sha256": "23706fb863e5c2766029aeeecdbfc4447ae819b122d8e480cdec48c351251f88",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Seq Scan",
+            "relationName": "Trainer",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 1,
+            "children": []
+          },
+          "planSha256": "d6f3e56cfc4b409f9715d271b52b2ecf1b0eeeaa0aca9faee7a186076371f598"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      },
+      {
+        "phase": "detail",
+        "variant": "detail-13",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT COUNT(*) AS \"_count$_all\" FROM (SELECT \"public\".\"FormEntry\".\"id\" FROM \"public\".\"FormEntry\" WHERE \"public\".\"FormEntry\".\"dogId\" = $1 OFFSET $2) AS \"sub\"",
+          "sha256": "dfa46750706b40b979bbbf887344e4539cf8b365c9e8c39f156da6c06f1cebe0",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Aggregate",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 5.17,
+            "children": [
+              {
+                "nodeType": "Seq Scan",
+                "relationName": "FormEntry",
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 5.15,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "fe949fb207354cc0544875a5767691198d99ab482ecd3747eea313eacce265f8"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      },
+      {
+        "phase": "detail",
+        "variant": "detail-14",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT COUNT(*) AS \"_count$_all\", \"public\".\"FormEntry\".\"finish\" FROM \"public\".\"FormEntry\" WHERE (\"public\".\"FormEntry\".\"dogId\" = $1 AND \"public\".\"FormEntry\".\"finish\" IN ($2,$3,$4)) GROUP BY \"public\".\"FormEntry\".\"finish\" ORDER BY \"public\".\"FormEntry\".\"finish\" ASC LIMIT $5 OFFSET $6",
+          "sha256": "abd138e701b955fcead8678daa0c2f52e00310c5304d2cb7c3b26d92e515a478",
+          "parameterCount": 6,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 5.53,
+            "children": [
+              {
+                "nodeType": "Aggregate",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 5.53,
+                "children": [
+                  {
+                    "nodeType": "Sort",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 5.51,
+                    "children": [
+                      {
+                        "nodeType": "Seq Scan",
+                        "relationName": "FormEntry",
+                        "indexName": null,
+                        "joinType": null,
+                        "scanDirection": null,
+                        "estimatedRows": 1,
+                        "totalCost": 5.5,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "9f8437af90165f0a337bf0f9d7f49f786778277dfc2db8d084861e4a9fb58f3d"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 2
+        }
+      },
+      {
+        "phase": "pedigree",
+        "variant": "pedigree-01",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Dog\".\"id\", \"public\".\"Dog\".\"name\", \"public\".\"Dog\".\"sex\", \"public\".\"Dog\".\"colour\", \"public\".\"Dog\".\"whelpDate\", \"public\".\"Dog\".\"sireId\", \"public\".\"Dog\".\"damId\" FROM \"public\".\"Dog\" WHERE \"public\".\"Dog\".\"id\" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32) ORDER BY \"public\".\"Dog\".\"id\" ASC LIMIT $33 OFFSET $34",
+          "sha256": "c8031497413a769a726ffc3c33bd3ed260ea4106f394438b167a76980840e960",
+          "parameterCount": 34,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 32,
+            "totalCost": 78.66,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 32,
+                "totalCost": 78.66,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "Dog",
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 32,
+                    "totalCost": 77.78,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "f7d65b604bae3f408f4fed313aa9d86581b084b4f4b6d7d9e78e2ece72be1175"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 32
+        }
+      },
+      {
+        "phase": "pedigree",
+        "variant": "pedigree-02",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Dog\".\"id\", \"public\".\"Dog\".\"name\", \"public\".\"Dog\".\"sex\", \"public\".\"Dog\".\"colour\", \"public\".\"Dog\".\"whelpDate\", \"public\".\"Dog\".\"sireId\", \"public\".\"Dog\".\"damId\" FROM \"public\".\"Dog\" WHERE \"public\".\"Dog\".\"id\" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) ORDER BY \"public\".\"Dog\".\"id\" ASC LIMIT $17 OFFSET $18",
+          "sha256": "91a33ba06363e228b3c8ef7bd624cf168e0f516d4164731f9dfeb9887f95e1c8",
+          "parameterCount": 18,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 16,
+            "totalCost": 55.6,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "Dog",
+                "indexName": "Dog_pkey",
+                "joinType": null,
+                "scanDirection": "Forward",
+                "estimatedRows": 16,
+                "totalCost": 55.6,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "a390c5dd02db15553e634623c90ff8c06b621d76f1765889207e96ffbbebc525"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 16
+        }
+      },
+      {
+        "phase": "pedigree",
+        "variant": "pedigree-03",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Dog\".\"id\", \"public\".\"Dog\".\"name\", \"public\".\"Dog\".\"sex\", \"public\".\"Dog\".\"colour\", \"public\".\"Dog\".\"whelpDate\", \"public\".\"Dog\".\"sireId\", \"public\".\"Dog\".\"damId\" FROM \"public\".\"Dog\" WHERE \"public\".\"Dog\".\"id\" IN ($1,$2,$3,$4,$5,$6,$7,$8) ORDER BY \"public\".\"Dog\".\"id\" ASC LIMIT $9 OFFSET $10",
+          "sha256": "4e9a0d42fa001742fa0a909f6b0981d5ee6289dfa1f2054e845be3dc03507380",
+          "parameterCount": 10,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 8,
+            "totalCost": 35.91,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "Dog",
+                "indexName": "Dog_pkey",
+                "joinType": null,
+                "scanDirection": "Forward",
+                "estimatedRows": 8,
+                "totalCost": 35.91,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "270655c29795d37d1c5dd095b6e01b34fb1e23105a35e19eac2cf20f1f6f32fd"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 8
+        }
+      },
+      {
+        "phase": "pedigree",
+        "variant": "pedigree-04",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Dog\".\"id\", \"public\".\"Dog\".\"name\", \"public\".\"Dog\".\"sex\", \"public\".\"Dog\".\"colour\", \"public\".\"Dog\".\"whelpDate\", \"public\".\"Dog\".\"sireId\", \"public\".\"Dog\".\"damId\" FROM \"public\".\"Dog\" WHERE \"public\".\"Dog\".\"id\" IN ($1,$2,$3,$4) ORDER BY \"public\".\"Dog\".\"id\" ASC LIMIT $5 OFFSET $6",
+          "sha256": "93230e7901e19020aea9f8bcb69444730c110fefb4987215e32eed3ed8d66e34",
+          "parameterCount": 6,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 4,
+            "totalCost": 21.84,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "Dog",
+                "indexName": "Dog_pkey",
+                "joinType": null,
+                "scanDirection": "Forward",
+                "estimatedRows": 4,
+                "totalCost": 21.84,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "b218ed9df70de4d4f18ee28611d39d9d0e7ff6dfbf4973fd30306f2cdd9a299e"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 4
+        }
+      },
+      {
+        "phase": "pedigree",
+        "variant": "pedigree-05",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Dog\".\"id\", \"public\".\"Dog\".\"name\", \"public\".\"Dog\".\"sex\", \"public\".\"Dog\".\"colour\", \"public\".\"Dog\".\"whelpDate\", \"public\".\"Dog\".\"sireId\", \"public\".\"Dog\".\"damId\" FROM \"public\".\"Dog\" WHERE \"public\".\"Dog\".\"id\" IN ($1,$2) ORDER BY \"public\".\"Dog\".\"id\" ASC LIMIT $3 OFFSET $4",
+          "sha256": "6d411f92b2338839f1f86b8d0bfaac68fae390d70969cf1719579dae42d88796",
+          "parameterCount": 4,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 2,
+            "totalCost": 12.81,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "Dog",
+                "indexName": "Dog_pkey",
+                "joinType": null,
+                "scanDirection": "Forward",
+                "estimatedRows": 2,
+                "totalCost": 12.81,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "e49f34312373a66c5931851dc5bae101b6501d14c6c9bd848a7c4608a727a3e6"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 2
+        }
+      },
+      {
+        "phase": "pedigree",
+        "variant": "pedigree-06",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Dog\".\"id\", \"public\".\"Dog\".\"name\", \"public\".\"Dog\".\"sex\", \"public\".\"Dog\".\"colour\", \"public\".\"Dog\".\"whelpDate\", \"public\".\"Dog\".\"sireId\", \"public\".\"Dog\".\"damId\" FROM \"public\".\"Dog\" WHERE (\"public\".\"Dog\".\"id\" = $1 AND 1=1) LIMIT $2 OFFSET $3",
+          "sha256": "d6d3be7982798d486aed1adb5787b5de094ad450a6a67a085ed44430bd80f4c6",
+          "parameterCount": 3,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 8.3,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "Dog",
+                "indexName": "Dog_pkey",
+                "joinType": null,
+                "scanDirection": "Forward",
+                "estimatedRows": 1,
+                "totalCost": 8.3,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "8e126aea2a33139b96abd627da74796c0288a2f4138890c00523b1b01896f8cc"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      },
+      {
+        "phase": "pedigree",
+        "variant": "pedigree-07",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Dog\".\"id\", \"public\".\"Dog\".\"name\", \"public\".\"Dog\".\"sex\", \"public\".\"Dog\".\"colour\", \"public\".\"Dog\".\"whelpDate\", \"public\".\"Dog\".\"sireId\", \"public\".\"Dog\".\"damId\" FROM \"public\".\"Dog\" WHERE (\"public\".\"Dog\".\"sourceProvider\" = $1 AND \"public\".\"Dog\".\"name\" ILIKE $2 AND (\"public\".\"Dog\".\"sireId\" IS NOT NULL OR \"public\".\"Dog\".\"damId\" IS NOT NULL)) ORDER BY \"public\".\"Dog\".\"id\" ASC LIMIT $3 OFFSET $4",
+          "sha256": "4353f2b90cd958c04a0a5b6f0f9029719d9a3511db0f8d85bacac7102738154f",
+          "parameterCount": 4,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 8.31,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 8.31,
+                "children": [
+                  {
+                    "nodeType": "Index Scan",
+                    "relationName": "Dog",
+                    "indexName": "Dog_sourceProvider_sourceId_key",
+                    "joinType": null,
+                    "scanDirection": "Forward",
+                    "estimatedRows": 1,
+                    "totalCost": 8.3,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "5f1c7a865800bebac846c9d9107f8e6dc8e6f31d2e10c8b29a01fcc38c8ca16d"
+        },
+        "anonymousReplay": {
+          "status": "allowed",
+          "rows": 1
+        }
+      }
+    ],
+    "status": "verified"
+  },
+  "cleanup": {
+    "dogOwnershipRowsDeleted": 2,
+    "profileRowsDeleted": 2,
+    "userRowsDeleted": 2,
+    "resultRowsDeleted": 1,
+    "runnerRowsDeleted": 1,
+    "formEntryRowsDeleted": 3,
+    "profileFormRowsDeleted": 1,
+    "raceRowsDeleted": 1,
+    "meetingRowsDeleted": 1,
+    "trackRowsDeleted": 1,
+    "dogRowsDeleted": 65,
+    "trainerRowsDeleted": 1,
+    "remainingRows": 0
+  },
+  "verdict": "verified"
+}

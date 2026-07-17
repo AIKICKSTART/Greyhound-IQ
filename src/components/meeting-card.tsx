@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, MapPin, PlayCircle } from "lucide-react";
 import {
@@ -5,6 +6,8 @@ import {
   formatRaceTime,
   formatShortRaceDayLabel,
 } from "@/lib/race-time";
+import { siteAssetUrl } from "@/lib/storage-paths";
+import { trackMediaPathForName } from "@/lib/track-media";
 
 type MeetingData = {
   id: string;
@@ -28,6 +31,7 @@ type MeetingData = {
 
 export function MeetingCard({ meeting }: { meeting: MeetingData }) {
   const track = meeting.track;
+  const trackMediaPath = trackMediaPathForName(track.name);
   const now = new Date();
   const nextRace = meeting.races.find((r) => r.raceTime > now);
   const featuredRace = nextRace ?? meeting.races[0];
@@ -41,6 +45,31 @@ export function MeetingCard({ meeting }: { meeting: MeetingData }) {
 
   return (
     <div className="giq-carbon-surface giq-meeting-card group">
+      <Link
+        href={`/tracks/${track.id}`}
+        aria-label={`Open ${track.name} track guide`}
+        className="relative mb-4 block aspect-[5/2] overflow-hidden rounded-[10px] border border-white/[0.08] bg-[radial-gradient(circle_at_50%_0%,hsl(var(--primary)/0.18),transparent_58%),hsl(var(--surface-2))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[hsl(var(--primary-light))]"
+      >
+        {trackMediaPath ? (
+          <Image
+            src={siteAssetUrl(trackMediaPath)}
+            alt=""
+            fill
+            className="object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
+            sizes="(min-width: 1280px) 390px, (min-width: 1024px) 30vw, (min-width: 768px) 45vw, calc(100vw - 48px)"
+          />
+        ) : (
+          <span className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--muted-foreground))]">
+            <MapPin className="h-5 w-5 text-[hsl(var(--primary-light))]" aria-hidden="true" />
+            Track image unavailable
+          </span>
+        )}
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 bg-[linear-gradient(180deg,transparent_42%,hsl(var(--background)/0.72)_100%)]"
+        />
+      </Link>
+
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <Link

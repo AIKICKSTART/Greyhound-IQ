@@ -1,0 +1,13 @@
+*
+!Dockerfile
+!export.sh
+!restore-local.sh
+!run.sh
+!contract.json
+!portable-stage.sql
+!load-stage.sql
+!apply-local.sql
+!reconcile-read-only.sql
+!verify-local-read-only.sql
+!export-safe-jsonl.sql
+!export-snapshot.sql

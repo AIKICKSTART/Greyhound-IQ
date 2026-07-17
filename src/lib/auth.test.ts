@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 
 import { isAdminRole, isModeratorRole } from "@/lib/auth-roles";
-import { authLookupWhere } from "@/lib/auth-sync";
+import {
+  authIdentityChangedFields,
+  authLookupWhere,
+} from "@/lib/auth-sync";
 import { assertPaidFeatureAccess, hasTier } from "@/lib/tier-access";
 
 // Unverified email must NOT fall back to email matching (account-takeover guard).
@@ -15,6 +18,32 @@ assert.deepEqual(authLookupWhere("wos_1", "a@b.com", true), {
 assert.deepEqual(authLookupWhere("wos_1", "a@b.com"), {
   OR: [{ workosUserId: "wos_1" }, { email: "a@b.com" }],
 });
+
+const storedIdentity = {
+  email: "a@b.com",
+  name: "Alpha User",
+  workosUserId: "wos_1",
+};
+assert.deepEqual(
+  authIdentityChangedFields(storedIdentity, {
+    id: "wos_1",
+    email: "a@b.com",
+    firstName: "Alpha",
+    lastName: "User",
+  }),
+  [],
+  "unchanged provider identity must not produce an audit event",
+);
+assert.deepEqual(
+  authIdentityChangedFields(storedIdentity, {
+    id: "wos_2",
+    email: "next@example.com",
+    firstName: "Next",
+    lastName: "Name",
+  }),
+  ["email", "display_name", "provider_subject"],
+  "identity audit metadata must contain field names, never old or new values",
+);
 
 assert.throws(
   () => assertPaidFeatureAccess({ tier: "free" }),

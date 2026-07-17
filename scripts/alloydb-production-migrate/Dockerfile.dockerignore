@@ -1,0 +1,16 @@
+**
+!package.json
+!package-lock.json
+!prisma/
+!prisma/schema.prisma
+!prisma/migrations/
+!prisma/migrations/**
+!prisma.config.ts
+!src/
+!src/lib/
+!src/lib/database-url.ts
+!scripts/
+!scripts/alloydb-production-migrate/
+!scripts/alloydb-production-migrate/Dockerfile
+!scripts/alloydb-production-migrate/Dockerfile.dockerignore
+!scripts/alloydb-production-migrate/migrate.sh

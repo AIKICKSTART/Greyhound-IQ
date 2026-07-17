@@ -1,3 +1,28 @@
+import { execFileSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join, relative } from "node:path";
+
+import {
+  missingRequiredLanes,
+  resolveStagingLoadProfile,
+  stableJson,
+  stagingLoadConfigDigest,
+  stagingLoadPreflightFindings,
+  stagingLoadThresholdFindings,
+  summarizeStagingLoad,
+  type StagingLoadLane,
+  type StagingLoadSample,
+} from "./staging-load-evidence";
+import {
+  resolveApprovedGcsSignedUploadUrl,
+  resolveApprovedSignedUploadUrl,
+  resolveLoadObjectStorageProvider,
+  resolveSignedUploadHeaders,
+  resolveStagingLoadBaseUrl,
+  resolveStagingRequestUrl,
+  resolveStagingSupabaseUrl,
+} from "./staging-load-policy";
+
 type Method = "GET" | "POST";
 
 type Probe = {
@@ -9,12 +34,7 @@ type Probe = {
   body?: unknown;
 };
 
-type Result = {
-  label: string;
-  status: number;
-  ms: number;
-  ok: boolean;
-};
+type Result = StagingLoadSample;
 
 type ProbeTargets = {
   conversationId: string | null;
@@ -23,9 +43,13 @@ type ProbeTargets = {
   listingId: string | null;
 };
 
-const baseUrl = process.env.LOAD_BASE_URL ?? "https://greyhoundsiq.com.au";
+const baseUrl = resolveStagingLoadBaseUrl(process.env.LOAD_BASE_URL);
 const iterations = positiveInt(process.env.LOAD_ITERATIONS, 5);
 const concurrency = positiveInt(process.env.LOAD_CONCURRENCY, 4);
+const loadProfile = resolveStagingLoadProfile(process.env.LOAD_PROFILE, {
+  iterations,
+  concurrency,
+});
 const cookie = process.env.LOAD_TEST_COOKIE?.trim();
 const includeMutations = process.env.LOAD_INCLUDE_MUTATIONS === "true";
 const includeInternalWriteFlow =
@@ -40,10 +64,28 @@ const requestTimeoutMs = positiveInt(process.env.LOAD_REQUEST_TIMEOUT_MS, 60_000
 
 const includeRealtime = process.env.LOAD_INCLUDE_REALTIME === "true";
 const realtimeClients = positiveInt(process.env.LOAD_REALTIME_CLIENTS, 5);
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-
 const includeMediaFlow = process.env.LOAD_INCLUDE_MEDIA_FLOW === "true";
+const objectStorageProvider = resolveLoadObjectStorageProvider(
+  process.env.LOAD_OBJECT_STORAGE_PROVIDER ??
+    process.env.OBJECT_STORAGE_PROVIDER
+);
+const supabaseUrl =
+  includeRealtime ||
+  (includeMediaFlow && objectStorageProvider === "supabase")
+    ? resolveStagingSupabaseUrl(
+        process.env.LOAD_SUPABASE_URL,
+        process.env.LOAD_APPROVED_SUPABASE_HOST
+      )
+    : undefined;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+const approvedGcsBucket =
+  includeMediaFlow && objectStorageProvider === "gcs"
+    ? process.env.LOAD_APPROVED_GCS_BUCKET?.trim()
+    : undefined;
+const mediaStorageApproved =
+  objectStorageProvider === "gcs"
+    ? Boolean(approvedGcsBucket)
+    : Boolean(supabaseUrl);
 
 const includeCallTokenLoad = process.env.LOAD_INCLUDE_CALL_TOKEN_LOAD === "true";
 const callTokenConcurrency = positiveInt(process.env.LOAD_CALL_TOKEN_CONCURRENCY, 10);
@@ -52,8 +94,11 @@ const callTokenRoomId =
 
 const includePoolSaturation = process.env.LOAD_INCLUDE_POOL_SATURATION === "true";
 const poolSaturationRequests = positiveInt(process.env.LOAD_POOL_SATURATION_REQUESTS, 50);
-const poolSaturationPath =
-  process.env.LOAD_POOL_SATURATION_PATH?.trim() || "/api/dogs/search?q=load";
+const poolSaturationUrl = resolveStagingRequestUrl(
+  process.env.LOAD_POOL_SATURATION_PATH?.trim() || "/api/dogs/search?q=load",
+  baseUrl
+);
+const poolSaturationPath = `${poolSaturationUrl.pathname}${poolSaturationUrl.search}`;
 
 // 1x1 transparent PNG — smallest valid image for the media sign+upload+finalize path.
 const TINY_PNG_BASE64 =
@@ -199,11 +244,62 @@ main().catch((err) => {
 });
 
 async function main() {
-  assertNonProductionForLoadScenarios();
+  const configuredLanes = configuredLoadLanes();
+  const targetHost = new URL(baseUrl).hostname.toLowerCase();
+  const environment =
+    process.env.LOAD_ENVIRONMENT?.trim() ||
+    (loadProfile.name === "smoke" &&
+    ["localhost", "127.0.0.1", "[::1]"].includes(targetHost)
+      ? "local"
+      : "staging");
+  const sourceSha =
+    process.env.LOAD_SOURCE_SHA?.trim() ||
+    (loadProfile.name === "smoke" ? localSourceSha() : "");
+  const imageDigest =
+    process.env.LOAD_IMAGE_DIGEST?.trim() ||
+    (loadProfile.name === "smoke" ? "not-applicable-local-smoke" : "");
+  const preflightFindings = stagingLoadPreflightFindings({
+    profile: loadProfile,
+    targetOrigin: baseUrl,
+    environment,
+    sourceSha,
+    imageDigest,
+    configuredLanes,
+  });
+  if (preflightFindings.length > 0) {
+    throw new Error(`Load profile preflight failed: ${preflightFindings.join("; ")}`);
+  }
+
   const auth = await buildAuthProbes();
   const probes = [...publicProbes, ...auth.probes];
-  const results = await runPool(probes.flatMap((probe) => repeat(probe, iterations)));
-  results.push(...(await runDependentProbes(auth.targets)));
+  const results: Result[] = [];
+  const executedLanes = new Set<StagingLoadLane>();
+  for (const stage of loadProfile.stages) {
+    const stageResults = await runPool(
+      probes.flatMap((probe) => repeat(probe, stage.iterations)),
+      stage.concurrency,
+    );
+    results.push(
+      ...stageResults.map((result) => ({
+        ...result,
+        label:
+          loadProfile.name === "smoke"
+            ? result.label
+            : `${stage.name} / ${result.label}`,
+      })),
+    );
+  }
+  if (publicProbes.length > 0) executedLanes.add("public");
+  if (auth.probes.some((probe) => probe.auth && (probe.method ?? "GET") === "GET")) {
+    executedLanes.add("authenticated");
+  }
+  if (auth.probes.some((probe) => probe.method === "POST")) {
+    executedLanes.add("mutations");
+  }
+
+  const dependentResults = await runDependentProbes(auth.targets);
+  results.push(...dependentResults);
+  if (dependentResults.length > 0) executedLanes.add("mutations");
   if (includeInternalWriteFlow) {
     if (!internalSecret) {
       throw new Error(
@@ -211,28 +307,41 @@ async function main() {
       );
     }
     results.push(await runInternalWriteFlowProbe());
+    executedLanes.add("internal-write");
   }
   if (includeMediaFlow) {
-    results.push(...(await runMediaFlowProbe(auth.targets)));
+    const mediaResults = await runMediaFlowProbe(auth.targets);
+    results.push(...mediaResults);
+    if (mediaResults.length > 0) executedLanes.add("media");
   }
   if (includeCallTokenLoad) {
-    results.push(...(await runCallTokenLoadProbe()));
+    const callResults = await runCallTokenLoadProbe();
+    results.push(...callResults);
+    if (callResults.length > 0) executedLanes.add("call-token");
   }
   if (includePoolSaturation) {
-    results.push(...(await runPoolSaturationProbe()));
+    const poolResults = await runPoolSaturationProbe();
+    results.push(...poolResults);
+    if (poolResults.length > 0) executedLanes.add("pool-saturation");
   }
   const failures = results.filter((result) => !result.ok);
+  const realtimeReport = includeRealtime ? await runRealtimeProbe() : null;
+  if (realtimeReport && realtimeReport.status !== "SKIPPED") {
+    executedLanes.add("realtime");
+  }
+  const summary = summarizeStagingLoad(results);
 
-  for (const [label, group] of groupByLabel(results)) {
-    const times = group.map((result) => result.ms).sort((a, b) => a - b);
-    const statuses = statusHistogram(group);
+  for (const [label, labelSummary] of Object.entries(summary.byLabel)) {
+    const statuses = Object.entries(labelSummary.statuses)
+      .map(([status, count]) => `${status}x${count}`)
+      .join(",");
     console.log(
-      `${label}: count=${group.length} status=${statuses} p50=${percentile(times, 50)}ms p95=${percentile(times, 95)}ms max=${Math.max(...times)}ms`
+      `${label}: count=${labelSummary.count} status=${statuses} p50=${labelSummary.p50Milliseconds}ms p95=${labelSummary.p95Milliseconds}ms p99=${labelSummary.p99Milliseconds}ms max=${labelSummary.maximumMilliseconds}ms errorRate=${labelSummary.errorRate}`,
     );
   }
 
-  if (includeRealtime) {
-    console.log(formatRealtime(await runRealtimeProbe()));
+  if (realtimeReport) {
+    console.log(formatRealtime(realtimeReport));
   }
 
   if (!cookie) {
@@ -283,27 +392,57 @@ async function main() {
     );
   }
 
+  const gateFindings = [
+    ...stagingLoadThresholdFindings(loadProfile, summary.overall),
+    ...missingRequiredLanes(loadProfile.requiredLanes, [...executedLanes]).map(
+      (lane) => `required lane produced no evidence: ${lane}`,
+    ),
+    ...(realtimeReport?.status === "FAILED"
+      ? [`realtime lane failed: ${realtimeReport.reason ?? "unknown error"}`]
+      : []),
+  ];
+  const timestamp = new Date().toISOString();
+  const config = {
+    profile: loadProfile,
+    targetOrigin: baseUrl,
+    requestTimeoutMs,
+    configuredLanes: [...configuredLanes].sort(),
+    realtimeClients,
+    callTokenConcurrency,
+    poolSaturationRequests,
+  };
+  const configDigest = stagingLoadConfigDigest(config);
+  const evidence = {
+    schemaVersion: 1,
+    status: gateFindings.length === 0 ? "passed" : "failed",
+    identity: {
+      environment,
+      timestamp,
+      targetOrigin: baseUrl,
+      sourceSha,
+      imageDigest,
+      configDigest,
+    },
+    configuration: config,
+    coverage: {
+      requiredLanes: loadProfile.requiredLanes,
+      configuredLanes,
+      executedLanes: [...executedLanes].sort(),
+    },
+    summary,
+    realtime: realtimeReport,
+    findings: gateFindings,
+  };
+  console.log(`evidence: ${writeEvidence(evidence, loadProfile.name, timestamp)}`);
+
   if (failures.length > 0) {
     for (const failure of failures) {
       console.error(`${failure.label}: got ${failure.status} in ${failure.ms}ms`);
     }
-    process.exit(1);
   }
-}
-
-// Guard: the new scenarios generate concurrent load and must never hit production.
-function assertNonProductionForLoadScenarios() {
-  const loadScenariosRequested =
-    includeCallTokenLoad || includePoolSaturation || includeMediaFlow;
-  if (!loadScenariosRequested) return;
-  const host = new URL(baseUrl).hostname.toLowerCase();
-  const isProduction =
-    host === "greyhoundsiq.com.au" || host === "www.greyhoundsiq.com.au";
-  if (isProduction && process.env.LOAD_ALLOW_PRODUCTION !== "true") {
-    throw new Error(
-      `Refusing to run load scenarios against production host "${host}". ` +
-        "Point LOAD_BASE_URL at staging."
-    );
+  if (gateFindings.length > 0) {
+    for (const finding of gateFindings) console.error(`load gate: ${finding}`);
+    process.exit(1);
   }
 }
 
@@ -331,9 +470,16 @@ async function runMediaFlowProbe(targets: ProbeTargets): Promise<Result[]> {
   const signData = recordValue(sign.data);
   const mediaId = stringValue(signData?.mediaId);
   const uploadUrl = stringValue(signData?.uploadUrl);
-  if (!sign.result.ok || !mediaId || !uploadUrl) return results;
+  const objectPath = stringValue(signData?.objectPath);
+  if (!sign.result.ok || !mediaId || !uploadUrl || !objectPath) return results;
 
-  results.push(await runUploadToSignedUrl(uploadUrl));
+  results.push(
+    await runUploadToSignedUrl(
+      uploadUrl,
+      objectPath,
+      signData?.uploadHeaders
+    )
+  );
 
   const finalize = await runProbeWithBody({
     label: "media flow: finalize",
@@ -347,16 +493,34 @@ async function runMediaFlowProbe(targets: ProbeTargets): Promise<Result[]> {
   return results;
 }
 
-async function runUploadToSignedUrl(uploadUrl: string): Promise<Result> {
+async function runUploadToSignedUrl(
+  uploadUrl: string,
+  objectPath: string,
+  uploadHeaders: unknown
+): Promise<Result> {
   const started = Date.now();
   const bytes = pngBytes();
   try {
-    // Supabase signed upload URLs accept a PUT of the raw object body.
-    const response = await fetch(uploadUrl, {
+    const approvedUploadUrl = objectStorageProvider === "gcs"
+      ? resolveApprovedGcsSignedUploadUrl(
+          uploadUrl,
+          approvedGcsBucket,
+          objectPath
+        )
+      : resolveApprovedSignedUploadUrl(
+          uploadUrl,
+          supabaseUrl ?? ""
+        );
+    const approvedHeaders = resolveSignedUploadHeaders(
+      uploadHeaders,
+      objectStorageProvider,
+      "image/png"
+    );
+    const response = await fetch(approvedUploadUrl, {
       method: "PUT",
       redirect: "manual",
       signal: AbortSignal.timeout(requestTimeoutMs),
-      headers: { "content-type": "image/png" },
+      headers: approvedHeaders,
       body: bytes,
     });
     await response.arrayBuffer();
@@ -366,7 +530,10 @@ async function runUploadToSignedUrl(uploadUrl: string): Promise<Result> {
       ms: Date.now() - started,
       ok: response.status >= 200 && response.status < 300,
     };
-  } catch {
+  } catch (error) {
+    console.error(
+      `media flow: upload refused: ${error instanceof Error ? error.message : "unknown error"}`
+    );
     return { label: "media flow: upload", status: 0, ms: Date.now() - started, ok: false };
   }
 }
@@ -407,7 +574,10 @@ async function runInternalWriteFlowProbe(): Promise<Result> {
   const started = Date.now();
   try {
     const response = await fetch(
-      new URL("/api/internal/community-readiness?write=true", baseUrl),
+      resolveStagingRequestUrl(
+        "/api/internal/community-readiness?write=true",
+        baseUrl
+      ),
       {
         method: "POST",
         redirect: "manual",
@@ -510,7 +680,7 @@ async function discoverListingId(currentProfileId: string | null) {
 
 async function getJson(path: string, auth: boolean) {
   try {
-    const response = await fetch(new URL(path, baseUrl), {
+    const response = await fetch(resolveStagingRequestUrl(path, baseUrl), {
       redirect: "manual",
       signal: AbortSignal.timeout(requestTimeoutMs),
       headers: auth && cookie ? { cookie } : undefined,
@@ -522,11 +692,11 @@ async function getJson(path: string, auth: boolean) {
   }
 }
 
-async function runPool(items: Probe[]) {
+async function runPool(items: Probe[], concurrencyLimit = concurrency) {
   const results: Result[] = [];
   let next = 0;
   await Promise.all(
-    Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    Array.from({ length: Math.min(concurrencyLimit, items.length) }, async () => {
       for (;;) {
         const index = next++;
         if (index >= items.length) return;
@@ -540,7 +710,7 @@ async function runPool(items: Probe[]) {
 async function runProbe(probe: Probe): Promise<Result> {
   const started = Date.now();
   try {
-    const response = await fetch(new URL(probe.path, baseUrl), {
+    const response = await fetch(resolveStagingRequestUrl(probe.path, baseUrl), {
       method: probe.method ?? "GET",
       redirect: "manual",
       signal: AbortSignal.timeout(requestTimeoutMs),
@@ -574,7 +744,7 @@ async function runProbeWithBody(probe: Probe): Promise<{
 }> {
   const started = Date.now();
   try {
-    const response = await fetch(new URL(probe.path, baseUrl), {
+    const response = await fetch(resolveStagingRequestUrl(probe.path, baseUrl), {
       method: probe.method ?? "GET",
       redirect: "manual",
       signal: AbortSignal.timeout(requestTimeoutMs),
@@ -612,14 +782,6 @@ function repeat<T>(value: T, count: number) {
   return Array.from({ length: count }, () => value);
 }
 
-function groupByLabel(results: Result[]) {
-  const groups = new Map<string, Result[]>();
-  for (const result of results) {
-    groups.set(result.label, [...(groups.get(result.label) ?? []), result]);
-  }
-  return groups;
-}
-
 function percentile(values: number[], pct: number) {
   if (values.length === 0) return 0;
   const index = Math.ceil((pct / 100) * values.length) - 1;
@@ -653,17 +815,6 @@ function pngBytes() {
   return Buffer.from(TINY_PNG_BASE64, "base64");
 }
 
-function statusHistogram(results: Result[]) {
-  const counts = new Map<number, number>();
-  for (const result of results) {
-    counts.set(result.status, (counts.get(result.status) ?? 0) + 1);
-  }
-  return [...counts.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([status, count]) => `${status}x${count}`)
-    .join(",");
-}
-
 type RealtimeReport = {
   status: "OK" | "SKIPPED" | "FAILED";
   reason?: string;
@@ -678,7 +829,7 @@ async function runRealtimeProbe(): Promise<RealtimeReport> {
   if (!supabaseUrl || !supabaseAnonKey) {
     return {
       status: "SKIPPED",
-      reason: "NEXT_PUBLIC_SUPABASE_URL/ANON_KEY not set",
+      reason: "LOAD_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_ANON_KEY not set",
       subscribed: 0,
       attempted: 0,
       times: [],
@@ -767,6 +918,47 @@ function formatRealtime(report: RealtimeReport) {
       : "";
   const reason = report.reason ? ` (${report.reason})` : "";
   return `${base} subscribed=${report.subscribed}/${report.attempted}${stats}${reason}`;
+}
+
+function configuredLoadLanes(): StagingLoadLane[] {
+  return [
+    "public" as const,
+    ...(cookie ? (["authenticated"] as const) : []),
+    ...(cookie && includeMutations ? (["mutations"] as const) : []),
+    ...(includeInternalWriteFlow && internalSecret
+      ? (["internal-write"] as const)
+      : []),
+    ...(includeRealtime && supabaseUrl && supabaseAnonKey
+      ? (["realtime"] as const)
+      : []),
+    ...(includeMediaFlow && cookie && mediaStorageApproved
+      ? (["media"] as const)
+      : []),
+    ...(includeCallTokenLoad ? (["call-token"] as const) : []),
+    ...(includePoolSaturation ? (["pool-saturation"] as const) : []),
+  ];
+}
+
+function localSourceSha() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "unresolved-local-working-tree";
+  }
+}
+
+function writeEvidence(evidence: unknown, profile: string, timestamp: string) {
+  const directory = join(process.cwd(), "output", "staging-load");
+  mkdirSync(directory, { recursive: true });
+  const stamp = timestamp.replace(/[-:.]/g, "");
+  const historyPath = join(directory, `${profile}-${stamp}.json`);
+  const content = stableJson(evidence);
+  writeFileSync(historyPath, content, "utf8");
+  writeFileSync(join(directory, "latest.json"), content, "utf8");
+  return relative(process.cwd(), historyPath).replace(/\\/g, "/");
 }
 
 export {};

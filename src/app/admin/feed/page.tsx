@@ -41,6 +41,7 @@ export default async function AdminFeedPage() {
             <form action={createFeedTopic} className="mt-4 space-y-3">
               <input
                 name="name"
+                aria-label="Topic name"
                 required
                 minLength={2}
                 maxLength={80}
@@ -49,12 +50,14 @@ export default async function AdminFeedPage() {
               />
               <input
                 name="slug"
+                aria-label="Topic slug"
                 maxLength={80}
                 placeholder="slug optional"
                 className="giq-form-control w-full px-3 py-2 text-[13px]"
               />
               <textarea
                 name="rules"
+                aria-label="Topic rules"
                 maxLength={2000}
                 rows={4}
                 placeholder="Topic rules optional"
@@ -62,6 +65,7 @@ export default async function AdminFeedPage() {
               />
               <input
                 name="sortOrder"
+                aria-label="Topic sort order"
                 type="number"
                 min={0}
                 max={9999}
@@ -199,6 +203,7 @@ function PostModerationForm({
     <form action={moderateFeedPost.bind(null, postId)} className="min-w-[260px] space-y-2">
       <select
         name="action"
+        aria-label="Moderation action"
         defaultValue={pinned ? "unpin" : "pin"}
         className="giq-form-control w-full px-2 py-1 text-[12px]"
       >
@@ -210,6 +215,7 @@ function PostModerationForm({
       </select>
       <input
         name="reason"
+        aria-label="Moderation reason"
         maxLength={500}
         placeholder="Reason optional"
         className="giq-form-control w-full px-2 py-1 text-[12px]"

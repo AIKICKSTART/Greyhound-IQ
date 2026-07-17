@@ -3,21 +3,27 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
-  const url = process.env.LIVEKIT_URL;
-  const key = process.env.LIVEKIT_API_KEY;
-  const secret = process.env.LIVEKIT_API_SECRET;
-  const set = [url, key, secret].filter(Boolean).length;
-  if (set > 0 && set < 3) {
-    throw new Error(
-      "LiveKit misconfigured: LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET must be set together (calls are disabled only when all three are absent)."
-    );
+  const { readLiveKitDeploymentConfig } = await import("@/lib/livekit-config");
+  const liveKit = readLiveKitDeploymentConfig(process.env);
+  if (liveKit.mode === "disabled" && process.env.NODE_ENV === "production") {
+    const { logBackgroundWarn } = await import("@/lib/logger");
+    logBackgroundWarn("livekit.not_configured", {
+      feature: "video_voice_calls",
+      enabled: false,
+    });
   }
-  if (set === 0 && process.env.NODE_ENV === "production") {
-    console.warn(
-      JSON.stringify({
-        severity: "WARNING",
-        message: "livekit.not_configured: video/voice calls are disabled for this deployment",
-      })
-    );
+
+  const realtimeSecret = process.env.REALTIME_CHANNEL_SECRET?.trim();
+  if (
+    process.env.NODE_ENV === "production" &&
+    (!realtimeSecret ||
+      realtimeSecret.toLowerCase().includes("your_") ||
+      realtimeSecret.toLowerCase().includes("your-"))
+  ) {
+    const { logBackgroundError } = await import("@/lib/logger");
+    logBackgroundError("realtime.secret_missing", {
+      feature: "private_realtime_channels",
+      enabled: false,
+    });
   }
 }

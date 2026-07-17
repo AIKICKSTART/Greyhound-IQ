@@ -35,9 +35,9 @@ assert.doesNotThrow(() =>
   assertListingMediaPolicy([
     ...Array.from({ length: 10 }, () => ({
       mimeType: "image/webp",
-      storageBucket: "public-user-media",
+      storageBucket: "private-user-media",
     })),
-    { mimeType: "video/mp4", storageBucket: "public-user-media" },
+    { mimeType: "video/mp4", storageBucket: "private-user-media" },
   ])
 );
 
@@ -52,16 +52,16 @@ assert.throws(
 assert.throws(
   () =>
     assertListingMediaPolicy([
-      { mimeType: "image/webp", storageBucket: "private-user-media" },
+      { mimeType: "image/webp", storageBucket: "public-user-media" },
     ]),
-  /listing\.media_must_be_public/
+  /listing\.media_must_be_private/
 );
 
 assert.throws(
   () =>
     assertListingMediaPolicy([
-      { mimeType: "video/mp4", storageBucket: "public-user-media" },
-      { mimeType: "video/webm", storageBucket: "public-user-media" },
+      { mimeType: "video/mp4", storageBucket: "private-user-media" },
+      { mimeType: "video/webm", storageBucket: "private-user-media" },
     ]),
   /listing\.too_many_videos/
 );

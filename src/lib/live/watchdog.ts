@@ -1,99 +1,37 @@
 import type { LiveDataProvider, LiveMeeting, LiveRace, LiveRunner } from "./provider";
+import { logExecutionWarn } from "../logger";
+import { readBoundedTextResponse } from "../remote-response";
+import {
+  parseWatchdogPayload,
+  type WatchdogMeeting,
+  type WatchdogParticipant,
+  type WatchdogPayload,
+  type WatchdogRace,
+} from "./watchdog-response";
 
 const WATCHDOG_BASE =
   process.env.WATCHDOG_BASE_URL ?? "https://watchdog.grv.org.au";
-const WATCHDOG_MAX_MEETINGS = positiveInt(process.env.WATCHDOG_MAX_MEETINGS, 40);
-const WATCHDOG_CONCURRENCY = positiveInt(process.env.WATCHDOG_CONCURRENCY, 4);
-const WATCHDOG_FETCH_TIMEOUT_MS = positiveInt(
-  process.env.WATCHDOG_FETCH_TIMEOUT_MS,
-  30_000
+const WATCHDOG_MAX_MEETINGS = Math.min(
+  positiveInt(process.env.WATCHDOG_MAX_MEETINGS, 40),
+  128
 );
+const WATCHDOG_CONCURRENCY = Math.min(
+  positiveInt(process.env.WATCHDOG_CONCURRENCY, 4),
+  10
+);
+const WATCHDOG_FETCH_TIMEOUT_MS = Math.min(
+  positiveInt(process.env.WATCHDOG_FETCH_TIMEOUT_MS, 30_000),
+  120_000
+);
+const WATCHDOG_JSON_POLICY = {
+  maxBytes: 5 * 1024 * 1024,
+  allowedContentTypes: ["application/json", "+json"],
+} as const;
 const WATCHDOG_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 type FetchLike = typeof fetch;
-
-interface WatchdogPayload {
-  meetings?: WatchdogMeeting[];
-  races?: WatchdogRace[];
-  participants?: WatchdogParticipant[];
-}
-
-interface WatchdogMeeting {
-  id: number | string;
-  trackCode?: string | null;
-  trackName?: string | null;
-  slot?: string | null;
-  statusCode?: string | null;
-  meetingDate?: string | null;
-  startTime?: string | null;
-  countRaces?: number | null;
-  isInterstate?: boolean | null;
-}
-
-interface WatchdogRace {
-  id: number | string;
-  number?: number | null;
-  raceNumber?: number | null;
-  meetingId?: number | string | null;
-  sponsor?: string | null;
-  distance?: number | null;
-  grade?: string | null;
-  gradeCode?: string | null;
-  firstPrize?: number | null;
-  secondPrize?: number | null;
-  thirdPrize?: number | null;
-  fourthPrize?: number | null;
-  fifthPrize?: number | null;
-  sixthPrize?: number | null;
-  seventhPrize?: number | null;
-  eighthPrize?: number | null;
-  suggestedBet?: string | null;
-  watchDogTips?: number[] | null;
-  overview?: string | null;
-  videoId?: string | null;
-  photoFinishUrl?: string | null;
-  declaration?: string | null;
-  startTime?: string | null;
-  trackCode?: string | null;
-  dividends?: unknown;
-  betName?: string | null;
-}
-
-interface WatchdogParticipant {
-  id?: number | string | null;
-  raceId?: number | string | null;
-  rugNumber?: number | null;
-  box?: string | number | null;
-  isLateScratching?: boolean | null;
-  dogId?: number | string | null;
-  dogName?: string | null;
-  trainer?: string | null;
-  trainerId?: number | string | null;
-  owner?: string | null;
-  last5?: string | null;
-  averageFirstSplitSpeed?: number | null;
-  resultPlace?: number | null;
-  resultWeight?: number | null;
-  resultMargin?: string | number | null;
-  resultTime?: number | null;
-  resultFirstSplitTime?: number | null;
-  comments?: string | null;
-  sireName?: string | null;
-  sireId?: number | string | null;
-  damName?: string | null;
-  damId?: number | string | null;
-  colour?: string | null;
-  whelpedDate?: string | null;
-  sex?: string | null;
-  careerPrizeMoney?: number | null;
-  pir?: string | null;
-  runLine?: string | null;
-  jumpStyle?: string | null;
-  oddsFixedWin?: number | null;
-  oddsToteWin?: number | null;
-}
 
 export class WatchdogProvider implements LiveDataProvider {
   readonly name = "watchdog";
@@ -101,7 +39,7 @@ export class WatchdogProvider implements LiveDataProvider {
   constructor(private readonly fetchImpl: FetchLike = fetch) {}
 
   async fetchUpcomingMeetings(days: number): Promise<LiveMeeting[]> {
-    const payload = await this.getJson<WatchdogPayload>(
+    const payload = await this.getJson(
       `/api/public/form/upcoming-meetings/${new Date().toISOString()}`
     );
     const meetings = ensureArray(payload.meetings)
@@ -112,7 +50,7 @@ export class WatchdogProvider implements LiveDataProvider {
   }
 
   async fetchResults(days: number): Promise<LiveMeeting[]> {
-    const recent = await this.getJson<WatchdogPayload>("/api/public/form/recent");
+    const recent = await this.getJson("/api/public/form/recent");
     const meetings = ensureArray(recent.meetings)
       .filter((meeting) => isMeetingInRecentWindow(meeting, days))
       .slice(0, WATCHDOG_MAX_MEETINGS);
@@ -128,16 +66,15 @@ export class WatchdogProvider implements LiveDataProvider {
       WATCHDOG_CONCURRENCY,
       async (meeting) => {
         try {
-          const payload = await this.getJson<WatchdogPayload>(
+          const payload = await this.getJson(
             `/api/public/form/meeting/${meeting.id}`
           );
           return mapWatchdogPayload(payload);
         } catch (err) {
-          console.warn(
-            `[watchdog] Skipping meeting ${meeting.id}: ${
-              err instanceof Error ? err.message : String(err)
-            }`
-          );
+          await logExecutionWarn("live.watchdog.meeting_skipped", {
+            provider: this.name,
+            meetingId: meeting.id,
+          }, err);
           return [];
         }
       }
@@ -146,21 +83,37 @@ export class WatchdogProvider implements LiveDataProvider {
     return detailed.flat();
   }
 
-  private async getJson<T>(path: string): Promise<T> {
-    const response = await this.fetchImpl(new URL(path, WATCHDOG_BASE), {
-      signal: AbortSignal.timeout(WATCHDOG_FETCH_TIMEOUT_MS),
-      headers: {
-        accept: "application/json",
-        "accept-language": "en-US,en;q=0.9",
-        "user-agent": WATCHDOG_USER_AGENT,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`${response.status} ${response.statusText} for ${path}`);
+  private async getJson(path: string): Promise<WatchdogPayload> {
+    const signal = AbortSignal.timeout(WATCHDOG_FETCH_TIMEOUT_MS);
+    let response: Response;
+    try {
+      response = await this.fetchImpl(new URL(path, WATCHDOG_BASE), {
+        redirect: "error",
+        signal,
+        headers: {
+          accept: "application/json",
+          "accept-language": "en-US,en;q=0.9",
+          "user-agent": WATCHDOG_USER_AGENT,
+        },
+      });
+    } catch {
+      throw new Error(
+        signal.aborted ? "watchdog.request_timeout" : "watchdog.request_failed"
+      );
     }
 
-    return response.json() as Promise<T>;
+    if (!response.ok) {
+      throw new Error(`watchdog.request_failed:${response.status}`);
+    }
+
+    const body = await readBoundedTextResponse(response, WATCHDOG_JSON_POLICY);
+    let payload: unknown;
+    try {
+      payload = JSON.parse(body);
+    } catch {
+      throw new Error("watchdog.response_invalid_json");
+    }
+    return parseWatchdogPayload(payload);
   }
 }
 
@@ -196,7 +149,17 @@ function mapWatchdogMeeting(
 
   return {
     sourceId: String(meeting.id),
-    sourceRawJson: JSON.stringify(meeting),
+    sourceRawJson: JSON.stringify({
+      id: meeting.id,
+      trackCode: meeting.trackCode,
+      trackName: meeting.trackName,
+      slot: meeting.slot,
+      statusCode: meeting.statusCode,
+      meetingDate: meeting.meetingDate,
+      startTime: meeting.startTime,
+      countRaces: meeting.countRaces,
+      isInterstate: meeting.isInterstate,
+    }),
     trackName: meeting.trackName?.trim() || meeting.trackCode?.trim() || "Unknown VIC track",
     state: "VIC",
     meetingDate,
@@ -223,15 +186,35 @@ function mapWatchdogRace(
   const prizeMoneyByPosition = placePrizeMoney(race);
   const runners = participants
     .map(mapWatchdogRunner)
+    .filter((runner): runner is LiveRunner => runner != null)
     .map((runner) => applyPrizeMoneyWon(runner, prizeMoneyByPosition))
-    .filter((runner): runner is LiveRunner => runner.boxNumber > 0)
+    .filter((runner) => runner.boxNumber > 0)
     .sort((a, b) => a.boxNumber - b.boxNumber);
 
   return {
     sourceId: String(race.id),
     sourceRawJson: JSON.stringify({
-      ...race,
+      id: race.id,
+      number: race.number,
+      raceNumber: race.raceNumber,
+      meetingId: race.meetingId,
+      sponsor: race.sponsor,
+      distance: race.distance,
+      grade: race.grade,
+      gradeCode: race.gradeCode,
+      firstPrize: race.firstPrize,
+      secondPrize: race.secondPrize,
+      thirdPrize: race.thirdPrize,
+      fourthPrize: race.fourthPrize,
+      fifthPrize: race.fifthPrize,
+      sixthPrize: race.sixthPrize,
+      seventhPrize: race.seventhPrize,
+      eighthPrize: race.eighthPrize,
       videoId,
+      photoFinishUrl: race.photoFinishUrl,
+      declaration: race.declaration,
+      startTime: race.startTime,
+      trackCode: race.trackCode,
       participantCount: participants.length,
     }),
     raceNumber: Math.trunc(numberOr(race.number ?? race.raceNumber, 0)),
@@ -251,11 +234,13 @@ function mapWatchdogRace(
   };
 }
 
-function mapWatchdogRunner(participant: WatchdogParticipant): LiveRunner {
+function mapWatchdogRunner(participant: WatchdogParticipant): LiveRunner | null {
   const boxNumber = Math.trunc(
     numberOr(participant.box, numberOr(participant.rugNumber, 0))
   );
-  const dogSourceId = participant.dogId == null ? undefined : String(participant.dogId);
+  const dogSourceId = stableSourceId(participant.dogId);
+  const dogName = participant.dogName?.trim();
+  if (!dogSourceId || !isRealDogName(dogName)) return null;
 
   return {
     sourceId:
@@ -264,18 +249,51 @@ function mapWatchdogRunner(participant: WatchdogParticipant): LiveRunner {
         : participant.raceId != null
           ? `${participant.raceId}:box:${boxNumber}`
           : undefined,
-    sourceRawJson: JSON.stringify(participant),
+    sourceProvider: "watchdog",
+    sourceRawJson: JSON.stringify({
+      id: participant.id,
+      raceId: participant.raceId,
+      rugNumber: participant.rugNumber,
+      box: participant.box,
+      isLateScratching: participant.isLateScratching,
+      dogId: participant.dogId,
+      dogName: participant.dogName,
+      trainer: participant.trainer,
+      trainerId: participant.trainerId,
+      owner: participant.owner,
+      last5: participant.last5,
+      averageFirstSplitSpeed: participant.averageFirstSplitSpeed,
+      resultPlace: participant.resultPlace,
+      resultWeight: participant.resultWeight,
+      resultMargin: participant.resultMargin,
+      resultTime: participant.resultTime,
+      resultFirstSplitTime: participant.resultFirstSplitTime,
+      comments: participant.comments,
+      sireName: participant.sireName,
+      sireId: participant.sireId,
+      damName: participant.damName,
+      damId: participant.damId,
+      colour: participant.colour,
+      whelpedDate: participant.whelpedDate,
+      sex: participant.sex,
+      careerPrizeMoney: participant.careerPrizeMoney,
+      pir: participant.pir,
+      runLine: participant.runLine,
+      jumpStyle: participant.jumpStyle,
+    }),
     boxNumber,
     dog: {
-      name: participant.dogName?.trim() || "Unknown runner",
-      earBrand: dogSourceId ? `watchdog:${dogSourceId}` : undefined,
+      sourceProvider: "watchdog",
+      sourceId: dogSourceId,
+      name: dogName,
       sex: participant.sex ?? undefined,
       colour: participant.colour ?? undefined,
+      whelpDate: participant.whelpedDate ?? undefined,
+      sire: parentEvidence(participant.sireId, participant.sireName),
+      dam: parentEvidence(participant.damId, participant.damName),
     },
     trainerName: participant.trainer ?? undefined,
     weight: numberOrNull(participant.resultWeight) ?? undefined,
-    startingPrice:
-      numberOrNull(participant.oddsFixedWin ?? participant.oddsToteWin) ?? undefined,
     scratched:
       participant.isLateScratching === true ||
       String(participant.box ?? "").toLowerCase() === "scratched",
@@ -284,6 +302,35 @@ function mapWatchdogRunner(participant: WatchdogParticipant): LiveRunner {
     margin: parseMargin(participant.resultMargin) ?? undefined,
     splitTime: numberOrNull(participant.resultFirstSplitTime) ?? undefined,
   };
+}
+
+function parentEvidence(
+  id: WatchdogParticipant["sireId"] | WatchdogParticipant["damId"],
+  name: string | null | undefined,
+) {
+  const sourceId = stableSourceId(id);
+  if (!sourceId && !isRealDogName(name)) return undefined;
+  return {
+    sourceProvider: sourceId ? "watchdog" : undefined,
+    sourceId,
+    name: isRealDogName(name) ? name.trim() : undefined,
+  };
+}
+
+function stableSourceId(value: string | number | null | undefined) {
+  if (value == null) return undefined;
+  const sourceId = String(value).trim();
+  return sourceId && sourceId.length <= 128 ? sourceId : undefined;
+}
+
+function isRealDogName(value?: string | null): value is string {
+  const name = value?.trim();
+  return Boolean(
+    name &&
+      !/^(?:unknown(?:\s+(?:dog|runner))?|unnamed|tba|tbd|n\/?a|vacant(?:\s+box)?|no\s+reserve|runner\s+\d+|dog\s+\d+|-)$/i.test(
+        name,
+      ),
+  );
 }
 
 function totalPrizeMoney(race: WatchdogRace) {

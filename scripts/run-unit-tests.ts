@@ -14,7 +14,7 @@ function findTestFiles(dir: string): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) results.push(...findTestFiles(full));
-    else if (entry.name.endsWith(".test.ts")) results.push(full.replace(/\\/g, "/"));
+    else if (/\.test\.tsx?$/.test(entry.name)) results.push(full.replace(/\\/g, "/"));
   }
   return results.sort();
 }
@@ -27,7 +27,12 @@ function runFile(file: string): boolean {
   if (first.status === 0) return true;
 
   const stderr: string = first.stderr ?? "";
-  if (stderr.includes("server-only")) {
+  const hitServerOnlyImportGuard =
+    /node_modules[\\/]server-only[\\/]index\.js:\d+/.test(stderr) &&
+    stderr.includes(
+      "This module cannot be imported from a Client Component module.",
+    );
+  if (hitServerOnlyImportGuard) {
     // Module uses "server-only" guard — retry under react-server conditions.
     const retry = spawnSync(
       process.execPath,
@@ -41,7 +46,11 @@ function runFile(file: string): boolean {
   return false;
 }
 
-const files = findTestFiles("src");
+const files = ["src", "scripts", "security"].flatMap(findTestFiles).sort();
+if (process.argv.includes("--list")) {
+  console.log(files.join("\n"));
+  process.exit(0);
+}
 const passed: string[] = [];
 
 for (const file of files) {

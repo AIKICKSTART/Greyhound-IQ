@@ -12,9 +12,6 @@ const FOOTER_SECTIONS = [
       { href: "/breeding", label: "Breeding" },
       { href: "/agents", label: "Agents" },
       { href: "/marketplace", label: "Marketplace" },
-      { href: "/groups", label: "Groups" },
-      { href: "/feed", label: "Feed" },
-      { href: "/pulse", label: "Pulse" },
     ],
   },
   {
@@ -30,7 +27,7 @@ const FOOTER_SECTIONS = [
     links: [
       { href: "/privacy", label: "Privacy" },
       { href: "/terms", label: "Terms" },
-      { href: "/terms#responsible-use", label: "Responsible use" },
+      { href: "/responsible-use", label: "Responsible use" },
     ],
   },
 ];
@@ -38,9 +35,9 @@ const FOOTER_SECTIONS = [
 const MOBILE_FOOTER_LINKS = [
   { href: "/races", label: "Races" },
   { href: "/marketplace", label: "Marketplace" },
-  { href: "/pulse", label: "Pulse" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
+  { href: "/responsible-use", label: "Responsible use" },
 ];
 
 const FOOTER_BG_DESKTOP = siteAssetUrl("/images/site-footer-finish-line-cinematic.webp");
@@ -106,14 +103,11 @@ export function SiteFooter() {
               />
             </Link>
             <p className="giq-mobile-footer-summary">
-              Form, breeding and AI intelligence. Not a wagering service.
+              Form, breeding, community, and AI racing intelligence.
             </p>
             <p className="giq-body-sm mt-[18px] max-w-[216px]">
               Australian greyhound racing intelligence platform -
               race cards, form, breeding, and AI predictions in one track-side view.
-            </p>
-            <p className="giq-micro mt-4 text-[hsl(var(--subtle-foreground))]">
-              Not a wagering service - 18+
             </p>
             <nav className="giq-mobile-footer-links" aria-label="Essential footer links">
               {MOBILE_FOOTER_LINKS.map((link) => (
@@ -126,9 +120,9 @@ export function SiteFooter() {
 
           {FOOTER_SECTIONS.map((section) => (
             <div key={section.title} className="giq-footer-section">
-              <h4 className="giq-eyebrow text-[hsl(var(--secondary-light))]">
+              <h2 className="giq-eyebrow text-[hsl(var(--secondary-light))]">
                 {section.title}
-              </h4>
+              </h2>
               <ul className="mt-4 flex list-none flex-col gap-[11px] p-0">
                 {section.links.map((link) => (
                   <li key={`${section.title}-${link.href}-${link.label}`}>

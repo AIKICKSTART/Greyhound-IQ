@@ -8,8 +8,10 @@
  *   npm run audit:thedogs:dog-profiles -- --skip-raw-scan --output-file .backfill/reports/thedogs-dog-profile-richness-latest.json
  */
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import type { LiveMeeting, LiveRunner } from "../src/lib/live/provider";
+import { verifyTheDogsProfileArchiveIdentity } from "./thedogs-profile-archive-identity";
 
 const DEFAULT_PROFILE_DIR = ".backfill/thedogs-dog-profiles-raw";
 const DEFAULT_RAW_DIR = ".backfill/thedogs-raw";
@@ -70,6 +72,7 @@ type ProfileArchive = {
   profileHtml?: string;
   fullFormHtml?: string;
   parsed?: ParsedProfile;
+  identityProof?: unknown;
 };
 
 type ParsedProfile = {
@@ -118,7 +121,6 @@ type ParsedFormRow = {
   winnerDogName?: string;
   winnerDogSourceId?: string;
   inRunningPositions?: string;
-  startingPrice?: number;
   hasVideo?: boolean;
 };
 
@@ -161,7 +163,6 @@ type ProfileStats = {
   rowsWithMargin: number;
   rowsWithWinnerDog: number;
   rowsWithInRunningPositions: number;
-  rowsWithStartingPrice: number;
   rowsWithVideo: number;
 };
 
@@ -171,7 +172,6 @@ type YearStats = {
   rowsWithWeight: number;
   rowsWithRunningTime: number;
   rowsWithMargin: number;
-  rowsWithStartingPrice: number;
 };
 
 async function main() {
@@ -181,6 +181,16 @@ async function main() {
     readProgress(options.progressFile),
     options.rawScan ? discoverDogs(options.rawDir) : Promise.resolve(null),
   ]);
+  const profileArchivesBySourceId = new Map<string, string[]>();
+  for (const profile of profiles) {
+    const paths = profileArchivesBySourceId.get(profile.sourceId) ?? [];
+    paths.push(profile.profilePath);
+    profileArchivesBySourceId.set(profile.sourceId, paths);
+  }
+  const duplicateProfileArchiveSourceIds = [...profileArchivesBySourceId.entries()]
+    .filter(([, profilePaths]) => profilePaths.length > 1)
+    .map(([sourceId, profilePaths]) => ({ sourceId, profilePaths: profilePaths.sort() }))
+    .sort((a, b) => a.sourceId.localeCompare(b.sourceId));
   const archivedSourceIds = new Set<string>();
   const formRaceUrls = new Set<string>();
   const tracks = new Set<string>();
@@ -190,13 +200,25 @@ async function main() {
   const dams = new Set<string>();
   const years = new Map<string, YearStats>();
   const stats = emptyProfileStats();
-  const invalidFiles: Array<{ sourceId: string; profilePath: string; error: string }> = [];
+  const invalidFiles: Array<{
+    sourceId: string;
+    profilePath: string;
+    error: string;
+  }> = [];
   const sourceIdMismatches: Array<{
     fileSourceId: string;
     archiveSourceId?: string;
     parsedSourceId?: string;
     candidateSourceId?: string;
   }> = [];
+  const identityFailures: Array<{
+    sourceId: string;
+    profilePath: string;
+    reasons: string[];
+  }> = [];
+  let exactProviderIdentities = 0;
+  let embeddedIdentityProofs = 0;
+  const exactProviderIdentitySourceIds = createHash("sha256");
 
   for (const candidate of profiles) {
     try {
@@ -207,10 +229,23 @@ async function main() {
         parsedSourceId: parsed?.sourceId,
         candidateSourceId: archive.candidate?.sourceId,
       };
-      if (
-        Object.values(sourceIds).some((value) => value && value !== candidate.sourceId)
-      ) {
-        sourceIdMismatches.push({ fileSourceId: candidate.sourceId, ...sourceIds });
+      if (Object.values(sourceIds).some((value) => value && value !== candidate.sourceId)) {
+        sourceIdMismatches.push({
+          fileSourceId: candidate.sourceId,
+          ...sourceIds,
+        });
+      }
+      const identity = verifyTheDogsProfileArchiveIdentity(candidate.sourceId, archive);
+      if (identity.verified) {
+        exactProviderIdentities += 1;
+        exactProviderIdentitySourceIds.update(`${candidate.sourceId}\n`);
+        if (identity.embeddedIdentityProof) embeddedIdentityProofs += 1;
+      } else {
+        identityFailures.push({
+          sourceId: candidate.sourceId,
+          profilePath: candidate.profilePath,
+          reasons: identity.reasons,
+        });
       }
 
       archivedSourceIds.add(candidate.sourceId);
@@ -260,17 +295,18 @@ async function main() {
       rawScan: options.rawScan,
       filesTotal: profiles.length,
       filesInvalid: invalidFiles.length,
+      duplicateProfileArchiveSourceIds: duplicateProfileArchiveSourceIds.length,
       sourceIdMismatches: sourceIdMismatches.length,
+      exactProviderIdentities,
+      exactProviderIdentitySourceIdsSha256: exactProviderIdentitySourceIds.digest("hex"),
+      identityFailures: identityFailures.length,
+      embeddedIdentityProofs,
       progressRows: progressRecords.length,
       progressUniqueDogs: latestProgressByDog.size,
       progressLatestOk: latestProgressValues.filter((record) => record.ok).length,
-      progressLatestFailed: latestProgressValues.filter(
-        (record) => record.ok === false
-      ).length,
+      progressLatestFailed: latestProgressValues.filter((record) => record.ok === false).length,
       discoveredDogsFromRaw: rawDogs?.size ?? null,
-      archivedRawDogs: rawDogs
-        ? rawDogValues.filter((dog) => archivedSourceIds.has(dog.sourceId)).length
-        : null,
+      archivedRawDogs: rawDogs ? rawDogValues.filter((dog) => archivedSourceIds.has(dog.sourceId)).length : null,
       pendingRawDogs: rawDogs ? pendingRawDogs.length : null,
       tracks: tracks.size,
       trainers: trainers.size,
@@ -291,13 +327,14 @@ async function main() {
         rowWeight: ratio(stats.rowsWithWeight, stats.formRows),
         rowRunningTime: ratio(stats.rowsWithRunningTime, stats.formRows),
         rowMargin: ratio(stats.rowsWithMargin, stats.formRows),
-        rowStartingPrice: ratio(stats.rowsWithStartingPrice, stats.formRows),
         rowBox: ratio(stats.rowsWithBox, stats.formRows),
         rowVideo: ratio(stats.rowsWithVideo, stats.formRows),
       },
     },
     invalidFileSamples: invalidFiles.slice(0, options.sampleLimit),
+    duplicateProfileArchiveSamples: duplicateProfileArchiveSourceIds.slice(0, options.sampleLimit),
     sourceIdMismatchSamples: sourceIdMismatches.slice(0, options.sampleLimit),
+    identityFailureSamples: identityFailures.slice(0, options.sampleLimit),
     pendingRawDogSamples: pendingRawDogs.slice(0, options.sampleLimit),
     years: Object.fromEntries(
       [...years.entries()]
@@ -308,18 +345,11 @@ async function main() {
             ...yearStats,
             richnessRates: {
               rowWeight: ratio(yearStats.rowsWithWeight, yearStats.formRows),
-              rowRunningTime: ratio(
-                yearStats.rowsWithRunningTime,
-                yearStats.formRows
-              ),
+              rowRunningTime: ratio(yearStats.rowsWithRunningTime, yearStats.formRows),
               rowMargin: ratio(yearStats.rowsWithMargin, yearStats.formRows),
-              rowStartingPrice: ratio(
-                yearStats.rowsWithStartingPrice,
-                yearStats.formRows
-              ),
             },
           },
-        ])
+        ]),
     ),
   };
 
@@ -330,7 +360,16 @@ async function main() {
 
   console.log(JSON.stringify(report, null, options.compact ? 0 : 2));
 
-  if (invalidFiles.length > 0 || sourceIdMismatches.length > 0) process.exitCode = 1;
+  if (
+    invalidFiles.length > 0 ||
+    duplicateProfileArchiveSourceIds.length > 0 ||
+    sourceIdMismatches.length > 0 ||
+    identityFailures.length > 0 ||
+    latestProgressValues.some((record) => record.ok === false) ||
+    pendingRawDogs.length > 0
+  ) {
+    process.exitCode = 1;
+  }
 }
 
 async function scanProfileArchives(profileDir: string) {
@@ -340,7 +379,11 @@ async function scanProfileArchives(profileDir: string) {
 }
 
 async function collectProfileArchives(currentDir: string, files: ProfileCandidate[]) {
-  let entries: Array<{ name: string; isDirectory(): boolean; isFile(): boolean }>;
+  let entries: Array<{
+    name: string;
+    isDirectory(): boolean;
+    isFile(): boolean;
+  }>;
   try {
     entries = await readdir(currentDir, { withFileTypes: true });
   } catch (err) {
@@ -365,9 +408,7 @@ async function collectProfileArchives(currentDir: string, files: ProfileCandidat
 }
 
 async function readProfileArchive(candidate: ProfileCandidate) {
-  const archive = JSON.parse(
-    await readFile(candidate.profilePath, "utf8")
-  ) as ProfileArchive;
+  const archive = JSON.parse(await readFile(candidate.profilePath, "utf8")) as ProfileArchive;
   if (archive.source !== "thedogs") {
     throw new Error(`unsupported source=${String(archive.source)}`);
   }
@@ -398,12 +439,12 @@ async function scanRawArchives(rawDir: string) {
   return files.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-async function collectRawArchives(
-  rootDir: string,
-  currentDir: string,
-  files: RawCandidate[]
-) {
-  let entries: Array<{ name: string; isDirectory(): boolean; isFile(): boolean }>;
+async function collectRawArchives(rootDir: string, currentDir: string, files: RawCandidate[]) {
+  let entries: Array<{
+    name: string;
+    isDirectory(): boolean;
+    isFile(): boolean;
+  }>;
   try {
     entries = await readdir(currentDir, { withFileTypes: true });
   } catch (err) {
@@ -431,14 +472,8 @@ async function readRawArchive(candidate: RawCandidate): Promise<RawArchive> {
   return raw;
 }
 
-function addRunnerDog(
-  dogs: Map<string, DogCandidate>,
-  date: string,
-  runner: LiveRunner
-) {
-  const sourceId =
-    runner.dog.earBrand?.match(/^thedogs:(\d+)$/i)?.[1] ??
-    sourceIdFromRaw(runner.sourceRawJson);
+function addRunnerDog(dogs: Map<string, DogCandidate>, date: string, runner: LiveRunner) {
+  const sourceId = runner.dog.earBrand?.match(/^thedogs:(\d+)$/i)?.[1] ?? sourceIdFromRaw(runner.sourceRawJson);
   if (!sourceId) return;
 
   const existing = dogs.get(sourceId);
@@ -479,11 +514,7 @@ function latestProgress(records: ProgressRecord[]) {
   return latest;
 }
 
-function addProfileStats(
-  stats: ProfileStats,
-  candidate: ProfileCandidate,
-  archive: ProfileArchive
-) {
+function addProfileStats(stats: ProfileStats, candidate: ProfileCandidate, archive: ProfileArchive) {
   const parsed = archive.parsed;
   stats.files += 1;
   stats.bytes += candidate.bytes;
@@ -537,7 +568,6 @@ function addFormStats(stats: ProfileStats, row: ParsedFormRow) {
   if (row.margin != null) stats.rowsWithMargin += 1;
   if (row.winnerDogName || row.winnerDogSourceId) stats.rowsWithWinnerDog += 1;
   if (row.inRunningPositions) stats.rowsWithInRunningPositions += 1;
-  if (row.startingPrice != null) stats.rowsWithStartingPrice += 1;
   if (row.hasVideo) stats.rowsWithVideo += 1;
 }
 
@@ -546,7 +576,6 @@ function addYearStats(stats: YearStats, row: ParsedFormRow) {
   if (row.weight != null) stats.rowsWithWeight += 1;
   if (row.runningTime != null) stats.rowsWithRunningTime += 1;
   if (row.margin != null) stats.rowsWithMargin += 1;
-  if (row.startingPrice != null) stats.rowsWithStartingPrice += 1;
 }
 
 function ensureYearStats(years: Map<string, YearStats>, year: string) {
@@ -558,7 +587,6 @@ function ensureYearStats(years: Map<string, YearStats>, year: string) {
     rowsWithWeight: 0,
     rowsWithRunningTime: 0,
     rowsWithMargin: 0,
-    rowsWithStartingPrice: 0,
   };
   years.set(year, created);
   return created;
@@ -604,7 +632,6 @@ function emptyProfileStats(): ProfileStats {
     rowsWithMargin: 0,
     rowsWithWinnerDog: 0,
     rowsWithInRunningPositions: 0,
-    rowsWithStartingPrice: 0,
     rowsWithVideo: 0,
   };
 }

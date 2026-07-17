@@ -24,6 +24,7 @@
 
 # misc
 .DS_Store
+Thumbs.db
 *.pem
 .local-media/
 .backfill/
@@ -41,10 +42,46 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-output/
+output/*
+!output/demo-route-audit/
+output/demo-route-audit/*
+!output/demo-route-audit/latest.json
+!output/demo-route-audit/latest.md
+!output/product-audit/
+output/product-audit/*
+!output/product-audit/production-link-audit.json
+!output/database-audit/
+output/database-audit/*
+!output/database-audit/local-postgres-catalog.json
+!output/database-audit/demo-fixture-idempotency.json
+!output/database-audit/account-deletion-finalize.json
+!output/database-audit/account-deletion-pending-select.json
+!output/database-audit/account-storage-deletion-jobs.json
+!output/database-audit/dog-public-detail.json
+!output/database-audit/design-lab-database-parity.json
+!output/database-audit/home-race-meetings-read.json
+!output/database-audit/isolated-runtime-catalog.json
+!output/database-audit/live-provider-ingest.json
+!output/database-audit/migration-replay.json
+!output/database-audit/onboarding-analytics-rate-limit.json
+!output/database-audit/race-detail-read.json
+!output/database-audit/race-search-read.json
+!output/database-audit/realtime-grant-revoke.json
+!output/database-audit/support-ticket-create.json
+!output/demo-route-audit/design-lab-user-stories-independent-review-final.json
+!output/staging-load/
+output/staging-load/*
+!output/staging-load/latest.json
+!output/database-audit/user-export-read.json
 
 # local agent/tooling artifacts
 .agents/
+!.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/greyhoundiq-production-architecture/
+!.agents/skills/greyhoundiq-production-architecture/**
 .codex-*.log
 skills-lock.json
 
@@ -52,3 +89,20 @@ certificates
 
 # local deploy logs
 .deploy-*.log
+.vercel
+
+# Terraform local state and unreviewed inputs
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+terraform.tfvars
+crash.log
+crash.*.log
+.terraformrc
+terraform.rc
+crash.log

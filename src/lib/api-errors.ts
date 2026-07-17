@@ -1,10 +1,24 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { logError } from "@/lib/logger";
+import {
+  getRequestLogContext,
+  logCorrelatedError,
+  logCorrelatedWarn,
+} from "@/lib/logger";
+import { createRequestId, REQUEST_ID_HEADER } from "@/lib/request-id";
 
-export function jsonError(err: unknown, fallback = "Request failed") {
+export async function jsonError(err: unknown, fallback = "Request failed") {
+  const requestCorrelation = await getRequestLogContext();
+  const requestId = requestCorrelation.requestId ?? createRequestId();
+  const correlation = { ...requestCorrelation, requestId };
+
   if (err instanceof ZodError) {
-    return NextResponse.json(
+    logCorrelatedWarn(correlation, "api.request_rejected", {
+      code: "validation.invalid",
+      status: 400,
+      outcome: "denied",
+    });
+    return jsonFailure(
       {
         error: {
           code: "validation.invalid",
@@ -12,7 +26,8 @@ export function jsonError(err: unknown, fallback = "Request failed") {
           fields: err.flatten().fieldErrors,
         },
       },
-      { status: 400 }
+      400,
+      requestId,
     );
   }
 
@@ -23,30 +38,62 @@ export function jsonError(err: unknown, fallback = "Request failed") {
   // Anything unrecognized (notably raw Prisma errors, which can embed DB
   // host:port and SQL fragments) is logged server-side and returned generic.
   if (status === null) {
-    logError("api.internal_error", { code: "unclassified" }, err);
-    return NextResponse.json(
+    logCorrelatedError(
+      correlation,
+      "api.internal_error",
+      { code: "unclassified", status: 500, outcome: "denied" },
+      err,
+    );
+    return jsonFailure(
       { error: { code: "internal.error", message: fallback } },
-      { status: 500 }
+      500,
+      requestId,
     );
   }
 
   if (status >= 500) {
-    logError("api.internal_error", { code: message }, err);
+    logCorrelatedError(
+      correlation,
+      "api.internal_error",
+      { code: message, status, outcome: "denied" },
+      err,
+    );
+  } else {
+    logCorrelatedWarn(correlation, "api.request_rejected", {
+      code: message,
+      status,
+      outcome: "denied",
+    });
   }
 
-  return NextResponse.json(
+  return jsonFailure(
     {
       error: {
         code: message,
         message: status >= 500 ? fallback : message,
       },
     },
-    { status }
+    status,
+    requestId,
   );
+}
+
+function jsonFailure(body: unknown, status: number, requestId: string) {
+  const response = NextResponse.json(body, { status });
+  response.headers.set("Cache-Control", "no-store");
+  response.headers.set(REQUEST_ID_HEADER, requestId);
+  return response;
 }
 
 function statusForErrorMessage(message: string): number | null {
   if (message === "auth.unauthorized") return 401;
+  if (message === "request.body_too_large") return 413;
+  if (
+    message === "request.unsupported_media_type" ||
+    message === "request.unsupported_content_encoding"
+  ) {
+    return 415;
+  }
   if (
     message === "auth.forbidden" ||
     message === "call.blocked" ||
@@ -56,6 +103,7 @@ function statusForErrorMessage(message: string): number | null {
     return 403;
   }
   if (message === "payment.required") return 402;
+  if (message === "rate_limit.exceeded") return 429;
   if (message === "media.too_large" || message === "media.quota_exceeded") {
     return 413;
   }
@@ -68,6 +116,7 @@ function statusForErrorMessage(message: string): number | null {
     message === "internal.not_configured" ||
     message === "call.not_configured" ||
     message === "media.secret_not_configured" ||
+    message === "media.storage_unavailable" ||
     message.startsWith("billing.stripe_not_configured")
   ) {
     return 503;

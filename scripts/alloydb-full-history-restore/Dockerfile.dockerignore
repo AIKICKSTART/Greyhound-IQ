@@ -1,0 +1,6 @@
+**
+!scripts/
+!scripts/alloydb-full-history-restore/
+!scripts/alloydb-full-history-restore/Dockerfile
+!scripts/alloydb-full-history-restore/Dockerfile.dockerignore
+!scripts/alloydb-full-history-restore/restore.sh

@@ -15,6 +15,9 @@
 - Do not document secrets, tokens, service-role keys, local credential paths, or private environment values.
 - Keep docs operational and current. Remove stale instructions instead of layering corrections.
 - If code changes alter durable workflows, commands, routes, environment variables, deployment steps, or product behavior, update the nearest relevant doc.
+- `docs/product/` records the evidence-backed product audit. Keep current inventory counts synchronized with the machine registries and label partial or historical evidence honestly.
+- `docs/security/security-trace-registry.md` is the deterministic output of `security/final-traceability.ts`. Regenerate it with `npm run build:security-trace-registry`, verify it with `npm run check:security-trace-registry`, and keep its structure-only, release-blocked boundary; do not hand-edit totals into completeness claims.
+- `docs/architecture/pedigree-provenance-foundation.md` owns the source-authority, immutable-evidence, fail-closed identity-resolution, and production-write boundary for pedigree population.
 
 # Work Guidance
 

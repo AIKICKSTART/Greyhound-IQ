@@ -5,7 +5,7 @@ import {
   AdminStatusForm,
 } from "@/app/admin/form-controls";
 import type { CurrentUserProfile } from "@/lib/auth-types";
-import { requireModeratorProfile } from "@/lib/auth";
+import { requireAdminProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbRequestContext } from "@/lib/db-context";
 
@@ -41,7 +41,7 @@ type DeletionJobRow = {
 };
 
 export default async function AdminRetentionPage() {
-  const current = await requireModeratorProfile();
+  const current = await requireAdminProfile();
   const [policies, jobs] = await Promise.all([
     getRetentionPolicies(current),
     getDeletionJobs(current),

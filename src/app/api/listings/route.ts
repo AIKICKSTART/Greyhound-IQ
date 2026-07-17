@@ -1,41 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createListingForCurrentUser } from "@/lib/listing-service";
 import { listingWriteSchema } from "@/lib/listing-validation";
 import { getMarketplaceListings } from "@/lib/queries";
+import { listingApiQuerySchema, queryParamsObject } from "@/lib/query-validation";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
-const STATES = new Set(["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"]);
-const TYPES = new Set([
-  "pup_for_sale",
-  "dog_for_sale",
-  "stud_service",
-  "wanted",
-  "share",
-]);
-const SORTS = new Set(["created_at", "price", "expires_at"]);
 const LISTING_CREATE_RATE_LIMIT = 3;
 const LISTING_CREATE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const limit = boundedLimit(searchParams.get("limit"));
-  const listings = await getMarketplaceListings(limit, {
-    type: valueFromSet(searchParams.get("type"), TYPES),
-    categoryId: searchParams.get("categoryId"),
-    categorySlug: searchParams.get("category"),
-    state: valueFromSet(searchParams.get("state"), STATES),
-    dogId: searchParams.get("dog") || searchParams.get("dogId"),
-    q: searchParams.get("q"),
-    status: "active",
-    sort: valueFromSet(searchParams.get("sort"), SORTS) as
-      | "created_at"
-      | "price"
-      | "expires_at"
-      | null,
-  });
-  return NextResponse.json({ items: listings });
+  try {
+    const query = listingApiQuerySchema.parse(
+      queryParamsObject(request.nextUrl.searchParams),
+    );
+    const listings = await getMarketplaceListings(query.limit, {
+      type: query.type,
+      categoryId: query.categoryId,
+      categorySlug: query.category,
+      state: query.state,
+      dogId: query.dog ?? query.dogId,
+      q: query.q,
+      status: "active",
+      sort: query.sort,
+    });
+    return NextResponse.json({ items: listings });
+  } catch (err) {
+    return jsonError(err, "Could not load listings");
+  }
 }
 
 export async function POST(request: Request) {
@@ -44,35 +39,22 @@ export async function POST(request: Request) {
     const rateLimit = await checkRateLimit(
       `listing:create:${current.dbUserId}`,
       LISTING_CREATE_RATE_LIMIT,
-      LISTING_CREATE_RATE_LIMIT_WINDOW_MS
+      LISTING_CREATE_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true },
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        LISTING_CREATE_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const parsed = listingWriteSchema.parse(await request.json());
+    const parsed = listingWriteSchema.parse(await readBoundedJsonRequest(request));
     const listing = await createListingForCurrentUser(current, parsed);
 
     return NextResponse.json({ item: listing }, { status: 201 });
   } catch (err) {
     return jsonError(err, "Could not create listing");
   }
-}
-
-function boundedLimit(raw: string | null) {
-  const parsed = Number(raw ?? 100);
-  if (!Number.isFinite(parsed)) return 100;
-  return Math.min(Math.max(Math.trunc(parsed), 1), 100);
-}
-
-function valueFromSet(value: string | null, allowed: Set<string>) {
-  return value && allowed.has(value) ? value : null;
 }

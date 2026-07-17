@@ -1,0 +1,268 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "account-deletion-pending-select-disposable-proof",
+  "generatedAt": "2026-07-17T02:06:57.303Z",
+  "safety": {
+    "scope": "literal-loopback-disposable-replay-only",
+    "host": "127.0.0.1",
+    "port": 55734,
+    "productionOrProviderSystemsContacted": false,
+    "fixtureOwner": "account-deletion-pending-selector-dedicated-proof",
+    "broadCleanupUsed": false
+  },
+  "runtimeIdentity": {
+    "role": "greyhoundiq_runtime",
+    "sessionRole": "greyhoundiq_runtime",
+    "database": "greyhoundiq",
+    "schema": "public",
+    "canLogin": true,
+    "superuser": false,
+    "bypassRls": false
+  },
+  "sourceBinding": {
+    "files": {
+      "prisma/schema.prisma": "ff7158c8900a4fc914bb0a09bc27e41bba4271a0144afee675a53b8e526a93fc",
+      "prisma/migrations/20260715053000_add_account_deletion_pending_index/migration.sql": "a6052fc820a613128afec7457724c4fb0f0311ea07b2d9cdd8fdf87b6eb4ad11",
+      "scripts/check-account-deletion-pending-select-postgres.ts": "fc35fa28e7c9a70052bfcb14f7eff64be91e9e18934e77f283e098ecc1685da0",
+      "scripts/check-account-deletion-pending-select-postgres.test.ts": "7913be5599c5ea39a4d4f9bb113a808320109c2485ee319b61096a4007f4e240",
+      "scripts/check-demo-route-fixture-idempotency.ts": "11015412f0d8c0f894dad1741de746b08fb30b0c5a02d627855b0d06ce737484",
+      "security/database-operations.ts": "93b1bf1fc55484835f0918339cb91a00231ff9579600b2a2d2a0aedae012d12c",
+      "src/lib/account-service.ts": "2a10581b11cc1426006fe40c6083d3e412fc7bb97f084d0ab67de3f8a6ff165f",
+      "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
+      "src/lib/db.ts": "b11f3357d3daea521e825d8483b4bb8050c8c7d059e2aa311f1788b1b09d9035"
+    },
+    "combinedSha256": "6723fd858f7207a14ec01090c1fd85f064fa411b959598fbc33d9c7637eee805"
+  },
+  "proof": {
+    "queryId": "DB.ACCOUNT.DELETION.PENDING.SELECT",
+    "sourceFile": "src/lib/account-service.ts",
+    "sourceSymbol": "findPendingAccountDeletionUsers",
+    "runtimeIdentity": {
+      "role": "greyhoundiq_runtime",
+      "sessionRole": "greyhoundiq_runtime",
+      "database": "greyhoundiq",
+      "schema": "public",
+      "canLogin": true,
+      "superuser": false,
+      "bypassRls": false
+    },
+    "expectedMaximumRows": 25,
+    "rowsBefore": 1,
+    "rowsAfter": 1,
+    "rowCountDelta": 0,
+    "cases": {
+      "systemContext": "returned-one-expired-banned-candidate",
+      "projection": "explicit-user-provider-references-and-profile-id-only",
+      "anonymousRlsReplay": "user-zero-public-profile-id-one-given-user-id",
+      "otherUserRlsReplay": "user-zero-public-profile-id-one-given-user-id",
+      "systemRlsReplay": "both-exact-selects-returned-one",
+      "empty": "returned-zero-after-one-bounded-user-select",
+      "index": "exact-three-column-index-present",
+      "maximum": "twenty-five-candidates",
+      "mutation": "none",
+      "concurrencyResidual": "candidate-lease-remains-finalization-gate",
+      "deployedParityResidual": "local-disposable-runtime-only"
+    },
+    "observedSql": {
+      "statementType": "SELECT",
+      "normalizedSql": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"email\", \"public\".\"User\".\"stripeCustomerId\", \"public\".\"User\".\"stripeSubscriptionId\", \"public\".\"User\".\"workosUserId\", \"public\".\"User\".\"deletionRequestedAt\" FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"isBanned\" = $1 AND \"public\".\"User\".\"deletionRequestedAt\" <= $2) ORDER BY \"public\".\"User\".\"deletionRequestedAt\" ASC, \"public\".\"User\".\"id\" ASC LIMIT $3 OFFSET $4",
+      "sha256": "13c3f7461670b4f2dbf354cacb0b0b8eebfaa1ba6357c838cdd22a8e3d0593a3",
+      "parameterCount": 4,
+      "namedBinds": [
+        {
+          "name": "candidate.isBanned",
+          "positions": [
+            1
+          ]
+        },
+        {
+          "name": "candidate.cutoff",
+          "positions": [
+            2
+          ]
+        },
+        {
+          "name": "candidate.limit",
+          "positions": [
+            3
+          ]
+        },
+        {
+          "name": "prisma.skip",
+          "positions": [
+            4
+          ]
+        }
+      ],
+      "persistedParameterValues": false
+    },
+    "explain": {
+      "format": "postgresql-json-cost-plan",
+      "analyze": false,
+      "buffers": false,
+      "statementTimeoutMilliseconds": 5000,
+      "sanitized": true,
+      "plan": {
+        "nodeType": "Limit",
+        "relationName": null,
+        "indexName": null,
+        "joinType": null,
+        "scanDirection": null,
+        "estimatedRows": 1,
+        "totalCost": 2.36,
+        "children": [
+          {
+            "nodeType": "Sort",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 2.36,
+            "children": [
+              {
+                "nodeType": "Seq Scan",
+                "relationName": "User",
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 2.35,
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      "planSha256": "51a893b14b73d3022b5cd4af8dc370df2a38d87518e97fb37e9b95b109870abf"
+    },
+    "variants": [
+      {
+        "variant": "users",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"User\".\"id\", \"public\".\"User\".\"email\", \"public\".\"User\".\"stripeCustomerId\", \"public\".\"User\".\"stripeSubscriptionId\", \"public\".\"User\".\"workosUserId\", \"public\".\"User\".\"deletionRequestedAt\" FROM \"public\".\"User\" WHERE (\"public\".\"User\".\"isBanned\" = $1 AND \"public\".\"User\".\"deletionRequestedAt\" <= $2) ORDER BY \"public\".\"User\".\"deletionRequestedAt\" ASC, \"public\".\"User\".\"id\" ASC LIMIT $3 OFFSET $4",
+          "sha256": "13c3f7461670b4f2dbf354cacb0b0b8eebfaa1ba6357c838cdd22a8e3d0593a3",
+          "parameterCount": 4,
+          "namedBinds": [
+            {
+              "name": "candidate.isBanned",
+              "positions": [
+                1
+              ]
+            },
+            {
+              "name": "candidate.cutoff",
+              "positions": [
+                2
+              ]
+            },
+            {
+              "name": "candidate.limit",
+              "positions": [
+                3
+              ]
+            },
+            {
+              "name": "prisma.skip",
+              "positions": [
+                4
+              ]
+            }
+          ],
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 2.36,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 2.36,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "User",
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 2.35,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "51a893b14b73d3022b5cd4af8dc370df2a38d87518e97fb37e9b95b109870abf"
+        }
+      },
+      {
+        "variant": "profiles",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"Profile\".\"id\", \"public\".\"Profile\".\"userId\" FROM \"public\".\"Profile\" WHERE \"public\".\"Profile\".\"userId\" IN ($1) OFFSET $2",
+          "sha256": "360cbfef0382ffb16c9d08bd3dc6a5ebc2591a9b0312430834fc29a7d1f97581",
+          "parameterCount": 2,
+          "namedBinds": [
+            {
+              "name": "candidate.userId",
+              "positions": [
+                1
+              ]
+            },
+            {
+              "name": "prisma.skip",
+              "positions": [
+                2
+              ]
+            }
+          ],
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Seq Scan",
+            "relationName": "Profile",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 1.06,
+            "children": []
+          },
+          "planSha256": "b4bf30fae49c88caee35bba872b57c605bf9018d49ad992421a22d4c3e59db7e"
+        }
+      }
+    ],
+    "status": "verified"
+  },
+  "cleanup": {
+    "profileRowsDeleted": 1,
+    "userRowsDeleted": 1,
+    "remainingProfileRows": 0,
+    "remainingUserRows": 0
+  },
+  "verdict": "verified"
+}

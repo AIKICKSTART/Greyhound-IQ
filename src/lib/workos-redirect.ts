@@ -1,3 +1,29 @@
+const ALLOWED_PLANS = new Set(["free", "pro", "pro_plus"]);
+const ALLOWED_INTERVALS = new Set(["monthly", "yearly"]);
+const RETURN_TO_BASE = new URL("https://greyhoundiq.invalid");
+
+export function resolveWorkosReturnTo({
+  interval,
+  plan,
+  returnTo,
+}: {
+  interval?: string | null;
+  plan?: string | null;
+  returnTo?: string | null;
+} = {}) {
+  const internalReturnTo = safeInternalReturnTo(returnTo);
+  if (internalReturnTo) return internalReturnTo;
+  if (!plan || !ALLOWED_PLANS.has(plan)) return "/feed";
+
+  const params = new URLSearchParams({ plan });
+  if (plan === "pro" && interval && ALLOWED_INTERVALS.has(interval)) {
+    params.set("interval", interval);
+    params.set("checkout", "continue");
+  }
+
+  return `/account?${params.toString()}`;
+}
+
 export function resolveWorkosRedirectUri(requestUrl?: string | URL) {
   const requestOrigin =
     process.env.NODE_ENV !== "production" ? trustedRequestOrigin(requestUrl) : undefined;
@@ -101,4 +127,39 @@ function safeUrl(value?: string) {
 
 function stripWww(hostname: string) {
   return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+}
+
+function safeInternalReturnTo(value?: string | null) {
+  const candidate = value?.trim();
+  if (
+    !candidate ||
+    !candidate.startsWith("/") ||
+    candidate.startsWith("//") ||
+    candidate.includes("\\") ||
+    /%(?:25)*(?:2f|5c)/i.test(candidate) ||
+    /[\u0000-\u001f\u007f]/.test(candidate)
+  ) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(candidate, RETURN_TO_BASE);
+    if (url.origin !== RETURN_TO_BASE.origin) return undefined;
+
+    const path = decodeURIComponent(url.pathname)
+      .replace(/\/+$/, "")
+      .toLowerCase();
+    if (
+      path === "/sign-in" ||
+      path.startsWith("/sign-in/") ||
+      path === "/callback" ||
+      path.startsWith("/callback/")
+    ) {
+      return undefined;
+    }
+
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return undefined;
+  }
 }

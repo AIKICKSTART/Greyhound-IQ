@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
+import { FormEvent, useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Send } from "lucide-react";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
@@ -21,6 +21,7 @@ export function InstantMessageComposer({
   const [pendingBody, setPendingBody] = useState<string | null>(null);
   const [refreshing, startTransition] = useTransition();
   const busy = submitting || refreshing;
+  const errorId = useId();
 
   // The optimistic bubble lives only while the post-send refresh is pending.
   useEffect(() => {
@@ -51,6 +52,7 @@ export function InstantMessageComposer({
     if (!body) return;
 
     setError(null);
+    setPendingBody(body);
     setSubmitting(true);
     try {
       const response = await fetch(`/api/conversations/${conversationId}/messages`, {
@@ -63,9 +65,9 @@ export function InstantMessageComposer({
       formRef.current?.reset();
       lastBodyLengthRef.current = 0;
       setResetKey((current) => current + 1);
-      setPendingBody(body);
       startTransition(() => router.refresh());
     } catch (err) {
+      setPendingBody(null);
       setError(err instanceof Error ? err.message : "Could not send message");
     } finally {
       setSubmitting(false);
@@ -76,7 +78,7 @@ export function InstantMessageComposer({
     <>
       {pendingBody && (
         <div className="px-5 pb-4" role="status">
-          <article className="ml-auto max-w-[82%] rounded-lg border border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--primary)/0.08)] p-4">
+          <article className="giq-social-chat-bubble ml-auto max-w-[82%] rounded-2xl border border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--primary)/0.08)] p-4">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
               <span className="text-[12px] font-semibold text-[hsl(var(--foreground))]">
                 You
@@ -91,7 +93,7 @@ export function InstantMessageComposer({
           </article>
         </div>
       )}
-      <form ref={formRef} onSubmit={onSubmit} className="border-t border-white/[0.06] p-5">
+      <form ref={formRef} onSubmit={onSubmit} className="giq-social-message-composer border-t border-white/[0.06] p-5">
       <label className="block">
         <span className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
           Reply
@@ -103,6 +105,8 @@ export function InstantMessageComposer({
           maxLength={5000}
           rows={5}
           onInput={handleBodyInput}
+          aria-invalid={Boolean(error)}
+          aria-errormessage={error ? errorId : undefined}
           className="giq-form-control giq-textarea mt-2 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder={
             disabled
@@ -115,7 +119,11 @@ export function InstantMessageComposer({
         <MediaAttachmentFields key={resetKey} compact />
       </div>
       {error && (
-        <p className="mt-3 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] text-red-100">
+        <p
+          id={errorId}
+          role="alert"
+          className="mt-3 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[12px] text-red-100"
+        >
           {error}
         </p>
       )}

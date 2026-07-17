@@ -1,13 +1,20 @@
 import { BarChart3, Award, MapPin, Users, Target } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
+import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
+import { RacingDataEmptyState } from "@/components/racing-data-empty-state";
 import { getBoxBias, getTrainerLeaderboard, getTrackRecords } from "@/lib/queries";
 import { getBoxColourStyle } from "@/lib/box-colours";
+import {
+  buildBoxBiasPresentation,
+  formatBoxBiasAggregateSummary,
+  formatBoxBiasRate,
+} from "@/lib/racing-statistics-presentation";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Statistics — GreyhoundIQ",
-  description: "Box bias, trainer leaderboards, track records, and speed maps — the data serious Australian punters use.",
+  description: "Box bias, trainer performance, track records, and speed maps across Australian greyhound racing.",
 };
 
 export default async function StatisticsPage() {
@@ -16,32 +23,33 @@ export default async function StatisticsPage() {
     getTrainerLeaderboard(8),
     getTrackRecords(12),
   ]);
-  const BOX_BIAS = boxBiasRows.map((b) => ({
-    box: b.box,
-    winRate: b.winRate,
+  const BOX_BIAS = buildBoxBiasPresentation(boxBiasRows).map((b) => ({
+    ...b,
     style: getBoxColourStyle(b.box),
   }));
+  const hasMeasuredBoxBias = BOX_BIAS.some(({ state }) => state === "measured");
   const TRAINER_LEADERS = trainerLeaders;
   const TRACK_RECORDS = trackRecords;
 
   return (
     <div>
       <PageHero
-        image="/images/wentworth-gate-hero.webp"
+        image="/images/feature-advanced-stats-green.webp"
         badge="ADVANCED STATISTICS"
         badgeIcon={<BarChart3 className="h-3 w-3 text-[hsl(var(--secondary))]" />}
         badgeColor="gold"
         title={
           <>
-            Find the
+            See the
             <br />
-            <span className="gradient-text">edges.</span>
+            <span className="gradient-text">patterns.</span>
           </>
         }
-        subtitle="Box bias, trainer form, track records, speed maps — the data serious punters use to make informed decisions."
+        subtitle="Box bias, trainer form, track records, and speed maps from the GreyhoundIQ dataset."
       />
 
       <section className="mx-auto max-w-6xl px-6 py-16">
+        <RacingDataDisclosure className="mb-8" />
         <div className="flex items-center gap-3 mb-6">
           <Target className="h-5 w-5 text-[hsl(var(--secondary))]" />
           <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))] tracking-[-0.03em]">
@@ -49,20 +57,40 @@ export default async function StatisticsPage() {
           </h2>
         </div>
         <p className="text-[14px] text-[hsl(var(--muted-foreground))] mb-8 tracking-[-0.013em]">
-          National aggregate across 4,800+ meetings. Phase 2 lets you filter by
-          track and distance.
+          {formatBoxBiasAggregateSummary(boxBiasRows)} Phase 2 lets you filter
+          by track and distance.
         </p>
 
-        <div className="giq-panel p-8">
+        {!hasMeasuredBoxBias && (
+          <div className="mb-4">
+            <RacingDataEmptyState
+              title="Box-bias rates are not available"
+              description="The eight box positions remain visible below, but no win-rate value is shown until the read-only aggregate contains recorded starts."
+            />
+          </div>
+        )}
+
+        <div
+          className="giq-panel p-8"
+          data-racing-data-state={hasMeasuredBoxBias ? "available" : "unavailable"}
+        >
           <div className="grid grid-cols-8 gap-3 items-end min-h-[240px]">
             {BOX_BIAS.map((b) => (
-              <div key={b.box} className="flex flex-col items-center gap-2">
-                <div className="text-[11px] font-mono font-semibold text-[hsl(var(--foreground))]">
-                  {b.winRate}%
+              <div
+                key={b.box}
+                className="flex flex-col items-center gap-2"
+                data-metric-state={b.state}
+              >
+                <div className="min-h-8 text-center text-[11px] font-mono font-semibold text-[hsl(var(--foreground))]">
+                  {formatBoxBiasRate(b)}
                 </div>
                 <div
                   className="w-full rounded-t-md transition-[filter] hover:brightness-110"
-                  style={{ height: `${b.winRate * 14}px`, background: b.style.background }}
+                  style={{
+                    height: b.winRate === null ? "4px" : `${b.winRate * 14}px`,
+                    background: b.style.background,
+                    opacity: b.winRate === null ? 0.24 : 1,
+                  }}
                 />
                 <div
                   className="flex h-7 w-7 items-center justify-center rounded border text-[12px] font-bold"
@@ -88,24 +116,25 @@ export default async function StatisticsPage() {
             </h2>
           </div>
           <p className="text-[14px] text-[hsl(var(--muted-foreground))] mb-6 tracking-[-0.013em]">
-            Top performers by wins over the last 12 months.
+            Recorded starts, wins, top-three finishes, win rate, and prize money.
           </p>
 
-          <div className="giq-table-shell">
+          {TRAINER_LEADERS.length > 0 ? (
+            <div className="giq-table-shell">
             <table className="w-full">
               <thead>
                 <tr className="giq-table-head">
                   <th className="text-left p-4 tracking-[0.04em]">Rank</th>
                   <th className="text-left p-4 tracking-[0.04em]">Trainer</th>
                   <th className="text-right p-4 tracking-[0.04em]">Wins</th>
-                  <th className="text-right p-4 tracking-[0.04em]">Starters</th>
-                  <th className="text-right p-4 tracking-[0.04em]">Strike %</th>
-                  <th className="text-right p-4 tracking-[0.04em]">ROI</th>
+                  <th className="text-right p-4 tracking-[0.04em]">Starts</th>
+                  <th className="text-right p-4 tracking-[0.04em]">Places</th>
+                  <th className="text-right p-4 tracking-[0.04em]">Win rate</th>
+                  <th className="text-right p-4 tracking-[0.04em]">Prize money</th>
                 </tr>
               </thead>
               <tbody>
                 {TRAINER_LEADERS.map((t, i) => {
-                  const strike = ((t.wins / t.starters) * 100).toFixed(1);
                   const rankBg = i === 0 ? "hsl(var(--secondary) / 0.20)" : "hsl(var(--surface-3))";
                   const rankColor = i === 0 ? "hsl(var(--secondary))" : "hsl(var(--muted-foreground))";
                   return (
@@ -125,17 +154,24 @@ export default async function StatisticsPage() {
                         {t.name}
                       </td>
                       <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.wins}</td>
-                      <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.starters}</td>
-                      <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{strike}%</td>
+                      <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.starts}</td>
+                      <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.places}</td>
+                      <td className="p-4 text-right text-[13px] text-[hsl(var(--muted-foreground))] font-mono">{t.winRate}%</td>
                       <td className="p-4 text-right text-[13px] font-mono font-semibold text-[hsl(var(--primary-bright))]">
-                        +{t.roi}%
+                        ${t.prizeMoney.toLocaleString("en-AU", { maximumFractionDigits: 0 })}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+          ) : (
+            <RacingDataEmptyState
+              title="Trainer statistics are not available"
+              description="No trainer aggregate rows are present in the current read-only snapshot. No ranks or rates have been inferred."
+            />
+          )}
         </section>
 
         <section className="px-0 pb-0">
@@ -146,7 +182,8 @@ export default async function StatisticsPage() {
             </h2>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {TRACK_RECORDS.length > 0 ? (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {TRACK_RECORDS.map((r) => (
               <div
                 key={r.track}
@@ -174,7 +211,13 @@ export default async function StatisticsPage() {
                 </p>
               </div>
             ))}
-          </div>
+            </div>
+          ) : (
+            <RacingDataEmptyState
+              title="Track records are not available"
+              description="No track-record rows are present in the current read-only snapshot. GreyhoundIQ does not substitute example records."
+            />
+          )}
         </section>
       </div>
     </div>

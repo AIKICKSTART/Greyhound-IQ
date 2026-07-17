@@ -24,6 +24,8 @@ import {
   broadcastProfileRealtimeEvent,
 } from "@/lib/realtime-service";
 
+const CALL_MAINTENANCE_LIMIT = 100;
+
 export async function getActiveCallRoomForConversation(
   current: DbContextUser,
   conversationId: string
@@ -70,6 +72,29 @@ export function getPendingCallInviteForConversation(
   }));
 }
 
+// Read-only: pending invites ringing THIS profile across all conversations —
+// powers the hub incoming-call card. RLS scopes rows; the where clause keeps
+// intent explicit and drops expired invites.
+export function listPendingCallInvitesForProfile(current: DbContextUser) {
+  return withDbRequestContext(current, (tx) => tx.callInvite.findMany({
+    where: {
+      status: "pending",
+      toProfileId: current.profileId,
+      expiresAt: { gt: new Date() },
+      callRoom: { status: "active" },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+    select: {
+      id: true,
+      callRoomId: true,
+      expiresAt: true,
+      fromProfile: { select: { id: true, displayName: true } },
+      callRoom: { select: { callType: true, conversationId: true } },
+    },
+  }));
+}
+
 // Read-only: recent terminal call events for the conversation thread log.
 // Callers must have already authorized access to the conversation.
 export function getRecentCallLogForConversation(
@@ -83,7 +108,7 @@ export function getRecentCallLogForConversation(
       callRoom: { conversationId },
     },
     orderBy: { createdAt: "desc" },
-    take: limit,
+    take: Math.min(Math.max(1, Math.trunc(limit)), 50),
     select: {
       id: true,
       eventType: true,
@@ -104,6 +129,12 @@ export async function createCallRoomForConversation(
     conversationId
   );
   if (conversation.blockedById) throw new Error("call.blocked");
+  if (
+    conversation.participantAActor?.kind === "page" ||
+    conversation.participantBActor?.kind === "page"
+  ) {
+    throw new Error("call.page_actor_forbidden");
+  }
 
   const otherProfileId =
     conversation.participantAId === current.profileId
@@ -186,16 +217,31 @@ export async function createCallTokenForCurrentUser(
   current: CurrentUserProfile,
   roomId: string
 ) {
-  assertPaidFeatureAccess(current);
+  // Deliberately NOT tier-gated: free members may JOIN calls a paid member
+  // started. callRoomJoinWhere only matches rooms holding an explicit
+  // CallPermission.canJoin row for this profile, and only a paid initiator
+  // (createCallRoomForConversation, still assertPaidFeatureAccess-gated) can
+  // create those rows. Block + room-TTL checks below still apply.
   const config = liveKitConfig();
   const room = await withDbRequestContext(current, (tx) => tx.callRoom.findFirst({
     where: callRoomJoinWhere(roomId, current.profileId),
     include: {
-      conversation: true,
+      conversation: {
+        include: {
+          participantAActor: { select: { kind: true } },
+          participantBActor: { select: { kind: true } },
+        },
+      },
     },
   }));
   if (!room) throw new Error("call.room_not_found");
   if (room.conversation?.blockedById) throw new Error("call.blocked");
+  if (
+    room.conversation?.participantAActor?.kind === "page" ||
+    room.conversation?.participantBActor?.kind === "page"
+  ) {
+    throw new Error("call.page_actor_forbidden");
+  }
   if (room.conversation) {
     const otherProfileId =
       room.conversation.participantAId === current.profileId
@@ -208,7 +254,12 @@ export async function createCallTokenForCurrentUser(
     );
   }
 
-  const signed = createLiveKitCallToken(current, room.roomName, config);
+  const signed = await createLiveKitCallToken(
+    current,
+    room.roomName,
+    room.callType === "voice" ? "voice" : "video",
+    config
+  );
   const issuedAt = new Date();
 
   await withDbRequestContext(current, async (tx) => {
@@ -406,6 +457,8 @@ export async function runCallMaintenance() {
         status: "active",
         createdAt: { lt: new Date(now.getTime() - CALL_ROOM_JOIN_TTL_MS) },
       },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: CALL_MAINTENANCE_LIMIT,
     })
   );
   for (const room of staleRooms) {
@@ -420,6 +473,8 @@ export async function runCallMaintenance() {
         callRoom: true,
         toProfile: { select: { userId: true } },
       },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: CALL_MAINTENANCE_LIMIT,
     })
   );
   for (const invite of expiredInvites) {

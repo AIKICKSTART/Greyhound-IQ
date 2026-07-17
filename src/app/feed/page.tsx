@@ -1,116 +1,383 @@
 import Link from "next/link";
-import NextImage from "next/image";
+import { Lock } from "lucide-react";
+import { FeedInfiniteList } from "@/components/feed-infinite-list";
+import { FeedRaceDayCommand } from "@/components/feed-race-day-command";
+import { runFeedReadTasks } from "@/app/feed/feed-read-tasks";
+import { HubIdentityBanner } from "@/components/hub/hub-identity-banner";
+import { HubLeftSidebar } from "@/components/hub/hub-left-sidebar";
 import {
-  Flag,
-  ImageIcon,
-  Lock,
-  MessageSquare,
-  Paperclip,
-  ShieldAlert,
-  UserX,
-} from "lucide-react";
+  HubMessengerPanel,
+  type HubConversationRow,
+} from "@/components/hub/hub-messenger-panel";
 import {
-  blockFeedPostAuthor,
-  reportFeedPost,
-} from "@/app/actions";
-import {
-  InstantFeedCommentForm,
-  InstantFeedPostComposer,
-  InstantFeedReactionButton,
-} from "@/components/instant-feed-controls";
+  HubIncomingCall,
+  type IncomingCallInvite,
+} from "@/components/hub/hub-incoming-call";
+import { InstantFeedPostComposer } from "@/components/instant-feed-controls";
 import { PageHero } from "@/components/page-hero";
-import { RealtimeRefresh } from "@/components/realtime-refresh";
-import { getCurrentUser, hasTier } from "@/lib/auth";
 import {
-  feedPostMediaUrl,
-  getFeedPostsForViewer,
-  getFeedTopics,
-} from "@/lib/feed-service";
-import { publicFeedRealtimeChannel } from "@/lib/realtime-service";
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { getCurrentUser, hasTier } from "@/lib/auth";
+import { isFullAccessDemo } from "@/lib/demo-access";
+import { listPendingCallInvitesForProfile } from "@/lib/call-service";
+import {
+  countUnreadMessagesByConversation,
+  listConversationsForProfile,
+} from "@/lib/conversation-service";
+import { resolvePageAvatarUrls } from "@/lib/custom-page-service";
+import { withDbRequestContext } from "@/lib/db-context";
+import { getFeedPageForViewer, getFeedTopics } from "@/lib/feed-service";
+import { buildFeedRaceDayData } from "@/lib/feed-race-day";
+import type { FeedMode } from "@/lib/feed-pagination";
+import {
+  listFriendRequestsForProfile,
+  listFriendsForProfile,
+} from "@/lib/friend-service";
+import {
+  getActiveIdentity,
+  getOwnedPageIdentities,
+} from "@/lib/identity";
+import {
+  ensureOwnedPageActor,
+  ensurePersonalActor,
+} from "@/lib/social-actor-service";
+import { getTodaysMeetings } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Community Feed - GreyhoundIQ",
+  title: "Feed - GreyhoundIQ",
   description:
-    "GreyhoundIQ community feed for Australian greyhound racing posts, marketplace notes, comments, reactions, and reports.",
+    "Your GreyhoundIQ home: community feed, pages, friends, messages, and calls in one place.",
 };
 
-export default async function FeedPage() {
+const TIER_LABELS: Record<string, string> = {
+  free: "Free",
+  pro: "Pro",
+  pro_plus: "Pro+",
+};
+
+export default async function FeedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    mode?: string;
+  }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const requestedMode = resolvedSearchParams.mode;
+  const mode: FeedMode = requestedMode === "latest" ? "latest" : "for-you";
+
   const user = await getCurrentUser();
-  const canPost = Boolean(user && hasTier(user.tier, "pro"));
-  const realtimeChannel = publicFeedRealtimeChannel();
-  const [topics, posts] = await Promise.all([
-    getFeedTopics(),
-    getFeedPostsForViewer(30, user?.profileId ?? null),
-  ]);
+
+  if (!user?.dbUserId || !user.profileId) {
+    const [topics, feedPage] = await Promise.all([
+      getFeedTopics(),
+      getFeedPageForViewer({ mode, limit: 20, current: null }),
+    ]);
+    const posts = feedPage.items;
+    void topics;
+    return (
+      <div>
+        <PageHero
+          image="/images/wentworth-gate-hero.webp"
+          title={
+            <>
+              Community feed.
+              <br />
+              <span className="gradient-text">Trackside signal.</span>
+            </>
+          }
+          subtitle="Race notes, kennel updates, and marketplace context from the GreyhoundIQ community. Sign in to post, connect, and chat."
+        >
+          <div className="mt-8 flex flex-wrap gap-3">
+            <a
+              href="/sign-in"
+              className="giq-button giq-button-primary px-5 text-[13px] font-semibold"
+            >
+              Sign in
+            </a>
+            <Link
+              href="/pricing"
+              className="giq-button giq-button-glass px-5 text-[13px] font-semibold"
+            >
+              View plans
+            </Link>
+          </div>
+        </PageHero>
+        <section className="mx-auto max-w-2xl space-y-4 px-4 py-12 sm:px-6">
+          <FeedInfiniteList
+            key={feedListKey(mode, null)}
+            initialPosts={posts}
+            initialCursor={feedPage.nextCursor}
+            mode={mode}
+            actorId={null}
+            canInteract={false}
+            currentProfileId={null}
+            signedIn={false}
+          />
+        </section>
+      </div>
+    );
+  }
+
+  const current = {
+    id: user.id,
+    dbUserId: user.dbUserId,
+    profileId: user.profileId,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    name: user.name,
+    profileRole: user.role ?? "member",
+    role: user.role,
+    tier: user.tier,
+    isBanned: user.isBanned,
+    deletionRequestedAt: user.deletionRequestedAt,
+    displayName: user.name,
+    verified: false,
+  };
+  const isPro = hasTier(user.tier, "pro");
+  const ownedPages = await getOwnedPageIdentities(current);
+  const identity = await getActiveIdentity(ownedPages);
+  const activePage = identity.kind === "page" ? identity.page : null;
+  const activeActor = activePage
+    ? await ensureOwnedPageActor(current, activePage.id)
+    : await ensurePersonalActor(current);
+
+  const [
+    topics,
+    feedPage,
+    friends,
+    requests,
+    conversations,
+    unreadByConversation,
+    pendingInvites,
+    profile,
+    todaysMeetings,
+  ] = await runFeedReadTasks([
+    () => getFeedTopics(),
+    () => getFeedPageForViewer({
+      mode,
+      actorId: activeActor.id,
+      limit: 20,
+      current,
+    }),
+    () => listFriendsForProfile(current),
+    () => listFriendRequestsForProfile(current),
+    () => listConversationsForProfile(current),
+    () => countUnreadMessagesByConversation(current),
+    () => listPendingCallInvitesForProfile(current),
+    () => withDbRequestContext(current, (tx) =>
+      tx.profile.findUnique({
+        where: { id: current.profileId },
+        select: {
+          displayName: true,
+          avatarUrl: true,
+          verified: true,
+          kennelName: true,
+          state: true,
+        },
+      })
+    ),
+    () => getTodaysMeetings(),
+  ], isFullAccessDemo());
+  const posts = feedPage.items;
+  const raceDayData = buildFeedRaceDayData(todaysMeetings, new Date());
+  const canUseFeedAsActiveIdentity = !activePage || isPro;
+
+  const pagesInPosts = posts
+    .map((post) => post.authorPage)
+    .filter((page): page is NonNullable<typeof page> => Boolean(page));
+  const pageAvatars = await resolvePageAvatarUrls(pagesInPosts);
+
+  const personal = {
+    displayName: profile?.displayName ?? user.name,
+    avatarUrl: profile?.avatarUrl ?? null,
+    verified: profile?.verified ?? false,
+    kennelName: profile?.kennelName ?? null,
+    state: profile?.state ?? null,
+    tierLabel: TIER_LABELS[user.tier] ?? "Free",
+  };
+  const activeIdentityAvatarUrl =
+    activeActor.avatarUrl ?? activePage?.media.avatarUrl ?? personal.avatarUrl;
+
+  const actorConversations = conversations.filter((conversation) => {
+    const belongsToActiveActor =
+      conversation.participantAActorId === activeActor.id ||
+      conversation.participantBActorId === activeActor.id;
+    const isLegacyPersonalConversation =
+      !activePage &&
+      !conversation.participantAActorId &&
+      !conversation.participantBActorId;
+    return belongsToActiveActor || isLegacyPersonalConversation;
+  });
+  const conversationRows: HubConversationRow[] = actorConversations
+    .slice(0, 12)
+    .map((conversation) => {
+      const other =
+        conversation.participantAId === user.profileId
+          ? conversation.participantB
+          : conversation.participantA;
+      const otherActor =
+        conversation.participantAId === user.profileId
+          ? conversation.participantBActor
+          : conversation.participantAActor;
+      const message = conversation.messages[0];
+      const isSent = message?.senderId === user.profileId;
+      const personToPerson =
+        conversation.participantAActor?.kind !== "page" &&
+        conversation.participantBActor?.kind !== "page";
+      return {
+        id: conversation.id,
+        otherName: otherActor?.displayName ?? other.displayName,
+        otherAvatarUrl: otherActor?.avatarUrl ?? other.avatarUrl,
+        preview: message
+          ? `${isSent ? "You: " : ""}${message.body}`
+          : "Conversation started",
+        attachmentCount: message?._count.media ?? 0,
+        unread: unreadByConversation.get(conversation.id) ?? 0,
+        personToPerson,
+      };
+    });
+
+  const invites: IncomingCallInvite[] = pendingInvites.map((invite) => ({
+    inviteId: invite.id,
+    roomId: invite.callRoomId,
+    conversationId: invite.callRoom.conversationId,
+    callType: invite.callRoom.callType === "voice" ? "voice" : "video",
+    fromName: invite.fromProfile.displayName,
+  }));
 
   return (
-    <div>
-      <PageHero
-        image="/images/wentworth-gate-hero.webp"
-        title={
-          <>
-            Community feed.
-            <br />
-            <span className="gradient-text">Trackside signal.</span>
-          </>
-        }
-        subtitle="Share greyhound racing context, kennel updates, marketplace notes, and practical observations across the GreyhoundIQ community."
-      >
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            href="/groups"
-            className="giq-button giq-button-glass px-5 text-[13px] font-semibold"
-          >
-            Groups
-          </Link>
-          <Link
-            href="/marketplace"
-            className="giq-button giq-button-primary px-5 text-[13px] font-semibold"
-          >
-            Marketplace
-          </Link>
-        </div>
-      </PageHero>
-      <RealtimeRefresh
-        channels={[
-          {
-            name: realtimeChannel,
-            events: [
-              "post_created",
-              "post_updated",
-              "comment_created",
-              "reaction_updated",
-              "topic_updated",
-            ],
-          },
-        ]}
+    <div className="giq-social-hub mx-auto w-full max-w-[1680px] px-2 py-4 sm:px-4 lg:px-5 2xl:px-6">
+      <FeedRaceDayCommand
+        firstName={user.firstName || user.name}
+        data={raceDayData}
       />
+      <div className="giq-social-hub-grid mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_300px] 2xl:grid-cols-[260px_minmax(0,1fr)_340px]">
+        <aside className="hidden lg:block" aria-label="Hub navigation">
+          <div className="sticky top-[84px] max-h-[calc(100dvh-105px)] overflow-y-auto pr-1">
+            <HubLeftSidebar
+              identity={identity}
+              pages={ownedPages}
+              personalName={personal.displayName}
+              personalAvatarUrl={personal.avatarUrl}
+              isPro={isPro}
+            />
+          </div>
+        </aside>
 
-      <section className="mx-auto grid max-w-6xl gap-6 px-6 py-12 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <main className="space-y-4">
-          {canPost ? (
-            <section className="giq-panel p-5">
-              <div className="mb-4 flex items-center gap-3">
-                <MessageSquare className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-                <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
-                  Post to the feed
-                </h2>
-              </div>
-              <InstantFeedPostComposer topics={topics} />
+        <main
+          data-feed-scroll
+          aria-label="Community feed"
+          tabIndex={0}
+          className="giq-social-feed-scroll min-w-0 space-y-4 lg:h-[calc(100dvh-105px)] lg:overflow-y-auto lg:overscroll-contain lg:pb-8 lg:pr-1 [scrollbar-gutter:stable]"
+        >
+          {/* Ringing card surfaces above the feed on mobile where the right
+              messenger column is hidden. */}
+          <div className="space-y-3 xl:hidden">
+            {invites.map((invite) => (
+              <HubIncomingCall key={invite.inviteId} invite={invite} />
+            ))}
+          </div>
+
+          {/* Mobile: identity switcher + shortcuts live in a left drawer. */}
+          <div className="lg:hidden">
+            <Sheet>
+              <SheetTrigger className="giq-button giq-button-glass min-h-10 w-full justify-between px-3 text-[13px] font-semibold">
+                <span className="truncate">
+                  Acting as{" "}
+                  <span className="text-[hsl(var(--primary-light))]">
+                    {activePage ? activePage.title : personal.displayName}
+                  </span>
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="text-[11px] text-[hsl(var(--subtle-foreground))]"
+                >
+                  Switch
+                </span>
+              </SheetTrigger>
+              <SheetContent
+                side="left"
+                className="w-[300px] overflow-y-auto bg-[hsl(var(--surface-1)/0.97)] p-4 backdrop-blur-xl"
+              >
+                <SheetTitle className="sr-only">
+                  Identity and navigation
+                </SheetTitle>
+                <HubLeftSidebar
+                  identity={identity}
+                  pages={ownedPages}
+                  personalName={personal.displayName}
+                  personalAvatarUrl={personal.avatarUrl}
+                  isPro={isPro}
+                />
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          <HubIdentityBanner
+            actor={activeActor}
+            identity={identity}
+            personal={personal}
+          />
+
+          <nav
+            aria-label="Feed order"
+            className="giq-social-feed-tabs giq-panel flex min-h-11 items-center gap-1 p-1"
+          >
+            <Link
+              href="/feed?mode=for-you"
+              aria-current={mode === "for-you" ? "page" : undefined}
+              className={`min-h-10 flex-1 rounded-lg px-4 py-2 text-center text-[13px] font-semibold transition ${
+                mode === "for-you"
+                  ? "bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary-light))]"
+                  : "text-[hsl(var(--muted-foreground))] hover:bg-white/[0.04]"
+              }`}
+            >
+              For You
+            </Link>
+            <Link
+              href="/feed?mode=latest"
+              aria-current={mode === "latest" ? "page" : undefined}
+              className={`min-h-10 flex-1 rounded-lg px-4 py-2 text-center text-[13px] font-semibold transition ${
+                mode === "latest"
+                  ? "bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary-light))]"
+                  : "text-[hsl(var(--muted-foreground))] hover:bg-white/[0.04]"
+              }`}
+            >
+              Latest
+            </Link>
+          </nav>
+
+          {canUseFeedAsActiveIdentity ? (
+            <section
+              id="feed-composer"
+              className="giq-social-composer-shell giq-panel scroll-mt-24 p-4"
+            >
+              <InstantFeedPostComposer
+                topics={topics}
+                pageId={activePage?.id ?? null}
+                identityLabel={activePage ? activePage.title : personal.displayName}
+                identityAvatarUrl={activeIdentityAvatarUrl}
+              />
             </section>
-          ) : user ? (
+          ) : (
             <section className="giq-panel p-5">
-              <div className="mb-4 flex items-center gap-3">
+              <div className="mb-3 flex items-center gap-3">
                 <Lock className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-                <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
-                  Upgrade to post
+                <h2 className="text-[16px] font-semibold text-[hsl(var(--foreground))]">
+                  Managed pages require Pro
                 </h2>
               </div>
               <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
-                Free accounts can read the community feed. Posting, comments,
-                and reactions are included with Pro.
+                Switch to your personal identity to post, comment, and react
+                for free. Pro is required to publish as {activePage?.title}.
               </p>
               <Link
                 href="/pricing"
@@ -119,258 +386,58 @@ export default async function FeedPage() {
                 View Pro
               </Link>
             </section>
-          ) : (
-            <section className="giq-panel p-5">
-              <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
-                Sign in to post
-              </h2>
-              <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">
-                Posts, comments, reactions, and reports are tied to your
-                GreyhoundIQ profile.
-              </p>
-              <a
-                href="/sign-in"
-                className="giq-button giq-button-primary mt-4 w-fit px-4 text-[13px] font-semibold"
-              >
-                Sign in
-              </a>
-            </section>
           )}
 
-          {posts.length === 0 ? (
-            <div className="giq-empty-state p-12 text-center">
-              <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
-                No feed posts yet.
-              </p>
-            </div>
-          ) : (
-            posts.map((post) => (
-              <FeedPostCard
-                key={post.id}
-                post={post}
-                canInteract={canPost}
-                currentProfileId={user?.profileId ?? null}
-                signedIn={Boolean(user)}
-              />
-            ))
-          )}
+          <FeedInfiniteList
+            key={feedListKey(mode, activeActor.id)}
+            initialPosts={posts}
+            initialCursor={feedPage.nextCursor}
+            mode={mode}
+            actorId={activeActor.id}
+            canInteract={canUseFeedAsActiveIdentity}
+            currentProfileId={user.profileId}
+            activeActorId={activeActor.id}
+            signedIn
+            pageAvatarUrls={Object.fromEntries(pageAvatars)}
+          />
         </main>
 
-        <aside className="space-y-4">
-          <section className="giq-panel p-5">
-            <div className="mb-4 flex items-center gap-3">
-              <ShieldAlert className="h-5 w-5 text-[hsl(var(--secondary))]" />
-              <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
-                Community safety
-              </h2>
-            </div>
-            <p className="text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-              Feed reports go into the existing admin reports queue. Marketplace,
-              Pulse message, and call moderation stay separate from public
-              feed visibility.
-            </p>
-          </section>
-
-          <section className="giq-panel p-5">
-            <div className="mb-4 flex items-center gap-3">
-              <Flag className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-              <h2 className="text-[18px] font-semibold text-[hsl(var(--foreground))]">
-                Topics
-              </h2>
-            </div>
-            {topics.length === 0 ? (
-              <p className="text-[13px] text-[hsl(var(--muted-foreground))]">
-                Topic management will appear in admin after the first feed data
-                migration is applied.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {topics.map((topic) => (
-                  <span key={topic.id} className="giq-badge giq-badge-neutral">
-                    {topic.name}
-                  </span>
-                ))}
-              </div>
-            )}
-          </section>
+        <aside className="giq-social-messenger-rail hidden xl:block" aria-label="Messenger">
+          <div className="sticky top-[84px] max-h-[calc(100dvh-105px)]">
+            <HubMessengerPanel
+              selfProfileId={user.profileId}
+              invites={invites}
+              requests={requests}
+              friends={friends.map((friend) => ({
+                friendshipId: friend.friendshipId,
+                profileId: friend.profileId,
+                displayName: friend.displayName,
+                avatarUrl: friend.avatarUrl,
+                verified: friend.verified,
+                conversationId: activePage
+                  ? actorConversations.find((conversation) =>
+                      (conversation.participantAActorId === activeActor.id ||
+                        conversation.participantBActorId === activeActor.id) &&
+                      (conversation.participantAId === friend.profileId ||
+                        conversation.participantBId === friend.profileId)
+                    )?.id ?? null
+                  : friend.conversationId,
+              }))}
+              conversations={conversationRows}
+              canStartChat={!activePage || isPro}
+              canStartCall={isPro && !activePage}
+              senderActorId={activeActor.id}
+            />
+          </div>
         </aside>
-      </section>
+      </div>
     </div>
   );
 }
 
-type FeedPostRow = Awaited<ReturnType<typeof getFeedPostsForViewer>>[number];
-
-function FeedPostCard({
-  canInteract,
-  post,
-  currentProfileId,
-  signedIn,
-}: {
-  canInteract: boolean;
-  post: FeedPostRow;
-  currentProfileId: string | null;
-  signedIn: boolean;
-}) {
-  const reportAction = reportFeedPost.bind(null, post.id);
-  const blockAction = blockFeedPostAuthor.bind(null, post.id);
-  const liked = post.reactions.some(
-    (reaction) => reaction.profileId === currentProfileId
-  );
-  const isAuthor = post.authorProfileId === currentProfileId;
-
-  return (
-    <article className="giq-panel p-5">
-      <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
-            {post.author.displayName}
-          </p>
-          <p className="mt-0.5 text-[12px] text-[hsl(var(--subtle-foreground))]">
-            {post.topic?.name ?? "General"} - {formatDate(post.createdAt)}
-          </p>
-        </div>
-        {post.pinnedAt && <span className="giq-badge giq-badge-gold">Pinned</span>}
-      </header>
-
-      <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-[hsl(215_14%_76%)]">
-        {post.body}
-      </p>
-
-      {post.media.length > 0 && (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {post.media.map((attachment) => (
-            <FeedMedia key={attachment.mediaId} media={attachment.media} />
-          ))}
-        </div>
-      )}
-
-      <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-4">
-        <InstantFeedReactionButton
-          postId={post.id}
-          initialCount={post._count.reactions}
-          initiallyLiked={liked}
-          disabled={!canInteract}
-        />
-        <span className="giq-status-pill">
-          <MessageSquare className="h-3.5 w-3.5 text-[hsl(var(--primary-bright))]" />
-          {post._count.comments}
-        </span>
-      </div>
-
-      {post.comments.length > 0 && (
-        <div className="mt-4 space-y-2">
-          {post.comments.map((comment) => (
-            <div key={comment.id} className="giq-subpanel p-3">
-              <p className="text-[12px] font-semibold text-[hsl(var(--foreground))]">
-                {comment.author.displayName}
-              </p>
-              <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-                {comment.body}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {canInteract && (
-        <div className="mt-4 grid gap-3 md:grid-cols-[1fr_220px]">
-          <InstantFeedCommentForm postId={post.id} />
-          <form action={reportAction} className="flex gap-2">
-            <select
-              name="reason"
-              className="giq-form-control min-w-0 flex-1 px-2 py-2 text-[12px]"
-              defaultValue="other"
-              aria-label="Report reason"
-            >
-              <option value="spam">Spam</option>
-              <option value="harassment">Harassment</option>
-              <option value="misinformation">Misinformation</option>
-              <option value="illegal">Illegal</option>
-              <option value="other">Other</option>
-            </select>
-            <button className="giq-outline-action min-h-9 px-3 text-[12px]">
-              Report
-            </button>
-          </form>
-          {!isAuthor && (
-            <form action={blockAction} className="md:col-start-2">
-              <button className="giq-outline-action min-h-9 w-full px-3 text-[12px]">
-                <UserX className="h-3.5 w-3.5" />
-                Block author
-              </button>
-            </form>
-          )}
-        </div>
-      )}
-      {signedIn && !canInteract && (
-        <p className="mt-4 text-[12px] text-[hsl(var(--muted-foreground))]">
-          Upgrade to Pro to comment or react.
-        </p>
-      )}
-    </article>
-  );
-}
-
-function FeedMedia({
-  media,
-}: {
-  media: {
-    id: string;
-    storageBucket: string;
-    storagePath: string;
-    publicUrl: string | null;
-    originalName: string | null;
-    mimeType: string;
-    widthPx: number | null;
-    heightPx: number | null;
-  };
-}) {
-  const url = feedPostMediaUrl(media);
-  if (media.mimeType.startsWith("image/")) {
-    return (
-      <a href={url} target="_blank" rel="noreferrer" className="giq-listing-media block">
-        <NextImage
-          src={url}
-          alt={media.originalName ?? "Feed media"}
-          width={media.widthPx ?? 640}
-          height={media.heightPx ?? 420}
-          sizes="(min-width: 1024px) 420px, (min-width: 640px) 50vw, 100vw"
-          className="h-52 w-full object-cover"
-        />
-      </a>
-    );
-  }
-
-  if (media.mimeType.startsWith("video/")) {
-    return (
-      <video controls className="giq-listing-media h-52 w-full object-cover">
-        <source src={url} type={media.mimeType} />
-      </video>
-    );
-  }
-
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noreferrer"
-      className="giq-outline-action min-h-20 px-3 py-2 text-[12px]"
-    >
-      {media.mimeType.startsWith("image/") ? (
-        <ImageIcon className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
-      ) : (
-        <Paperclip className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
-      )}
-      <span className="truncate">{media.originalName ?? media.mimeType}</span>
-    </a>
-  );
-}
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-AU", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Australia/Sydney",
-  }).format(date);
+function feedListKey(
+  mode: FeedMode,
+  actorId: string | null
+) {
+  return `${mode}:${actorId ?? "anonymous"}`;
 }

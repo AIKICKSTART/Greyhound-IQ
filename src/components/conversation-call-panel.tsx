@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import {
   Mic,
   MicOff,
@@ -22,6 +22,11 @@ import {
   type LocalTrackPublication,
   type RemoteTrack,
 } from "livekit-client";
+import {
+  createClientCallRoom,
+  respondToClientCallInvite,
+  type ClientCallType,
+} from "@/lib/call-client-actions";
 import { callMediaErrorMessage } from "@/lib/call-client-errors";
 
 type CallTokenResponse = {
@@ -30,7 +35,8 @@ type CallTokenResponse = {
   token: string;
 };
 
-export type CallType = "voice" | "video";
+export type CallType = ClientCallType;
+export type CallIntent = CallType | "answer";
 
 export type ActiveCallRoom = {
   id: string;
@@ -66,12 +72,17 @@ type DeviceLists = {
   speaker: MediaDeviceInfo[];
 };
 
+type DeviceError = {
+  kind: MediaDeviceKind;
+  message: string;
+};
+
 type RetryTarget =
   | { kind: "start"; callType: CallType }
   | { kind: "connect"; roomId: string; callType: CallType };
 
 const VIDEO_CELL_CLASS =
-  "aspect-video overflow-hidden rounded-md border border-white/[0.06] bg-white/[0.03]";
+  "giq-social-call-video aspect-video overflow-hidden rounded-xl border border-white/[0.08] bg-black";
 
 export function ConversationCallPanel({
   conversationId,
@@ -79,12 +90,18 @@ export function ConversationCallPanel({
   pendingInvite,
   blocked,
   otherName,
+  canStartCall = true,
+  autoCallIntent = null,
 }: {
   conversationId: string;
   activeRoom: ActiveCallRoom | null;
   pendingInvite: PendingCallInvite | null;
   blocked: boolean;
   otherName: string;
+  // Free members cannot START calls (server-gated too); they can still join
+  // an active room and accept/decline invites.
+  canStartCall?: boolean;
+  autoCallIntent?: CallIntent | null;
 }) {
   const [localRoom, setLocalRoom] = useState<ActiveCallRoom | null>(null);
   const [dismissedRoomId, setDismissedRoomId] = useState<string | null>(null);
@@ -94,7 +111,8 @@ export function ConversationCallPanel({
   const [mode, setMode] = useState<CallType>("video");
   const [error, setError] = useState<string | null>(null);
   const [mediaErrors, setMediaErrors] = useState<MediaErrors>({});
-  const [deviceError, setDeviceError] = useState<string | null>(null);
+  const [deviceError, setDeviceError] = useState<DeviceError | null>(null);
+  const deviceErrorId = useId();
   const [micEnabled, setMicEnabled] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [screenShareEnabled, setScreenShareEnabled] = useState(false);
@@ -116,6 +134,7 @@ export function ConversationCallPanel({
   const roomRef = useRef<Room | null>(null);
   const connectedAtRef = useRef<number | null>(null);
   const retryRef = useRef<RetryTarget | null>(null);
+  const autoCallIntentRef = useRef(autoCallIntent);
 
   const currentRoom =
     localRoom ?? (activeRoom && activeRoom.id !== dismissedRoomId ? activeRoom : null);
@@ -135,8 +154,9 @@ export function ConversationCallPanel({
 
   useEffect(() => {
     return () => {
-      roomRef.current?.disconnect();
+      const activeConnection = roomRef.current;
       roomRef.current = null;
+      activeConnection?.disconnect();
     };
   }, []);
 
@@ -217,7 +237,13 @@ export function ConversationCallPanel({
       bindRemoteTracks(nextRoom, remoteMediaRef);
       nextRoom.on(RoomEvent.Disconnected, () => {
         if (roomRef.current !== nextRoom) return;
+        const retry = retryRef.current;
         resetCallState();
+        if (!retry) return;
+        setStatus("error");
+        setError(
+          "The call connection dropped. Check your connection and try again.",
+        );
       });
       nextRoom.on(RoomEvent.Reconnecting, () => {
         if (roomRef.current !== nextRoom) return;
@@ -273,7 +299,7 @@ export function ConversationCallPanel({
     setError(null);
     setStatus("starting");
     try {
-      const created = await createRoom(conversationId, callType);
+      const created = await createClientCallRoom(conversationId, callType);
       setDismissedRoomId(null);
       setLocalRoom(created);
       await connectToRoom(created.id, created.callType);
@@ -294,6 +320,7 @@ export function ConversationCallPanel({
     if (retry.kind === "start") {
       void startCall(retry.callType);
     } else {
+      setLocalRoom({ id: retry.roomId, callType: retry.callType });
       void connectToRoom(retry.roomId, retry.callType);
     }
   }
@@ -302,7 +329,7 @@ export function ConversationCallPanel({
     setInviteBusy("accept");
     setError(null);
     try {
-      await respondToInvite(invite.roomId, "accept");
+      await respondToClientCallInvite(invite.roomId, "accept");
       setDismissedInviteId(invite.id);
       setDismissedRoomId(null);
       setLocalRoom({ id: invite.roomId, callType: invite.callType });
@@ -318,7 +345,7 @@ export function ConversationCallPanel({
     setInviteBusy("decline");
     setError(null);
     try {
-      await respondToInvite(invite.roomId, "decline");
+      await respondToClientCallInvite(invite.roomId, "decline");
       setDismissedInviteId(invite.id);
       setDismissedRoomId(invite.roomId);
     } catch (err) {
@@ -327,6 +354,41 @@ export function ConversationCallPanel({
       setInviteBusy(null);
     }
   }
+
+  useEffect(() => {
+    const intent = autoCallIntentRef.current;
+    autoCallIntentRef.current = null;
+    if (!intent) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("call");
+    window.history.replaceState(window.history.state, "", url);
+
+    if (blocked) {
+      setError("Unblock this conversation before calling.");
+      return;
+    }
+    if (intent === "answer") {
+      if (incomingInvite && !inviteExpired) {
+        void acceptInvite(incomingInvite);
+      } else if (currentRoom) {
+        joinCall(currentRoom);
+      } else {
+        setError("This call is no longer available.");
+      }
+      return;
+    }
+    if (currentRoom) {
+      joinCall(currentRoom);
+    } else if (canStartCall) {
+      void startCall(intent);
+    } else {
+      setError("Calls are a Pro feature.");
+    }
+    // The URL intent is deliberately consumed once on mount. The ref prevents
+    // React Strict Mode from placing or accepting the same call twice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function toggleMic() {
     if (!room) return;
@@ -383,26 +445,41 @@ export function ConversationCallPanel({
       setSelectedDevices((prev) => ({ ...prev, [kind]: deviceId }));
     } catch (err) {
       if (kind === "audioinput") {
-        setDeviceError(callMediaErrorMessage(err, "microphone"));
+        setDeviceError({
+          kind,
+          message: callMediaErrorMessage(err, "microphone"),
+        });
       } else if (kind === "videoinput") {
-        setDeviceError(callMediaErrorMessage(err, "camera"));
+        setDeviceError({
+          kind,
+          message: callMediaErrorMessage(err, "camera"),
+        });
       } else {
-        setDeviceError(
-          err instanceof Error ? err.message : "Could not switch speaker"
-        );
+        setDeviceError({
+          kind,
+          message: err instanceof Error ? err.message : "Could not switch speaker",
+        });
       }
     }
   }
 
-  function leave() {
+  async function leave() {
     const target = currentRoom;
     const activeConnection = room;
+    retryRef.current = null;
     roomRef.current = null;
     resetCallState();
     activeConnection?.disconnect();
     if (target) {
       setDismissedRoomId(target.id);
-      void endRoom(target.id);
+      try {
+        await endRoom(target.id);
+      } catch {
+        setStatus("error");
+        setError(
+          "You left the call, but GreyhoundIQ could not confirm that it ended. Refresh before starting another call.",
+        );
+      }
     }
   }
 
@@ -411,8 +488,8 @@ export function ConversationCallPanel({
   }
 
   return (
-    <section className="mt-5 rounded-lg border border-white/[0.08] bg-black/20 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section className="giq-social-call-panel mt-5 rounded-xl border border-white/[0.08] bg-black/20 p-4">
+      <div className="giq-social-call-header flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[12px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
             Audio/video call
@@ -439,7 +516,7 @@ export function ConversationCallPanel({
                 <PhoneCall className="h-3.5 w-3.5" />
                 Join {currentRoom.callType} call
               </button>
-            ) : (
+            ) : canStartCall ? (
               <>
                 <button
                   type="button"
@@ -460,6 +537,14 @@ export function ConversationCallPanel({
                   Video call
                 </button>
               </>
+            ) : (
+              <a
+                href="/pricing"
+                className="giq-outline-action min-h-11 px-4 text-[13px] font-semibold"
+              >
+                <Phone className="h-3.5 w-3.5" />
+                Calls are a Pro feature
+              </a>
             )}
           </div>
         )}
@@ -532,24 +617,42 @@ export function ConversationCallPanel({
       )}
 
       {error && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2">
+        <div
+          role="alert"
+          className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2"
+        >
           <p className="text-[12px] text-red-100">{error}</p>
-          {status === "error" && retryRef.current && (
+          <div className="flex flex-wrap gap-2">
+            {status === "error" && retryRef.current ? (
+              <button
+                type="button"
+                onClick={tryAgain}
+                className="giq-outline-action min-h-11 px-3 text-[12px] font-semibold"
+              >
+                Try again
+              </button>
+            ) : null}
             <button
               type="button"
-              onClick={tryAgain}
+              onClick={() => {
+                setError(null);
+                if (status === "error") setStatus("idle");
+                retryRef.current = null;
+              }}
               className="giq-outline-action min-h-11 px-3 text-[12px] font-semibold"
             >
-              Try again
+              Dismiss
             </button>
-          )}
+          </div>
         </div>
       )}
 
       <div
-        className={
-          showVideoGrid ? "mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2" : undefined
-        }
+          className={
+            showVideoGrid
+              ? "giq-social-call-stage mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"
+              : undefined
+          }
       >
         <div
           ref={localVideoRef}
@@ -566,13 +669,17 @@ export function ConversationCallPanel({
       </div>
 
       {connected && devicesOpen && (
-        <div className="mt-4 rounded-md border border-white/[0.08] bg-white/[0.03] p-3">
+        <div className="giq-social-call-devices mt-4 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-[12px] font-medium text-[hsl(var(--muted-foreground))]">
               Microphone
               <select
                 value={deviceSelectValue("audioinput")}
                 onChange={(event) => void switchDevice("audioinput", event.target.value)}
+                aria-invalid={deviceError?.kind === "audioinput"}
+                aria-errormessage={
+                  deviceError?.kind === "audioinput" ? deviceErrorId : undefined
+                }
                 className="giq-form-control mt-1 min-h-11 w-full px-2 text-[12px]"
               >
                 <option value="">System default</option>
@@ -590,6 +697,10 @@ export function ConversationCallPanel({
                   value={deviceSelectValue("videoinput")}
                   onChange={(event) =>
                     void switchDevice("videoinput", event.target.value)
+                  }
+                  aria-invalid={deviceError?.kind === "videoinput"}
+                  aria-errormessage={
+                    deviceError?.kind === "videoinput" ? deviceErrorId : undefined
                   }
                   className="giq-form-control mt-1 min-h-11 w-full px-2 text-[12px]"
                 >
@@ -610,6 +721,10 @@ export function ConversationCallPanel({
                   onChange={(event) =>
                     void switchDevice("audiooutput", event.target.value)
                   }
+                  aria-invalid={deviceError?.kind === "audiooutput"}
+                  aria-errormessage={
+                    deviceError?.kind === "audiooutput" ? deviceErrorId : undefined
+                  }
                   className="giq-form-control mt-1 min-h-11 w-full px-2 text-[12px]"
                 >
                   <option value="">System default</option>
@@ -623,13 +738,15 @@ export function ConversationCallPanel({
             )}
           </div>
           {deviceError && (
-            <p className="mt-2 text-[12px] text-red-200">{deviceError}</p>
+            <p id={deviceErrorId} role="alert" className="mt-2 text-[12px] text-red-200">
+              {deviceError.message}
+            </p>
           )}
         </div>
       )}
 
       {connected && (
-        <div className="sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex flex-wrap items-center gap-2 rounded-b-lg border-t border-white/[0.08] bg-black/60 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-md sm:pb-3">
+        <div className="giq-social-call-controls sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex flex-wrap items-center gap-2 rounded-b-xl border-t border-white/[0.08] bg-black/60 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-md sm:pb-3">
           <button
             type="button"
             onClick={() => void toggleMic()}
@@ -689,7 +806,7 @@ export function ConversationCallPanel({
           </button>
           <button
             type="button"
-            onClick={leave}
+            onClick={() => void leave()}
             aria-label="Leave call"
             className="giq-danger-action ml-auto min-h-11 min-w-11 px-3"
           >
@@ -730,24 +847,6 @@ function formatCallDuration(totalSeconds: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-async function createRoom(
-  conversationId: string,
-  callType: CallType
-): Promise<ActiveCallRoom> {
-  const response = await fetch("/api/calls/rooms", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ conversationId, callType }),
-  });
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload?.error?.message ?? "Could not create call");
-  return {
-    id: payload.item.id as string,
-    // Server may return an existing active room whose type wins.
-    callType: payload.item.callType === "voice" ? "voice" : "video",
-  };
-}
-
 async function createToken(roomId: string): Promise<CallTokenResponse> {
   const response = await fetch(`/api/calls/${roomId}/token`, { method: "POST" });
   const payload = await response.json();
@@ -755,21 +854,12 @@ async function createToken(roomId: string): Promise<CallTokenResponse> {
   return payload as CallTokenResponse;
 }
 
-async function respondToInvite(roomId: string, action: "accept" | "decline") {
-  const response = await fetch(`/api/calls/${roomId}/invite`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ action }),
-  });
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload?.error?.message ?? "Could not respond to call invite");
-  }
-  return payload.item as { id: string; status: string };
-}
-
 async function endRoom(roomId: string) {
-  await fetch(`/api/calls/${roomId}/end`, { method: "POST" });
+  const response = await fetch(`/api/calls/${roomId}/end`, { method: "POST" });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(payload?.error?.message ?? "Could not end call");
+  }
 }
 
 function bindRemoteTracks(room: Room, container: RefObject<HTMLDivElement | null>) {

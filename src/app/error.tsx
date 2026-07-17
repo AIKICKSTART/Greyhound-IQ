@@ -11,8 +11,7 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log the error so it shows up in monitoring (Sentry etc)
-    console.error("Page error:", error);
+    console.error("page.segment_error", { digest: error.digest ?? "unknown" });
   }, [error]);
 
   return (

@@ -3,8 +3,10 @@ import { dogOwnershipClaimSchema } from "@/lib/account-validation";
 import { createAuditLog } from "@/lib/account-service";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
+import { readBoundedJsonRequest } from "@/lib/json-request";
 import { withDbRequestContext } from "@/lib/db-context";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const DOG_CLAIM_RATE_LIMIT = 5;
 const DOG_CLAIM_RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -21,21 +23,18 @@ export async function POST(
     const rateLimit = await checkRateLimit(
       `dog:claim:${current.dbUserId}`,
       DOG_CLAIM_RATE_LIMIT,
-      DOG_CLAIM_RATE_LIMIT_WINDOW_MS
+      DOG_CLAIM_RATE_LIMIT_WINDOW_MS,
+      { failClosed: true },
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        DOG_CLAIM_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const parsed = dogOwnershipClaimSchema.parse(await request.json());
+    const parsed = dogOwnershipClaimSchema.parse(await readBoundedJsonRequest(request));
 
     const ownership = await withDbRequestContext(current, async (tx) => {
       const dog = await tx.dog.findUnique({

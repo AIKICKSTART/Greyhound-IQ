@@ -78,7 +78,7 @@ type DatabaseBindings = Readonly<{
 
 export const PRODUCTION_ORM_LOCATION_BASELINE = {
   callCount: 944,
-  digest: "366fc5da518c40b33cdc12a644b76e8d78d007b1999c1b7f712b02df5fbb810b",
+  digest: "2f9f5d4f437644439b8756cd3ec6748f6d7e013807399240b427fa2f0a966542",
 } as const satisfies OrmCallLocationBaseline;
 
 export const ORM_CALL_LOCATION_SCOPE =

@@ -1,0 +1,4 @@
+interface:
+  display_name: "GreyhoundIQ Production Architecture"
+  short_description: "Design and verify the Australia-only GreyhoundIQ backend"
+  default_prompt: "Use $greyhoundiq-production-architecture to select or review GreyhoundIQ's Australia-only production backend, CDN, API gateway, database, scaling, and observability gates."

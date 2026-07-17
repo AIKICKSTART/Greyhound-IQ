@@ -1,0 +1,129 @@
+{
+  "configuration": {
+    "callTokenConcurrency": 10,
+    "configuredLanes": [
+      "public"
+    ],
+    "poolSaturationRequests": 50,
+    "profile": {
+      "name": "smoke",
+      "requiredLanes": [
+        "public"
+      ],
+      "stages": [
+        {
+          "concurrency": 4,
+          "iterations": 5,
+          "name": "smoke"
+        }
+      ],
+      "thresholds": {
+        "maximumErrorRate": 0,
+        "p95Milliseconds": 60000,
+        "p99Milliseconds": 60000
+      }
+    },
+    "realtimeClients": 5,
+    "requestTimeoutMs": 60000,
+    "targetOrigin": "http://localhost:3000"
+  },
+  "coverage": {
+    "configuredLanes": [
+      "public"
+    ],
+    "executedLanes": [
+      "public"
+    ],
+    "requiredLanes": [
+      "public"
+    ]
+  },
+  "findings": [],
+  "identity": {
+    "configDigest": "sha256:b37513f5f5e1aa266dfa1d80badc571253787fcaf6dd87faea4c199fcb00df88",
+    "environment": "local",
+    "imageDigest": "not-applicable-local-smoke",
+    "sourceSha": "f78ba76ee853344132e0e202b3e8671d76d59104",
+    "targetOrigin": "http://localhost:3000",
+    "timestamp": "2026-07-13T14:42:23.135Z"
+  },
+  "realtime": null,
+  "schemaVersion": 1,
+  "status": "passed",
+  "summary": {
+    "byLabel": {
+      "browse listings api": {
+        "count": 5,
+        "errorRate": 0,
+        "failures": 0,
+        "maximumMilliseconds": 478,
+        "p50Milliseconds": 380,
+        "p95Milliseconds": 478,
+        "p99Milliseconds": 478,
+        "statuses": {
+          "200": 5
+        }
+      },
+      "browse marketplace page": {
+        "count": 5,
+        "errorRate": 0,
+        "failures": 0,
+        "maximumMilliseconds": 3734,
+        "p50Milliseconds": 3616,
+        "p95Milliseconds": 3734,
+        "p99Milliseconds": 3734,
+        "statuses": {
+          "200": 5
+        }
+      },
+      "feed health": {
+        "count": 5,
+        "errorRate": 0,
+        "failures": 0,
+        "maximumMilliseconds": 244,
+        "p50Milliseconds": 242,
+        "p95Milliseconds": 244,
+        "p99Milliseconds": 244,
+        "statuses": {
+          "200": 5
+        }
+      },
+      "feed page": {
+        "count": 5,
+        "errorRate": 0,
+        "failures": 0,
+        "maximumMilliseconds": 1998,
+        "p50Milliseconds": 1991,
+        "p95Milliseconds": 1998,
+        "p99Milliseconds": 1998,
+        "statuses": {
+          "200": 5
+        }
+      },
+      "ready": {
+        "count": 5,
+        "errorRate": 0,
+        "failures": 0,
+        "maximumMilliseconds": 1097,
+        "p50Milliseconds": 1061,
+        "p95Milliseconds": 1097,
+        "p99Milliseconds": 1097,
+        "statuses": {
+          "200": 5
+        }
+      }
+    },
+    "overall": {
+      "count": 25,
+      "errorRate": 0,
+      "failures": 0,
+      "maximumMilliseconds": 3734,
+      "p50Milliseconds": 1061,
+      "p95Milliseconds": 3733,
+      "p99Milliseconds": 3734,
+      "statuses": {
+        "200": 25
+      }
+    }
+  }
+}

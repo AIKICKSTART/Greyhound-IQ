@@ -223,8 +223,8 @@ const INVENTORY_SNAPSHOTS = {
     sha256: "d93cb59fd5a9b30b7997232151a00c5d7b21a9230a0e18ab99f50f82892ce4d9",
   },
   sourceEnvironmentReferences: {
-    count: 129,
-    sha256: "0151334da98aa8b5692e7f59c46675a2d4ed917b50d06775a601e10fc025d8e1",
+    count: 130,
+    sha256: "e864655d87187326fa206d59e63c48fa759603cead48e98131a8d8a7984df6e1",
   },
   featureFlagReferences: {
     count: 28,

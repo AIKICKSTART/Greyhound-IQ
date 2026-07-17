@@ -1,0 +1,5885 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "local-postgres-compatibility-catalog",
+  "generatedAt": "2026-07-13T17:52:59.941Z",
+  "safety": {
+    "scope": "literal-loopback-local-only",
+    "target": {
+      "protocol": "postgresql",
+      "host": "127.0.0.1",
+      "port": 55734,
+      "database": "greyhoundiq"
+    },
+    "readOnlySession": true
+  },
+  "sourceBinding": {
+    "testedCommitSha": "f78ba76ee853344132e0e202b3e8671d76d59104",
+    "sourceSha256": "c1d8ff6dc85060d7d90657107dcf3feacddab0b5f098e999f9b1f2ceb440e90a",
+    "sourceFileCount": 613,
+    "prismaSchemaSha256": "44a523c98f05cec632c3733c0c2b8cdeb802bf666e9766f07e2e5665320fbeab",
+    "migrationsSha256": "1ffbed43b8481e94ea0c463bbfe4e273652a6270d4964c3f21665db031378c98"
+  },
+  "postgres": {
+    "version": "15.18",
+    "versionNum": 150018,
+    "major": 15,
+    "configuredLocalMajor": 15,
+    "serverEncoding": "UTF8",
+    "collation": "en_US.utf8",
+    "ctype": "en_US.utf8",
+    "timezone": "UTC"
+  },
+  "extensions": [
+    {
+      "name": "pg_trgm",
+      "version": "1.6",
+      "schema": "public"
+    },
+    {
+      "name": "plpgsql",
+      "version": "1.0",
+      "schema": "pg_catalog"
+    }
+  ],
+  "roles": {
+    "current": "greyhoundiq_runtime",
+    "session": "greyhoundiq_runtime",
+    "expectedRuntime": "greyhoundiq_runtime",
+    "leastPrivilegeMatch": true,
+    "catalog": [
+      {
+        "name": "greyhoundiq_runtime",
+        "superuser": false,
+        "inherit": true,
+        "createRole": false,
+        "createDatabase": false,
+        "canLogin": true,
+        "replication": false,
+        "bypassRls": false,
+        "connectionLimit": -1
+      },
+      {
+        "name": "pg_checkpoint",
+        "superuser": false,
+        "inherit": true,
+        "createRole": false,
+        "createDatabase": false,
+        "canLogin": false,
+        "replication": false,
+        "bypassRls": false,
+        "connectionLimit": -1
+      },
+      {
+        "name": "pg_database_owner",
+        "superuser": false,
+        "inherit": true,
+        "createRole": false,
+        "createDatabase": false,
+        "canLogin": false,
+        "replication": false,
+        "bypassRls": false,
+        "connectionLimit": -1
+      },
+      {
+        "name": "pg_execute_server_program",
+        "superuser": false,
+        "inherit": true,
+        "createRole": false,
+        "createDatabase": false,
+        "canLogin": false,
+        "replication": false,
+        "bypassRls": false,
+        "connectionLimit": -1
+      },
+      {
+        "name": "pg_monitor",
+        "superuser": false,
+        "inherit": true,
+        "createRole": false,
+        "createDatabase": false,
+        "canLogin": false,
+        "replication": false,
+        "bypassRls": false,
+        "connectionLimit": -1
+      },
+      {
+        "name": "pg_read_all_data",
+        "superuser": false,
+        "inherit": true,
+        "createRole": false,
+        "createDatabase": false,
+        "canLogin": false,
+        "replication": false,
+        "bypassRls": false,
+        "connectionLimit": -1
+      },
+      {
+        "name": "pg_read_all_settings",
+        "superuser": false,
+        "inherit": true,
+        "createRole": false,
+        "createDatabase": false,
+        "canLogin": false,
+        "replication": false,
+        "bypassRls": false,
+        "connectionLimit": -1
+      },
+      {
+        "name": "pg_read_all_stats",
+        "superuser": false,
+        "inherit": true,
+        "createRole": false,
+        "createDatabase": false,
+        "canLogin": false,
+        "replication": false,
+        "bypassRls": false,
+        "connectionLimit": -1
+      },
+      {
+        "name": "pg_read_server_files",
+        "superuser": false,
+        "inherit": true,
+        "createRole": false,
+        "createDatabase": false,
+        "canLogin": false,
+        "replication": false,
+        "bypassRls": false,
+        "connectionLimit": -1
+      },
+      {
+        "name": "pg_signal_backend",
+        "superuser": false,
+        "inherit": true,
+        "createRole": false,
+        "createDatabase": false,
+        "canLogin": false,
+        "replication": false,
+        "bypassRls": false,
+        "connectionLimit": -1
+      },
+      {
+        "name": "pg_stat_scan_tables",
+        "superuser": false,
+        "inherit": true,
+        "createRole": false,
+        "createDatabase": false,
+        "canLogin": false,
+        "replication": false,
+        "bypassRls": false,
+        "connectionLimit": -1
+      },
+      {
+        "name": "pg_write_all_data",
+        "superuser": false,
+        "inherit": true,
+        "createRole": false,
+        "createDatabase": false,
+        "canLogin": false,
+        "replication": false,
+        "bypassRls": false,
+        "connectionLimit": -1
+      },
+      {
+        "name": "pg_write_server_files",
+        "superuser": false,
+        "inherit": true,
+        "createRole": false,
+        "createDatabase": false,
+        "canLogin": false,
+        "replication": false,
+        "bypassRls": false,
+        "connectionLimit": -1
+      },
+      {
+        "name": "postgres",
+        "superuser": true,
+        "inherit": true,
+        "createRole": true,
+        "createDatabase": true,
+        "canLogin": true,
+        "replication": true,
+        "bypassRls": true,
+        "connectionLimit": -1
+      }
+    ],
+    "memberships": [
+      {
+        "role": "pg_read_all_settings",
+        "member": "pg_monitor",
+        "grantor": "postgres",
+        "adminOption": false
+      },
+      {
+        "role": "pg_read_all_stats",
+        "member": "pg_monitor",
+        "grantor": "postgres",
+        "adminOption": false
+      },
+      {
+        "role": "pg_stat_scan_tables",
+        "member": "pg_monitor",
+        "grantor": "postgres",
+        "adminOption": false
+      }
+    ]
+  },
+  "grants": {
+    "database": [
+      {
+        "grantee": "PUBLIC",
+        "schema": "greyhoundiq",
+        "privilege": "CONNECT",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "greyhoundiq",
+        "privilege": "TEMPORARY",
+        "grantable": false
+      },
+      {
+        "grantee": "postgres",
+        "schema": "greyhoundiq",
+        "privilege": "CONNECT",
+        "grantable": false
+      },
+      {
+        "grantee": "postgres",
+        "schema": "greyhoundiq",
+        "privilege": "CREATE",
+        "grantable": false
+      },
+      {
+        "grantee": "postgres",
+        "schema": "greyhoundiq",
+        "privilege": "TEMPORARY",
+        "grantable": false
+      }
+    ],
+    "schemas": [
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "privilege": "USAGE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "privilege": "USAGE",
+        "grantable": false
+      },
+      {
+        "grantee": "pg_database_owner",
+        "schema": "public",
+        "privilege": "CREATE",
+        "grantable": false
+      },
+      {
+        "grantee": "pg_database_owner",
+        "schema": "public",
+        "privilege": "USAGE",
+        "grantable": false
+      }
+    ],
+    "tables": [
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorFollow",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorFollow",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorFollow",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorFollow",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorGalleryMedia",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorGalleryMedia",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorGalleryMedia",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorGalleryMedia",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorMute",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorMute",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorMute",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorMute",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorTopicFollow",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorTopicFollow",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorTopicFollow",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ActorTopicFollow",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AdminAction",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AdminAction",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AdminAction",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AdminAction",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AgentRun",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AgentRun",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AgentRun",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AgentRun",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AgentRunUsage",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AgentRunUsage",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AgentRunUsage",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AgentRunUsage",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AuditLog",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AuditLog",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AuditLog",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AuditLog",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BannedPhrase",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BannedPhrase",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BannedPhrase",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BannedPhrase",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BillingCustomer",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BillingCustomer",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BillingCustomer",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BillingCustomer",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BillingEvent",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BillingEvent",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BillingEvent",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BillingEvent",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BugReport",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BugReport",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BugReport",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "BugReport",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallEvent",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallEvent",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallEvent",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallEvent",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallInvite",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallInvite",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallInvite",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallInvite",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallParticipant",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallParticipant",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallParticipant",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallParticipant",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallPermission",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallPermission",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallPermission",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallPermission",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallReport",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallReport",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallReport",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallReport",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallRoom",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallRoom",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallRoom",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CallRoom",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ConsentEvent",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ConsentEvent",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ConsentEvent",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ConsentEvent",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Conversation",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Conversation",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Conversation",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Conversation",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ConversationContext",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ConversationContext",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ConversationContext",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ConversationContext",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ConversationParticipant",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ConversationParticipant",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ConversationParticipant",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ConversationParticipant",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CreditNoteRecord",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CreditNoteRecord",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CreditNoteRecord",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CreditNoteRecord",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CustomDesignRequest",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CustomDesignRequest",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CustomDesignRequest",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CustomDesignRequest",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CustomPage",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CustomPage",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CustomPage",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "CustomPage",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DataSourceHealth",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DataSourceHealth",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DataSourceHealth",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DataSourceHealth",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DeletionJob",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DeletionJob",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DeletionJob",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DeletionJob",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Dog",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Dog",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Dog",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Dog",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DogOwnership",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DogOwnership",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DogOwnership",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DogOwnership",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DogProfileArchive",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DogProfileArchive",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DogProfileArchive",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DogProfileArchive",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DogProfileForm",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DogProfileForm",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DogProfileForm",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "DogProfileForm",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "EntitlementSnapshot",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "EntitlementSnapshot",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "EntitlementSnapshot",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "EntitlementSnapshot",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ExportArtifact",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ExportArtifact",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ExportArtifact",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ExportArtifact",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedComment",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedComment",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedComment",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedComment",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedMention",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedMention",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedMention",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedMention",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedPost",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedPost",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedPost",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedPost",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedPostMedia",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedPostMedia",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedPostMedia",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedPostMedia",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedReaction",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedReaction",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedReaction",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedReaction",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedShare",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedShare",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedShare",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedShare",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedTopic",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedTopic",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedTopic",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FeedTopic",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Feedback",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Feedback",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Feedback",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Feedback",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FormEntry",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FormEntry",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FormEntry",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "FormEntry",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ForumCategory",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ForumCategory",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ForumCategory",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ForumCategory",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Friendship",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Friendship",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Friendship",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Friendship",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "InvoiceRecord",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "InvoiceRecord",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "InvoiceRecord",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "InvoiceRecord",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "JobRun",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "JobRun",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "JobRun",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "JobRun",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Listing",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Listing",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Listing",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Listing",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingAttribute",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingAttribute",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingAttribute",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingAttribute",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingEnquiry",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingEnquiry",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingEnquiry",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingEnquiry",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingLocation",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingLocation",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingLocation",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingLocation",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingMedia",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingMedia",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingMedia",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingMedia",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingModerationAction",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingModerationAction",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingModerationAction",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingModerationAction",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingReport",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingReport",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingReport",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingReport",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingSearchIndex",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingSearchIndex",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingSearchIndex",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingSearchIndex",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingStatusHistory",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingStatusHistory",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingStatusHistory",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingStatusHistory",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingView",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingView",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingView",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "ListingView",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MarketingPreference",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MarketingPreference",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MarketingPreference",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MarketingPreference",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MarketplaceCategory",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MarketplaceCategory",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MarketplaceCategory",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MarketplaceCategory",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MediaAsset",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MediaAsset",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MediaAsset",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MediaAsset",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Meeting",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Meeting",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Meeting",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Meeting",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Membership",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Membership",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Membership",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Membership",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MemoryEntry",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MemoryEntry",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MemoryEntry",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MemoryEntry",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Message",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Message",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Message",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Message",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageDeliveryReceipt",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageDeliveryReceipt",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageDeliveryReceipt",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageDeliveryReceipt",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageMedia",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageMedia",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageMedia",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageMedia",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageModerationAction",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageModerationAction",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageModerationAction",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageModerationAction",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageReaction",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageReaction",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageReaction",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageReaction",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageReadReceipt",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageReadReceipt",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageReadReceipt",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "MessageReadReceipt",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Notification",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Notification",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Notification",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Notification",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Organization",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Organization",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Organization",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Organization",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "OrganizationInvitation",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "OrganizationInvitation",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "OrganizationInvitation",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "OrganizationInvitation",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PaymentRecord",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PaymentRecord",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PaymentRecord",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PaymentRecord",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Plan",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Plan",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Plan",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Plan",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PlanEntitlement",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PlanEntitlement",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PlanEntitlement",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PlanEntitlement",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PlatformSetting",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PlatformSetting",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PlatformSetting",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PlatformSetting",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Post",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Post",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Post",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Post",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PriceCatalog",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PriceCatalog",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PriceCatalog",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "PriceCatalog",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Profile",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Profile",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Profile",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Profile",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Race",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Race",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Race",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Race",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RaceDayArchive",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RaceDayArchive",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RaceDayArchive",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RaceDayArchive",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RaceVideo",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RaceVideo",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RaceVideo",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RaceVideo",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RateLimit",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RateLimit",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RateLimit",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RateLimit",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RealtimeTopicGrant",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RealtimeTopicGrant",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RealtimeTopicGrant",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RealtimeTopicGrant",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RefundRecord",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RefundRecord",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RefundRecord",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RefundRecord",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Report",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Report",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Report",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Report",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Result",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Result",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Result",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Result",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RetentionPolicy",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RetentionPolicy",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RetentionPolicy",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "RetentionPolicy",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Runner",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Runner",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Runner",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Runner",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SavedFeedPost",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SavedFeedPost",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SavedFeedPost",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SavedFeedPost",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SavedListing",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SavedListing",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SavedListing",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SavedListing",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SignupOutbox",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SignupOutbox",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SignupOutbox",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SignupOutbox",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SocialActor",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SocialActor",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SocialActor",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SocialActor",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Subscription",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Subscription",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Subscription",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Subscription",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SupportMessage",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SupportMessage",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SupportMessage",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SupportMessage",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SupportTicket",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SupportTicket",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SupportTicket",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "SupportTicket",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "TermsAcceptance",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "TermsAcceptance",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "TermsAcceptance",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "TermsAcceptance",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Thread",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Thread",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Thread",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Thread",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Track",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Track",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Track",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Track",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Trainer",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Trainer",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Trainer",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "Trainer",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "TrustSafetyFlag",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "TrustSafetyFlag",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "TrustSafetyFlag",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "TrustSafetyFlag",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UsageAggregate",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UsageAggregate",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UsageAggregate",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UsageAggregate",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UsageEvent",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UsageEvent",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UsageEvent",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UsageEvent",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UsageOutbox",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UsageOutbox",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UsageOutbox",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UsageOutbox",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "User",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "User",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "User",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "User",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UserBlock",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UserBlock",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UserBlock",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UserBlock",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UserPresence",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UserPresence",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UserPresence",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "UserPresence",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "WebhookEvent",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "WebhookEvent",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "WebhookEvent",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "WebhookEvent",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "_prisma_migrations",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "_prisma_migrations",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "_prisma_migrations",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "_prisma_migrations",
+        "privilege": "UPDATE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_public_social_actor_profiles",
+        "privilege": "DELETE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_public_social_actor_profiles",
+        "privilege": "INSERT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_public_social_actor_profiles",
+        "privilege": "SELECT",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_public_social_actor_profiles",
+        "privilege": "UPDATE",
+        "grantable": false
+      }
+    ],
+    "sequences": [
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "AuditLog_id_seq",
+        "privilege": "USAGE",
+        "grantable": false
+      }
+    ],
+    "routines": [
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gin_extract_query_trgm",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gin_extract_value_trgm",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gin_trgm_consistent",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gin_trgm_triconsistent",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_call_room_current_profile_can_join",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_call_room_current_profile_has_access",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_call_room_current_profile_is_creator",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_can_publish_feed_as",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_claim",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_conversation_write_guard",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_current_profile_id",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_current_role",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_current_tier",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_current_user_id",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_enforce_profile_marketing_tier",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_feed_post_write_guard",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_is_moderator",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_is_pro",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_is_system",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_message_write_guard",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_org_current_user_is_member",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_org_current_user_is_owner",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_personal_feed_write_guard",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_reject_page_call",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_require_pro_write",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "giq_social_actor_identity_guard",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gtrgm_compress",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gtrgm_consistent",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gtrgm_decompress",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gtrgm_distance",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gtrgm_in",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gtrgm_options",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gtrgm_out",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gtrgm_penalty",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gtrgm_picksplit",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gtrgm_same",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "gtrgm_union",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "set_limit",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "show_limit",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "show_trgm",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "similarity",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "similarity_dist",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "similarity_op",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "strict_word_similarity",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "strict_word_similarity_commutator_op",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "strict_word_similarity_dist_commutator_op",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "strict_word_similarity_dist_op",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "strict_word_similarity_op",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "word_similarity",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "word_similarity_commutator_op",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "word_similarity_dist_commutator_op",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "word_similarity_dist_op",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "PUBLIC",
+        "schema": "public",
+        "object": "word_similarity_op",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_actor_accountable",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_actor_belongs_to_profile",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_actor_can_act",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_actor_connected",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_actor_owned",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_actor_visible",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_audience_rank",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_call_room_profile_is_conversation_participant",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_conversation_actor_can_start",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_conversation_actor_pair_valid",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_conversation_default_personal_actors",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_current_actor_id",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_feed_actor_can_publish",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_feed_actor_consistent",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_feed_post_visible",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_is_conversation_participant",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_is_profile_in_conversation",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_media_owned_by_actor",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_message_actor_pair_valid",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_profiles_blocked",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_refresh_aggregate_matview",
+        "privilege": "EXECUTE",
+        "grantable": false
+      },
+      {
+        "grantee": "greyhoundiq_runtime",
+        "schema": "public",
+        "object": "giq_social_actor_identity_valid",
+        "privilege": "EXECUTE",
+        "grantable": false
+      }
+    ]
+  },
+  "migrations": {
+    "source": [
+      {
+        "name": "20260630093000_baseline",
+        "checksum": "1c3bf7960da1a93de65bac113d53524392fd10c48e0bb519f07b21ca38dfb759"
+      },
+      {
+        "name": "20260630170000_supabase_storage",
+        "checksum": "ac73b8575ed95046ca9af2a382b988bee4cd0ad03d6d2324419cd35da8ba41b9"
+      },
+      {
+        "name": "20260630190000_add_live_data_provenance",
+        "checksum": "4e320eb71211233bafddf9b3957da7abc57b51cc1cec2f58174c69d62fdc5b18"
+      },
+      {
+        "name": "20260630193000_add_live_upsert_uniques",
+        "checksum": "50c2047b7ac97e61863f11b50628caf91fb4297eba67a4ff6d2231f99b350496"
+      },
+      {
+        "name": "20260630201000_expand_live_data_storage",
+        "checksum": "a119f2b757ded29e7d320e139c5e05d68e3ceb6a8afd344e3c9f450031c4ba61"
+      },
+      {
+        "name": "20260630202500_add_form_entry_live_unique",
+        "checksum": "253ed106380b993021209fe11f0c23bc48e08e3250f5940533541f80978ec6b5"
+      },
+      {
+        "name": "20260630214000_add_dog_profile_history",
+        "checksum": "dc8fd4fb8d2f0ee119e2cf43c5d5e606dd4301b490a4c8771cdcb8954dfd05e2"
+      },
+      {
+        "name": "20260701030000_add_dog_profile_raw_archive",
+        "checksum": "17fbf85e35b02b33a72d8eeacb67a1f7c285b00a4d655e9a22bbac74270a5333"
+      },
+      {
+        "name": "20260701043000_add_race_day_archive",
+        "checksum": "b312f4c8591ca0507a08663d7c0408c489c3b94572aa6a422bd79937c302f403"
+      },
+      {
+        "name": "20260701052000_add_race_video",
+        "checksum": "98a69356009184cc2a70b8e5ea5c0d677cdb253a4d262a77d0374fb5c59949f0"
+      },
+      {
+        "name": "20260701065000_make_race_video_per_race",
+        "checksum": "c307d468f2271c29fef264a46e87e581c5deedccf0f7702148fde84e7754d048"
+      },
+      {
+        "name": "20260702090000_rename_supabase_uid_to_workos_user_id",
+        "checksum": "5ce522926df06da947cf56dbd41f586025f8c12f6573a71fc000728f8041b0f7"
+      },
+      {
+        "name": "20260702232228_add_core_billing_snapshots",
+        "checksum": "cdb99e1e2bb26210dd1e1cb77255b4f75ff653045f96fbeb3a6cb48a7570a172"
+      },
+      {
+        "name": "20260703001500_add_webhook_event_hash_retry_count",
+        "checksum": "38d95ea2ed5cadf42e693cbbfe0d96df46b4efc72feeb360f44bedb3b7f821d3"
+      },
+      {
+        "name": "20260703003000_add_usage_metering_inbox_outbox",
+        "checksum": "e8de5d70fe1ed152af5908dfa3ec7dce7a75c8317657d12975f91e15e38eb13e"
+      },
+      {
+        "name": "20260703010000_add_organization_membership",
+        "checksum": "9adf7c52ece1406b5596b976bcca68a5a42d0e289a6a299411699e7da8210ac5"
+      },
+      {
+        "name": "20260703093000_add_support_ticket_schema",
+        "checksum": "1da38ea2a66b3f2f846402c5bc211173ba396a776292ad594916c7908a21de48"
+      },
+      {
+        "name": "20260703100000_add_compliance_preferences",
+        "checksum": "470cf1572ef578bcb6e4da13bed88ad7cd437c88225e6486448fcb58866a0a2f"
+      },
+      {
+        "name": "20260703110000_add_plan_catalog",
+        "checksum": "af3b1a1d83ed0aa8fc173cd49eecab520b22392e5349d4109ab44c2eb82b3fcd"
+      },
+      {
+        "name": "20260703113000_add_payment_records",
+        "checksum": "67d44f69df5bff4132728fb1f54ddb05f6851ce3b34f01f508d2e8ead21f83b7"
+      },
+      {
+        "name": "20260703120000_add_organization_invitations",
+        "checksum": "e487f1cbca1b8fb7cabb45c6a88a9c879a3d78968680ab81ecfde072a08023be"
+      },
+      {
+        "name": "20260703123000_add_operational_admin_models",
+        "checksum": "b7b23a804c1d802d71f0633e8f5ade768d71eb8afec2cc0b594cc3f8f491c7da"
+      },
+      {
+        "name": "20260703130000_add_feedback_bug_report_agent_run_usage",
+        "checksum": "4bea347fcb006b5204fe3aeb0fa56df6d7f9f4e7d1551ec88b9a95d9cc963d98"
+      },
+      {
+        "name": "20260703133000_add_retention_deletion_foundations",
+        "checksum": "86260db263ef4701c29b5d9bcecf5829c5294a37f280e29295c96ef633e1dd83"
+      },
+      {
+        "name": "20260703140000_add_export_artifacts",
+        "checksum": "ebbc7387817db95daa7d5356830e649325cc85c8d49da297561cb1344962df7d"
+      },
+      {
+        "name": "20260703143000_add_usage_aggregate",
+        "checksum": "49f2fe936c73c815cb3b87a1350dea5a8297b31ab8dc18a0c7942425a0bf6de3"
+      },
+      {
+        "name": "20260703150000_add_feed_foundations",
+        "checksum": "08241c1602d24de3e310a5a52c96869f9fbedbb773f7f4fe638e9efed0356d27"
+      },
+      {
+        "name": "20260703153000_add_call_foundations",
+        "checksum": "fcbe0832701c5456df17f664cbe657919b990c0e0f35af44e1836845a6fe6705"
+      },
+      {
+        "name": "20260703160000_add_messaging_foundations",
+        "checksum": "ca735c663feaeae47b7c383f64138346bebda357ffdf7a4891336b77ec2f31a4"
+      },
+      {
+        "name": "20260703163000_add_marketplace_foundations",
+        "checksum": "c9cf236e5197daaab5878819d62b4ede6b3d5164fc3961402eea90085def4d3d"
+      },
+      {
+        "name": "20260703170000_add_listing_search_fts",
+        "checksum": "bc972f6955bdad5b3793ab903b4eddd1b86bc22ead417934dc0b7e7834d2e958"
+      },
+      {
+        "name": "20260703171000_add_in_app_notifications",
+        "checksum": "50adf0b4565beb9b0e671763b6b7ec99865f2f6fdf708fbdaf2d1ecca57d270e"
+      },
+      {
+        "name": "20260703172000_add_notification_delivery_state",
+        "checksum": "f2a62abbc2b96d176fbd0e862dd7e153ade117a5e8d3544f456f22cccf023dcd"
+      },
+      {
+        "name": "20260703184000_add_banned_phrases",
+        "checksum": "7bed392e1ebae57bb1c24f0cd6fa7dfbe8cfdc72d723822978945ef6541dc975"
+      },
+      {
+        "name": "20260704120000_add_race_search_indexes",
+        "checksum": "7907ce01033418aa5ac970a624ae9272a87ddf34b46e87d77047c98781f5b634"
+      },
+      {
+        "name": "20260705023000_seed_forum_categories",
+        "checksum": "4529de13694e0868840962a61007fe1f927afd9ce685583ff272d5a6b628211b"
+      },
+      {
+        "name": "20260705120000_add_rate_limit_and_call_type",
+        "checksum": "41c04ca9e39b7704c6c85607408aa2daa9f046b87aba032d14f8170bfadc8d8b"
+      },
+      {
+        "name": "20260706223000_add_rls_entitlement_policies",
+        "checksum": "953db33c0662f936b67a88b8859fd49b5d76b28e90f2a5e8851669fb5ff6334e"
+      },
+      {
+        "name": "20260707090000_add_result_prize_money_won",
+        "checksum": "4c087fa72f4619c673d7dfadaeee2c1a6856e5173660dbac9b5e61812f13580c"
+      },
+      {
+        "name": "20260708130000_fix_call_rls_recursion",
+        "checksum": "03e997af66faeda4f520fa7f87b878eca69e96be49d4692c72ef13e01f98dd6e"
+      },
+      {
+        "name": "20260708150000_add_friendships",
+        "checksum": "8dafd8d54c099ec493bf9c0a0a83be6ac74855806d917f2563c3472f3c3cee0b"
+      },
+      {
+        "name": "20260708170000_force_row_level_security",
+        "checksum": "628013122175320a390bbae428b90debe76263e996533f58259ad89fafe6bc29"
+      },
+      {
+        "name": "20260708190000_add_rls_remaining_tables",
+        "checksum": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d"
+      },
+      {
+        "name": "20260708191000_add_search_indexes",
+        "checksum": "63073d8c0ca94867ca4ebc8e500c95801c09f5827a97db68f74518b384802179"
+      },
+      {
+        "name": "20260708192000_restrict_audit_ratelimit_rls",
+        "checksum": "4263b9bd24355d0f49e5cecf1199ca8056f535be6942e37459086fbf87feb5ce"
+      },
+      {
+        "name": "20260708210000_memory_owner_writes",
+        "checksum": "8bdac9e206b834d4ddc7130fdf2c097695a1ae5de0f0ca1dbcce61f3512c9146"
+      },
+      {
+        "name": "20260708220000_add_sire_leaderboard_matview",
+        "checksum": "bb998553dc101a0126ff0c3d2e3e9297af81816e9a0ee9c02b7ed4a08a23c1a4"
+      },
+      {
+        "name": "20260708230000_dog_ownership_verification",
+        "checksum": "47193c42d9c7fd8c5942f8f22a78354a3dd7afff18b1204c095a147a31b2b75f"
+      },
+      {
+        "name": "20260708240000_dog_name_prefix_index",
+        "checksum": "bab21f07a17cae8ceabdafa41d49b7edfad9e2a41cdd707c97c48b65fd28c7ca"
+      },
+      {
+        "name": "20260709100000_add_custom_pages",
+        "checksum": "b880027d40d463d0e1ebb61b5f3eb183e8066060e93c767f56942cc1f0863375"
+      },
+      {
+        "name": "20260709110000_add_platform_settings",
+        "checksum": "d71714eb0b83e42a8faa9b454c5e5dddc0821d03bd3b240f306abd940a48a1cd"
+      },
+      {
+        "name": "20260709120000_add_listing_parent_refs",
+        "checksum": "1c4758c6a8e6415ddd9168f364c49dd19601220e72e1b68b1ea543730e146313"
+      },
+      {
+        "name": "20260709130000_seed_goods_categories",
+        "checksum": "ed29e5c2484091a7f45ac6e919d013415ca97d4bd8f0432265550e644522b280"
+      },
+      {
+        "name": "20260709140000_add_custom_design_requests",
+        "checksum": "d333d03ce70b5035b02c4658d8a7877cbd8f0a3dcc36cb2246f062c388c0d346"
+      },
+      {
+        "name": "20260710120000_add_feed_post_author_page",
+        "checksum": "ed3103c8b35c9c7e750f574260f66388f66f379afcd24ecd806240fc68fd6ef4"
+      },
+      {
+        "name": "20260710120500_friendship_member_writes",
+        "checksum": "67f33446b33aed03be718f339a67e54a5050791990400e8cc66fba4ae747a6de"
+      },
+      {
+        "name": "20260710121000_free_reply_messaging",
+        "checksum": "97cfa338cfe7322d43ba70b1f2c5498c2ccdadbdd425604bebd07aa0f591a21d"
+      },
+      {
+        "name": "20260710121500_free_call_receivers",
+        "checksum": "9164a3c12195cba12ba40eb587f55dee8e46d73acb2f574a910e8de69507d49d"
+      },
+      {
+        "name": "20260710123000_add_statistics_matviews",
+        "checksum": "5ac5b447ce4aabe66be3559c8e263f6063e81f57eb941c2fffb93c66fb6bdeaf"
+      },
+      {
+        "name": "20260710130000_add_missing_foreign_key_indexes",
+        "checksum": "417456601d89c767635f8739cba0075d6fea6d07e8c16bcdf9d0fa6e7ff010f6"
+      },
+      {
+        "name": "20260710131000_add_remaining_foreign_key_indexes",
+        "checksum": "ae6e1e3e8bd29b5c79d87f236e9c06e5491dcdf9ffcc2cf248cc38f0cb1c38c4"
+      },
+      {
+        "name": "20260710132000_add_trainer_performance_matview",
+        "checksum": "e673ef10cd132e7fa84e8d7a939f20937335eab450804abd6ea2350c7b1e3d6f"
+      },
+      {
+        "name": "20260710133000_free_personal_feed_writes",
+        "checksum": "383850b696cdfd9149a23652a235e5f66a5c501538551bd1d3bdc57159eba05e"
+      },
+      {
+        "name": "20260710133500_private_user_media_quarantine",
+        "checksum": "5398f5866bc3fda54b0478bbd7994c8d86bf9a285e16d15b8d2a68ff12c06e4f"
+      },
+      {
+        "name": "20260710133700_free_personal_conversation_start",
+        "checksum": "3b17b14ed3809316824de8e93305f081b2b45a71abc244e6b36bc88d95b920a0"
+      },
+      {
+        "name": "20260710134000_add_social_actor_media_foundation",
+        "checksum": "ef7eac5770405851d1d185c30d175015f2d69b067354d5c996689b48b0827104"
+      },
+      {
+        "name": "20260710135000_private_realtime_authorization",
+        "checksum": "43e3eef2b0a3547a270d1722ce8b31180becfe7a9121c9a23705182da3037c20"
+      },
+      {
+        "name": "20260710135500_blocked_feed_comment_visibility",
+        "checksum": "12ca8f8a5f3b705e17ca51f39ae570b04f5ac389df591b35f2417b25da87fdfa"
+      },
+      {
+        "name": "20260710136000_harden_actor_block_and_contact_access",
+        "checksum": "d41547935e6e62a3099e5253d0c6d2e949a272169d3145d9e5418edd468cd51b"
+      },
+      {
+        "name": "20260710137000_backfill_page_actor_gallery_media",
+        "checksum": "9aaaf1cbaa36edbc143079207ce0236af031f5a28c948899937dfa13d13af45a"
+      },
+      {
+        "name": "20260710138000_actor_scoped_conversations",
+        "checksum": "9bd8cfbcf686c18c8cfbbbf68b87abefdb2e913c64d7b2c775466e4fc62a2286"
+      },
+      {
+        "name": "20260710139000_secure_aggregate_matview_refresh",
+        "checksum": "07338d3d4bef4975fd1b3fbb0ef88566950b4f027499f18aa62d20d930ebdbe7"
+      },
+      {
+        "name": "20260710140000_fix_social_actor_upsert_rls",
+        "checksum": "73c502389b0f612abc19d947adc0857b87d8d6e86e21631d06afc5b5b40f6009"
+      },
+      {
+        "name": "20260710141000_drop_legacy_free_write_triggers",
+        "checksum": "fd166752e1c612c0669340075aa99646883b543b64862d72eef9755efa4c7da1"
+      },
+      {
+        "name": "20260710142000_fix_feed_post_returning_rls",
+        "checksum": "cb753f26ef84f44c69aed39f23e2bbef60e9c5af8525e9bb3ccd80a4ea540701"
+      },
+      {
+        "name": "20260710143000_fix_call_room_returning_rls",
+        "checksum": "e463896e9cc949cc9f763d0ffe2dbaa54cc9f595e5d430108b4ca703859ac24e"
+      },
+      {
+        "name": "20260710144000_allow_message_participant_media_reads",
+        "checksum": "7184c745e49c3bb215d80005639e92523c900bb747525fdccc4da8aa7903a0ca"
+      },
+      {
+        "name": "20260710145000_scope_call_room_inserts_to_conversations",
+        "checksum": "af399d0226556e32a13adb0c7857c33a5af40d05b9e0438ce51a9af6170d28b3"
+      },
+      {
+        "name": "20260710146000_scope_call_children_to_conversation",
+        "checksum": "730b67a629819a1d9f6bf3d3999258b58533a96336a9b256fcdf9428c7f69ca5"
+      },
+      {
+        "name": "20260710147000_split_call_invite_permissions",
+        "checksum": "81ee530264968831b4f01eb7b7a267ee8d8247252f4657b74bd36b430a86d895"
+      },
+      {
+        "name": "20260710148000_constrain_call_invite_responses",
+        "checksum": "c673c482846f6f178ddb7445ebaa472881c626dcce924b821034f083a068ce20"
+      },
+      {
+        "name": "20260710149000_run_call_invite_guard_on_all_updates",
+        "checksum": "7ac97ed626de427768beb13d148811183ce0491a30c477a71087b13935f6495d"
+      },
+      {
+        "name": "20260710150000_grant_runtime_audit_sequence",
+        "checksum": "32b1ba757e18e5db9b1ac94cf6831be40aee5706d16df12936c87ce46a71176c"
+      },
+      {
+        "name": "20260711090000_add_actor_avatar_focal_point",
+        "checksum": "9efe6314ad1fcdcba8e12dfb13bb4e4b0c9725041514a9ade374ed36a26aa364"
+      },
+      {
+        "name": "20260711110000_add_profile_studio_fields",
+        "checksum": "49b8524a3b00260b128a895e85272e13b3515c483b90f8f3d8ccbb8ccac520b7"
+      },
+      {
+        "name": "20260711165000_fix_public_actor_rls_user_join",
+        "checksum": "8ac9ab07b126a4a792d8237bce7b47ec4356dca2629189631461799e8de9bb28"
+      },
+      {
+        "name": "20260713173000_allow_owned_user_export_artifacts",
+        "checksum": "6c9c33e8d210ca022d394e5e1ef86244f233016c3fd0a32835ccd2ae62eae71d"
+      },
+      {
+        "name": "20260714004000_add_signup_acceptance_outbox",
+        "checksum": "a102694d852fcedc82f3a6182b2847b1d022d6db63d9b519bf903b1447e3c9bf"
+      },
+      {
+        "name": "20260714010000_add_signup_outbox_lease_token",
+        "checksum": "f76c26e5051038505d29c3a4877baba483e7f113df2afcc298bf6afe4b5b7c74"
+      },
+      {
+        "name": "20260714012500_add_signup_outbox_correlation_id",
+        "checksum": "a4f7b8c8a412457fba9f1feaa911854e6d47b68ce3e18987ec57788c3f2d6e1e"
+      }
+    ],
+    "applied": [
+      {
+        "name": "20260630093000_baseline",
+        "checksum": "1c3bf7960da1a93de65bac113d53524392fd10c48e0bb519f07b21ca38dfb759",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.466Z",
+        "finishedAt": "2026-07-13T17:52:45.659Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260630170000_supabase_storage",
+        "checksum": "ac73b8575ed95046ca9af2a382b988bee4cd0ad03d6d2324419cd35da8ba41b9",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.661Z",
+        "finishedAt": "2026-07-13T17:52:45.674Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260630190000_add_live_data_provenance",
+        "checksum": "4e320eb71211233bafddf9b3957da7abc57b51cc1cec2f58174c69d62fdc5b18",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.676Z",
+        "finishedAt": "2026-07-13T17:52:45.687Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260630193000_add_live_upsert_uniques",
+        "checksum": "50c2047b7ac97e61863f11b50628caf91fb4297eba67a4ff6d2231f99b350496",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.690Z",
+        "finishedAt": "2026-07-13T17:52:45.699Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260630201000_expand_live_data_storage",
+        "checksum": "a119f2b757ded29e7d320e139c5e05d68e3ceb6a8afd344e3c9f450031c4ba61",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.702Z",
+        "finishedAt": "2026-07-13T17:52:45.714Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260630202500_add_form_entry_live_unique",
+        "checksum": "253ed106380b993021209fe11f0c23bc48e08e3250f5940533541f80978ec6b5",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.717Z",
+        "finishedAt": "2026-07-13T17:52:45.723Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260630214000_add_dog_profile_history",
+        "checksum": "dc8fd4fb8d2f0ee119e2cf43c5d5e606dd4301b490a4c8771cdcb8954dfd05e2",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.725Z",
+        "finishedAt": "2026-07-13T17:52:45.747Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260701030000_add_dog_profile_raw_archive",
+        "checksum": "17fbf85e35b02b33a72d8eeacb67a1f7c285b00a4d655e9a22bbac74270a5333",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.749Z",
+        "finishedAt": "2026-07-13T17:52:45.763Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260701043000_add_race_day_archive",
+        "checksum": "b312f4c8591ca0507a08663d7c0408c489c3b94572aa6a422bd79937c302f403",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.765Z",
+        "finishedAt": "2026-07-13T17:52:45.777Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260701052000_add_race_video",
+        "checksum": "98a69356009184cc2a70b8e5ea5c0d677cdb253a4d262a77d0374fb5c59949f0",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.779Z",
+        "finishedAt": "2026-07-13T17:52:45.795Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260701065000_make_race_video_per_race",
+        "checksum": "c307d468f2271c29fef264a46e87e581c5deedccf0f7702148fde84e7754d048",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.797Z",
+        "finishedAt": "2026-07-13T17:52:45.808Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260702090000_rename_supabase_uid_to_workos_user_id",
+        "checksum": "5ce522926df06da947cf56dbd41f586025f8c12f6573a71fc000728f8041b0f7",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.810Z",
+        "finishedAt": "2026-07-13T17:52:45.816Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260702232228_add_core_billing_snapshots",
+        "checksum": "cdb99e1e2bb26210dd1e1cb77255b4f75ff653045f96fbeb3a6cb48a7570a172",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.818Z",
+        "finishedAt": "2026-07-13T17:52:45.896Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703001500_add_webhook_event_hash_retry_count",
+        "checksum": "38d95ea2ed5cadf42e693cbbfe0d96df46b4efc72feeb360f44bedb3b7f821d3",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.899Z",
+        "finishedAt": "2026-07-13T17:52:45.908Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703003000_add_usage_metering_inbox_outbox",
+        "checksum": "e8de5d70fe1ed152af5908dfa3ec7dce7a75c8317657d12975f91e15e38eb13e",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.910Z",
+        "finishedAt": "2026-07-13T17:52:45.951Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703010000_add_organization_membership",
+        "checksum": "9adf7c52ece1406b5596b976bcca68a5a42d0e289a6a299411699e7da8210ac5",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.953Z",
+        "finishedAt": "2026-07-13T17:52:45.974Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703093000_add_support_ticket_schema",
+        "checksum": "1da38ea2a66b3f2f846402c5bc211173ba396a776292ad594916c7908a21de48",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:45.977Z",
+        "finishedAt": "2026-07-13T17:52:46.002Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703100000_add_compliance_preferences",
+        "checksum": "470cf1572ef578bcb6e4da13bed88ad7cd437c88225e6486448fcb58866a0a2f",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.004Z",
+        "finishedAt": "2026-07-13T17:52:46.031Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703110000_add_plan_catalog",
+        "checksum": "af3b1a1d83ed0aa8fc173cd49eecab520b22392e5349d4109ab44c2eb82b3fcd",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.034Z",
+        "finishedAt": "2026-07-13T17:52:46.062Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703113000_add_payment_records",
+        "checksum": "67d44f69df5bff4132728fb1f54ddb05f6851ce3b34f01f508d2e8ead21f83b7",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.064Z",
+        "finishedAt": "2026-07-13T17:52:46.127Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703120000_add_organization_invitations",
+        "checksum": "e487f1cbca1b8fb7cabb45c6a88a9c879a3d78968680ab81ecfde072a08023be",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.129Z",
+        "finishedAt": "2026-07-13T17:52:46.144Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703123000_add_operational_admin_models",
+        "checksum": "b7b23a804c1d802d71f0633e8f5ade768d71eb8afec2cc0b594cc3f8f491c7da",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.146Z",
+        "finishedAt": "2026-07-13T17:52:46.174Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703130000_add_feedback_bug_report_agent_run_usage",
+        "checksum": "4bea347fcb006b5204fe3aeb0fa56df6d7f9f4e7d1551ec88b9a95d9cc963d98",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.176Z",
+        "finishedAt": "2026-07-13T17:52:46.206Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703133000_add_retention_deletion_foundations",
+        "checksum": "86260db263ef4701c29b5d9bcecf5829c5294a37f280e29295c96ef633e1dd83",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.208Z",
+        "finishedAt": "2026-07-13T17:52:46.236Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703140000_add_export_artifacts",
+        "checksum": "ebbc7387817db95daa7d5356830e649325cc85c8d49da297561cb1344962df7d",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.238Z",
+        "finishedAt": "2026-07-13T17:52:46.259Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703143000_add_usage_aggregate",
+        "checksum": "49f2fe936c73c815cb3b87a1350dea5a8297b31ab8dc18a0c7942425a0bf6de3",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.263Z",
+        "finishedAt": "2026-07-13T17:52:46.285Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703150000_add_feed_foundations",
+        "checksum": "08241c1602d24de3e310a5a52c96869f9fbedbb773f7f4fe638e9efed0356d27",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.287Z",
+        "finishedAt": "2026-07-13T17:52:46.336Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703153000_add_call_foundations",
+        "checksum": "fcbe0832701c5456df17f664cbe657919b990c0e0f35af44e1836845a6fe6705",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.338Z",
+        "finishedAt": "2026-07-13T17:52:46.396Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703160000_add_messaging_foundations",
+        "checksum": "ca735c663feaeae47b7c383f64138346bebda357ffdf7a4891336b77ec2f31a4",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.398Z",
+        "finishedAt": "2026-07-13T17:52:46.463Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703163000_add_marketplace_foundations",
+        "checksum": "c9cf236e5197daaab5878819d62b4ede6b3d5164fc3961402eea90085def4d3d",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.465Z",
+        "finishedAt": "2026-07-13T17:52:46.571Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703170000_add_listing_search_fts",
+        "checksum": "bc972f6955bdad5b3793ab903b4eddd1b86bc22ead417934dc0b7e7834d2e958",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.573Z",
+        "finishedAt": "2026-07-13T17:52:46.604Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703171000_add_in_app_notifications",
+        "checksum": "50adf0b4565beb9b0e671763b6b7ec99865f2f6fdf708fbdaf2d1ecca57d270e",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.606Z",
+        "finishedAt": "2026-07-13T17:52:46.621Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703172000_add_notification_delivery_state",
+        "checksum": "f2a62abbc2b96d176fbd0e862dd7e153ade117a5e8d3544f456f22cccf023dcd",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.623Z",
+        "finishedAt": "2026-07-13T17:52:46.631Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260703184000_add_banned_phrases",
+        "checksum": "7bed392e1ebae57bb1c24f0cd6fa7dfbe8cfdc72d723822978945ef6541dc975",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.633Z",
+        "finishedAt": "2026-07-13T17:52:46.643Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260704120000_add_race_search_indexes",
+        "checksum": "7907ce01033418aa5ac970a624ae9272a87ddf34b46e87d77047c98781f5b634",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.646Z",
+        "finishedAt": "2026-07-13T17:52:46.658Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260705023000_seed_forum_categories",
+        "checksum": "4529de13694e0868840962a61007fe1f927afd9ce685583ff272d5a6b628211b",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.660Z",
+        "finishedAt": "2026-07-13T17:52:46.666Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260705120000_add_rate_limit_and_call_type",
+        "checksum": "41c04ca9e39b7704c6c85607408aa2daa9f046b87aba032d14f8170bfadc8d8b",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.667Z",
+        "finishedAt": "2026-07-13T17:52:46.684Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260706223000_add_rls_entitlement_policies",
+        "checksum": "953db33c0662f936b67a88b8859fd49b5d76b28e90f2a5e8851669fb5ff6334e",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.686Z",
+        "finishedAt": "2026-07-13T17:52:46.761Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260707090000_add_result_prize_money_won",
+        "checksum": "4c087fa72f4619c673d7dfadaeee2c1a6856e5173660dbac9b5e61812f13580c",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.763Z",
+        "finishedAt": "2026-07-13T17:52:46.770Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260708130000_fix_call_rls_recursion",
+        "checksum": "03e997af66faeda4f520fa7f87b878eca69e96be49d4692c72ef13e01f98dd6e",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.772Z",
+        "finishedAt": "2026-07-13T17:52:46.785Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260708150000_add_friendships",
+        "checksum": "8dafd8d54c099ec493bf9c0a0a83be6ac74855806d917f2563c3472f3c3cee0b",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.787Z",
+        "finishedAt": "2026-07-13T17:52:46.805Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260708170000_force_row_level_security",
+        "checksum": "628013122175320a390bbae428b90debe76263e996533f58259ad89fafe6bc29",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.807Z",
+        "finishedAt": "2026-07-13T17:52:46.839Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260708190000_add_rls_remaining_tables",
+        "checksum": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.841Z",
+        "finishedAt": "2026-07-13T17:52:46.882Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260708191000_add_search_indexes",
+        "checksum": "63073d8c0ca94867ca4ebc8e500c95801c09f5827a97db68f74518b384802179",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.884Z",
+        "finishedAt": "2026-07-13T17:52:46.893Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260708192000_restrict_audit_ratelimit_rls",
+        "checksum": "4263b9bd24355d0f49e5cecf1199ca8056f535be6942e37459086fbf87feb5ce",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.895Z",
+        "finishedAt": "2026-07-13T17:52:46.902Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260708210000_memory_owner_writes",
+        "checksum": "8bdac9e206b834d4ddc7130fdf2c097695a1ae5de0f0ca1dbcce61f3512c9146",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.903Z",
+        "finishedAt": "2026-07-13T17:52:46.909Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260708220000_add_sire_leaderboard_matview",
+        "checksum": "bb998553dc101a0126ff0c3d2e3e9297af81816e9a0ee9c02b7ed4a08a23c1a4",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.911Z",
+        "finishedAt": "2026-07-13T17:52:46.933Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260708230000_dog_ownership_verification",
+        "checksum": "47193c42d9c7fd8c5942f8f22a78354a3dd7afff18b1204c095a147a31b2b75f",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.935Z",
+        "finishedAt": "2026-07-13T17:52:46.949Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260708240000_dog_name_prefix_index",
+        "checksum": "bab21f07a17cae8ceabdafa41d49b7edfad9e2a41cdd707c97c48b65fd28c7ca",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.951Z",
+        "finishedAt": "2026-07-13T17:52:46.957Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260709100000_add_custom_pages",
+        "checksum": "b880027d40d463d0e1ebb61b5f3eb183e8066060e93c767f56942cc1f0863375",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.960Z",
+        "finishedAt": "2026-07-13T17:52:46.979Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260709110000_add_platform_settings",
+        "checksum": "d71714eb0b83e42a8faa9b454c5e5dddc0821d03bd3b240f306abd940a48a1cd",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.981Z",
+        "finishedAt": "2026-07-13T17:52:46.990Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260709120000_add_listing_parent_refs",
+        "checksum": "1c4758c6a8e6415ddd9168f364c49dd19601220e72e1b68b1ea543730e146313",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:46.993Z",
+        "finishedAt": "2026-07-13T17:52:46.998Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260709130000_seed_goods_categories",
+        "checksum": "ed29e5c2484091a7f45ac6e919d013415ca97d4bd8f0432265550e644522b280",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.000Z",
+        "finishedAt": "2026-07-13T17:52:47.007Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260709140000_add_custom_design_requests",
+        "checksum": "d333d03ce70b5035b02c4658d8a7877cbd8f0a3dcc36cb2246f062c388c0d346",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.008Z",
+        "finishedAt": "2026-07-13T17:52:47.023Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710120000_add_feed_post_author_page",
+        "checksum": "ed3103c8b35c9c7e750f574260f66388f66f379afcd24ecd806240fc68fd6ef4",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.026Z",
+        "finishedAt": "2026-07-13T17:52:47.036Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710120500_friendship_member_writes",
+        "checksum": "67f33446b33aed03be718f339a67e54a5050791990400e8cc66fba4ae747a6de",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.038Z",
+        "finishedAt": "2026-07-13T17:52:47.046Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710121000_free_reply_messaging",
+        "checksum": "97cfa338cfe7322d43ba70b1f2c5498c2ccdadbdd425604bebd07aa0f591a21d",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.048Z",
+        "finishedAt": "2026-07-13T17:52:47.063Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710121500_free_call_receivers",
+        "checksum": "9164a3c12195cba12ba40eb587f55dee8e46d73acb2f574a910e8de69507d49d",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.065Z",
+        "finishedAt": "2026-07-13T17:52:47.075Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710123000_add_statistics_matviews",
+        "checksum": "5ac5b447ce4aabe66be3559c8e263f6063e81f57eb941c2fffb93c66fb6bdeaf",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.077Z",
+        "finishedAt": "2026-07-13T17:52:47.105Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710130000_add_missing_foreign_key_indexes",
+        "checksum": "417456601d89c767635f8739cba0075d6fea6d07e8c16bcdf9d0fa6e7ff010f6",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.107Z",
+        "finishedAt": "2026-07-13T17:52:47.123Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710131000_add_remaining_foreign_key_indexes",
+        "checksum": "ae6e1e3e8bd29b5c79d87f236e9c06e5491dcdf9ffcc2cf248cc38f0cb1c38c4",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.125Z",
+        "finishedAt": "2026-07-13T17:52:47.134Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710132000_add_trainer_performance_matview",
+        "checksum": "e673ef10cd132e7fa84e8d7a939f20937335eab450804abd6ea2350c7b1e3d6f",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.135Z",
+        "finishedAt": "2026-07-13T17:52:47.150Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710133000_free_personal_feed_writes",
+        "checksum": "383850b696cdfd9149a23652a235e5f66a5c501538551bd1d3bdc57159eba05e",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.152Z",
+        "finishedAt": "2026-07-13T17:52:47.167Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710133500_private_user_media_quarantine",
+        "checksum": "5398f5866bc3fda54b0478bbd7994c8d86bf9a285e16d15b8d2a68ff12c06e4f",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.169Z",
+        "finishedAt": "2026-07-13T17:52:47.175Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710133700_free_personal_conversation_start",
+        "checksum": "3b17b14ed3809316824de8e93305f081b2b45a71abc244e6b36bc88d95b920a0",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.176Z",
+        "finishedAt": "2026-07-13T17:52:47.187Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710134000_add_social_actor_media_foundation",
+        "checksum": "ef7eac5770405851d1d185c30d175015f2d69b067354d5c996689b48b0827104",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.190Z",
+        "finishedAt": "2026-07-13T17:52:47.300Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710135000_private_realtime_authorization",
+        "checksum": "43e3eef2b0a3547a270d1722ce8b31180becfe7a9121c9a23705182da3037c20",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.302Z",
+        "finishedAt": "2026-07-13T17:52:47.312Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710135500_blocked_feed_comment_visibility",
+        "checksum": "12ca8f8a5f3b705e17ca51f39ae570b04f5ac389df591b35f2417b25da87fdfa",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.314Z",
+        "finishedAt": "2026-07-13T17:52:47.319Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710136000_harden_actor_block_and_contact_access",
+        "checksum": "d41547935e6e62a3099e5253d0c6d2e949a272169d3145d9e5418edd468cd51b",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.322Z",
+        "finishedAt": "2026-07-13T17:52:47.333Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710137000_backfill_page_actor_gallery_media",
+        "checksum": "9aaaf1cbaa36edbc143079207ce0236af031f5a28c948899937dfa13d13af45a",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.335Z",
+        "finishedAt": "2026-07-13T17:52:47.344Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710138000_actor_scoped_conversations",
+        "checksum": "9bd8cfbcf686c18c8cfbbbf68b87abefdb2e913c64d7b2c775466e4fc62a2286",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.346Z",
+        "finishedAt": "2026-07-13T17:52:47.355Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710139000_secure_aggregate_matview_refresh",
+        "checksum": "07338d3d4bef4975fd1b3fbb0ef88566950b4f027499f18aa62d20d930ebdbe7",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.357Z",
+        "finishedAt": "2026-07-13T17:52:47.362Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710140000_fix_social_actor_upsert_rls",
+        "checksum": "73c502389b0f612abc19d947adc0857b87d8d6e86e21631d06afc5b5b40f6009",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.364Z",
+        "finishedAt": "2026-07-13T17:52:47.369Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710141000_drop_legacy_free_write_triggers",
+        "checksum": "fd166752e1c612c0669340075aa99646883b543b64862d72eef9755efa4c7da1",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.371Z",
+        "finishedAt": "2026-07-13T17:52:47.377Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710142000_fix_feed_post_returning_rls",
+        "checksum": "cb753f26ef84f44c69aed39f23e2bbef60e9c5af8525e9bb3ccd80a4ea540701",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.379Z",
+        "finishedAt": "2026-07-13T17:52:47.384Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710143000_fix_call_room_returning_rls",
+        "checksum": "e463896e9cc949cc9f763d0ffe2dbaa54cc9f595e5d430108b4ca703859ac24e",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.386Z",
+        "finishedAt": "2026-07-13T17:52:47.391Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710144000_allow_message_participant_media_reads",
+        "checksum": "7184c745e49c3bb215d80005639e92523c900bb747525fdccc4da8aa7903a0ca",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.393Z",
+        "finishedAt": "2026-07-13T17:52:47.399Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710145000_scope_call_room_inserts_to_conversations",
+        "checksum": "af399d0226556e32a13adb0c7857c33a5af40d05b9e0438ce51a9af6170d28b3",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.401Z",
+        "finishedAt": "2026-07-13T17:52:47.407Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710146000_scope_call_children_to_conversation",
+        "checksum": "730b67a629819a1d9f6bf3d3999258b58533a96336a9b256fcdf9428c7f69ca5",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.408Z",
+        "finishedAt": "2026-07-13T17:52:47.416Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710147000_split_call_invite_permissions",
+        "checksum": "81ee530264968831b4f01eb7b7a267ee8d8247252f4657b74bd36b430a86d895",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.418Z",
+        "finishedAt": "2026-07-13T17:52:47.426Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710148000_constrain_call_invite_responses",
+        "checksum": "c673c482846f6f178ddb7445ebaa472881c626dcce924b821034f083a068ce20",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.428Z",
+        "finishedAt": "2026-07-13T17:52:47.434Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710149000_run_call_invite_guard_on_all_updates",
+        "checksum": "7ac97ed626de427768beb13d148811183ce0491a30c477a71087b13935f6495d",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.436Z",
+        "finishedAt": "2026-07-13T17:52:47.442Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260710150000_grant_runtime_audit_sequence",
+        "checksum": "32b1ba757e18e5db9b1ac94cf6831be40aee5706d16df12936c87ce46a71176c",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.444Z",
+        "finishedAt": "2026-07-13T17:52:47.450Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260711090000_add_actor_avatar_focal_point",
+        "checksum": "9efe6314ad1fcdcba8e12dfb13bb4e4b0c9725041514a9ade374ed36a26aa364",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.452Z",
+        "finishedAt": "2026-07-13T17:52:47.460Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260711110000_add_profile_studio_fields",
+        "checksum": "49b8524a3b00260b128a895e85272e13b3515c483b90f8f3d8ccbb8ccac520b7",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.462Z",
+        "finishedAt": "2026-07-13T17:52:47.478Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260711165000_fix_public_actor_rls_user_join",
+        "checksum": "8ac9ab07b126a4a792d8237bce7b47ec4356dca2629189631461799e8de9bb28",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.480Z",
+        "finishedAt": "2026-07-13T17:52:47.485Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260713173000_allow_owned_user_export_artifacts",
+        "checksum": "6c9c33e8d210ca022d394e5e1ef86244f233016c3fd0a32835ccd2ae62eae71d",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.487Z",
+        "finishedAt": "2026-07-13T17:52:47.492Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260714004000_add_signup_acceptance_outbox",
+        "checksum": "a102694d852fcedc82f3a6182b2847b1d022d6db63d9b519bf903b1447e3c9bf",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.494Z",
+        "finishedAt": "2026-07-13T17:52:47.503Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260714010000_add_signup_outbox_lease_token",
+        "checksum": "f76c26e5051038505d29c3a4877baba483e7f113df2afcc298bf6afe4b5b7c74",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.505Z",
+        "finishedAt": "2026-07-13T17:52:47.510Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      },
+      {
+        "name": "20260714012500_add_signup_outbox_correlation_id",
+        "checksum": "a4f7b8c8a412457fba9f1feaa911854e6d47b68ce3e18987ec57788c3f2d6e1e",
+        "status": "applied",
+        "startedAt": "2026-07-13T17:52:47.512Z",
+        "finishedAt": "2026-07-13T17:52:47.517Z",
+        "rolledBackAt": null,
+        "appliedStepsCount": 1
+      }
+    ],
+    "comparison": {
+      "status": "in-sync",
+      "missing": [],
+      "unexpected": [],
+      "checksumMismatches": [],
+      "duplicateApplied": [],
+      "incompleteOrRolledBack": []
+    }
+  },
+  "rowLevelSecurity": {
+    "publicTableCount": 108,
+    "enabledTableCount": 107,
+    "forceEnabledTableCount": 107,
+    "applicationTableCount": 107,
+    "applicationEnabledTableCount": 107,
+    "applicationForceEnabledTableCount": 107,
+    "prismaMigrationMetadata": {
+      "present": true,
+      "enabled": false,
+      "forced": false,
+      "policyCount": 0
+    },
+    "policyCount": 232,
+    "tables": [
+      {
+        "schema": "public",
+        "table": "ActorFollow",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "ActorGalleryMedia",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "ActorMute",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "ActorTopicFollow",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "AdminAction",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "AgentRun",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "AgentRunUsage",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "AuditLog",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "BannedPhrase",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "BillingCustomer",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "BillingEvent",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "BugReport",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "CallEvent",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "CallInvite",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 4
+      },
+      {
+        "schema": "public",
+        "table": "CallParticipant",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "CallPermission",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "CallReport",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "CallRoom",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "ConsentEvent",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Conversation",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "ConversationContext",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "ConversationParticipant",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "CreditNoteRecord",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "CustomDesignRequest",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "CustomPage",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 4
+      },
+      {
+        "schema": "public",
+        "table": "DataSourceHealth",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "DeletionJob",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Dog",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "DogOwnership",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 4
+      },
+      {
+        "schema": "public",
+        "table": "DogProfileArchive",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "DogProfileForm",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "EntitlementSnapshot",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "ExportArtifact",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "FeedComment",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "FeedMention",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "FeedPost",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "FeedPostMedia",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "FeedReaction",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 4
+      },
+      {
+        "schema": "public",
+        "table": "FeedShare",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "FeedTopic",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Feedback",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "FormEntry",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "ForumCategory",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Friendship",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 5
+      },
+      {
+        "schema": "public",
+        "table": "InvoiceRecord",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "JobRun",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Listing",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "ListingAttribute",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "ListingEnquiry",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "ListingLocation",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "ListingMedia",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "ListingModerationAction",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "ListingReport",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "ListingSearchIndex",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "ListingStatusHistory",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "ListingView",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "MarketingPreference",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "MarketplaceCategory",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "MediaAsset",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 4
+      },
+      {
+        "schema": "public",
+        "table": "Meeting",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Membership",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "MemoryEntry",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Message",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "MessageDeliveryReceipt",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "MessageMedia",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "MessageModerationAction",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "MessageReaction",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "MessageReadReceipt",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Notification",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "Organization",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "OrganizationInvitation",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "PaymentRecord",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Plan",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "PlanEntitlement",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "PlatformSetting",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Post",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "PriceCatalog",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Profile",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "Race",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "RaceDayArchive",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "RaceVideo",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "RateLimit",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "RealtimeTopicGrant",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "RefundRecord",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Report",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "Result",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "RetentionPolicy",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Runner",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "SavedFeedPost",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "SavedListing",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "SignupOutbox",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "SocialActor",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "Subscription",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "SupportMessage",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "SupportTicket",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "TermsAcceptance",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Thread",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "Track",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "Trainer",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "TrustSafetyFlag",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "UsageAggregate",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "UsageEvent",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "UsageOutbox",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 2
+      },
+      {
+        "schema": "public",
+        "table": "User",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 3
+      },
+      {
+        "schema": "public",
+        "table": "UserBlock",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "UserPresence",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "WebhookEvent",
+        "enabled": true,
+        "forced": true,
+        "policyCount": 1
+      },
+      {
+        "schema": "public",
+        "table": "_prisma_migrations",
+        "enabled": false,
+        "forced": false,
+        "policyCount": 0
+      }
+    ]
+  },
+  "drift": {
+    "prismaDatamodel": {
+      "status": "differences-detected",
+      "exitCode": 2,
+      "outputSha256": "864dc54417d3d90cb4ce9a479a35c56f5d0cb986eadd5c75336422a692ba75b0",
+      "summary": [
+        "[*] Changed the `Dog` table",
+        "[+] Added index on columns (name)",
+        "[*] Changed the `Friendship` table",
+        "[*] Altered column `updatedAt` (default changed from `None` to `Some(Now)`)",
+        "[*] Changed the `ListingSearchIndex` table",
+        "[+] Added index on columns (searchText)",
+        "[*] Changed the `Message` table",
+        "[+] Added index on columns (body)",
+        "[*] Changed the `Race` table",
+        "[+] Added index on columns (distance)",
+        "[+] Added index on columns (grade)",
+        "[+] Added index on columns (name)",
+        "[+] Added index on columns (raceNumber)",
+        "[*] Changed the `SocialActor` table",
+        "[*] Altered column `updatedAt` (default changed from `None` to `Some(Now)`)",
+        "[+] Added index on columns (displayName)",
+        "[+] Added index on columns (handle)",
+        "[*] Changed the `Track` table",
+        "[+] Added index on columns (name)",
+        "[+] Added index on columns (state)",
+        "Loaded Prisma config from prisma.config.ts.",
+        "Prisma config detected, skipping environment variable loading."
+      ]
+    },
+    "migrationHistory": "in-sync",
+    "unsupportedCatalog": "observed-only-not-source-replayed",
+    "overall": "unproven"
+  },
+  "findings": [
+    {
+      "code": "DB.PRISMA_DATAMODEL_DIFFERENCES",
+      "severity": "warning",
+      "message": "The live catalog differs from the Prisma datamodel; migration-managed supplemental objects must be attributed before this is classified as drift."
+    },
+    {
+      "code": "DB.CATALOG_PARITY_UNPROVEN",
+      "severity": "blocker",
+      "message": "Functions, triggers, grants, extensions and policies were observed but not compared with a safely replayed isolated migration catalog."
+    },
+    {
+      "code": "DB.PRODUCTION_PARITY_UNVERIFIED",
+      "severity": "blocker",
+      "message": "This loopback-only lane does not prove production PostgreSQL version, collation, extensions, roles, grants or topology."
+    }
+  ],
+  "verdict": "blocked"
+}

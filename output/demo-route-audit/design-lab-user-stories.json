@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "auditKind": "design-lab-user-stories",
-  "generatedAt": "2026-07-16T22:52:35.468Z",
-  "baseUrl": "http://localhost:3000",
-  "testedCommitSha": "6586448476d5b5aa10cb194fe2c3ffa3db561ceb",
+  "generatedAt": "2026-07-17T03:12:29.853Z",
+  "baseUrl": "http://localhost:62940",
+  "testedCommitSha": "ab9022c8bfc693ad6086ffaf608ac3dc2ccd29fb",
   "sourceSha256": "11b51c609fe21770c7a1e3a2de7244af1c0d217e87c1387378bbf446c9521098",
   "sourceFileCount": 177,
   "sourceFiles": [
@@ -199,7 +199,7 @@
           "route": "/design-lab",
           "requestPath": "/design-lab?area=screens",
           "status": 200,
-          "durationMs": 125,
+          "durationMs": 758,
           "passed": true,
           "failures": []
         },
@@ -208,7 +208,7 @@
           "route": "/design-lab",
           "requestPath": "/design-lab?area=delivery",
           "status": 200,
-          "durationMs": 31,
+          "durationMs": 270,
           "passed": true,
           "failures": []
         },
@@ -217,7 +217,7 @@
           "route": "/design-lab",
           "requestPath": "/design-lab?area=screens",
           "status": 200,
-          "durationMs": 70,
+          "durationMs": 384,
           "passed": true,
           "failures": []
         }
@@ -232,7 +232,7 @@
           "route": "/design-lab/demo-experience",
           "requestPath": "/design-lab/demo-experience",
           "status": 200,
-          "durationMs": 96,
+          "durationMs": 756,
           "passed": true,
           "failures": []
         },
@@ -241,7 +241,7 @@
           "route": "/design-lab/demo-experience",
           "requestPath": "/design-lab/demo-experience?view=admin-frames",
           "status": 200,
-          "durationMs": 26,
+          "durationMs": 178,
           "passed": true,
           "failures": []
         }
@@ -256,7 +256,7 @@
           "route": "/design-lab/dock-skins",
           "requestPath": "/design-lab/dock-skins?dock=D6",
           "status": 200,
-          "durationMs": 20,
+          "durationMs": 236,
           "passed": true,
           "failures": []
         },
@@ -265,7 +265,7 @@
           "route": "/design-lab/dock-skins",
           "requestPath": "/design-lab/dock-skins?dock=unsupported",
           "status": 200,
-          "durationMs": 19,
+          "durationMs": 204,
           "passed": true,
           "failures": []
         }
@@ -280,7 +280,7 @@
           "route": "/design-lab/role-blueprints",
           "requestPath": "/design-lab/role-blueprints?role=punter&variant=C2",
           "status": 200,
-          "durationMs": 20,
+          "durationMs": 435,
           "passed": true,
           "failures": []
         },
@@ -289,7 +289,7 @@
           "route": "/design-lab/role-blueprints",
           "requestPath": "/design-lab/role-blueprints?role=unsupported&variant=Z9",
           "status": 200,
-          "durationMs": 23,
+          "durationMs": 215,
           "passed": true,
           "failures": []
         }
@@ -304,7 +304,7 @@
           "route": "/feed/device-preview",
           "requestPath": "/feed/device-preview?device=tablet&variant=C2&dock=D6&sponsored=off",
           "status": 200,
-          "durationMs": 23,
+          "durationMs": 354,
           "passed": true,
           "failures": []
         },
@@ -313,7 +313,7 @@
           "route": "/feed/device-preview",
           "requestPath": "/feed/device-preview?device=tablet&variant=C2&dock=D6&sponsored=off",
           "status": 200,
-          "durationMs": 21,
+          "durationMs": 258,
           "passed": true,
           "failures": []
         }
@@ -328,7 +328,7 @@
           "route": "/marketplace/design-lab",
           "requestPath": "/marketplace/design-lab?template=M6",
           "status": 200,
-          "durationMs": 20,
+          "durationMs": 389,
           "passed": true,
           "failures": []
         },
@@ -337,7 +337,7 @@
           "route": "/marketplace/design-lab",
           "requestPath": "/marketplace/design-lab?template=unsupported",
           "status": 200,
-          "durationMs": 20,
+          "durationMs": 273,
           "passed": true,
           "failures": []
         }

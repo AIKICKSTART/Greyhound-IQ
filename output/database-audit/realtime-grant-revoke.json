@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "realtime-grant-revoke-isolated-database-proof",
+  "generatedAt": "2026-07-17T02:09:08.837Z",
+  "safety": {
+    "scope": "fixed-isolated-loopback-database-only",
+    "host": "127.0.0.1",
+    "port": 55734,
+    "adminDatabase": "postgres",
+    "proofDatabase": "greyhoundiq_realtime_proof",
+    "productionOrProviderSystemsContacted": false,
+    "broadCleanupUsed": false
+  },
+  "sourceBinding": {
+    "files": {
+      "scripts/sql/supabase-private-realtime-policies.sql": "2bc9f3194037ad88154464b1498430109a34a8def44dca3ca51f650f1fa22008",
+      "scripts/check-realtime-grant-revoke-postgres.ts": "b3b8431339ae1fd6fdd36385e883535dbe3034ee3458f533877ef289c46e38a3",
+      "scripts/check-realtime-grant-revoke-postgres.test.ts": "7a09d736115855b1f36cc0e0da80c830c40e30c9c946d9092d692a2deb415460",
+      "security/database-operations.ts": "93b1bf1fc55484835f0918339cb91a00231ff9579600b2a2d2a0aedae012d12c",
+      "src/lib/realtime-service.ts": "bd488e6f06099d756c108bd1330750aba5d2aec83d240be90f34430bdecd14a6",
+      "src/lib/realtime-authorization.test.ts": "fbc3d62ef61c6adf44ce98fd7e7170d051e3cf3998f19ea65807ad6abd2872b9"
+    },
+    "combinedSha256": "d8c1a4b27cedc420481a333891e12d2d36d3c9347c9328c336c269191a001194"
+  },
+  "proof": {
+    "queryId": "DB.PULSE.REALTIME_GRANT.REVOKE",
+    "sourceFile": "src/lib/realtime-service.ts",
+    "sourceSymbol": "revokeRealtimeTopicGrants",
+    "storedProcedure": "giq_revoke_realtime_topic_grants",
+    "maximumDeletedRows": 200,
+    "runtimeIdentity": {
+      "currentUser": "service_role",
+      "sessionUser": "postgres",
+      "database": "greyhoundiq_realtime_proof",
+      "schema": "public",
+      "superuser": false
+    },
+    "privileges": {
+      "serviceRoleExecute": true,
+      "anonymousExecute": false,
+      "authenticatedExecute": false,
+      "publicExecute": false,
+      "directTableAccessForServiceRole": false,
+      "anonymousCallDenied": true,
+      "authenticatedCallDenied": true
+    },
+    "functionSecurity": {
+      "securityDefiner": true,
+      "searchPath": "search_path=\"\"",
+      "profileLimit": 10,
+      "topicLimit": 10,
+      "topicPattern": "conversation-colon-48-lowercase-hex",
+      "deterministicProfileLockOrder": true
+    },
+    "rowCounts": {
+      "before": 6,
+      "afterAuthorizedRevoke": 2,
+      "afterIdempotentReplay": 2,
+      "afterDeniedCalls": 2,
+      "afterInvalidCalls": 2
+    },
+    "cases": {
+      "authorizedDelete": "service-role-deleted-both-extensions-for-two-profiles-and-one-topic",
+      "unrelatedRows": "other-profile-or-topic-rows-preserved",
+      "idempotency": "identical-second-revocation-left-row-count-unchanged",
+      "anonymousDenied": "function-execute-denied-before-security-definer-body",
+      "authenticatedDenied": "function-execute-denied-before-security-definer-body",
+      "invalidEmptyInput": "procedure-rejected-empty-profile-array",
+      "invalidOversizedInput": "procedure-rejected-eleven-profile-identifiers",
+      "invalidTopic": "procedure-rejected-non-conversation-topic"
+    },
+    "invocation": {
+      "statementType": "SELECT",
+      "normalizedSql": "SELECT public.giq_revoke_realtime_topic_grants(ARRAY[$1,$2]::text[], ARRAY[$3]::text[])",
+      "sha256": "74eeee684f8090304b92b9ec2da1d1e64d7127acf9cc7aac03aa87c938b17d30",
+      "parameterCount": 3,
+      "persistedParameterValues": false
+    },
+    "functionDefinition": {
+      "persistedSql": false,
+      "sha256": "7ff76934e0f5d6d3315379c1dbb22118c0b0bc59827f92800342d74acaa7356c",
+      "sourceSha256": "7ff76934e0f5d6d3315379c1dbb22118c0b0bc59827f92800342d74acaa7356c",
+      "installedDefinitionSha256": "a2a815011b21399a2975e32ff7059464d3b9651f0ed0891587df4e27107a3b25"
+    },
+    "deletePlan": {
+      "format": "postgresql-json-cost-plan",
+      "analyze": false,
+      "buffers": false,
+      "statementTimeoutMilliseconds": 5000,
+      "sanitized": true,
+      "plan": {
+        "nodeType": "ModifyTable",
+        "relationName": "giq_realtime_topic_grants",
+        "indexName": null,
+        "joinType": null,
+        "scanDirection": null,
+        "estimatedRows": 0,
+        "totalCost": 11.28,
+        "children": [
+          {
+            "nodeType": "Bitmap Heap Scan",
+            "relationName": "giq_realtime_topic_grants",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 11.28,
+            "children": [
+              {
+                "nodeType": "Bitmap Index Scan",
+                "relationName": null,
+                "indexName": "giq_realtime_topic_grants_pkey",
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 3,
+                "totalCost": 4.17,
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      "planSha256": "0af555cb822a654ac5e4d8e5be149f9ce9ec4992dae897d241e9c10d0ec00ce1"
+    },
+    "status": "verified"
+  },
+  "cleanup": {
+    "proofDatabaseDropped": true,
+    "rolesCreatedForProof": [
+      "anon",
+      "authenticated",
+      "service_role"
+    ],
+    "rolesDropped": [
+      "anon",
+      "authenticated",
+      "service_role"
+    ],
+    "remainingProofDatabases": 0
+  },
+  "verdict": "verified"
+}

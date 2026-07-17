@@ -1,0 +1,325 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "account-storage-deletion-jobs-disposable-proof",
+  "generatedAt": "2026-07-17T02:08:57.716Z",
+  "safety": {
+    "scope": "literal-loopback-disposable-replay-only",
+    "host": "127.0.0.1",
+    "port": 55734,
+    "productionOrProviderSystemsContacted": false,
+    "fixtureOwner": "account-storage-deletion-jobs-dedicated-proof",
+    "broadCleanupUsed": false
+  },
+  "runtimeIdentity": {
+    "role": "greyhoundiq_runtime",
+    "sessionRole": "greyhoundiq_runtime",
+    "database": "greyhoundiq",
+    "schema": "public",
+    "canLogin": true,
+    "superuser": false,
+    "bypassRls": false
+  },
+  "sourceBinding": {
+    "files": {
+      "prisma/schema.prisma": "ff7158c8900a4fc914bb0a09bc27e41bba4271a0144afee675a53b8e526a93fc",
+      "prisma/migrations/20260706223000_add_rls_entitlement_policies/migration.sql": "953db33c0662f936b67a88b8859fd49b5d76b28e90f2a5e8851669fb5ff6334e",
+      "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d",
+      "prisma/migrations/20260708192000_restrict_audit_ratelimit_rls/migration.sql": "4263b9bd24355d0f49e5cecf1199ca8056f535be6942e37459086fbf87feb5ce",
+      "scripts/check-account-storage-deletion-jobs-postgres.ts": "ad20d6ba8c61d3db49e297db09952e64745a0da81c0e5387f33cd10a4044fd3f",
+      "scripts/check-account-storage-deletion-jobs-postgres.test.ts": "79eca4466907fafdbfb68aefd01563a67ff7bd08737fdd453e869e19331d5021",
+      "security/database-operations.ts": "93b1bf1fc55484835f0918339cb91a00231ff9579600b2a2d2a0aedae012d12c",
+      "src/lib/account-service.ts": "2a10581b11cc1426006fe40c6083d3e412fc7bb97f084d0ab67de3f8a6ff165f",
+      "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
+      "src/lib/db.ts": "b11f3357d3daea521e825d8483b4bb8050c8c7d059e2aa311f1788b1b09d9035",
+      "src/lib/storage-paths.ts": "bed89a27218b9dd3429c50c6b2a955bf80d619bd80460f72958740bd5de30865",
+      "src/lib/supabase-storage.ts": "276baf7722eda2b2df01e86458f8666c3b08cca4cadf8aa6353647795a67ff26"
+    },
+    "combinedSha256": "757d51e5a86a42c6e13a42fc13fbd176f451f499b626e91ef9a634224c8fcd68"
+  },
+  "proof": {
+    "queryId": "DB.ACCOUNT.DELETION.STORAGE_JOBS.PROCESS",
+    "sourceFile": "src/lib/account-service.ts",
+    "sourceSymbol": "runAccountStorageDeletionJobs",
+    "expectedMaximumJobs": 10,
+    "transactionIsolation": "read committed",
+    "workerResult": {
+      "jobsCompleted": 1,
+      "jobsFailed": 1,
+      "objectsDeleted": 503
+    },
+    "rowCounts": {
+      "before": {
+        "users": 1,
+        "jobs": 6,
+        "audits": 0
+      },
+      "afterOutcomes": {
+        "users": 1,
+        "jobs": 6,
+        "audits": 3
+      },
+      "afterContention": {
+        "users": 1,
+        "jobs": 7,
+        "audits": 4
+      },
+      "afterNoOp": {
+        "users": 1,
+        "jobs": 7,
+        "audits": 4
+      }
+    },
+    "cases": {
+      "completedBatch": "completed-with-three-objects-and-audit",
+      "partialBatch": "returned-to-pending-with-five-hundred-objects-and-audit",
+      "providerFailure": "failed-with-safe-error-code-and-no-provider-detail",
+      "expiredLease": "processing-job-older-than-fifteen-minutes-reclaimed",
+      "freshLease": "fresh-processing-job-not-selected",
+      "futureJob": "future-pending-job-not-selected",
+      "otherTarget": "non-storage-job-not-selected",
+      "contention": "two-workers-one-claim-one-handler-one-audit",
+      "noDueJobs": "successful-zero-result-no-op",
+      "anonymousRead": "exact-due-selector-returned-zero",
+      "ownerRead": "exact-due-selector-returned-one-owned-pending-job",
+      "ownerWrite": "exact-claim-update-affected-zero",
+      "anonymousAudit": "system-audit-insert-denied",
+      "outcomeAtomicity": "three-status-and-audit-pairs-committed-in-one-transaction-each",
+      "productionDefault": "real-deleteAccountStoragePrefixBatch-retained"
+    },
+    "outcomes": [
+      {
+        "case": "complete",
+        "status": "completed",
+        "completedAt": "exact-worker-now",
+        "auditAction": "user.delete.storage",
+        "auditMetadata": {
+          "status": "completed",
+          "objectsDeleted": 3
+        }
+      },
+      {
+        "case": "failed",
+        "status": "failed",
+        "completedAt": null,
+        "auditAction": "user.delete.storage_failed",
+        "auditMetadata": {
+          "errorCode": "account.storage_provider_unavailable"
+        }
+      },
+      {
+        "case": "partial",
+        "status": "pending",
+        "completedAt": null,
+        "auditAction": "user.delete.storage",
+        "auditMetadata": {
+          "status": "pending",
+          "objectsDeleted": 500
+        }
+      }
+    ],
+    "contention": {
+      "selectorStatements": 2,
+      "claimStatements": 2,
+      "handlerCalls": 1,
+      "jobsCompleted": 1,
+      "jobsFailed": 0,
+      "objectsDeleted": 1,
+      "auditRows": 1
+    },
+    "rls": {
+      "anonymousDueRows": 0,
+      "ownerDueRows": 1,
+      "ownerClaimRowsAffected": 0,
+      "anonymousAuditInsert": "denied"
+    },
+    "policies": [
+      "giq_audit_log_insert",
+      "giq_deletion_job_read",
+      "giq_deletion_job_write"
+    ],
+    "indexes": [
+      "DeletionJob_status_scheduledFor_idx",
+      "DeletionJob_storageBucket_storagePath_idx",
+      "DeletionJob_targetType_status_idx"
+    ],
+    "statements": [
+      {
+        "variant": "due-job-select",
+        "observedSql": {
+          "statementType": "SELECT",
+          "normalizedSql": "SELECT \"public\".\"DeletionJob\".\"id\", \"public\".\"DeletionJob\".\"targetType\", \"public\".\"DeletionJob\".\"targetUserId\", \"public\".\"DeletionJob\".\"storageBucket\", \"public\".\"DeletionJob\".\"storagePath\" FROM \"public\".\"DeletionJob\" WHERE (\"public\".\"DeletionJob\".\"targetType\" = $1 AND \"public\".\"DeletionJob\".\"scheduledFor\" <= $2 AND (\"public\".\"DeletionJob\".\"status\" = $3 OR (\"public\".\"DeletionJob\".\"status\" = $4 AND \"public\".\"DeletionJob\".\"updatedAt\" <= $5))) ORDER BY \"public\".\"DeletionJob\".\"scheduledFor\" ASC, \"public\".\"DeletionJob\".\"createdAt\" ASC LIMIT $6 OFFSET $7",
+          "sha256": "88ff403a1b2338131853823d501ddefc07d104c28984c4a9ccebccf139a18da4",
+          "parameterCount": 7,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "Limit",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 1.01,
+            "children": [
+              {
+                "nodeType": "Sort",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 1.01,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "DeletionJob",
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 1,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "35443d5b07aec888b4b14443be960a1d45962530b8086e6d79eea842b728cf3f"
+        }
+      },
+      {
+        "variant": "claim-job-update",
+        "observedSql": {
+          "statementType": "UPDATE",
+          "normalizedSql": "UPDATE \"public\".\"DeletionJob\" SET \"status\" = $1, \"updatedAt\" = $2 WHERE (\"public\".\"DeletionJob\".\"id\" = $3 AND (\"public\".\"DeletionJob\".\"status\" = $4 OR (\"public\".\"DeletionJob\".\"status\" = $5 AND \"public\".\"DeletionJob\".\"updatedAt\" <= $6)))",
+          "sha256": "09d91c3fdc148a520415cd6d3019c227e17fd1054ec893f5382d9b1502c1dd27",
+          "parameterCount": 6,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "DeletionJob",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 0,
+            "totalCost": 1,
+            "children": [
+              {
+                "nodeType": "Seq Scan",
+                "relationName": "DeletionJob",
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 1,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "7b0b744ce25aa8e336ae722bc768bd9ae5d396915318be52cf1aa04b290baffa"
+        }
+      },
+      {
+        "variant": "outcome-job-update",
+        "observedSql": {
+          "statementType": "UPDATE",
+          "normalizedSql": "UPDATE \"public\".\"DeletionJob\" SET \"status\" = $1, \"completedAt\" = $2, \"updatedAt\" = $3 WHERE (\"public\".\"DeletionJob\".\"id\" = $4 AND 1=1) RETURNING \"public\".\"DeletionJob\".\"id\", \"public\".\"DeletionJob\".\"policyId\", \"public\".\"DeletionJob\".\"targetType\", \"public\".\"DeletionJob\".\"targetUserId\", \"public\".\"DeletionJob\".\"storageBucket\", \"public\".\"DeletionJob\".\"storagePath\", \"public\".\"DeletionJob\".\"status\", \"public\".\"DeletionJob\".\"scheduledFor\", \"public\".\"DeletionJob\".\"completedAt\", \"public\".\"DeletionJob\".\"requestedByUserId\", \"public\".\"DeletionJob\".\"createdAt\", \"public\".\"DeletionJob\".\"updatedAt\"",
+          "sha256": "465c225bcf2beee0ae07e9d13f2fb270de02b26abde1fce973c4428d6698e9f8",
+          "parameterCount": 4,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "DeletionJob",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 1.01,
+            "children": [
+              {
+                "nodeType": "Seq Scan",
+                "relationName": "DeletionJob",
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 1.01,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "2ba35459fcc5696052bdc2c82d15bfaaf60dbc36ae192d732f8eb9ed40fdec26"
+        }
+      },
+      {
+        "variant": "audit-result-insert",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"public\".\"AuditLog\" (\"actorType\",\"action\",\"targetType\",\"targetId\",\"metadata\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6) RETURNING \"public\".\"AuditLog\".\"id\", \"public\".\"AuditLog\".\"actorId\", \"public\".\"AuditLog\".\"actorType\", \"public\".\"AuditLog\".\"action\", \"public\".\"AuditLog\".\"targetType\", \"public\".\"AuditLog\".\"targetId\", \"public\".\"AuditLog\".\"ip\", \"public\".\"AuditLog\".\"userAgent\", \"public\".\"AuditLog\".\"metadata\", \"public\".\"AuditLog\".\"createdAt\"",
+          "sha256": "528459e55600eb3adca56b5b504aa53cfbc2a1753938fa687f4effe80ffb2db1",
+          "parameterCount": 6,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "AuditLog",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 0.02,
+            "children": [
+              {
+                "nodeType": "Result",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 0.02,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "9a2e3aa5f922c3e0872f6387dd861c2f80e70dcb4ea8c23ab9a4f61296a72ff4"
+        }
+      }
+    ],
+    "status": "verified"
+  },
+  "cleanup": {
+    "auditLogRowsDeleted": 4,
+    "deletionJobRowsDeleted": 7,
+    "userRowsDeleted": 1,
+    "remainingAuditLogRows": 0,
+    "remainingDeletionJobRows": 0,
+    "remainingUserRows": 0
+  },
+  "verdict": "verified"
+}

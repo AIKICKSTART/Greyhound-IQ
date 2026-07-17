@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "design-lab-database-parity",
+  "generatedAt": "2026-07-13T22:20:49.883Z",
+  "safety": {
+    "scope": "literal-loopback-isolated-databases",
+    "target": {
+      "protocol": "postgresql",
+      "host": "127.0.0.1",
+      "port": 55735,
+      "database": "greyhoundiq"
+    },
+    "reference": {
+      "protocol": "postgresql",
+      "host": "127.0.0.1",
+      "port": 55734,
+      "database": "greyhoundiq"
+    },
+    "productionContacted": false,
+    "mutation": "none-during-verification"
+  },
+  "sourceBinding": {
+    "testedCommitSha": "f78ba76ee853344132e0e202b3e8671d76d59104",
+    "sourceSha256": "1099ff3ad6c84b21551e26645dd51f1d15ffd0654033e560c410a6c4b011e180",
+    "sourceFileCount": 747,
+    "prismaSchemaSha256": "44a523c98f05cec632c3733c0c2b8cdeb802bf666e9766f07e2e5665320fbeab",
+    "migrationsSha256": "1ffbed43b8481e94ea0c463bbfe4e273652a6270d4964c3f21665db031378c98",
+    "migrationCount": 90
+  },
+  "runtimeRole": {
+    "currentRole": "greyhoundiq_runtime",
+    "sessionRole": "greyhoundiq_runtime",
+    "canLogin": true,
+    "superuser": false,
+    "bypassRls": false,
+    "createRole": false,
+    "createDatabase": false,
+    "replication": false,
+    "connectionLimit": 40,
+    "readOnlySession": true,
+    "applicationTableCount": 107,
+    "rlsEnabledCount": 107,
+    "forceRlsCount": 107
+  },
+  "catalog": {
+    "targetSha256": "91254c75f5e6d4bc93c625ae460932a3f82bbce796ee287f21f2a4e0cec27b6a",
+    "referenceSha256": "91254c75f5e6d4bc93c625ae460932a3f82bbce796ee287f21f2a4e0cec27b6a",
+    "matched": true,
+    "components": [
+      {
+        "name": "server",
+        "targetRows": 1,
+        "referenceRows": 1,
+        "targetSha256": "aa2055e689e81e92794a2fdb940bf5e80942e4945ec034c323fb62745f34bc25",
+        "referenceSha256": "aa2055e689e81e92794a2fdb940bf5e80942e4945ec034c323fb62745f34bc25",
+        "matched": true
+      },
+      {
+        "name": "extensions",
+        "targetRows": 2,
+        "referenceRows": 2,
+        "targetSha256": "e186995471defdffb95668377edb463ee4dbb38ffd4a9640672e49f2a75b484e",
+        "referenceSha256": "e186995471defdffb95668377edb463ee4dbb38ffd4a9640672e49f2a75b484e",
+        "matched": true
+      },
+      {
+        "name": "relations",
+        "targetRows": 115,
+        "referenceRows": 115,
+        "targetSha256": "34f4f93e878e26e1576962d63343c1165f1fa65dd5a8f3ca1c594b50b9433847",
+        "referenceSha256": "34f4f93e878e26e1576962d63343c1165f1fa65dd5a8f3ca1c594b50b9433847",
+        "matched": true
+      },
+      {
+        "name": "columns",
+        "targetRows": 1140,
+        "referenceRows": 1140,
+        "targetSha256": "562263fa5a674b0ac6c38e65e823af977129c058e15ded9ad6ec12ae74373ec8",
+        "referenceSha256": "562263fa5a674b0ac6c38e65e823af977129c058e15ded9ad6ec12ae74373ec8",
+        "matched": true
+      },
+      {
+        "name": "constraints",
+        "targetRows": 328,
+        "referenceRows": 328,
+        "targetSha256": "824f43e0961453456baf689fa34021fea602196ed60cd53f21efeae479c393f6",
+        "referenceSha256": "824f43e0961453456baf689fa34021fea602196ed60cd53f21efeae479c393f6",
+        "matched": true
+      },
+      {
+        "name": "indexes",
+        "targetRows": 530,
+        "referenceRows": 530,
+        "targetSha256": "444c67e24196e38c219ceeaf1a3acbc24d20669c486bd6bebc7ad216e949c089",
+        "referenceSha256": "444c67e24196e38c219ceeaf1a3acbc24d20669c486bd6bebc7ad216e949c089",
+        "matched": true
+      },
+      {
+        "name": "functions",
+        "targetRows": 78,
+        "referenceRows": 78,
+        "targetSha256": "26842d8375b56fd7fd4536973c66375c2d683c208868a552c92aa5d74158523f",
+        "referenceSha256": "26842d8375b56fd7fd4536973c66375c2d683c208868a552c92aa5d74158523f",
+        "matched": true
+      },
+      {
+        "name": "triggers",
+        "targetRows": 15,
+        "referenceRows": 15,
+        "targetSha256": "d58e9d4635d954d3a260e84515878d89215ca873376785db4cd268ac0ae459a7",
+        "referenceSha256": "d58e9d4635d954d3a260e84515878d89215ca873376785db4cd268ac0ae459a7",
+        "matched": true
+      },
+      {
+        "name": "policies",
+        "targetRows": 232,
+        "referenceRows": 232,
+        "targetSha256": "eba180f5efc81d8a599cbe3325321c3cbf066961f5b63d3a926bfebb67e78cb5",
+        "referenceSha256": "eba180f5efc81d8a599cbe3325321c3cbf066961f5b63d3a926bfebb67e78cb5",
+        "matched": true
+      },
+      {
+        "name": "sequences",
+        "targetRows": 1,
+        "referenceRows": 1,
+        "targetSha256": "5e9b707649c6c6368c18039f8b8564c81bd0572bbb11ddd4d8f631d92e69316a",
+        "referenceSha256": "5e9b707649c6c6368c18039f8b8564c81bd0572bbb11ddd4d8f631d92e69316a",
+        "matched": true
+      },
+      {
+        "name": "enums",
+        "targetRows": 0,
+        "referenceRows": 0,
+        "targetSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "referenceSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "matched": true
+      },
+      {
+        "name": "grants",
+        "targetRows": 1354,
+        "referenceRows": 1354,
+        "targetSha256": "6b6731c6c4a3efc0578649d8e474a1fd7aab6a8c06136abb3b4228b54c4d0e8e",
+        "referenceSha256": "6b6731c6c4a3efc0578649d8e474a1fd7aab6a8c06136abb3b4228b54c4d0e8e",
+        "matched": true
+      },
+      {
+        "name": "migrations",
+        "targetRows": 90,
+        "referenceRows": 90,
+        "targetSha256": "86c1815f2d3111879e831b3e24a6eb9da66d4a535388d9e22cca5fddb5b8b48b",
+        "referenceSha256": "86c1815f2d3111879e831b3e24a6eb9da66d4a535388d9e22cca5fddb5b8b48b",
+        "matched": true
+      }
+    ]
+  },
+  "applicationBinding": {
+    "baseUrl": "http://localhost:3000",
+    "readinessStatus": 200,
+    "databaseStatus": "ok",
+    "observedApplicationName": "greyhoundiq_design_lab",
+    "observedRole": "greyhoundiq_runtime",
+    "observedConnectionCount": 6
+  },
+  "verdict": "verified"
+}

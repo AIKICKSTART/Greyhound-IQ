@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "auditKind": "isolated-postgres-migration-replay",
+  "generatedAt": "2026-07-17T02:21:17.985Z",
+  "safety": {
+    "scope": "literal-loopback-local-only",
+    "target": {
+      "protocol": "postgresql",
+      "host": "127.0.0.1",
+      "port": 55734,
+      "database": "greyhoundiq"
+    },
+    "shadow": {
+      "protocol": "postgresql",
+      "host": "127.0.0.1",
+      "port": 55734,
+      "database": "greyhoundiq_shadow"
+    },
+    "targetMutation": "none; Prisma migrate diff is read-only for the target",
+    "shadowMutation": "Prisma may reset the explicitly separate disposable shadow database",
+    "referenceSystemIdentifier": "7662225835891781667"
+  },
+  "sourceBinding": {
+    "testedCommitSha": "ab9022c8bfc693ad6086ffaf608ac3dc2ccd29fb",
+    "sourceSha256": "c8fed4658be2877c9304ef94d5ad0e6552e1dc2300549b952b3b133ffb7dd1b5",
+    "sourceFileCount": 1572,
+    "prismaSchemaSha256": "ff7158c8900a4fc914bb0a09bc27e41bba4271a0144afee675a53b8e526a93fc",
+    "migrationsSha256": "4e96cb5413d55c83e18622019527349f9f6c8f50b72b8bc27d1d07a80bc53fec",
+    "migrationCount": 100,
+    "replayControlSha256": "1ea7c7e28b2a7d18209cdea47c59bdc9c43aa5c730726557a2d96e44b4de4837"
+  },
+  "replay": {
+    "status": "verified",
+    "exitCode": 0,
+    "outputSha256": "28e77f97ae58244e924dd9acfdc03fe391975a4d93358d3295aa65ca59eeb1b2",
+    "summary": [
+      "No difference detected.",
+      "Loaded Prisma config from prisma.config.ts."
+    ]
+  },
+  "verdict": "verified"
+}

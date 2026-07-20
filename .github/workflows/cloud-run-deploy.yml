@@ -44,6 +44,12 @@ on:
         default: "false"
         type: choice
         options: ["false", "true"]
+      stage11_r2_cutover:
+        description: Run the real live-ingest gate against the reviewed Stage 11 R2 database
+        required: true
+        default: "false"
+        type: choice
+        options: ["false", "true"]
 
 permissions:
   actions: read
@@ -161,6 +167,7 @@ jobs:
           INPUT_EXPORT_DISABLED: ${{ inputs.export_disabled }}
           INPUT_AI_DISABLED: ${{ inputs.ai_disabled }}
           INPUT_REALTIME_BROADCAST_DISABLED: ${{ inputs.realtime_broadcast_disabled }}
+          INPUT_STAGE11_R2_CUTOVER: ${{ inputs.stage11_r2_cutover }}
         run: |
           set -euo pipefail
           env_name="${{ steps.build.outputs.env_name }}"
@@ -203,6 +210,11 @@ jobs:
           export_disabled="$(normalize_emergency_flag EXPORT_DISABLED "${INPUT_EXPORT_DISABLED:-}")"
           ai_disabled="$(normalize_emergency_flag AI_DISABLED "${INPUT_AI_DISABLED:-}")"
           realtime_broadcast_disabled="$(normalize_emergency_flag REALTIME_BROADCAST_DISABLED "${INPUT_REALTIME_BROADCAST_DISABLED:-}")"
+          stage11_r2_cutover="$(normalize_emergency_flag STAGE11_R2_CUTOVER "${INPUT_STAGE11_R2_CUTOVER:-}")"
+          if [ "$stage11_r2_cutover" = "true" ] && [ "$env_name" != "staging" ]; then
+            echo "::error::Stage 11 R2 is bound to the reviewed public staging service only."
+            exit 1
+          fi
           nextauth_url="${{ secrets.NEXTAUTH_URL }}"
           workos_cookie_domain="${{ vars.WORKOS_COOKIE_DOMAIN }}"
           if [ -z "$workos_cookie_domain" ]; then
@@ -221,7 +233,23 @@ jobs:
             echo "::error::MEDIA_SCANNER_INTERNAL_API_SECRET_NAME is not an approved environment or generic secret reference."
             exit 1
           fi
-          for secret_name in DATABASE_URL SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY SUPABASE_JWT_SECRET NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY STRIPE_SECRET_KEY NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_PRO_MONTHLY STRIPE_PRICE_PRO_YEARLY REALTIME_CHANNEL_SECRET; do
+          database_secret="greyhoundiq-$env_name-DATABASE_URL"
+          replay_proxy_secret="greyhoundiq-$env_name-REPLAY_PROXY_SECRET"
+          watchdog_provider_enabled="false"
+          if [ "$env_name" = "staging" ]; then
+            database_secret="greyhoundiq-stage11-DATABASE_URL"
+            replay_proxy_secret="giq-replay-proxy-secret"
+            watchdog_provider_enabled="true"
+          fi
+          if ! gcloud secrets versions list "$database_secret" \
+            --project "$project_id" \
+            --filter "state=ENABLED" \
+            --limit 1 \
+            --format "value(name)" | grep -q .; then
+            echo "::error::Missing enabled Secret Manager version for $database_secret"
+            exit 1
+          fi
+          for secret_name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY SUPABASE_JWT_SECRET NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY STRIPE_SECRET_KEY NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_PRO_MONTHLY STRIPE_PRICE_PRO_YEARLY REALTIME_CHANNEL_SECRET; do
             if ! gcloud secrets versions list "greyhoundiq-$env_name-$secret_name" \
               --project "${{ secrets.GCP_PROJECT_ID }}" \
               --filter "state=ENABLED" \
@@ -239,11 +267,11 @@ jobs:
             echo "::error::Missing enabled Secret Manager version for the reviewed INTERNAL_API_SECRET reference."
             exit 1
           fi
-          secrets="DATABASE_URL=greyhoundiq-$env_name-DATABASE_URL:latest,SUPABASE_URL=greyhoundiq-$env_name-SUPABASE_URL:latest,SUPABASE_SERVICE_ROLE_KEY=greyhoundiq-$env_name-SUPABASE_SERVICE_ROLE_KEY:latest,SUPABASE_JWT_SECRET=greyhoundiq-$env_name-SUPABASE_JWT_SECRET:latest,NEXT_PUBLIC_SUPABASE_URL=greyhoundiq-$env_name-NEXT_PUBLIC_SUPABASE_URL:latest,NEXT_PUBLIC_SUPABASE_ANON_KEY=greyhoundiq-$env_name-NEXT_PUBLIC_SUPABASE_ANON_KEY:latest,NEXTAUTH_SECRET=greyhoundiq-$env_name-NEXTAUTH_SECRET:latest,AUTH_SECRET=greyhoundiq-$env_name-AUTH_SECRET:latest,REPLAY_PROXY_SECRET=greyhoundiq-$env_name-REPLAY_PROXY_SECRET:latest,WORKOS_CLIENT_ID=greyhoundiq-$env_name-WORKOS_CLIENT_ID:latest,WORKOS_API_KEY=greyhoundiq-$env_name-WORKOS_API_KEY:latest,WORKOS_COOKIE_PASSWORD=greyhoundiq-$env_name-WORKOS_COOKIE_PASSWORD:latest,LAGO_API_KEY=greyhoundiq-$env_name-LAGO_API_KEY:latest,LAGO_WEBHOOK_SECRET=greyhoundiq-$env_name-LAGO_WEBHOOK_SECRET:latest,STRIPE_SECRET_KEY=greyhoundiq-$env_name-STRIPE_SECRET_KEY:latest,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=greyhoundiq-$env_name-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:latest,STRIPE_WEBHOOK_SECRET=greyhoundiq-$env_name-STRIPE_WEBHOOK_SECRET:latest,STRIPE_PRICE_PRO_MONTHLY=greyhoundiq-$env_name-STRIPE_PRICE_PRO_MONTHLY:latest,STRIPE_PRICE_PRO_YEARLY=greyhoundiq-$env_name-STRIPE_PRICE_PRO_YEARLY:latest,INTERNAL_API_SECRET=$internal_api_secret:latest,LIVEKIT_URL=greyhoundiq-$env_name-LIVEKIT_URL:latest,LIVEKIT_API_KEY=greyhoundiq-$env_name-LIVEKIT_API_KEY:latest,LIVEKIT_API_SECRET=greyhoundiq-$env_name-LIVEKIT_API_SECRET:latest,REALTIME_CHANNEL_SECRET=greyhoundiq-$env_name-REALTIME_CHANNEL_SECRET:latest"
+          secrets="DATABASE_URL=$database_secret:latest,SUPABASE_URL=greyhoundiq-$env_name-SUPABASE_URL:latest,SUPABASE_SERVICE_ROLE_KEY=greyhoundiq-$env_name-SUPABASE_SERVICE_ROLE_KEY:latest,SUPABASE_JWT_SECRET=greyhoundiq-$env_name-SUPABASE_JWT_SECRET:latest,NEXT_PUBLIC_SUPABASE_URL=greyhoundiq-$env_name-NEXT_PUBLIC_SUPABASE_URL:latest,NEXT_PUBLIC_SUPABASE_ANON_KEY=greyhoundiq-$env_name-NEXT_PUBLIC_SUPABASE_ANON_KEY:latest,NEXTAUTH_SECRET=greyhoundiq-$env_name-NEXTAUTH_SECRET:latest,AUTH_SECRET=greyhoundiq-$env_name-NEXTAUTH_SECRET:latest,REPLAY_PROXY_SECRET=$replay_proxy_secret:latest,WORKOS_CLIENT_ID=greyhoundiq-$env_name-WORKOS_CLIENT_ID:latest,WORKOS_API_KEY=greyhoundiq-$env_name-WORKOS_API_KEY:latest,WORKOS_COOKIE_PASSWORD=greyhoundiq-$env_name-WORKOS_COOKIE_PASSWORD:latest,STRIPE_SECRET_KEY=greyhoundiq-$env_name-STRIPE_SECRET_KEY:latest,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=greyhoundiq-$env_name-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:latest,STRIPE_WEBHOOK_SECRET=greyhoundiq-$env_name-STRIPE_WEBHOOK_SECRET:latest,STRIPE_PRICE_PRO_MONTHLY=greyhoundiq-$env_name-STRIPE_PRICE_PRO_MONTHLY:latest,STRIPE_PRICE_PRO_YEARLY=greyhoundiq-$env_name-STRIPE_PRICE_PRO_YEARLY:latest,INTERNAL_API_SECRET=$internal_api_secret:latest,LIVEKIT_URL=greyhoundiq-$env_name-LIVEKIT_URL:latest,LIVEKIT_API_KEY=greyhoundiq-$env_name-LIVEKIT_API_KEY:latest,LIVEKIT_API_SECRET=greyhoundiq-$env_name-LIVEKIT_API_SECRET:latest,REALTIME_CHANNEL_SECRET=greyhoundiq-$env_name-REALTIME_CHANNEL_SECRET:latest"
           site_assets_bucket="giq-site-assets-$project_id"
           public_user_media_bucket="giq-public-user-media-$project_id"
           private_user_media_bucket="giq-private-user-media-$project_id"
-          env_vars="NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1,NEXTAUTH_URL=$nextauth_url,AUTH_URL=$nextauth_url,STRIPE_APP_URL=$nextauth_url,NEXT_PUBLIC_WORKOS_REDIRECT_URI=${{ secrets.NEXT_PUBLIC_WORKOS_REDIRECT_URI }},LAGO_API_URL=${{ secrets.LAGO_API_URL }},LAGO_FRONT_URL=${{ secrets.LAGO_FRONT_URL }},NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=false,NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT=false,ACTOR_CONVERSATION_MULTIPLEX_ENABLED=$actor_conversation_multiplex,MEDIA_SCAN_MODE=disabled,SEARCH_DISABLED=$search_disabled,UPLOAD_DISABLED=$upload_disabled,EXPORT_DISABLED=$export_disabled,AI_DISABLED=$ai_disabled,REALTIME_BROADCAST_DISABLED=$realtime_broadcast_disabled,OBJECT_STORAGE_PROVIDER=gcs,GCS_SITE_ASSETS_BUCKET=$site_assets_bucket,GCS_PUBLIC_USER_MEDIA_BUCKET=$public_user_media_bucket,GCS_PRIVATE_USER_MEDIA_BUCKET=$private_user_media_bucket"
+          env_vars="NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1,NEXTAUTH_URL=$nextauth_url,AUTH_URL=$nextauth_url,STRIPE_APP_URL=$nextauth_url,NEXT_PUBLIC_WORKOS_REDIRECT_URI=${{ secrets.NEXT_PUBLIC_WORKOS_REDIRECT_URI }},NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=false,NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT=false,ACTOR_CONVERSATION_MULTIPLEX_ENABLED=$actor_conversation_multiplex,MEDIA_SCAN_MODE=disabled,SEARCH_DISABLED=$search_disabled,UPLOAD_DISABLED=$upload_disabled,EXPORT_DISABLED=$export_disabled,AI_DISABLED=$ai_disabled,REALTIME_BROADCAST_DISABLED=$realtime_broadcast_disabled,THEDOGS_LICENSED_USE_APPROVED=false,THEDOGS_PROVIDER_ENABLED=false,WATCHDOG_PROVIDER_ENABLED=$watchdog_provider_enabled,FASTTRACK_PROTOTYPE_ENABLED=false,OBJECT_STORAGE_PROVIDER=gcs,GCS_SITE_ASSETS_BUCKET=$site_assets_bucket,GCS_PUBLIC_USER_MEDIA_BUCKET=$public_user_media_bucket,GCS_PRIVATE_USER_MEDIA_BUCKET=$private_user_media_bucket"
           if [ -n "$workos_cookie_domain" ]; then
             env_vars="$env_vars,WORKOS_COOKIE_DOMAIN=$workos_cookie_domain"
           fi
@@ -346,7 +374,6 @@ jobs:
             fi
             scanner_network_args+=("--vpc-connector=$vpc_connector" "--vpc-egress=$vpc_egress")
           fi
-          database_secret="greyhoundiq-$env_name-DATABASE_URL"
           scanner_env_vars="NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1,MEDIA_SCAN_MODE=clamav,REALTIME_BROADCAST_DISABLED=true,OBJECT_STORAGE_PROVIDER=gcs,GCS_SITE_ASSETS_BUCKET=$site_assets_bucket,GCS_PUBLIC_USER_MEDIA_BUCKET=$public_user_media_bucket,GCS_PRIVATE_USER_MEDIA_BUCKET=$private_user_media_bucket"
           scanner_secrets="DATABASE_URL=$database_secret:latest,INTERNAL_API_SECRET=$internal_api_secret:latest"
           gcloud run deploy "$scanner_service" \
@@ -468,6 +495,7 @@ jobs:
           fi
           echo "candidate_url=$candidate_url" >> "$GITHUB_OUTPUT"
           echo "candidate_tag=$candidate_tag" >> "$GITHUB_OUTPUT"
+          echo "internal_api_secret=$internal_api_secret" >> "$GITHUB_OUTPUT"
           echo "web_revision=$web_revision" >> "$GITHUB_OUTPUT"
           echo "web_service=$service" >> "$GITHUB_OUTPUT"
           echo "scanner_revision=$scanner_revision" >> "$GITHUB_OUTPUT"
@@ -479,6 +507,42 @@ jobs:
           set -euo pipefail
           npm ci
           SMOKE_BASE_URL="${{ steps.deploy.outputs.candidate_url }}" npm run test:smoke
+
+      - name: Stage 11 R2 live-ingest and deduplication gate
+        if: github.event_name == 'workflow_dispatch' && inputs.stage11_r2_cutover == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          internal_secret="$(
+            gcloud secrets versions access latest \
+              --secret "${{ steps.deploy.outputs.internal_api_secret }}" \
+              --project "${{ secrets.GCP_PROJECT_ID }}"
+          )"
+          if [ -z "$internal_secret" ]; then
+            echo "::error::The reviewed internal API secret is empty."
+            exit 1
+          fi
+          echo "::add-mask::$internal_secret"
+          candidate_url="${{ steps.deploy.outputs.candidate_url }}"
+          for pass in 1 2; do
+            for scope in results upcoming; do
+              curl --fail --silent --show-error --max-time 900 \
+                --request POST \
+                --header "x-internal-secret: $internal_secret" \
+                "$candidate_url/api/internal/live-sync?days=1&scope=$scope" \
+                >/dev/null
+            done
+          done
+          curl --fail --silent --show-error --max-time 60 \
+            --header "x-internal-secret: $internal_secret" \
+            "$candidate_url/api/health/feeds" \
+            >/dev/null
+          unset internal_secret
+          gcloud run jobs execute giq-production-db-audit \
+            --region "$REGION" \
+            --wait \
+            --project "${{ secrets.GCP_PROJECT_ID }}" \
+            --format "value(metadata.name)"
 
       - name: Post-deploy LiveKit connectivity check (staging only)
         if: steps.build.outputs.env_name == 'staging'

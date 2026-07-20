@@ -138,7 +138,7 @@ jobs:
           gcloud builds submit . \
             --config cloudbuild.yaml \
             --project "${{ secrets.GCP_PROJECT_ID }}" \
-            --substitutions "_IMAGE=$image,_NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL,_NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY,_NEXT_PUBLIC_WORKOS_REDIRECT_URI=$NEXT_PUBLIC_WORKOS_REDIRECT_URI,_NEXT_PUBLIC_LIVEKIT_URL=$NEXT_PUBLIC_LIVEKIT_URL"
+            --substitutions "_IMAGE=$image,_NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL,_NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY,_NEXT_PUBLIC_WORKOS_REDIRECT_URI=$NEXT_PUBLIC_WORKOS_REDIRECT_URI,_NEXT_PUBLIC_LIVEKIT_URL=$NEXT_PUBLIC_LIVEKIT_URL,_ENABLE_DEVICE_PREVIEWS=false"
           image_digest="$(
             gcloud artifacts docker images describe "$image" \
               --project "${{ secrets.GCP_PROJECT_ID }}" \

@@ -282,7 +282,7 @@ jobs:
             --memory 4Gi \
             --concurrency 20 \
             --timeout 900 \
-            --min-instances "$min_instances" \
+            --min "$min_instances" \
             --max-instances "$max_instances" \
             --no-traffic \
             --tag "$candidate_tag" \

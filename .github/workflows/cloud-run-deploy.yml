@@ -216,11 +216,9 @@ jobs:
             exit 1
           fi
           nextauth_url="${{ secrets.NEXTAUTH_URL }}"
-          workos_cookie_domain="${{ vars.WORKOS_COOKIE_DOMAIN }}"
-          if [ -z "$workos_cookie_domain" ]; then
-            workos_cookie_domain="$(
-              node -e 'const raw=process.argv[1]; try { const url = new URL(raw); let host = url.hostname.toLowerCase(); if (url.protocol === "https:" && !host.endsWith(".run.app")) { if (host.startsWith("www.")) host = host.slice(4); process.stdout.write(host); } } catch {}' "$nextauth_url"
-            )"
+          if [ -n "${{ vars.WORKOS_COOKIE_DOMAIN }}" ]; then
+            echo "::error::WORKOS_COOKIE_DOMAIN must remain empty so production sessions are host-only."
+            exit 1
           fi
           environment_internal_api_secret="greyhoundiq-$env_name-INTERNAL_API_SECRET"
           reviewed_internal_api_secret="${{ vars.MEDIA_SCANNER_INTERNAL_API_SECRET_NAME }}"
@@ -272,9 +270,6 @@ jobs:
           public_user_media_bucket="giq-public-user-media-$project_id"
           private_user_media_bucket="giq-private-user-media-$project_id"
           env_vars="NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1,NEXTAUTH_URL=$nextauth_url,AUTH_URL=$nextauth_url,STRIPE_APP_URL=$nextauth_url,NEXT_PUBLIC_WORKOS_REDIRECT_URI=${{ secrets.NEXT_PUBLIC_WORKOS_REDIRECT_URI }},NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=false,NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT=false,ACTOR_CONVERSATION_MULTIPLEX_ENABLED=$actor_conversation_multiplex,MEDIA_SCAN_MODE=disabled,SEARCH_DISABLED=$search_disabled,UPLOAD_DISABLED=$upload_disabled,EXPORT_DISABLED=$export_disabled,AI_DISABLED=$ai_disabled,REALTIME_BROADCAST_DISABLED=$realtime_broadcast_disabled,THEDOGS_LICENSED_USE_APPROVED=false,THEDOGS_PROVIDER_ENABLED=false,WATCHDOG_PROVIDER_ENABLED=$watchdog_provider_enabled,FASTTRACK_PROTOTYPE_ENABLED=false,OBJECT_STORAGE_PROVIDER=gcs,GCS_SITE_ASSETS_BUCKET=$site_assets_bucket,GCS_PUBLIC_USER_MEDIA_BUCKET=$public_user_media_bucket,GCS_PRIVATE_USER_MEDIA_BUCKET=$private_user_media_bucket"
-          if [ -n "$workos_cookie_domain" ]; then
-            env_vars="$env_vars,WORKOS_COOKIE_DOMAIN=$workos_cookie_domain"
-          fi
           gcloud run deploy "$service" \
             --image "${{ steps.build.outputs.image }}" \
             --region "$REGION" \

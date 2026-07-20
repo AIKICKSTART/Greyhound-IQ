@@ -25,6 +25,21 @@ assert.match(
   /host-only/,
 );
 
+const cloudRunDeploy = readFileSync(
+  ".github/workflows/cloud-run-deploy.yml",
+  "utf8",
+);
+assert.match(
+  cloudRunDeploy,
+  /if \[ -n "\$\{\{ vars\.WORKOS_COOKIE_DOMAIN \}\}" \]; then[\s\S]*WORKOS_COOKIE_DOMAIN must remain empty so production sessions are host-only/,
+  "Cloud Run deployment must reject a configured WorkOS cookie domain",
+);
+assert.doesNotMatch(
+  cloudRunDeploy,
+  /WORKOS_COOKIE_DOMAIN=\$workos_cookie_domain/,
+  "Cloud Run must not inject a shared WorkOS cookie domain",
+);
+
 const workosCookie = readFileSync(
   "node_modules/@workos-inc/authkit-nextjs/dist/esm/cookie.js",
   "utf8",
@@ -35,7 +50,10 @@ const workosSession = readFileSync(
 );
 assert.match(workosCookie, /path: '\/'/);
 assert.match(workosCookie, /httpOnly: true/);
-assert.match(workosCookie, /const sameSite = WORKOS_COOKIE_SAMESITE \|\| 'lax'/);
+assert.match(
+  workosCookie,
+  /const sameSite = WORKOS_COOKIE_SAMESITE \|\| 'lax'/,
+);
 assert.match(workosCookie, /secure = url\.protocol === 'https:'/);
 assert.match(workosCookie, /domain: WORKOS_COOKIE_DOMAIN \|\| ''/);
 assert.match(workosSession, /Set-Cookie/);
@@ -43,8 +61,7 @@ assert.match(workosSession, /encryptedSession/);
 
 const productionFiles = collectTypeScriptFiles("src").filter(
   (file) =>
-    !/\.test\.(?:ts|tsx)$/.test(file) &&
-    !/-evidence\.(?:ts|tsx)$/.test(file),
+    !/\.test\.(?:ts|tsx)$/.test(file) && !/-evidence\.(?:ts|tsx)$/.test(file),
 );
 const applicationSource = productionFiles
   .map((file) => readFileSync(file, "utf8"))

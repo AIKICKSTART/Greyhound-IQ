@@ -16,6 +16,7 @@
 - Keep Supabase production reserved for launch; use staging or local databases for preview and development workflows.
 - Use codebase-memory MCP and Prisma validation before changing models used by app services.
 - Keep social-actor and Realtime RLS helpers `SECURITY DEFINER` with an empty search path and explicit runtime-role grants.
+- Keep FORCE-RLS own-table visibility policies row-local. `SocialActor` and `FeedPost` policies must not invoke helpers that query the same table; child-table policies may use those helpers only after the own-table policy is recursion-safe.
 - `Profile` and `CustomPage` contact columns are server-runtime data; direct `anon`/`authenticated` reads use `giq_public_social_actor_profiles` only.
 - `SocialActor` is the canonical visible identity for members and managed pages. Keep legacy profile/page author fields dual-written until a separately reviewed contraction migration is safe to deploy.
 - Conversations are unique per accountable profile pair plus actor pair. Keep `ACTOR_CONVERSATION_MULTIPLEX_ENABLED=false` until old app revisions retire, then enable distinct personal/page inboxes.

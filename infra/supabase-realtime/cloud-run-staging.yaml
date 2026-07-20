@@ -1,0 +1,148 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: greyhoundiq-supabase-realtime-staging
+  namespace: "961062646759"
+  labels:
+    cloud.googleapis.com/location: australia-southeast1
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/invoker-iam-disabled: "true"
+spec:
+  template:
+    metadata:
+      labels:
+        giq-rollout: "20260720-5"
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "3"
+        run.googleapis.com/container-dependencies: '{"gateway":["realtime","postgrest"]}'
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/network-interfaces: '[{"network":"giq-rehearsal-vpc","subnetwork":"giq-rehearsal-sydney"}]'
+        run.googleapis.com/sessionAffinity: "true"
+        run.googleapis.com/startup-cpu-boost: "true"
+        run.googleapis.com/vpc-access-egress: private-ranges-only
+    spec:
+      containerConcurrency: 80
+      serviceAccountName: giq-supabase-realtime-staging@clever-bee-502514-m4.iam.gserviceaccount.com
+      timeoutSeconds: 3600
+      containers:
+        - name: gateway
+          image: australia-southeast1-docker.pkg.dev/clever-bee-502514-m4/greyhoundiq/supabase-realtime-gateway:20260720-3
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            failureThreshold: 12
+            periodSeconds: 5
+            timeoutSeconds: 2
+        - name: realtime
+          image: australia-southeast1-docker.pkg.dev/clever-bee-502514-m4/greyhoundiq/supabase-realtime:v2.116.1
+          env:
+            - name: PORT
+              value: "4000"
+            - name: DB_HOST
+              value: 10.240.116.2
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: supabase_admin
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: greyhoundiq-staging-SUPABASE_DB_PASSWORD
+                  key: "1"
+            - name: DB_NAME
+              value: giq_realtime_stage11
+            - name: DB_AFTER_CONNECT_QUERY
+              value: SET search_path TO _realtime
+            - name: DB_ENC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: greyhoundiq-staging-SUPABASE_DB_ENC_KEY
+                  key: "1"
+            - name: DB_SSL
+              value: "true"
+            - name: API_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: greyhoundiq-staging-SUPABASE_JWT_SECRET
+                  key: "1"
+            - name: METRICS_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: greyhoundiq-staging-SUPABASE_JWT_SECRET
+                  key: "1"
+            - name: SECRET_KEY_BASE
+              valueFrom:
+                secretKeyRef:
+                  name: greyhoundiq-staging-SUPABASE_SECRET_KEY_BASE
+                  key: "1"
+            - name: ERL_AFLAGS
+              value: -proto_dist inet_tcp
+            - name: CLUSTER_STRATEGIES
+              value: POSTGRES
+            - name: APP_NAME
+              value: realtime
+            - name: SEED_SELF_HOST
+              value: "false"
+            - name: SELF_HOST_TENANT_NAME
+              value: realtime-dev
+            - name: REGION
+              value: australia-southeast1
+            - name: RUN_JANITOR
+              value: "true"
+            - name: DISABLE_HEALTHCHECK_LOGGING
+              value: "true"
+            - name: LOG_LEVEL
+              value: info
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          startupProbe:
+            tcpSocket:
+              port: 4000
+            failureThreshold: 30
+            periodSeconds: 5
+            timeoutSeconds: 2
+        - name: postgrest
+          image: australia-southeast1-docker.pkg.dev/clever-bee-502514-m4/greyhoundiq/postgrest:v14.12
+          env:
+            - name: PGRST_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: greyhoundiq-staging-SUPABASE_POSTGREST_DB_URI
+                  key: "1"
+            - name: PGRST_DB_SCHEMAS
+              value: public
+            - name: PGRST_DB_EXTRA_SEARCH_PATH
+              value: public, auth
+            - name: PGRST_DB_ANON_ROLE
+              value: anon
+            - name: PGRST_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: greyhoundiq-staging-SUPABASE_JWT_SECRET
+                  key: "1"
+            - name: PGRST_DB_USE_LEGACY_GUCS
+              value: "false"
+            - name: PGRST_DB_MAX_ROWS
+              value: "1000"
+          resources:
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          startupProbe:
+            tcpSocket:
+              port: 3000
+            failureThreshold: 30
+            periodSeconds: 5
+            timeoutSeconds: 2

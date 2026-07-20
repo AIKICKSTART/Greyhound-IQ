@@ -21,6 +21,14 @@ alter table public.giq_realtime_topic_grants enable row level security;
 alter table public.giq_realtime_topic_grants force row level security;
 revoke all on public.giq_realtime_topic_grants from public, anon, authenticated;
 
+drop policy if exists giq_realtime_topic_grants_owner_access
+  on public.giq_realtime_topic_grants;
+create policy giq_realtime_topic_grants_owner_access
+  on public.giq_realtime_topic_grants for all
+  to postgres
+  using (true)
+  with check (true);
+
 create or replace function public.giq_replace_realtime_topic_grants(
   requested_profile_id text,
   requested_grants jsonb,

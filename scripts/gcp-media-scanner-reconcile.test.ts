@@ -68,6 +68,11 @@ assert.match(
 );
 assert.match(
   source,
+  /\$expectedDatabaseSecretName = if \(\$Environment -eq "staging"\) \{\s*"greyhoundiq-stage11-DATABASE_URL"\s*\} else \{\s*"greyhoundiq-\$Environment-DATABASE_URL"/,
+  "scanner staging must use the same reviewed Stage 11 database secret as the deployment workflow",
+);
+assert.match(
+  source,
   /\$expectedPlainEnvironment = \[ordered\]@\{[\s\S]*NODE_ENV = "production"[\s\S]*NEXT_TELEMETRY_DISABLED = "1"[\s\S]*MEDIA_SCAN_MODE = "clamav"[\s\S]*REALTIME_BROADCAST_DISABLED = "true"[\s\S]*OBJECT_STORAGE_PROVIDER = "gcs"[\s\S]*GCS_SITE_ASSETS_BUCKET[\s\S]*GCS_PUBLIC_USER_MEDIA_BUCKET[\s\S]*GCS_PRIVATE_USER_MEDIA_BUCKET[\s\S]*?\n\}/,
   "scanner plain environment must stay on the exact media-only allowlist",
 );
@@ -113,6 +118,10 @@ assert.ok(
   workflow.includes('${{ vars.MEDIA_SCANNER_INTERNAL_API_SECRET_NAME }}') &&
     workflow.includes('[ "$reviewed_internal_api_secret" = "giq-internal-api-secret" ]'),
   "workflow must accept the generic internal secret only through its reviewed environment variable",
+);
+assert.ok(
+  workflow.includes('database_secret="greyhoundiq-stage11-DATABASE_URL"'),
+  "workflow staging must retain the reviewed Stage 11 database secret",
 );
 
 const legacyDeploy = readFileSync(

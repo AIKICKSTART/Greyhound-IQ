@@ -267,8 +267,13 @@ if (-not $webEnv.INTERNAL_API_SECRET.valueFrom.secretKeyRef.name) {
 }
 $databaseSecretRef = Get-SecretReference $webEnv.DATABASE_URL "DATABASE_URL"
 $internalSecretRef = Get-SecretReference $webEnv.INTERNAL_API_SECRET "INTERNAL_API_SECRET"
-if ($databaseSecretRef.name -ne "greyhoundiq-$Environment-DATABASE_URL") {
-  throw "DATABASE_URL must use the exact environment-scoped Secret Manager secret."
+$expectedDatabaseSecretName = if ($Environment -eq "staging") {
+  "greyhoundiq-stage11-DATABASE_URL"
+} else {
+  "greyhoundiq-$Environment-DATABASE_URL"
+}
+if ($databaseSecretRef.name -ne $expectedDatabaseSecretName) {
+  throw "DATABASE_URL must use the exact reviewed Secret Manager secret for $Environment."
 }
 $environmentInternalApiSecretName = "greyhoundiq-$Environment-INTERNAL_API_SECRET"
 if ($ReviewedInternalApiSecretName -and $ReviewedInternalApiSecretName -notmatch '^[A-Za-z0-9_-]+$') {

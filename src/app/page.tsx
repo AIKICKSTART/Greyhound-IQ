@@ -241,6 +241,7 @@ function WhyGreyhoundIQSection() {
       <div className="giq-comparison-heading">
         <div>
           <h2
+            className="w-fit"
             data-onboarding-priority="high"
             data-onboarding-target="public-home-value"
           >

@@ -158,6 +158,30 @@ assert.equal(landscapeLayout.placement, "sheet");
 assert.ok(landscapeLayout.width >= 800);
 assertPopupFits(landscapePhone, landscapeLayout);
 
+const landscapeSideTarget = {
+  bottom: 348,
+  height: 48,
+  left: 24,
+  right: 437,
+  top: 300,
+  width: 413,
+};
+const landscapeSideLayout = resolveInteractiveHelpPopupLayout(
+  landscapePhone,
+  "lower",
+  landscapeSideTarget,
+);
+assert.equal(landscapeSideLayout.placement, "right");
+assert.ok(landscapeSideLayout.width >= 480);
+assert.ok(landscapeSideLayout.width <= 560);
+assert.ok(landscapeSideLayout.maxHeight <= 180);
+assert.ok(
+  landscapeSideLayout.width - 32 - 12 - 212 >= 224,
+  "compact sidecar preserves a usable guidance column beside the 212px controls",
+);
+assertPopupFits(landscapePhone, landscapeSideLayout);
+assertPopupDoesNotIntersectTarget(landscapeSideTarget, landscapeSideLayout);
+
 for (const compactLandscape of [
   { height: 320, width: 568 },
   { height: 360, width: 640 },
@@ -350,4 +374,31 @@ function assertPopupFits(
     actualTop + layout.maxHeight <= frameBottom + 0.5,
     `bottom ${actualTop + layout.maxHeight}`,
   );
+}
+
+function assertPopupDoesNotIntersectTarget(
+  target: {
+    bottom: number;
+    left: number;
+    right: number;
+    top: number;
+  },
+  layout: InteractiveHelpPopupLayout,
+) {
+  const popupLeft = layout.transform.startsWith("translate(-50%")
+    ? layout.left - layout.width / 2
+    : layout.transform === "translateX(-100%)"
+      ? layout.left - layout.width
+      : layout.left;
+  const popupTop =
+    layout.transform === "translateY(-100%)" ||
+    layout.transform.includes(", -100%)")
+      ? layout.top - layout.maxHeight
+      : layout.top;
+  const intersects =
+    popupLeft < target.right &&
+    popupLeft + layout.width > target.left &&
+    popupTop < target.bottom &&
+    popupTop + layout.maxHeight > target.top;
+  assert.equal(intersects, false);
 }

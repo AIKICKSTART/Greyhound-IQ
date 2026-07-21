@@ -68,6 +68,9 @@ const MIN_POPUP_HEIGHT = 180;
 const MAX_POPUP_HEIGHT = 420;
 const MAX_POPUP_WIDTH = 400;
 const MAX_LANDSCAPE_POPUP_WIDTH = 900;
+const COMPACT_LANDSCAPE_SIDE_MIN_WIDTH = 480;
+const COMPACT_LANDSCAPE_SIDE_MAX_WIDTH = 560;
+const COMPACT_LANDSCAPE_SIDE_MAX_HEIGHT = 180;
 const TARGET_GAP = 10;
 const ARROW_EDGE_CLEARANCE = 22;
 
@@ -156,6 +159,40 @@ export function resolveInteractiveHelpPopupLayout(
   const roomLeft = targetBounds.left - frame.left - TARGET_GAP;
   const roomBelow = frame.bottom - targetBounds.bottom - TARGET_GAP;
   const roomAbove = targetBounds.top - frame.top - TARGET_GAP;
+
+  if (
+    compactLandscape &&
+    Math.max(roomRight, roomLeft) >= COMPACT_LANDSCAPE_SIDE_MIN_WIDTH
+  ) {
+    const placeRight = roomRight >= roomLeft;
+    const sideRoom = placeRight ? roomRight : roomLeft;
+    const sideWidth = Math.min(COMPACT_LANDSCAPE_SIDE_MAX_WIDTH, sideRoom);
+    const sideHeight = Math.min(
+      maxHeight,
+      COMPACT_LANDSCAPE_SIDE_MAX_HEIGHT,
+    );
+    const top = clamp(
+      targetCenterY - sideHeight / 2,
+      frame.top,
+      frame.bottom - sideHeight,
+    );
+    return {
+      ...base,
+      arrowOffset: clamp(
+        targetCenterY - top,
+        ARROW_EDGE_CLEARANCE,
+        sideHeight - ARROW_EDGE_CLEARANCE,
+      ),
+      left: placeRight
+        ? targetBounds.right + TARGET_GAP
+        : targetBounds.left - TARGET_GAP - sideWidth,
+      maxHeight: sideHeight,
+      placement: placeRight ? "right" : "left",
+      top,
+      transform: "none",
+      width: sideWidth,
+    };
+  }
 
   if (!mobile && roomRight >= popupWidth) {
     const top = clamp(

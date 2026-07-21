@@ -51,6 +51,18 @@ if (target.protocol !== "postgresql:" && target.protocol !== "postgres:") {
 }
 NODE
 
+case "${MIGRATION_MODE:-deploy}" in
+  status)
+    npx prisma migrate status
+    exit 0
+    ;;
+  deploy)
+    ;;
+  *)
+    die "MIGRATION_MODE must be deploy or status"
+    ;;
+esac
+
 npx prisma migrate deploy
 npx prisma migrate status
 

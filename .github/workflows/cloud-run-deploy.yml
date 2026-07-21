@@ -175,6 +175,19 @@ jobs:
           env_name="${{ inputs.environment }}"
           project_id="${{ secrets.GCP_PROJECT_ID }}"
           service="greyhoundiq-web-$env_name"
+          if billing_enabled="$(
+            gcloud billing projects describe "$project_id" \
+              --format 'value(billingEnabled)' \
+              2>/dev/null
+          )"; then
+            case "$billing_enabled" in
+              True|true) echo '{"billingEnabled":true}' ;;
+              False|false) echo '{"billingEnabled":false}' ;;
+              *) echo '{"billingEnabled":"unknown"}' ;;
+            esac
+          else
+            echo '{"billingEnabled":"unavailable"}'
+          fi
           service_json="$(
             gcloud run services describe "$service" \
               --region "$REGION" \

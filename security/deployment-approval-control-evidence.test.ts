@@ -48,6 +48,16 @@ assert.match(
   cloudRunWorkflow,
   /google-github-actions\/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db/u,
 );
+const readOnlyInspection =
+  cloudRunWorkflow.match(
+    /- name: Inspect Cloud Run scaling state[\s\S]*?\n      - name: Deploy Cloud Run candidates/u,
+  )?.[0] ?? "";
+assert.match(
+  readOnlyInspection,
+  /gcloud billing projects describe "\$project_id"/u,
+);
+assert.match(readOnlyInspection, /\{"billingEnabled":false\}/u);
+assert.doesNotMatch(readOnlyInspection, /billingAccountName/u);
 const webCandidateDeploy =
   cloudRunWorkflow.match(
     /gcloud run deploy "\$service"[\s\S]*?--project "\$\{\{ secrets\.GCP_PROJECT_ID \}\}"/u,

@@ -4,6 +4,7 @@ import {
   emergencyControlResponse,
   isEmergencyControlActive,
 } from "@/lib/emergency-controls";
+import { isDogId } from "@/lib/dog-id";
 import { getDogPedigree } from "@/lib/pedigree";
 import { analyzePedigreeOverlap } from "@/lib/pedigree-analysis";
 import { getCrossRecord } from "@/lib/queries";
@@ -13,7 +14,6 @@ import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const CROSS_RATE_LIMIT = 60;
 const CROSS_RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const ID_PATTERN = /^[a-z0-9-]+$/iu;
 const PEDIGREE_GENERATIONS = 5;
 
 // Returns the historical record for a sire x dam pairing so the cross-analysis
@@ -42,10 +42,8 @@ export async function GET(request: Request) {
   if (
     !sireId ||
     !damId ||
-    sireId.length > 64 ||
-    damId.length > 64 ||
-    !ID_PATTERN.test(sireId) ||
-    !ID_PATTERN.test(damId)
+    !isDogId(sireId) ||
+    !isDogId(damId)
   ) {
     return NextResponse.json({ error: "invalid sireId or damId" }, { status: 400 });
   }

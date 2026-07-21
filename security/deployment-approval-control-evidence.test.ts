@@ -78,11 +78,11 @@ assert.match(
 );
 assert.match(
   staleCandidateCleanup,
-  /protected_revision_output="\$\([\s\S]*?\n          \)"/u,
+  /protected_revision_output="\$\([\s\S]*?sort -u\n          \)"/u,
 );
 assert.match(
   staleCandidateCleanup,
-  /stale_candidate_output="\$\([\s\S]*?\n          \)"/u,
+  /stale_candidate_output="\$\([\s\S]*?<<<"\$web_service_json"\n          \)"/u,
 );
 assert.doesNotMatch(staleCandidateCleanup, /mapfile[^\n]*< <\(\s*jq/u);
 assert.match(staleCandidateCleanup, /--remove-tags "\$stale_candidate_tag_list"/u);

@@ -284,7 +284,7 @@ jobs:
                 (if .latestRevision == true then $status.latestReadyRevisionName else empty end))' \
               <<<"$web_service_json" |
               sort -u
-          )
+          )"
           protected_revisions=()
           if [ -n "$protected_revision_output" ]; then
             mapfile -t protected_revisions <<<"$protected_revision_output"

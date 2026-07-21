@@ -10,6 +10,20 @@ import { getSupabaseAdminClient } from "@/lib/supabase-storage";
 export async function POST(request: Request) {
   try {
     requireInternalRequest(request);
+    const probe = new URL(request.url).searchParams.get("probe");
+    if (probe === "livekit") {
+      const livekit = await checkLiveKit();
+      const missing = livekit === "ok" ? [] : ["livekit"];
+      return NextResponse.json(
+        {
+          ok: missing.length === 0,
+          checks: { livekit },
+          missing,
+          timestamp: new Date().toISOString(),
+        },
+        { status: missing.length === 0 ? 200 : 503 },
+      );
+    }
     const execution = await executeScheduledTask("community-readiness", () =>
       runReadinessChecks(request),
     );
@@ -33,17 +47,9 @@ export async function POST(request: Request) {
 }
 
 async function runReadinessChecks(request: Request) {
-    const searchParams = new URL(request.url).searchParams;
-    const runWriteProbe = searchParams.get("write") === "true";
-    if (searchParams.get("probe") === "livekit") {
-      const livekit = await checkLiveKit();
-      return {
-        checks: { livekit },
-        missing: livekit === "ok" ? [] : ["livekit"],
-      };
-    }
-
-    // The write probe creates real rows; require an explicit env opt-in.
+  const searchParams = new URL(request.url).searchParams;
+  const runWriteProbe = searchParams.get("write") === "true";
+  // The write probe creates real rows; require an explicit env opt-in.
     if (runWriteProbe && process.env.ALLOW_COMMUNITY_WRITE_PROBE !== "true") {
       throw new Error("auth.forbidden");
     }

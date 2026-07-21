@@ -130,6 +130,23 @@ assert.match(liveKitGate, /echo "::add-mask::\$internal_secret"/u);
 assert.doesNotMatch(liveKitGate, /gcloud secrets versions access latest/u);
 assert.doesNotMatch(liveKitGate, /skipping LiveKit connectivity check/u);
 
+const communityReadinessRoute = readFileSync(
+  "src/app/api/internal/community-readiness/route.ts",
+  "utf8",
+);
+const internalAuthIndex = communityReadinessRoute.indexOf(
+  "requireInternalRequest(request)",
+);
+const isolatedLiveKitProbeIndex = communityReadinessRoute.indexOf(
+  'if (probe === "livekit")',
+);
+const scheduledReadinessIndex = communityReadinessRoute.indexOf(
+  'executeScheduledTask("community-readiness"',
+);
+assert.ok(internalAuthIndex >= 0);
+assert.ok(isolatedLiveKitProbeIndex > internalAuthIndex);
+assert.ok(scheduledReadinessIndex > isolatedLiveKitProbeIndex);
+
 const requirement = SECURITY_MASTER_REQUIREMENTS.find(
   ({ id }) => id === DEPLOYMENT_APPROVAL_CONTROL_REQUIREMENT_ID,
 );

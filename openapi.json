@@ -2457,6 +2457,96 @@
         "x-rate-limit-policy": "RATE.API.getConversationsByIdSearch"
       }
     },
+    "/api/breeding/cross": {
+      "get": {
+        "operationId": "getBreedingCross",
+        "summary": "Get historical breeding cross analysis",
+        "description": "Returns the historical record and pedigree overlap for a validated sire and dam pairing.",
+        "tags": [
+          "Breeding"
+        ],
+        "parameters": [
+          {
+            "name": "sireId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9-]+$"
+            }
+          },
+          {
+            "name": "damId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9-]+$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historical cross and pedigree analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid sireId or damId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No historical cross was found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "x-endpoint-id": "HTTP.GET.API_BREEDING_CROSS",
+        "x-source-file": "src/app/api/breeding/cross/route.ts",
+        "x-authentication-status": "public",
+        "x-registry-verification": "Partially verified",
+        "x-request-schema-source": "sireId and damId query parameters validated in route source",
+        "x-output-schema-source": "historical cross and five-generation pedigree analysis",
+        "x-known-gaps": [
+          "Deployed authentication, rate-limit and representative production-data behavior remain to be verified."
+        ],
+        "x-rate-limit-policy": "RATE.API.getBreedingCross"
+      }
+    },
     "/api/discover": {
       "get": {
         "operationId": "getDiscover",

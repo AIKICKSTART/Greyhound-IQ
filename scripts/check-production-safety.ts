@@ -270,7 +270,12 @@ for (const publicSupabaseSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUP
     findings.push(`cloud-run-deploy.yml: missing ${publicSupabaseSecret} runtime secret mapping`);
   }
 }
-if (!cloudRunDeploy.includes("REPLAY_PROXY_SECRET=greyhoundiq-$env_name-REPLAY_PROXY_SECRET:latest")) {
+if (
+  !cloudRunDeploy.includes(
+    'replay_proxy_secret="greyhoundiq-$env_name-REPLAY_PROXY_SECRET"',
+  ) ||
+  !cloudRunDeploy.includes("REPLAY_PROXY_SECRET=$replay_proxy_secret:latest")
+) {
   findings.push("cloud-run-deploy.yml: missing REPLAY_PROXY_SECRET runtime secret mapping");
 }
 

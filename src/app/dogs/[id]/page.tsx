@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import {
   BadgeCheck,
   Ban,
-  ChevronDown,
+  ChevronRight,
   Clock,
   Lock,
   Play,
@@ -27,6 +27,7 @@ import {
   formatDogWinRate,
 } from "@/lib/dog-statistic-presentation";
 import { absoluteTheDogsUrl } from "@/lib/live/thedogs-replay";
+import { isTheDogsLicensedUseApproved } from "@/lib/live/thedogs-access";
 
 export const dynamic = "force-dynamic";
 
@@ -350,8 +351,17 @@ export default async function DogProfilePage({
         </div>
         <div className="divide-y divide-white/[0.06] lg:hidden">
           {recentForm.map((entry) => (
-            <details key={entry.id} className="group">
-              <summary className="grid min-h-[64px] cursor-pointer list-none grid-cols-[minmax(72px,1fr)_36px_52px_58px_20px] items-center gap-1.5 px-4 py-2 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[hsl(var(--primary-bright))] [&::-webkit-details-marker]:hidden">
+            <div
+              key={entry.id}
+              className="giq-recent-form-row-interactive relative grid min-h-[68px] grid-cols-[minmax(72px,1fr)_36px_52px_58px_76px] items-center gap-1.5 px-4 py-2"
+            >
+              {entry.raceHref && (
+                <Link
+                  href={entry.raceHref}
+                  className="giq-recent-form-row-hit-area absolute inset-0"
+                  aria-label={`View full race at ${entry.trackName} on ${formatFormDate(entry.date)}`}
+                />
+              )}
                 <span className="min-w-0">
                   <span className="block text-[12px] tabular-nums text-[hsl(var(--muted-foreground))]">
                     {formatFormDate(entry.date)}
@@ -371,47 +381,25 @@ export default async function DogProfilePage({
                     {formatSeconds(entry.time)}
                   </span>
                 </FormSummaryValue>
-                <ChevronDown
-                  className="h-5 w-5 text-[hsl(var(--muted-foreground))] transition-transform group-open:rotate-180"
-                  aria-hidden="true"
-                />
-              </summary>
-              <div className="mx-3 mb-3 rounded-[10px] border border-white/[0.07] bg-white/[0.025] p-4">
-                <dl className="grid grid-cols-4 gap-3 border-b border-white/[0.06] pb-4">
-                  <FormDetail label="Dist" value={formatDistance(entry.distance)} />
-                  <FormDetail label="Grade" value={entry.grade ?? "—"} />
-                  <FormDetail label="Wgt" value={formatWeight(entry.weight)} />
-                  <FormDetail label="1st Sec" value={formatNumber(entry.firstSectional)} />
-                </dl>
-                <dl className="mt-4 grid grid-cols-[minmax(52px,0.7fr)_minmax(0,1.7fr)_80px] items-center gap-3">
-                  <FormDetail label="Mgn" value={formatNumber(entry.margin)} />
-                  <FormDetail label="Winner / 2nd" value={entry.winnerDogName ?? "—"} />
-                  <div className="grid min-w-[80px] justify-items-center gap-2">
-                    <dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--subtle-foreground))]">
-                      Video
-                    </dt>
-                    <ReplayLink href={entry.replayHref} />
-                  </div>
-                </dl>
-              </div>
-            </details>
+              <RaceActions raceHref={entry.raceHref} replayHref={entry.replayHref} compact />
+            </div>
           ))}
         </div>
         <div className="hidden lg:block">
           <table className="w-full table-fixed">
             <colgroup>
               <col style={{ width: "9%" }} />
-              <col style={{ width: "14%" }} />
+              <col style={{ width: "13%" }} />
               <col style={{ width: "6%" }} />
               <col style={{ width: "5%" }} />
-              <col style={{ width: "8%" }} />
-              <col style={{ width: "8%" }} />
               <col style={{ width: "7%" }} />
               <col style={{ width: "7%" }} />
-              <col style={{ width: "8%" }} />
               <col style={{ width: "7%" }} />
-              <col style={{ width: "15%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "7%" }} />
               <col style={{ width: "6%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "12%" }} />
             </colgroup>
             <thead>
               <tr className="giq-table-head">
@@ -427,7 +415,7 @@ export default async function DogProfilePage({
                   "1st Sec",
                   "Mgn",
                   "Winner / 2nd",
-                  "Video",
+                  "Race",
                 ].map((label, index) => (
                   <th
                     key={label}
@@ -440,8 +428,16 @@ export default async function DogProfilePage({
             </thead>
             <tbody>
               {recentForm.map((entry) => (
-                <tr key={entry.id} className="giq-table-row h-[56px]">
+                <tr key={entry.id} className="giq-table-row giq-recent-form-row-interactive relative h-[56px]">
                   <td className="px-2 py-3 text-[12px] tabular-nums text-[hsl(var(--muted-foreground))]">
+                    {entry.raceHref && (
+                      <Link
+                        href={entry.raceHref}
+                        className="giq-recent-form-row-hit-area absolute inset-0"
+                        aria-label={`View full race at ${entry.trackName} on ${formatFormDate(entry.date)}`}
+                        tabIndex={-1}
+                      />
+                    )}
                     {formatFormDate(entry.date)}
                   </td>
                   <td className="truncate px-2 py-3 text-[13px] font-medium text-[hsl(var(--foreground))]">
@@ -475,7 +471,7 @@ export default async function DogProfilePage({
                     {entry.winnerDogName ?? "—"}
                   </td>
                   <td className="px-2 py-2 text-center">
-                    <ReplayLink href={entry.replayHref} compact />
+                    <RaceActions raceHref={entry.raceHref} replayHref={entry.replayHref} compact />
                   </td>
                 </tr>
               ))}
@@ -527,6 +523,7 @@ type RecentFormRow = {
   firstSectional: number | null;
   margin: number | null;
   winnerDogName: string | null;
+  raceHref: string | null;
   replayHref: string | null;
 };
 
@@ -539,7 +536,13 @@ function buildRecentForm(dog: DogDetail): RecentFormRow[] {
           (!entry.distance || candidate.distance === entry.distance) &&
           (!entry.boxNumber || candidate.boxNumber === entry.boxNumber),
       );
-      const runner = findMatchingRunner(dog, entry.date, null, entry.distance);
+      const runner = findMatchingRunner(
+        dog,
+        entry.date,
+        formEntry?.raceId ?? null,
+        entry.distance,
+      );
+      const raceId = runner?.race.id ?? formEntry?.raceId ?? null;
 
       return {
         id: entry.id,
@@ -563,6 +566,7 @@ function buildRecentForm(dog: DogDetail): RecentFormRow[] {
         firstSectional: entry.firstSectional ?? runner?.result?.splitTime ?? null,
         margin: entry.margin ?? runner?.result?.margin ?? null,
         winnerDogName: entry.winnerDogName,
+        raceHref: raceId ? `/races/${raceId}` : null,
         replayHref:
           (runner?.race.replayUrl ? `/races/${runner.race.id}` : null) ??
           profileReplayHref(entry),
@@ -585,6 +589,7 @@ function buildRecentForm(dog: DogDetail): RecentFormRow[] {
       firstSectional: runner?.result?.splitTime ?? null,
       margin: runner?.result?.margin ?? null,
       winnerDogName: null,
+      raceHref: entry.raceId ? `/races/${entry.raceId}` : null,
       replayHref: runner?.race.replayUrl ? `/races/${runner.race.id}` : null,
     };
   });
@@ -605,7 +610,11 @@ function findMatchingRunner(
 }
 
 function profileReplayHref(entry: DogDetail["profileForms"][number]) {
-  if (!entry.hasVideo || entry.sourceProvider.toLowerCase() !== "thedogs") return null;
+  if (
+    !isTheDogsLicensedUseApproved() ||
+    !entry.hasVideo ||
+    entry.sourceProvider.toLowerCase() !== "thedogs"
+  ) return null;
   try {
     return absoluteTheDogsUrl(entry.raceUrl);
   } catch {
@@ -660,19 +669,6 @@ function FormSummaryValue({ label, children }: { label: string; children: ReactN
   );
 }
 
-function FormDetail({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--subtle-foreground))]">
-        {label}
-      </dt>
-      <dd className="mt-1 break-words text-[13px] tabular-nums text-[hsl(var(--muted-foreground))]">
-        {value}
-      </dd>
-    </div>
-  );
-}
-
 function BoxPlate({ boxNumber }: { boxNumber: number | null }) {
   return boxNumber == null ? (
     <span className="text-[13px] text-[hsl(var(--muted-foreground))]">—</span>
@@ -680,6 +676,27 @@ function BoxPlate({ boxNumber }: { boxNumber: number | null }) {
     <span className="giq-box-plate" style={getBoxColourStyle(boxNumber)}>
       {boxNumber}
     </span>
+  );
+}
+
+function RaceActions({
+  raceHref,
+  replayHref,
+  compact = false,
+}: {
+  raceHref: string | null;
+  replayHref: string | null;
+  compact?: boolean;
+}) {
+  if (!raceHref) return <ReplayLink href={replayHref} compact={compact} />;
+  return (
+    <Link
+      href={raceHref}
+      className="giq-recent-form-row-actions inline-flex min-h-9 items-center justify-center gap-0.5 rounded-md px-1.5 text-[10px] font-bold text-[hsl(var(--primary-bright))] hover:bg-[hsl(var(--primary)/0.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-bright))]"
+    >
+      View race
+      <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+    </Link>
   );
 }
 

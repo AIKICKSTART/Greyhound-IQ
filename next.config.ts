@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   experimental: {
+    cpus: 4,
     authInterrupts: true,
     serverActions: {
       bodySizeLimit: "1mb",
@@ -58,7 +59,7 @@ const nextConfig: NextConfig = {
           {
             key: "Permissions-Policy",
             value:
-              "camera=(self), microphone=(self), display-capture=(self), geolocation=()",
+              "camera=(self), microphone=(self), display-capture=(self), geolocation=(self)",
           },
           // Content-Security-Policy is set per-request in src/proxy.ts so
           // script-src can carry a fresh nonce. Keep it out of here to avoid a

@@ -2565,6 +2565,7 @@ export async function getTrackRecords(limit = 12): Promise<TrackRecordRow[]> {
 // === BREEDING (computed from sire relations + results) ===
 
 export interface SireLeaderRow {
+  sireId: string;
   name: string;
   progeny: number;
   winners: number;
@@ -2580,9 +2581,9 @@ export async function getSireLeaderboard(limit = 10): Promise<SireLeaderRow[]> {
     safeQuery(
       () =>
         prisma.$queryRaw<
-          { name: string; progeny: number; winners: number; earnings: number }[]
+          { sire_id: string; name: string; progeny: number; winners: number; earnings: number }[]
         >`
-          SELECT name, progeny, winners, earnings
+          SELECT sire_id, name, progeny, winners, earnings
           FROM giq_sire_leaderboard
           ORDER BY winners DESC, progeny DESC
           LIMIT ${limit}
@@ -2591,6 +2592,7 @@ export async function getSireLeaderboard(limit = 10): Promise<SireLeaderRow[]> {
     )
   );
   return rows.map((r) => ({
+    sireId: r.sire_id,
     name: r.name,
     progeny: r.progeny,
     winners: r.winners,
@@ -2600,6 +2602,494 @@ export async function getSireLeaderboard(limit = 10): Promise<SireLeaderRow[]> {
         : null,
     earnings: r.earnings,
   }));
+}
+
+export interface BreedingStats {
+  totalDogs: number;
+  breedingDogs: number;
+  pedigreedDogs: number;
+  studbookVolumes: number;
+}
+
+export async function getBreedingStats(): Promise<BreedingStats> {
+  // Counts over the Dog table (indexed on sourceProvider / sireId / damId).
+  // Cached 5min — these move only when the pedigree loader or live sync runs.
+  const [row] = await cached("breeding:stats", 5 * 60_000, () =>
+    safeQuery(
+      () =>
+        prisma.$queryRaw<
+          { total: bigint; breeding: bigint; pedigreed: bigint }[]
+        >`
+          SELECT
+            COUNT(*) AS total,
+            COUNT(*) FILTER (WHERE "sourceProvider" = 'galtd') AS breeding,
+            COUNT(*) FILTER (WHERE "sireId" IS NOT NULL OR "damId" IS NOT NULL) AS pedigreed
+          FROM "Dog"
+        `,
+      [{ total: BigInt(0), breeding: BigInt(0), pedigreed: BigInt(0) }]
+    )
+  );
+  return {
+    totalDogs: Number(row?.total ?? 0),
+    breedingDogs: Number(row?.breeding ?? 0),
+    pedigreedDogs: Number(row?.pedigreed ?? 0),
+    studbookVolumes: 8,
+  };
+}
+
+// === BREEDING TOOLS: sire detail, litters, cross ===
+// All figures come from the Dog table's stored career aggregates (careerStarts /
+// careerWins / prizeMoney), sourced from the racing record. Progeny link through
+// the sireId / damId FKs (both indexed). Nothing here is predicted or inferred:
+// a progeny with no racing record contributes to the count but never fabricates
+// a win or an earning, and metrics with no underlying data return null.
+
+const PROGENY_TOP_LIMIT = 10;
+const CROSS_PROGENY_LIMIT = 50;
+const LITTER_LIMIT = 20;
+
+type ParentRole = "sire" | "dam";
+
+export interface ProgenyRecord {
+  count: number;
+  // Progeny that actually carry a racing record (careerStarts is set). Winners
+  // and earnings are only meaningful across these; the rest are studbook-only.
+  withRacingRecord: number;
+  winners: number | null;
+  totalEarnings: number | null;
+  avgCareerWins: number | null;
+}
+
+export interface ProgenySummary {
+  id: string;
+  name: string;
+  sex: string | null;
+  colour: string | null;
+  whelpYear: number | null;
+  careerStarts: number | null;
+  careerWins: number | null;
+  prizeMoney: number | null;
+}
+
+const PROGENY_SELECT = {
+  id: true,
+  name: true,
+  sex: true,
+  colour: true,
+  whelpDate: true,
+  careerStarts: true,
+  careerWins: true,
+  prizeMoney: true,
+} as const satisfies Prisma.DogSelect;
+
+type ProgenyRow = Prisma.DogGetPayload<{ select: typeof PROGENY_SELECT }>;
+
+function toProgenySummary(row: ProgenyRow): ProgenySummary {
+  return {
+    id: row.id,
+    name: row.name,
+    sex: row.sex,
+    colour: row.colour,
+    whelpYear: row.whelpDate ? row.whelpDate.getUTCFullYear() : null,
+    careerStarts: row.careerStarts,
+    careerWins: row.careerWins,
+    prizeMoney: row.prizeMoney,
+  };
+}
+
+async function progenyRecord(
+  parentId: string,
+  role: ParentRole,
+): Promise<ProgenyRecord> {
+  const where: Prisma.DogWhereInput =
+    role === "sire" ? { sireId: parentId } : { damId: parentId };
+  const [agg, withRecord, winners] = await Promise.all([
+    safeQuery(
+      () =>
+        prisma.dog.aggregate({
+          where,
+          _count: { _all: true },
+          _sum: { prizeMoney: true },
+          _avg: { careerWins: true },
+        }),
+      null,
+    ),
+    safeQuery(
+      () => prisma.dog.count({ where: { ...where, careerStarts: { not: null } } }),
+      0,
+    ),
+    safeQuery(
+      () => prisma.dog.count({ where: { ...where, careerWins: { gt: 0 } } }),
+      0,
+    ),
+  ]);
+  return {
+    count: agg?._count._all ?? 0,
+    withRacingRecord: withRecord,
+    winners: withRecord > 0 ? winners : null,
+    totalEarnings: withRecord > 0 ? agg?._sum.prizeMoney ?? null : null,
+    avgCareerWins: agg?._avg.careerWins ?? null,
+  };
+}
+
+async function topProgeny(
+  parentId: string,
+  role: ParentRole,
+  limit: number,
+): Promise<ProgenySummary[]> {
+  const where: Prisma.DogWhereInput =
+    role === "sire" ? { sireId: parentId } : { damId: parentId };
+  const rows = await safeQuery(
+    () =>
+      prisma.dog.findMany({
+        where: { ...where, prizeMoney: { not: null } },
+        orderBy: { prizeMoney: "desc" },
+        take: limit,
+        select: PROGENY_SELECT,
+      }),
+    [],
+  );
+  return rows.map(toProgenySummary);
+}
+
+export interface SireStats {
+  dog: {
+    id: string;
+    name: string;
+    sex: string | null;
+    colour: string | null;
+    whelpYear: number | null;
+    careerStarts: number | null;
+    careerWins: number | null;
+    prizeMoney: number | null;
+  };
+  progeny: ProgenyRecord;
+  topProgeny: ProgenySummary[];
+}
+
+// Per-sire detail: the sire's own record plus an aggregate over its progeny.
+export const getSireStats = cache(
+  async (dogId: string): Promise<SireStats | null> => {
+    const dog = await safeQuery(
+      () => prisma.dog.findUnique({ where: { id: dogId }, select: PROGENY_SELECT }),
+      null,
+    );
+    if (!dog) return null;
+    const [progeny, top] = await Promise.all([
+      progenyRecord(dogId, "sire"),
+      topProgeny(dogId, "sire", PROGENY_TOP_LIMIT),
+    ]);
+    return {
+      dog: {
+        id: dog.id,
+        name: dog.name,
+        sex: dog.sex,
+        colour: dog.colour,
+        whelpYear: dog.whelpDate ? dog.whelpDate.getUTCFullYear() : null,
+        careerStarts: dog.careerStarts,
+        careerWins: dog.careerWins,
+        prizeMoney: dog.prizeMoney,
+      },
+      progeny,
+      topProgeny: top,
+    };
+  },
+);
+
+// Per-dam detail: the dam's own record plus an aggregate over its progeny.
+// Mirrors getSireStats with the dam FK so dam names stop dead-ending at /dogs.
+export const getDamStats = cache(
+  async (dogId: string): Promise<SireStats | null> => {
+    const dog = await safeQuery(
+      () => prisma.dog.findUnique({ where: { id: dogId }, select: PROGENY_SELECT }),
+      null,
+    );
+    if (!dog) return null;
+    const [progeny, top] = await Promise.all([
+      progenyRecord(dogId, "dam"),
+      topProgeny(dogId, "dam", PROGENY_TOP_LIMIT),
+    ]);
+    return {
+      dog: {
+        id: dog.id,
+        name: dog.name,
+        sex: dog.sex,
+        colour: dog.colour,
+        whelpYear: dog.whelpDate ? dog.whelpDate.getUTCFullYear() : null,
+        careerStarts: dog.careerStarts,
+        careerWins: dog.careerWins,
+        prizeMoney: dog.prizeMoney,
+      },
+      progeny,
+      topProgeny: top,
+    };
+  },
+);
+
+export interface ParentHeader {
+  id: string;
+  name: string;
+  sex: string | null;
+  colour: string | null;
+  whelpYear: number | null;
+}
+
+export interface CrossRecord {
+  sire: ParentHeader;
+  dam: ParentHeader;
+  progeny: ProgenySummary[];
+  sireProgeny: ProgenyRecord;
+  damProgeny: ProgenyRecord;
+}
+
+const PARENT_HEADER_SELECT = {
+  id: true,
+  name: true,
+  sex: true,
+  colour: true,
+  whelpDate: true,
+} as const satisfies Prisma.DogSelect;
+
+// Historical record of a sire x dam pairing — NOT a prediction. Returns the
+// progeny that pairing actually produced, plus each parent's overall progeny
+// record for context. No genetics or trait modelling.
+export const getCrossRecord = cache(
+  async (sireId: string, damId: string): Promise<CrossRecord | null> => {
+    const [sire, dam] = await Promise.all([
+      safeQuery(
+        () =>
+          prisma.dog.findUnique({ where: { id: sireId }, select: PARENT_HEADER_SELECT }),
+        null,
+      ),
+      safeQuery(
+        () =>
+          prisma.dog.findUnique({ where: { id: damId }, select: PARENT_HEADER_SELECT }),
+        null,
+      ),
+    ]);
+    if (!sire || !dam) return null;
+    const [pairProgeny, sireProgeny, damProgeny] = await Promise.all([
+      safeQuery(
+        () =>
+          prisma.dog.findMany({
+            where: { sireId, damId },
+            orderBy: [{ prizeMoney: "desc" }, { name: "asc" }],
+            take: CROSS_PROGENY_LIMIT,
+            select: PROGENY_SELECT,
+          }),
+        [],
+      ),
+      progenyRecord(sireId, "sire"),
+      progenyRecord(damId, "dam"),
+    ]);
+    const toHeader = (
+      row: Prisma.DogGetPayload<{ select: typeof PARENT_HEADER_SELECT }>,
+    ): ParentHeader => ({
+      id: row.id,
+      name: row.name,
+      sex: row.sex,
+      colour: row.colour,
+      whelpYear: row.whelpDate ? row.whelpDate.getUTCFullYear() : null,
+    });
+    return {
+      sire: toHeader(sire),
+      dam: toHeader(dam),
+      progeny: pairProgeny.map(toProgenySummary),
+      sireProgeny,
+      damProgeny,
+    };
+  },
+);
+
+export interface DamPartner {
+  id: string;
+  name: string;
+  progeny: number;
+  winners: number;
+}
+
+// Dams this sire has already produced recorded progeny with — real historical
+// partners, ranked by litter size then winners. Powers the "top dam picks"
+// suggestions once a sire is chosen. NOT a prediction: only pairings that exist
+// in the current snapshot. Mirror function (getSirePartnersForDam) narrows the
+// other direction when a dam is picked first.
+async function getParentPartners(
+  parentId: string,
+  parentColumn: "sireId" | "damId",
+  otherColumn: "sireId" | "damId",
+  limit: number,
+): Promise<DamPartner[]> {
+  const parentCol = Prisma.raw(`"${parentColumn}"`);
+  const otherCol = Prisma.raw(`"${otherColumn}"`);
+  const rows = await safeQuery(
+    () =>
+      prisma.$queryRaw<{ id: string; name: string; progeny: number; winners: number }[]>(Prisma.sql`
+        SELECT other.id AS id, other.name AS name,
+          COUNT(*)::int AS progeny,
+          COUNT(*) FILTER (WHERE d."careerWins" > 0)::int AS winners
+        FROM "Dog" d
+        JOIN "Dog" other ON other.id = d.${otherCol}
+        WHERE d.${parentCol} = ${parentId} AND d.${otherCol} IS NOT NULL
+        GROUP BY other.id, other.name
+        ORDER BY progeny DESC, winners DESC, other.name ASC
+        LIMIT ${limit}
+      `),
+    [],
+  );
+  return rows;
+}
+
+export const getSireDamPartners = cache(
+  (sireId: string, limit = 8): Promise<DamPartner[]> =>
+    getParentPartners(sireId, "sireId", "damId", limit),
+);
+
+export const getDamSirePartners = cache(
+  (damId: string, limit = 8): Promise<DamPartner[]> =>
+    getParentPartners(damId, "damId", "sireId", limit),
+);
+
+export interface LitterCross {
+  sireId: string;
+  damId: string;
+  sireName: string;
+  damName: string;
+  progeny: number;
+  winners: number;
+  earnings: number;
+  // Nicking signal (all from Dog aggregates). strike = this cross's winners rate;
+  // earningsPerProgeny normalises so big litters don't dominate on totals alone;
+  // the baselines are each parent's OVERALL progeny winners rate (careerWins > 0
+  // over all mapped progeny) — same definition as `strike`, so they compare.
+  strike: number | null;
+  earningsPerProgeny: number;
+  sireBaselineStrike: number | null;
+  damBaselineStrike: number | null;
+  topPerformer: { id: string; name: string; prizeMoney: number | null } | null;
+}
+
+function round1(value: number | null): number | null {
+  return value === null ? null : parseFloat(value.toFixed(1));
+}
+
+// Progeny grouped by (sireId, damId) — i.e. actual litters/crosses. Only pairs
+// that produced 2+ recorded progeny count as a litter; ranked by progeny
+// winners. Winners = progeny with a recorded career win; earnings = summed
+// progeny prize money. Optional sireId narrows to one sire's crosses.
+export async function getLitters(
+  sireId?: string,
+  limit = LITTER_LIMIT,
+): Promise<LitterCross[]> {
+  const bounded = Math.min(Math.max(Math.trunc(limit), 1), 50);
+  return cached(`breeding:litters:${sireId ?? "all"}:${bounded}`, 5 * 60_000, () =>
+    loadLitters(sireId, bounded),
+  );
+}
+
+async function loadLitters(
+  sireId: string | undefined,
+  limit: number,
+): Promise<LitterCross[]> {
+  // Grouped aggregate over the Dog table (~261k rows). ponytail: full scan +
+  // hash aggregate is sub-second and cached 5min; revisit with a matview only
+  // if this ever shows up hot.
+  const sireFilter = sireId ? Prisma.sql`AND "sireId" = ${sireId}` : Prisma.empty;
+  const groups = await safeQuery(
+    () =>
+      prisma.$queryRaw<
+        { sireId: string; damId: string; progeny: number; winners: number; earnings: number }[]
+      >(Prisma.sql`
+        SELECT "sireId", "damId",
+          COUNT(*)::int AS progeny,
+          COUNT(*) FILTER (WHERE "careerWins" > 0)::int AS winners,
+          COALESCE(SUM("prizeMoney"), 0)::float AS earnings
+        FROM "Dog"
+        WHERE "sireId" IS NOT NULL AND "damId" IS NOT NULL ${sireFilter}
+        GROUP BY "sireId", "damId"
+        HAVING COUNT(*) > 1
+        ORDER BY winners DESC, progeny DESC, earnings DESC
+        LIMIT ${limit}
+      `),
+    [],
+  );
+  if (groups.length === 0) return [];
+
+  const parentIds = [...new Set(groups.flatMap((g) => [g.sireId, g.damId]))];
+  const sireIds = [...new Set(groups.map((g) => g.sireId))];
+  const damIds = [...new Set(groups.map((g) => g.damId))];
+  const pairTuples = Prisma.join(
+    groups.map((g) => Prisma.sql`(${g.sireId}, ${g.damId})`),
+  );
+  const [names, tops, sireBase, damBase] = await Promise.all([
+    safeQuery(
+      () =>
+        prisma.dog.findMany({
+          where: { id: { in: parentIds } },
+          select: { id: true, name: true },
+        }),
+      [],
+    ),
+    safeQuery(
+      () =>
+        prisma.$queryRaw<
+          { sireId: string; damId: string; id: string; name: string; prizeMoney: number | null }[]
+        >(Prisma.sql`
+          SELECT DISTINCT ON ("sireId", "damId")
+            "sireId", "damId", id, name, "prizeMoney"
+          FROM "Dog"
+          WHERE ("sireId", "damId") IN (${pairTuples})
+          ORDER BY "sireId", "damId", "prizeMoney" DESC NULLS LAST, name ASC
+        `),
+      [],
+    ),
+    // Each involved sire's OVERALL progeny winners rate (indexed scan on sireId,
+    // restricted to the few ranked sires). Baseline for the nicking comparison.
+    safeQuery(
+      () =>
+        prisma.$queryRaw<{ pid: string; prog: number; win: number }[]>(Prisma.sql`
+          SELECT "sireId" AS pid, COUNT(*)::int AS prog,
+            COUNT(*) FILTER (WHERE "careerWins" > 0)::int AS win
+          FROM "Dog" WHERE "sireId" IN (${Prisma.join(sireIds)}) GROUP BY "sireId"
+        `),
+      [],
+    ),
+    safeQuery(
+      () =>
+        prisma.$queryRaw<{ pid: string; prog: number; win: number }[]>(Prisma.sql`
+          SELECT "damId" AS pid, COUNT(*)::int AS prog,
+            COUNT(*) FILTER (WHERE "careerWins" > 0)::int AS win
+          FROM "Dog" WHERE "damId" IN (${Prisma.join(damIds)}) GROUP BY "damId"
+        `),
+      [],
+    ),
+  ]);
+
+  const nameById = new Map(names.map((d) => [d.id, d.name]));
+  const topByPair = new Map(tops.map((t) => [`${t.sireId}|${t.damId}`, t]));
+  const baselineStrike = (rows: { pid: string; prog: number; win: number }[]) =>
+    new Map(rows.map((r) => [r.pid, r.prog > 0 ? (r.win / r.prog) * 100 : null]));
+  const sireStrike = baselineStrike(sireBase);
+  const damStrike = baselineStrike(damBase);
+
+  return groups.map((g) => {
+    const top = topByPair.get(`${g.sireId}|${g.damId}`) ?? null;
+    return {
+      sireId: g.sireId,
+      damId: g.damId,
+      sireName: nameById.get(g.sireId) ?? "Unknown",
+      damName: nameById.get(g.damId) ?? "Unknown",
+      progeny: g.progeny,
+      winners: g.winners,
+      earnings: g.earnings,
+      strike: g.progeny > 0 ? round1((g.winners / g.progeny) * 100) : null,
+      earningsPerProgeny: g.progeny > 0 ? g.earnings / g.progeny : 0,
+      sireBaselineStrike: round1(sireStrike.get(g.sireId) ?? null),
+      damBaselineStrike: round1(damStrike.get(g.damId) ?? null),
+      topPerformer: top
+        ? { id: top.id, name: top.name, prizeMoney: top.prizeMoney }
+        : null,
+    };
+  });
 }
 
 export async function getTrackByName(name: string) {

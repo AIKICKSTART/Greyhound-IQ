@@ -1,6 +1,5 @@
 import { DogSearch } from "@/components/dog-search";
 import { PageHero } from "@/components/page-hero";
-import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
 import { getDogSearchTallies } from "@/lib/queries";
 import { directorySearchQuerySchema } from "@/lib/query-validation";
 import { formatRaceMetric } from "@/lib/race-metric";
@@ -34,7 +33,7 @@ export default async function DogsPage({
   ];
 
   return (
-    <div>
+    <div className="giq-dogs-page">
       <PageHero
         image="/images/hero-breaking-from-boxes.webp"
         badge="DOG SEARCH"
@@ -50,7 +49,6 @@ export default async function DogsPage({
         subtitle="Search the national database by name, ear brand, or trainer. Get full career form, pedigree, and stats."
       />
       <section className="mx-auto max-w-3xl px-6 py-16">
-        <RacingDataDisclosure className="mb-8" />
         <DogSearch initialQuery={initialQuery} />
         <div className="mt-8 grid grid-cols-3 gap-3">
           {stats.map((stat) => (

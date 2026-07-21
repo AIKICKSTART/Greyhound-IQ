@@ -2195,6 +2195,19 @@ h2,
   line-height: 0.98;
 }
 
+.giq-title-line {
+  display: block;
+  white-space: nowrap;
+}
+
+@media (min-width: 961px) {
+  .giq-home-page .giq-page-hero-title {
+    overflow-wrap: normal;
+    word-break: normal;
+    font-size: clamp(3.5rem, 3.65vw, 4.25rem);
+  }
+}
+
 @media (max-width: 640px) {
   .giq-page-title {
     padding-inline-start: 0.72rem;
@@ -4184,62 +4197,32 @@ h2,
 }
 
 .giq-racing-data-disclosure {
-  display: grid;
-  gap: 12px;
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
   border: 1px solid hsl(var(--metal-silver) / 0.16);
-  border-radius: 12px;
+  border-radius: 10px;
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.035), transparent),
     hsl(var(--surface-1) / 0.72);
-  padding: 14px 16px;
-}
-
-.giq-racing-data-disclosure-title,
-.giq-racing-data-disclosure-state {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.giq-racing-data-disclosure-title {
-  color: hsl(var(--secondary-light));
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.giq-racing-data-disclosure dl {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.giq-racing-data-disclosure dl > div {
-  min-width: 0;
-}
-
-.giq-racing-data-disclosure dt {
+  padding: 8px 12px;
   color: hsl(var(--subtle-foreground));
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 12px;
 }
 
-.giq-racing-data-disclosure dd {
-  margin-top: 4px;
-  overflow-wrap: anywhere;
+.giq-racing-data-disclosure time,
+.giq-racing-data-disclosure strong {
   color: hsl(var(--foreground));
-  font-size: 12px;
   font-weight: 700;
-  line-height: 1.45;
 }
 
 .giq-racing-data-disclosure-state {
+  margin-left: auto;
   color: hsl(144 66% 66%);
   font-size: 11px;
-  line-height: 1.45;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .giq-racing-data-disclosure[data-racing-data-state="stale"]
@@ -4252,9 +4235,13 @@ h2,
   color: hsl(0 84% 76%);
 }
 
-@media (max-width: 700px) {
-  .giq-racing-data-disclosure dl {
-    grid-template-columns: 1fr;
+@media (max-width: 640px) {
+  .giq-racing-data-disclosure {
+    flex-wrap: wrap;
+  }
+
+  .giq-racing-data-disclosure-state {
+    margin-left: 0;
   }
 }
 
@@ -4550,6 +4537,12 @@ h2,
   font-weight: 900;
   text-decoration: none;
   transition: border-color var(--duration-base) var(--ease), background-color var(--duration-base) var(--ease), color var(--duration-base) var(--ease), transform var(--duration-base) var(--ease);
+}
+
+.giq-filter-group-state .giq-filter-chip {
+  flex: 0 0 auto;
+  padding-inline: 12px;
+  white-space: nowrap;
 }
 
 .giq-filter-chip:hover,
@@ -5882,6 +5875,161 @@ h2,
   overflow: visible;
 }
 
+/* --- Vet Finder control card + fields (ported from the prototype's
+   care-network header, restyled onto brand tokens) --- */
+.giq-vet-search-panel {
+  box-shadow: 0 22px 48px hsl(0 0% 0% / 0.28);
+}
+
+.giq-vet-map-shell {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.giq-vet-map-shell > .giq-vet-map-detail {
+  position: absolute;
+  inset: auto 16px 16px auto;
+  z-index: 30;
+  width: min(380px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.giq-vet-detail-header {
+  position: sticky;
+  top: -20px;
+  z-index: 2;
+  margin: -20px -20px 0;
+  padding: 20px;
+  background: hsl(var(--surface-2) / 0.96);
+  backdrop-filter: blur(18px);
+}
+
+@media (max-width: 640px) {
+  .giq-vet-map-shell > .giq-vet-map-detail {
+    inset: auto 8px 8px;
+    width: auto;
+    max-height: 60%;
+  }
+}
+
+.giq-dogs-page .giq-page-hero-media > img {
+  object-fit: cover;
+  object-position: center;
+}
+
+.giq-recent-form-row-interactive {
+  cursor: pointer;
+}
+
+.giq-recent-form-row-hit-area:focus-visible {
+  outline: 2px solid hsl(var(--primary-bright));
+  outline-offset: -2px;
+}
+
+.giq-recent-form-row-actions {
+  position: relative;
+  z-index: 2;
+}
+
+.giq-vet-field {
+  color: hsl(var(--foreground));
+  background: linear-gradient(180deg, hsl(var(--surface-2) / 0.72), hsl(var(--surface-1) / 0.82));
+  border: 1px solid hsl(var(--metal-silver) / 0.18);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.08);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.giq-vet-field:hover {
+  border-color: hsl(var(--primary-light) / 0.4);
+}
+
+.giq-vet-field:focus-within,
+.giq-vet-field:focus-visible {
+  border-color: hsl(var(--primary-bright) / 0.85);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.08),
+    0 0 0 2px hsl(var(--primary-bright) / 0.35);
+  outline: none;
+}
+
+.giq-vet-field[aria-pressed="true"] {
+  border-color: hsl(var(--secondary-light) / 0.7);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.08),
+    0 0 20px -8px hsl(var(--secondary) / 0.7);
+}
+
+.giq-vet-field--accent {
+  color: hsl(var(--primary-light));
+  border-color: hsl(var(--primary) / 0.55);
+}
+
+.giq-vet-field--accent:hover {
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--primary-bright) / 0.85);
+}
+
+.giq-vet-field option {
+  color: hsl(var(--foreground));
+  background: hsl(var(--surface-1));
+}
+
+/* Floating map controls (basemap pills, 3D toggle, 3D badge) */
+.giq-map-chrome {
+  color: hsl(var(--foreground));
+  background: linear-gradient(135deg, hsl(var(--surface-1) / 0.92), hsl(272 40% 12% / 0.9));
+  border: 1px solid hsl(var(--primary) / 0.5);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px hsl(0 0% 0% / 0.36);
+  backdrop-filter: blur(10px);
+}
+
+.giq-map-pill {
+  color: hsl(var(--subtle-foreground));
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.giq-map-pill:hover,
+.giq-map-pill[aria-pressed="true"] {
+  color: #fff;
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.9), hsl(280 60% 26% / 0.95));
+}
+
+.giq-map-pill + .giq-map-pill {
+  border-left: 1px solid hsl(var(--primary) / 0.35);
+}
+
+.giq-map-pill:focus-visible,
+.giq-map-3d:focus-visible {
+  outline: 2px solid hsl(var(--primary-bright));
+  outline-offset: -2px;
+}
+
+.giq-map-3d {
+  color: hsl(var(--primary-light));
+  transition: color 150ms ease, background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.giq-map-3d:hover,
+.giq-map-3d[aria-pressed="true"] {
+  color: #fff;
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.95), hsl(280 62% 24% / 0.98));
+  border-color: hsl(var(--primary-bright));
+}
+
+.giq-map-3d[aria-pressed="true"] {
+  box-shadow:
+    0 0 0 1px hsl(var(--primary-bright) / 0.6),
+    0 10px 26px -6px hsl(var(--primary) / 0.6);
+}
+
 .giq-panel-hover {
   transition: var(--transition-control);
 }
@@ -7071,4 +7219,37 @@ body:has([data-admin-shell]) #main-content {
   [data-onboarding-active="true"] {
     transition: none;
   }
+}
+
+/* Vet Finder — brand the MapLibre popup to match the dark racing basemap.
+   Higher specificity than maplibre-gl.css defaults so import order is moot. */
+.giq-vet-popup .maplibregl-popup-content {
+  background: hsl(var(--surface-1));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 12px 32px hsl(0 0% 0% / 0.45);
+}
+.giq-vet-popup .maplibregl-popup-content strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.giq-vet-popup .maplibregl-popup-content span {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--muted-foreground));
+}
+.giq-vet-popup .maplibregl-popup-tip {
+  border-top-color: hsl(var(--surface-1));
+  border-bottom-color: hsl(var(--surface-1));
+}
+.giq-vet-popup .maplibregl-popup-close-button {
+  color: hsl(var(--muted-foreground));
+  font-size: 16px;
+  padding-right: 4px;
 }

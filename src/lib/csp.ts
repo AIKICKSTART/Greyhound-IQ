@@ -24,6 +24,9 @@ export function contentSecurityPolicy(nonce: string) {
   const join = (...parts: Array<string | undefined>) =>
     parts.filter(Boolean).join(" ");
 
+  const mapHosts =
+    "https://tiles.openfreemap.org https://server.arcgisonline.com https://tile.openstreetmap.org https://tiles.mapterhorn.com";
+
   // 'strict-dynamic' lets nonce-trusted Next bootstrap scripts load the rest of
   // the bundle graph without listing every hashed chunk. 'unsafe-eval' is only
   // needed in dev, where React uses eval for readable server error stacks.
@@ -38,9 +41,9 @@ export function contentSecurityPolicy(nonce: string) {
     "default-src 'self'",
     scriptSrc,
     "style-src 'self' 'unsafe-inline'",
-    join("img-src 'self' data: blob:", supa, gcs),
+    join("img-src 'self' data: blob:", supa, gcs, mapHosts),
     join("media-src 'self' blob:", supa, gcs),
-    join("connect-src 'self'", supa, supaWs, gcs, lk, devWs),
+    join("connect-src 'self'", supa, supaWs, gcs, lk, devWs, mapHosts),
     join("frame-src 'self'", replayFrameOrigins),
     "worker-src 'self' blob:",
     "font-src 'self' data:",

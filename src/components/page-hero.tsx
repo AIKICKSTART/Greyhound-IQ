@@ -74,7 +74,6 @@ export function PageHero({
           />
           <div className="pointer-events-none absolute inset-0 rounded-2xl border border-white/[0.10]" />
           <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-[linear-gradient(180deg,hsl(0_0%_100%/0.12),transparent)]" />
-          <div className="pointer-events-none race-box-strip absolute inset-x-6 bottom-5 opacity-70" />
         </div>
       </div>
     </section>

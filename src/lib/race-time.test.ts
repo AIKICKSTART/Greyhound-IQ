@@ -3,6 +3,7 @@ import {
   formatRaceDateInput,
   formatRaceTime,
   normaliseRaceDateInput,
+  orderRaceDates,
   raceClockTimeWindow,
   raceDateTimeToUtc,
   raceDateWindow,
@@ -34,3 +35,17 @@ assert.equal(
 );
 
 assert.equal(normaliseRaceDateInput("2026-02-31"), null);
+
+assert.deepEqual(
+  orderRaceDates(
+    [
+      { date: "2026-07-18" },
+      { date: "2026-07-22" },
+      { date: "2026-07-19" },
+      { date: "2026-07-20" },
+      { date: "2026-07-21" },
+    ],
+    "2026-07-20",
+  ).map(({ date }) => date),
+  ["2026-07-20", "2026-07-21", "2026-07-22", "2026-07-19", "2026-07-18"],
+);

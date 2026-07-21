@@ -16,10 +16,11 @@ export function HomeHero({
       size={compact ? "default" : "tall"}
       title={
         <>
-          Australian greyhound racing,
-          <br />
-          <span className="giq-text-gold-glass">done</span>{" "}
-          <span className="giq-text-purple-glass">right.</span>
+          <span className="giq-title-line">Australian</span>
+          <span className="giq-title-line">Greyhound</span>
+          <span className="giq-title-line">Racing,</span>
+          <span className="giq-title-line giq-text-gold-glass">Done</span>
+          <span className="giq-title-line giq-text-purple-glass">Right.</span>
         </>
       }
       subtitle="Real-time race cards, full career form, breeding analytics, AI predictions, and a community for breeders and owners — all in one place. No ads. No clutter. No GBP pricing."

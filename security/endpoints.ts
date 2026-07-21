@@ -38,6 +38,7 @@ export type OpenApiEndpointAuthentication = {
 
 const PUBLIC_HTTP_ENDPOINTS = new Set([
   "POST /api/analytics/onboarding",
+  "GET /api/breeding/cross",
   "GET /api/dogs/search",
   "GET /api/forum/categories",
   "GET /api/forum/categories/[slug]/threads",

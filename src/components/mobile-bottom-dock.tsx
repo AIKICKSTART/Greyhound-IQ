@@ -21,6 +21,7 @@ import {
   Search,
   ShieldCheck,
   ShoppingBag,
+  Stethoscope,
   Trophy,
   User,
   Users,
@@ -62,6 +63,7 @@ const MENU_SECTIONS: Array<{ title: string; entries: MenuEntry[] }> = [
       { href: "/tracks", label: "Tracks", icon: Map },
       { href: "/dogs", label: "Dogs", icon: Dog },
       { href: "/breeding", label: "Breeding", icon: Dna },
+      { href: "/vets", label: "Vets", icon: Stethoscope },
     ],
   },
   {

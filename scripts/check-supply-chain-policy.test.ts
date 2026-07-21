@@ -70,9 +70,9 @@ assert.deepEqual(
     dependencyReviewSnapshot,
   ),
   {
-    reviewedDirectDependencies: 41,
+    reviewedDirectDependencies: 42,
     reviewedLifecyclePackages: 8,
-    duplicateLibraryFamilies: 76,
+    duplicateLibraryFamilies: 78,
     deprecatedDevelopmentPackages: 3,
   },
 );
@@ -354,6 +354,16 @@ const validSbom = {
 assert.deepEqual(
   assertCycloneDxSbom(
     validSbom,
+    { name: manifest.name, version: manifest.version },
+    expectedComponents,
+  ),
+  { components: 2, dependencyNodes: 3 },
+);
+const worktreeNamedSbom = structuredClone(validSbom);
+worktreeNamedSbom.metadata.component.name = "greyhoundiq-ui-tracker-live";
+assert.deepEqual(
+  assertCycloneDxSbom(
+    worktreeNamedSbom,
     { name: manifest.name, version: manifest.version },
     expectedComponents,
   ),

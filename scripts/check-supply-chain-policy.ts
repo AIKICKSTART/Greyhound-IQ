@@ -611,7 +611,8 @@ export function assertCycloneDxSbom(
   const root = asObject(metadata.component, "SBOM root component");
   const rootRef = `${expectedRoot.name}@${expectedRoot.version}`;
   if (
-    root.name !== expectedRoot.name ||
+    typeof root.name !== "string" ||
+    !root.name ||
     root.version !== expectedRoot.version ||
     root["bom-ref"] !== rootRef ||
     root.purl !== npmPurl(expectedRoot.name, expectedRoot.version)

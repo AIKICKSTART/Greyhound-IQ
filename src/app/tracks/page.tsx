@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { CalendarDays, Clock, MapPin, PlayCircle } from "lucide-react";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
-import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
 import {
   WebsiteMetric,
   WebsitePageHeader,
@@ -55,7 +54,7 @@ type DisplayTrack = {
 };
 
 const TRACK_BANNER = siteAssetUrl("/images/wentworth-track-banner-landscape.webp");
-const TRACK_STATES = ["NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"] as const;
+const TRACK_STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"] as const;
 
 export default async function TracksPage({ searchParams }: TracksPageProps) {
   const params = await searchParams;
@@ -98,10 +97,6 @@ export default async function TracksPage({ searchParams }: TracksPageProps) {
           </button>
         </form>
       </WebsitePageHeader>
-
-      <div className="mx-auto mt-6 max-w-6xl px-6">
-        <RacingDataDisclosure />
-      </div>
 
       {featuredTrack && (
         <WebsiteSection>

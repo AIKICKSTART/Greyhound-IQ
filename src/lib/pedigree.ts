@@ -8,6 +8,11 @@ export interface PedigreeNode {
   sex: string | null;
   colour: string | null;
   whelpYear: number | null;
+  // Real racing record where available. Missing values stay null (never 0) so
+  // the chart can omit them rather than imply an unraced dog scored nothing.
+  careerStarts: number | null;
+  careerWins: number | null;
+  prizeMoney: number | null;
   sire?: PedigreeNode;
   dam?: PedigreeNode;
 }
@@ -20,6 +25,9 @@ interface DogRow {
   whelpDate: Date | null;
   sireId: string | null;
   damId: string | null;
+  careerStarts: number | null;
+  careerWins: number | null;
+  prizeMoney: number | null;
 }
 
 const NODE_SELECT = {
@@ -30,6 +38,9 @@ const NODE_SELECT = {
   whelpDate: true,
   sireId: true,
   damId: true,
+  careerStarts: true,
+  careerWins: true,
+  prizeMoney: true,
 } as const;
 
 const MAX_PEDIGREE_GENERATIONS = 5;
@@ -37,32 +48,9 @@ const MAX_PEDIGREE_GENERATIONS = 5;
 const yearOf = (d: Date | null): number | null => (d ? d.getUTCFullYear() : null);
 
 /**
- * Existing dogs (thedogs / null-provider) carry at most immediate sire/dam. The deep
- * ancestry lives in the `galtd` studbook graph, keyed by name. Bridge to the galtd twin
- * by name (+ whelp year when known) so a shallow record inherits the deep pedigree.
- */
-async function galtdTwin(name: string, whelpDate: Date | null): Promise<DogRow | null> {
-  const year = yearOf(whelpDate);
-  const candidates = await prisma.dog.findMany({
-    where: {
-      sourceProvider: "galtd",
-      name: { equals: name, mode: "insensitive" },
-      OR: [{ sireId: { not: null } }, { damId: { not: null } }],
-    },
-    select: NODE_SELECT,
-    take: 8,
-  });
-  if (candidates.length === 0) return null;
-  if (year) {
-    const byYear = candidates.find((c) => yearOf(c.whelpDate) === year);
-    if (byYear) return byYear;
-  }
-  return candidates[0];
-}
-
-/**
- * Build a pedigree tree up to `generations` deep. Bridges the root into the galtd graph,
- * then loads ancestors breadth-first (one query per generation, not one per node).
+ * Build a pedigree tree up to `generations` deep from reviewed parent links.
+ * Name-based bridging is deliberately excluded because greyhound names are not
+ * unique; normalization must resolve source identities before this read path.
  */
 export const getDogPedigree = cache(
   async (rootId: string, generations = 5): Promise<PedigreeNode | null> => {
@@ -77,16 +65,9 @@ export const getDogPedigree = cache(
       const root = await prisma.dog.findUnique({ where: { id: rootId }, select: NODE_SELECT });
       if (!root) return null;
 
-      // Anchor into the deepest available graph. Prefer a linked galtd twin.
-      let anchor = root;
-      if (!root.sireId && !root.damId) {
-        const twin = await galtdTwin(root.name, root.whelpDate);
-        if (twin) anchor = twin;
-      }
-
-      const rootNode: PedigreeNode = toNode(anchor, root.name);
+      const rootNode: PedigreeNode = toNode(root);
       let frontier: { node: PedigreeNode; sireId: string | null; damId: string | null }[] = [
-        { node: rootNode, sireId: anchor.sireId, damId: anchor.damId },
+        { node: rootNode, sireId: root.sireId, damId: root.damId },
       ];
 
       for (let gen = 0; gen < boundedGenerations && frontier.length > 0; gen++) {
@@ -125,12 +106,15 @@ export const getDogPedigree = cache(
   }
 );
 
-function toNode(row: DogRow, displayName?: string): PedigreeNode {
+function toNode(row: DogRow): PedigreeNode {
   return {
     id: row.id,
-    name: displayName ?? row.name,
+    name: row.name,
     sex: row.sex,
     colour: row.colour,
     whelpYear: yearOf(row.whelpDate),
+    careerStarts: row.careerStarts,
+    careerWins: row.careerWins,
+    prizeMoney: row.prizeMoney,
   };
 }

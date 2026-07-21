@@ -14,6 +14,14 @@ on:
         options:
           - staging
           - prod
+      operation:
+        description: Deploy or emit a read-only scaling diagnostic
+        required: true
+        default: deploy
+        type: choice
+        options:
+          - deploy
+          - inspect
       search_disabled:
         description: Emergency disable new dog searches
         required: true
@@ -117,6 +125,7 @@ jobs:
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
       - name: Build image
+        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
         id: build
         shell: bash
         env:
@@ -158,7 +167,64 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
+      - name: Inspect Cloud Run scaling state
+        if: github.event_name == 'workflow_dispatch' && inputs.operation == 'inspect'
+        shell: bash
+        run: |
+          set -euo pipefail
+          env_name="${{ inputs.environment }}"
+          project_id="${{ secrets.GCP_PROJECT_ID }}"
+          service="greyhoundiq-web-$env_name"
+          service_json="$(
+            gcloud run services describe "$service" \
+              --region "$REGION" \
+              --project "$project_id" \
+              --format json
+          )"
+          jq -c '{
+            service: .metadata.name,
+            serviceMin: (.metadata.annotations["run.googleapis.com/minScale"] // "0"),
+            revisionMin: (.spec.template.metadata.annotations["autoscaling.knative.dev/minScale"] // "0"),
+            cpu: (.spec.template.spec.containers[0].resources.limits.cpu // "1"),
+            latestCreated: .status.latestCreatedRevisionName,
+            latestReady: .status.latestReadyRevisionName,
+            traffic: [.status.traffic[] | {revisionName, latestRevision, percent, tag, url}]
+          }' <<<"$service_json"
+          gcloud run revisions list \
+            --service "$service" \
+            --region "$REGION" \
+            --project "$project_id" \
+            --sort-by '~metadata.creationTimestamp' \
+            --limit 12 \
+            --format json |
+            jq -c '[.[] | {
+              revision: .metadata.name,
+              created: .metadata.creationTimestamp,
+              revisionMin: (.metadata.annotations["autoscaling.knative.dev/minScale"] // "0"),
+              cpu: (.spec.containers[0].resources.limits.cpu // "1"),
+              ready: ([.status.conditions[]? | select(.type == "Ready") | .status][0] // "Unknown")
+            }]'
+          while IFS= read -r regional_service; do
+            gcloud run services describe "$regional_service" \
+              --region "$REGION" \
+              --project "$project_id" \
+              --format json |
+              jq -c '{
+                service: .metadata.name,
+                serviceMin: (.metadata.annotations["run.googleapis.com/minScale"] // "0"),
+                revisionMin: (.spec.template.metadata.annotations["autoscaling.knative.dev/minScale"] // "0"),
+                cpu: (.spec.template.spec.containers[0].resources.limits.cpu // "1"),
+                latestReady: .status.latestReadyRevisionName
+              }'
+          done < <(
+            gcloud run services list \
+              --region "$REGION" \
+              --project "$project_id" \
+              --format 'value(metadata.name)'
+          )
+
       - name: Deploy Cloud Run candidates
+        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
         id: deploy
         shell: bash
         env:
@@ -556,6 +622,7 @@ jobs:
           echo "scanner_service=$scanner_service" >> "$GITHUB_OUTPUT"
 
       - name: Post-deploy smoke test
+        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
         shell: bash
         run: |
           set -euo pipefail
@@ -563,7 +630,7 @@ jobs:
           SMOKE_BASE_URL="${{ steps.deploy.outputs.candidate_url }}" npm run test:smoke
 
       - name: Stage 11 R2 live-ingest and deduplication gate
-        if: github.event_name == 'workflow_dispatch' && inputs.stage11_r2_cutover == 'true'
+        if: github.event_name == 'workflow_dispatch' && inputs.operation == 'deploy' && inputs.stage11_r2_cutover == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -587,7 +654,7 @@ jobs:
             --format "value(metadata.name)"
 
       - name: Post-deploy LiveKit connectivity check (staging only)
-        if: steps.build.outputs.env_name == 'staging'
+        if: (github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy') && steps.build.outputs.env_name == 'staging'
         shell: bash
         env:
           CANDIDATE_URL: ${{ steps.deploy.outputs.candidate_url }}
@@ -633,6 +700,7 @@ jobs:
           done
 
       - name: Promote tested revisions
+        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
         shell: bash
         run: |
           set -euo pipefail

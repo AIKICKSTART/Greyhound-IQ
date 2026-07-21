@@ -22,8 +22,8 @@ export default function VetsPage(): React.JSX.Element {
             <span className="gradient-text">Australia</span>
           </h1>
           <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-            212 veterinary clinics compiled from racing-industry directories and verified sources. Search by suburb,
-            service or distance, then get directions. Confirm details with the clinic before visiting.
+            Search 212 greyhound-friendly veterinary clinics by suburb, service or distance, then get directions.
+            Confirm details with the clinic before visiting.
           </p>
         </div>
       </header>

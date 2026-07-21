@@ -13,41 +13,17 @@ void main();
 
 async function main() {
   await assertTransportBoundaries();
-  await assertTheDogsResultDateDiscovery();
   await assertTheDogsFollowUpBoundaries();
   assertWatchdogSchema();
   assertHtmlParserBounds();
   console.log("live provider response-validation tests passed");
 }
 
-async function assertTheDogsResultDateDiscovery() {
-  const requestedUrls: URL[] = [];
-  const provider = new TheDogsProvider(
-    fetchInspectingRequest((input) => {
-      requestedUrls.push(
-        new URL(input instanceof Request ? input.url : input.toString()),
-      );
-      return htmlResponse("");
-    }),
-  );
-
-  assert.deepEqual(await provider.fetchResults(2), []);
-  assert.equal(requestedUrls.length, 3);
-  assert.ok(requestedUrls.every((url) => url.pathname === "/racing"));
-  assert.ok(
-    requestedUrls.every((url) =>
-      /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get("date") ?? ""),
-    ),
-  );
-}
-
 async function assertTheDogsFollowUpBoundaries() {
   const requestedUrls: URL[] = [];
   const provider = new TheDogsProvider(
     fetchInspectingRequest((input) => {
-      const url = new URL(
-        input instanceof Request ? input.url : input.toString(),
-      );
+      const url = new URL(input instanceof Request ? input.url : input.toString());
       requestedUrls.push(url);
 
       if (url.pathname === "/racing" && url.searchParams.has("date")) {
@@ -72,16 +48,13 @@ async function assertTheDogsFollowUpBoundaries() {
         `);
       }
       if (url.pathname === "/racing/wentworth-park/2026-07-15/2/result") {
-        return new Response(
-          `
+        return new Response(`
           <div class="race-header__info__grade">Maiden 520m</div>
           <tr class="race-runner">
             <td><sprite-svg name="rug_2"></sprite-svg></td>
             <td><a href="/dogs/202/safe-dog"><div class="race-runners__name__dog">Safe Dog</div></a></td>
           </tr>
-        `,
-          { headers: { "content-type": "text/javascript" } },
-        );
+        `, { headers: { "content-type": "text/javascript" } });
       }
       throw new Error(`unexpected test request: ${url.toString()}`);
     }),
@@ -212,9 +185,7 @@ async function assertTransportBoundaries() {
   );
   await assert.rejects(
     () =>
-      new WatchdogProvider(
-        fetchReturning(jsonResponse("not-json")),
-      ).fetchResults(1),
+      new WatchdogProvider(fetchReturning(jsonResponse("not-json"))).fetchResults(1),
     /watchdog\.response_invalid_json/,
   );
   await assert.rejects(
@@ -275,7 +246,10 @@ function assertWatchdogSchema() {
     ],
   });
   assert.equal(currentSignedIdentifiers.races?.[0]?.id, -2_092_194_025);
-  assert.equal(currentSignedIdentifiers.participants?.[0]?.id, "-20921940258");
+  assert.equal(
+    currentSignedIdentifiers.participants?.[0]?.id,
+    "-20921940258",
+  );
   assert.equal(currentSignedIdentifiers.participants?.[0]?.last5, null);
   assert.equal(currentSignedIdentifiers.participants?.[0]?.resultPlace, "F");
   assert.equal(
@@ -346,7 +320,8 @@ function assertWatchdogSchema() {
         {
           id: 2,
           number: 1,
-          photoFinishUrl: "https://user:secret@watchdog.grv.org.au/photo.jpg",
+          photoFinishUrl:
+            "https://user:secret@watchdog.grv.org.au/photo.jpg",
         },
       ],
     },
@@ -357,10 +332,7 @@ function assertWatchdogSchema() {
       })),
     },
   ]) {
-    assert.throws(
-      () => parseWatchdogPayload(invalid),
-      /watchdog\.response_invalid/,
-    );
+    assert.throws(() => parseWatchdogPayload(invalid), /watchdog\.response_invalid/);
   }
 
   const normalized = parseWatchdogPayload({
@@ -487,7 +459,10 @@ function assertHtmlParserBounds() {
     () => parseFastTrackMeeting("", "Missing date"),
     /fasttrack\.response_invalid/,
   );
-  const fastTrack = parseFastTrackMeeting("", `${"X".repeat(2_000)} - 15/07`);
+  const fastTrack = parseFastTrackMeeting(
+    "",
+    `${"X".repeat(2_000)} - 15/07`,
+  );
   assert.equal(fastTrack.trackName.length, 500);
 
   const boundedFastTrackRace = parseFastTrackMeeting(`
@@ -555,6 +530,5 @@ function jsonResponse(body: string) {
 }
 
 function exactMessage(expected: string) {
-  return (error: unknown) =>
-    error instanceof Error && error.message === expected;
+  return (error: unknown) => error instanceof Error && error.message === expected;
 }

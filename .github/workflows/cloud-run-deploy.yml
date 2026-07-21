@@ -270,6 +270,65 @@ jobs:
           public_user_media_bucket="giq-public-user-media-$project_id"
           private_user_media_bucket="giq-private-user-media-$project_id"
           env_vars="NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1,NEXTAUTH_URL=$nextauth_url,AUTH_URL=$nextauth_url,STRIPE_APP_URL=$nextauth_url,NEXT_PUBLIC_WORKOS_REDIRECT_URI=${{ secrets.NEXT_PUBLIC_WORKOS_REDIRECT_URI }},NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA=false,NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT=false,ACTOR_CONVERSATION_MULTIPLEX_ENABLED=$actor_conversation_multiplex,MEDIA_SCAN_MODE=disabled,SEARCH_DISABLED=$search_disabled,UPLOAD_DISABLED=$upload_disabled,EXPORT_DISABLED=$export_disabled,AI_DISABLED=$ai_disabled,REALTIME_BROADCAST_DISABLED=$realtime_broadcast_disabled,THEDOGS_LICENSED_USE_APPROVED=true,THEDOGS_PROVIDER_ENABLED=true,WATCHDOG_PROVIDER_ENABLED=$watchdog_provider_enabled,FASTTRACK_PROTOTYPE_ENABLED=false,OBJECT_STORAGE_PROVIDER=gcs,GCS_SITE_ASSETS_BUCKET=$site_assets_bucket,GCS_PUBLIC_USER_MEDIA_BUCKET=$public_user_media_bucket,GCS_PRIVATE_USER_MEDIA_BUCKET=$private_user_media_bucket"
+          web_service_json="$(
+            gcloud run services describe "$service" \
+              --region "$REGION" \
+              --format json \
+              --project "$project_id"
+          )"
+          protected_revision_output="$(
+            jq -r '.status as $status |
+              $status.traffic[] |
+              select((.percent // 0) > 0) |
+              (.revisionName //
+                (if .latestRevision == true then $status.latestReadyRevisionName else empty end))' \
+              <<<"$web_service_json" |
+              sort -u
+          )
+          protected_revisions=()
+          if [ -n "$protected_revision_output" ]; then
+            mapfile -t protected_revisions <<<"$protected_revision_output"
+          fi
+          stale_candidate_output="$(
+            jq -r '.status.traffic[] |
+              select((.percent // 0) == 0) |
+              select((.tag // "") | startswith("candidate-")) |
+              [.tag, .revisionName] | @tsv' \
+              <<<"$web_service_json"
+          )"
+          stale_candidate_tags=()
+          stale_candidate_revisions=()
+          declare -A stale_candidate_revision_seen=()
+          while IFS=$'\t' read -r tag revision; do
+            if [ -n "$tag" ] && [ -n "$revision" ]; then
+              stale_candidate_tags+=("$tag")
+              revision_is_protected="false"
+              for protected_revision in "${protected_revisions[@]}"; do
+                if [ "$revision" = "$protected_revision" ]; then
+                  revision_is_protected="true"
+                  break
+                fi
+              done
+              if [ "$revision_is_protected" = "false" ] && \
+                 [ -z "${stale_candidate_revision_seen[$revision]:-}" ]; then
+                stale_candidate_revisions+=("$revision")
+                stale_candidate_revision_seen["$revision"]="true"
+              fi
+            fi
+          done <<<"$stale_candidate_output"
+          if [ "${#stale_candidate_tags[@]}" -gt 0 ]; then
+            stale_candidate_tag_list="$(IFS=,; echo "${stale_candidate_tags[*]}")"
+            gcloud run services update-traffic "$service" \
+              --region "$REGION" \
+              --remove-tags "$stale_candidate_tag_list" \
+              --project "$project_id"
+            for revision in "${stale_candidate_revisions[@]}"; do
+              gcloud run revisions delete "$revision" \
+                --region "$REGION" \
+                --project "$project_id" \
+                --quiet
+            done
+          fi
           gcloud run deploy "$service" \
             --image "${{ steps.build.outputs.image }}" \
             --region "$REGION" \

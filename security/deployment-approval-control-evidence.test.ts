@@ -48,6 +48,48 @@ assert.match(
   cloudRunWorkflow,
   /google-github-actions\/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db/u,
 );
+const staleCandidateCleanup =
+  cloudRunWorkflow.match(
+    /web_service_json="\$\([\s\S]*?gcloud run deploy "\$service"/u,
+  )?.[0] ?? "";
+assert.match(
+  staleCandidateCleanup,
+  /select\(\(\.percent \/\/ 0\) == 0\)/u,
+);
+assert.match(
+  staleCandidateCleanup,
+  /select\(\(\.percent \/\/ 0\) > 0\)/u,
+);
+assert.match(
+  staleCandidateCleanup,
+  /select\(\(\.tag \/\/ ""\) \| startswith\("candidate-"\)\)/u,
+);
+assert.match(
+  staleCandidateCleanup,
+  /if \.latestRevision == true then \$status\.latestReadyRevisionName/u,
+);
+assert.match(
+  staleCandidateCleanup,
+  /if \[ "\$revision" = "\$protected_revision" \]; then/u,
+);
+assert.match(
+  staleCandidateCleanup,
+  /\[ "\$revision_is_protected" = "false" \]/u,
+);
+assert.match(
+  staleCandidateCleanup,
+  /protected_revision_output="\$\([\s\S]*?\n          \)"/u,
+);
+assert.match(
+  staleCandidateCleanup,
+  /stale_candidate_output="\$\([\s\S]*?\n          \)"/u,
+);
+assert.doesNotMatch(staleCandidateCleanup, /mapfile[^\n]*< <\(\s*jq/u);
+assert.match(staleCandidateCleanup, /--remove-tags "\$stale_candidate_tag_list"/u);
+assert.match(
+  staleCandidateCleanup,
+  /gcloud run revisions delete "\$revision"/u,
+);
 const liveKitGate =
   cloudRunWorkflow.match(
     /- name: Post-deploy LiveKit connectivity check \(staging only\)[\s\S]*?\n      - name: Promote tested revisions/u,

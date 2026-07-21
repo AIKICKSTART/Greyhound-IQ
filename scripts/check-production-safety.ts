@@ -174,6 +174,18 @@ if (!migrate.includes("group: supabase-migrate-${{ inputs.environment }}")) {
 }
 
 const cloudRunDeploy = workflow("cloud-run-deploy.yml");
+const stage11CutoverBlock =
+  cloudRunDeploy.match(
+    /- name: Stage 11 R2 live-ingest and deduplication gate[\s\S]*?\n      - name: Post-deploy LiveKit connectivity check/,
+  )?.[0] ?? "";
+if (
+  !stage11CutoverBlock.includes('gcloud run jobs execute "giq-live-sync-$scope"') ||
+  stage11CutoverBlock.includes("gcloud secrets versions access")
+) {
+  findings.push(
+    "cloud-run-deploy.yml: Stage 11 cutover must use the dedicated live-sync jobs without reading secret payloads",
+  );
+}
 if (!cloudRunDeploy.includes("workflow_run:") || !cloudRunDeploy.includes('workflows: ["CI"]')) {
   findings.push("cloud-run-deploy.yml: deploy must wait for CI workflow success");
 }

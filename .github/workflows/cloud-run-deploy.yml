@@ -508,31 +508,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          internal_secret="$(
-            gcloud secrets versions access latest \
-              --secret "${{ steps.deploy.outputs.internal_api_secret }}" \
-              --project "${{ secrets.GCP_PROJECT_ID }}"
-          )"
-          if [ -z "$internal_secret" ]; then
-            echo "::error::The reviewed internal API secret is empty."
-            exit 1
-          fi
-          echo "::add-mask::$internal_secret"
-          candidate_url="${{ steps.deploy.outputs.candidate_url }}"
           for pass in 1 2; do
             for scope in results upcoming; do
-              curl --fail --silent --show-error --max-time 900 \
-                --request POST \
-                --header "x-internal-secret: $internal_secret" \
-                "$candidate_url/api/internal/live-sync?days=1&scope=$scope" \
-                >/dev/null
+              gcloud run jobs execute "giq-live-sync-$scope" \
+                --region "$REGION" \
+                --wait \
+                --project "${{ secrets.GCP_PROJECT_ID }}" \
+                --format "value(metadata.name)"
             done
           done
+          candidate_url="${{ steps.deploy.outputs.candidate_url }}"
           curl --fail --silent --show-error --max-time 60 \
-            --header "x-internal-secret: $internal_secret" \
             "$candidate_url/api/health/feeds" \
             >/dev/null
-          unset internal_secret
           gcloud run jobs execute giq-production-db-audit \
             --region "$REGION" \
             --wait \

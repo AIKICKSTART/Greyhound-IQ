@@ -67,6 +67,7 @@ const KEYBOARD_THRESHOLD = 80;
 const MIN_POPUP_HEIGHT = 180;
 const MAX_POPUP_HEIGHT = 420;
 const MAX_POPUP_WIDTH = 400;
+const MAX_LANDSCAPE_POPUP_WIDTH = 900;
 const TARGET_GAP = 10;
 const ARROW_EDGE_CLEARANCE = 22;
 
@@ -96,11 +97,13 @@ export function resolveInteractiveHelpPopupLayout(
     width <= COMPACT_MAX_WIDTH ||
     (height <= LANDSCAPE_PHONE_MAX_HEIGHT &&
       width <= LANDSCAPE_PHONE_MAX_WIDTH);
+  const compactLandscape =
+    mobile && height <= LANDSCAPE_PHONE_MAX_HEIGHT && width > height;
   const keyboardOpen = mobile && keyboardInset >= KEYBOARD_THRESHOLD;
   const horizontalMargin = mobile ? 12 : 20;
   const availableHeight = Math.max(1, frame.height);
   const popupWidth = Math.min(
-    MAX_POPUP_WIDTH,
+    compactLandscape ? MAX_LANDSCAPE_POPUP_WIDTH : MAX_POPUP_WIDTH,
     Math.max(1, frame.width - horizontalMargin * 2),
   );
   const maxHeight = Math.min(MAX_POPUP_HEIGHT, availableHeight);

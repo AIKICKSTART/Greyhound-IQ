@@ -107,6 +107,47 @@
   }
 }
 
+@media (orientation: landscape) and (max-height: 500px) {
+  .popup[data-help-layout="coachmark-mobile"] .content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(212px, 0.45fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .popup[data-help-layout="coachmark-mobile"] .content > header {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .popup[data-help-layout="coachmark-mobile"] .body {
+    align-self: stretch;
+    grid-column: 1;
+    grid-row: 2;
+    padding-inline: 0.25rem;
+  }
+
+  .popup[data-help-layout="coachmark-mobile"] .body > :first-child {
+    margin-top: 0;
+  }
+
+  .popup[data-help-layout="coachmark-mobile"] .body > p {
+    margin-top: 0.625rem;
+  }
+
+  .popup[data-help-layout="coachmark-mobile"] .content > footer {
+    align-self: center;
+    grid-column: 2;
+    grid-row: 1 / -1;
+    margin-top: 0;
+    border-top: 0;
+    border-left: 1px solid hsl(0 0% 100% / 0.1);
+    padding-top: 0;
+    padding-left: 0.75rem;
+  }
+}
+
 .secondaryControl {
   color: hsl(var(--foreground)) !important;
   background-color: hsl(var(--surface-1)) !important;

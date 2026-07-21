@@ -272,6 +272,7 @@ export function InteractiveHelp({
     null,
   );
   const coachmarkRef = useRef<HTMLDivElement | null>(null);
+  const coachmarkBodyRef = useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(
     typeof document !== "undefined" &&
       document.activeElement instanceof HTMLElement
@@ -370,6 +371,15 @@ export function InteractiveHelp({
     document.addEventListener("focusin", captureFocus);
     return () => document.removeEventListener("focusin", captureFocus);
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (coachmarkBodyRef.current) coachmarkBodyRef.current.scrollTop = 0;
+      coachmarkRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [open, pathname, stepIndex]);
 
   useEffect(() => {
     if (open && !wasOpenRef.current) {
@@ -828,7 +838,7 @@ export function InteractiveHelp({
                 </div>
               </header>
 
-              <div className={styles.body}>
+              <div ref={coachmarkBodyRef} className={styles.body}>
                 <div
                   className="mt-4 grid grid-cols-5 gap-1.5"
                   aria-label="Tour progress"

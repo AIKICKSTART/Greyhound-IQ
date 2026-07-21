@@ -122,8 +122,6 @@ export default function HomePage() {
 
       <section
         className="giq-home-features-section relative mx-auto max-w-7xl px-6 py-16"
-        data-onboarding-priority="high"
-        data-onboarding-target="public-home-features"
       >
         <div className="giq-home-feature-grid grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => (
@@ -149,10 +147,12 @@ async function TodaysRacesSection() {
     <section
       id="races"
       className="giq-home-races-section relative mx-auto max-w-7xl px-6 py-8"
-      data-onboarding-priority="high"
-      data-onboarding-target="public-home-races"
     >
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+      <div
+        className="mb-6 flex flex-wrap items-end justify-between gap-3"
+        data-onboarding-priority="high"
+        data-onboarding-target="public-home-races"
+      >
         <div>
           <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
             Today&apos;s Races
@@ -196,10 +196,12 @@ function TodaysRacesFallback() {
     <section
       id="races"
       className="giq-home-races-section relative mx-auto max-w-7xl px-6 py-8"
-      data-onboarding-priority="high"
-      data-onboarding-target="public-home-races"
     >
-      <div className="mb-6">
+      <div
+        className="mb-6"
+        data-onboarding-priority="high"
+        data-onboarding-target="public-home-races"
+      >
         <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
           Today&apos;s Races
         </h2>
@@ -235,10 +237,12 @@ function WhyGreyhoundIQSection() {
   return (
     <section
       className="giq-home-why-section giq-comparison-section relative mx-auto max-w-7xl px-6 py-12 md:py-14"
-      data-onboarding-priority="high"
-      data-onboarding-target="public-home-value"
     >
-      <div className="giq-comparison-heading">
+      <div
+        className="giq-comparison-heading"
+        data-onboarding-priority="high"
+        data-onboarding-target="public-home-value"
+      >
         <div>
           <h2>
             Why <span className="giq-text-purple-glass">Greyhound</span><span className="giq-text-gold-glass">IQ?</span>
@@ -328,6 +332,8 @@ function FeatureCard({
   return (
     <Link
       href={href}
+      data-onboarding-priority="high"
+      data-onboarding-target="public-home-features"
       className={`giq-glass-panel giq-feature-card giq-feature-card--${tone} group block overflow-hidden no-underline`}
     >
       <div className="giq-feature-media giq-shine giq-shine-hover">

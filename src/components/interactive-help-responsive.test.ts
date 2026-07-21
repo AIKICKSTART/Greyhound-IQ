@@ -155,7 +155,29 @@ const landscapePhone: InteractiveHelpViewport = {
 const landscapeLayout = resolveInteractiveHelpPopupLayout(landscapePhone, null);
 assert.equal(landscapeLayout.mobile, true);
 assert.equal(landscapeLayout.placement, "sheet");
+assert.ok(landscapeLayout.width >= 800);
 assertPopupFits(landscapePhone, landscapeLayout);
+
+for (const compactLandscape of [
+  { height: 320, width: 568 },
+  { height: 360, width: 640 },
+  { height: 375, width: 667 },
+]) {
+  const viewport: InteractiveHelpViewport = {
+    bottomInset: 72,
+    height: compactLandscape.height,
+    keyboardInset: 0,
+    offsetLeft: 0,
+    offsetTop: 0,
+    topInset: 68,
+    width: compactLandscape.width,
+  };
+  const layout = resolveInteractiveHelpPopupLayout(viewport, null);
+  assert.equal(layout.mobile, true);
+  assert.equal(layout.placement, "sheet");
+  assert.ok(layout.width > 500);
+  assertPopupFits(viewport, layout);
+}
 
 const desktopTargetLayout = resolveInteractiveHelpPopupLayout(
   {
@@ -241,6 +263,7 @@ for (const sourceContract of [
   /window\.removeEventListener\("scroll", scheduleResolution, true\)/,
   /scrollMarginBlockEnd/,
   /restoreScrollRef/,
+  /coachmarkBodyRef\.current\.scrollTop = 0/,
   /window\.scrollTo/,
   /popupLayout\.left/,
   /popupLayout\.maxHeight/,
@@ -265,6 +288,10 @@ assert.match(moduleStyles, /\.body[\s\S]*overflow-x: hidden/);
 assert.match(moduleStyles, /\.body[\s\S]*overflow-y: auto/);
 assert.match(moduleStyles, /\.body[\s\S]*overscroll-behavior: contain/);
 assert.match(moduleStyles, /env\(safe-area-inset-top/);
+assert.match(
+  moduleStyles,
+  /orientation: landscape[\s\S]*max-height: 500px[\s\S]*grid-template-columns/,
+);
 assert.doesNotMatch(
   moduleStyles,
   /data-help-ready="false"[\s\S]*visibility:\s*hidden/,

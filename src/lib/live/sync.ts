@@ -37,6 +37,7 @@ export type SyncScope = "upcoming" | "results" | "all";
 
 const BULK_WRITE_CHUNK_SIZE = 100;
 const LOOKUP_QUERY_CHUNK_SIZE = 500;
+const NATURAL_LOOKUP_QUERY_CHUNK_SIZE = 50;
 const LOOKUP_QUERY_LIMIT = 5_000;
 const LIVE_SYNC_TRANSACTION_MAX_WAIT_MS = 30_000;
 const LIVE_SYNC_TRANSACTION_TIMEOUT_MS = 240_000;
@@ -1014,7 +1015,7 @@ export async function ensureDogs(
   }
 
   const eligibleForCreation: DogIdentityClaim[] = [];
-  for (const claimChunk of chunks(unresolved, LOOKUP_QUERY_CHUNK_SIZE)) {
+  for (const claimChunk of chunks(unresolved, NATURAL_LOOKUP_QUERY_CHUNK_SIZE)) {
     const natural = await loadNaturalDogCandidates(db, claimChunk);
     if (natural.saturated) {
       for (const claim of claimChunk) {
@@ -1164,11 +1165,41 @@ async function loadNaturalDogCandidates(
   db: DogIdentityDbClient,
   claims: DogIdentityClaim[],
 ) {
-  const where = claims.flatMap((claim) => naturalCandidateConditions(claim));
-  if (where.length === 0) return { rows: [] as DogIdentityRow[], saturated: false };
+  const candidateIds = new Set<string>();
+  const names = await loadDogIdsByNormalizedNames(
+    db,
+    claims.map((claim) => claim.dog.name),
+  );
+  if (names.saturated) return naturalLookupSaturated();
+  addAll(candidateIds, names.ids);
+
+  const earBrands = await loadDogIdsByEarBrands(
+    db,
+    claims.map((claim) => claim.dog.earBrand),
+  );
+  if (earBrands.saturated) return naturalLookupSaturated();
+  addAll(candidateIds, earBrands.ids);
+
+  const sireIds = await loadParentCandidateIds(
+    db,
+    claims.map((claim) => claim.dog.sire),
+  );
+  const damIds = await loadParentCandidateIds(
+    db,
+    claims.map((claim) => claim.dog.dam),
+  );
+  if (sireIds.saturated || damIds.saturated) return naturalLookupSaturated();
+
+  const pedigreeIds = await loadPedigreeCandidateIds(db, claims, sireIds.ids, damIds.ids);
+  if (pedigreeIds.saturated) return naturalLookupSaturated();
+  addAll(candidateIds, pedigreeIds.ids);
+  if (candidateIds.size >= LOOKUP_QUERY_LIMIT) return naturalLookupSaturated();
+  if (candidateIds.size === 0) {
+    return { rows: [] as DogIdentityRow[], saturated: false };
+  }
 
   const rows = await db.dog.findMany({
-    where: { OR: where },
+    where: { id: { in: [...candidateIds] } },
     select: {
       id: true,
       name: true,
@@ -1201,36 +1232,130 @@ async function loadNaturalDogCandidates(
   };
 }
 
-function naturalCandidateConditions(claim: DogIdentityClaim) {
-  const conditions: Prisma.DogWhereInput[] = [
-    { name: { equals: claim.dog.name, mode: "insensitive" } },
+async function loadDogIdsByNormalizedNames(
+  db: DogIdentityDbClient,
+  values: Array<string | null | undefined>,
+) {
+  const names = [
+    ...new Set(
+      values
+        .map((value) => cleanDogName(value))
+        .filter((value): value is string => Boolean(value)),
+    ),
   ];
-  if (claim.dog.earBrand) conditions.push({ earBrand: claim.dog.earBrand });
-  if (claim.whelpDate) conditions.push({ whelpDate: claim.whelpDate });
-  for (const [relation, parent] of [
-    ["sire", claim.dog.sire],
-    ["dam", claim.dog.dam],
-  ] as const) {
-    const parentConditions = parentNaturalConditions(parent);
-    if (parentConditions.length > 0) {
-      conditions.push({ [relation]: { is: { OR: parentConditions } } });
-    }
-  }
-  return conditions;
+  if (names.length === 0) return naturalIdLookup([]);
+  const rows = await db.dog.findMany({
+    where: { name: { in: names, mode: "insensitive" } },
+    select: { id: true },
+    take: LOOKUP_QUERY_LIMIT,
+  });
+  return naturalIdLookup(rows);
 }
 
-function parentNaturalConditions(parent: LiveDog["sire"]) {
-  if (!parent) return [];
-  const conditions: Prisma.DogWhereInput[] = [];
-  const provider = normalizeProvider(parent.sourceProvider);
-  const sourceId = normalizeSourceId(parent.sourceId);
-  if (provider && sourceId) {
-    conditions.push({ sourceProvider: provider, sourceId });
-    conditions.push({ earBrand: `${provider}:${sourceId}` });
+async function loadDogIdsByEarBrands(
+  db: DogIdentityDbClient,
+  values: Array<string | null | undefined>,
+) {
+  const earBrands = [
+    ...new Set(values.map(cleanRegistryToken).filter((value): value is string => Boolean(value))),
+  ];
+  if (earBrands.length === 0) return naturalIdLookup([]);
+  const rows = await db.dog.findMany({
+    where: { earBrand: { in: earBrands } },
+    select: { id: true },
+    take: LOOKUP_QUERY_LIMIT,
+  });
+  return naturalIdLookup(rows);
+}
+
+async function loadParentCandidateIds(
+  db: DogIdentityDbClient,
+  values: Array<LiveDog["sire"]>,
+) {
+  const parents = values.filter((value): value is NonNullable<LiveDog["sire"]> => Boolean(value));
+  const names = await loadDogIdsByNormalizedNames(
+    db,
+    parents.map((parent) => parent.name),
+  );
+  if (names.saturated) return names;
+
+  const sourceIdsByProvider = new Map<string, Set<string>>();
+  const legacyKeys = new Set<string>();
+  for (const parent of parents) {
+    const provider = normalizeProvider(parent.sourceProvider);
+    const sourceId = normalizeSourceId(parent.sourceId);
+    if (!provider || !sourceId) continue;
+    const sourceIds = sourceIdsByProvider.get(provider) ?? new Set<string>();
+    sourceIds.add(sourceId);
+    sourceIdsByProvider.set(provider, sourceIds);
+    legacyKeys.add(`${provider}:${sourceId}`);
   }
-  const name = cleanDogName(parent.name);
-  if (name) conditions.push({ name: { equals: name, mode: "insensitive" } });
-  return conditions;
+  const conditions: Prisma.DogWhereInput[] = [
+    ...[...sourceIdsByProvider].map(([sourceProvider, sourceIds]) => ({
+      sourceProvider,
+      sourceId: { in: [...sourceIds] },
+    })),
+  ];
+  if (legacyKeys.size > 0) conditions.push({ earBrand: { in: [...legacyKeys] } });
+  const exactRows = conditions.length > 0
+    ? await db.dog.findMany({
+        where: { OR: conditions },
+        select: { id: true },
+        take: LOOKUP_QUERY_LIMIT,
+      })
+    : [];
+  if (exactRows.length >= LOOKUP_QUERY_LIMIT) return naturalIdLookup(exactRows);
+  const ids = new Set(names.ids);
+  addAll(ids, exactRows.map((row) => row.id));
+  return { ids: [...ids], saturated: ids.size >= LOOKUP_QUERY_LIMIT };
+}
+
+async function loadPedigreeCandidateIds(
+  db: DogIdentityDbClient,
+  claims: DogIdentityClaim[],
+  sireIds: string[],
+  damIds: string[],
+) {
+  const conditions: Prisma.DogWhereInput[] = [];
+  const whelpDates = [
+    ...new Map(
+      claims
+        .map((claim) => claim.whelpDate)
+        .filter((value): value is Date => Boolean(value))
+        .map((value) => [value.toISOString(), value]),
+    ).values(),
+  ];
+  if (whelpDates.length > 0 && sireIds.length > 0) {
+    conditions.push({ whelpDate: { in: whelpDates }, sireId: { in: sireIds } });
+  }
+  if (whelpDates.length > 0 && damIds.length > 0) {
+    conditions.push({ whelpDate: { in: whelpDates }, damId: { in: damIds } });
+  }
+  if (sireIds.length > 0 && damIds.length > 0) {
+    conditions.push({ sireId: { in: sireIds }, damId: { in: damIds } });
+  }
+  if (conditions.length === 0) return naturalIdLookup([]);
+  const rows = await db.dog.findMany({
+    where: { OR: conditions },
+    select: { id: true },
+    take: LOOKUP_QUERY_LIMIT,
+  });
+  return naturalIdLookup(rows);
+}
+
+function naturalIdLookup(rows: Array<{ id: string }>) {
+  return {
+    ids: rows.slice(0, LOOKUP_QUERY_LIMIT).map((row) => row.id),
+    saturated: rows.length >= LOOKUP_QUERY_LIMIT,
+  };
+}
+
+function naturalLookupSaturated() {
+  return { rows: [] as DogIdentityRow[], saturated: true };
+}
+
+function addAll(target: Set<string>, values: Iterable<string>) {
+  for (const value of values) target.add(value);
 }
 
 function isPossibleDogCandidate(row: DogIdentityRow, claim: DogIdentityClaim) {

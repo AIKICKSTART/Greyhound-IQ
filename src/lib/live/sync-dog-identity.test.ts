@@ -22,6 +22,7 @@ async function main() {
   await rejectsPrototypeCreation();
   await resolvesLegacyExactKeyWithoutMutation();
   await createsOnlyStableIdentityIdempotently();
+  await batchesCorrelatedNaturalLookups();
   await groupsExactLookupsByProvider();
   console.log("live dog identity sync tests passed");
 }
@@ -270,6 +271,39 @@ async function createsOnlyStableIdentityIdempotently() {
   assert.equal(createdData?.earBrand, undefined);
   assert.equal("sireId" in (createdData ?? {}), false);
   assert.equal("damId" in (createdData ?? {}), false);
+}
+
+async function batchesCorrelatedNaturalLookups() {
+  let normalizedNameQueries = 0;
+  const observations = Array.from({ length: 51 }, (_, index) => ({
+    sourceProvider: "fasttrack-prototype",
+    sourceId: String(index + 1),
+    name: `Candidate ${index + 1}`,
+    whelpDate: "2024-03-04",
+    sire: { name: `Sire ${index + 1}` },
+    dam: { name: `Dam ${index + 1}` },
+  }));
+
+  await captureWarnings(async () => {
+    const ids = await ensureDogs(
+      {
+        dog: {
+          findMany: async (args: { where?: { name?: unknown } }) => {
+            if (args.where?.name) normalizedNameQueries += 1;
+            return [];
+          },
+          createMany: async () => {
+            throw new Error("prototype observations must not create dogs");
+          },
+        },
+        dogSourceIdentity: { findMany: async () => [] },
+      } as never,
+      observations,
+    );
+    assert.equal(ids.size, 0);
+  });
+
+  assert.equal(normalizedNameQueries, 6);
 }
 
 async function groupsExactLookupsByProvider() {

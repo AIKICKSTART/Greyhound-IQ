@@ -1,0 +1,40 @@
+steps:
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        mkdir -p .pedigree-forward-merge-data/thedogs-edges
+        gcloud storage cp \
+          gs://giq-full-history-clever-bee-502514-m4/pedigree/forward-merge-20260721-r1/strict-audit-report.json \
+          .pedigree-forward-merge-data/strict-audit-report.json
+        gcloud storage cp \
+          gs://giq-full-history-clever-bee-502514-m4/pedigree/forward-merge-20260721-r1/galtd-observations.jsonl.gz \
+          .pedigree-forward-merge-data/galtd-observations.jsonl.gz
+        gcloud storage cp \
+          gs://giq-full-history-clever-bee-502514-m4/pedigree/forward-merge-20260721-r1/galtd-assertions.jsonl.gz \
+          .pedigree-forward-merge-data/galtd-assertions.jsonl.gz
+        gcloud storage cp \
+          gs://giq-full-history-clever-bee-502514-m4/normalized/thedogs-normalized-v2-a43d10e4aaa5ef82/manifest.json \
+          .pedigree-forward-merge-data/thedogs-manifest.json
+        gcloud storage cp \
+          'gs://giq-full-history-clever-bee-502514-m4/normalized/thedogs-normalized-v2-a43d10e4aaa5ef82/partition-*/pedigree_edges-*.jsonl' \
+          .pedigree-forward-merge-data/thedogs-edges/
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file
+      - scripts/pedigree-forward-merge/Dockerfile
+      - --tag
+      - ${_IMAGE}
+      - .
+
+images:
+  - ${_IMAGE}
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+timeout: 3600s

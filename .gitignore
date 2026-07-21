@@ -68,6 +68,7 @@ certificates
 # local deploy logs
 .deploy-*.log
 .vercel
+.pedigree-forward-merge-data/
 
 # Terraform local state and unreviewed inputs
 **/.terraform/*

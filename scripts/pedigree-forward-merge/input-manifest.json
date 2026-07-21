@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "artifactSetId": "pedigree-forward-merge-20260721-r1",
+  "galtd": {
+    "runInstanceId": "galtd-audit:609c1505-33b2-4127-97f5-8aa54ca1b045",
+    "generatedAt": "2026-07-17T01:13:56.548Z",
+    "report": {
+      "file": "strict-audit-report.json",
+      "bytes": 7166,
+      "sha256": "cc7654cdd0e2704601b322c5a903044f03ccab216fd238a700f8545148ea0253"
+    },
+    "observations": {
+      "file": "galtd-observations.jsonl.gz",
+      "bytes": 8732488,
+      "rows": 105374,
+      "sha256": "86a7bc486501099e41ab461bd02e15ab8ab6c47a2fde900fc7013faad5f6a153"
+    },
+    "assertions": {
+      "file": "galtd-assertions.jsonl.gz",
+      "bytes": 12383238,
+      "rows": 210734,
+      "sha256": "d9a83d281994ae1c9e5ff6414daea4fb59c8e6799a8635356100a2fe5ebdb0a2"
+    },
+    "volumes": [66, 67, 68, 69, 70, 71, 72, 73],
+    "conflictGroups": 5,
+    "conflictObservations": 18,
+    "conflictAssertions": 36
+  },
+  "thedogs": {
+    "runInstanceId": "thedogs-export:582c410f-200f-4e41-b0ea-d18dbf10ec5a",
+    "generatedAt": "2026-07-16T16:42:53.760Z",
+    "transformVersion": "thedogs-normalized-harvest/v2",
+    "manifest": {
+      "file": "thedogs-manifest.json",
+      "bytes": 367051,
+      "sha256": "13bc8d83c048633b57c5299ec1e778179276fee855182b9c932f8a28a77fbf1c"
+    },
+    "pedigreeEdges": {
+      "shards": 64,
+      "rows": 384568,
+      "bytes": 131970236,
+      "datasetSha256": "092313971c5277deb74f5f05ed06d3b872b4e69cc8e9baf3a336854a7de89f2f"
+    }
+  }
+}

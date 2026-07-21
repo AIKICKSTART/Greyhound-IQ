@@ -20,6 +20,7 @@ import {
   type LiveRace,
   type LiveRunner,
 } from "./provider";
+import { enrichLiveRaceReplays } from "./replay-enrichment";
 import { canonicalTrackName } from "./track-name";
 import {
   whitelistProviderSnapshot,
@@ -175,6 +176,8 @@ export interface SyncResult {
   races?: number;
   runners?: number;
   results?: number;
+  replays?: number;
+  replayErrors?: number;
 }
 
 // Pulls scoped data from the configured live provider and upserts it into the
@@ -210,6 +213,7 @@ export async function syncLiveData(
     days,
   });
   const counts: SyncCounts = { meetings: 0, races: 0, runners: 0, results: 0 };
+  let replaySummary = { resolved: 0, errors: 0 };
   if (scope === "upcoming" || scope === "all") {
     const meetings = stampMeetings(await provider.fetchUpcomingMeetings(days), provider.name);
     addCounts(counts, await upsertSystemMeetings(meetings, logContext));
@@ -217,6 +221,7 @@ export async function syncLiveData(
   if (scope === "results" || scope === "all") {
     const meetings = stampMeetings(await provider.fetchResults(days), provider.name);
     addCounts(counts, await upsertSystemMeetings(meetings, logContext));
+    replaySummary = await enrichLiveRaceReplays(meetings);
     await notifyDogWinnersFromRecentResults();
   }
 
@@ -224,8 +229,17 @@ export async function syncLiveData(
     provider: provider.name,
     scope,
     ...counts,
+    replays: replaySummary.resolved,
+    replayErrors: replaySummary.errors,
   });
-  return { synced: true, provider: provider.name, scope, ...counts };
+  return {
+    synced: true,
+    provider: provider.name,
+    scope,
+    ...counts,
+    replays: replaySummary.resolved,
+    replayErrors: replaySummary.errors,
+  };
 }
 
 // Hourly aggregate maintenance runs separately from live-result ingestion so

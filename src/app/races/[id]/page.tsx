@@ -135,8 +135,13 @@ export default async function RacePage({
       }
     : null;
   const streamVideo = race.videos.find((video) => video.streamUrl);
-  const primaryVideo = streamVideo ?? race.videos[0] ?? null;
-  const storedReplay = primaryVideo ? await resolveRaceVideoReplay(primaryVideo) : null;
+  const storedResolution = await resolveStoredRaceReplay(
+    streamVideo
+      ? [streamVideo, ...race.videos.filter((video) => video.id !== streamVideo.id)]
+      : race.videos,
+  );
+  const primaryVideo = storedResolution.video ?? race.videos[0] ?? null;
+  const storedReplay = storedResolution.replay;
   const providerReplay = storedReplay?.streamUrl || storedReplay?.embedUrl
     ? null
     : await resolveProviderReplay({
@@ -711,6 +716,20 @@ async function resolveProviderReplay({
   replayUrl?: string | null;
 }) {
   return resolveProviderRaceReplay({ sourceProvider, sourceId, replayUrl });
+}
+
+async function resolveStoredRaceReplay(videos: RaceDetail["videos"]) {
+  let fallback: {
+    video: RaceDetail["videos"][number];
+    replay: ResolvedRaceReplay;
+  } | null = null;
+  for (const video of videos) {
+    const replay = await resolveRaceVideoReplay(video);
+    if (!replay) continue;
+    if (replay.streamUrl || replay.embedUrl) return { video, replay };
+    fallback ??= { video, replay };
+  }
+  return fallback ?? { video: null, replay: null };
 }
 
 function normaliseReplayPageUrl(value: string | null, sourceProvider?: string | null) {

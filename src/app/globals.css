@@ -1295,7 +1295,7 @@ body {
 }
 
 body.giq-member-shell:has(.giq-member-header[data-header-state="compact"]) {
-  --giq-member-header-clearance: 106px;
+  --giq-member-header-clearance: 130px;
 }
 
 .giq-member-header[data-header-state="compact"] .giq-member-header-frame,
@@ -7190,7 +7190,7 @@ select.giq-form-control option:checked {
   }
 
   .giq-social-messenger {
-    max-height: 100%;
+    max-height: calc(100dvh - var(--giq-member-header-clearance) - var(--giq-mobile-dock-clearance) - 16px);
   }
 }
 
@@ -7215,6 +7215,13 @@ select.giq-form-control option:checked {
 
 [data-slot="sheet-content"][data-side="right"] {
   right: env(safe-area-inset-right, 0px);
+}
+
+[data-slot="sheet-content"][data-side="top"],
+[data-slot="sheet-content"][data-side="bottom"] {
+  left: env(safe-area-inset-left, 0px);
+  right: env(safe-area-inset-right, 0px);
+  max-width: none;
 }
 
 [data-slot="sheet-content"][data-side="top"] {

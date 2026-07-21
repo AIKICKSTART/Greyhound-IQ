@@ -74,6 +74,11 @@ assert.match(
 );
 assert.match(
   globals,
+  /\[data-slot="sheet-content"\]\[data-side="top"\],[\s\S]*\[data-slot="sheet-content"\]\[data-side="bottom"\] \{[\s\S]*left: env\(safe-area-inset-left, 0px\);[\s\S]*right: env\(safe-area-inset-right, 0px\);[\s\S]*max-width: none;/,
+  "top and bottom sheets must stay between landscape safe-area insets",
+);
+assert.match(
+  globals,
   /\.giq-mobile-dock-sheet \{[\s\S]*max-height: calc\(100dvh - var\(--giq-mobile-dock-clearance\)[\s\S]*overflow-y: auto;/,
   "the dock sheet must remain scrollable above the fixed dock",
 );
@@ -127,11 +132,16 @@ assert.match(races, /type="date"/, "date selection must request a date keyboard"
 assert.match(discover, /enterKeyHint="search"/, "discovery search must expose its mobile submit intent");
 assert.match(
   globals,
-  /--giq-member-header-clearance:\s*158px[\s\S]*body\.giq-member-shell:has\(\.giq-member-header\[data-header-state="compact"\]\)[\s\S]*--giq-member-header-clearance:\s*106px/,
+  /--giq-member-header-clearance:\s*158px[\s\S]*body\.giq-member-shell:has\(\.giq-member-header\[data-header-state="compact"\]\)[\s\S]*--giq-member-header-clearance:\s*130px/,
   "sticky workspaces must share expanded and compact member-header clearance",
 );
 assert.match(feed, /giq-social-column-sticky/);
 assert.doesNotMatch(feed, /top-\[84px\]|100dvh-105px/);
+assert.match(
+  globals,
+  /\.giq-social-messenger \{[\s\S]*max-height: calc\(100dvh - var\(--giq-member-header-clearance\) - var\(--giq-mobile-dock-clearance\) - 16px\);/,
+  "the messenger rail must retain a definite viewport scroll bound",
+);
 assert.match(
   vetFinder,
   /h-\[clamp\(320px,calc\(100dvh-var\(--giq-mobile-dock-clearance\)-220px\),720px\)\]/,

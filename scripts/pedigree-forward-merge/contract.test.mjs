@@ -52,6 +52,20 @@ test("Dog writes are restricted to parent IDs and updatedAt", () => {
   assert.match(sql, /nameOnlyParentsLinked',0/);
 });
 
+test("reviewed GALTD bridge is limited to four assertion-bound parent links", () => {
+  assert.match(sql, /reviewed_galtd_bridge/);
+  assert.match(sql, /cmr0ke0ga00jdepls39po4o2f/);
+  assert.match(sql, /cmr0ke0g800bueplskgknh8xj/);
+  assert.match(sql, /hist_pedassert_33cbcad10d53a5b683a8e74075e36c6b/);
+  assert.match(sql, /hist_pedassert_b7b3f136f8cb4e442a9b0c02c9fac3db/);
+  assert.match(sql, /hist_pedassert_89dcb68acc09d73e4b11f0bc3e22f565/);
+  assert.match(sql, /hist_pedassert_74dbf6f9863445958c3f74183b273b75/);
+  assert.match(sql, /target\.id=bridge\.target_dog_id/);
+  assert.match(sql, /assertion\.id=bridge\.assertion_id/);
+  assert.match(sql, /parent\.id=bridge\.parent_dog_id/);
+  assert.match(sql, /operator-attested-exact-id-bridge/);
+});
+
 test("forced-RLS pedigree writes use only transaction-local system context", () => {
   assert.match(sql, /SET LOCAL app\.system = 'true';/);
   assert.doesNotMatch(sql, /SET LOCAL app\.current_(?:role|tier)/);
@@ -60,7 +74,7 @@ test("forced-RLS pedigree writes use only transaction-local system context", () 
 
 test("verification is rollback-only and apply is exactly confirmed", () => {
   assert.match(entrypoint, /PEDIGREE_MERGE_MODE:-verify/);
-  assert.match(entrypoint, /APPLY-PEDIGREE-ONLY-STAGE11-R2-20260721/);
+  assert.match(entrypoint, /APPLY-PEDIGREE-TARGET-BRIDGE-STAGE11-R2-20260721/);
   assert.match(entrypoint, /local override is verification-only/);
   assert.match(sql, /\\if :apply_mode\s+COMMIT;\s+\\else\s+ROLLBACK;/);
   assert.match(localContract, /Verification is the default and must end with `ROLLBACK`/);

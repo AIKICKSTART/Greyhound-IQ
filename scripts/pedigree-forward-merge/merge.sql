@@ -766,6 +766,173 @@ BEGIN
 END
 $$;
 
+CREATE TEMP TABLE reviewed_galtd_bridge AS
+SELECT *
+FROM (VALUES
+  (
+    'cmr0ke0ga00jdepls39po4o2f', 'Cumbria Jack',
+    '9ec6be70-098e-485d-b849-7e4dc598d9d6',
+    'galtd:vol-72:page-235:line-35:offset-14660',
+    'hist_pedassert_33cbcad10d53a5b683a8e74075e36c6b',
+    '1eba1f9efb05a5a7a68e27174dc86da300f16e508e84bbfc301defc30b0a7fc5',
+    'sire', 'fernando bale',
+    'cmrd9mc4u008gepjggd1l4lpc', 'Fernando Bale', 'fernando-bale'
+  ),
+  (
+    'cmr0ke0ga00jdepls39po4o2f', 'Cumbria Jack',
+    '9ec6be70-098e-485d-b849-7e4dc598d9d6',
+    'galtd:vol-72:page-235:line-35:offset-14660',
+    'hist_pedassert_b7b3f136f8cb4e442a9b0c02c9fac3db',
+    '171aab6881549e647e0680df5f4211858113405ad3060d5f03ab04f088ce94e7',
+    'dam', 'cumbria ninno',
+    'cmrd9o74e0k3xep1o54iei6uw', 'Cumbria Ninno', 'cumbria-ninno'
+  ),
+  (
+    'cmr0ke0g800bueplskgknh8xj', 'Coast Rig',
+    'ac7ac97f-825c-41fc-bde1-7dc5875ebcba',
+    'galtd:vol-72:page-178:line-53:offset-10704',
+    'hist_pedassert_89dcb68acc09d73e4b11f0bc3e22f565',
+    'd5093b77d387ca5112fbfb6e4319c99eca3b010e45f68966e688c6b64645440c',
+    'sire', 'bernardo',
+    'cmrd9nukh0511ep1orjv1q39m', 'BERNARDO', 'bernardo'
+  ),
+  (
+    'cmr0ke0g800bueplskgknh8xj', 'Coast Rig',
+    'ac7ac97f-825c-41fc-bde1-7dc5875ebcba',
+    'galtd:vol-72:page-178:line-53:offset-10704',
+    'hist_pedassert_74dbf6f9863445958c3f74183b273b75',
+    'e2476884d358009f5a934211e0cb81e67a111a10a54173be2d16697bbbbad5ff',
+    'dam', 'coast model',
+    'cmrd9o4un0hwfep1ori0tdleh', 'Coast Model', 'coast-model'
+  )
+) AS bridge(
+  target_dog_id, target_name, subject_dog_id, subject_source_id,
+  assertion_id, assertion_evidence_sha256, relationship,
+  asserted_parent_normalized_name, parent_dog_id, parent_name,
+  parent_source_id
+);
+
+CREATE UNIQUE INDEX reviewed_galtd_bridge_target_relation_key
+  ON reviewed_galtd_bridge(target_dog_id,relationship);
+CREATE UNIQUE INDEX reviewed_galtd_bridge_assertion_target_key
+  ON reviewed_galtd_bridge(assertion_id,target_dog_id);
+
+DO $$
+BEGIN
+  IF (SELECT count(*) FROM reviewed_galtd_bridge) <> 4
+     OR (SELECT count(DISTINCT target_dog_id) FROM reviewed_galtd_bridge) <> 2 THEN
+    RAISE EXCEPTION 'reviewed GALTD bridge inventory mismatch';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM reviewed_galtd_bridge bridge
+    LEFT JOIN public."Dog" target ON target.id=bridge.target_dog_id
+    LEFT JOIN public."PedigreeAssertion" assertion ON assertion.id=bridge.assertion_id
+    LEFT JOIN public."DogSourceIdentity" identity
+      ON identity.id=assertion."subjectIdentityId"
+    LEFT JOIN public."Dog" subject ON subject.id=bridge.subject_dog_id
+    LEFT JOIN public."Dog" parent ON parent.id=bridge.parent_dog_id
+    WHERE target.id IS NULL
+       OR target.name<>bridge.target_name
+       OR target."sourceProvider" IS NOT NULL
+       OR target."sourceId" IS NOT NULL
+       OR target.id=bridge.subject_dog_id
+       OR NOT EXISTS (
+         SELECT 1 FROM public."Runner" runner WHERE runner."dogId"=target.id
+       )
+       OR assertion.id IS NULL
+       OR assertion."sourceProvider"<>'galtd'
+       OR assertion.relationship<>bridge.relationship
+       OR assertion."evidenceSha256"<>bridge.assertion_evidence_sha256
+       OR assertion."assertedParentNormalizedName"<>bridge.asserted_parent_normalized_name
+       OR lower(btrim(assertion."assertedParentName"))<>bridge.asserted_parent_normalized_name
+       OR assertion."verificationStatus"<>'parsed'
+       OR assertion."parentIdentityId" IS NOT NULL
+       OR identity.id IS NULL
+       OR identity."sourceProvider"<>'galtd'
+       OR identity."sourceId"<>bridge.subject_source_id
+       OR identity."dogId"<>bridge.subject_dog_id
+       OR identity."verificationStatus"<>'verified'
+       OR subject.id IS NULL
+       OR subject.name<>bridge.target_name
+       OR subject."sourceProvider"<>'galtd'
+       OR subject."sourceId"<>bridge.subject_source_id
+       OR parent.id IS NULL
+       OR parent.name<>bridge.parent_name
+       OR parent."sourceProvider"<>'galtd'
+       OR parent."sourceId"<>bridge.parent_source_id
+       OR (
+         CASE bridge.relationship WHEN 'sire' THEN target."sireId" ELSE target."damId" END
+       ) IS NOT NULL AND (
+         CASE bridge.relationship WHEN 'sire' THEN target."sireId" ELSE target."damId" END
+       ) IS DISTINCT FROM bridge.parent_dog_id
+  ) THEN
+    RAISE EXCEPTION 'reviewed GALTD exact-ID bridge no longer matches its audited Stage 11 evidence';
+  END IF;
+END
+$$;
+
+CREATE TEMP TABLE expected_reviewed_galtd_bridge_ledger AS
+SELECT
+  pg_temp.history_id(
+    'pedledger',
+    'forward:reviewed-galtd-bridge:' || bridge.assertion_id || ':' || bridge.target_dog_id
+  ) AS id,
+  assertion."importRunId",
+  assertion."sourceProvider",
+  assertion."artifactSha256",
+  assertion.id AS "assertionId",
+  assertion.id AS "winningAssertionId",
+  bridge.target_dog_id AS "dogId",
+  CASE WHEN prior.id IS NOT NULL THEN prior."existingParentDogId"
+       WHEN bridge.relationship='sire' THEN target."sireId"
+       ELSE target."damId" END AS "existingParentDogId",
+  bridge.parent_dog_id AS "proposedParentDogId",
+  bridge.relationship,
+  'accepted'::text AS decision,
+  'operator-attested-exact-id-bridge'::text AS "reasonCode",
+  100::integer AS "sourceAuthority",
+  'verified'::text AS "verificationStatus",
+  assertion."createdAt"
+FROM reviewed_galtd_bridge bridge
+JOIN public."PedigreeAssertion" assertion ON assertion.id=bridge.assertion_id
+JOIN public."Dog" target ON target.id=bridge.target_dog_id
+LEFT JOIN public."PedigreeMergeLedger" prior
+  ON prior.id=pg_temp.history_id(
+    'pedledger',
+    'forward:reviewed-galtd-bridge:' || bridge.assertion_id || ':' || bridge.target_dog_id
+  );
+
+INSERT INTO public."PedigreeMergeLedger"
+SELECT * FROM expected_reviewed_galtd_bridge_ledger
+ON CONFLICT(id) DO NOTHING;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM expected_reviewed_galtd_bridge_ledger expected
+    LEFT JOIN public."PedigreeMergeLedger" canonical USING(id)
+    WHERE canonical.id IS NULL OR to_jsonb(canonical) IS DISTINCT FROM to_jsonb(expected)
+  ) THEN
+    RAISE EXCEPTION 'reviewed GALTD bridge exact-ID retry detected full-row payload drift';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM expected_reviewed_galtd_bridge_ledger ledger
+    JOIN public."Dog" dog ON dog.id=ledger."dogId"
+    WHERE (CASE ledger.relationship WHEN 'sire' THEN dog."sireId" ELSE dog."damId" END)
+          IS NOT NULL
+      AND (CASE ledger.relationship WHEN 'sire' THEN dog."sireId" ELSE dog."damId" END)
+          IS DISTINCT FROM ledger."proposedParentDogId"
+  ) THEN
+    RAISE EXCEPTION 'reviewed GALTD bridge drifted from an existing parent identity';
+  END IF;
+END
+$$;
+
 CREATE TEMP TABLE thedogs_decision AS
 SELECT
   pg_temp.history_id('pedledger','forward:thedogs:' || assertion.assertion_id) AS ledger_id,
@@ -869,12 +1036,21 @@ $$;
 CREATE TEMP TABLE accepted_parent_update AS
 SELECT ledger."dogId" AS child_id,
        ledger."proposedParentDogId" AS parent_id,
-       ledger.relationship
+       ledger.relationship,
+       'thedogs'::text AS update_source
 FROM expected_thedogs_ledger ledger
 JOIN public."Dog" dog ON dog.id=ledger."dogId"
 WHERE ledger.decision='accepted'
   AND ledger."proposedParentDogId" IS NOT NULL
-  AND (CASE ledger.relationship WHEN 'sire' THEN dog."sireId" ELSE dog."damId" END) IS NULL;
+  AND (CASE ledger.relationship WHEN 'sire' THEN dog."sireId" ELSE dog."damId" END) IS NULL
+UNION ALL
+SELECT ledger."dogId",
+       ledger."proposedParentDogId",
+       ledger.relationship,
+       'reviewed-galtd-bridge'::text
+FROM expected_reviewed_galtd_bridge_ledger ledger
+JOIN public."Dog" dog ON dog.id=ledger."dogId"
+WHERE (CASE ledger.relationship WHEN 'sire' THEN dog."sireId" ELSE dog."damId" END) IS NULL;
 
 CREATE UNIQUE INDEX accepted_parent_update_child_relation_key
   ON accepted_parent_update(child_id,relationship);
@@ -1029,10 +1205,17 @@ SELECT jsonb_pretty(jsonb_build_object(
     'sourceIdentities',(SELECT count(*) FROM expected_thedogs_identity),
     'directDogIdentities',(SELECT count(*) FROM expected_thedogs_identity WHERE "dogId" IS NOT NULL),
     'assertions',(SELECT count(*) FROM expected_thedogs_assertion),
-    'acceptedParentUpdates',(SELECT count(*) FROM accepted_parent_update),
+    'acceptedParentUpdates',(SELECT count(*) FROM accepted_parent_update
+                             WHERE update_source='thedogs'),
     'decisions',(SELECT jsonb_object_agg(decision,total)
                  FROM (SELECT decision,count(*) AS total
                        FROM expected_thedogs_ledger GROUP BY decision ORDER BY decision) counts)
+  ),
+  'reviewedGaltdBridge',jsonb_build_object(
+    'exactLinks',(SELECT count(*) FROM reviewed_galtd_bridge),
+    'parentUpdates',(SELECT count(*) FROM accepted_parent_update
+                     WHERE update_source='reviewed-galtd-bridge'),
+    'targetDogs',(SELECT count(DISTINCT target_dog_id) FROM reviewed_galtd_bridge)
   ),
   'protectedRelations',(SELECT jsonb_object_agg(relation_name,row_count)
                         FROM protected_after),

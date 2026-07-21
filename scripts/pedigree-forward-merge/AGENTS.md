@@ -9,7 +9,7 @@
 - Apply requires `PEDIGREE_MERGE_MODE=apply` and the exact confirmation string enforced by `entrypoint.sh`.
 - Never update or delete `Meeting`, `Race`, `RaceVideo`, or `Runner` rows.
 - Never update `Dog.sourceProvider` or `Dog.sourceId`.
-- Never match or link a parent by name. Only exact `thedogs` child and parent source IDs may mutate `Dog.sireId` or `Dog.damId`.
+- Never dynamically match or link a parent by name. The only GALTD exception is the four reviewed Cumbria Jack / Coast Rig links bound to exact Stage 11 dog IDs, assertion IDs, evidence hashes, and parent IDs; all other mutations require exact `thedogs` child and parent source IDs.
 - GALTD Volumes 66-73 are retained as append-only observations and assertions. Conflicts remain quarantined and unresolved parent names remain evidence only.
 - The job is one-off: do not create or modify a Cloud Scheduler schedule.
 

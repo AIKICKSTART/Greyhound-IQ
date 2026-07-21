@@ -54,8 +54,7 @@ test("Dog writes are restricted to parent IDs and updatedAt", () => {
 
 test("forced-RLS pedigree writes use only transaction-local system context", () => {
   assert.match(sql, /SET LOCAL app\.system = 'true';/);
-  assert.match(sql, /SET LOCAL app\.current_role = 'system';/);
-  assert.match(sql, /SET LOCAL app\.current_tier = 'system';/);
+  assert.doesNotMatch(sql, /SET LOCAL app\.current_(?:role|tier)/);
   assert.doesNotMatch(entrypoint, /PGOPTIONS=.*app\.system/);
 });
 

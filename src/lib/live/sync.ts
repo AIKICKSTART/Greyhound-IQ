@@ -1090,15 +1090,13 @@ async function loadExactDogIdentityClaims(
     const keyByLegacy = new Map(
       claimChunk.map((claim) => [claim.legacyKey, claim.key]),
     );
+    const providerConditions = providerIdentityConditions(claimChunk);
     const rows = await db.dog.findMany({
       where: {
-        OR: claimChunk.flatMap((claim) => [
-          {
-            sourceProvider: claim.sourceProvider,
-            sourceId: claim.sourceId,
-          },
-          { earBrand: claim.legacyKey },
-        ]),
+        OR: [
+          ...providerConditions,
+          { earBrand: { in: claimChunk.map((claim) => claim.legacyKey) } },
+        ],
       },
       select: {
         id: true,
@@ -1125,10 +1123,7 @@ async function loadExactDogIdentityClaims(
       where: {
         verificationStatus: "verified",
         dogId: { not: null },
-        OR: claimChunk.map((claim) => ({
-          sourceProvider: claim.sourceProvider,
-          sourceId: claim.sourceId,
-        })),
+        OR: providerConditions,
       },
       select: {
         dogId: true,
@@ -1150,6 +1145,19 @@ async function loadExactDogIdentityClaims(
   }
 
   return { idsByClaim, saturatedClaims };
+}
+
+function providerIdentityConditions(claims: DogIdentityClaim[]) {
+  const sourceIdsByProvider = new Map<string, Set<string>>();
+  for (const claim of claims) {
+    const sourceIds = sourceIdsByProvider.get(claim.sourceProvider) ?? new Set<string>();
+    sourceIds.add(claim.sourceId);
+    sourceIdsByProvider.set(claim.sourceProvider, sourceIds);
+  }
+  return [...sourceIdsByProvider].map(([sourceProvider, sourceIds]) => ({
+    sourceProvider,
+    sourceId: { in: [...sourceIds] },
+  }));
 }
 
 async function loadNaturalDogCandidates(

@@ -22,6 +22,7 @@ async function main() {
   await rejectsPrototypeCreation();
   await resolvesLegacyExactKeyWithoutMutation();
   await createsOnlyStableIdentityIdempotently();
+  await groupsExactLookupsByProvider();
   console.log("live dog identity sync tests passed");
 }
 
@@ -269,6 +270,47 @@ async function createsOnlyStableIdentityIdempotently() {
   assert.equal(createdData?.earBrand, undefined);
   assert.equal("sireId" in (createdData ?? {}), false);
   assert.equal("damId" in (createdData ?? {}), false);
+}
+
+async function groupsExactLookupsByProvider() {
+  let exactQuery:
+    | { where?: { OR?: Array<Record<string, unknown>> } }
+    | undefined;
+  await captureWarnings(async () => {
+    await ensureDogs(
+      {
+        dog: {
+          findMany: async (args: {
+            where?: { OR?: Array<Record<string, unknown>> };
+          }) => {
+            if (!isNaturalLookup(args) && !exactQuery) exactQuery = args;
+            return [];
+          },
+          createMany: async () => ({ count: 0 }),
+        },
+        dogSourceIdentity: { findMany: async () => [] },
+      } as never,
+      [
+        { sourceProvider: "provider-a", sourceId: "1", name: "Dog A" },
+        { sourceProvider: "provider-a", sourceId: "2", name: "Dog B" },
+        { sourceProvider: "provider-b", sourceId: "3", name: "Dog C" },
+      ],
+    );
+  });
+
+  const conditions = exactQuery?.where?.OR ?? [];
+  const providerConditions = conditions.filter(
+    (condition) => "sourceProvider" in condition,
+  );
+  assert.equal(providerConditions.length, 2);
+  assert.deepEqual(
+    providerConditions.map((condition) => condition.sourceProvider).sort(),
+    ["provider-a", "provider-b"],
+  );
+  assert.deepEqual(
+    (providerConditions[0]?.sourceId as { in?: string[] }).in,
+    ["1", "2"],
+  );
 }
 
 function isNaturalLookup(args: {

@@ -238,13 +238,12 @@ function WhyGreyhoundIQSection() {
     <section
       className="giq-home-why-section giq-comparison-section relative mx-auto max-w-7xl px-6 py-12 md:py-14"
     >
-      <div
-        className="giq-comparison-heading"
-        data-onboarding-priority="high"
-        data-onboarding-target="public-home-value"
-      >
+      <div className="giq-comparison-heading">
         <div>
-          <h2>
+          <h2
+            data-onboarding-priority="high"
+            data-onboarding-target="public-home-value"
+          >
             Why <span className="giq-text-purple-glass">Greyhound</span><span className="giq-text-gold-glass">IQ?</span>
           </h2>
           <p>

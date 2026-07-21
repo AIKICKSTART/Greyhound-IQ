@@ -143,6 +143,10 @@ for (const marker of [
   assert.ok(meetingPage.includes(marker), `meeting page must preserve ${marker}`);
 }
 
+const racePage = readFileSync("src/app/races/[id]/page.tsx", "utf8");
+assert.match(racePage, /referrerPolicy="strict-origin-when-cross-origin"/);
+assert.doesNotMatch(racePage, /referrerPolicy="no-referrer"/);
+
 const queriesSource = readFileSync("src/lib/queries.ts", "utf8");
 for (const marker of [
   "export const getMeetingById = cache(async (id: string) => {",

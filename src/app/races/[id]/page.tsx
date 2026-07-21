@@ -830,7 +830,7 @@ function ReplayEmbed({
           className="absolute inset-0 h-full w-full border-0"
           loading="lazy"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          referrerPolicy="no-referrer"
+          referrerPolicy="strict-origin-when-cross-origin"
           sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
           allowFullScreen
         />

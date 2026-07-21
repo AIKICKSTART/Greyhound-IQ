@@ -52,6 +52,13 @@ test("Dog writes are restricted to parent IDs and updatedAt", () => {
   assert.match(sql, /nameOnlyParentsLinked',0/);
 });
 
+test("forced-RLS pedigree writes use only transaction-local system context", () => {
+  assert.match(sql, /SET LOCAL app\.system = 'true';/);
+  assert.match(sql, /SET LOCAL app\.current_role = 'system';/);
+  assert.match(sql, /SET LOCAL app\.current_tier = 'system';/);
+  assert.doesNotMatch(entrypoint, /PGOPTIONS=.*app\.system/);
+});
+
 test("verification is rollback-only and apply is exactly confirmed", () => {
   assert.match(entrypoint, /PEDIGREE_MERGE_MODE:-verify/);
   assert.match(entrypoint, /APPLY-PEDIGREE-ONLY-STAGE11-R2-20260721/);

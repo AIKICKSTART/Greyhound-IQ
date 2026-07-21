@@ -6,6 +6,9 @@ SET LOCAL lock_timeout = '10s';
 SET LOCAL statement_timeout = '55min';
 SET LOCAL idle_in_transaction_session_timeout = '60min';
 SET LOCAL search_path = public, pg_temp;
+SET LOCAL app.system = 'true';
+SET LOCAL app.current_role = 'system';
+SET LOCAL app.current_tier = 'system';
 
 SELECT pg_advisory_xact_lock(hashtextextended('greyhoundiq:pedigree-forward-merge:stage11-r2', 0));
 

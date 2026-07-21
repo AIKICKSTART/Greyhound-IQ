@@ -536,7 +536,7 @@ jobs:
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
           set -euo pipefail
-          scheduler_name="greyhoundiq-$ENV_NAME-community-readiness"
+          scheduler_name="greyhoundiq-$ENV_NAME-media-maintenance"
           scheduler_json="$(
             gcloud scheduler jobs describe "$scheduler_name" \
               --location "$REGION" \
@@ -548,7 +548,7 @@ jobs:
               <<<"$scheduler_json"
           )"
           if [ "${#internal_secret}" -lt 20 ]; then
-            echo "::error::The reviewed community-readiness Scheduler header is missing or invalid."
+            echo "::error::The reviewed media-maintenance Scheduler header is missing or invalid."
             exit 1
           fi
           echo "::add-mask::$internal_secret"

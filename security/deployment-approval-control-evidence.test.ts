@@ -52,6 +52,10 @@ const liveKitGate =
   cloudRunWorkflow.match(
     /- name: Post-deploy LiveKit connectivity check \(staging only\)[\s\S]*?\n      - name: Promote tested revisions/u,
   )?.[0] ?? "";
+assert.match(
+  liveKitGate,
+  /scheduler_name="greyhoundiq-\$ENV_NAME-media-maintenance"/u,
+);
 assert.match(liveKitGate, /gcloud scheduler jobs describe "\$scheduler_name"/u);
 assert.match(liveKitGate, /\$CANDIDATE_URL\/api\/internal\/community-readiness/u);
 assert.match(liveKitGate, /\.checks\.livekit == "ok"/u);

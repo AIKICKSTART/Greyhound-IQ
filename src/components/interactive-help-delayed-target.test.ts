@@ -3,14 +3,22 @@ import { readFileSync } from "node:fs";
 
 const helpSource = readFileSync("src/components/interactive-help.tsx", "utf8");
 
-assert.match(helpSource, /new MutationObserver\(scheduleResolution\)/);
-assert.match(helpSource, /observer\.observe\(document\.body/);
+assert.match(helpSource, /new MutationObserver\(\(mutations\) =>/);
+assert.match(helpSource, /observer\.observe\(\s*document\.body/);
 assert.match(helpSource, /childList: true/);
 assert.match(helpSource, /subtree: true/);
 assert.match(helpSource, /data-onboarding-target/);
-assert.match(helpSource, /scheduledFrame = window\.requestAnimationFrame\(resolveTarget\)/);
+assert.match(
+  helpSource,
+  /scheduledFrame = window\.requestAnimationFrame\(resolveTarget\)/,
+);
 assert.match(helpSource, /if \(scheduledFrame !== null\) return/);
-assert.match(helpSource, /if \(primary\) observer\.disconnect\(\)/);
+assert.match(
+  helpSource,
+  /observeTargetChanges\(primary \? "resolved" : "resolving"\)/,
+);
+assert.match(helpSource, /new ResizeObserver\(\(\) =>/);
+assert.match(helpSource, /scrollAttemptRef\.current\.clear\(\)/);
 assert.match(helpSource, /observer\.disconnect\(\)/);
 assert.match(helpSource, /window\.cancelAnimationFrame\(scheduledFrame\)/);
 assert.match(helpSource, /this step will attach if it loads/);

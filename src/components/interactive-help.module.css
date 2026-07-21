@@ -2,14 +2,25 @@
   position: fixed;
   pointer-events: auto;
   overflow: visible;
+  isolation: isolate;
 }
 
-.popup[data-help-ready="false"] {
-  visibility: hidden;
-}
-
-.popup[data-help-placement="viewport"]::after {
+.popup[data-help-placement="viewport"]::after,
+.popup[data-help-placement="sheet"]::after {
   display: none;
+}
+
+.popup[data-help-placement="sheet"]::before {
+  position: absolute;
+  z-index: 2;
+  top: 7px;
+  left: 50%;
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: hsl(var(--metal-silver-bright) / 0.34);
+  content: "";
+  transform: translateX(-50%);
 }
 
 .popup::after {
@@ -51,11 +62,49 @@
 }
 
 .content {
+  position: relative;
+  display: flex;
+  min-height: 0;
   max-height: inherit;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: inherit;
+  padding-block: max(1rem, env(safe-area-inset-top, 0px))
+    max(0.75rem, env(safe-area-inset-bottom, 0px));
+  padding-inline: max(1rem, env(safe-area-inset-left, 0px))
+    max(1rem, env(safe-area-inset-right, 0px));
+  background:
+    radial-gradient(
+      circle at 8% -10%,
+      hsl(var(--primary-bright) / 0.2),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 100% 0%,
+      hsl(var(--secondary-light) / 0.1),
+      transparent 34%
+    ),
+    linear-gradient(
+      160deg,
+      hsl(var(--surface-2) / 0.98),
+      hsl(var(--surface-1) / 0.99) 52%,
+      hsl(var(--background) / 0.98)
+    );
+}
+
+.body {
+  min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  border-radius: inherit;
-  padding: 1rem;
+  scrollbar-gutter: stable;
+}
+
+@media (max-height: 500px) {
+  .content {
+    padding-block: max(0.75rem, env(safe-area-inset-top, 0px))
+      max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .secondaryControl {

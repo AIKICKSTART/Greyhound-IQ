@@ -92,10 +92,7 @@ assert.deepEqual(
 
 const dynamicRoutes = [
   ["/dogs/example-dog", "/dogs/[id]"],
-  [
-    "/meetings/demo-provider-meeting",
-    "/meetings/[id]",
-  ],
+  ["/meetings/demo-provider-meeting", "/meetings/[id]"],
   ["/races/example-race", "/races/[id]"],
   ["/tracks/example-track", "/tracks/[id]"],
 ] as const;
@@ -160,10 +157,8 @@ for (const tour of RACING_ONBOARDING_ROUTE_TOURS) {
           "/design-lab?area=screens",
           { audience, fallback, route: tour.route, step },
         );
-        const params = new URL(
-          scenarioUrl,
-          "https://greyhoundsiq.invalid",
-        ).searchParams;
+        const params = new URL(scenarioUrl, "https://greyhoundsiq.invalid")
+          .searchParams;
         const scenario = resolveDesignLabScenarioState(params);
         assert.equal(
           scenario.auth,
@@ -247,7 +242,10 @@ const deniedPreview = resolveRacingOnboardingPreview({
   step: 4,
 });
 assert.equal(deniedPreview.status, "unavailable");
-assert.doesNotMatch(JSON.stringify(deniedPreview), /races|runner|settled|result/i);
+assert.doesNotMatch(
+  JSON.stringify(deniedPreview),
+  /races|runner|settled|result/i,
+);
 
 const rootLayoutSource = readFileSync("src/app/layout.tsx", "utf8");
 const headerSource = readFileSync("src/components/site-header.tsx", "utf8");
@@ -277,7 +275,7 @@ assert.match(
 assert.match(interactiveHelpSource, /findVisibleOnboardingTarget/);
 assert.match(interactiveHelpSource, /getClientRects\(\)\.length > 0/);
 assert.match(interactiveHelpSource, /prefers-reduced-motion: reduce/);
-assert.match(interactiveHelpSource, /previousFocus\?\.isConnected/);
+assert.match(interactiveHelpSource, /finalFocus=\{resolveFinalFocus\}/);
 assert.match(
   interactiveHelpSource,
   /function dismissHelp\(\)[\s\S]*updateInteractiveHelpProgress\(progressStorageKey, "disable"\)[\s\S]*updateInteractiveHelp\("disable"\)/,

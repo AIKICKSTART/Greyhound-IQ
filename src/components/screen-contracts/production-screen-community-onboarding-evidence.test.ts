@@ -197,10 +197,8 @@ for (const tour of COMMUNITY_ONBOARDING_ROUTE_TOURS) {
           "/design-lab?area=screens",
           { audience, fallback, route: tour.route, step },
         );
-        const params = new URL(
-          scenarioUrl,
-          "https://greyhoundsiq.invalid",
-        ).searchParams;
+        const params = new URL(scenarioUrl, "https://greyhoundsiq.invalid")
+          .searchParams;
         const scenario = resolveDesignLabScenarioState(params);
         assert.equal(
           scenario.auth,
@@ -335,7 +333,7 @@ assert.match(
 );
 assert.match(interactiveHelpSource, /getClientRects\(\)\.length > 0/);
 assert.match(interactiveHelpSource, /prefers-reduced-motion: reduce/);
-assert.match(interactiveHelpSource, /previousFocus\?\.isConnected/);
+assert.match(interactiveHelpSource, /finalFocus=\{resolveFinalFocus\}/);
 assert.match(
   interactiveHelpSource,
   /function dismissHelp\(\)[\s\S]*updateInteractiveHelpProgress\(progressStorageKey, "disable"\)[\s\S]*updateInteractiveHelp\("disable"\)/,

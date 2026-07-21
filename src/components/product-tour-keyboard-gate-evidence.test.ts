@@ -26,8 +26,19 @@ import { RACING_ONBOARDING_ROUTE_TOURS } from "./racing-onboarding-tour-registry
 
 const REPOSITORY_ROOT = path.resolve(__dirname, "../..");
 const INTERACTIVE_HELP_SOURCE = "src/components/interactive-help.tsx";
-const NATIVE_ACTIVATION_TAGS = new Set(["a", "button", "input", "select", "summary", "textarea"]);
-const ACTIVATION_ATTRIBUTES = new Set(["onClick", "onMouseDown", "onPointerDown"]);
+const NATIVE_ACTIVATION_TAGS = new Set([
+  "a",
+  "button",
+  "input",
+  "select",
+  "summary",
+  "textarea",
+]);
+const ACTIVATION_ATTRIBUTES = new Set([
+  "onClick",
+  "onMouseDown",
+  "onPointerDown",
+]);
 
 const tourGroups = [
   ADMIN_ONBOARDING_ROUTE_TOURS,
@@ -62,7 +73,11 @@ for (const evidencePath of evidence.evidence) {
   assert.equal(existsSync(resolveRepoPath(evidencePath)), true, evidencePath);
 }
 
-assert.equal(tours.length, 87, "all registered route tours must use the shared keyboard path");
+assert.equal(
+  tours.length,
+  87,
+  "all registered route tours must use the shared keyboard path",
+);
 assert.equal(
   tours.reduce((total, tour) => total + tour.steps.length, 0),
   435,
@@ -75,7 +90,11 @@ assert.equal(
 );
 for (const tour of tours) {
   assert.ok(tour.steps.length > 0, tour.route);
-  assert.equal(new Set(tour.steps.map(({ id }) => id)).size, tour.steps.length, tour.route);
+  assert.equal(
+    new Set(tour.steps.map(({ id }) => id)).size,
+    tour.steps.length,
+    tour.route,
+  );
   for (const step of tour.steps) {
     assert.ok(step.id.trim(), `${tour.route}: step id`);
     assert.ok(step.title.trim(), `${tour.route}: step title`);
@@ -89,15 +108,19 @@ const interactiveHelp = source(INTERACTIVE_HELP_SOURCE);
 assert.deepEqual(findTourKeyboardGateIssues(interactiveHelp), []);
 assert.match(interactiveHelp, /disabled=\{stepIndex === 0\}/);
 assert.match(interactiveHelp, /changeStep\(stepIndex - 1\)/);
-assert.match(interactiveHelp, /onClick=\{skipCurrentStep\}/);
+assert.match(interactiveHelp, /onClick=\{skipTour\}/);
 assert.match(interactiveHelp, /if \(lastStep\) closeAndComplete\(\);/);
 assert.match(interactiveHelp, /else changeStep\(stepIndex \+ 1\);/);
 assert.match(interactiveHelp, />\s*Back\s*<\/button>/);
 assert.match(interactiveHelp, /\bFinish\b/);
 assert.match(interactiveHelp, /\bNext\b/);
-assert.match(interactiveHelp, /\bSkip step\b/);
+assert.match(interactiveHelp, /\bSkip tour\b/);
 assert.match(interactiveHelp, /document\.activeElement instanceof HTMLElement/);
-assert.match(interactiveHelp, /previousFocus\?\.isConnected\) previousFocus\.focus\(\)/);
+assert.match(interactiveHelp, /finalFocus=\{resolveFinalFocus\}/);
+assert.match(
+  interactiveHelp,
+  /document\.addEventListener\("focusin", captureFocus\)/,
+);
 assert.match(interactiveHelp, /aria-live="polite"/);
 
 const sheet = source("src/components/ui/sheet.tsx");
@@ -109,9 +132,18 @@ assert.match(sheet, /SheetPrimitive\.Close/);
 const globalInteractionGate = source(
   "src/components/global-accessibility-interaction.test.ts",
 );
-assert.match(globalInteractionGate, /const sourceRoots = \["src\/app", "src\/components"\]/);
-assert.match(globalInteractionGate, /all direct activation surfaces must be native controls/i);
-assert.match(globalInteractionGate, /positive tab indices break visual and keyboard focus order/i);
+assert.match(
+  globalInteractionGate,
+  /const sourceRoots = \["src\/app", "src\/components"\]/,
+);
+assert.match(
+  globalInteractionGate,
+  /all direct activation surfaces must be native controls/i,
+);
+assert.match(
+  globalInteractionGate,
+  /positive tab indices break visual and keyboard focus order/i,
+);
 
 const missingNext = interactiveHelp.replace(
   "else changeStep(stepIndex + 1);",
@@ -120,16 +152,31 @@ const missingNext = interactiveHelp.replace(
 assert.ok(
   findTourKeyboardGateIssues(missingNext).includes("next transition missing"),
 );
-assert.deepEqual(findKeyboardSourceIssues("const Broken = () => <div onClick={next}>Next</div>;"), [
-  "non-native activation at div:onClick",
-]);
-assert.deepEqual(findKeyboardSourceIssues("const Broken = () => <button tabIndex={2}>Next</button>;"), [
-  "positive tab index at button",
-]);
+assert.deepEqual(
+  findKeyboardSourceIssues(
+    "const Broken = () => <div onClick={next}>Next</div>;",
+  ),
+  ["non-native activation at div:onClick"],
+);
+assert.deepEqual(
+  findKeyboardSourceIssues(
+    "const Broken = () => <button tabIndex={2}>Next</button>;",
+  ),
+  ["positive tab index at button"],
+);
 
-assert.match(PRODUCT_TOUR_KEYBOARD_GATE_SCOPE, /87 registered onboarding tours and 435 steps/i);
-assert.match(PRODUCT_TOUR_KEYBOARD_GATE_SCOPE, /negative broken-control fixtures/i);
-assert.match(PRODUCT_TOUR_KEYBOARD_GATE_SCOPE, /does not prove rendered focus traversal/i);
+assert.match(
+  PRODUCT_TOUR_KEYBOARD_GATE_SCOPE,
+  /87 registered onboarding tours and 435 steps/i,
+);
+assert.match(
+  PRODUCT_TOUR_KEYBOARD_GATE_SCOPE,
+  /negative broken-control fixtures/i,
+);
+assert.match(
+  PRODUCT_TOUR_KEYBOARD_GATE_SCOPE,
+  /does not prove rendered focus traversal/i,
+);
 assert.match(PRODUCT_TOUR_KEYBOARD_GATE_SCOPE, /production readiness/i);
 
 console.log(
@@ -182,10 +229,10 @@ function findTourKeyboardGateIssues(sourceText: string) {
     ...findKeyboardSourceIssues(sourceText),
     ...[
       [/changeStep\(stepIndex - 1\)/, "back transition missing"],
-      [/onClick=\{skipCurrentStep\}/, "skip transition missing"],
+      [/onClick=\{skipTour\}/, "skip transition missing"],
       [/else changeStep\(stepIndex \+ 1\);/, "next transition missing"],
       [/if \(lastStep\) closeAndComplete\(\);/, "finish transition missing"],
-      [/previousFocus\?\.isConnected\) previousFocus\.focus\(\)/, "focus restoration missing"],
+      [/finalFocus=\{resolveFinalFocus\}/, "focus restoration missing"],
     ].flatMap(([pattern, issue]) =>
       (pattern as RegExp).test(sourceText) ? [] : [issue as string],
     ),

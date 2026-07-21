@@ -142,7 +142,7 @@ assert.equal(onboardingExclusions.length, 10);
 for (const contract of SCREEN_CONTRACTS) {
   if (contract.onboardingTourId) {
     assert.equal(contract.onboardingTourId, contract.onboardingTourId.trim());
-    assert.match(contract.onboardingTourId, /^tour:[a-z-]+:v1$/);
+    assert.match(contract.onboardingTourId, /^tour:[a-z-]+:v[1-9]\d*$/);
     continue;
   }
   assert.equal(contract.coverage.onboarding.status, "excluded", contract.route);

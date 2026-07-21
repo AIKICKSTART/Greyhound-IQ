@@ -29,7 +29,7 @@ assert.match(
 assert.match(menuSource, /Reset all tours on this device/);
 assert.match(menuSource, /href="\/account\/support#help-topics"/);
 assert.match(menuSource, /href="\/contact"/);
-assert.match(menuSource, /Skip step/);
+assert.match(menuSource, /Skip tour/);
 assert.doesNotMatch(centreSource, /dangerouslySetInnerHTML/);
 assert.doesNotMatch(centreSource, /\bfetch\s*\(/);
 

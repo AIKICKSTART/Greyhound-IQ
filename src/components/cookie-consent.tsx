@@ -20,6 +20,7 @@ export function CookieConsentBanner() {
     <div
       role="region"
       aria-label="Cookie preferences"
+      data-viewport-obstruction="bottom"
       className="giq-cookie-banner race-panel fixed bottom-3 left-1/2 z-50 w-[calc(100vw-24px)] max-w-5xl -translate-x-1/2 px-4 py-4 shadow-2xl shadow-black/45 backdrop-blur-md"
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

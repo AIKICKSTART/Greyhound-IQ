@@ -32,18 +32,24 @@ const sorted = (values: readonly string[]) => [...values].sort();
 const tourRoutes = ADMIN_ONBOARDING_ROUTE_TOURS.map(({ route }) => route);
 
 assert.equal(ADMIN_ONBOARDING_ROUTE_TOURS.length, 32);
-assert.deepEqual(sorted(tourRoutes), sorted(ADMIN_NAV_ITEMS.map(({ href }) => href)));
+assert.deepEqual(
+  sorted(tourRoutes),
+  sorted(ADMIN_NAV_ITEMS.map(({ href }) => href)),
+);
 assert.deepEqual(
   sorted(tourRoutes),
   sorted(ADMIN_AUTHORIZATION_INVENTORY.pages.map(({ id }) => id)),
 );
 assert.deepEqual(
   sorted(tourRoutes),
-  sorted(PRODUCTION_SCREEN_ADMIN_ACCESS_STATE_CONTRACTS.map(({ route }) => route)),
+  sorted(
+    PRODUCTION_SCREEN_ADMIN_ACCESS_STATE_CONTRACTS.map(({ route }) => route),
+  ),
 );
 assert.equal(
-  ADMIN_ONBOARDING_ROUTE_TOURS.filter(({ minimumRole }) => minimumRole === "admin")
-    .length,
+  ADMIN_ONBOARDING_ROUTE_TOURS.filter(
+    ({ minimumRole }) => minimumRole === "admin",
+  ).length,
   23,
 );
 assert.equal(
@@ -80,7 +86,10 @@ for (const tour of ADMIN_ONBOARDING_ROUTE_TOURS) {
   const authorization = ADMIN_AUTHORIZATION_INVENTORY.pages.find(
     ({ id }) => id === tour.route,
   )!;
-  assert.match(readFileSync(authorization.sourceFile, "utf8"), /AdminPageHeader/);
+  assert.match(
+    readFileSync(authorization.sourceFile, "utf8"),
+    /AdminPageHeader/,
+  );
 
   for (let step = 1; step <= tour.steps.length; step += 1) {
     for (const fallback of [false, true]) {
@@ -154,7 +163,10 @@ for (const targetId of [
   "admin-operator-status",
   "admin-page-content",
 ]) {
-  assert.match(adminLayoutSource, new RegExp(`data-onboarding-target="${targetId}"`));
+  assert.match(
+    adminLayoutSource,
+    new RegExp(`data-onboarding-target="${targetId}"`),
+  );
 }
 assert.match(adminNavSource, /data-onboarding-target="admin-navigation"/);
 assert.match(adminHeaderSource, /data-onboarding-target="admin-page-header"/);
@@ -163,10 +175,10 @@ assert.match(interactiveHelpSource, /buildInteractiveHelpProgressStorageKey/);
 assert.match(interactiveHelpSource, /findVisibleOnboardingTarget/);
 assert.match(interactiveHelpSource, /getClientRects\(\)\.length > 0/);
 assert.match(interactiveHelpSource, /prefers-reduced-motion: reduce/);
-assert.match(interactiveHelpSource, /previousFocus\?\.isConnected/);
+assert.match(interactiveHelpSource, /finalFocus=\{resolveFinalFocus\}/);
 assert.match(
   interactiveHelpSource,
-  /aria-label="Dismiss onboarding help"/,
+  /aria-label="Close and turn off guided help"/,
 );
 assert.match(
   interactiveHelpSource,

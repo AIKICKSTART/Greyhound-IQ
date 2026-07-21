@@ -7208,11 +7208,13 @@ body:has([data-admin-shell]) #main-content {
   outline: 2px solid hsl(var(--primary-light));
   outline-offset: 6px;
   scroll-margin: 8rem;
-  position: relative;
-  z-index: 73;
   box-shadow: 0 0 0 6px hsl(var(--primary) / 0.14);
   transition: outline-color 160ms ease, outline-offset 160ms ease,
     box-shadow 160ms ease;
+}
+
+body:has([data-viewport-obstruction="bottom"]) .giq-interactive-help-launcher {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

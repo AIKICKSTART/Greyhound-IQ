@@ -120,7 +120,11 @@ export default function HomePage() {
     <div className="giq-home-page">
       <HomeHero />
 
-      <section className="giq-home-features-section relative mx-auto max-w-7xl px-6 py-16">
+      <section
+        className="giq-home-features-section relative mx-auto max-w-7xl px-6 py-16"
+        data-onboarding-priority="high"
+        data-onboarding-target="public-home-features"
+      >
         <div className="giq-home-feature-grid grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => (
             <FeatureCard key={f.title} {...f} />
@@ -142,7 +146,12 @@ async function TodaysRacesSection() {
   const totalRaces = meetings.reduce((acc, m) => acc + m.races.length, 0);
 
   return (
-    <section id="races" className="giq-home-races-section relative mx-auto max-w-7xl px-6 py-8">
+    <section
+      id="races"
+      className="giq-home-races-section relative mx-auto max-w-7xl px-6 py-8"
+      data-onboarding-priority="high"
+      data-onboarding-target="public-home-races"
+    >
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
@@ -184,7 +193,12 @@ async function TodaysRacesSection() {
 
 function TodaysRacesFallback() {
   return (
-    <section id="races" className="giq-home-races-section relative mx-auto max-w-7xl px-6 py-8">
+    <section
+      id="races"
+      className="giq-home-races-section relative mx-auto max-w-7xl px-6 py-8"
+      data-onboarding-priority="high"
+      data-onboarding-target="public-home-races"
+    >
       <div className="mb-6">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
           Today&apos;s Races
@@ -219,7 +233,11 @@ function TodaysRacesFallback() {
 
 function WhyGreyhoundIQSection() {
   return (
-    <section className="giq-home-why-section giq-comparison-section relative mx-auto max-w-7xl px-6 py-12 md:py-14">
+    <section
+      className="giq-home-why-section giq-comparison-section relative mx-auto max-w-7xl px-6 py-12 md:py-14"
+      data-onboarding-priority="high"
+      data-onboarding-target="public-home-value"
+    >
       <div className="giq-comparison-heading">
         <div>
           <h2>

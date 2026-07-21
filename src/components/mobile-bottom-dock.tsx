@@ -140,7 +140,12 @@ export function MobileBottomDock({
     ) || (canAccessAdmin && pathname.startsWith("/admin"));
 
   return (
-    <nav aria-label="Quick actions" className="giq-mobile-dock is-visible">
+    <nav
+      aria-label="Quick actions"
+      className="giq-mobile-dock is-visible"
+      data-onboarding-priority="high"
+      data-onboarding-target="account-navigation agents-navigation community-navigation marketplace-navigation public-navigation racing-navigation"
+    >
       {DOCK_LINKS.map((item) => {
         const Icon = item.icon;
         const active = isDockLinkActive(pathname, hash, item);

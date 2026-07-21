@@ -93,7 +93,10 @@ assert.equal(
   "/account/support/[id]",
 );
 assert.equal(getAccountOnboardingRouteTour("/account/pages/a/b"), undefined);
-assert.equal(getAccountOnboardingRouteTour("/account/security/extra"), undefined);
+assert.equal(
+  getAccountOnboardingRouteTour("/account/security/extra"),
+  undefined,
+);
 
 for (const tour of ACCOUNT_ONBOARDING_ROUTE_TOURS) {
   assert.equal(tour.authentication, "required", tour.route);
@@ -216,7 +219,7 @@ assert.match(interactiveHelpSource, /resolveContextualOnboardingTour/);
 assert.match(interactiveHelpSource, /findVisibleOnboardingTarget/);
 assert.match(interactiveHelpSource, /getClientRects\(\)\.length > 0/);
 assert.match(interactiveHelpSource, /prefers-reduced-motion: reduce/);
-assert.match(interactiveHelpSource, /previousFocus\?\.isConnected/);
+assert.match(interactiveHelpSource, /finalFocus=\{resolveFinalFocus\}/);
 assert.match(
   interactiveHelpSource,
   /function dismissHelp\(\)[\s\S]*updateInteractiveHelpProgress\(progressStorageKey, "disable"\)[\s\S]*updateInteractiveHelp\("disable"\)/,

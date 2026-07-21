@@ -14,9 +14,13 @@ export type InteractiveHelpDeviceClass =
 export type InteractiveHelpTargetSide = "upper" | "lower" | null;
 
 export type InteractiveHelpViewport = {
+  blocked?: boolean;
+  bottomInset?: number;
   height: number;
   keyboardInset: number;
+  offsetLeft?: number;
   offsetTop: number;
+  topInset?: number;
   width: number;
 };
 
@@ -30,7 +34,7 @@ export type InteractiveHelpTargetBounds = {
 };
 
 export type InteractiveHelpPlacement =
-  "above" | "below" | "left" | "right" | "viewport";
+  "above" | "below" | "left" | "right" | "sheet" | "viewport";
 
 export type InteractiveHelpPopupLayout = {
   arrowOffset: number | null;
@@ -47,12 +51,22 @@ export type InteractiveHelpPopupLayout = {
   width: number;
 };
 
+type InteractiveHelpUsableFrame = {
+  bottom: number;
+  height: number;
+  left: number;
+  right: number;
+  top: number;
+  width: number;
+};
+
 const COMPACT_MAX_WIDTH = 767;
-const MOBILE_NAVIGATION_CLEARANCE = 120;
+const LANDSCAPE_PHONE_MAX_HEIGHT = 500;
+const LANDSCAPE_PHONE_MAX_WIDTH = 1023;
 const KEYBOARD_THRESHOLD = 80;
 const MIN_POPUP_HEIGHT = 180;
-const MAX_POPUP_HEIGHT = 360;
-const MAX_POPUP_WIDTH = 360;
+const MAX_POPUP_HEIGHT = 420;
+const MAX_POPUP_WIDTH = 400;
 const TARGET_GAP = 10;
 const ARROW_EDGE_CLEARANCE = 22;
 
@@ -60,7 +74,7 @@ export function classifyInteractiveHelpDevice(
   width: number,
 ): InteractiveHelpDeviceClass {
   if (width <= 360) return "small-phone";
-  if (width <= 430) return "large-phone";
+  if (width <= 440) return "large-phone";
   if (width <= COMPACT_MAX_WIDTH) return "foldable";
   if (width <= 819) return "tablet-portrait";
   if (width <= 1023) return "tablet-landscape";
@@ -74,26 +88,20 @@ export function resolveInteractiveHelpPopupLayout(
   targetSide: InteractiveHelpTargetSide,
   targetBounds: InteractiveHelpTargetBounds | null = null,
 ): InteractiveHelpPopupLayout {
+  const frame = resolveInteractiveHelpUsableFrame(viewport);
   const width = boundedDimension(viewport.width, 320);
   const height = boundedDimension(viewport.height, 320);
-  const offsetTop = Math.max(0, finiteOr(viewport.offsetTop, 0));
   const keyboardInset = Math.max(0, finiteOr(viewport.keyboardInset, 0));
-  const mobile = width <= COMPACT_MAX_WIDTH;
+  const mobile =
+    width <= COMPACT_MAX_WIDTH ||
+    (height <= LANDSCAPE_PHONE_MAX_HEIGHT &&
+      width <= LANDSCAPE_PHONE_MAX_WIDTH);
   const keyboardOpen = mobile && keyboardInset >= KEYBOARD_THRESHOLD;
   const horizontalMargin = mobile ? 12 : 20;
-  const verticalMargin = mobile ? 12 : 20;
-  const navigationClearance = mobile
-    ? keyboardOpen
-      ? 12
-      : MOBILE_NAVIGATION_CLEARANCE
-    : 20;
-  const contentTop = offsetTop + verticalMargin;
-  const contentBottom =
-    offsetTop + height - navigationClearance - verticalMargin;
-  const availableHeight = Math.max(1, contentBottom - contentTop);
+  const availableHeight = Math.max(1, frame.height);
   const popupWidth = Math.min(
     MAX_POPUP_WIDTH,
-    Math.max(1, width - horizontalMargin * 2),
+    Math.max(1, frame.width - horizontalMargin * 2),
   );
   const maxHeight = Math.min(MAX_POPUP_HEIGHT, availableHeight);
   const base = {
@@ -102,7 +110,8 @@ export function resolveInteractiveHelpPopupLayout(
     keyboardOpen,
     maxHeight,
     mobile,
-    navigationClearance,
+    navigationClearance:
+      Math.max(0, finiteOr(viewport.bottomInset, 0)) + (mobile ? 12 : 20),
     scrollBlock:
       targetSide === "upper"
         ? ("start" as const)
@@ -112,28 +121,44 @@ export function resolveInteractiveHelpPopupLayout(
     width: popupWidth,
   };
 
-  if (!targetBounds) {
-    return {
-      ...base,
-      left: width - horizontalMargin,
-      placement: "viewport",
-      top: contentTop,
-      transform: "translateX(-100%)",
-    };
+  const fallbackLayout = () =>
+    mobile
+      ? {
+          ...base,
+          left: frame.left + frame.width / 2,
+          placement: "sheet" as const,
+          top: frame.bottom,
+          transform: "translate(-50%, -100%)",
+        }
+      : {
+          ...base,
+          left: frame.right - horizontalMargin,
+          placement: "viewport" as const,
+          top: frame.top,
+          transform: "translateX(-100%)",
+        };
+
+  if (
+    !targetBounds ||
+    !isFiniteTargetBounds(targetBounds) ||
+    isInteractiveHelpTargetOversized(viewport, targetBounds) ||
+    !doesInteractiveHelpTargetIntersectUsableViewport(viewport, targetBounds)
+  ) {
+    return fallbackLayout();
   }
 
   const targetCenterX = targetBounds.left + targetBounds.width / 2;
   const targetCenterY = targetBounds.top + targetBounds.height / 2;
-  const roomRight = width - horizontalMargin - targetBounds.right - TARGET_GAP;
-  const roomLeft = targetBounds.left - horizontalMargin - TARGET_GAP;
-  const roomBelow = contentBottom - targetBounds.bottom - TARGET_GAP;
-  const roomAbove = targetBounds.top - contentTop - TARGET_GAP;
+  const roomRight = frame.right - targetBounds.right - TARGET_GAP;
+  const roomLeft = targetBounds.left - frame.left - TARGET_GAP;
+  const roomBelow = frame.bottom - targetBounds.bottom - TARGET_GAP;
+  const roomAbove = targetBounds.top - frame.top - TARGET_GAP;
 
   if (!mobile && roomRight >= popupWidth) {
     const top = clamp(
       targetCenterY - maxHeight / 2,
-      contentTop,
-      contentBottom - maxHeight,
+      frame.top,
+      frame.bottom - maxHeight,
     );
     return {
       ...base,
@@ -152,8 +177,8 @@ export function resolveInteractiveHelpPopupLayout(
   if (!mobile && roomLeft >= popupWidth) {
     const top = clamp(
       targetCenterY - maxHeight / 2,
-      contentTop,
-      contentBottom - maxHeight,
+      frame.top,
+      frame.bottom - maxHeight,
     );
     return {
       ...base,
@@ -171,10 +196,10 @@ export function resolveInteractiveHelpPopupLayout(
 
   const horizontalLeft = clamp(
     targetCenterX - popupWidth / 2,
-    horizontalMargin,
-    width - horizontalMargin - popupWidth,
+    frame.left + horizontalMargin,
+    frame.right - horizontalMargin - popupWidth,
   );
-  if (roomBelow >= MIN_POPUP_HEIGHT || roomBelow >= roomAbove) {
+  if (roomBelow >= MIN_POPUP_HEIGHT) {
     return {
       ...base,
       arrowOffset: clamp(
@@ -183,44 +208,115 @@ export function resolveInteractiveHelpPopupLayout(
         popupWidth - ARROW_EDGE_CLEARANCE,
       ),
       left: horizontalLeft,
-      maxHeight: Math.max(1, Math.min(maxHeight, roomBelow)),
+      maxHeight: Math.min(maxHeight, roomBelow),
       placement: "below",
       top: targetBounds.bottom + TARGET_GAP,
       transform: "none",
     };
   }
 
-  return {
-    ...base,
-    arrowOffset: clamp(
-      targetCenterX - horizontalLeft,
-      ARROW_EDGE_CLEARANCE,
-      popupWidth - ARROW_EDGE_CLEARANCE,
-    ),
-    left: horizontalLeft,
-    maxHeight: Math.max(1, Math.min(maxHeight, roomAbove)),
-    placement: "above",
-    top: targetBounds.top - TARGET_GAP,
-    transform: "translateY(-100%)",
-  };
+  if (roomAbove >= MIN_POPUP_HEIGHT) {
+    return {
+      ...base,
+      arrowOffset: clamp(
+        targetCenterX - horizontalLeft,
+        ARROW_EDGE_CLEARANCE,
+        popupWidth - ARROW_EDGE_CLEARANCE,
+      ),
+      left: horizontalLeft,
+      maxHeight: Math.min(maxHeight, roomAbove),
+      placement: "above",
+      top: targetBounds.top - TARGET_GAP,
+      transform: "translateY(-100%)",
+    };
+  }
+
+  return fallbackLayout();
 }
 
 export function resolveInteractiveHelpTargetSide(
   viewport: InteractiveHelpViewport,
   targetCenterY: number,
 ): Exclude<InteractiveHelpTargetSide, null> {
-  const midpoint =
-    Math.max(0, finiteOr(viewport.offsetTop, 0)) +
-    boundedDimension(viewport.height, 320) / 2;
-  return targetCenterY <= midpoint ? "upper" : "lower";
+  const frame = resolveInteractiveHelpUsableFrame(viewport);
+  return targetCenterY <= frame.top + frame.height / 2 ? "upper" : "lower";
+}
+
+export function isInteractiveHelpTargetOversized(
+  viewport: InteractiveHelpViewport,
+  targetBounds: InteractiveHelpTargetBounds,
+) {
+  const frame = resolveInteractiveHelpUsableFrame(viewport);
+  return (
+    targetBounds.height > frame.height * 0.72 ||
+    targetBounds.width > frame.width * 1.05
+  );
+}
+
+export function isInteractiveHelpTargetWithinUsableViewport(
+  viewport: InteractiveHelpViewport,
+  targetBounds: InteractiveHelpTargetBounds,
+) {
+  const frame = resolveInteractiveHelpUsableFrame(viewport);
+  return (
+    targetBounds.top >= frame.top &&
+    targetBounds.bottom <= frame.bottom &&
+    targetBounds.left >= frame.left &&
+    targetBounds.right <= frame.right
+  );
+}
+
+function doesInteractiveHelpTargetIntersectUsableViewport(
+  viewport: InteractiveHelpViewport,
+  targetBounds: InteractiveHelpTargetBounds,
+) {
+  const frame = resolveInteractiveHelpUsableFrame(viewport);
+  return (
+    targetBounds.bottom > frame.top &&
+    targetBounds.top < frame.bottom &&
+    targetBounds.right > frame.left &&
+    targetBounds.left < frame.right
+  );
+}
+
+function resolveInteractiveHelpUsableFrame(
+  viewport: InteractiveHelpViewport,
+): InteractiveHelpUsableFrame {
+  const width = boundedDimension(viewport.width, 320);
+  const height = boundedDimension(viewport.height, 320);
+  const offsetLeft = Math.max(0, finiteOr(viewport.offsetLeft, 0));
+  const offsetTop = Math.max(0, finiteOr(viewport.offsetTop, 0));
+  const compact =
+    width <= COMPACT_MAX_WIDTH ||
+    (height <= LANDSCAPE_PHONE_MAX_HEIGHT &&
+      width <= LANDSCAPE_PHONE_MAX_WIDTH);
+  const margin = compact ? 12 : 20;
+  const topInset = Math.max(0, finiteOr(viewport.topInset, 0));
+  const bottomInset = Math.max(0, finiteOr(viewport.bottomInset, 0));
+  const left = offsetLeft;
+  const right = offsetLeft + width;
+  const top = offsetTop + topInset + margin;
+  const bottom = Math.max(top + 1, offsetTop + height - bottomInset - margin);
+  return {
+    bottom,
+    height: bottom - top,
+    left,
+    right,
+    top,
+    width: right - left,
+  };
+}
+
+function isFiniteTargetBounds(targetBounds: InteractiveHelpTargetBounds) {
+  return Object.values(targetBounds).every(Number.isFinite);
 }
 
 function boundedDimension(value: number, fallback: number) {
   return Math.max(1, finiteOr(value, fallback));
 }
 
-function finiteOr(value: number, fallback: number) {
-  return Number.isFinite(value) ? value : fallback;
+function finiteOr(value: number | undefined, fallback: number) {
+  return Number.isFinite(value) ? (value as number) : fallback;
 }
 
 function clamp(value: number, minimum: number, maximum: number) {

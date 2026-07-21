@@ -54,6 +54,22 @@ const webCandidateDeploy =
   )?.[0] ?? "";
 assert.match(webCandidateDeploy, /--min "\$min_instances"/u);
 assert.match(webCandidateDeploy, /--min-instances 0/u);
+assert.match(
+  cloudRunWorkflow,
+  /rendered_service_min="\$\(jq -r '\.metadata\.annotations\["run\.googleapis\.com\/minScale"\] \/\/ "0"'/u,
+);
+assert.match(
+  cloudRunWorkflow,
+  /rendered_revision_min="\$\(jq -r '\.spec\.template\.metadata\.annotations\["autoscaling\.knative\.dev\/minScale"\] \/\/ "0"'/u,
+);
+assert.match(
+  cloudRunWorkflow,
+  /\[ "\$rendered_service_min" != "\$min_instances" \] \|\|/u,
+);
+assert.match(
+  cloudRunWorkflow,
+  /\[ "\$rendered_revision_min" != "0" \]/u,
+);
 const staleCandidateCleanup =
   cloudRunWorkflow.match(
     /web_service_json="\$\([\s\S]*?gcloud run deploy "\$service"/u,

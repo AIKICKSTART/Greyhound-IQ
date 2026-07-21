@@ -454,6 +454,13 @@ jobs:
             echo "::error::Web runtime identity drifted before scanner deployment."
             exit 1
           fi
+          rendered_service_min="$(jq -r '.metadata.annotations["run.googleapis.com/minScale"] // "0"' <<<"$web_service_json")"
+          rendered_revision_min="$(jq -r '.spec.template.metadata.annotations["autoscaling.knative.dev/minScale"] // "0"' <<<"$web_service_json")"
+          if [ "$rendered_service_min" != "$min_instances" ] || \
+             [ "$rendered_revision_min" != "0" ]; then
+            echo "::error::Web service and candidate revision minimum-instance policy drifted."
+            exit 1
+          fi
           network_interfaces="$(jq -r '.spec.template.metadata.annotations["run.googleapis.com/network-interfaces"] // empty' <<<"$web_service_json")"
           vpc_connector="$(jq -r '.spec.template.metadata.annotations["run.googleapis.com/vpc-access-connector"] // empty' <<<"$web_service_json")"
           vpc_egress="$(jq -r '.spec.template.metadata.annotations["run.googleapis.com/vpc-access-egress"] // empty' <<<"$web_service_json")"

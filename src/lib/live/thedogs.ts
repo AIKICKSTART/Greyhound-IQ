@@ -1,4 +1,9 @@
-import type { LiveDataProvider, LiveMeeting, LiveRace, LiveRunner } from "./provider";
+import type {
+  LiveDataProvider,
+  LiveMeeting,
+  LiveRace,
+  LiveRunner,
+} from "./provider";
 import { raceDateTimeToUtc } from "../race-time";
 import { logExecutionWarn } from "../logger";
 import { readBoundedTextResponse } from "../remote-response";
@@ -7,17 +12,16 @@ const THEDOGS_BASE =
   process.env.THEDOGS_BASE_URL ?? "https://www.thedogs.com.au";
 const THEDOGS_MAX_MEETINGS = Math.min(
   positiveInt(process.env.THEDOGS_MAX_MEETINGS, 80),
-  160
+  160,
 );
 const THEDOGS_CONCURRENCY = Math.min(
   positiveInt(process.env.THEDOGS_CONCURRENCY, 5),
-  10
+  10,
 );
-const THEDOGS_TIME_ZONE =
-  process.env.THEDOGS_TIME_ZONE ?? "Australia/Sydney";
+const THEDOGS_TIME_ZONE = process.env.THEDOGS_TIME_ZONE ?? "Australia/Sydney";
 const THEDOGS_FETCH_TIMEOUT_MS = Math.min(
   positiveInt(process.env.THEDOGS_FETCH_TIMEOUT_MS, 60_000),
-  120_000
+  120_000,
 );
 const THEDOGS_HTML_POLICY = {
   maxBytes: 5 * 1024 * 1024,
@@ -65,11 +69,19 @@ export class TheDogsProvider implements LiveDataProvider {
   }
 
   async fetchResults(days: number): Promise<LiveMeeting[]> {
-    return this.fetchMeetings("recent", days);
+    const dates = recentSydneyDates(days);
+    const meetings = await mapLimit(
+      dates,
+      Math.min(2, THEDOGS_CONCURRENCY),
+      (date) => this.fetchResultsForDate(date),
+    );
+    return meetings.flat();
   }
 
   async fetchResultsForDate(date: string): Promise<LiveMeeting[]> {
-    const index = await this.getText(`/racing?date=${encodeURIComponent(date)}`);
+    const index = await this.getText(
+      `/racing?date=${encodeURIComponent(date)}`,
+    );
     const links = parseMeetingLinks(index)
       .filter((link) => link.date === date)
       .slice(0, THEDOGS_MAX_MEETINGS);
@@ -79,7 +91,7 @@ export class TheDogsProvider implements LiveDataProvider {
 
   private async fetchMeetings(
     kind: FeedKind,
-    days: number
+    days: number,
   ): Promise<LiveMeeting[]> {
     const indexPath = kind === "upcoming" ? "/racing/racecards" : "/racing";
     const index = await this.getText(indexPath);
@@ -94,14 +106,18 @@ export class TheDogsProvider implements LiveDataProvider {
         try {
           const html = await this.getText(link.href);
           const meeting = await this.hydrateFallbackRaceTimes(
-            parseTheDogsMeeting(html, link)
+            parseTheDogsMeeting(html, link),
           );
           return meeting.races.length > 0 ? meeting : null;
         } catch (err) {
-          await logExecutionWarn("live.thedogs.meeting_skipped", {
-            provider: this.name,
-            meetingDate: link.date,
-          }, err);
+          await logExecutionWarn(
+            "live.thedogs.meeting_skipped",
+            {
+              provider: this.name,
+              meetingDate: link.date,
+            },
+            err,
+          );
           return null;
         }
       })
@@ -110,7 +126,7 @@ export class TheDogsProvider implements LiveDataProvider {
 
   private async hydrateFallbackRaceTimes(meeting: LiveMeeting) {
     const fallbackRaces = meeting.races.filter(
-      (race) => race.raceTimeSource === "fallback" && race.sourceId
+      (race) => race.raceTimeSource === "fallback" && race.sourceId,
     );
     if (fallbackRaces.length === 0) return meeting;
 
@@ -132,26 +148,32 @@ export class TheDogsProvider implements LiveDataProvider {
             }),
           };
         } catch (err) {
-          await logExecutionWarn("live.thedogs.race_time_hydration_failed", {
-            provider: this.name,
-            raceNumber: race.raceNumber,
-          }, err);
+          await logExecutionWarn(
+            "live.thedogs.race_time_hydration_failed",
+            {
+              provider: this.name,
+              raceNumber: race.raceNumber,
+            },
+            err,
+          );
           return race;
         }
-      }
+      },
     );
 
     const byRaceNumber = new Map(
-      hydrated.map((race) => [race.raceNumber, race])
+      hydrated.map((race) => [race.raceNumber, race]),
     );
     return {
       ...meeting,
-      races: meeting.races.map((race) => byRaceNumber.get(race.raceNumber) ?? race),
+      races: meeting.races.map(
+        (race) => byRaceNumber.get(race.raceNumber) ?? race,
+      ),
     };
   }
 
   private async fetchResultMeetings(
-    links: TheDogsMeetingLink[]
+    links: TheDogsMeetingLink[],
   ): Promise<LiveMeeting[]> {
     return (
       await mapLimit(links, THEDOGS_CONCURRENCY, async (link) => {
@@ -160,31 +182,43 @@ export class TheDogsProvider implements LiveDataProvider {
           const meeting = parseTheDogsMeeting(html, link);
           const resultLinks = parseResultRaceLinks(html);
           const resultRaces = (
-            await mapLimit(resultLinks, THEDOGS_CONCURRENCY, async (raceLink) => {
-              try {
-                const raceHtml = await this.getText(raceLink.href, {
-                  accept: "application/json, text/javascript, */*; q=0.01",
-                  "X-Application-Layout": "injection",
-                });
-                return parseTheDogsRaceResult(raceHtml, raceLink, link.date);
-              } catch (err) {
-                await logExecutionWarn("live.thedogs.result_race_skipped", {
-                  provider: this.name,
-                  meetingDate: link.date,
-                  raceNumber: raceLink.raceNumber,
-                }, err);
-                return null;
-              }
-            })
+            await mapLimit(
+              resultLinks,
+              THEDOGS_CONCURRENCY,
+              async (raceLink) => {
+                try {
+                  const raceHtml = await this.getText(raceLink.href, {
+                    accept: "application/json, text/javascript, */*; q=0.01",
+                    "X-Application-Layout": "injection",
+                  });
+                  return parseTheDogsRaceResult(raceHtml, raceLink, link.date);
+                } catch (err) {
+                  await logExecutionWarn(
+                    "live.thedogs.result_race_skipped",
+                    {
+                      provider: this.name,
+                      meetingDate: link.date,
+                      raceNumber: raceLink.raceNumber,
+                    },
+                    err,
+                  );
+                  return null;
+                }
+              },
+            )
           ).filter((race): race is LiveRace => race != null);
 
           const merged = mergeResultRaces(meeting, resultRaces);
           return merged.races.length > 0 ? merged : null;
         } catch (err) {
-          await logExecutionWarn("live.thedogs.result_meeting_skipped", {
-            provider: this.name,
-            meetingDate: link.date,
-          }, err);
+          await logExecutionWarn(
+            "live.thedogs.result_meeting_skipped",
+            {
+              provider: this.name,
+              meetingDate: link.date,
+            },
+            err,
+          );
           return null;
         }
       })
@@ -193,7 +227,7 @@ export class TheDogsProvider implements LiveDataProvider {
 
   private async getText(
     path: string,
-    extraHeaders: Record<string, string> = {}
+    extraHeaders: Record<string, string> = {},
   ): Promise<string> {
     const normalizedUrl = normalizeTheDogsUrl(path, 512);
     if (!normalizedUrl) throw new Error("thedogs.request_url_invalid");
@@ -205,7 +239,8 @@ export class TheDogsProvider implements LiveDataProvider {
         redirect: "error",
         signal,
         headers: {
-          accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
           "accept-language": "en-US,en;q=0.9",
           "user-agent": THEDOGS_USER_AGENT,
           ...extraHeaders,
@@ -213,7 +248,7 @@ export class TheDogsProvider implements LiveDataProvider {
       });
     } catch {
       throw new Error(
-        signal.aborted ? "thedogs.request_timeout" : "thedogs.request_failed"
+        signal.aborted ? "thedogs.request_timeout" : "thedogs.request_failed",
       );
     }
 
@@ -227,7 +262,7 @@ export class TheDogsProvider implements LiveDataProvider {
 
 export function parseTheDogsMeeting(
   html: string,
-  link: TheDogsMeetingLink
+  link: TheDogsMeetingLink,
 ): LiveMeeting {
   const meetingHref = normalizeTheDogsUrl(link.href, 512);
   if (!meetingHref) throw new Error("thedogs.response_invalid");
@@ -257,11 +292,16 @@ export function parseTheDogsMeeting(
 
 export function parseMeetingLinks(html: string): TheDogsMeetingLink[] {
   const links = new Map<string, TheDogsMeetingLink>();
-  for (const match of html.matchAll(/<li class="list__row">([\s\S]*?)<\/li>/gi)) {
+  for (const match of html.matchAll(
+    /<li class="list__row">([\s\S]*?)<\/li>/gi,
+  )) {
     const row = match[1];
     if (!row) continue;
     const href = normalizeTheDogsUrl(
-      firstMatch(row, /href="(\/racing\/[^/]+\/\d{4}-\d{2}-\d{2}\?trial=false)"/i),
+      firstMatch(
+        row,
+        /href="(\/racing\/[^/]+\/\d{4}-\d{2}-\d{2}\?trial=false)"/i,
+      ),
       512,
     );
     if (!href || links.has(href)) continue;
@@ -274,11 +314,11 @@ export function parseMeetingLinks(html: string): TheDogsMeetingLink[] {
     if (!date || !isValidDateKey(date)) continue;
 
     const name = cleanHtml(
-      firstMatch(row, /<div class="meeting__info__name">([\s\S]*?)<\/div>/i)
+      firstMatch(row, /<div class="meeting__info__name">([\s\S]*?)<\/div>/i),
     );
     const caption = firstMatch(
       row,
-      /<div class="meeting__info__caption">([\s\S]*?)<\/div>/i
+      /<div class="meeting__info__caption">([\s\S]*?)<\/div>/i,
     );
     const state = cleanHtml(firstMatch(caption, /<span>([A-Z]{2,3})<\/span>/i));
 
@@ -292,21 +332,21 @@ export function parseMeetingLinks(html: string): TheDogsMeetingLink[] {
 export function parseTheDogsRaceResult(
   html: string,
   link: TheDogsRaceLink,
-  date: string
+  date: string,
 ): LiveRace | null {
   const raceHref = normalizeTheDogsUrl(link.href, 512);
   if (!raceHref) return null;
   const gradeAndDistance = cleanHtml(
     firstMatch(
       html,
-      /<div class="race-header__info__grade">([\s\S]*?)<\/div>/i
-    )
+      /<div class="race-header__info__grade">([\s\S]*?)<\/div>/i,
+    ),
   );
   const distance = Number(gradeAndDistance.match(/(\d{3,4})m\b/i)?.[1] ?? 0);
   const raceTime = raceTimeWithSource(
     parseRaceTimestamp(html),
     date,
-    link.raceNumber
+    link.raceNumber,
   );
   const prizePlaces = parsePrizePlaces(html);
   const runners = applyPrizeMoneyWon(parseRunners(html), prizePlaces?.amounts);
@@ -334,21 +374,25 @@ export function parseTheDogsRaceResult(
     name: cleanHtml(
       firstMatch(
         html,
-        /<div class="race-header__info__name[^"]*">([\s\S]*?)<\/div>/i
-      )
+        /<div class="race-header__info__name[^"]*">([\s\S]*?)<\/div>/i,
+      ),
     ),
     raceTime: raceTime.iso,
     raceTimeSource: raceTime.source,
     distance,
-    grade:
-      gradeAndDistance.replace(/\s*\d{3,4}m\s*$/i, "").trim() || undefined,
+    grade: gradeAndDistance.replace(/\s*\d{3,4}m\s*$/i, "").trim() || undefined,
     prizeMoney:
-      parseMoney(firstMatch(html, /<div class="race-header__prize__total">([\s\S]*?)<\/div>/i)) ??
       parseMoney(
         firstMatch(
           html,
-          /<div class="race-header__prize__title">PRIZE MONEY\s*([\s\S]*?)<sup>/i
-        )
+          /<div class="race-header__prize__total">([\s\S]*?)<\/div>/i,
+        ),
+      ) ??
+      parseMoney(
+        firstMatch(
+          html,
+          /<div class="race-header__prize__title">PRIZE MONEY\s*([\s\S]*?)<sup>/i,
+        ),
       ),
     resultStatus: runners.some((runner) => runner.finishingPosition != null)
       ? "posted"
@@ -363,7 +407,9 @@ export function parseTheDogsRaceResult(
 
 function parseResultRaceLinks(html: string): TheDogsRaceLink[] {
   const links = new Map<number, TheDogsRaceLink>();
-  for (const match of html.matchAll(/<a class="race-header" href="([^"]+)">([\s\S]*?)<\/a>/gi)) {
+  for (const match of html.matchAll(
+    /<a class="race-header" href="([^"]+)">([\s\S]*?)<\/a>/gi,
+  )) {
     const href = normalizeTheDogsUrl(match[1], 512);
     const body = match[2] ?? "";
     if (!href || !body.includes("race-box--result")) continue;
@@ -375,7 +421,10 @@ function parseResultRaceLinks(html: string): TheDogsRaceLink[] {
   return [...links.values()].sort((a, b) => a.raceNumber - b.raceNumber);
 }
 
-function mergeResultRaces(meeting: LiveMeeting, resultRaces: LiveRace[]): LiveMeeting {
+function mergeResultRaces(
+  meeting: LiveMeeting,
+  resultRaces: LiveRace[],
+): LiveMeeting {
   if (resultRaces.length === 0) return meeting;
 
   const races = new Map(meeting.races.map((race) => [race.raceNumber, race]));
@@ -402,14 +451,14 @@ function parseVenue(html: string) {
     name: cleanHtml(
       firstMatch(
         html,
-        /<div class="meeting-header__venue__name">([\s\S]*?)<\/div>/i
-      )
+        /<div class="meeting-header__venue__name">([\s\S]*?)<\/div>/i,
+      ),
     ),
     state: cleanHtml(
       firstMatch(
         html,
-        /<div class="meeting-header__venue__state">([\s\S]*?)<\/div>/i
-      )
+        /<div class="meeting-header__venue__state">([\s\S]*?)<\/div>/i,
+      ),
     ),
   };
 }
@@ -440,7 +489,7 @@ function splitRaceSections(html: string) {
       (match): match is { index: number; href: string } =>
         match.index != null &&
         match.href != null &&
-        extractRaceNumber(match.href) != null
+        extractRaceNumber(match.href) != null,
     )
     .slice(0, 64);
 
@@ -453,7 +502,7 @@ function splitRaceSections(html: string) {
 function parseRace(
   section: { href: string; html: string },
   raceTimes: Map<number, ParsedRaceTime>,
-  date: string
+  date: string,
 ): LiveRace | null {
   const raceNumber = extractRaceNumber(section.href);
   if (!raceNumber) return null;
@@ -461,11 +510,15 @@ function parseRace(
   const gradeAndDistance = cleanHtml(
     firstMatch(
       section.html,
-      /<div class="race-header__info__grade">([\s\S]*?)<\/div>/i
-    )
+      /<div class="race-header__info__grade">([\s\S]*?)<\/div>/i,
+    ),
   );
   const distance = Number(gradeAndDistance.match(/(\d{3,4})m\b/i)?.[1] ?? 0);
-  const raceTime = raceTimeWithSource(raceTimes.get(raceNumber), date, raceNumber);
+  const raceTime = raceTimeWithSource(
+    raceTimes.get(raceNumber),
+    date,
+    raceNumber,
+  );
   const prizePlaces = parsePrizePlaces(section.html);
 
   return {
@@ -480,28 +533,32 @@ function parseRace(
     name: cleanHtml(
       firstMatch(
         section.html,
-        /<div class="race-header__info__name[^"]*">([\s\S]*?)<\/div>/i
-      )
+        /<div class="race-header__info__name[^"]*">([\s\S]*?)<\/div>/i,
+      ),
     ),
     raceTime: raceTime.iso,
     raceTimeSource: raceTime.source,
     distance,
-    grade:
-      gradeAndDistance.replace(/\s*\d{3,4}m\s*$/i, "").trim() || undefined,
+    grade: gradeAndDistance.replace(/\s*\d{3,4}m\s*$/i, "").trim() || undefined,
     prizeMoney: parseMoney(
       firstMatch(
         section.html,
-        /<div class="race-header__prize__total">([\s\S]*?)<\/div>/i
-      )
+        /<div class="race-header__prize__total">([\s\S]*?)<\/div>/i,
+      ),
     ),
-    resultStatus: section.html.includes("race-box--result") ? "posted" : "pending",
-    runners: applyPrizeMoneyWon(parseRunners(section.html), prizePlaces?.amounts),
+    resultStatus: section.html.includes("race-box--result")
+      ? "posted"
+      : "pending",
+    runners: applyPrizeMoneyWon(
+      parseRunners(section.html),
+      prizePlaces?.amounts,
+    ),
   };
 }
 
 function mergeRaceSourceRawJson(
   sourceRawJson: string | undefined,
-  patch: Record<string, unknown>
+  patch: Record<string, unknown>,
 ) {
   let base: Record<string, unknown> = {};
   if (sourceRawJson) {
@@ -518,14 +575,19 @@ function mergeRaceSourceRawJson(
 }
 
 function parseRunners(section: string): LiveRunner[] {
-  return [...section.matchAll(/<tr\b[^>]*class="[^"]*\brace-runner\b[^"]*"[^>]*>([\s\S]*?)<\/tr>/gi)]
+  return [
+    ...section.matchAll(
+      /<tr\b[^>]*class="[^"]*\brace-runner\b[^"]*"[^>]*>([\s\S]*?)<\/tr>/gi,
+    ),
+  ]
     .slice(0, 32)
     .map((match, index) => parseRunner(match[1] ?? "", index))
     .filter((runner): runner is LiveRunner => runner != null);
 }
 
 function parseRunner(row: string, index: number): LiveRunner | null {
-  const boxNumber = Number(firstMatch(row, /sprite-svg name="rug_(\d+)"/i)) || index + 1;
+  const boxNumber =
+    Number(firstMatch(row, /sprite-svg name="rug_(\d+)"/i)) || index + 1;
   const dog = parseDog(row);
   const rawDogName = dog.name;
   const dogName = rawDogName.replace(/\s*\(SCR\)\s*$/i, "").trim();
@@ -534,27 +596,35 @@ function parseRunner(row: string, index: number): LiveRunner | null {
   const colourSex = cleanHtml(
     firstMatch(
       row,
-      /<div class="race-runners__name__dog__color__sex">([\s\S]*?)<\/div>/i
-    )
+      /<div class="race-runners__name__dog__color__sex">([\s\S]*?)<\/div>/i,
+    ),
   );
   const finish = parseOrdinal(
-    firstMatch(row, /<td class="race-runners__finish-position">([\s\S]*?)<\/td>/i)
+    firstMatch(
+      row,
+      /<td class="race-runners__finish-position">([\s\S]*?)<\/td>/i,
+    ),
   );
   const sectionals = parseSectionals(row);
   const runningTime = parseNumber(
-    firstMatch(row, /<td class="race-runners__time">([\s\S]*?)<\/td>/i)
+    firstMatch(row, /<td class="race-runners__time">([\s\S]*?)<\/td>/i),
   );
   const raceTrait = cleanHtml(
-    firstMatch(row, /<td class="race-runners__track-sa-trait">([\s\S]*?)<\/td>/i)
+    firstMatch(
+      row,
+      /<td class="race-runners__track-sa-trait">([\s\S]*?)<\/td>/i,
+    ),
   );
   const runnerGrade = cleanHtml(
-    firstMatch(row, /<td class="race-runners__grade">([\s\S]*?)<\/td>/i)
+    firstMatch(row, /<td class="race-runners__grade">([\s\S]*?)<\/td>/i),
   );
   const trainer = parseTrainer(row);
   const margin =
     finish === 1
       ? 0
-      : parseNumber(firstMatch(row, /<td class="race-runners__margin">([\s\S]*?)<\/td>/i));
+      : parseNumber(
+          firstMatch(row, /<td class="race-runners__margin">([\s\S]*?)<\/td>/i),
+        );
 
   return {
     sourceId: dog.sourceId ? `dog:${dog.sourceId}:box:${boxNumber}` : undefined,
@@ -563,7 +633,10 @@ function parseRunner(row: string, index: number): LiveRunner | null {
       dogId: dog.sourceId,
       dogProfileUrl: dog.url,
       dogDisplayTime: parseNumber(
-        firstMatch(row, /<span class="race-runners__name__time">([\s\S]*?)<\/span>/i)
+        firstMatch(
+          row,
+          /<span class="race-runners__name__time">([\s\S]*?)<\/span>/i,
+        ),
       ),
       boxNumber,
       finish,
@@ -584,10 +657,10 @@ function parseRunner(row: string, index: number): LiveRunner | null {
       sex: parseSex(colourSex),
     },
     trainerName:
-      trainer.name ||
-      cleanHtml(firstMatch(row, /T:\s*([^<]+)/i)) ||
-      undefined,
-    weight: parseNumber(firstMatch(row, /<td class="race-runners__weight">([\s\S]*?)<\/td>/i)),
+      trainer.name || cleanHtml(firstMatch(row, /T:\s*([^<]+)/i)) || undefined,
+    weight: parseNumber(
+      firstMatch(row, /<td class="race-runners__weight">([\s\S]*?)<\/td>/i),
+    ),
     scratched: /\(SCR\)|scratched/i.test(row),
     finishingPosition: finish,
     runningTime,
@@ -601,29 +674,45 @@ function isRealDogName(value?: string | null): value is string {
   const name = value?.trim();
   return Boolean(
     name &&
-      !/^(?:unknown(?:\s+(?:dog|runner))?|unnamed|tba|tbd|n\/?a|vacant(?:\s+box)?|no\s+reserve|runner\s+\d+|dog\s+\d+|-)$/i.test(
-        name,
-      ),
+    !/^(?:unknown(?:\s+(?:dog|runner))?|unnamed|tba|tbd|n\/?a|vacant(?:\s+box)?|no\s+reserve|runner\s+\d+|dog\s+\d+|-)$/i.test(
+      name,
+    ),
   );
 }
 
 function parseDog(row: string) {
-  const dogLink = row.match(/<a\b[^>]*href="\/dogs\/(\d+)\/[^"]*"[^>]*>([\s\S]*?)<\/a>/i);
+  const dogLink = row.match(
+    /<a\b[^>]*href="\/dogs\/(\d+)\/[^"]*"[^>]*>([\s\S]*?)<\/a>/i,
+  );
   const body = dogLink?.[2] ?? "";
   const name =
-    cleanHtml(firstMatch(body, /<div class="race-runners__name__dog">([\s\S]*?)<\/div>/i)) ||
+    cleanHtml(
+      firstMatch(
+        body,
+        /<div class="race-runners__name__dog">([\s\S]*?)<\/div>/i,
+      ),
+    ) ||
     cleanHtml(body) ||
-    cleanHtml(firstMatch(row, /<div class="race-runners__name__dog">([\s\S]*?)<\/div>/i));
+    cleanHtml(
+      firstMatch(
+        row,
+        /<div class="race-runners__name__dog">([\s\S]*?)<\/div>/i,
+      ),
+    );
 
   return {
     name,
     sourceId: dogLink?.[1],
-    url: dogLink?.[1] ? firstMatch(dogLink[0] ?? "", /href="([^"]+)"/i) : undefined,
+    url: dogLink?.[1]
+      ? firstMatch(dogLink[0] ?? "", /href="([^"]+)"/i)
+      : undefined,
   };
 }
 
 function parseTrainer(row: string) {
-  const link = row.match(/<a\b[^>]*href="\/trainers\/(\d+)\/[^"]*"[^>]*>([\s\S]*?)<\/a>/i);
+  const link = row.match(
+    /<a\b[^>]*href="\/trainers\/(\d+)\/[^"]*"[^>]*>([\s\S]*?)<\/a>/i,
+  );
   if (link) {
     return {
       name: cleanHtml(link[2]).replace(/^T:\s*/i, ""),
@@ -634,7 +723,10 @@ function parseTrainer(row: string) {
 
   return {
     name: cleanHtml(
-      firstMatch(row, /<td class="[^"]*\brace-runners__trainer\b[^"]*">([\s\S]*?)<\/td>/i)
+      firstMatch(
+        row,
+        /<td class="[^"]*\brace-runners__trainer\b[^"]*">([\s\S]*?)<\/td>/i,
+      ),
     ),
     sourceId: undefined,
     url: undefined,
@@ -644,7 +736,7 @@ function parseTrainer(row: string) {
 async function mapLimit<T, R>(
   items: T[],
   limit: number,
-  worker: (item: T) => Promise<R>
+  worker: (item: T) => Promise<R>,
 ) {
   const results = new Array<R>(items.length);
   let nextIndex = 0;
@@ -664,14 +756,22 @@ function isMeetingInWindow(date: string, kind: FeedKind, days: number) {
   const meetingDay = dayValue(date);
   const today = dayValue(formatSydneyDate(new Date()));
   const span = Math.max(days, 1) * MS_PER_DAY;
-  if (kind === "upcoming") return meetingDay >= today && meetingDay <= today + span;
+  if (kind === "upcoming")
+    return meetingDay >= today && meetingDay <= today + span;
   return meetingDay <= today && meetingDay >= today - span;
+}
+
+function recentSydneyDates(days: number) {
+  const today = dayValue(formatSydneyDate(new Date()));
+  return Array.from({ length: Math.max(days, 1) + 1 }, (_, offset) =>
+    new Date(today - offset * MS_PER_DAY).toISOString().slice(0, 10),
+  );
 }
 
 function raceTimeWithSource(
   parsed: ParsedRaceTime | string | undefined,
   date: string,
-  raceNumber: number
+  raceNumber: number,
 ): ParsedRaceTime {
   if (typeof parsed === "string") return { iso: parsed, source: "provider" };
   if (parsed) return parsed;
@@ -689,9 +789,7 @@ function extractRaceNumber(href?: string) {
   try {
     const pathname = new URL(href, THEDOGS_BASE).pathname;
     const parsed = Number(
-      pathname.match(
-        /^\/racing\/[^/]+\/\d{4}-\d{2}-\d{2}\/(\d+)(?:\/|$)/,
-      )?.[1],
+      pathname.match(/^\/racing\/[^/]+\/\d{4}-\d{2}-\d{2}\/(\d+)(?:\/|$)/)?.[1],
     );
     return Number.isInteger(parsed) && parsed > 0 && parsed <= 30
       ? parsed
@@ -720,10 +818,19 @@ function isValidDateKey(value: string) {
 
 function parseReplayUrl(html: string) {
   return normalizeTheDogsUrl(
-    firstMatch(html, /<a[^>]+data-turbolinks-action="video"[^>]+href="([^"]+)"/i) ||
-    firstMatch(html, /<a[^>]+race-header__media__item--replay[^>]+href="([^"]+)"/i) ||
-    firstMatch(html, /<a[^>]+href="([^"]*\/videos\/watch\/races\/\d+\/replay[^"]*)"/i) ||
-    undefined
+    firstMatch(
+      html,
+      /<a[^>]+data-turbolinks-action="video"[^>]+href="([^"]+)"/i,
+    ) ||
+      firstMatch(
+        html,
+        /<a[^>]+race-header__media__item--replay[^>]+href="([^"]+)"/i,
+      ) ||
+      firstMatch(
+        html,
+        /<a[^>]+href="([^"]*\/videos\/watch\/races\/\d+\/replay[^"]*)"/i,
+      ) ||
+      undefined,
   );
 }
 
@@ -733,9 +840,15 @@ function parseReplayVideoSourceId(replayUrl?: string) {
 
 function parsePhotoFinishUrl(html: string) {
   return normalizeTheDogsUrl(
-    firstMatch(html, /<a[^>]+race-header__media__item--photo[^>]+href="([^"]+)"/i) ||
-    firstMatch(html, /<a class="button button--size-small" href="([^"]+)"[^>]*>\s*<sprite-svg name="icon_camera"/i) ||
-    undefined
+    firstMatch(
+      html,
+      /<a[^>]+race-header__media__item--photo[^>]+href="([^"]+)"/i,
+    ) ||
+      firstMatch(
+        html,
+        /<a class="button button--size-small" href="([^"]+)"[^>]*>\s*<sprite-svg name="icon_camera"/i,
+      ) ||
+      undefined,
   );
 }
 
@@ -744,7 +857,9 @@ function normalizeTheDogsUrl(value?: string, maxLength = 2_048) {
   try {
     const base = new URL(THEDOGS_BASE);
     const candidate = new URL(value, base);
-    return candidate.origin === base.origin && !candidate.username && !candidate.password
+    return candidate.origin === base.origin &&
+      !candidate.username &&
+      !candidate.password
       ? candidate.toString()
       : undefined;
   } catch {
@@ -755,20 +870,26 @@ function normalizeTheDogsUrl(value?: string, maxLength = 2_048) {
 function parseWeatherIcon(html: string) {
   const name = firstMatch(
     html,
-    /<div class="race-header__info__time">[\s\S]*?<sprite-svg[^>]+name="(weather_[^"]+)"/i
+    /<div class="race-header__info__time">[\s\S]*?<sprite-svg[^>]+name="(weather_[^"]+)"/i,
   );
   return name ? name.replace(/^weather_/i, "") : undefined;
 }
 
 function parseTrackRecord(html: string) {
   return parseNumber(
-    firstMatch(html, /<div class="race-header__record">[\s\S]*?<th>TRACK RECORD<\/th><th>([\s\S]*?)<\/th>/i)
+    firstMatch(
+      html,
+      /<div class="race-header__record">[\s\S]*?<th>TRACK RECORD<\/th><th>([\s\S]*?)<\/th>/i,
+    ),
   );
 }
 
 function parsePrizePlaces(html: string) {
   const raw = cleanHtml(
-    firstMatch(html, /<div class="race-header__prize__places">([\s\S]*?)<\/div>/i)
+    firstMatch(
+      html,
+      /<div class="race-header__prize__places">([\s\S]*?)<\/div>/i,
+    ),
   );
   if (!raw) return undefined;
 
@@ -794,24 +915,28 @@ function applyPrizeMoneyWon(runners: LiveRunner[], amounts?: number[]) {
 function parseActiveResultOrder(html: string) {
   const header = firstMatch(
     html,
-    /<div class="race-header race-header--result">([\s\S]*?)<div class="race-header__info">/i
+    /<div class="race-header race-header--result">([\s\S]*?)<div class="race-header__info">/i,
   );
-  const order = [...header.matchAll(/<div class="race-box__caption">([\s\S]*?)<\/div>/gi)]
+  const order = [
+    ...header.matchAll(/<div class="race-box__caption">([\s\S]*?)<\/div>/gi),
+  ]
     .flatMap((match) =>
       [...(match[1] ?? "").matchAll(/<span>(\d+)<\/span>/g)].map((span) =>
-        Number(span[1])
-      )
+        Number(span[1]),
+      ),
     )
     .filter((box) => Number.isFinite(box));
   return order.length > 0 ? order : undefined;
 }
 
 function parseResultOrder(html: string) {
-  const order = [...html.matchAll(/<div class="race-box__caption">([\s\S]*?)<\/div>/gi)]
+  const order = [
+    ...html.matchAll(/<div class="race-box__caption">([\s\S]*?)<\/div>/gi),
+  ]
     .flatMap((match) =>
       [...(match[1] ?? "").matchAll(/<span>(\d+)<\/span>/g)].map((span) =>
-        Number(span[1])
-      )
+        Number(span[1]),
+      ),
     )
     .filter((box) => Number.isFinite(box));
   return order.length > 0 ? order : undefined;
@@ -824,7 +949,9 @@ function formatSydneyDate(date: Date) {
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(date);
-  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const byType = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
   return `${byType.year}-${byType.month}-${byType.day}`;
 }
 
@@ -850,7 +977,9 @@ function parseNumber(value?: string) {
 }
 
 function parseSectionals(row: string) {
-  return [...row.matchAll(/<td class="race-runners__sectional">([\s\S]*?)<\/td>/gi)]
+  return [
+    ...row.matchAll(/<td class="race-runners__sectional">([\s\S]*?)<\/td>/gi),
+  ]
     .slice(0, 16)
     .map((match) => parseNumber(match[1]))
     .filter((value): value is number => value != null);
@@ -883,17 +1012,17 @@ function cleanHtml(value = "", maxLength = 500) {
       .replace(/<br\s*\/?>/gi, " ")
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
-      .trim()
+      .trim(),
   ).slice(0, maxLength);
 }
 
 function decodeEntities(value: string) {
   return value
     .replace(/&#x([0-9a-f]+);/gi, (_, code: string) =>
-      String.fromCharCode(Number.parseInt(code, 16))
+      String.fromCharCode(Number.parseInt(code, 16)),
     )
     .replace(/&#(\d+);/g, (_, code: string) =>
-      String.fromCharCode(Number.parseInt(code, 10))
+      String.fromCharCode(Number.parseInt(code, 10)),
     )
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")

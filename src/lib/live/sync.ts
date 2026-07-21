@@ -177,6 +177,9 @@ export interface SyncResult {
   runners?: number;
   results?: number;
   replays?: number;
+  replayCandidates?: number;
+  replayResolved?: number;
+  replaySkipped?: number;
   replayErrors?: number;
 }
 
@@ -213,7 +216,13 @@ export async function syncLiveData(
     days,
   });
   const counts: SyncCounts = { meetings: 0, races: 0, runners: 0, results: 0 };
-  let replaySummary = { resolved: 0, errors: 0 };
+  let replaySummary = {
+    candidates: 0,
+    resolved: 0,
+    written: 0,
+    skipped: 0,
+    errors: 0,
+  };
   if (scope === "upcoming" || scope === "all") {
     const meetings = stampMeetings(await provider.fetchUpcomingMeetings(days), provider.name);
     addCounts(counts, await upsertSystemMeetings(meetings, logContext));
@@ -229,7 +238,10 @@ export async function syncLiveData(
     provider: provider.name,
     scope,
     ...counts,
-    replays: replaySummary.resolved,
+    replays: replaySummary.written,
+    replayCandidates: replaySummary.candidates,
+    replayResolved: replaySummary.resolved,
+    replaySkipped: replaySummary.skipped,
     replayErrors: replaySummary.errors,
   });
   return {
@@ -237,7 +249,10 @@ export async function syncLiveData(
     provider: provider.name,
     scope,
     ...counts,
-    replays: replaySummary.resolved,
+    replays: replaySummary.written,
+    replayCandidates: replaySummary.candidates,
+    replayResolved: replaySummary.resolved,
+    replaySkipped: replaySummary.skipped,
     replayErrors: replaySummary.errors,
   };
 }

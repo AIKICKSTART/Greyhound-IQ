@@ -178,11 +178,15 @@ export function saRaceReplayTitle(
 ) {
   const [year, month, day] = meetingDate.slice(0, 10).split("-");
   if (!year || !month || !day) return null;
-  const titleTrack = normaliseName(trackName)
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`)
-    .join("-");
+  const normalisedTrack = normaliseName(trackName);
+  const titleTrack =
+    normalisedTrack === "mount gambier"
+      ? "Mt-Gambier"
+      : normalisedTrack
+          .split(" ")
+          .filter(Boolean)
+          .map((part) => `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`)
+          .join("-");
   return titleTrack ? `${titleTrack}-${day}${month}${year}-Race-${raceNumber}` : null;
 }
 
@@ -539,7 +543,7 @@ function normaliseName(value: string) {
 
 function compareCandidates(left: ReplayCandidate, right: ReplayCandidate) {
   return (
-    left.meetingDate.localeCompare(right.meetingDate) ||
+    right.meetingDate.localeCompare(left.meetingDate) ||
     left.trackName.localeCompare(right.trackName) ||
     left.race.raceNumber - right.race.raceNumber
   );

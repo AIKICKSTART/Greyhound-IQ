@@ -9,6 +9,8 @@ import {
 import { mapWatchdogPayload, WatchdogProvider } from "./watchdog";
 import { parseWatchdogPayload } from "./watchdog-response";
 
+process.env.THEDOGS_LICENSED_USE_APPROVED = "true";
+
 void main();
 
 async function main() {

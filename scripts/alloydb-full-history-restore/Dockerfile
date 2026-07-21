@@ -6,7 +6,8 @@ COPY --from=alloydb-proxy /alloydb-auth-proxy /usr/local/bin/alloydb-auth-proxy
 COPY --from=alloydb-proxy /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY scripts/alloydb-full-history-restore/restore.sh /usr/local/bin/giq-full-history-restore
 
-RUN chmod 0555 /usr/local/bin/alloydb-auth-proxy /usr/local/bin/giq-full-history-restore
+RUN sh -n /usr/local/bin/giq-full-history-restore \
+    && chmod 0555 /usr/local/bin/alloydb-auth-proxy /usr/local/bin/giq-full-history-restore
 
 USER postgres
 

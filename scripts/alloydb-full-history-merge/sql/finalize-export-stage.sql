@@ -51,6 +51,9 @@ $$;
 DO $$
 DECLARE
   bad_rows bigint;
+  quarantine_runner bigint;
+  quarantine_race bigint;
+  quarantine_profile_source bigint;
 BEGIN
   SELECT count(*) INTO bad_rows
   FROM _giq_history_stage.export_profiles
@@ -74,26 +77,83 @@ BEGIN
   END IF;
 
   SELECT count(*) INTO bad_rows
-  FROM _giq_history_stage.export_races
-  WHERE payload->>'provider' <> 'thedogs'
-     OR payload->>'mergeStatus' <> 'ready'
-     OR nullif(payload->>'naturalKey', '') IS NULL
-     OR nullif(payload->>'meetingNaturalKey', '') IS NULL
-     OR (payload->>'distance')::integer <= 0;
+  FROM _giq_history_stage.export_races race
+  WHERE NOT (
+      race.payload->>'provider' = 'thedogs'
+      AND race.payload->>'mergeStatus' = 'ready'
+      AND nullif(race.payload->>'naturalKey', '') IS NOT NULL
+      AND nullif(race.payload->>'meetingNaturalKey', '') IS NOT NULL
+      AND CASE WHEN race.payload->>'distance' ~ '^[0-9]+$'
+        THEN (race.payload->>'distance')::bigint > 0 ELSE false END
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM _giq_history_stage.export_quarantine quarantine
+      WHERE quarantine.payload->>'issueType' = 'race-row'
+        AND quarantine.payload->>'reason' = 'missing_race_distance'
+        AND quarantine.payload->>'naturalKey' = race.payload->>'naturalKey'
+    );
   IF bad_rows <> 0 THEN
-    RAISE EXCEPTION 'races contain % invalid normalized rows', bad_rows;
+    RAISE EXCEPTION 'races contain % invalid rows without exact quarantine evidence', bad_rows;
   END IF;
 
   SELECT count(*) INTO bad_rows
-  FROM _giq_history_stage.export_runners
-  WHERE payload->>'provider' <> 'thedogs'
-     OR payload->>'mergeStatus' <> 'ready'
-     OR nullif(payload->>'naturalKey', '') IS NULL
-     OR nullif(payload->>'raceNaturalKey', '') IS NULL
-     OR nullif(payload->>'dogNaturalKey', '') IS NULL
-     OR (payload->>'boxNumber')::integer <= 0;
+  FROM _giq_history_stage.export_quarantine quarantine
+  WHERE quarantine.payload->>'issueType' = 'race-row'
+    AND quarantine.payload->>'reason' = 'missing_race_distance'
+    AND NOT EXISTS (
+      SELECT 1 FROM _giq_history_stage.export_races race
+      WHERE race.payload->>'naturalKey' = quarantine.payload->>'naturalKey'
+        AND NOT (
+          race.payload->>'provider' = 'thedogs'
+          AND race.payload->>'mergeStatus' = 'ready'
+          AND nullif(race.payload->>'meetingNaturalKey', '') IS NOT NULL
+          AND CASE WHEN race.payload->>'distance' ~ '^[0-9]+$'
+            THEN (race.payload->>'distance')::bigint > 0 ELSE false END
+        )
+    );
   IF bad_rows <> 0 THEN
-    RAISE EXCEPTION 'runners contain % invalid normalized rows', bad_rows;
+    RAISE EXCEPTION 'race quarantine contains % rows without the exact invalid source race', bad_rows;
+  END IF;
+
+  SELECT count(*) INTO bad_rows
+  FROM _giq_history_stage.export_runners runner
+  WHERE NOT (
+      runner.payload->>'provider' = 'thedogs'
+      AND runner.payload->>'mergeStatus' = 'ready'
+      AND nullif(runner.payload->>'naturalKey', '') IS NOT NULL
+      AND nullif(runner.payload->>'raceNaturalKey', '') IS NOT NULL
+      AND nullif(runner.payload->>'dogNaturalKey', '') IS NOT NULL
+      AND CASE WHEN runner.payload->>'boxNumber' ~ '^[0-9]+$'
+        THEN (runner.payload->>'boxNumber')::bigint > 0 ELSE false END
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM _giq_history_stage.export_quarantine quarantine
+      WHERE quarantine.payload->>'issueType' = 'runner-row'
+        AND quarantine.payload->>'reason' = 'missing_dog_provider_identity'
+        AND quarantine.payload->>'naturalKey' = runner.payload->>'naturalKey'
+    );
+  IF bad_rows <> 0 THEN
+    RAISE EXCEPTION 'runners contain % invalid rows without exact quarantine evidence', bad_rows;
+  END IF;
+
+  SELECT count(*) INTO bad_rows
+  FROM _giq_history_stage.export_quarantine quarantine
+  WHERE quarantine.payload->>'issueType' = 'runner-row'
+    AND quarantine.payload->>'reason' = 'missing_dog_provider_identity'
+    AND NOT EXISTS (
+      SELECT 1 FROM _giq_history_stage.export_runners runner
+      WHERE runner.payload->>'naturalKey' = quarantine.payload->>'naturalKey'
+        AND NOT (
+          runner.payload->>'provider' = 'thedogs'
+          AND runner.payload->>'mergeStatus' = 'ready'
+          AND nullif(runner.payload->>'raceNaturalKey', '') IS NOT NULL
+          AND nullif(runner.payload->>'dogNaturalKey', '') IS NOT NULL
+          AND CASE WHEN runner.payload->>'boxNumber' ~ '^[0-9]+$'
+            THEN (runner.payload->>'boxNumber')::bigint > 0 ELSE false END
+        )
+    );
+  IF bad_rows <> 0 THEN
+    RAISE EXCEPTION 'runner quarantine contains % rows without the exact invalid source runner', bad_rows;
   END IF;
 
   SELECT count(*) INTO bad_rows
@@ -119,10 +179,22 @@ BEGIN
   FROM _giq_history_stage.export_quarantine
   WHERE (payload->>'issueType', payload->>'reason') NOT IN (
     ('runner-row', 'missing_dog_provider_identity'),
-    ('race-row', 'missing_race_distance')
+    ('race-row', 'missing_race_distance'),
+    ('source-file', 'unverified_profile_identity')
   );
   IF bad_rows <> 0 THEN
     RAISE EXCEPTION 'source quarantine taxonomy changed';
+  END IF;
+
+  SELECT count(*) FILTER (WHERE payload->>'issueType'='runner-row'),
+         count(*) FILTER (WHERE payload->>'issueType'='race-row'),
+         count(*) FILTER (WHERE payload->>'issueType'='source-file')
+  INTO quarantine_runner, quarantine_race, quarantine_profile_source
+  FROM _giq_history_stage.export_quarantine;
+  IF (quarantine_runner, quarantine_race, quarantine_profile_source) <>
+     (42::bigint, 40::bigint, 115::bigint) THEN
+    RAISE EXCEPTION 'source quarantine counts changed: runner %, race %, profile source %',
+      quarantine_runner, quarantine_race, quarantine_profile_source;
   END IF;
 END
 $$;

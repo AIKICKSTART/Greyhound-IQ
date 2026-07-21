@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "auditKind": "user-export-read-disposable-proof",
-  "generatedAt": "2026-07-16T22:25:55.097Z",
+  "generatedAt": "2026-07-18T12:28:37.302Z",
   "safety": {
     "scope": "literal-loopback-disposable-replay-only",
     "providerContact": false,
@@ -10,7 +10,7 @@
   },
   "sourceBinding": {
     "files": {
-      "prisma/schema.prisma": "ff7158c8900a4fc914bb0a09bc27e41bba4271a0144afee675a53b8e526a93fc",
+      "prisma/schema.prisma": "9395ca8a01f7e640e8c26f23f6d13e9d4ad0d3066cb92a143a06ca0176888873",
       "prisma/migrations/20260706223000_add_rls_entitlement_policies/migration.sql": "953db33c0662f936b67a88b8859fd49b5d76b28e90f2a5e8851669fb5ff6334e",
       "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d",
       "prisma/migrations/20260708210000_memory_owner_writes/migration.sql": "8bdac9e206b834d4ddc7130fdf2c097695a1ae5de0f0ca1dbcce61f3512c9146",
@@ -25,7 +25,7 @@
       "src/lib/user-export-policy.test.ts": "ffa3ed507e10db9617b0a221f7e5e183fec5db0e580bf29bc5b1766711b7ccdb",
       "src/lib/user-export-service.ts": "f3eb4b201aa556665825eb94327161dc43315ffac1fb059874c672062700e34b"
     },
-    "combinedSha256": "c8643e10d88c46442395d5d29ebf6bdd46a1ddaf69beb1b1a4490e64c07a8148"
+    "combinedSha256": "58017e2ce209fc0f8fdaefa432659047725d159e9571a23ad8e7e047275c9478"
   },
   "proof": {
     "queryId": "DB.ACCOUNT.DATA_EXPORT.READ",
@@ -101,30 +101,20 @@
             "indexName": null,
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 2.38,
+            "totalCost": 8.21,
             "children": [
               {
-                "nodeType": "Sort",
-                "relationName": null,
-                "indexName": null,
+                "nodeType": "Index Scan",
+                "relationName": "AgentRun",
+                "indexName": "AgentRun_userId_createdAt_idx",
                 "joinType": null,
                 "estimatedRows": 1,
-                "totalCost": 2.38,
-                "children": [
-                  {
-                    "nodeType": "Seq Scan",
-                    "relationName": "AgentRun",
-                    "indexName": null,
-                    "joinType": null,
-                    "estimatedRows": 1,
-                    "totalCost": 2.37,
-                    "children": []
-                  }
-                ]
+                "totalCost": 8.21,
+                "children": []
               }
             ]
           },
-          "planSha256": "1a038c047b08433ee6e2d3d6d559051c1d57d3b2794e4f77c9dde1f407263bc0"
+          "planSha256": "517da2e5351f3c78d0d05cdce3629912610eb411bb3b7281efe546ce8743c777"
         }
       },
       {
@@ -152,7 +142,7 @@
             "indexName": null,
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 1.06,
+            "totalCost": 15.55,
             "children": [
               {
                 "nodeType": "Sort",
@@ -160,22 +150,51 @@
                 "indexName": null,
                 "joinType": null,
                 "estimatedRows": 1,
-                "totalCost": 1.06,
+                "totalCost": 15.55,
                 "children": [
                   {
-                    "nodeType": "Seq Scan",
+                    "nodeType": "Bitmap Heap Scan",
                     "relationName": "Conversation",
                     "indexName": null,
                     "joinType": null,
                     "estimatedRows": 1,
-                    "totalCost": 1.04,
-                    "children": []
+                    "totalCost": 15.53,
+                    "children": [
+                      {
+                        "nodeType": "BitmapOr",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "estimatedRows": 3,
+                        "totalCost": 8.33,
+                        "children": [
+                          {
+                            "nodeType": "Bitmap Index Scan",
+                            "relationName": null,
+                            "indexName": "Conversation_profile_actor_pair_key",
+                            "joinType": null,
+                            "estimatedRows": 2,
+                            "totalCost": 4.16,
+                            "children": []
+                          },
+                          {
+                            "nodeType": "Bitmap Index Scan",
+                            "relationName": null,
+                            "indexName": "Conversation_participantBId_idx",
+                            "joinType": null,
+                            "estimatedRows": 2,
+                            "totalCost": 4.16,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
               }
             ]
           },
-          "planSha256": "e29e925621d61814f069ca2f7ac0d3920cf1291e00f1b8a9007128710b1af37b"
+          "planSha256": "9847a14bc1f3ff2d5bf2d83197689fe1b1cfcfe94705316f630bd05ee11055fd"
         }
       },
       {
@@ -203,7 +222,7 @@
             "indexName": null,
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 1.01,
+            "totalCost": 8.21,
             "children": [
               {
                 "nodeType": "Sort",
@@ -211,22 +230,22 @@
                 "indexName": null,
                 "joinType": null,
                 "estimatedRows": 1,
-                "totalCost": 1.01,
+                "totalCost": 8.21,
                 "children": [
                   {
-                    "nodeType": "Seq Scan",
+                    "nodeType": "Index Scan",
                     "relationName": "DogOwnership",
-                    "indexName": null,
+                    "indexName": "DogOwnership_profileId_status_createdAt_idx",
                     "joinType": null,
                     "estimatedRows": 1,
-                    "totalCost": 1,
+                    "totalCost": 8.2,
                     "children": []
                   }
                 ]
               }
             ]
           },
-          "planSha256": "7319b7d616229a41a7b9b520e329821b0cda02bee03e0fe3692fb9b90912ff7e"
+          "planSha256": "bdf1bc4aae7287edf54ef82292f86b5a9a803e537f0b621d98ed967a03107ff7"
         }
       },
       {
@@ -249,15 +268,15 @@
           "statementTimeoutMilliseconds": 5000,
           "sanitized": true,
           "plan": {
-            "nodeType": "Seq Scan",
+            "nodeType": "Index Scan",
             "relationName": "ForumCategory",
-            "indexName": null,
+            "indexName": "ForumCategory_pkey",
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 1.05,
+            "totalCost": 8.17,
             "children": []
           },
-          "planSha256": "ee9bb786ad3082691ad68dbc85b91c2050ab8328602526699454f775293340bf"
+          "planSha256": "56a7aaf0a8f2dcc4157367d3b2e5887f053a28c38667434caf3429d624b815e4"
         }
       },
       {
@@ -280,15 +299,15 @@
           "statementTimeoutMilliseconds": 5000,
           "sanitized": true,
           "plan": {
-            "nodeType": "Seq Scan",
+            "nodeType": "Index Scan",
             "relationName": "ForumCategory",
-            "indexName": null,
+            "indexName": "ForumCategory_pkey",
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 1.05,
+            "totalCost": 8.17,
             "children": []
           },
-          "planSha256": "ee9bb786ad3082691ad68dbc85b91c2050ab8328602526699454f775293340bf"
+          "planSha256": "56a7aaf0a8f2dcc4157367d3b2e5887f053a28c38667434caf3429d624b815e4"
         }
       },
       {
@@ -316,7 +335,7 @@
             "indexName": null,
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 1.06,
+            "totalCost": 8.21,
             "children": [
               {
                 "nodeType": "Sort",
@@ -324,22 +343,22 @@
                 "indexName": null,
                 "joinType": null,
                 "estimatedRows": 1,
-                "totalCost": 1.06,
+                "totalCost": 8.21,
                 "children": [
                   {
-                    "nodeType": "Seq Scan",
+                    "nodeType": "Index Scan",
                     "relationName": "Listing",
-                    "indexName": null,
+                    "indexName": "Listing_profileId_status_idx",
                     "joinType": null,
                     "estimatedRows": 1,
-                    "totalCost": 1.04,
+                    "totalCost": 8.19,
                     "children": []
                   }
                 ]
               }
             ]
           },
-          "planSha256": "1c66e9836e7960d6945e13f8011595f84b386d73f9e7df59e5dd78ad4ea2d1dc"
+          "planSha256": "723c4bac1b02d6b96662f9e57843092319729bda1d9fe81a0f04ec52856eec0a"
         }
       },
       {
@@ -367,7 +386,7 @@
             "indexName": null,
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 15,
+            "totalCost": 36,
             "children": [
               {
                 "nodeType": "Index Scan",
@@ -375,7 +394,7 @@
                 "indexName": "MediaAsset_uploaderId_createdAt_idx",
                 "joinType": null,
                 "estimatedRows": 1,
-                "totalCost": 15,
+                "totalCost": 36,
                 "children": [
                   {
                     "nodeType": "Nested Loop",
@@ -383,15 +402,24 @@
                     "indexName": null,
                     "joinType": "Inner",
                     "estimatedRows": 1,
-                    "totalCost": 8.84,
+                    "totalCost": 27.58,
                     "children": [
                       {
                         "nodeType": "Seq Scan",
-                        "relationName": "MessageMedia",
+                        "relationName": "Message",
                         "indexName": null,
                         "joinType": null,
                         "estimatedRows": 1,
-                        "totalCost": 1,
+                        "totalCost": 8.62,
+                        "children": []
+                      },
+                      {
+                        "nodeType": "Index Only Scan",
+                        "relationName": "MessageMedia",
+                        "indexName": "MessageMedia_pkey",
+                        "joinType": null,
+                        "estimatedRows": 1,
+                        "totalCost": 12.69,
                         "children": [
                           {
                             "nodeType": "Seq Scan",
@@ -399,7 +427,7 @@
                             "indexName": null,
                             "joinType": null,
                             "estimatedRows": 1,
-                            "totalCost": 6.33,
+                            "totalCost": 2.38,
                             "children": []
                           },
                           {
@@ -408,19 +436,10 @@
                             "indexName": null,
                             "joinType": null,
                             "estimatedRows": 2,
-                            "totalCost": 6.24,
+                            "totalCost": 2,
                             "children": []
                           }
                         ]
-                      },
-                      {
-                        "nodeType": "Seq Scan",
-                        "relationName": "Message",
-                        "indexName": null,
-                        "joinType": null,
-                        "estimatedRows": 1,
-                        "totalCost": 7.83,
-                        "children": []
                       }
                     ]
                   }
@@ -428,7 +447,7 @@
               }
             ]
           },
-          "planSha256": "c676bbf7c88b69e5b724175396bc4f636a07819c361e1420f8d65fa238f3c89e"
+          "planSha256": "ea096defd36e6802b8af6f5b66e0ff58e21301510dac10512f4861047f00bd1d"
         }
       },
       {
@@ -456,7 +475,7 @@
             "indexName": null,
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 1.01,
+            "totalCost": 8.24,
             "children": [
               {
                 "nodeType": "Sort",
@@ -464,22 +483,22 @@
                 "indexName": null,
                 "joinType": null,
                 "estimatedRows": 1,
-                "totalCost": 1.01,
+                "totalCost": 8.24,
                 "children": [
                   {
-                    "nodeType": "Seq Scan",
+                    "nodeType": "Index Scan",
                     "relationName": "MemoryEntry",
-                    "indexName": null,
+                    "indexName": "MemoryEntry_userId_lastAccessedAt_idx",
                     "joinType": null,
                     "estimatedRows": 1,
-                    "totalCost": 1,
+                    "totalCost": 8.23,
                     "children": []
                   }
                 ]
               }
             ]
           },
-          "planSha256": "4f522695e93e706c1682643847721b3d3307d3103215f2048eeb2fc0d03d0127"
+          "planSha256": "76bf6a6766a4bf03df8a5fca1683b35f827737b1131f86913dae74536687d0a9"
         }
       },
       {
@@ -507,7 +526,7 @@
             "indexName": null,
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 6.27,
+            "totalCost": 2.08,
             "children": [
               {
                 "nodeType": "Sort",
@@ -515,7 +534,7 @@
                 "indexName": null,
                 "joinType": null,
                 "estimatedRows": 1,
-                "totalCost": 6.27,
+                "totalCost": 2.08,
                 "children": [
                   {
                     "nodeType": "Seq Scan",
@@ -523,14 +542,14 @@
                     "indexName": null,
                     "joinType": null,
                     "estimatedRows": 1,
-                    "totalCost": 6.25,
+                    "totalCost": 2.06,
                     "children": []
                   }
                 ]
               }
             ]
           },
-          "planSha256": "431ac8634313921c3a3b2166b30967e04dfb713581847390f98f54bdb42cf0de"
+          "planSha256": "d483d533ed3d79128ceaceda6e3ff9c4aa1c0ad67bd9913b3ba9c1dcbfdbcdd6"
         }
       },
       {
@@ -558,7 +577,7 @@
             "indexName": null,
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 6.27,
+            "totalCost": 2.08,
             "children": [
               {
                 "nodeType": "Sort",
@@ -566,7 +585,7 @@
                 "indexName": null,
                 "joinType": null,
                 "estimatedRows": 1,
-                "totalCost": 6.27,
+                "totalCost": 2.08,
                 "children": [
                   {
                     "nodeType": "Seq Scan",
@@ -574,14 +593,14 @@
                     "indexName": null,
                     "joinType": null,
                     "estimatedRows": 1,
-                    "totalCost": 6.25,
+                    "totalCost": 2.06,
                     "children": []
                   }
                 ]
               }
             ]
           },
-          "planSha256": "431ac8634313921c3a3b2166b30967e04dfb713581847390f98f54bdb42cf0de"
+          "planSha256": "d483d533ed3d79128ceaceda6e3ff9c4aa1c0ad67bd9913b3ba9c1dcbfdbcdd6"
         }
       },
       {
@@ -608,31 +627,41 @@
             "relationName": null,
             "indexName": null,
             "joinType": null,
-            "estimatedRows": 1,
-            "totalCost": 1.03,
+            "estimatedRows": 2,
+            "totalCost": 9.52,
             "children": [
               {
                 "nodeType": "Sort",
                 "relationName": null,
                 "indexName": null,
                 "joinType": null,
-                "estimatedRows": 1,
-                "totalCost": 1.03,
+                "estimatedRows": 2,
+                "totalCost": 9.52,
                 "children": [
                   {
-                    "nodeType": "Seq Scan",
+                    "nodeType": "Bitmap Heap Scan",
                     "relationName": "Post",
                     "indexName": null,
                     "joinType": null,
-                    "estimatedRows": 1,
-                    "totalCost": 1.01,
-                    "children": []
+                    "estimatedRows": 2,
+                    "totalCost": 9.5,
+                    "children": [
+                      {
+                        "nodeType": "Bitmap Index Scan",
+                        "relationName": null,
+                        "indexName": "Post_authorId_createdAt_idx",
+                        "joinType": null,
+                        "estimatedRows": 2,
+                        "totalCost": 4.16,
+                        "children": []
+                      }
+                    ]
                   }
                 ]
               }
             ]
           },
-          "planSha256": "c5f71c7b432338464a7894f6f86761e77555a1fe4c275533499f20014c9965c3"
+          "planSha256": "283441a042ef6f2b9e621a9053823e8630edef84a2bce40101c4861413e14129"
         }
       },
       {
@@ -655,15 +684,15 @@
           "statementTimeoutMilliseconds": 5000,
           "sanitized": true,
           "plan": {
-            "nodeType": "Seq Scan",
+            "nodeType": "Index Scan",
             "relationName": "Profile",
-            "indexName": null,
+            "indexName": "Profile_pkey",
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 1.06,
+            "totalCost": 8.16,
             "children": []
           },
-          "planSha256": "58f054b376a0b5ccc508645a98b10761afe251b5420115908e73778494eabafa"
+          "planSha256": "aac3c488c7c8bce9a621ece500f0f8da5a116addc1a1a9ac82fd54a2dcbf355d"
         }
       },
       {
@@ -691,20 +720,20 @@
             "indexName": null,
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 1.06,
+            "totalCost": 8.16,
             "children": [
               {
-                "nodeType": "Seq Scan",
+                "nodeType": "Index Scan",
                 "relationName": "Profile",
-                "indexName": null,
+                "indexName": "Profile_pkey",
                 "joinType": null,
                 "estimatedRows": 1,
-                "totalCost": 1.06,
+                "totalCost": 8.16,
                 "children": []
               }
             ]
           },
-          "planSha256": "2d2f8d912b19b8c017b3e2123909d7a5dd18c7e0e4c005a4fc6902237c6730ba"
+          "planSha256": "22cba41cc6449cdab5d57f009530cb28d8a79aca61d2a0baa1a38b345f7ff56b"
         }
       },
       {
@@ -727,15 +756,15 @@
           "statementTimeoutMilliseconds": 5000,
           "sanitized": true,
           "plan": {
-            "nodeType": "Seq Scan",
+            "nodeType": "Index Scan",
             "relationName": "Thread",
-            "indexName": null,
+            "indexName": "Thread_pkey",
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 1.01,
+            "totalCost": 8.17,
             "children": []
           },
-          "planSha256": "9fd28f28f4ffc33102042ffe1115d6c8576085eb8c94478d0b5b12567d8180c3"
+          "planSha256": "8fc5c09547d328c0475fc7671b73979e68180b18539e2596e25cccc5a8848ab0"
         }
       },
       {
@@ -762,50 +791,70 @@
             "relationName": null,
             "indexName": null,
             "joinType": null,
-            "estimatedRows": 1,
-            "totalCost": 2.07,
+            "estimatedRows": 2,
+            "totalCost": 31.12,
             "children": [
               {
                 "nodeType": "Sort",
                 "relationName": null,
                 "indexName": null,
                 "joinType": null,
-                "estimatedRows": 1,
-                "totalCost": 2.07,
+                "estimatedRows": 2,
+                "totalCost": 31.12,
                 "children": [
                   {
-                    "nodeType": "Nested Loop",
+                    "nodeType": "Hash Join",
                     "relationName": null,
                     "indexName": null,
-                    "joinType": "Left",
-                    "estimatedRows": 1,
-                    "totalCost": 2.06,
+                    "joinType": "Right",
+                    "estimatedRows": 2,
+                    "totalCost": 31.1,
                     "children": [
-                      {
-                        "nodeType": "Seq Scan",
-                        "relationName": "Thread",
-                        "indexName": null,
-                        "joinType": null,
-                        "estimatedRows": 1,
-                        "totalCost": 1.01,
-                        "children": []
-                      },
                       {
                         "nodeType": "Aggregate",
                         "relationName": null,
                         "indexName": null,
                         "joinType": null,
-                        "estimatedRows": 1,
-                        "totalCost": 1.02,
+                        "estimatedRows": 200,
+                        "totalCost": 19.05,
                         "children": [
                           {
                             "nodeType": "Seq Scan",
                             "relationName": "Post",
                             "indexName": null,
                             "joinType": null,
-                            "estimatedRows": 1,
-                            "totalCost": 1.01,
+                            "estimatedRows": 470,
+                            "totalCost": 14.7,
                             "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "nodeType": "Hash",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "estimatedRows": 2,
+                        "totalCost": 9.5,
+                        "children": [
+                          {
+                            "nodeType": "Bitmap Heap Scan",
+                            "relationName": "Thread",
+                            "indexName": null,
+                            "joinType": null,
+                            "estimatedRows": 2,
+                            "totalCost": 9.5,
+                            "children": [
+                              {
+                                "nodeType": "Bitmap Index Scan",
+                                "relationName": null,
+                                "indexName": "Thread_authorId_createdAt_idx",
+                                "joinType": null,
+                                "estimatedRows": 2,
+                                "totalCost": 4.16,
+                                "children": []
+                              }
+                            ]
                           }
                         ]
                       }
@@ -815,7 +864,7 @@
               }
             ]
           },
-          "planSha256": "2b11aaad82355894700e3d905b3e4d9da00503de3b5cc27688928da64d17d12b"
+          "planSha256": "a9ca7cf0da1c1b93437bbcccb8f36ac87277c6fa26e333cc0325dd4a3cebe0b0"
         }
       },
       {
@@ -843,20 +892,20 @@
             "indexName": null,
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 2.35,
+            "totalCost": 8.42,
             "children": [
               {
-                "nodeType": "Seq Scan",
+                "nodeType": "Index Scan",
                 "relationName": "User",
-                "indexName": null,
+                "indexName": "User_pkey",
                 "joinType": null,
                 "estimatedRows": 1,
-                "totalCost": 2.35,
+                "totalCost": 8.42,
                 "children": []
               }
             ]
           },
-          "planSha256": "a63c1e597bee097bc7eac987f155844373d0b787d4264a1019ba46443532ddaa"
+          "planSha256": "83c0748d0358201a1b05a4cfdd52c695fafd9957e24f8301d1a6e9594574051c"
         }
       },
       {
@@ -884,7 +933,7 @@
             "indexName": null,
             "joinType": null,
             "estimatedRows": 1,
-            "totalCost": 30.23,
+            "totalCost": 151.47,
             "children": [
               {
                 "nodeType": "Subquery Scan",
@@ -892,7 +941,7 @@
                 "indexName": null,
                 "joinType": null,
                 "estimatedRows": 1,
-                "totalCost": 30.22,
+                "totalCost": 151.45,
                 "children": [
                   {
                     "nodeType": "Limit",
@@ -900,7 +949,7 @@
                     "indexName": null,
                     "joinType": null,
                     "estimatedRows": 1,
-                    "totalCost": 30.21,
+                    "totalCost": 151.44,
                     "children": [
                       {
                         "nodeType": "Sort",
@@ -908,7 +957,7 @@
                         "indexName": null,
                         "joinType": null,
                         "estimatedRows": 1,
-                        "totalCost": 30.21,
+                        "totalCost": 151.44,
                         "children": [
                           {
                             "nodeType": "Nested Loop",
@@ -916,23 +965,32 @@
                             "indexName": null,
                             "joinType": "Inner",
                             "estimatedRows": 1,
-                            "totalCost": 30.19,
+                            "totalCost": 151.43,
                             "children": [
                               {
-                                "nodeType": "Index Scan",
+                                "nodeType": "Bitmap Heap Scan",
                                 "relationName": "ListingMedia",
-                                "indexName": "ListingMedia_listingId_position_key",
+                                "indexName": null,
                                 "joinType": null,
-                                "estimatedRows": 1,
-                                "totalCost": 10.3,
+                                "estimatedRows": 2,
+                                "totalCost": 78.39,
                                 "children": [
                                   {
-                                    "nodeType": "Seq Scan",
+                                    "nodeType": "Bitmap Index Scan",
+                                    "relationName": null,
+                                    "indexName": "ListingMedia_listingId_position_key",
+                                    "joinType": null,
+                                    "estimatedRows": 4,
+                                    "totalCost": 4.18,
+                                    "children": []
+                                  },
+                                  {
+                                    "nodeType": "Index Scan",
                                     "relationName": "Listing",
-                                    "indexName": null,
+                                    "indexName": "Listing_profileId_status_idx",
                                     "joinType": null,
                                     "estimatedRows": 1,
-                                    "totalCost": 1.05,
+                                    "totalCost": 8.2,
                                     "children": []
                                   },
                                   {
@@ -940,8 +998,8 @@
                                     "relationName": "Listing",
                                     "indexName": null,
                                     "joinType": null,
-                                    "estimatedRows": 1,
-                                    "totalCost": 1.04,
+                                    "estimatedRows": 2,
+                                    "totalCost": 13.4,
                                     "children": []
                                   }
                                 ]
@@ -952,7 +1010,7 @@
                                 "indexName": "MediaAsset_pkey",
                                 "joinType": null,
                                 "estimatedRows": 1,
-                                "totalCost": 17.25,
+                                "totalCost": 36,
                                 "children": [
                                   {
                                     "nodeType": "Nested Loop",
@@ -960,15 +1018,24 @@
                                     "indexName": null,
                                     "joinType": "Inner",
                                     "estimatedRows": 1,
-                                    "totalCost": 8.84,
+                                    "totalCost": 27.58,
                                     "children": [
                                       {
                                         "nodeType": "Seq Scan",
-                                        "relationName": "MessageMedia",
+                                        "relationName": "Message",
                                         "indexName": null,
                                         "joinType": null,
                                         "estimatedRows": 1,
-                                        "totalCost": 1,
+                                        "totalCost": 8.62,
+                                        "children": []
+                                      },
+                                      {
+                                        "nodeType": "Index Only Scan",
+                                        "relationName": "MessageMedia",
+                                        "indexName": "MessageMedia_pkey",
+                                        "joinType": null,
+                                        "estimatedRows": 1,
+                                        "totalCost": 12.69,
                                         "children": [
                                           {
                                             "nodeType": "Seq Scan",
@@ -976,7 +1043,7 @@
                                             "indexName": null,
                                             "joinType": null,
                                             "estimatedRows": 1,
-                                            "totalCost": 6.33,
+                                            "totalCost": 2.38,
                                             "children": []
                                           },
                                           {
@@ -985,19 +1052,10 @@
                                             "indexName": null,
                                             "joinType": null,
                                             "estimatedRows": 2,
-                                            "totalCost": 6.24,
+                                            "totalCost": 2,
                                             "children": []
                                           }
                                         ]
-                                      },
-                                      {
-                                        "nodeType": "Seq Scan",
-                                        "relationName": "Message",
-                                        "indexName": null,
-                                        "joinType": null,
-                                        "estimatedRows": 1,
-                                        "totalCost": 7.83,
-                                        "children": []
                                       }
                                     ]
                                   }
@@ -1013,7 +1071,7 @@
               }
             ]
           },
-          "planSha256": "04fc7619a5a44885ab168018df2956120c8faf326cb5bfd96b89d12af653a1a1"
+          "planSha256": "710f1e7d602d91ff68e531d64d33e5ddddffca37621cefa97d543b31edc43969"
         }
       },
       {
@@ -1040,56 +1098,65 @@
             "relationName": null,
             "indexName": null,
             "joinType": null,
-            "estimatedRows": 1,
-            "totalCost": 20.93,
+            "estimatedRows": 2,
+            "totalCost": 135.74,
             "children": [
               {
                 "nodeType": "Subquery Scan",
                 "relationName": null,
                 "indexName": null,
                 "joinType": null,
-                "estimatedRows": 1,
-                "totalCost": 20.91,
+                "estimatedRows": 2,
+                "totalCost": 135.73,
                 "children": [
                   {
                     "nodeType": "Limit",
                     "relationName": null,
                     "indexName": null,
                     "joinType": null,
-                    "estimatedRows": 1,
-                    "totalCost": 20.9,
+                    "estimatedRows": 2,
+                    "totalCost": 135.71,
                     "children": [
                       {
                         "nodeType": "Sort",
                         "relationName": null,
                         "indexName": null,
                         "joinType": null,
-                        "estimatedRows": 1,
-                        "totalCost": 20.9,
+                        "estimatedRows": 2,
+                        "totalCost": 135.71,
                         "children": [
                           {
                             "nodeType": "Nested Loop",
                             "relationName": null,
                             "indexName": null,
                             "joinType": "Inner",
-                            "estimatedRows": 1,
-                            "totalCost": 20.89,
+                            "estimatedRows": 2,
+                            "totalCost": 135.69,
                             "children": [
                               {
-                                "nodeType": "Seq Scan",
+                                "nodeType": "Bitmap Heap Scan",
                                 "relationName": "MessageMedia",
                                 "indexName": null,
                                 "joinType": null,
-                                "estimatedRows": 1,
-                                "totalCost": 1,
+                                "estimatedRows": 3,
+                                "totalCost": 30.7,
                                 "children": [
+                                  {
+                                    "nodeType": "Bitmap Index Scan",
+                                    "relationName": null,
+                                    "indexName": "MessageMedia_messageId_position_key",
+                                    "joinType": null,
+                                    "estimatedRows": 4,
+                                    "totalCost": 4.18,
+                                    "children": []
+                                  },
                                   {
                                     "nodeType": "Seq Scan",
                                     "relationName": "Message",
                                     "indexName": null,
                                     "joinType": null,
                                     "estimatedRows": 1,
-                                    "totalCost": 6.33,
+                                    "totalCost": 2.38,
                                     "children": []
                                   },
                                   {
@@ -1098,7 +1165,7 @@
                                     "indexName": null,
                                     "joinType": null,
                                     "estimatedRows": 2,
-                                    "totalCost": 6.24,
+                                    "totalCost": 2,
                                     "children": []
                                   }
                                 ]
@@ -1109,7 +1176,7 @@
                                 "indexName": "MediaAsset_pkey",
                                 "joinType": null,
                                 "estimatedRows": 1,
-                                "totalCost": 17.25,
+                                "totalCost": 34.66,
                                 "children": [
                                   {
                                     "nodeType": "Nested Loop",
@@ -1117,15 +1184,24 @@
                                     "indexName": null,
                                     "joinType": "Inner",
                                     "estimatedRows": 1,
-                                    "totalCost": 8.84,
+                                    "totalCost": 27.58,
                                     "children": [
                                       {
                                         "nodeType": "Seq Scan",
-                                        "relationName": "MessageMedia",
+                                        "relationName": "Message",
                                         "indexName": null,
                                         "joinType": null,
                                         "estimatedRows": 1,
-                                        "totalCost": 1,
+                                        "totalCost": 8.62,
+                                        "children": []
+                                      },
+                                      {
+                                        "nodeType": "Index Only Scan",
+                                        "relationName": "MessageMedia",
+                                        "indexName": "MessageMedia_pkey",
+                                        "joinType": null,
+                                        "estimatedRows": 1,
+                                        "totalCost": 12.69,
                                         "children": [
                                           {
                                             "nodeType": "Seq Scan",
@@ -1133,7 +1209,7 @@
                                             "indexName": null,
                                             "joinType": null,
                                             "estimatedRows": 1,
-                                            "totalCost": 6.33,
+                                            "totalCost": 2.38,
                                             "children": []
                                           },
                                           {
@@ -1142,19 +1218,10 @@
                                             "indexName": null,
                                             "joinType": null,
                                             "estimatedRows": 2,
-                                            "totalCost": 6.24,
+                                            "totalCost": 2,
                                             "children": []
                                           }
                                         ]
-                                      },
-                                      {
-                                        "nodeType": "Seq Scan",
-                                        "relationName": "Message",
-                                        "indexName": null,
-                                        "joinType": null,
-                                        "estimatedRows": 1,
-                                        "totalCost": 7.83,
-                                        "children": []
                                       }
                                     ]
                                   }
@@ -1170,7 +1237,7 @@
               }
             ]
           },
-          "planSha256": "31b0306c3a33437e0e209f51c6759427cd4eba16098c06710974bc0a9b7bfa31"
+          "planSha256": "0bf8326171c321fbeb13db4d186f55083b6d6fe65b1cd1182530553ea20cc600"
         }
       }
     ],

@@ -26,6 +26,7 @@ COPY prisma/migrations/ /usr/local/share/giq-full-history-merge/prisma/migration
 COPY scripts/alloydb-full-history-merge/galtd-stage-export.ts /usr/local/share/giq-full-history-merge/galtd-stage-export.ts
 COPY scripts/alloydb-full-history-merge/merge.sh /usr/local/bin/giq-full-history-merge
 COPY scripts/alloydb-full-history-merge/clean-partition.sh /usr/local/bin/giq-clean-partition
+COPY scripts/alloydb-full-history-merge/normalize-checkpointed.sh /usr/local/bin/giq-normalize-checkpointed
 COPY scripts/alloydb-full-history-merge/sql/ /usr/local/share/giq-full-history-merge/sql/
 
 RUN find /usr/local/share/giq-full-history-merge/prisma/migrations -mindepth 2 -maxdepth 2 -name migration.sql -print \
@@ -35,7 +36,7 @@ RUN find /usr/local/share/giq-full-history-merge/prisma/migrations -mindepth 2 -
         done > /usr/local/share/giq-full-history-merge/migration-manifest.tsv \
   && test "$(wc -l < /usr/local/share/giq-full-history-merge/migration-manifest.tsv)" -gt 0
 
-RUN chmod 0555 /usr/local/bin/giq-full-history-merge /usr/local/bin/giq-clean-partition
+RUN chmod 0555 /usr/local/bin/giq-full-history-merge /usr/local/bin/giq-clean-partition /usr/local/bin/giq-normalize-checkpointed
 
 USER postgres
 

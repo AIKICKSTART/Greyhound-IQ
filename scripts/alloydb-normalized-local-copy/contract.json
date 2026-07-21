@@ -220,6 +220,7 @@
     "DogOwnership",
     "DogProfileObservation",
     "DogProfileMergeLedger",
+    "LiveFeedQuarantine",
     "ForumCategory",
     "Thread",
     "Post",

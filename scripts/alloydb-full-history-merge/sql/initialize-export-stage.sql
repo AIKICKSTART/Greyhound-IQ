@@ -39,18 +39,18 @@ CREATE TABLE IF NOT EXISTS _giq_history_merge.export_dataset_manifest (
 INSERT INTO _giq_history_merge.export_dataset_manifest
   (dataset, expected_rows, expected_bytes, expected_sha256)
 VALUES
-  ('profiles', 170780, 501047625, 'be033d2fea61eaed8e7d272f52c114567ac1dc38a5135471b4910a91a41a1c4e'),
-  ('pedigree_edges', 328069, 112484102, '9425a3434c98d4e6fb02b18a0ce6813ad25c03be6c339fd584d5a1c0b6ae5926'),
-  ('profile_forms', 6218839, 6054583900, '76cbb21aa1c1b57e71df212e4e9a5388b81b075a93864166e7987df99d9b000a'),
+  ('profiles', 200211, 569294683, '4851af04b4de4eb160f5ff7f349049bc9d7184006c127f1b8ebcca7d53972be2'),
+  ('pedigree_edges', 384568, 131970236, '092313971c5277deb74f5f05ed06d3b872b4e69cc8e9baf3a336854a7de89f2f'),
+  ('profile_forms', 6474962, 6310539529, 'ea6b5d13e1e300a1ca5df77935e00e4d76be2d5eae1a7e5f884093922583e488'),
   ('meetings', 76620, 34341380, 'eab1c54db2a9e09c1d1c54d9c9ac1db1975770e7fdea304e91441651134887d4'),
   ('races', 838526, 608103659, '0ac28a9cd75bea90f51788c5cd9f364a7fa24f2f54455a0b31e829626767803b'),
   ('runners', 6434145, 4481555075, '6eff1714d34208a363110c0c4dc902ee5d7fb1a308aee2bc4ffe774a3c273b2a'),
   ('results', 5660837, 3162128000, 'b8fa047aee0b7f815c61900e2df898037b316d78edf5b423678985f2211b67d6'),
-  ('archives', 178055, 109514191, 'd8dcb4ce5a670acc0f7debf61269e144b10d8657c21724259a466128ac54dfb7'),
+  ('archives', 207486, 126828012, '69357987a34c4f974a08ddde1a39dc296ec268e8f632403f73fcd32343ac6d92'),
   ('race_media', 538849, 323029819, '89b90198d3197238a2476381c0917108f21d2e209c02ca066e8ec90c1e8385b1'),
   ('duplicates', 1940, 502193, '5a9fae9f90ce4c28b8f1567cfd894f066e963405140237d215ceab3e5c556327'),
-  ('orphans', 1188280, 293531133, '38fcc6eaf92ab971383882c3b062cadd93b67b9878c3b9d36fd4dfdc1132b436'),
-  ('quarantine', 82, 15472, '6cfabdde825d5a49cdfad0f264d3a7e1fc5519c3af00e4b6eb76b605802e261e')
+  ('orphans', 952809, 243437502, '5ef8d5126ac0f9ff4631592b0bca46afc758bec4482e179daadf9d1db37b2450'),
+  ('quarantine', 197, 40965, '0c152f3d6d9710d041ce40cd50ddd7e309b18672565aceec57c0fbb1e5ba470c')
 ON CONFLICT (dataset) DO UPDATE
 SET expected_rows = EXCLUDED.expected_rows,
     expected_bytes = EXCLUDED.expected_bytes,

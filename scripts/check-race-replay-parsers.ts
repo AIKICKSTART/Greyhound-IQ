@@ -18,6 +18,7 @@ import {
 // Stream proxy: allowed hosts sign+round-trip; foreign hosts and tampered
 // signatures are rejected (prevents open-proxy / SSRF and hides source origin).
 process.env.REPLAY_PROXY_SECRET ||= "test-secret-for-replay-proxy-check";
+process.env.THEDOGS_LICENSED_USE_APPROVED = "true";
 const nowMs = Date.UTC(2026, 6, 14, 0, 0, 0);
 const signed = proxiedStreamPath(
   "https://d2w8yyjcswa0zt.cloudfront.net/abc.m3u8",

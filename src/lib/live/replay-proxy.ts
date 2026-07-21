@@ -4,6 +4,10 @@ import {
   hkdfSync,
   randomBytes,
 } from "node:crypto";
+import {
+  isTheDogsLicensedUseApproved,
+  isTheDogsOwnedReplayHost,
+} from "./thedogs-access";
 
 // Turns a provider stream URL into an authenticated encrypted same-origin
 // capability. Runtime fetching still applies DNS-to-socket validation in
@@ -33,7 +37,9 @@ const REPLAY_CAPABILITY_AAD = Buffer.from(
 );
 
 export function isAllowedStreamHost(hostname: string) {
-  return ALLOWED_STREAM_HOSTS.has(hostname);
+  const normalized = hostname.toLowerCase();
+  return ALLOWED_STREAM_HOSTS.has(normalized) &&
+    (!isTheDogsOwnedReplayHost(normalized) || isTheDogsLicensedUseApproved());
 }
 
 export function validateReplayTarget(

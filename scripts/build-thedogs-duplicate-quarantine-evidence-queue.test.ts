@@ -111,6 +111,85 @@ test("v1 evidence is diagnostic-only and must be rebuilt from v2", async () => {
   }
 });
 
+test("accepts accounted invalid profile files for race-only duplicate evidence", async () => {
+  const fixture = await createFixture("thedogs-normalized-harvest/v2", 1);
+  try {
+    const result = await buildDuplicateQuarantineEvidenceQueue({
+      normalizedDir: fixture.normalizedDir,
+      rawRaceRoot: fixture.rawRaceRoot,
+      dryRun: true,
+    });
+    assert.equal(result.manifest.source.profileInvalidFiles, 1);
+    assert.equal(result.manifest.source.profileQuarantineRows, 1);
+    assert.equal(result.manifest.canonicalPromotionEligible, false);
+    assert.equal(result.manifest.duplicateRemovalEligible, false);
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("rejects inconsistent profile accounting, profile quarantine counts, and invalid race-day files", async () => {
+  const inconsistentProfile = await createFixture("thedogs-normalized-harvest/v2");
+  const missingProfileQuarantine = await createFixture(
+    "thedogs-normalized-harvest/v2",
+    0,
+    1,
+  );
+  const extraProfileQuarantine = await createFixture(
+    "thedogs-normalized-harvest/v2",
+    2,
+    1,
+  );
+  const invalidRaceDay = await createFixture("thedogs-normalized-harvest/v2");
+  try {
+    await updateInventory(inconsistentProfile.normalizedDir, "profile", {
+      discoveredFiles: 3,
+      validFiles: 1,
+      invalidFiles: 1,
+    });
+    await assert.rejects(
+      buildDuplicateQuarantineEvidenceQueue({
+        normalizedDir: inconsistentProfile.normalizedDir,
+        rawRaceRoot: inconsistentProfile.rawRaceRoot,
+        dryRun: true,
+      }),
+      /normalized profile inventory coverage is not proven/,
+    );
+
+    for (const fixture of [missingProfileQuarantine, extraProfileQuarantine]) {
+      await assert.rejects(
+        buildDuplicateQuarantineEvidenceQueue({
+          normalizedDir: fixture.normalizedDir,
+          rawRaceRoot: fixture.rawRaceRoot,
+          dryRun: true,
+        }),
+        /normalized profile quarantine rows do not match profile invalid file inventory/,
+      );
+    }
+
+    await updateInventory(invalidRaceDay.normalizedDir, "race-day", {
+      discoveredFiles: 2,
+      validFiles: 1,
+      invalidFiles: 1,
+    });
+    await assert.rejects(
+      buildDuplicateQuarantineEvidenceQueue({
+        normalizedDir: invalidRaceDay.normalizedDir,
+        rawRaceRoot: invalidRaceDay.rawRaceRoot,
+        dryRun: true,
+      }),
+      /normalized race-day inventory coverage is not proven/,
+    );
+  } finally {
+    await Promise.all([
+      rm(inconsistentProfile.root, { recursive: true, force: true }),
+      rm(missingProfileQuarantine.root, { recursive: true, force: true }),
+      rm(extraProfileQuarantine.root, { recursive: true, force: true }),
+      rm(invalidRaceDay.root, { recursive: true, force: true }),
+    ]);
+  }
+});
+
 test("writes immutable source-bound files and rejects raw archive tampering", async () => {
   const fixture = await createFixture("thedogs-normalized-harvest/v2");
   try {
@@ -164,7 +243,11 @@ test("implementation has no database or provider-network execution path", async 
   assert.doesNotMatch(source, /child_process|execFile|spawn\s*\(/);
 });
 
-async function createFixture(transformVersion: string) {
+async function createFixture(
+  transformVersion: string,
+  profileSourceQuarantineRows = 0,
+  profileInvalidFiles = profileSourceQuarantineRows,
+) {
   const root = await mkdtemp(path.join(os.tmpdir(), "giq-duplicate-quarantine-"));
   const normalizedDir = path.join(root, "normalized");
   const partitionDir = path.join(normalizedDir, "partition-0000-of-0001");
@@ -197,6 +280,14 @@ async function createFixture(transformVersion: string) {
     duplicateIssue(6),
   ];
   const quarantine = [
+    ...Array.from({ length: profileSourceQuarantineRows }, (_, index) => ({
+      issueType: "source-file",
+      sourceKind: "profile",
+      sourcePath: `${index + 1}/100001.json`,
+      sourceSha256: "c".repeat(64),
+      sourceBytes: 1,
+      reason: "unverified_profile_identity",
+    })),
     {
       issueType: "runner-row",
       naturalKey: `${raceKey(4)}:runner:box:1`,
@@ -282,6 +373,13 @@ async function createFixture(transformVersion: string) {
     excludedByLimit: 0,
     coverageProven: true,
   };
+  const profileInventoryRow = profileInvalidFiles > 0
+    ? {
+        ...inventoryRow,
+        discoveredFiles: inventoryRow.validFiles + profileInvalidFiles,
+        invalidFiles: profileInvalidFiles,
+      }
+    : inventoryRow;
   const manifest = {
     schemaVersion: 1,
     transformVersion,
@@ -312,7 +410,7 @@ async function createFixture(transformVersion: string) {
       targetIdsGenerated: false,
       targetIdAssignments: 0,
     },
-    inventory: { profile: inventoryRow, "race-day": inventoryRow },
+    inventory: { profile: profileInventoryRow, "race-day": inventoryRow },
     datasets: datasetSummary,
     issues: {
       duplicates: duplicates.length,
@@ -335,6 +433,23 @@ async function createFixture(transformVersion: string) {
   await writeFile(path.join(normalizedDir, "manifest.json"), manifestBody);
   await writeFile(path.join(normalizedDir, "manifest.sha256"), `${sha256(manifestBody)}\n`);
   return { root, normalizedDir, rawRaceRoot, rawFile, rawSha256 };
+}
+
+async function updateInventory(
+  normalizedDir: string,
+  kind: "profile" | "race-day",
+  updates: Record<string, number>,
+) {
+  const manifestPath = path.join(normalizedDir, "manifest.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
+    inventory: Record<string, Record<string, unknown>>;
+  };
+  Object.assign(manifest.inventory[kind]!, updates);
+  const body = `${JSON.stringify(manifest, null, 2)}\n`;
+  await Promise.all([
+    writeFile(manifestPath, body),
+    writeFile(path.join(normalizedDir, "manifest.sha256"), `${sha256(body)}\n`),
+  ]);
 }
 
 function buildRawArchive() {

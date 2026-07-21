@@ -8,6 +8,7 @@
 import "./load-import-env";
 
 import { createHash, randomUUID } from "node:crypto";
+import { win32 as windowsPath } from "node:path";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "../src/lib/db";
@@ -46,10 +47,22 @@ const LEGACY_NORMALIZATION_BATCH_SIZE = 1_000;
 const EXPECTED_CANDIDATE_DATABASE = "giq_production_candidate_20260716_r1";
 const EXPECTED_PRODUCTION_SOURCE = "giq_rehearsal_restore_v8";
 const EXPECTED_HISTORY_SOURCE = "giq_full_history_rehearsal_20260716_r2";
-const EXPECTED_HISTORY_CUTOFF = "2026-07-01T02:49:36.504Z";
+const EXPECTED_NORMALIZED_HISTORY_CUTOFF = "2026-07-16T16:12:26.544Z";
+const EXPECTED_NORMALIZED_MANIFEST_SHA256 =
+  "13bc8d83c048633b57c5299ec1e778179276fee855182b9c932f8a28a77fbf1c";
+const EXPECTED_NORMALIZED_TRANSFORM_VERSION = "thedogs-normalized-harvest/v2";
 const EXPECTED_ALLOYDB_HOST = "10.240.116.2";
 const EXPECTED_ALLOYDB_PORT = 5432;
+const EXPECTED_NATIVE_HOST = "127.0.0.1";
+const EXPECTED_NATIVE_PORT = 55435;
+const EXPECTED_NATIVE_POSTGRES_MAJOR = 16;
+const EXPECTED_NATIVE_DATA_DIRECTORY =
+  "G:\\GreyhoundIQ\\native-postgres16-canonical\\data";
 const EXPECTED_DATABASE_USER = "postgres";
+const EXPECTED_REPLAY_ARTIFACT_SHA256 =
+  "89b90198d3197238a2476381c0917108f21d2e209c02ca066e8ec90c1e8385b1";
+const EXPECTED_REPLAY_EVIDENCE_CONTRACT_SHA256 =
+  "aa6e63533daf5dd8c8e0aa2d5654b91f49140aeb2338904664430551600aae16";
 const EXPECTED_REPLAY_ARTIFACT_ROWS = 538_849;
 const EXPECTED_RACE_REPLAY_ROWS = 289_718;
 const EXPECTED_MEETING_PREVIEW_ROWS = 900;
@@ -69,7 +82,34 @@ const EXPECTED_PROVIDER_COLLISION_IDS = [
   "916604",
   "932547",
 ] as const;
-const SUPPORTED_JURISDICTIONS = ["NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
+const EXPECTED_CANONICAL_DELTA_TABLES = [
+  "Track",
+  "Trainer",
+  "Dog",
+  "Meeting",
+  "Race",
+  "Runner",
+  "Result",
+  "FormEntry",
+  "DogProfileForm",
+  "RaceVideo",
+  "DogProfileArchive",
+  "RaceDayArchive",
+  "PedigreeImportRun",
+  "DogSourceIdentity",
+  "PedigreeAssertion",
+  "PedigreeMergeLedger",
+] as const;
+const SUPPORTED_JURISDICTIONS = [
+  "ACT",
+  "NSW",
+  "NT",
+  "QLD",
+  "SA",
+  "TAS",
+  "VIC",
+  "WA",
+];
 const PROVIDER_RESPONSE_MAX_BYTES = 4 * 1024 * 1024;
 const PUBLIC_PROVIDERS = [
   "thedogs",
@@ -94,6 +134,7 @@ type Options = {
   onlyMissing: boolean;
   compact: boolean;
   normalizeOnly: boolean;
+  nativeLocal: boolean;
 };
 
 type RaceRow = {
@@ -184,23 +225,47 @@ type CandidateIdentity = {
   port: number | null;
   user: string;
   ssl: boolean;
+  serverVersionNum: number;
+  dataDirectory: string;
   markerPresent: boolean;
   quarantinePresent: boolean;
   replayTaxonomyPresent: boolean;
   snapshotProofPresent: boolean;
+  canonicalDeltaPresent: boolean;
+  verificationCheckPresent: boolean;
 };
 
 type CandidateMergeMarker = {
   id: number;
+  phase: string;
   sourceProductionDatabase: string;
   sourceHistoryDatabase: string;
   sourceHistoryCutoff: Date;
+  normalizedManifestSha256: string;
+  normalizedTransformVersion: string;
   normalizedAt: Date | null;
+  normalizationManifestValid: boolean;
   replayNormalizationVerifiedAt: Date | null;
+  replayArtifactSha256: string | null;
   replayArtifactRows: bigint | null;
+  replayEvidenceContractSha256: string | null;
+  replayEvidenceStagedAt: Date | null;
   canonicalMergedAt: Date | null;
+  canonicalMergeManifest: Prisma.JsonValue | null;
   liveDeltaAppliedAt: Date | null;
+  liveDeltaSourceManifest: Prisma.JsonValue | null;
   verifiedAt: Date | null;
+  verificationManifest: Prisma.JsonValue | null;
+};
+
+type CandidateMergeProof = {
+  canonicalManifestValid: boolean;
+  canonicalDeltaRows: bigint;
+  canonicalDeltaCompleteRows: bigint;
+  canonicalDeltaUnexpectedRows: bigint;
+  canonicalVerificationRows: bigint;
+  raceMediaVerificationRows: bigint;
+  standaloneReplayVerificationRows: bigint;
 };
 
 type HistoricalReplayTaxonomy = {
@@ -234,9 +299,26 @@ type ReplayQuarantineRow = {
   state: string | null;
 };
 
+type ProviderSourceCollisionRow = {
+  sourceProvider: string;
+  sourceId: string;
+  videoRows: bigint;
+  raceRows: bigint;
+  raceIds: string[];
+  collisionGroups: bigint;
+  collisionRows: bigint;
+};
+
+type ReplayUrlEvidenceConflictRow = {
+  raceId: string;
+  sourceProvider: string;
+  expectedSourceId: string;
+  actualSourceId: string;
+};
+
 async function main() {
   const options = parseOptions(process.argv.slice(2));
-  await assertCandidateReplayTarget();
+  await assertCandidateReplayTarget(options);
   await assertHistoricalReplayTaxonomy();
   await assertSnapshotRaceVideosPresent();
   const auditBefore = await auditRaceVideos(options);
@@ -308,7 +390,7 @@ async function main() {
   );
 }
 
-async function assertCandidateReplayTarget() {
+async function assertCandidateReplayTarget(options: Options) {
   const [identity] = await prisma.$queryRaw<CandidateIdentity[]>`
     SELECT
       current_database()::text AS "database",
@@ -319,12 +401,33 @@ async function assertCandidateReplayTarget() {
         (SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()),
         FALSE
       ) AS "ssl",
+      current_setting('server_version_num')::int AS "serverVersionNum",
+      current_setting('data_directory')::text AS "dataDirectory",
       (to_regclass('_giq_history_merge.run') IS NOT NULL) AS "markerPresent",
       (to_regclass('_giq_history_merge.quarantine') IS NOT NULL) AS "quarantinePresent",
       (to_regclass('_giq_history_stage.media_resolution') IS NOT NULL) AS "replayTaxonomyPresent",
-      (to_regclass('_giq_history_merge.snapshot_race_video_proof') IS NOT NULL) AS "snapshotProofPresent"
+      (to_regclass('_giq_history_merge.snapshot_race_video_proof') IS NOT NULL) AS "snapshotProofPresent",
+      (to_regclass('_giq_history_merge.canonical_table_delta') IS NOT NULL) AS "canonicalDeltaPresent",
+      (to_regclass('_giq_history_merge.verification_check') IS NOT NULL) AS "verificationCheckPresent"
   `;
-  if (
+  if (options.nativeLocal) {
+    if (
+      !identity ||
+      identity.database !== EXPECTED_CANDIDATE_DATABASE ||
+      !isExpectedNativeHost(identity.host) ||
+      identity.port !== EXPECTED_NATIVE_PORT ||
+      identity.user !== EXPECTED_DATABASE_USER ||
+      Math.trunc(identity.serverVersionNum / 10_000) !==
+        EXPECTED_NATIVE_POSTGRES_MAJOR ||
+      !sameWindowsPath(identity.dataDirectory, EXPECTED_NATIVE_DATA_DIRECTORY) ||
+      !identity.markerPresent ||
+      !identity.quarantinePresent ||
+      !identity.replayTaxonomyPresent ||
+      !identity.snapshotProofPresent
+    ) {
+      throw new Error("race_videos.native_candidate_identity_mismatch");
+    }
+  } else if (
     !identity ||
     identity.database !== EXPECTED_CANDIDATE_DATABASE ||
     identity.host !== EXPECTED_ALLOYDB_HOST ||
@@ -341,33 +444,186 @@ async function assertCandidateReplayTarget() {
 
   const markers = await prisma.$queryRaw<CandidateMergeMarker[]>`
     SELECT
-      id,
-      source_production_database AS "sourceProductionDatabase",
-      source_history_database AS "sourceHistoryDatabase",
-      source_history_cutoff AS "sourceHistoryCutoff",
-      normalized_at AS "normalizedAt",
-      replay_normalization_verified_at AS "replayNormalizationVerifiedAt",
-      replay_artifact_rows AS "replayArtifactRows",
-      canonical_merged_at AS "canonicalMergedAt",
-      live_delta_applied_at AS "liveDeltaAppliedAt",
-      verified_at AS "verifiedAt"
-    FROM _giq_history_merge.run
-    WHERE id = 1
+      run.id,
+      run.phase,
+      run.source_production_database AS "sourceProductionDatabase",
+      run.source_history_database AS "sourceHistoryDatabase",
+      run.source_history_cutoff AS "sourceHistoryCutoff",
+      run.normalized_manifest_sha256 AS "normalizedManifestSha256",
+      run.normalized_transform_version AS "normalizedTransformVersion",
+      run.normalized_at AS "normalizedAt",
+      COALESCE(
+        jsonb_typeof(run.normalization_manifest) = 'object'
+          AND run.normalization_manifest @> jsonb_build_object(
+            'candidateOnlyWrites', TRUE,
+            'sourceAccessModeDeclared', 'read-only pg_dump/SELECT-only FDW',
+            'sourceDatabases', jsonb_build_array(
+              ${EXPECTED_PRODUCTION_SOURCE},
+              ${EXPECTED_HISTORY_SOURCE}
+            )
+          ),
+        FALSE
+      ) AS "normalizationManifestValid",
+      run.replay_normalization_verified_at AS "replayNormalizationVerifiedAt",
+      run.replay_artifact_sha256 AS "replayArtifactSha256",
+      run.replay_artifact_rows AS "replayArtifactRows",
+      run.replay_evidence_contract_sha256 AS "replayEvidenceContractSha256",
+      run.replay_evidence_staged_at AS "replayEvidenceStagedAt",
+      run.canonical_merged_at AS "canonicalMergedAt",
+      run.canonical_merge_manifest AS "canonicalMergeManifest",
+      run.live_delta_applied_at AS "liveDeltaAppliedAt",
+      run.live_delta_source_manifest AS "liveDeltaSourceManifest",
+      run.verified_at AS "verifiedAt",
+      run.verification_manifest AS "verificationManifest"
+    FROM _giq_history_merge.run run
+    WHERE run.id = 1
   `;
   const marker = markers.length === 1 ? markers[0] : null;
   if (
     !marker ||
+    marker.phase !== "canonical_merged" ||
     marker.sourceProductionDatabase !== EXPECTED_PRODUCTION_SOURCE ||
     marker.sourceHistoryDatabase !== EXPECTED_HISTORY_SOURCE ||
-    marker.sourceHistoryCutoff.toISOString() !== EXPECTED_HISTORY_CUTOFF ||
+    marker.sourceHistoryCutoff.toISOString() !==
+      EXPECTED_NORMALIZED_HISTORY_CUTOFF ||
+    marker.normalizedManifestSha256 !== EXPECTED_NORMALIZED_MANIFEST_SHA256 ||
+    marker.normalizedTransformVersion !== EXPECTED_NORMALIZED_TRANSFORM_VERSION ||
     marker.normalizedAt === null ||
+    !marker.normalizationManifestValid ||
     marker.replayNormalizationVerifiedAt === null ||
+    marker.replayArtifactSha256 !== EXPECTED_REPLAY_ARTIFACT_SHA256 ||
     marker.replayArtifactRows !== BigInt(EXPECTED_REPLAY_ARTIFACT_ROWS) ||
+    marker.replayEvidenceContractSha256 !==
+      EXPECTED_REPLAY_EVIDENCE_CONTRACT_SHA256 ||
+    marker.replayEvidenceStagedAt === null ||
     marker.canonicalMergedAt === null ||
+    marker.canonicalMergeManifest === null ||
+    marker.replayEvidenceStagedAt.getTime() >
+      marker.replayNormalizationVerifiedAt.getTime() ||
+    marker.canonicalMergedAt.getTime() <
+      marker.replayNormalizationVerifiedAt.getTime() ||
+    marker.canonicalMergedAt.getTime() < marker.normalizedAt.getTime() ||
     marker.liveDeltaAppliedAt !== null ||
-    marker.verifiedAt !== null
+    marker.liveDeltaSourceManifest !== null ||
+    marker.verifiedAt !== null ||
+    marker.verificationManifest !== null
   ) {
     throw new Error("race_videos.candidate_merge_phase_mismatch");
+  }
+
+  if (!identity.canonicalDeltaPresent || !identity.verificationCheckPresent) {
+    throw new Error("race_videos.candidate_merge_proof_mismatch");
+  }
+
+  const expectedDeltaValues = EXPECTED_CANONICAL_DELTA_TABLES.map(
+    (tableName) => Prisma.sql`(${tableName}::text)`
+  );
+  // merge-canonical.sql consumes its same-session plan attestation before these
+  // durable delta, verification, and phase records can commit atomically.
+  const proofs = await prisma.$queryRaw<CandidateMergeProof[]>`
+    WITH expected_delta("tableName") AS (
+      VALUES ${Prisma.join(expectedDeltaValues)}
+    ), canonical_delta AS (
+      SELECT
+        COUNT(*)::bigint AS "rows",
+        COUNT(*) FILTER (
+          WHERE expected_delta."tableName" IS NULL
+        )::bigint AS "unexpectedRows",
+        COUNT(*) FILTER (
+          WHERE expected_delta."tableName" IS NOT NULL
+            AND delta.before_rows >= 0
+            AND delta.after_rows >= 0
+            AND delta.inserted_rows = delta.after_rows - delta.before_rows
+        )::bigint AS "completeRows",
+        jsonb_object_agg(
+          delta.table_name,
+          to_jsonb(delta) - 'table_name'
+          ORDER BY delta.table_name
+        ) AS manifest
+      FROM _giq_history_merge.canonical_table_delta delta
+      LEFT JOIN expected_delta ON expected_delta."tableName" = delta.table_name
+    )
+    SELECT
+      COALESCE(
+        jsonb_typeof(run.canonical_merge_manifest) = 'object'
+          AND run.canonical_merge_manifest @> jsonb_build_object(
+            'candidateOnlyWrites', TRUE,
+            'sourceAccessModeDeclared', 'read-only inputs',
+            'snapshotRaceVideosPreserved', TRUE,
+            'unauthorizedNonNullOverwrites', 0,
+            'nonAllowlistedTablesUnchanged', TRUE
+          )
+          AND run.canonical_merge_manifest->'tableDeltas' = canonical_delta.manifest,
+        FALSE
+      ) AS "canonicalManifestValid",
+      canonical_delta."rows" AS "canonicalDeltaRows",
+      canonical_delta."completeRows" AS "canonicalDeltaCompleteRows",
+      canonical_delta."unexpectedRows" AS "canonicalDeltaUnexpectedRows",
+      (
+        SELECT COUNT(*)::bigint
+        FROM _giq_history_merge.verification_check verification
+        WHERE verification.check_name = 'canonical_merge_partition'
+          AND verification.verified_at IS NOT NULL
+          AND verification.verified_at <= run.canonical_merged_at
+          AND jsonb_typeof(verification.metrics) = 'object'
+          AND verification.metrics @> jsonb_build_object(
+            'candidateOnlyWrites', TRUE,
+            'sourceAccessModeDeclared', 'read-only inputs',
+            'unauthorizedNonNullOverwrites', 0,
+            'snapshotRaceVideosChanged', 0
+          )
+          AND verification.metrics->'tables' = canonical_delta.manifest
+      ) AS "canonicalVerificationRows",
+      (
+        SELECT COUNT(*)::bigint
+        FROM _giq_history_merge.verification_check verification
+        WHERE verification.check_name = 'race_media_partition'
+          AND verification.verified_at IS NOT NULL
+          AND verification.verified_at <= run.canonical_merged_at
+          AND jsonb_typeof(verification.metrics) = 'object'
+          AND (verification.metrics->>'staged')::bigint = ${EXPECTED_REPLAY_ARTIFACT_ROWS}
+          AND (verification.metrics->>'raceReplayStaged')::bigint = ${EXPECTED_RACE_REPLAY_ROWS}
+          AND verification.metrics->'snapshotRaceVideosPreserved' = 'true'::jsonb
+          AND (verification.metrics->>'canonicalRaceVideosInserted')::bigint = (
+            SELECT inserted_rows
+            FROM _giq_history_merge.canonical_table_delta
+            WHERE table_name = 'RaceVideo'
+          )
+      ) AS "raceMediaVerificationRows",
+      (
+        SELECT COUNT(*)::bigint
+        FROM _giq_history_merge.verification_check verification
+        WHERE verification.check_name = 'standalone_replay_membership'
+          AND verification.verified_at IS NOT NULL
+          AND verification.verified_at <= run.canonical_merged_at
+          AND jsonb_typeof(verification.metrics) = 'object'
+          AND verification.metrics->>'contractSha256' = run.replay_evidence_contract_sha256
+          AND (verification.metrics->>'inputProviderIds')::bigint = 145
+          AND (
+            (verification.metrics->>'presentInClonedRaceVideo')::bigint
+            + (verification.metrics->>'explicitlyMissing')::bigint
+            + (verification.metrics->>'quarantined')::bigint
+          ) = 145
+          AND (verification.metrics->>'importedFromStandaloneLog')::bigint = 0
+          AND (verification.metrics->>'ephemeralMediaValuesStored')::bigint = 0
+      ) AS "standaloneReplayVerificationRows"
+    FROM _giq_history_merge.run run
+    CROSS JOIN canonical_delta
+    WHERE run.id = 1
+  `;
+  const proof = proofs.length === 1 ? proofs[0] : null;
+  if (
+    !proof ||
+    !proof.canonicalManifestValid ||
+    proof.canonicalDeltaRows !== BigInt(EXPECTED_CANONICAL_DELTA_TABLES.length) ||
+    proof.canonicalDeltaCompleteRows !==
+      BigInt(EXPECTED_CANONICAL_DELTA_TABLES.length) ||
+    proof.canonicalDeltaUnexpectedRows !== BigInt(0) ||
+    proof.canonicalVerificationRows !== BigInt(1) ||
+    proof.raceMediaVerificationRows !== BigInt(1) ||
+    proof.standaloneReplayVerificationRows !== BigInt(1)
+  ) {
+    throw new Error("race_videos.candidate_merge_proof_mismatch");
   }
 }
 
@@ -823,6 +1079,9 @@ async function auditRaceVideos(options: Options) {
   const unexpectedJurisdictions = jurisdictionRows.filter(
     (row) => !row.state || !SUPPORTED_JURISDICTIONS.includes(row.state)
   );
+  const providerSourceCollisions = await auditProviderSourceCollisions();
+  const replayUrlEvidenceConflicts =
+    await auditReplayUrlEvidenceConflicts(options);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -880,8 +1139,128 @@ async function auditRaceVideos(options: Options) {
         disposition: "quarantine",
       })),
     },
+    identityIntegrity: {
+      mode: "read-only",
+      providerSourceCollisions,
+      replayUrlEvidenceConflicts,
+    },
     unresolvedSampleLimit: 100,
     unresolvedSamples,
+  };
+}
+
+async function auditProviderSourceCollisions() {
+  const rows = await prisma.$queryRaw<ProviderSourceCollisionRow[]>`
+    WITH collisions AS (
+      SELECT
+        rv."sourceProvider" AS "sourceProvider",
+        rv."sourceId" AS "sourceId",
+        COUNT(*)::bigint AS "videoRows",
+        COUNT(DISTINCT rv."raceId")::bigint AS "raceRows",
+        (ARRAY_AGG(DISTINCT rv."raceId" ORDER BY rv."raceId"))[1:10] AS "raceIds"
+      FROM "RaceVideo" rv
+      GROUP BY rv."sourceProvider", rv."sourceId"
+      HAVING COUNT(DISTINCT rv."raceId") > 1
+    )
+    SELECT
+      c.*,
+      COUNT(*) OVER()::bigint AS "collisionGroups",
+      SUM(c."videoRows") OVER()::bigint AS "collisionRows"
+    FROM collisions c
+    ORDER BY c."sourceProvider", c."sourceId"
+    LIMIT 100
+  `;
+  const totals = rows[0];
+  return {
+    scope: "all RaceVideo rows",
+    collisionGroups: Number(totals?.collisionGroups ?? BigInt(0)),
+    collisionRows: Number(totals?.collisionRows ?? BigInt(0)),
+    sampleLimit: 100,
+    samples: rows.map((row) => ({
+      sourceProvider: row.sourceProvider,
+      sourceId: row.sourceId,
+      videoRows: Number(row.videoRows),
+      raceRows: Number(row.raceRows),
+      raceIds: row.raceIds,
+    })),
+  };
+}
+
+async function auditReplayUrlEvidenceConflicts(options: Options) {
+  let cursor: Pick<LegacyReplayRaceRow, "id" | "raceTime"> | null = null;
+  let replayUrls = 0;
+  let recognizedReplayUrls = 0;
+  let conflictRows = 0;
+  const samples: Array<
+    ReplayUrlEvidenceConflictRow & {
+      state: string;
+      meetingDate: string;
+      trackName: string;
+      raceNumber: number;
+    }
+  > = [];
+
+  while (true) {
+    const races = await queryLegacyReplayRows(options, cursor);
+    if (races.length === 0) break;
+    replayUrls += races.length;
+    const expected = races.flatMap((race) => {
+      const source = normaliseLegacyRaceReplaySource({
+        sourceProvider: race.raceSourceProvider,
+        replayUrl: race.replayUrl,
+      });
+      return source ? [{ race, source }] : [];
+    });
+    recognizedReplayUrls += expected.length;
+
+    if (expected.length > 0) {
+      const values = expected.map(({ race, source }) =>
+        Prisma.sql`(${race.id}::text, ${source.sourceProvider}::text, ${source.sourceId}::text)`
+      );
+      const conflicts = await prisma.$queryRaw<ReplayUrlEvidenceConflictRow[]>`
+        WITH expected("raceId", "sourceProvider", "sourceId") AS (
+          VALUES ${Prisma.join(values)}
+        )
+        SELECT
+          expected."raceId" AS "raceId",
+          expected."sourceProvider" AS "sourceProvider",
+          expected."sourceId" AS "expectedSourceId",
+          rv."sourceId" AS "actualSourceId"
+        FROM expected
+        JOIN "RaceVideo" rv
+          ON rv."raceId" = expected."raceId"
+         AND rv."sourceProvider" = expected."sourceProvider"
+         AND rv."kind" = ${DEFAULT_KIND}
+        WHERE rv."sourceId" IS DISTINCT FROM expected."sourceId"
+      `;
+      conflictRows += conflicts.length;
+      const racesById = new Map(races.map((race) => [race.id, race]));
+      for (const conflict of conflicts) {
+        if (samples.length >= 100) break;
+        const race = racesById.get(conflict.raceId);
+        if (!race) continue;
+        samples.push({
+          ...conflict,
+          state: race.state,
+          meetingDate: formatDate(race.meetingDate),
+          trackName: race.trackName,
+          raceNumber: race.raceNumber,
+        });
+      }
+    }
+
+    const last = races.at(-1);
+    if (!last || races.length < LEGACY_NORMALIZATION_BATCH_SIZE) break;
+    cursor = { id: last.id, raceTime: last.raceTime };
+  }
+
+  return {
+    scope: "selected race range and jurisdictions",
+    replayUrls,
+    recognizedReplayUrls,
+    conflictRows,
+    sampleLimit: 100,
+    samples,
   };
 }
 
@@ -1656,6 +2035,7 @@ function parseOptions(args: string[]): Options {
     onlyMissing: !flags.has("refresh"),
     compact: flags.has("compact"),
     normalizeOnly: flags.has("normalize-only"),
+    nativeLocal: flags.has("native-local"),
   };
 }
 
@@ -1884,6 +2264,14 @@ function json(value: unknown, compact: boolean) {
 
 function errorMessage(err: unknown) {
   return err instanceof Error ? err.message : String(err);
+}
+
+function sameWindowsPath(left: string, right: string) {
+  return windowsPath.normalize(left).toLowerCase() === windowsPath.normalize(right).toLowerCase();
+}
+
+function isExpectedNativeHost(value: string | null) {
+  return value === EXPECTED_NATIVE_HOST || value === `${EXPECTED_NATIVE_HOST}/32`;
 }
 
 main()

@@ -16,15 +16,16 @@ readonly HISTORY_DATABASE="giq_full_history_rehearsal_20260716_r2"
 readonly CANDIDATE_DATABASE="giq_production_candidate_20260716_r1"
 readonly HISTORY_ARCHIVE_SHA256="e0ac35834d111fba43f6ab24ac9723fa3097efcb9a443790b673aa353dcc3443"
 readonly HISTORY_MAX_RACE_EPOCH_MS="1783854845281"
-readonly HISTORY_SOURCE_CUTOFF="2026-07-01T02:49:36.504Z"
+readonly HISTORY_SOURCE_CUTOFF="2026-07-16T16:12:26.544Z"
 readonly HISTORY_MOUNT_ROOT="${HISTORY_MOUNT_ROOT:-/mnt/history}"
-# Intentional rebuild gate: replace this legacy v1 root, its SHA-256, the source
-# cutoff, and every exact dataset contract together after the audited v2 export exists.
-readonly NORMALIZED_ROOT="${NORMALIZED_ROOT:-$HISTORY_MOUNT_ROOT/normalized/thedogs-normalized-v1-99279ed8105e70ff}"
-readonly NORMALIZED_MANIFEST_SHA256="b84eab94d931b4e038766db7393b141b190548ba4a4e6bdb906b5692cb7b1116"
+readonly NORMALIZED_ROOT="${NORMALIZED_ROOT:-$HISTORY_MOUNT_ROOT/normalized/thedogs-normalized-v2-a43d10e4aaa5ef82}"
+readonly NORMALIZED_MANIFEST_SHA256="13bc8d83c048633b57c5299ec1e778179276fee855182b9c932f8a28a77fbf1c"
 readonly NORMALIZED_TRANSFORM_VERSION="thedogs-normalized-harvest/v2"
+readonly LEGACY_NORMALIZED_MANIFEST_SHA256="b84eab94d931b4e038766db7393b141b190548ba4a4e6bdb906b5692cb7b1116"
+readonly LEGACY_HISTORY_SOURCE_CUTOFF="2026-07-01T02:49:36.504Z"
+readonly NORMALIZED_INPUT_REBIND_CONFIRMATION_TOKEN="I_CONFIRM_REBIND_UNSTAGED_CANDIDATE_INPUT_FROM_LEGACY_V1_TO_VERIFIED_V2"
 readonly GALTD_ROOT="${GALTD_ROOT:-$HISTORY_MOUNT_ROOT/pedigree/galtd-studbooks-v66-v73}"
-readonly GALTD_REPORT_SHA256="ffb00a2686651dbf1bca0571d9384446662a57a37972463c28a11a9eed9c7acf"
+readonly GALTD_REPORT_SHA256="cc7654cdd0e2704601b322c5a903044f03ccab216fd238a700f8545148ea0253"
 readonly GALTD_PARSER_VERSION="galtd-studbook-audit-v1"
 readonly GALTD_EXPORTER="$SQL_ROOT/../galtd-stage-export.ts"
 readonly PRISMA_SCHEMA="$SQL_ROOT/../prisma/schema.prisma"
@@ -32,6 +33,9 @@ readonly MIGRATION_MANIFEST="$SQL_ROOT/../migration-manifest.tsv"
 readonly REPLAY_EVIDENCE_CONTRACT="$SQL_ROOT/../replay-evidence-contract.json"
 readonly REPLAY_EVIDENCE_CONTRACT_SHA256="aa6e63533daf5dd8c8e0aa2d5654b91f49140aeb2338904664430551600aae16"
 readonly AUTHORITATIVE_PEDIGREE_FINALIZER_SQL="$SQL_ROOT/finalize-authoritative-pedigree-saturation.sql"
+readonly AUTHORITATIVE_PEDIGREE_V1_ARCHIVE_SQL="$SQL_ROOT/archive-authoritative-pedigree-saturation-v1.sql"
+readonly NORMALIZE_CHECKPOINTED_RUNNER="/usr/local/bin/giq-normalize-checkpointed"
+readonly DUPLICATE_QUARANTINE_SOURCE_EVIDENCE_ROOT=".backfill/evidence/thedogs-duplicate-quarantine-evidence-20260718T190916AEST"
 readonly SNAPSHOT_ROOT="${SNAPSHOT_ROOT:-$HISTORY_MOUNT_ROOT/snapshots}"
 readonly SNAPSHOT_PATH="$SNAPSHOT_ROOT/$CANDIDATE_DATABASE-from-$PRODUCTION_DATABASE.dump"
 readonly PHYSICAL_CLONE_CONFIRMATION="I_CONFIRM_CONNECTION_FENCE_AND_PHYSICAL_TEMPLATE_CLONE_GIQ_REHEARSAL_RESTORE_V8_TO_GIQ_PRODUCTION_CANDIDATE_20260716_R1"
@@ -107,7 +111,7 @@ assert_runtime_identity() {
 
 case "$MODE" in
   delta|verify) die "$MODE is source-blocked until the write-fence and fresh-source proof pass review" ;;
-  preflight|clone|diagnose-clone|cleanup-partial-clone|migrate|stage-r2|stage-export|stage-galtd|normalize|stage-authoritative-pedigree-resolution|finalize-authoritative-pedigree-saturation|stage-nonpedigree-saturation|stage-duplicate-quarantine-proof-resolution|plan|merge|grant-runtime|status) ;;
+  preflight|clone|diagnose-clone|cleanup-partial-clone|migrate|stage-r2|rebind-normalized-input|stage-export|finalize-export|stage-galtd|normalize|stage-authoritative-pedigree-resolution|finalize-authoritative-pedigree-saturation|stage-nonpedigree-saturation|stage-duplicate-quarantine-source-evidence|stage-duplicate-quarantine-proof-resolution|plan|merge|grant-runtime|status) ;;
   *) die "unsupported MERGE_MODE: $MODE" ;;
 esac
 
@@ -680,7 +684,7 @@ assert_galtd_files() {
   assert_file_contract "text-layout/Stud-Book-71.txt" 1652473 8d0a8ff125cd690a063b493bc340cd7e33f9fddc162d5a57771ff0f7aa7faa01
   assert_file_contract "text-layout/Stud-Book-72.txt" 1475859 871f423594b74aa25853ca2c1e2c362aca2e5a3f51c11193081ab356db680b47
   assert_file_contract "text-layout/Stud-Book-73-v.txt" 1323193 be8a0fc099811cd8c454bc800b1f6e210a787d9db451c38272465d90870e967f
-  assert_file_contract "strict-audit-report.json" 7095 "$GALTD_REPORT_SHA256"
+  assert_file_contract "strict-audit-report.json" 7166 "$GALTD_REPORT_SHA256"
 
   [ "$(jq -r '.parserVersion' "$GALTD_ROOT/strict-audit-report.json")" = "$GALTD_PARSER_VERSION" ] || die "GALTD parser version changed"
   galtd_run_instance_id="$(jq -r '.runInstanceId // empty' "$GALTD_ROOT/strict-audit-report.json")"
@@ -1715,6 +1719,21 @@ stage_r2() {
   psql_db "$CANDIDATE_DATABASE" --file="$SQL_ROOT/stage-r2.sql"
 }
 
+rebind_normalized_input() {
+  assert_runtime_identity
+  candidate_marker_exists || die "candidate marker is absent"
+  [ "${NORMALIZED_INPUT_REBIND_CONFIRMATION:-}" = "$NORMALIZED_INPUT_REBIND_CONFIRMATION_TOKEN" ] || \
+    die "NORMALIZED_INPUT_REBIND_CONFIRMATION must approve rebinding the never-staged legacy input"
+  psql_db "$CANDIDATE_DATABASE" \
+    --set=expected_legacy_manifest_sha256="$LEGACY_NORMALIZED_MANIFEST_SHA256" \
+    --set=expected_legacy_source_cutoff="$LEGACY_HISTORY_SOURCE_CUTOFF" \
+    --set=normalized_manifest_sha256="$NORMALIZED_MANIFEST_SHA256" \
+    --set=normalized_transform_version="$NORMALIZED_TRANSFORM_VERSION" \
+    --set=history_source_cutoff="$HISTORY_SOURCE_CUTOFF" \
+    --set=confirmation="$NORMALIZED_INPUT_REBIND_CONFIRMATION_TOKEN" \
+    --file="$SQL_ROOT/rebind-normalized-input.sql"
+}
+
 initialize_export_stage() {
   psql_db "$CANDIDATE_DATABASE" \
     --set=manifest_sha256="$NORMALIZED_MANIFEST_SHA256" \
@@ -1759,6 +1778,17 @@ stage_export() {
     load_export_file "$dataset" "$NORMALIZED_ROOT/$directory/$file"
   done
 
+  psql_db "$CANDIDATE_DATABASE" \
+    --set=manifest_sha256="$NORMALIZED_MANIFEST_SHA256" \
+    --set=source_run_instance_id="$(jq -r '.source.runInstanceId' "$(manifest_path)")" \
+    --set=source_generated_at="$(jq -r '.generatedAt' "$(manifest_path)")" \
+    --file="$SQL_ROOT/finalize-export-stage.sql"
+}
+
+finalize_export() {
+  assert_candidate_marker
+  [ "$(candidate_phase)" = "r2_staged" ] || \
+    die "finalize-export requires phase r2_staged"
   psql_db "$CANDIDATE_DATABASE" \
     --set=manifest_sha256="$NORMALIZED_MANIFEST_SHA256" \
     --set=source_run_instance_id="$(jq -r '.source.runInstanceId' "$(manifest_path)")" \
@@ -1831,7 +1861,9 @@ normalize_stage() {
     --set=contract_sha256="$replay_contract_sha256" \
     --set=replay_contract="$replay_contract_json" \
     --file="$SQL_ROOT/stage-replay-evidence.sql"
-  psql_db "$CANDIDATE_DATABASE" --file="$SQL_ROOT/normalize-stage.sql"
+  [ -x "$NORMALIZE_CHECKPOINTED_RUNNER" ] || die "checkpointed normalization runner is absent"
+  CANDIDATE_DATABASE="$CANDIDATE_DATABASE" NORMALIZE_SQL_ROOT="$SQL_ROOT" \
+    "$NORMALIZE_CHECKPOINTED_RUNNER"
 }
 
 assert_normalized_saturation_phase() {
@@ -1846,11 +1878,16 @@ authoritative_pedigree_stage_relation_count() {
     SELECT count(*)
     FROM unnest(ARRAY[
       '_giq_history_stage.authoritative_provider_policy',
+      '_giq_history_stage.authoritative_pedigree_assertion_occurrence',
       '_giq_history_stage.authoritative_identity_evidence',
       '_giq_history_stage.authoritative_pedigree_evidence',
       '_giq_history_stage.authoritative_consolidation_proof',
+      '_giq_history_stage.authoritative_pedigree_terminal_proof',
       '_giq_history_stage.authoritative_identity_candidate_search',
       '_giq_history_stage.authoritative_identity_resolution',
+      '_giq_history_stage.verified_production_pedigree_authority',
+      '_giq_history_stage.authoritative_pedigree_evidence_leaf',
+      '_giq_history_stage.authoritative_pedigree_terminal_proof_leaf',
       '_giq_history_stage.authoritative_pedigree_resolution',
       '_giq_history_stage.authoritative_pedigree_conflict_ledger',
       '_giq_history_stage.authoritative_pedigree_retrieval_queue',
@@ -1859,12 +1896,61 @@ authoritative_pedigree_stage_relation_count() {
     WHERE to_regclass(relation_name) IS NOT NULL;"
 }
 
+authoritative_pedigree_v1_archive_relation_count() {
+  scalar "$CANDIDATE_DATABASE" "
+    SELECT count(*)
+    FROM unnest(ARRAY[
+      '_giq_history_pedigree_v1_archive.authoritative_provider_policy',
+      '_giq_history_pedigree_v1_archive.authoritative_identity_evidence',
+      '_giq_history_pedigree_v1_archive.authoritative_pedigree_evidence',
+      '_giq_history_pedigree_v1_archive.authoritative_consolidation_proof',
+      '_giq_history_pedigree_v1_archive.authoritative_identity_candidate_search',
+      '_giq_history_pedigree_v1_archive.authoritative_identity_resolution',
+      '_giq_history_pedigree_v1_archive.authoritative_pedigree_resolution',
+      '_giq_history_pedigree_v1_archive.authoritative_pedigree_conflict_ledger',
+      '_giq_history_pedigree_v1_archive.authoritative_pedigree_retrieval_queue',
+      '_giq_history_pedigree_v1_archive.current_pedigree_quarantine'
+    ]) relation_name
+    WHERE to_regclass(relation_name) IS NOT NULL;"
+}
+
+authoritative_pedigree_v1_archive_manifest_count() {
+  scalar "$CANDIDATE_DATABASE" "
+    SELECT CASE
+      WHEN to_regclass('_giq_history_merge.authoritative_pedigree_saturation_archive_manifest')
+           IS NULL THEN 0
+      ELSE 1
+    END;"
+}
+
+authoritative_pedigree_v1_archive_schema_count() {
+  scalar "$CANDIDATE_DATABASE" "
+    SELECT count(*)
+    FROM pg_namespace
+    WHERE nspname='_giq_history_pedigree_v1_archive';"
+}
+
+authoritative_pedigree_manifest_count() {
+  scalar "$CANDIDATE_DATABASE" "
+    SELECT CASE
+      WHEN to_regclass('_giq_history_merge.authoritative_pedigree_saturation_manifest')
+           IS NULL THEN 0
+      ELSE 1
+    END;"
+}
+
+archive_authoritative_pedigree_v1() {
+  [ -r "$AUTHORITATIVE_PEDIGREE_V1_ARCHIVE_SQL" ] || \
+    die "authoritative pedigree v1 archive SQL is absent"
+  psql_db "$CANDIDATE_DATABASE" --file="$AUTHORITATIVE_PEDIGREE_V1_ARCHIVE_SQL"
+}
+
 finalize_authoritative_pedigree_saturation() {
   assert_candidate_marker
   assert_normalized_saturation_phase "authoritative pedigree saturation finalization"
   [ -r "$AUTHORITATIVE_PEDIGREE_FINALIZER_SQL" ] || \
     die "authoritative pedigree saturation finalizer SQL is absent"
-  [ "$(authoritative_pedigree_stage_relation_count)" = "10" ] || \
+  [ "$(authoritative_pedigree_stage_relation_count)" = "15" ] || \
     die "authoritative pedigree resolution stage is incomplete"
   psql_db "$CANDIDATE_DATABASE" --file="$AUTHORITATIVE_PEDIGREE_FINALIZER_SQL"
 }
@@ -1873,10 +1959,38 @@ stage_authoritative_pedigree_resolution() {
   assert_candidate_marker
   assert_normalized_saturation_phase "authoritative pedigree resolution staging"
   stage_relation_count="$(authoritative_pedigree_stage_relation_count)"
-  case "$stage_relation_count" in
-    0) psql_db "$CANDIDATE_DATABASE" --file="$SQL_ROOT/stage-authoritative-pedigree-resolution.sql" ;;
-    10) printf 'AUTHORITATIVE_PEDIGREE_RESOLUTION_ALREADY_STAGED database=%s\n' "$CANDIDATE_DATABASE" ;;
-    *) die "authoritative pedigree resolution stage is partial: observed $stage_relation_count of 10 relations" ;;
+  archive_relation_count="$(authoritative_pedigree_v1_archive_relation_count)"
+  archive_manifest_count="$(authoritative_pedigree_v1_archive_manifest_count)"
+  archive_schema_count="$(authoritative_pedigree_v1_archive_schema_count)"
+  pedigree_manifest_count="$(authoritative_pedigree_manifest_count)"
+  case "$stage_relation_count:$archive_relation_count:$archive_manifest_count:$archive_schema_count:$pedigree_manifest_count" in
+    0:0:0:0:0)
+      psql_db "$CANDIDATE_DATABASE" --file="$SQL_ROOT/stage-authoritative-pedigree-resolution.sql"
+      ;;
+    10:0:0:0:1)
+      archive_authoritative_pedigree_v1
+      [ "$(authoritative_pedigree_stage_relation_count)" = "0" ] || \
+        die "authoritative pedigree v1 archive left live stage relations"
+      [ "$(authoritative_pedigree_v1_archive_relation_count)" = "10" ] || \
+        die "authoritative pedigree v1 archive relation parity failed"
+      [ "$(authoritative_pedigree_v1_archive_manifest_count)" = "1" ] || \
+        die "authoritative pedigree v1 archive manifest is absent"
+      psql_db "$CANDIDATE_DATABASE" --file="$SQL_ROOT/stage-authoritative-pedigree-resolution.sql"
+      ;;
+    0:10:1:1:1)
+      archive_authoritative_pedigree_v1
+      psql_db "$CANDIDATE_DATABASE" --file="$SQL_ROOT/stage-authoritative-pedigree-resolution.sql"
+      ;;
+    15:0:0:0:0|15:0:0:0:1)
+      printf 'AUTHORITATIVE_PEDIGREE_RESOLUTION_ALREADY_STAGED database=%s\n' "$CANDIDATE_DATABASE"
+      ;;
+    15:10:1:1:1)
+      archive_authoritative_pedigree_v1
+      printf 'AUTHORITATIVE_PEDIGREE_RESOLUTION_ALREADY_STAGED database=%s\n' "$CANDIDATE_DATABASE"
+      ;;
+    *)
+      die "authoritative pedigree resolution/archive state is partial or mixed: live=$stage_relation_count archive=$archive_relation_count archive_manifest=$archive_manifest_count archive_schema=$archive_schema_count pedigree_manifest=$pedigree_manifest_count"
+      ;;
   esac
   finalize_authoritative_pedigree_saturation
 }
@@ -1911,6 +2025,61 @@ stage_nonpedigree_saturation() {
   esac
 }
 
+duplicate_quarantine_source_evidence_relation_count() {
+  scalar "$CANDIDATE_DATABASE" "
+    SELECT count(*)
+    FROM unnest(ARRAY[
+      '_giq_history_merge.duplicate_quarantine_source_evidence_manifest',
+      '_giq_history_stage.duplicate_quarantine_issue',
+      '_giq_history_stage.duplicate_quarantine_source_evidence',
+      '_giq_history_stage.duplicate_quarantine_retrieval_queue'
+    ]) relation_name
+    WHERE to_regclass(relation_name) IS NOT NULL;"
+}
+
+assert_duplicate_quarantine_source_evidence_files() {
+  [ -d "$DUPLICATE_QUARANTINE_SOURCE_EVIDENCE_ROOT" ] || \
+    die "duplicate/quarantine source-evidence root is absent: $DUPLICATE_QUARANTINE_SOURCE_EVIDENCE_ROOT"
+  [ ! -L "$DUPLICATE_QUARANTINE_SOURCE_EVIDENCE_ROOT" ] || \
+    die "duplicate/quarantine source-evidence root must not be a symbolic link"
+  for artifact in \
+    queue.manifest.json \
+    queue.manifest.sha256 \
+    duplicate-quarantine-evidence.jsonl \
+    duplicate-quarantine-race-retrieval-queue.jsonl
+  do
+    artifact_path="$DUPLICATE_QUARANTINE_SOURCE_EVIDENCE_ROOT/$artifact"
+    [ -f "$artifact_path" ] && [ -r "$artifact_path" ] || \
+      die "duplicate/quarantine source-evidence artifact is absent or unreadable: $artifact"
+    [ ! -L "$artifact_path" ] || \
+      die "duplicate/quarantine source-evidence artifact must not be a symbolic link: $artifact"
+  done
+}
+
+stage_duplicate_quarantine_source_evidence() {
+  assert_candidate_marker
+  assert_normalized_saturation_phase "duplicate/quarantine source-evidence staging"
+  assert_duplicate_quarantine_source_evidence_files
+  stage_relation_count="$(duplicate_quarantine_source_evidence_relation_count)"
+  case "$stage_relation_count" in
+    0|4)
+      psql_db "$CANDIDATE_DATABASE" \
+        --set=manifest_file="$DUPLICATE_QUARANTINE_SOURCE_EVIDENCE_ROOT/queue.manifest.json" \
+        --set=manifest_sha_file="$DUPLICATE_QUARANTINE_SOURCE_EVIDENCE_ROOT/queue.manifest.sha256" \
+        --set=source_evidence_file="$DUPLICATE_QUARANTINE_SOURCE_EVIDENCE_ROOT/duplicate-quarantine-evidence.jsonl" \
+        --set=retrieval_queue_file="$DUPLICATE_QUARANTINE_SOURCE_EVIDENCE_ROOT/duplicate-quarantine-race-retrieval-queue.jsonl" \
+        --file="$SQL_ROOT/stage-duplicate-quarantine-source-evidence.sql"
+      ;;
+    *) die "duplicate/quarantine source-evidence stage is partial: observed $stage_relation_count of 4 relations" ;;
+  esac
+  [ "$(duplicate_quarantine_source_evidence_relation_count)" = "4" ] || \
+    die "duplicate/quarantine source-evidence stage did not persist its complete immutable partition"
+  [ "$(candidate_phase)" = "normalized" ] || \
+    die "duplicate/quarantine source-evidence stage advanced the candidate phase unexpectedly"
+  printf 'DUPLICATE_QUARANTINE_SOURCE_EVIDENCE_STAGED database=%s root=%s\n' \
+    "$CANDIDATE_DATABASE" "$DUPLICATE_QUARANTINE_SOURCE_EVIDENCE_ROOT"
+}
+
 duplicate_quarantine_proof_relation_count() {
   scalar "$CANDIDATE_DATABASE" "
     SELECT count(*)
@@ -1929,9 +2098,11 @@ duplicate_quarantine_proof_relation_count() {
 stage_duplicate_quarantine_proof_resolution() {
   assert_candidate_marker
   assert_normalized_saturation_phase "duplicate/quarantine proof staging"
+  [ "$(duplicate_quarantine_source_evidence_relation_count)" = "4" ] || \
+    die "duplicate/quarantine proof staging requires the complete immutable source-evidence stage first"
   stage_relation_count="$(duplicate_quarantine_proof_relation_count)"
   case "$stage_relation_count" in
-    0|7)
+    1|7)
       # Re-running a complete stage only refreshes the run-bound proof manifest;
       # the underlying proof and reference ledgers are append-only.
       psql_db "$CANDIDATE_DATABASE" \
@@ -2037,21 +2208,30 @@ authoritative_pedigree_saturation_status() {
     ), manifest AS (
       SELECT manifest.*,
         CASE WHEN jsonb_typeof(manifest.blockers)='object' THEN
-          jsonb_object_length(manifest.blockers)=22 AND manifest.blockers ?& ARRAY[
-            'retrievalRequired','unverifiedIdentityEvidence','unverifiedPedigreeEvidence',
-            'conflictOrRejectedIdentityEvidence','conflictOrRejectedPedigreeEvidence',
-            'selfParentRows','galtdConflictRows','galtdCompositeRowsPendingAuthoritativeResolution',
-            'ambiguousCompositeRows','providerStubs','raceObservedParentProfiles',
-            'preservedProductionConflicts','identityAmbiguities','pedigreeRelationshipConflicts',
-            'reviewOnlyRemovals','canonicalWriteProofGaps','quarantineReleaseProofGaps',
-            'blockingQuarantineRows','unaccountedIdentityRows','unaccountedPedigreeRows',
-            'unaccountedQuarantineRows','sourceLineageGaps'
+          jsonb_object_length(manifest.blockers)=7 AND manifest.blockers ?& ARRAY[
+            'identityPending','relationshipPending','authorityConflict',
+            'canonicalIntegrity','persistence','accounting','coverage'
           ] AND NOT EXISTS(
             SELECT 1 FROM jsonb_each(manifest.blockers) blocker
             WHERE jsonb_typeof(blocker.value) IS DISTINCT FROM 'number'
                OR blocker.value::text !~ '^(0|[1-9][0-9]*)$'
           )
         ELSE false END AS blocker_contract_valid,
+        CASE WHEN jsonb_typeof(manifest.counts)='object'
+          AND manifest.counts ?& ARRAY[
+            'terminalInvalidImpossible','terminalSupersededConflict',
+            'terminalUnlinkedConflictCovered','terminalCorroborationOnlyCovered',
+            'terminalNonblocking','terminalBlocking'
+          ] THEN NOT EXISTS(
+            SELECT 1
+            FROM jsonb_each(manifest.counts) count_item
+            WHERE count_item.key=ANY(ARRAY[
+              'terminalInvalidImpossible','terminalSupersededConflict',
+              'terminalUnlinkedConflictCovered','terminalCorroborationOnlyCovered',
+              'terminalNonblocking','terminalBlocking'
+            ]) AND (jsonb_typeof(count_item.value) IS DISTINCT FROM 'number'
+              OR count_item.value::text !~ '^(0|[1-9][0-9]*)$')
+          ) ELSE false END AS terminal_contract_valid,
         CASE WHEN jsonb_typeof(manifest.blockers)='object' THEN EXISTS(
           SELECT 1 FROM jsonb_each(manifest.blockers) blocker
           WHERE blocker.value <> '0'::jsonb
@@ -2062,13 +2242,14 @@ authoritative_pedigree_saturation_status() {
     SELECT coalesce((SELECT jsonb_build_object(
         'schemaVersion',manifest.schema_version,
         'storedStatus',manifest.status,
-        'status',CASE WHEN manifest.schema_version='giq-authoritative-pedigree-saturation/v1'
+        'status',CASE WHEN manifest.schema_version='giq-authoritative-pedigree-saturation/v2'
           AND marker.normalized_transform_version='thedogs-normalized-harvest/v2'
           AND manifest.normalized_manifest_sha256=marker.normalized_manifest_sha256
           AND manifest.source_history_cutoff=marker.source_history_cutoff
           AND manifest.source_lineage->>'normalizedManifestSha256'=marker.normalized_manifest_sha256
           AND manifest.source_lineage->>'normalizedTransformVersion'=marker.normalized_transform_version
           AND manifest.blocker_contract_valid
+          AND manifest.terminal_contract_valid
           AND ((manifest.status='ready' AND NOT manifest.has_blockers)
             OR (manifest.status='blocked' AND manifest.has_blockers))
           THEN manifest.status ELSE 'invalid' END,
@@ -2273,10 +2454,7 @@ status() {
   pedigree_saturation="$(authoritative_pedigree_saturation_status)"
   nonpedigree_saturation="$(nonpedigree_saturation_status)"
   duplicate_quarantine_proof="$(duplicate_quarantine_proof_status)"
-  psql_db "$CANDIDATE_DATABASE" --tuples-only --no-align \
-    --set=pedigree_saturation="$pedigree_saturation" \
-    --set=nonpedigree_saturation="$nonpedigree_saturation" \
-    --set=duplicate_quarantine_proof="$duplicate_quarantine_proof" --command="
+  base_status="$(scalar "$CANDIDATE_DATABASE" "
     SELECT jsonb_build_object(
       'database', current_database(),
       'phase', phase,
@@ -2290,13 +2468,20 @@ status() {
       'canonicalMergedAt', canonical_merged_at,
       'replayBackfillCompletedAt', replay_backfill_completed_at,
       'liveDeltaAppliedAt', live_delta_applied_at,
-      'verifiedAt', verified_at
-      ,'runtimeGrantsVerifiedAt', runtime_grants_verified_at,
-      'authoritativePedigreeSaturation', :'pedigree_saturation'::jsonb,
-      'nonpedigreeSaturation', :'nonpedigree_saturation'::jsonb,
-      'duplicateQuarantineProof', :'duplicate_quarantine_proof'::jsonb
+      'verifiedAt', verified_at,
+      'runtimeGrantsVerifiedAt', runtime_grants_verified_at
     )
-    FROM _giq_history_merge.run WHERE id=1;"
+    FROM _giq_history_merge.run WHERE id=1;")"
+  jq -cn \
+    --argjson base "$base_status" \
+    --argjson pedigree "$pedigree_saturation" \
+    --argjson nonpedigree "$nonpedigree_saturation" \
+    --argjson duplicateProof "$duplicate_quarantine_proof" \
+    '$base + {
+      authoritativePedigreeSaturation: $pedigree,
+      nonpedigreeSaturation: $nonpedigree,
+      duplicateQuarantineProof: $duplicateProof
+    }'
 }
 
 diagnose_clone() {
@@ -2337,12 +2522,15 @@ case "$MODE" in
   cleanup-partial-clone) cleanup_partial_clone ;;
   migrate) migrate_candidate ;;
   stage-r2) stage_r2 ;;
+  rebind-normalized-input) rebind_normalized_input ;;
   stage-export) stage_export ;;
+  finalize-export) finalize_export ;;
   stage-galtd) stage_galtd ;;
   normalize) normalize_stage ;;
   stage-authoritative-pedigree-resolution) stage_authoritative_pedigree_resolution ;;
   finalize-authoritative-pedigree-saturation) finalize_authoritative_pedigree_saturation ;;
   stage-nonpedigree-saturation) stage_nonpedigree_saturation ;;
+  stage-duplicate-quarantine-source-evidence) stage_duplicate_quarantine_source_evidence ;;
   stage-duplicate-quarantine-proof-resolution) stage_duplicate_quarantine_proof_resolution ;;
   plan) plan_merge ;;
   merge) merge_canonical ;;

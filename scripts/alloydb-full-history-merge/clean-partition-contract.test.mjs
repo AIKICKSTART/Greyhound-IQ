@@ -99,6 +99,23 @@ test("apply is insert-only, preserves the baseline, and rolls back on drift", ()
   assert.match(apply, /giq_clean_existing_row/);
   assert.match(apply, /snapshot_core_key/);
   assert.match(apply, /protected_table_manifest/);
+  assert.match(apply, /post_normalization_migration_amendment/);
+  assert.match(apply, /clean_partition_identity_conflict_control/);
+  assert.match(apply, /giq-clean-partition-identity-conflicts\/v1/);
+  assert.match(apply, /identity_control\.release_insert_eligible_rows < 17800000/);
+  for (const relation of [
+    "release_meeting",
+    "release_race",
+    "release_runner",
+    "release_result",
+    "release_form_entry",
+    "release_race_video",
+    "release_photo_finish",
+  ]) {
+    assert.match(apply, new RegExp(`_giq_history_stage\\.${relation}`));
+  }
+  assert.match(apply, /table_class\.relname <> '_prisma_migrations'/);
+  assert.match(apply, /clean partition changed the amended Prisma migration ledger/);
   assert.match(apply, /SET CONSTRAINTS ALL IMMEDIATE/);
   assert.match(apply, /present_rows <> eligible_rows/);
   assert.match(apply, /identity_mismatch_rows <> 0/);

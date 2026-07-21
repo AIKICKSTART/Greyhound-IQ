@@ -49,6 +49,7 @@ const REDUCED_RUNTIME_DML_GRANTS = new Map<string, readonly string[]>([
   ["DogProfileMergeLedger", ["INSERT", "SELECT"]],
   ["DogProfileObservation", ["INSERT", "SELECT"]],
   ["DogSourceIdentity", ["INSERT", "SELECT"]],
+  ["LiveFeedQuarantine", ["INSERT", "SELECT"]],
   ["PedigreeAssertion", ["INSERT", "SELECT"]],
   ["PedigreeImportRun", ["INSERT", "SELECT", "UPDATE"]],
   ["PedigreeMergeLedger", ["INSERT", "SELECT"]],

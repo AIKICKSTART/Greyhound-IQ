@@ -382,7 +382,9 @@ const ingestTransaction = between(
 assertOrdered(ingestTransaction, [
   "prisma.$transaction(",
   "setLiveSyncSystemContext(tx)",
-  "upsertMeetings(tx, meetings, logContext)",
+  "return upsertMeetings(",
+  "writeLiveFeedQuarantines(quarantineEvents)",
+  "detachQuarantinedFormEntryRaceLinks(orphanedFormEntries)",
 ]);
 
 const providerResponseTests = source(

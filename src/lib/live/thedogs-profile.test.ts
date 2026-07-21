@@ -34,8 +34,29 @@ assert.deepEqual(
 );
 
 async function main() {
-  await providerResponseBoundaryIsFailClosed();
-  console.log("TheDogs profile identity guards passed");
+  const originalApproval = process.env.THEDOGS_LICENSED_USE_APPROVED;
+  try {
+    let fetches = 0;
+    delete process.env.THEDOGS_LICENSED_USE_APPROVED;
+    await assert.rejects(
+      new TheDogsDogProfileProvider(async () => {
+        fetches += 1;
+        return htmlResponse("not reached");
+      }).fetchProfile("/dogs/44887/war-arrow"),
+      /licensed_use_not_approved/,
+    );
+    assert.equal(fetches, 0);
+
+    process.env.THEDOGS_LICENSED_USE_APPROVED = "true";
+    await providerResponseBoundaryIsFailClosed();
+    console.log("TheDogs profile identity guards passed");
+  } finally {
+    if (originalApproval === undefined) {
+      delete process.env.THEDOGS_LICENSED_USE_APPROVED;
+    } else {
+      process.env.THEDOGS_LICENSED_USE_APPROVED = originalApproval;
+    }
+  }
 }
 
 async function providerResponseBoundaryIsFailClosed() {
@@ -83,12 +104,34 @@ async function providerResponseBoundaryIsFailClosed() {
     /response_url_mismatch/,
   );
 
+  let fullFormRequest = "";
   assert.equal(
-    await new TheDogsDogProfileProvider(async () =>
-      new Response("{}", { headers: { "content-type": "application/json" } })
-    ).fetchFullForm("/dogs/44887/war-arrow/full-form"),
+    await new TheDogsDogProfileProvider(async (input) => {
+      fullFormRequest = String(input);
+      return new Response("{}", {
+        headers: { "content-type": "application/json" },
+      });
+    }).fetchFullForm(
+      "/dogs/44887/war-arrow/full-form?page=1&profile=true",
+    ),
     "{}",
   );
+  assert.equal(
+    fullFormRequest,
+    "https://www.thedogs.com.au/dogs/44887/war-arrow/full-form?page=1&profile=true",
+  );
+  for (const invalidFullFormUrl of [
+    "/dogs/44887/war-arrow/full-form",
+    "/dogs/44887/war-arrow/full-form?profile=true&page=1",
+    "/dogs/44887/war-arrow/full-form?page=2&profile=true",
+    "/dogs/44887/war-arrow/full-form?page=1&profile=true&profile=true",
+  ]) {
+    await assert.rejects(
+      new TheDogsDogProfileProvider(async () => htmlResponse("not reached"))
+        .fetchFullForm(invalidFullFormUrl),
+      /request_url_invalid/,
+    );
+  }
 }
 
 function htmlResponse(body: string) {

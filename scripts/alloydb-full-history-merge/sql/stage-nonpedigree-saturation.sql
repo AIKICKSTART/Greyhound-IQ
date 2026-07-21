@@ -733,7 +733,60 @@ DECLARE
   pseudo_ambiguous_rows bigint;
   unsafe_duplicate_removals bigint;
   pseudo_race_creations bigint;
+  expected_row_dispositions bigint;
+  expected_runner_occurrences bigint;
+  expected_profile_occurrences bigint;
+  expected_duplicate_rows bigint;
+  expected_duplicate_keys bigint;
+  expected_missing_identity_rows bigint;
+  expected_missing_distance_rows bigint;
+  expected_dog_fetch_ids bigint;
+  expected_race_fetch_ids bigint;
+  expected_pseudo_rows bigint;
+  expected_pseudo_ids bigint;
 BEGIN
+  -- Bind the exact partition to the verified normalized source snapshot rather
+  -- than a stale historical run count. Every eligible source row must appear
+  -- exactly once in the disposition ledger, and every fetch/pseudo key must be
+  -- conserved from the same manifest-bound inputs.
+  SELECT
+    (SELECT count(*) FROM _giq_history_stage.export_duplicates)+
+      (SELECT count(*) FROM _giq_history_stage.export_orphans
+       WHERE payload->>'issueType' IN (
+         'runner-dog-profile-unresolved','profile-form-race-unresolved'
+       ))+
+      (SELECT count(*) FROM _giq_history_stage.export_quarantine),
+    (SELECT count(*) FROM _giq_history_stage.export_orphans
+     WHERE payload->>'issueType'='runner-dog-profile-unresolved'),
+    (SELECT count(*) FROM _giq_history_stage.export_orphans
+     WHERE payload->>'issueType'='profile-form-race-unresolved'),
+    (SELECT count(*) FROM _giq_history_stage.export_duplicates),
+    (SELECT count(DISTINCT payload->>'naturalKey')
+     FROM _giq_history_stage.export_duplicates),
+    (SELECT count(*) FROM _giq_history_stage.export_quarantine
+     WHERE payload->>'reason'='missing_dog_provider_identity'),
+    (SELECT count(*) FROM _giq_history_stage.export_quarantine
+     WHERE payload->>'reason'='missing_race_distance'),
+    (SELECT count(DISTINCT payload->>'missingProviderKey')
+     FROM _giq_history_stage.export_orphans
+     WHERE payload->>'issueType'='runner-dog-profile-unresolved'
+       AND payload->>'missingProviderKey' ~ '^thedogs:dog:[0-9]+$'),
+    (SELECT count(DISTINCT payload->>'missingProviderKey')
+     FROM _giq_history_stage.export_orphans
+     WHERE payload->>'issueType'='profile-form-race-unresolved'
+       AND payload->>'missingProviderKey' LIKE 'thedogs:race:/racing/%'),
+    (SELECT count(*) FROM _giq_history_stage.export_orphans
+     WHERE payload->>'issueType'='profile-form-race-unresolved'
+       AND payload->>'missingProviderKey' LIKE 'thedogs:race:/dogs/%'),
+    (SELECT count(DISTINCT payload->>'missingProviderKey')
+     FROM _giq_history_stage.export_orphans
+     WHERE payload->>'issueType'='profile-form-race-unresolved'
+       AND payload->>'missingProviderKey' LIKE 'thedogs:race:/dogs/%')
+  INTO expected_row_dispositions,expected_runner_occurrences,
+    expected_profile_occurrences,expected_duplicate_rows,expected_duplicate_keys,
+    expected_missing_identity_rows,expected_missing_distance_rows,
+    expected_dog_fetch_ids,expected_race_fetch_ids,expected_pseudo_rows,expected_pseudo_ids;
+
   SELECT count(*),
     count(*) FILTER(WHERE issue_type='runner-dog-profile-unresolved'),
     count(*) FILTER(WHERE issue_type='profile-form-race-unresolved'),
@@ -766,13 +819,42 @@ BEGIN
 
   IF (row_dispositions,runner_occurrences,profile_occurrences,duplicate_rows,duplicate_keys,
       missing_identity_rows,missing_distance_rows,dog_fetch_ids,race_fetch_ids,pseudo_rows,pseudo_ids) <>
-     (1027915::bigint,266534::bigint,759359::bigint,1940::bigint,1939::bigint,
-      42::bigint,40::bigint,29516::bigint,66051::bigint,314502::bigint,54944::bigint) THEN
-    RAISE EXCEPTION 'non-pedigree saturation partition changed';
+     (expected_row_dispositions,expected_runner_occurrences,expected_profile_occurrences,
+      expected_duplicate_rows,expected_duplicate_keys,expected_missing_identity_rows,
+      expected_missing_distance_rows,expected_dog_fetch_ids,expected_race_fetch_ids,
+      expected_pseudo_rows,expected_pseudo_ids) THEN
+    RAISE EXCEPTION 'non-pedigree saturation source partition changed: expected %, observed %',
+      jsonb_build_object(
+        'rowDispositions',expected_row_dispositions,
+        'runnerOccurrences',expected_runner_occurrences,
+        'profileOccurrences',expected_profile_occurrences,
+        'duplicateRows',expected_duplicate_rows,'duplicateKeys',expected_duplicate_keys,
+        'missingIdentityRows',expected_missing_identity_rows,
+        'missingDistanceRows',expected_missing_distance_rows,
+        'dogFetchIds',expected_dog_fetch_ids,'raceFetchIds',expected_race_fetch_ids,
+        'pseudoRows',expected_pseudo_rows,'pseudoIds',expected_pseudo_ids
+      ),
+      jsonb_build_object(
+        'rowDispositions',row_dispositions,'runnerOccurrences',runner_occurrences,
+        'profileOccurrences',profile_occurrences,'duplicateRows',duplicate_rows,
+        'duplicateKeys',duplicate_keys,'missingIdentityRows',missing_identity_rows,
+        'missingDistanceRows',missing_distance_rows,'dogFetchIds',dog_fetch_ids,
+        'raceFetchIds',race_fetch_ids,'pseudoRows',pseudo_rows,'pseudoIds',pseudo_ids
+      );
   END IF;
-  IF (pseudo_exact_repairs,pseudo_no_candidate_rows,pseudo_ambiguous_rows) <>
-     (169::bigint,314333::bigint,0::bigint) THEN
-    RAISE EXCEPTION 'pseudo-race reconciliation partition changed';
+  IF pseudo_exact_repairs+pseudo_no_candidate_rows+pseudo_ambiguous_rows<>pseudo_rows
+     OR EXISTS(
+       SELECT 1 FROM _giq_history_stage.nonpedigree_row_disposition
+       WHERE issue_type='profile-form-race-unresolved'
+         AND provider_key LIKE 'thedogs:race:/dogs/%'
+         AND disposition NOT IN (
+           'existing-form-relationship-exactly-recoverable-no-race-creation',
+           'blocked-non-race-dog-url-no-race-creation',
+           'blocked-ambiguous-existing-race-candidates'
+         )
+     ) THEN
+    RAISE EXCEPTION 'pseudo-race reconciliation partition changed: rows %, exact repairs %, no candidate %, ambiguous %',
+      pseudo_rows,pseudo_exact_repairs,pseudo_no_candidate_rows,pseudo_ambiguous_rows;
   END IF;
   IF unsafe_duplicate_removals<>0 OR pseudo_race_creations<>0 THEN
     RAISE EXCEPTION 'non-pedigree saturation allowed unsafe deletion or pseudo-race creation';

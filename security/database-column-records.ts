@@ -280,7 +280,7 @@ function domainPolicyFor(model: string): DomainPolicy {
   if (/^(Support|Feedback|BugReport|Report|TrustSafety|BannedPhrase|MessageModeration|ListingModeration)/.test(model)) {
     return policy("trust-support", "CONFIDENTIAL_SUPPORT_SAFETY", "support-and-safety", "support, moderation and trust-safety services");
   }
-  if (/^(AuditLog|AdminAction|JobRun|DataSourceHealth|RateLimit|PlatformSetting|RetentionPolicy|DeletionJob|ExportArtifact)/.test(model)) {
+  if (/^(AuditLog|AdminAction|JobRun|DataSourceHealth|RateLimit|PlatformSetting|RetentionPolicy|DeletionJob|ExportArtifact|LiveFeedQuarantine)/.test(model)) {
     return policy("platform-operations", "RESTRICTED_OPERATIONAL", "security-and-operations", "administration, security and operations services");
   }
   return policy("identity-platform", "CONFIDENTIAL_IDENTITY", "identity-and-account", "identity, account and organization services");

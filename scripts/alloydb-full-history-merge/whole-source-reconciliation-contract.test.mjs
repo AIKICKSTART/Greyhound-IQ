@@ -36,7 +36,13 @@ for (const contract of [
   "snapshot_core_key_coverage", "provider_key_mapping", "galtd_provider_key_duplicates",
   "media_provider_key_mapping", "production_update_audit_integrity",
   "canonical_target_identity", "pedigree_import_run_provenance",
-  "thedogs_identity_provenance", "pedigree_decision_consistency",
+  "thedogs_identity_provenance", "pedigree_occurrence_resolution_accounting",
+  "pedigree_final_disposition_closure", "pedigree_disjoint_conservation",
+  "pedigree_apply_winner_persistence", "pedigree_no_change_authority",
+  "pedigree_terminal_proof_persistence", "pedigree_orphan_terminal_proof",
+  "pedigree_resolution_consistency", "verified_assertion_without_winner",
+  "pedigree_append_only_persistence", "live_feed_quarantine_controls",
+  "live_feed_quarantine_evidence",
   "source_payload_mismatches", "source_provenance_mismatches",
   "source_verification_mismatches", "source_unaccounted_rows",
 ]) {
@@ -46,9 +52,24 @@ for (const contract of [
 assert.match(sql, /md5\(COALESCE\(string_agg\(md5\(to_jsonb\(row_value\)::text\)/);
 assert.match(sql, /expected_sha256 !~ '\^\[0-9a-f\]\{64\}\$'/);
 assert.match(sql, /proof\.row_sha256=encode\(digest\(to_jsonb\(video\)::text,'sha256'\),'hex'\)/);
-assert.match(sql, /assertion\."evidenceSha256"=encode\(digest\(source\.payload::text,'sha256'\),'hex'\)/);
-assert.match(sql, /assertion\."subjectIdentityId"=subject\.identity_id/);
-assert.match(sql, /assertion\."parentIdentityId" IS NOT DISTINCT FROM/);
+assert.match(sql, /CREATE TEMP TABLE whole_pedigree_v2_resolution AS/);
+assert.match(sql, /occurrence\.source_file,occurrence\.source_line/);
+assert.match(sql, /pedigree\.source_file=source\.source_file/);
+assert.match(sql, /pedigree\.source_line=source\.line_number/);
+assert.match(sql, /pedigree\.evidence_sha256=encode\(digest\(source\.payload::text,'sha256'\),'hex'\)/);
+assert.match(sql, /history_id\('pedledger-v2',occurrence\.occurrence_id\)/);
+assert.match(sql, /ledger\."assertionId"=occurrence\.occurrence_id/);
+assert.match(sql, /ledger\."winningAssertionId"=occurrence\.occurrence_id/);
+assert.match(sql, /resolution\.canonical_contribution_count=0/);
+assert.match(sql, /NOT resolution\.canonical_write_eligible AS terminal_proof_ok/);
+assert.match(sql, /source_rows<>imported_rows\+merged_rows\+quarantined_rows/);
+assert.match(sql, /giq_live_feed_quarantine_append_only/);
+assert.match(sql, /giq_live_feed_quarantine_admin_read/);
+assert.match(sql, /giq_live_feed_quarantine_system_insert/);
+assert.match(
+  sql,
+  /\('public\."PedigreeMergeLedger"'::regclass,\s*'giq_pedigree_merge_ledger_evidence_guard'\)/,
+);
 assert.match(sql, /canonical\."dogId" IS NOT DISTINCT FROM identity\.dog_id/);
 assert.match(sql, /canonical\."importRunId"=identity\.import_run_id/);
 assert.match(sql, /canonical\.imported=identity\.crosswalk_eligible/);

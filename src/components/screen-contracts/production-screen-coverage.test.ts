@@ -668,7 +668,7 @@ for (const contract of [
   'name="state"',
   "href={`/tracks/${track.id}`}",
   "href={`/races/${race.id}`}",
-  'const TRACK_STATES = ["NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"]',
+  'const TRACK_STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"]',
   "normaliseTrackState(firstParam(params.state))",
 ]) {
   assert.ok(

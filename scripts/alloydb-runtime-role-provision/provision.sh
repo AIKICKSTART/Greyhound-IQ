@@ -4,7 +4,7 @@ set -eu
 umask 077
 
 readonly EXPECTED_HOST="10.240.116.2"
-readonly EXPECTED_DATABASE="giq_rehearsal_restore_v8"
+readonly EXPECTED_DATABASE="giq_production_stage11_20260718_r2"
 readonly ADMIN_USER="postgres"
 readonly RUNTIME_USER="greyhoundiq_runtime"
 
@@ -47,27 +47,16 @@ $$;
 
 ALTER ROLE greyhoundiq_runtime
   LOGIN
-  NOSUPERUSER
-  NOCREATEDB
-  NOCREATEROLE
-  INHERIT
-  NOREPLICATION
-  NOBYPASSRLS
   CONNECTION LIMIT 50
   PASSWORD :'runtime_password'
   VALID UNTIL 'infinity';
 
-GRANT CONNECT ON DATABASE giq_rehearsal_restore_v8 TO greyhoundiq_runtime;
-REVOKE TEMPORARY ON DATABASE giq_rehearsal_restore_v8 FROM PUBLIC;
-REVOKE TEMPORARY ON DATABASE giq_rehearsal_restore_v8 FROM greyhoundiq_runtime;
+GRANT CONNECT ON DATABASE giq_production_stage11_20260718_r2 TO greyhoundiq_runtime;
+REVOKE TEMPORARY ON DATABASE giq_production_stage11_20260718_r2 FROM PUBLIC;
+REVOKE TEMPORARY ON DATABASE giq_production_stage11_20260718_r2 FROM greyhoundiq_runtime;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 REVOKE CREATE ON SCHEMA public FROM greyhoundiq_runtime;
 GRANT USAGE ON SCHEMA public TO greyhoundiq_runtime;
-
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public
-  TO greyhoundiq_runtime;
-REVOKE ALL PRIVILEGES ON TABLE public."_prisma_migrations"
-  FROM greyhoundiq_runtime;
 
 DO $$
 DECLARE
@@ -78,15 +67,37 @@ BEGIN
     FROM pg_class AS relation
     JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
     WHERE namespace.nspname = 'public'
-      AND relation.relkind IN ('v', 'm')
+      AND relation.relkind IN ('r', 'p')
+      AND relation.relname <> '_prisma_migrations'
   LOOP
     EXECUTE format(
-      'REVOKE INSERT, UPDATE, DELETE ON TABLE %s FROM greyhoundiq_runtime',
+      'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE %s TO greyhoundiq_runtime',
       relation_name
     );
   END LOOP;
 END
 $$;
+
+REVOKE ALL PRIVILEGES ON TABLE public."_prisma_migrations"
+  FROM greyhoundiq_runtime;
+REVOKE DELETE ON TABLE public."PedigreeImportRun"
+  FROM greyhoundiq_runtime;
+REVOKE UPDATE, DELETE ON TABLE
+  public."DogSourceIdentity",
+  public."PedigreeAssertion",
+  public."PedigreeMergeLedger",
+  public."DogProfileObservation",
+  public."DogProfileMergeLedger"
+  FROM greyhoundiq_runtime;
+
+GRANT SELECT ON TABLE
+  public.giq_box_bias,
+  public.giq_public_social_actor_profiles,
+  public.giq_sire_leaderboard,
+  public.giq_track_records,
+  public.giq_trainer_leaderboard,
+  public.giq_trainer_performance
+  TO greyhoundiq_runtime;
 
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public
   FROM greyhoundiq_runtime;
@@ -200,6 +211,7 @@ DECLARE
   projection_read_count integer;
   routine_count integer;
   sequence_usage_count integer;
+  provenance_grants_valid boolean;
   runtime_role record;
 BEGIN
   SELECT rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
@@ -224,9 +236,14 @@ BEGIN
   WHERE namespace.nspname = 'public'
     AND relation.relkind IN ('r', 'p')
     AND relation.relname <> '_prisma_migrations'
-    AND has_table_privilege(
-      'greyhoundiq_runtime', relation.oid,
-      'SELECT,INSERT,UPDATE,DELETE'
+    AND 4 = (
+      SELECT COUNT(DISTINCT privilege.privilege_type)
+      FROM aclexplode(
+        COALESCE(relation.relacl, acldefault('r', relation.relowner))
+      ) AS privilege
+      JOIN pg_roles AS grantee ON grantee.oid = privilege.grantee
+      WHERE grantee.rolname = 'greyhoundiq_runtime'
+        AND privilege.privilege_type IN ('SELECT', 'INSERT', 'UPDATE', 'DELETE')
     );
 
   SELECT has_table_privilege(
@@ -240,7 +257,15 @@ BEGIN
   JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
   WHERE namespace.nspname = 'public'
     AND relation.relkind IN ('v', 'm')
-    AND has_table_privilege('greyhoundiq_runtime', relation.oid, 'SELECT');
+    AND EXISTS (
+      SELECT 1
+      FROM aclexplode(
+        COALESCE(relation.relacl, acldefault('r', relation.relowner))
+      ) AS privilege
+      JOIN pg_roles AS grantee ON grantee.oid = privilege.grantee
+      WHERE grantee.rolname = 'greyhoundiq_runtime'
+        AND privilege.privilege_type = 'SELECT'
+    );
 
   SELECT COUNT(*)::integer
   INTO sequence_usage_count
@@ -260,18 +285,42 @@ BEGIN
     AND grantee.rolname = 'greyhoundiq_runtime'
     AND acl.privilege_type = 'EXECUTE';
 
-  IF application_dml_count <> 111
+  SELECT
+    has_table_privilege('greyhoundiq_runtime', 'public."PedigreeImportRun"', 'SELECT')
+    AND has_table_privilege('greyhoundiq_runtime', 'public."PedigreeImportRun"', 'INSERT')
+    AND has_table_privilege('greyhoundiq_runtime', 'public."PedigreeImportRun"', 'UPDATE')
+    AND NOT has_table_privilege('greyhoundiq_runtime', 'public."PedigreeImportRun"', 'DELETE')
+    AND (
+      SELECT bool_and(
+        has_table_privilege('greyhoundiq_runtime', relation_name, 'SELECT')
+        AND has_table_privilege('greyhoundiq_runtime', relation_name, 'INSERT')
+        AND NOT has_table_privilege('greyhoundiq_runtime', relation_name, 'UPDATE')
+        AND NOT has_table_privilege('greyhoundiq_runtime', relation_name, 'DELETE')
+      )
+      FROM unnest(ARRAY[
+        'public."DogSourceIdentity"',
+        'public."PedigreeAssertion"',
+        'public."PedigreeMergeLedger"',
+        'public."DogProfileObservation"',
+        'public."DogProfileMergeLedger"'
+      ]) AS relation(relation_name)
+    )
+  INTO provenance_grants_valid;
+
+  IF application_dml_count <> 108
     OR migration_access
     OR projection_read_count <> 6
     OR sequence_usage_count <> 1
-    OR routine_count <> 45 THEN
+    OR routine_count <> 45
+    OR NOT provenance_grants_valid THEN
     RAISE EXCEPTION
-      'Runtime grants mismatch: dml=% migration_access=% projections=% sequences=% routines=%',
+      'Runtime grants mismatch: dml=% migration_access=% projections=% sequences=% routines=% provenance=%',
       application_dml_count,
       migration_access,
       projection_read_count,
       sequence_usage_count,
-      routine_count;
+      routine_count,
+      provenance_grants_valid;
   END IF;
 END
 $$;
@@ -283,12 +332,12 @@ export PGUSER="$RUNTIME_USER"
 export PGPASSWORD="$RUNTIME_DATABASE_PASSWORD"
 
 runtime_identity="$(psql --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align \
-  --command='SELECT current_user || '':'' || session_user;')"
+  --command="SELECT current_user || ':' || session_user;")"
 [ "$runtime_identity" = "$RUNTIME_USER:$RUNTIME_USER" ] || \
   die "runtime login verification failed"
 
 runtime_public_probe="$(psql --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align \
-  --command='SELECT COUNT(*) FROM public."Race" WHERE "raceTime" >= now() - interval ''30 days'';')"
+  --command="SELECT COUNT(*) FROM public.\"Race\" WHERE \"raceTime\" >= now() - interval '30 days';")"
 
 case "$runtime_public_probe" in
   ''|*[!0-9]*) die "runtime public racing probe returned a non-count result" ;;

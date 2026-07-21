@@ -13,7 +13,7 @@
  * `--pdftotext <executable>` when it is not on PATH.
  */
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { basename, extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -741,6 +741,7 @@ export function verifyVolumeSet(
 }
 
 async function main(): Promise<void> {
+  const runInstanceId = `galtd-audit:${randomUUID()}`;
   if (
     ["--apply", "--import", "--write"].some((flag) =>
       process.argv.includes(flag),
@@ -776,6 +777,7 @@ async function main(): Promise<void> {
   const report = {
     schemaVersion: 1,
     parserVersion: PARSER_VERSION,
+    runInstanceId,
     mode: "parse-only",
     status: issues.length === 0 ? "passed" : "failed",
     generatedAt: new Date().toISOString(),

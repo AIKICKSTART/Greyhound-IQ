@@ -9,6 +9,8 @@ import {
 } from "./replay-proxy";
 
 process.env.REPLAY_PROXY_SECRET ||= "test-secret-for-replay-proxy-validation";
+const originalTheDogsApproval = process.env.THEDOGS_LICENSED_USE_APPROVED;
+process.env.THEDOGS_LICENSED_USE_APPROVED = "true";
 
 const NOW_MS = Date.UTC(2026, 6, 14, 0, 0, 0);
 const HOST = "d2w8yyjcswa0zt.cloudfront.net";
@@ -46,6 +48,34 @@ assert.equal(
   verifyStreamCapability(token, NOW_MS),
   target,
 );
+
+delete process.env.THEDOGS_LICENSED_USE_APPROVED;
+for (const deniedHost of [
+  HOST,
+  "mediatdogs.skyracing.com.au",
+  "www.thedogs.com.au",
+]) {
+  const deniedTarget = `https://${deniedHost}/replay.m3u8`;
+  assert.equal(validateReplayTarget(deniedTarget), null);
+  assert.equal(proxiedStreamPath(deniedTarget, NOW_MS), null);
+}
+assert.equal(
+  verifyStreamCapability(token, NOW_MS),
+  null,
+  "an unexpired TheDogs token cannot outlive licence approval",
+);
+
+const otherTarget = "https://mediarqs.skyracing.com.au/replay.mp4";
+const otherSigned = proxiedStreamPath(otherTarget, NOW_MS);
+assert.ok(otherSigned);
+assert.equal(
+  verifyStreamCapability(
+    new URL(otherSigned, "http://localhost").searchParams.get("t") ?? "",
+    NOW_MS,
+  ),
+  otherTarget,
+);
+process.env.THEDOGS_LICENSED_USE_APPROVED = "true";
 const tamperIndex = Math.floor(token.length / 2);
 const tampered = `${token.slice(0, tamperIndex)}${
   token[tamperIndex] === "A" ? "B" : "A"
@@ -67,5 +97,11 @@ assert.throws(
   /replay-proxy\.secret_too_short/,
 );
 process.env.REPLAY_PROXY_SECRET = acceptedSecret;
+
+if (originalTheDogsApproval === undefined) {
+  delete process.env.THEDOGS_LICENSED_USE_APPROVED;
+} else {
+  process.env.THEDOGS_LICENSED_USE_APPROVED = originalTheDogsApproval;
+}
 
 console.log("replay target authority validation tests passed");

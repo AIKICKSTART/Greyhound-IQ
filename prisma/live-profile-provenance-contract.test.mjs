@@ -92,6 +92,59 @@ assert.doesNotMatch(
 );
 
 assert.match(syncSource, /const LIVE_PROFILE_CANONICAL_WRITES_ENABLED = false/);
+assert.match(
+  syncSource,
+  /LIVE_PROFILE_CANONICAL_WRITES_ENABLED\s*\? saveProfile[\s\S]*: saveProfileObservation/,
+);
+assert.match(syncSource, /writeLiveFeedQuarantine\(/);
+assert.match(syncSource, /FROM "LiveFeedQuarantine" quarantine/);
+assert.match(syncSource, /FROM "DogProfileObservation" observation/);
+assert.match(syncSource, /PROFILE_REFRESH_INTERVAL_MS = 30 \* 24/);
+assert.match(syncSource, /PROFILE_FAILURE_RETRY_INTERVAL_MS = 7 \* 24/);
+
+const observationOnlyStart = syncSource.indexOf(
+  "export async function saveProfileObservation",
+);
+const observationOnlyEnd = syncSource.indexOf(
+  "export async function fetchProfileForDog",
+  observationOnlyStart,
+);
+assert(observationOnlyStart >= 0 && observationOnlyEnd > observationOnlyStart);
+const observationOnlySource = syncSource.slice(
+  observationOnlyStart,
+  observationOnlyEnd,
+);
+assert.match(observationOnlySource, /resolveExactDogIdentity/);
+assert.match(observationOnlySource, /tx\.dogProfileObservation\.create/);
+assert.doesNotMatch(
+  observationOnlySource,
+  /tx\.(?:dog|dogProfileForm|dogProfileMergeLedger|trainer|formEntry)\.(?:create|createMany|update|updateMany|upsert|delete|deleteMany)/,
+);
+
+const resolverStart = syncSource.indexOf(
+  "export async function resolveExactDogIdentity",
+);
+const resolverEnd = syncSource.indexOf(
+  "async function profileObservationRetryAlreadyCompleted",
+  resolverStart,
+);
+assert(resolverStart >= 0 && resolverEnd > resolverStart);
+const resolverSource = syncSource.slice(resolverStart, resolverEnd);
+assert.match(resolverSource, /verificationStatus: "verified"/);
+assert.match(resolverSource, /dogId: \{ not: null \}/);
+assert.match(resolverSource, /tx\.dog\.findMany/);
+assert.match(
+  resolverSource,
+  /where: \{ sourceProvider: THEDOGS_PROVIDER, sourceId \}/,
+);
+assert.doesNotMatch(resolverSource, /earBrand|profileUrl|name:/);
+assert.match(syncSource, /WITH identity_evidence AS/);
+assert.match(syncSource, /UNION ALL/);
+assert.match(
+  syncSource,
+  /HAVING count\(DISTINCT evidence\."dogId"\) = 1/,
+);
+
 const observationWrite = syncSource.indexOf("tx.dogProfileObservation.create");
 const canonicalWrite = syncSource.indexOf("tx.dog.update", observationWrite);
 const formWrite = syncSource.indexOf("mergeProfileForm(", observationWrite);

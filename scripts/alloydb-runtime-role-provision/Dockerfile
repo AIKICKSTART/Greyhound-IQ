@@ -2,7 +2,8 @@ FROM postgres:16-bookworm@sha256:92620daddcd947f8d5ab5ba66e848702fe443d87fed30c4
 
 COPY scripts/alloydb-runtime-role-provision/provision.sh /usr/local/bin/giq-runtime-role-provision
 
-RUN chmod 0555 /usr/local/bin/giq-runtime-role-provision
+RUN sh -n /usr/local/bin/giq-runtime-role-provision \
+    && chmod 0555 /usr/local/bin/giq-runtime-role-provision
 
 USER postgres
 

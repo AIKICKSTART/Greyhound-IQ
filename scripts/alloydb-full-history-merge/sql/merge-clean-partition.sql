@@ -14,6 +14,7 @@ DO $$
 DECLARE
   marker _giq_history_merge.run%ROWTYPE;
   control _giq_history_merge.clean_partition_control%ROWTYPE;
+  identity_control _giq_history_merge.clean_partition_identity_conflict_control%ROWTYPE;
 BEGIN
   IF current_database() <> 'giq_production_candidate_20260716_r1' THEN
     RAISE EXCEPTION 'clean partition apply database mismatch';
@@ -24,6 +25,8 @@ BEGIN
   END IF;
   SELECT * INTO STRICT marker FROM _giq_history_merge.run WHERE id = 1 FOR UPDATE;
   SELECT * INTO STRICT control FROM _giq_history_merge.clean_partition_control WHERE id = 1;
+  SELECT * INTO STRICT identity_control
+  FROM _giq_history_merge.clean_partition_identity_conflict_control WHERE id = 1;
   IF marker.phase <> 'normalized'
      OR marker.canonical_merged_at IS NOT NULL
      OR marker.normalized_transform_version <> 'thedogs-normalized-harvest/v2'
@@ -33,8 +36,32 @@ BEGIN
      OR control.candidate_database_oid <> (SELECT oid FROM pg_database WHERE datname = current_database())
      OR control.clone_operation_id <> marker.clone_operation_id
      OR control.normalized_manifest_sha256 <> marker.normalized_manifest_sha256
-     OR control.normalized_transform_version <> marker.normalized_transform_version THEN
+     OR control.normalized_transform_version <> marker.normalized_transform_version
+     OR identity_control.status <> 'ready'
+     OR identity_control.schema_version <> 'giq-clean-partition-identity-conflicts/v1'
+     OR identity_control.candidate_database <> current_database()
+     OR identity_control.candidate_database_oid <> control.candidate_database_oid
+     OR identity_control.normalized_manifest_sha256 <> marker.normalized_manifest_sha256 THEN
     RAISE EXCEPTION 'clean partition apply is not bound to this untouched normalized-v2 candidate';
+  END IF;
+  IF to_regclass(
+       '_giq_history_merge.post_normalization_migration_amendment'
+     ) IS NULL OR NOT EXISTS (
+    SELECT 1
+    FROM _giq_history_merge.post_normalization_migration_amendment amendment
+    JOIN _giq_history_merge.protected_table_manifest baseline
+      ON baseline.table_name = '_prisma_migrations'
+    WHERE amendment.id = 1
+      AND amendment.schema_version =
+        'giq-post-normalization-migration-amendment/v1'
+      AND amendment.candidate_database = current_database()
+      AND amendment.candidate_database_oid = control.candidate_database_oid
+      AND amendment.normalized_manifest_sha256 = marker.normalized_manifest_sha256
+      AND amendment.normalized_at = marker.normalized_at
+      AND amendment.baseline_rows = baseline.row_count
+      AND amendment.baseline_md5 = baseline.row_md5
+  ) THEN
+    RAISE EXCEPTION 'clean partition apply requires the exact post-normalization migration amendment';
   END IF;
   IF to_regclass('_giq_history_merge.clean_partition_apply_manifest') IS NOT NULL THEN
     RAISE EXCEPTION 'clean partition apply evidence already exists; it is immutable';
@@ -54,7 +81,7 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'clean partition conservation evidence is not release eligible';
   END IF;
-  IF control.normalized_insert_eligible_rows < 17800000 THEN
+  IF identity_control.release_insert_eligible_rows < 17800000 THEN
     RAISE EXCEPTION 'clean partition insert-eligible count is below the reviewed floor';
   END IF;
 END
@@ -144,13 +171,13 @@ VALUES
 ('Track', (SELECT count(*) FROM _giq_history_stage.clean_track), (SELECT count(*) FROM public."Track")),
 ('Trainer', (SELECT count(*) FROM _giq_history_stage.clean_trainer), (SELECT count(*) FROM public."Trainer")),
 ('Dog', (SELECT count(*) FROM _giq_history_stage.clean_dog), (SELECT count(*) FROM public."Dog")),
-('Meeting', (SELECT count(*) FROM _giq_history_stage.clean_meeting), (SELECT count(*) FROM public."Meeting")),
-('Race', (SELECT count(*) FROM _giq_history_stage.clean_race), (SELECT count(*) FROM public."Race")),
-('Runner', (SELECT count(*) FROM _giq_history_stage.clean_runner), (SELECT count(*) FROM public."Runner")),
-('Result', (SELECT count(*) FROM _giq_history_stage.clean_result), (SELECT count(*) FROM public."Result")),
-('FormEntry', (SELECT count(*) FROM _giq_history_stage.clean_form_entry), (SELECT count(*) FROM public."FormEntry")),
+('Meeting', (SELECT count(*) FROM _giq_history_stage.release_meeting), (SELECT count(*) FROM public."Meeting")),
+('Race', (SELECT count(*) FROM _giq_history_stage.release_race), (SELECT count(*) FROM public."Race")),
+('Runner', (SELECT count(*) FROM _giq_history_stage.release_runner), (SELECT count(*) FROM public."Runner")),
+('Result', (SELECT count(*) FROM _giq_history_stage.release_result), (SELECT count(*) FROM public."Result")),
+('FormEntry', (SELECT count(*) FROM _giq_history_stage.release_form_entry), (SELECT count(*) FROM public."FormEntry")),
 ('DogProfileForm', (SELECT count(*) FROM _giq_history_stage.clean_profile_form), (SELECT count(*) FROM public."DogProfileForm")),
-('RaceVideo', (SELECT count(*) FROM _giq_history_stage.clean_race_video), (SELECT count(*) FROM public."RaceVideo")),
+('RaceVideo', (SELECT count(*) FROM _giq_history_stage.release_race_video), (SELECT count(*) FROM public."RaceVideo")),
 ('DogProfileArchive', (SELECT count(*) FROM _giq_history_stage.clean_dog_profile_archive), (SELECT count(*) FROM public."DogProfileArchive")),
 ('RaceDayArchive', (SELECT count(*) FROM _giq_history_stage.clean_race_day_archive), (SELECT count(*) FROM public."RaceDayArchive"));
 
@@ -188,7 +215,7 @@ INSERT INTO public."Meeting"(
 )
 SELECT target_id, track_id, meeting_date, meeting_type, source_provider, source_id,
   source_raw_json, last_synced_at, created_at
-FROM _giq_history_stage.clean_meeting
+FROM _giq_history_stage.release_meeting
 ON CONFLICT DO NOTHING;
 
 INSERT INTO public."Race"(
@@ -201,9 +228,9 @@ SELECT race.target_id, race.meeting_id, race.race_number, race.name, race.race_t
   coalesce(race.replay_url, '/videos/watch/races/' || video.source_id || '/replay'),
   coalesce(race.photo_finish_url, photo.photo_finish_url), race.source_provider,
   race.source_id, race.source_raw_json, race.last_synced_at, race.created_at
-FROM _giq_history_stage.clean_race race
-LEFT JOIN _giq_history_stage.clean_race_video video ON video.race_id = race.target_id
-LEFT JOIN _giq_history_stage.clean_photo_finish photo ON photo.race_id = race.target_id
+FROM _giq_history_stage.release_race race
+LEFT JOIN _giq_history_stage.release_race_video video ON video.race_id = race.target_id
+LEFT JOIN _giq_history_stage.release_photo_finish photo ON photo.race_id = race.target_id
 ON CONFLICT DO NOTHING;
 
 INSERT INTO public."Runner"(
@@ -212,7 +239,7 @@ INSERT INTO public."Runner"(
 )
 SELECT target_id, race_id, dog_id, box_number, weight, trainer_id, starting_price, scratched,
   source_provider, source_id, source_raw_json, created_at
-FROM _giq_history_stage.clean_runner
+FROM _giq_history_stage.release_runner
 ON CONFLICT DO NOTHING;
 
 INSERT INTO public."Result"(
@@ -223,7 +250,7 @@ INSERT INTO public."Result"(
 SELECT target_id, runner_id, race_id, finishing_position, running_time, margin,
   prize_money_won, split_time, sectionals, gps_data, source_provider, source_id,
   source_raw_json, last_synced_at, created_at
-FROM _giq_history_stage.clean_result
+FROM _giq_history_stage.release_result
 ON CONFLICT DO NOTHING;
 
 INSERT INTO public."FormEntry"(
@@ -232,7 +259,7 @@ INSERT INTO public."FormEntry"(
 )
 SELECT target_id, dog_id, race_id, track_id, date, box_number, finish, time, distance,
   grade, weight, created_at
-FROM _giq_history_stage.clean_form_entry
+FROM _giq_history_stage.release_form_entry
 ON CONFLICT DO NOTHING;
 
 INSERT INTO public."DogProfileForm"(
@@ -274,7 +301,7 @@ INSERT INTO public."RaceVideo"(
 )
 SELECT target_id, race_id, source_provider, source_id, kind, page_url, embed_source_type,
   source_raw_json, created_at, updated_at
-FROM _giq_history_stage.clean_race_video
+FROM _giq_history_stage.release_race_video
 ON CONFLICT DO NOTHING;
 
 SET CONSTRAINTS ALL IMMEDIATE;
@@ -315,6 +342,7 @@ BEGIN
     JOIN pg_class table_class ON table_class.relname = manifest.table_name
     JOIN pg_namespace namespace ON namespace.oid = table_class.relnamespace
     WHERE namespace.nspname = 'public'
+      AND table_class.relname <> '_prisma_migrations'
     ORDER BY manifest.table_name
   LOOP
     SELECT 'jsonb_build_array(' || string_agg(format('row_value.%I', attribute.attname),
@@ -340,6 +368,27 @@ BEGIN
 END
 $$;
 
+DO $$
+DECLARE
+  amendment _giq_history_merge.post_normalization_migration_amendment%ROWTYPE;
+  observed_count bigint;
+  observed_md5 text;
+BEGIN
+  SELECT * INTO STRICT amendment
+  FROM _giq_history_merge.post_normalization_migration_amendment
+  WHERE id = 1;
+  SELECT count(*),
+    md5(coalesce(string_agg(md5(to_jsonb(ledger)::text), ''
+      ORDER BY jsonb_build_array(ledger.id)::text), ''))
+  INTO observed_count, observed_md5
+  FROM public."_prisma_migrations" ledger;
+  IF observed_count <> amendment.current_rows
+     OR observed_md5 <> amendment.current_md5 THEN
+    RAISE EXCEPTION 'clean partition changed the amended Prisma migration ledger';
+  END IF;
+END
+$$;
+
 UPDATE _giq_history_merge.clean_partition_apply_delta
 SET after_rows = CASE table_name
     WHEN 'Track' THEN (SELECT count(*) FROM public."Track")
@@ -362,13 +411,13 @@ SET inserted_rows = after_rows - before_rows,
       WHEN 'Track' THEN (SELECT count(*) FROM _giq_history_stage.clean_track clean JOIN public."Track" canonical ON canonical.id=clean.target_id)
       WHEN 'Trainer' THEN (SELECT count(*) FROM _giq_history_stage.clean_trainer clean JOIN public."Trainer" canonical ON canonical.id=clean.target_id)
       WHEN 'Dog' THEN (SELECT count(*) FROM _giq_history_stage.clean_dog clean JOIN public."Dog" canonical ON canonical.id=clean.target_id)
-      WHEN 'Meeting' THEN (SELECT count(*) FROM _giq_history_stage.clean_meeting clean JOIN public."Meeting" canonical ON canonical.id=clean.target_id)
-      WHEN 'Race' THEN (SELECT count(*) FROM _giq_history_stage.clean_race clean JOIN public."Race" canonical ON canonical.id=clean.target_id)
-      WHEN 'Runner' THEN (SELECT count(*) FROM _giq_history_stage.clean_runner clean JOIN public."Runner" canonical ON canonical.id=clean.target_id)
-      WHEN 'Result' THEN (SELECT count(*) FROM _giq_history_stage.clean_result clean JOIN public."Result" canonical ON canonical.id=clean.target_id)
-      WHEN 'FormEntry' THEN (SELECT count(*) FROM _giq_history_stage.clean_form_entry clean JOIN public."FormEntry" canonical ON canonical.id=clean.target_id)
+      WHEN 'Meeting' THEN (SELECT count(*) FROM _giq_history_stage.release_meeting clean JOIN public."Meeting" canonical ON canonical.id=clean.target_id)
+      WHEN 'Race' THEN (SELECT count(*) FROM _giq_history_stage.release_race clean JOIN public."Race" canonical ON canonical.id=clean.target_id)
+      WHEN 'Runner' THEN (SELECT count(*) FROM _giq_history_stage.release_runner clean JOIN public."Runner" canonical ON canonical.id=clean.target_id)
+      WHEN 'Result' THEN (SELECT count(*) FROM _giq_history_stage.release_result clean JOIN public."Result" canonical ON canonical.id=clean.target_id)
+      WHEN 'FormEntry' THEN (SELECT count(*) FROM _giq_history_stage.release_form_entry clean JOIN public."FormEntry" canonical ON canonical.id=clean.target_id)
       WHEN 'DogProfileForm' THEN (SELECT count(*) FROM _giq_history_stage.clean_profile_form clean JOIN public."DogProfileForm" canonical ON canonical.id=clean.target_id)
-      WHEN 'RaceVideo' THEN (SELECT count(*) FROM _giq_history_stage.clean_race_video clean JOIN public."RaceVideo" canonical ON canonical.id=clean.target_id)
+      WHEN 'RaceVideo' THEN (SELECT count(*) FROM _giq_history_stage.release_race_video clean JOIN public."RaceVideo" canonical ON canonical.id=clean.target_id)
       WHEN 'DogProfileArchive' THEN (SELECT count(*) FROM _giq_history_stage.clean_dog_profile_archive clean JOIN public."DogProfileArchive" canonical ON canonical.id=clean.target_id)
       WHEN 'RaceDayArchive' THEN (SELECT count(*) FROM _giq_history_stage.clean_race_day_archive clean JOIN public."RaceDayArchive" canonical ON canonical.id=clean.target_id)
     END;
@@ -400,35 +449,35 @@ UPDATE _giq_history_merge.clean_partition_apply_delta SET identity_mismatch_rows
 ) WHERE table_name = 'Dog';
 
 UPDATE _giq_history_merge.clean_partition_apply_delta SET identity_mismatch_rows = (
-  SELECT count(*) FROM _giq_history_stage.clean_meeting clean
+  SELECT count(*) FROM _giq_history_stage.release_meeting clean
   JOIN public."Meeting" canonical ON canonical.id = clean.target_id
   WHERE (canonical."trackId", canonical."meetingDate") IS DISTINCT FROM
         (clean.track_id, clean.meeting_date)
 ) WHERE table_name = 'Meeting';
 
 UPDATE _giq_history_merge.clean_partition_apply_delta SET identity_mismatch_rows = (
-  SELECT count(*) FROM _giq_history_stage.clean_race clean
+  SELECT count(*) FROM _giq_history_stage.release_race clean
   JOIN public."Race" canonical ON canonical.id = clean.target_id
   WHERE (canonical."meetingId", canonical."raceNumber") IS DISTINCT FROM
         (clean.meeting_id, clean.race_number)
 ) WHERE table_name = 'Race';
 
 UPDATE _giq_history_merge.clean_partition_apply_delta SET identity_mismatch_rows = (
-  SELECT count(*) FROM _giq_history_stage.clean_runner clean
+  SELECT count(*) FROM _giq_history_stage.release_runner clean
   JOIN public."Runner" canonical ON canonical.id = clean.target_id
   WHERE (canonical."raceId", canonical."dogId", canonical."boxNumber") IS DISTINCT FROM
         (clean.race_id, clean.dog_id, clean.box_number)
 ) WHERE table_name = 'Runner';
 
 UPDATE _giq_history_merge.clean_partition_apply_delta SET identity_mismatch_rows = (
-  SELECT count(*) FROM _giq_history_stage.clean_result clean
+  SELECT count(*) FROM _giq_history_stage.release_result clean
   JOIN public."Result" canonical ON canonical.id = clean.target_id
   WHERE (canonical."runnerId", canonical."raceId") IS DISTINCT FROM
         (clean.runner_id, clean.race_id)
 ) WHERE table_name = 'Result';
 
 UPDATE _giq_history_merge.clean_partition_apply_delta SET identity_mismatch_rows = (
-  SELECT count(*) FROM _giq_history_stage.clean_form_entry clean
+  SELECT count(*) FROM _giq_history_stage.release_form_entry clean
   JOIN public."FormEntry" canonical ON canonical.id = clean.target_id
   WHERE (canonical."dogId", canonical."raceId") IS DISTINCT FROM
         (clean.dog_id, clean.race_id)
@@ -442,7 +491,7 @@ UPDATE _giq_history_merge.clean_partition_apply_delta SET identity_mismatch_rows
 ) WHERE table_name = 'DogProfileForm';
 
 UPDATE _giq_history_merge.clean_partition_apply_delta SET identity_mismatch_rows = (
-  SELECT count(*) FROM _giq_history_stage.clean_race_video clean
+  SELECT count(*) FROM _giq_history_stage.release_race_video clean
   JOIN public."RaceVideo" canonical ON canonical.id = clean.target_id
   WHERE (canonical."raceId", lower(canonical."sourceProvider"), canonical."sourceId", canonical.kind)
     IS DISTINCT FROM (clean.race_id, lower(clean.source_provider), clean.source_id, clean.kind)

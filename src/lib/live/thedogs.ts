@@ -2,6 +2,7 @@ import type { LiveDataProvider, LiveMeeting, LiveRace, LiveRunner } from "./prov
 import { raceDateTimeToUtc } from "../race-time";
 import { logExecutionWarn } from "../logger";
 import { readBoundedTextResponse } from "../remote-response";
+import { assertTheDogsLicensedUseApproved } from "./thedogs-access";
 
 const THEDOGS_BASE =
   process.env.THEDOGS_BASE_URL ?? "https://www.thedogs.com.au";
@@ -195,6 +196,7 @@ export class TheDogsProvider implements LiveDataProvider {
     path: string,
     extraHeaders: Record<string, string> = {}
   ): Promise<string> {
+    assertTheDogsLicensedUseApproved();
     const normalizedUrl = normalizeTheDogsUrl(path, 512);
     if (!normalizedUrl) throw new Error("thedogs.request_url_invalid");
     const url = new URL(normalizedUrl);

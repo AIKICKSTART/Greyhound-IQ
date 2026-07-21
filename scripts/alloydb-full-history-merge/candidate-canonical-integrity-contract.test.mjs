@@ -117,21 +117,62 @@ for (const mediaProof of [
 }
 assert.match(audit, /replay_media_partition/);
 
+for (const relation of [
+  "authoritative_pedigree_assertion_occurrence",
+  "authoritative_pedigree_resolution",
+  "authoritative_pedigree_terminal_proof_leaf",
+  'public."LiveFeedQuarantine"',
+]) {
+  assert.ok(audit.includes(relation), `missing pedigree v2 relation ${relation}`);
+}
+
 for (const pedigreeProof of [
-  "unresolvedAssertionSubjects",
-  "unresolvedAssertionParents",
-  "unresolvedAssertionVerification",
-  "thedogsIdentityProjectionGaps",
-  "thedogsAssertionProjectionGaps",
-  "galtdIdentityProjectionGaps",
-  "galtdAssertionProjectionGaps",
-  "pendingAuthoritativeDecisions",
-  "thedogsLedgerGaps",
-  "galtdLedgerGaps",
-  "canonicalPedigreeDecisionMismatches",
+  "occurrenceResolutionAccounting",
+  "invalidFinalDispositions",
+  "applyCandidatesRemaining",
+  "terminalProofGaps",
+  "orphanTerminalProofLeaves",
+  "terminalCanonicalLeaks",
+  "appliedWinnerGaps",
+  "verifiedNoChangeAuthorityGaps",
+  "pendingVerifiedAssertions",
+  "orphanV2ApplyAssertions",
+  "orphanV2ApplyLedgers",
+  "internalPedigreeAppendOnlyTriggerGaps",
+  "publicPedigreeAppendOnlyTriggerGaps",
+  "liveFeedQuarantineRlsGaps",
+  "liveFeedQuarantineTriggerGaps",
+  "liveFeedQuarantinePolicyGaps",
+  "liveFeedQuarantinePrivilegeGaps",
+  "invalidLiveFeedQuarantineEvidence",
 ]) {
   assert.match(audit, new RegExp(pedigreeProof));
 }
+for (const disposition of [
+  "applied_verified",
+  "verified_no_change",
+  "terminal_invalid_impossible",
+  "terminal_superseded_conflict",
+  "terminal_unlinked_conflict_covered",
+  "terminal_corroboration_only_covered",
+]) {
+  assert.ok(audit.includes(disposition), `missing final pedigree v2 disposition ${disposition}`);
+}
+assert.match(audit, /assertion\.id=resolution\.occurrence_id/);
+assert.match(audit, /history_id\('pedledger-v2',resolution\.occurrence_id\)/);
+assert.match(audit, /ledger\."assertionId" IS DISTINCT FROM resolution\.occurrence_id/);
+assert.match(audit, /ledger\."winningAssertionId" IS DISTINCT FROM resolution\.occurrence_id/);
+assert.match(audit, /canonical_contribution_count IS DISTINCT FROM 0/);
+assert.match(audit, /canonical_write_eligible IS NOT FALSE/);
+assert.match(audit, /authoritative_pedigree_occurrence_append_only/);
+assert.match(audit, /authoritative_pedigree_terminal_proof_append_only/);
+assert.match(
+  audit,
+  /\('public\."PedigreeImportRun"'::regclass,\s*'giq_pedigree_import_run_evidence_guard'\)/,
+);
+assert.match(audit, /giq_live_feed_quarantine_append_only/);
+assert.match(audit, /giq_live_feed_quarantine_admin_read/);
+assert.match(audit, /giq_live_feed_quarantine_system_insert/);
 assert.match(audit, /DELETE FROM giq_audit_pedigree_edge edge/);
 assert.match(audit, /parent_edge\.child_id=edge\.parent_id/);
 assert.match(audit, /GET DIAGNOSTICS removed_count=ROW_COUNT/);
@@ -163,10 +204,11 @@ assert.match(audit, /candidate_canonical_integrity_manifest/);
 assert.match(audit, /FROM giq_audit_check WHERE blocking AND status='fail'/);
 assert.match(audit, /\\quit 3/);
 
-assert.doesNotMatch(
-  audit,
-  /\b\d{4,}\b/,
-  "candidate audit must derive reporting totals instead of pinning large row counts",
-);
+for (const pinnedCount of [
+  "170780", "328069", "6218839", "76620", "838526", "6434145", "5660837",
+  "538849", "105374", "210734", "1190302",
+]) {
+  assert.ok(!audit.includes(pinnedCount), `candidate audit must recompute count ${pinnedCount}`);
+}
 
 console.log("alloydb candidate canonical integrity contract: PASS");

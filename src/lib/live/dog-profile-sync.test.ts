@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 
 import {
+  classifyDogProfileAttemptError,
   createProfileObservationOccurrence,
   fetchProfileForDog,
   resolveExactDogIdentity,
   saveProfile,
+  saveProfileObservation,
+  selectDogProfileObservationCandidates,
   syncDogProfilesBatch,
 } from "./dog-profile-sync";
 import type {
@@ -76,24 +79,143 @@ type LedgerRow = {
 };
 
 async function main() {
-  await liveBatchStaysDisabledWithoutProvenance();
-  await wrongPageIdentityFailsBeforeDependentFetch();
-  await fullFormEvidenceMustRemainBoundAndNonempty();
-  await exactIdentityResolutionIsCanonicalAndFailClosed();
-  await profileMergePreservesCanonicalDataAndPartialFormHistory();
-  await completeParentEvidenceDoesNotBypassCanonicalPedigreeWrites();
-  await occurrenceRetriesAreExactAndRepeatedFetchesRemainAppendOnly();
-  await invalidProviderValuesFailBeforeMutation();
-  await placeholderIdentityEvidenceFailsBeforeMutation();
-  await conflictingStoredFormIdentityFailsClosed();
-  console.log("TheDogs live profile ingestion safety checks passed");
+  const originalApproval = process.env.THEDOGS_LICENSED_USE_APPROVED;
+  try {
+    await licensedUseDenialSkipsSelectionFetchAndPersistence();
+    process.env.THEDOGS_LICENSED_USE_APPROVED = "true";
+    await candidateSelectionUsesDurableAttemptWindows();
+    await wrongPageIdentityFailsBeforeDependentFetch();
+    await fullFormEvidenceMustRemainBoundAndNonempty();
+    await exactIdentityResolutionIsCanonicalAndFailClosed();
+    await observationOnlyWritesAppendOnlyEvidence();
+    profileAttemptFailuresAreClassifiedForQuarantine();
+    await profileMergePreservesCanonicalDataAndPartialFormHistory();
+    await completeParentEvidenceDoesNotBypassCanonicalPedigreeWrites();
+    await occurrenceRetriesAreExactAndRepeatedFetchesRemainAppendOnly();
+    await invalidProviderValuesFailBeforeMutation();
+    await placeholderIdentityEvidenceFailsBeforeMutation();
+    await conflictingStoredFormIdentityFailsClosed();
+    console.log("TheDogs live profile ingestion safety checks passed");
+  } finally {
+    if (originalApproval === undefined) {
+      delete process.env.THEDOGS_LICENSED_USE_APPROVED;
+    } else {
+      process.env.THEDOGS_LICENSED_USE_APPROVED = originalApproval;
+    }
+  }
 }
 
-async function liveBatchStaysDisabledWithoutProvenance() {
+async function licensedUseDenialSkipsSelectionFetchAndPersistence() {
+  delete process.env.THEDOGS_LICENSED_USE_APPROVED;
+  assert.deepEqual(await syncDogProfilesBatch(), {
+    attempted: 0,
+    synced: 0,
+    failed: 0,
+  });
+
+  let queries = 0;
+  const candidates = await selectDogProfileObservationCandidates({
+    $queryRaw: async () => {
+      queries += 1;
+      return [];
+    },
+  } as never, 1, true);
+  assert.deepEqual(candidates, []);
+  assert.equal(queries, 0);
+
+  let fetches = 0;
   await assert.rejects(
-    syncDogProfilesBatch(),
-    /disabled_pending_provenance_and_migration_rehearsal/,
+    fetchProfileForDog(
+      {
+        fetchProfile: async () => {
+          fetches += 1;
+          return "not reached";
+        },
+        fetchFullForm: async () => {
+          fetches += 1;
+          return "not reached";
+        },
+      },
+      {
+        id: "dog-100",
+        name: "Exact Dog",
+        earBrand: null,
+        sourceProvider: "thedogs",
+        sourceId: "100",
+        profileUrl: null,
+      },
+    ),
+    /licensed_use_not_approved/,
   );
+  assert.equal(fetches, 0);
+
+  let databaseAccesses = 0;
+  const inaccessibleTx = new Proxy({}, {
+    get() {
+      databaseAccesses += 1;
+      throw new Error("database must not be accessed");
+    },
+  });
+  const profile = dogProfile([]);
+  await assert.rejects(
+    saveProfileObservation(
+      inaccessibleTx as never,
+      "dog-100",
+      profile,
+      createProfileObservationOccurrence(profile),
+    ),
+    /licensed_use_not_approved/,
+  );
+  assert.equal(databaseAccesses, 0);
+}
+
+async function candidateSelectionUsesDurableAttemptWindows() {
+  let sql = "";
+  let values: unknown[] = [];
+  const expected = [
+    {
+      id: "dog-100",
+      name: "Exact Dog",
+      earBrand: "thedogs:100",
+      sourceProvider: "thedogs",
+      sourceId: "100",
+      profileUrl: null,
+    },
+  ];
+  const tx = {
+    $queryRaw: async (strings: TemplateStringsArray, ...parameters: unknown[]) => {
+      sql = strings.join("?");
+      values = parameters;
+      return expected;
+    },
+  } as unknown as Parameters<typeof selectDogProfileObservationCandidates>[0];
+  const now = new Date("2026-07-18T00:00:00.000Z");
+
+  assert.deepEqual(
+    await selectDogProfileObservationCandidates(tx, 999, true, now),
+    expected,
+  );
+  assert.match(sql, /FROM "Dog" dog/);
+  assert.match(sql, /dog\."sourceProvider" = \?/);
+  assert.match(sql, /dog\."sourceId" IS NOT NULL/);
+  assert.match(sql, /UNION ALL/);
+  assert.match(sql, /FROM "DogSourceIdentity"/);
+  assert.match(sql, /identity\."verificationStatus" = 'verified'/);
+  assert.match(sql, /identity\."dogId" IS NOT NULL/);
+  assert.match(sql, /HAVING count\(DISTINCT evidence\."dogId"\) = 1/);
+  const identitySql = sql.slice(
+    sql.indexOf("WITH identity_evidence AS"),
+    sql.indexOf("latest_observation AS"),
+  );
+  assert.doesNotMatch(identitySql, /earBrand|profileUrl|dog\."name"/);
+  assert.match(sql, /FROM "DogProfileObservation"/);
+  assert.match(sql, /FROM "LiveFeedQuarantine"/);
+  assert.match(sql, /quarantine\."entityKind" = 'dog_profile'/);
+  assert.match(sql, /FROM "Runner"/);
+  assert.equal((values[5] as Date).toISOString(), "2026-07-11T00:00:00.000Z");
+  assert.equal((values[6] as Date).toISOString(), "2026-06-18T00:00:00.000Z");
+  assert.equal(values[7], true);
+  assert.equal(values[8], 50, "candidate batches stay capped");
 }
 
 async function wrongPageIdentityFailsBeforeDependentFetch() {
@@ -136,7 +258,7 @@ async function fullFormEvidenceMustRemainBoundAndNonempty() {
     fetchProfileForDog(
       {
         fetchProfile: async () =>
-          '<blackbook-dog data-dog-id="100"></blackbook-dog><div class="dog-statistics__name">Exact Dog</div><div data-runner-show-more="/dogs/100/exact-dog/full-form"></div>',
+          '<blackbook-dog data-dog-id="100"></blackbook-dog><div class="dog-statistics__name">Exact Dog</div><div data-runner-show-more="/dogs/100/exact-dog/full-form?page=1&amp;profile=true"></div>',
         fetchFullForm: async (path) => {
           fetchedPath = path;
           return " ";
@@ -146,18 +268,58 @@ async function fullFormEvidenceMustRemainBoundAndNonempty() {
     ),
     /full-form evidence is empty/,
   );
-  assert.equal(fetchedPath, "/dogs/100/exact-dog/full-form");
+  assert.equal(
+    fetchedPath,
+    "/dogs/100/exact-dog/full-form?page=1&profile=true",
+  );
 
   await assert.rejects(
     fetchProfileForDog(
       {
         fetchProfile: async () =>
-          '<blackbook-dog data-dog-id="100"></blackbook-dog><div data-runner-show-more="/dogs/999/wrong/full-form"></div>',
+          '<blackbook-dog data-dog-id="100"></blackbook-dog><div data-runner-show-more="/dogs/999/wrong/full-form?page=1&amp;profile=true"></div>',
         fetchFullForm: async () => "not reached",
       },
       dogSeed,
     ),
     /full-form path does not bind/,
+  );
+
+  const profileHtml =
+    '<blackbook-dog data-dog-id="100"></blackbook-dog>' +
+    '<div class="dog-statistics__name">Exact Dog</div>' +
+    '<div data-runner-show-more="/dogs/100/exact-dog/full-form?page=1&amp;profile=true"></div>' +
+    fullFormProgress(5, 8);
+  const profile = await fetchProfileForDog(
+    {
+      fetchProfile: async () => profileHtml,
+      fetchFullForm: async () => fullFormFragment(3, 8, 8),
+    },
+    dogSeed,
+  );
+  assert.equal(profile.sourceId, "100");
+  assert.equal(profile.formRows.length, 3);
+
+  await assert.rejects(
+    fetchProfileForDog(
+      {
+        fetchProfile: async () => profileHtml,
+        fetchFullForm: async () => fullFormFragment(3, 8, 9),
+      },
+      dogSeed,
+    ),
+    /full-form identity does not match the profile page/,
+  );
+  await assert.rejects(
+    fetchProfileForDog(
+      {
+        fetchProfile: async () => profileHtml,
+        fetchFullForm: async () =>
+          `<blackbook-dog data-dog-id="999"></blackbook-dog>${fullFormFragment(3, 8, 8)}`,
+      },
+      dogSeed,
+    ),
+    /full-form identity does not match the requested dog/,
   );
 }
 
@@ -168,6 +330,13 @@ async function exactIdentityResolutionIsCanonicalAndFailClosed() {
     sourceProvider: "thedogs",
     sourceId: "200",
   });
+  const directOnly = fakeDb({ dogs: [canonical] });
+  assert.equal(
+    await resolveExactDogIdentity(directOnly.tx, "200"),
+    canonical.id,
+    "an exact canonical provider/source identity resolves without provenance rows",
+  );
+
   const exact = fakeDb({
     dogs: [canonical],
     identities: [verifiedIdentity("200", canonical.id)],
@@ -187,16 +356,97 @@ async function exactIdentityResolutionIsCanonicalAndFailClosed() {
     /Ambiguous canonical/,
   );
 
-  for (const claim of [
-    { ...verifiedIdentity("200", null) },
-    { ...verifiedIdentity("200", canonical.id), verificationStatus: "parsed" },
-  ]) {
-    const unsafeClaim = fakeDb({ dogs: [canonical], identities: [claim] });
-    await assert.rejects(
-      resolveExactDogIdentity(unsafeClaim.tx, "200"),
-      /Unlinked or nonverified/,
-    );
-  }
+  const ignoredOccurrences = fakeDb({
+    identities: [
+      verifiedIdentity("200", null),
+      { ...verifiedIdentity("200", "rejected-target"), verificationStatus: "rejected" },
+      { ...verifiedIdentity("200", "parsed-target"), verificationStatus: "parsed" },
+    ],
+  });
+  assert.equal(
+    await resolveExactDogIdentity(ignoredOccurrences.tx, "200"),
+    null,
+    "unlinked and nonverified source occurrences do not resolve identity",
+  );
+
+  const verifiedWins = fakeDb({
+    identities: [
+      verifiedIdentity("200", canonical.id),
+      verifiedIdentity("200", null),
+      { ...verifiedIdentity("200", "rejected-target"), verificationStatus: "rejected" },
+    ],
+  });
+  assert.equal(await resolveExactDogIdentity(verifiedWins.tx, "200"), canonical.id);
+}
+
+async function observationOnlyWritesAppendOnlyEvidence() {
+  const child = dog({
+    id: "observed-child",
+    name: "Canonical Child",
+    earBrand: "thedogs:100",
+    sourceProvider: "thedogs",
+    sourceId: "100",
+    sireId: "canonical-sire",
+    damId: "canonical-dam",
+    trainerId: "canonical-trainer",
+    ownerName: "Canonical Owner",
+  });
+  const database = fakeDb({
+    dogs: [child],
+    identities: [verifiedIdentity("100", child.id)],
+  });
+  const profile = dogProfile([providerForm({})]);
+  const occurrence = createProfileObservationOccurrence(profile, {
+    observedAt: new Date("2026-07-18T01:00:00.000Z"),
+  });
+
+  await saveProfileObservation(database.tx, child.id, profile, occurrence);
+  await saveProfileObservation(database.tx, child.id, profile, occurrence);
+
+  assert.equal(database.observations.size, 1, "same occurrence retry is exact");
+  assert.equal(database.ledgers.size, 0, "observation-only mode creates no merge ledger");
+  assert.equal(database.forms.size, 0, "observation-only mode creates no profile form");
+  assert.equal(database.formUpserts(), 0);
+  assert.equal(database.locks().length, 0, "observation-only mode takes no canonical lock");
+  assert.deepEqual(database.dogs.get(child.id), child, "canonical Dog stays unchanged");
+
+  await saveProfileObservation(database.tx, child.id, profile);
+  assert.equal(
+    database.observations.size,
+    2,
+    "a fresh validated fetch remains a distinct append-only occurrence",
+  );
+}
+
+function profileAttemptFailuresAreClassifiedForQuarantine() {
+  assert.deepEqual(
+    classifyDogProfileAttemptError(
+      "observe",
+      new Error("Ambiguous canonical The Dogs identity"),
+    ),
+    { classification: "conflict", reasonCode: "canonical_identity_ambiguous" },
+  );
+  assert.deepEqual(
+    classifyDogProfileAttemptError(
+      "fetch",
+      new Error("Invalid The Dogs profile payload"),
+    ),
+    { classification: "invalid", reasonCode: "provider_payload_invalid" },
+  );
+  assert.deepEqual(
+    classifyDogProfileAttemptError(
+      "fetch",
+      new Error("The Dogs full-form evidence is empty"),
+    ),
+    {
+      classification: "incomplete",
+      reasonCode: "provider_evidence_incomplete",
+    },
+  );
+  assert.deepEqual(classifyDogProfileAttemptError("fetch", new Error("503")), {
+    classification: "incomplete",
+    reasonCode: "provider_fetch_failed",
+  });
 }
 
 async function profileMergePreservesCanonicalDataAndPartialFormHistory() {
@@ -516,6 +766,25 @@ async function conflictingStoredFormIdentityFailsClosed() {
   assert.equal(database.formUpserts(), 0);
 }
 
+function fullFormFragment(rowCount: number, shown: number, total: number) {
+  return `${Array.from(
+    { length: rowCount },
+    (_, index) => `<tr>
+      <td class="runner-form__finish-position">1st/8</td>
+      <td class="runner-form__date">
+        <a href="/racing/temora/2026-07-${String(index + 1).padStart(2, "0")}/1/exact-race?trial=false">
+          <formatted-time data-timestamp="${1_750_000_000 + index}">date</formatted-time>
+        </a>
+      </td>
+      <td class="runner-form__track">TEMA</td>
+    </tr>`,
+  ).join("")}${fullFormProgress(shown, total)}`;
+}
+
+function fullFormProgress(shown: number, total: number) {
+  return `<tr class="runner-form__show-more"><td><span>${shown}/${total}</span></td></tr>`;
+}
+
 function fakeDb(input: {
   dogs?: DogRow[];
   identities?: IdentityClaim[];
@@ -545,20 +814,12 @@ function fakeDb(input: {
       findMany: async ({
         where,
       }: {
-        where: {
-          OR: [
-            { sourceProvider: string; sourceId: string },
-            { earBrand: string },
-          ];
-        };
+        where: { sourceProvider: string; sourceId: string };
       }) => {
-        const providerClaim = where.OR[0];
-        const earBrandClaim = where.OR[1];
         return [...dogs.values()].filter(
           (row) =>
-            (row.sourceProvider === providerClaim.sourceProvider &&
-              row.sourceId === providerClaim.sourceId) ||
-            row.earBrand === earBrandClaim.earBrand,
+            row.sourceProvider === where.sourceProvider &&
+            row.sourceId === where.sourceId,
         );
       },
       findUnique: async ({ where }: { where: { id: string } }) => {
@@ -584,12 +845,20 @@ function fakeDb(input: {
       findMany: async ({
         where,
       }: {
-        where: { sourceProvider: string; sourceId: string };
+        where: {
+          sourceProvider: string;
+          sourceId: string;
+          verificationStatus?: string;
+          dogId?: { not: null };
+        };
       }) =>
         (input.identities ?? []).filter(
           (claim) =>
             claim.sourceProvider === where.sourceProvider &&
-            claim.sourceId === where.sourceId,
+            claim.sourceId === where.sourceId &&
+            (where.verificationStatus === undefined ||
+              claim.verificationStatus === where.verificationStatus) &&
+            (where.dogId === undefined || claim.dogId !== null),
         ),
     },
     trainer: {

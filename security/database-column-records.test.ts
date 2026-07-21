@@ -31,10 +31,10 @@ const physicalColumnCount = models.reduce(
 );
 const records = buildDatabaseColumnRecords(models);
 
-assert.equal(models.length, 113, "the inventory must retain every Prisma model");
+assert.equal(models.length, 114, "the inventory must retain every Prisma model");
 assert.equal(
   physicalColumnCount,
-  1200,
+  1211,
   "the inventory must retain every physical Prisma column",
 );
 assert.equal(records.length, models.length + physicalColumnCount);

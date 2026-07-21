@@ -12,7 +12,15 @@ import {
   TheDogsDogProfileProvider,
   type TheDogsDogProfile,
 } from "@/lib/live/thedogs-profile";
+import {
+  writeLiveFeedQuarantine,
+  type LiveFeedQuarantineInput,
+} from "@/lib/live/quarantine";
 import { sanitizeRawJson } from "@/lib/live/raw-sanitizer";
+import {
+  assertTheDogsLicensedUseApproved,
+  isTheDogsLicensedUseApproved,
+} from "@/lib/live/thedogs-access";
 import { logRequestError } from "@/lib/logger";
 
 const DEFAULT_LIMIT = 15;
@@ -20,6 +28,8 @@ const MAX_LIMIT = 50;
 const DOG_IDENTITY_QUERY_LIMIT = 5_000;
 const PAUSE_MS = 500;
 const THEDOGS_PROVIDER = "thedogs";
+const PROFILE_REFRESH_INTERVAL_MS = 30 * 24 * 60 * 60 * 1_000;
+const PROFILE_FAILURE_RETRY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1_000;
 const THEDOGS_ORIGIN = new URL(
   process.env.THEDOGS_BASE_URL ?? "https://www.thedogs.com.au",
 ).origin;
@@ -65,6 +75,8 @@ type DogSeed = {
   profileUrl: string | null;
 };
 
+export type ProfileAttemptStage = "fetch" | "observe";
+
 export type DogProfileObservationOccurrence = {
   id: string;
   observedAt: Date;
@@ -93,37 +105,14 @@ type FormMergeResult = {
 export async function syncDogProfilesBatch(
   opts: SyncOptions = {},
 ): Promise<SyncResult> {
-  if (!LIVE_PROFILE_CANONICAL_WRITES_ENABLED) {
-    throw new Error(
-      "dog_profile_sync.disabled_pending_provenance_and_migration_rehearsal",
-    );
+  if (!isTheDogsLicensedUseApproved()) {
+    return { attempted: 0, synced: 0, failed: 0 };
   }
   const limit = clampLimit(opts.limit ?? DEFAULT_LIMIT);
   const racedOnly = opts.racedOnly ?? true;
 
   const dogs = await withDbSystemContext((tx) =>
-    tx.dog.findMany({
-      where: {
-        earBrand: { startsWith: "thedogs:" },
-        lastProfileSyncedAt: null,
-        // Skip scratching artifacts (e.g. "Foo (L/SCR)") — real greyhound names
-        // never contain parentheses. Their thedogs pages don't exist, so they
-        // fail every fetch and, being oldest by createdAt, permanently clog the
-        // fixed-size batch. Excluding them lets the queue reach real dogs.
-        NOT: { name: { contains: "(" } },
-        ...(racedOnly ? { runners: { some: {} } } : {}),
-      },
-      select: {
-        id: true,
-        name: true,
-        earBrand: true,
-        sourceProvider: true,
-        sourceId: true,
-        profileUrl: true,
-      },
-      orderBy: { createdAt: "asc" },
-      take: Math.min(Math.max(1, Math.trunc(limit)), MAX_LIMIT),
-    }),
+    selectDogProfileObservationCandidates(tx, limit, racedOnly),
   );
 
   const provider = new TheDogsDogProfileProvider();
@@ -133,15 +122,22 @@ export async function syncDogProfilesBatch(
   // Sequential (concurrency 1) with a gentle pause between dogs; one bad dog
   // must not abort the batch, so each is isolated in its own try/catch.
   for (const dog of dogs) {
+    let stage: ProfileAttemptStage = "fetch";
     try {
       const profile = await fetchProfileForDog(provider, dog);
       const occurrence = createProfileObservationOccurrence(profile);
+      stage = "observe";
       await withDbSystemContext((tx) =>
-        saveProfile(tx, dog.id, profile, occurrence),
+        LIVE_PROFILE_CANONICAL_WRITES_ENABLED
+          ? saveProfile(tx, dog.id, profile, occurrence)
+          : saveProfileObservation(tx, dog.id, profile, occurrence),
       );
       synced += 1;
     } catch (err) {
       failed += 1;
+      await writeLiveFeedQuarantine(
+        createDogProfileQuarantineInput(dog, stage, err),
+      );
       await logRequestError("dog_profile_sync.profile_failed", {
         provider: "thedogs",
         dogId: dog.id,
@@ -153,6 +149,164 @@ export async function syncDogProfilesBatch(
   return { attempted: dogs.length, synced, failed };
 }
 
+export async function selectDogProfileObservationCandidates(
+  tx: DbContextClient,
+  requestedLimit: number,
+  racedOnly: boolean,
+  now = new Date(),
+) {
+  if (!isTheDogsLicensedUseApproved()) return [];
+  const limit = clampLimit(requestedLimit);
+  const refreshBefore = new Date(now.getTime() - PROFILE_REFRESH_INTERVAL_MS);
+  const retryBefore = new Date(
+    now.getTime() - PROFILE_FAILURE_RETRY_INTERVAL_MS,
+  );
+
+  return tx.$queryRaw<DogSeed[]>`
+    WITH identity_evidence AS (
+      SELECT
+        dog."sourceId",
+        dog."id" AS "dogId"
+      FROM "Dog" dog
+      WHERE dog."sourceProvider" = ${THEDOGS_PROVIDER}
+        AND dog."sourceId" IS NOT NULL
+        AND dog."sourceId" ~ '^[0-9]{1,32}$'
+
+      UNION ALL
+
+      SELECT
+        identity."sourceId",
+        identity."dogId"
+      FROM "DogSourceIdentity" identity
+      WHERE identity."sourceProvider" = ${THEDOGS_PROVIDER}
+        AND identity."verificationStatus" = 'verified'
+        AND identity."dogId" IS NOT NULL
+        AND identity."sourceId" ~ '^[0-9]{1,32}$'
+    ),
+    resolved_identity AS (
+      SELECT
+        evidence."sourceId",
+        min(evidence."dogId") AS "dogId"
+      FROM identity_evidence evidence
+      GROUP BY evidence."sourceId"
+      HAVING count(DISTINCT evidence."dogId") = 1
+    ),
+    latest_observation AS (
+      SELECT
+        observation."dogId",
+        observation."sourceId",
+        max(observation."observedAt") AS "observedAt"
+      FROM "DogProfileObservation" observation
+      WHERE observation."sourceProvider" = ${THEDOGS_PROVIDER}
+        AND observation."verificationStatus" = 'verified'
+      GROUP BY observation."dogId", observation."sourceId"
+    ),
+    latest_quarantine AS (
+      SELECT
+        quarantine."sourceId",
+        max(quarantine."observedAt") AS "observedAt"
+      FROM "LiveFeedQuarantine" quarantine
+      WHERE quarantine."provider" = ${THEDOGS_PROVIDER}
+        AND quarantine."entityKind" = 'dog_profile'
+        AND quarantine."sourceId" IS NOT NULL
+      GROUP BY quarantine."sourceId"
+    )
+    SELECT
+      dog."id",
+      dog."name",
+      dog."earBrand",
+      ${THEDOGS_PROVIDER}::text AS "sourceProvider",
+      identity."sourceId",
+      dog."profileUrl"
+    FROM resolved_identity identity
+    JOIN "Dog" dog ON dog."id" = identity."dogId"
+    LEFT JOIN latest_observation observation
+      ON observation."dogId" = dog."id"
+      AND observation."sourceId" = identity."sourceId"
+    LEFT JOIN latest_quarantine quarantine
+      ON quarantine."sourceId" = identity."sourceId"
+    WHERE (
+      (observation."observedAt" IS NULL AND quarantine."observedAt" IS NULL)
+      OR (
+        quarantine."observedAt" IS NOT NULL
+        AND (
+          observation."observedAt" IS NULL
+          OR quarantine."observedAt" >= observation."observedAt"
+        )
+        AND quarantine."observedAt" < ${retryBefore}
+      )
+      OR (
+        observation."observedAt" IS NOT NULL
+        AND (
+          quarantine."observedAt" IS NULL
+          OR observation."observedAt" > quarantine."observedAt"
+        )
+        AND observation."observedAt" < ${refreshBefore}
+      )
+    )
+      AND (
+        ${racedOnly} = false
+        OR EXISTS (
+          SELECT 1
+          FROM "Runner" runner
+          WHERE runner."dogId" = dog."id"
+        )
+      )
+    ORDER BY
+      greatest(
+        coalesce(observation."observedAt", TIMESTAMP 'epoch'),
+        coalesce(quarantine."observedAt", TIMESTAMP 'epoch')
+      ) ASC,
+      dog."createdAt" ASC,
+      dog."id" ASC
+    LIMIT ${limit}
+  `;
+}
+
+export async function saveProfileObservation(
+  tx: DbContextClient,
+  dogId: string,
+  profile: TheDogsDogProfile,
+  occurrence: DogProfileObservationOccurrence =
+    createProfileObservationOccurrence(profile),
+) {
+  assertTheDogsLicensedUseApproved();
+  assertProfilePayload(profile);
+  assertProfileObservationOccurrence(profile, occurrence);
+  const canonicalDogId = await resolveExactDogIdentity(tx, profile.sourceId);
+  if (!canonicalDogId) {
+    throw new Error("The Dogs profile has no verified canonical dog identity");
+  }
+  if (canonicalDogId !== dogId) {
+    throw new Error("The Dogs profile resolves to a different canonical dog");
+  }
+  if (
+    await profileObservationRetryAlreadyCompleted(
+      tx,
+      dogId,
+      profile,
+      occurrence,
+    )
+  ) {
+    return;
+  }
+
+  await tx.dogProfileObservation.create({
+    data: {
+      id: occurrence.id,
+      dogId,
+      sourceProvider: profile.sourceProvider,
+      sourceId: profile.sourceId,
+      requestUrl: occurrence.requestUrl,
+      requestSha256: occurrence.requestSha256,
+      observedAt: occurrence.observedAt,
+      evidenceSha256: occurrence.evidenceSha256,
+      evidenceJson: occurrence.evidenceJson,
+      verificationStatus: "verified",
+    },
+  });
+}
+
 export async function fetchProfileForDog(
   provider: Pick<
     TheDogsDogProfileProvider,
@@ -160,6 +314,7 @@ export async function fetchProfileForDog(
   >,
   dog: DogSeed,
 ): Promise<TheDogsDogProfile> {
+  assertTheDogsLicensedUseApproved();
   const profileSourceId = profileIdFor(dog);
   if (!profileSourceId) {
     throw new Error(`Missing The Dogs source id for ${dog.id}`);
@@ -179,6 +334,13 @@ export async function fetchProfileForDog(
     : "";
   if (showMorePath && !fullFormHtml.trim()) {
     throw new Error("The Dogs full-form evidence is empty");
+  }
+  if (showMorePath) {
+    assertExactTheDogsFullFormEvidence(
+      profileHtml,
+      fullFormHtml,
+      profileSourceId,
+    );
   }
   return parseTheDogsDogProfile(
     profileHtml,
@@ -215,6 +377,7 @@ export async function saveProfile(
   occurrence: DogProfileObservationOccurrence =
     createProfileObservationOccurrence(profile),
 ) {
+  assertTheDogsLicensedUseApproved();
   assertProfilePayload(profile);
   assertProfileObservationOccurrence(profile, occurrence);
   await tx.$queryRaw`
@@ -538,72 +701,42 @@ export async function resolveExactDogIdentity(
   if (!/^\d+$/.test(sourceId)) {
     throw new Error("The Dogs source identity must be numeric");
   }
-  const earBrand = `${THEDOGS_PROVIDER}:${sourceId}`;
-  const [dogs, identityClaims] = await Promise.all([
+  const [directDogs, identityClaims] = await Promise.all([
     tx.dog.findMany({
-      where: {
-        OR: [
-          { sourceProvider: THEDOGS_PROVIDER, sourceId },
-          { earBrand },
-        ],
-      },
-      select: {
-        id: true,
-        sourceProvider: true,
-        sourceId: true,
-        earBrand: true,
-      },
+      where: { sourceProvider: THEDOGS_PROVIDER, sourceId },
+      select: { id: true },
       take: DOG_IDENTITY_QUERY_LIMIT,
     }),
     tx.dogSourceIdentity.findMany({
-      where: { sourceProvider: THEDOGS_PROVIDER, sourceId },
-      select: { dogId: true, verificationStatus: true },
+      where: {
+        sourceProvider: THEDOGS_PROVIDER,
+        sourceId,
+        verificationStatus: "verified",
+        dogId: { not: null },
+      },
+      select: { dogId: true },
       take: DOG_IDENTITY_QUERY_LIMIT,
     }),
   ]);
 
   if (
-    dogs.length >= DOG_IDENTITY_QUERY_LIMIT ||
+    directDogs.length >= DOG_IDENTITY_QUERY_LIMIT ||
     identityClaims.length >= DOG_IDENTITY_QUERY_LIMIT
   ) {
     throw new Error("The Dogs identity lookup exceeded its safe bound");
   }
 
-  for (const dog of dogs) {
-    const providerMatch =
-      dog.sourceProvider === THEDOGS_PROVIDER && dog.sourceId === sourceId;
-    const earBrandMatch = dog.earBrand === earBrand;
-    if (
-      (providerMatch && dog.earBrand != null && !earBrandMatch) ||
-      (earBrandMatch &&
-        ((dog.sourceProvider != null &&
-          dog.sourceProvider !== THEDOGS_PROVIDER) ||
-          (dog.sourceId != null && dog.sourceId !== sourceId)))
-    ) {
-      throw new Error("Conflicting direct The Dogs identity claim");
-    }
-  }
-
-  if (
-    identityClaims.some(
-      (claim) =>
-        claim.dogId == null || claim.verificationStatus !== "verified",
-    )
-  ) {
-    throw new Error("Unlinked or nonverified The Dogs identity claim");
-  }
-
-  const dogIds = new Set([
-    ...dogs.map((dog) => dog.id),
-    ...identityClaims.map((claim) => claim.dogId as string),
-  ]);
+  const dogIds = new Set(
+    [...directDogs.map((dog) => dog.id), ...identityClaims.map((claim) => claim.dogId)]
+      .filter((dogId): dogId is string => dogId !== null),
+  );
   if (dogIds.size > 1) {
     throw new Error("Ambiguous canonical The Dogs identity");
   }
   return dogIds.values().next().value ?? null;
 }
 
-async function occurrenceRetryAlreadyCompleted(
+async function profileObservationRetryAlreadyCompleted(
   tx: DbContextClient,
   dogId: string,
   profile: TheDogsDogProfile,
@@ -637,6 +770,24 @@ async function occurrenceRetryAlreadyCompleted(
   ) {
     throw new Error("Dog profile occurrence payload drift detected");
   }
+  return true;
+}
+
+async function occurrenceRetryAlreadyCompleted(
+  tx: DbContextClient,
+  dogId: string,
+  profile: TheDogsDogProfile,
+  occurrence: DogProfileObservationOccurrence,
+) {
+  if (
+    !(await profileObservationRetryAlreadyCompleted(
+      tx,
+      dogId,
+      profile,
+      occurrence,
+    ))
+  )
+    return false;
   const ledger = await tx.dogProfileMergeLedger.findUnique({
     where: { observationId: occurrence.id },
     select: {
@@ -930,14 +1081,82 @@ function exactFullFormPath(path: string | undefined, sourceId: string) {
     url.username ||
     url.password ||
     url.hash ||
-    url.search ||
+    url.search !== "?page=1&profile=true" ||
     !new RegExp(`^/dogs/${sourceId}/[^/?#]+/full-form/?$`, "i").test(
       url.pathname,
     )
   ) {
     throw new Error("The Dogs full-form path does not bind the requested dog");
   }
-  return url.pathname;
+  return `${url.pathname}${url.search}`;
+}
+
+export function assertExactTheDogsFullFormEvidence(
+  profileHtml: string,
+  fullFormHtml: string,
+  expectedSourceId: string,
+) {
+  if (!/^\d+$/.test(expectedSourceId)) {
+    throw new Error("The Dogs source identity must be numeric");
+  }
+  const explicitDogIds = new Set(
+    [...fullFormHtml.matchAll(
+      /<blackbook-dog\b[^>]*\bdata-dog-id=["'](\d+)["'][^>]*>/gi,
+    )].map((match) => match[1]),
+  );
+  const embeddedFullFormIds = new Set(
+    [...fullFormHtml.matchAll(
+      /\/dogs\/(\d+)\/[^/"'<\s?]+\/full-form(?:\?[^"'<\s]*)?/gi,
+    )].map((match) => match[1]),
+  );
+  if (
+    [...explicitDogIds, ...embeddedFullFormIds].some(
+      (sourceId) => sourceId !== expectedSourceId,
+    )
+  ) {
+    throw new Error(
+      "The Dogs full-form identity does not match the requested dog",
+    );
+  }
+
+  const pageProgress = extractFullFormProgress(profileHtml);
+  const expandedProgress = extractFullFormProgress(fullFormHtml);
+  if (!pageProgress || !expandedProgress) {
+    throw new Error("The Dogs full-form identity evidence is incomplete");
+  }
+  const expandedRows = [
+    ...fullFormHtml.matchAll(/runner-form__finish-position/gi),
+  ].length;
+  if (
+    pageProgress.total !== expandedProgress.total ||
+    pageProgress.shown >= expandedProgress.shown ||
+    expandedProgress.shown > expandedProgress.total ||
+    expandedRows !== expandedProgress.shown - pageProgress.shown
+  ) {
+    throw new Error(
+      "The Dogs full-form identity does not match the profile page",
+    );
+  }
+}
+
+function extractFullFormProgress(html: string) {
+  const matches = [...html.matchAll(
+    /runner-form__show-more[\s\S]{0,800}?<span>\s*(\d+)\s*\/\s*(\d+)\s*<\/span>/gi,
+  )];
+  if (matches.length !== 1) return null;
+  const shown = Number(matches[0]?.[1]);
+  const total = Number(matches[0]?.[2]);
+  if (
+    !Number.isSafeInteger(shown) ||
+    !Number.isSafeInteger(total) ||
+    shown < 1 ||
+    total < 1 ||
+    shown > total ||
+    total > 100_000
+  ) {
+    return null;
+  }
+  return { shown, total };
 }
 
 function assertProfilePayload(profile: TheDogsDogProfile) {
@@ -1386,6 +1605,85 @@ function profileIdFor(dog: DogSeed) {
   const earBrandId = dog.earBrand?.match(/^thedogs:(\d+)$/)?.[1];
   const exactId = sourceId ?? earBrandId;
   return exactId && /^\d+$/.test(exactId) ? exactId : null;
+}
+
+export function classifyDogProfileAttemptError(
+  stage: ProfileAttemptStage,
+  error: unknown,
+): Pick<LiveFeedQuarantineInput, "classification" | "reasonCode"> {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+
+  if (message.includes("ambiguous canonical")) {
+    return {
+      classification: "conflict",
+      reasonCode: "canonical_identity_ambiguous",
+    };
+  }
+  if (
+    message.includes("different canonical") ||
+    message.includes("identity does not match") ||
+    message.includes("does not bind") ||
+    message.includes("same sire and dam") ||
+    message.includes("payload drift") ||
+    message.includes("conflicting")
+  ) {
+    return {
+      classification: "conflict",
+      reasonCode: "provider_identity_conflict",
+    };
+  }
+  if (
+    message.includes("invalid") ||
+    message.includes("placeholder") ||
+    message.includes("career totals") ||
+    message.includes("finishing position") ||
+    message.includes("must be numeric")
+  ) {
+    return {
+      classification: "invalid",
+      reasonCode: "provider_payload_invalid",
+    };
+  }
+  if (
+    message.includes("no verified canonical") ||
+    message.includes("missing") ||
+    message.includes("empty") ||
+    message.includes("incomplete")
+  ) {
+    return {
+      classification: "incomplete",
+      reasonCode: "provider_evidence_incomplete",
+    };
+  }
+  return stage === "fetch"
+    ? { classification: "incomplete", reasonCode: "provider_fetch_failed" }
+    : {
+        classification: "incomplete",
+        reasonCode: "profile_observation_write_failed",
+      };
+}
+
+function createDogProfileQuarantineInput(
+  dog: DogSeed,
+  stage: ProfileAttemptStage,
+  error: unknown,
+): LiveFeedQuarantineInput {
+  const classification = classifyDogProfileAttemptError(stage, error);
+  return {
+    provider: THEDOGS_PROVIDER,
+    entityKind: "dog_profile",
+    sourceId: profileIdFor(dog),
+    naturalIdentity: dog.id,
+    ...classification,
+    evidence: {
+      canonicalDogId: dog.id,
+      stage,
+      error:
+        error instanceof Error
+          ? { name: error.name, message: error.message }
+          : { name: "NonError", message: String(error) },
+    },
+  };
 }
 
 function clampLimit(value: number) {

@@ -24,6 +24,9 @@ BEGIN
   IF to_regclass('_giq_history_merge.authoritative_pedigree_saturation_manifest') IS NULL
      OR to_regclass('_giq_history_merge.nonpedigree_saturation_manifest') IS NULL
      OR to_regclass('_giq_history_merge.duplicate_quarantine_proof_manifest') IS NULL
+     OR to_regclass('_giq_history_stage.authoritative_pedigree_assertion_occurrence') IS NULL
+     OR to_regclass('_giq_history_stage.authoritative_pedigree_terminal_proof_leaf') IS NULL
+     OR to_regclass('_giq_history_stage.authoritative_pedigree_resolution') IS NULL
      OR to_regclass('_giq_history_stage.duplicate_quarantine_proof_resolution') IS NULL THEN
     RAISE EXCEPTION 'merge plan requires all three saturation and duplicate/quarantine proof manifests';
   END IF;
@@ -35,7 +38,7 @@ BEGIN
   JOIN _giq_history_merge.duplicate_quarantine_proof_manifest duplicate_proof ON duplicate_proof.id=1
   WHERE run.id=1
     AND run.normalized_transform_version='thedogs-normalized-harvest/v2'
-    AND pedigree.schema_version='giq-authoritative-pedigree-saturation/v1'
+    AND pedigree.schema_version='giq-authoritative-pedigree-saturation/v2'
     AND nonpedigree.schema_version='giq-nonpedigree-saturation/v1'
     AND duplicate_proof.schema_version='giq-duplicate-quarantine-proof/v1'
     AND pedigree.status='ready' AND nonpedigree.status='ready' AND duplicate_proof.status='ready'
@@ -53,20 +56,21 @@ BEGIN
     AND pedigree.source_lineage->>'normalizedManifestSha256'=run.normalized_manifest_sha256
     AND pedigree.source_lineage->>'normalizedTransformVersion'=run.normalized_transform_version
     AND jsonb_typeof(pedigree.blockers)='object'
+    AND jsonb_typeof(pedigree.counts)='object'
     AND jsonb_typeof(nonpedigree.blockers)='object'
     AND jsonb_typeof(duplicate_proof.blockers)='object'
-    AND jsonb_object_length(pedigree.blockers)=22
+    AND jsonb_object_length(pedigree.blockers)=7
     AND jsonb_object_length(nonpedigree.blockers)=11
     AND jsonb_object_length(duplicate_proof.blockers)=19
     AND pedigree.blockers ?& ARRAY[
-      'retrievalRequired','unverifiedIdentityEvidence','unverifiedPedigreeEvidence',
-      'conflictOrRejectedIdentityEvidence','conflictOrRejectedPedigreeEvidence',
-      'selfParentRows','galtdConflictRows','galtdCompositeRowsPendingAuthoritativeResolution',
-      'ambiguousCompositeRows','providerStubs','raceObservedParentProfiles',
-      'preservedProductionConflicts','identityAmbiguities','pedigreeRelationshipConflicts',
-      'reviewOnlyRemovals','canonicalWriteProofGaps','quarantineReleaseProofGaps',
-      'blockingQuarantineRows','unaccountedIdentityRows','unaccountedPedigreeRows',
-      'unaccountedQuarantineRows','sourceLineageGaps'
+      'identityPending','relationshipPending','authorityConflict',
+      'canonicalIntegrity','persistence','accounting','coverage'
+    ]
+    AND pedigree.counts ?& ARRAY[
+      'assertionOccurrences','pedigreeResolutions','terminalInvalidImpossible',
+      'terminalSupersededConflict','terminalUnlinkedConflictCovered',
+      'terminalCorroborationOnlyCovered','terminalNonblocking','terminalBlocking',
+      'applyCandidates'
     ]
     AND nonpedigree.blockers ?& ARRAY[
       'authoritativeFetchQueue','dogIdentityCollisions','dogTargetRelinks',
@@ -100,6 +104,32 @@ BEGIN
          OR blocker.value::text !~ '^(0|[1-9][0-9]*)$'
          OR blocker.value <> '0'::jsonb
     )
+    AND pedigree.counts->'assertionOccurrences'=to_jsonb((
+      SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_assertion_occurrence))
+    AND pedigree.counts->'pedigreeResolutions'=to_jsonb((
+      SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution))
+    AND pedigree.counts->'terminalInvalidImpossible'=to_jsonb((
+      SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='terminal_invalid_impossible'))
+    AND pedigree.counts->'terminalSupersededConflict'=to_jsonb((
+      SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='terminal_superseded_conflict'))
+    AND pedigree.counts->'terminalUnlinkedConflictCovered'=to_jsonb((
+      SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='terminal_unlinked_conflict_covered'))
+    AND pedigree.counts->'terminalCorroborationOnlyCovered'=to_jsonb((
+      SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='terminal_corroboration_only_covered'))
+    AND pedigree.counts->'terminalNonblocking'=to_jsonb((
+      SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition IN (
+        'terminal_invalid_impossible','terminal_superseded_conflict',
+        'terminal_unlinked_conflict_covered','terminal_corroboration_only_covered'
+      ) AND NOT canonical_safety_blocking AND NOT coverage_blocking))
+    AND pedigree.counts->'terminalBlocking'='0'::jsonb
+    AND pedigree.counts->'applyCandidates'=to_jsonb((
+      SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='verified_apply_candidate' AND canonical_write_eligible))
     AND NOT EXISTS(
       SELECT 1 FROM jsonb_each(nonpedigree.blockers) blocker
       WHERE jsonb_typeof(blocker.value) IS DISTINCT FROM 'number'
@@ -138,28 +168,109 @@ BEGIN
   END IF;
 
   SELECT
-    (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_retrieval_queue)+
-    (SELECT count(*) FROM _giq_history_stage.current_pedigree_quarantine)+
-    (SELECT count(*) FROM _giq_history_stage.authoritative_identity_evidence
-      WHERE verification_status<>'verified')+
-    (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_evidence
-      WHERE verification_status<>'verified')+
-    (SELECT count(*) FROM _giq_history_stage.authoritative_identity_resolution
-      WHERE verification_status<>'verified'
-         OR disposition NOT IN (
-           'verified-existing-identity-candidate','verified-new-identity-candidate'
-         ) OR canonical_write_eligible IS NOT TRUE
-         OR candidate_count IS NULL OR candidate_count>1
-         OR strong_candidate_count IS NULL OR strong_candidate_count>1)+
+    (SELECT abs(
+      (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_assertion_occurrence)-
+      (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution)))+
+    (SELECT count(*)-count(DISTINCT occurrence_id)
+      FROM _giq_history_stage.authoritative_pedigree_resolution)+
     (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
-      WHERE verification_status<>'verified'
-         OR disposition NOT IN ('verified-no-change-candidate','verified-missing-parent-candidate')
-         OR canonical_write_eligible IS NOT TRUE
-         OR subject_dog_id IS NULL OR parent_dog_id IS NULL
-         OR creates_cycle IS DISTINCT FROM false)+
-    (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_conflict_ledger)+
-    (SELECT count(*) FROM _giq_history_stage.authoritative_consolidation_proof
-      WHERE release_eligible IS NOT TRUE)+
+      WHERE disposition NOT IN (
+        'verified_apply_candidate','applied_verified','verified_no_change',
+        'terminal_invalid_impossible','terminal_superseded_conflict',
+        'terminal_unlinked_conflict_covered','terminal_corroboration_only_covered'
+      ) OR hard_blocker_class IS NOT NULL)+
+    (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition LIKE 'terminal_%' AND (
+        terminal_proof_leaf_count IS DISTINCT FROM 1
+        OR canonical_contribution_count IS DISTINCT FROM 0
+        OR canonical_safety_blocking OR coverage_blocking
+        OR quarantine_release_eligible IS NOT TRUE
+        OR canonical_write_eligible IS NOT FALSE
+      ))+
+    (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='verified_apply_candidate' AND (
+        canonical_write_eligible IS NOT TRUE
+        OR exact_identities_verified IS NOT TRUE
+        OR relationship_proof_verified IS NOT TRUE
+        OR subject_dog_id IS NULL OR parent_dog_id IS NULL
+        OR existing_parent_dog_id IS NOT NULL
+        OR creates_cycle IS DISTINCT FROM false
+        OR canonical_safety_blocking OR coverage_blocking
+      ))+
+    (SELECT count(*) FROM (
+      SELECT subject_dog_id,relationship
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='verified_apply_candidate'
+      GROUP BY subject_dog_id,relationship
+      HAVING count(*)<>1
+    ) duplicate_apply_target)+
+    (SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution sire
+      JOIN _giq_history_stage.authoritative_pedigree_resolution dam
+        ON dam.subject_dog_id=sire.subject_dog_id
+       AND dam.parent_dog_id=sire.parent_dog_id
+       AND dam.relationship='dam' AND dam.disposition='verified_apply_candidate'
+      WHERE sire.relationship='sire' AND sire.disposition='verified_apply_candidate')+
+    (SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution candidate
+      JOIN public."PedigreeMergeLedger" ledger
+        ON ledger."dogId"=candidate.subject_dog_id
+       AND ledger.relationship=candidate.relationship
+       AND ledger."verificationStatus"='verified'
+       AND ledger.decision IN ('accepted','no_change')
+      WHERE candidate.disposition='verified_apply_candidate')+
+    (SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution candidate
+      WHERE candidate.disposition='verified_apply_candidate' AND EXISTS(
+        WITH RECURSIVE ancestry(node_id,path,cycle) AS (
+          SELECT candidate.parent_dog_id,
+            ARRAY[candidate.subject_dog_id,candidate.parent_dog_id]::text[],
+            candidate.parent_dog_id=candidate.subject_dog_id
+          UNION ALL
+          SELECT edge.parent_dog_id,ancestry.path || edge.parent_dog_id,
+            edge.parent_dog_id=ANY(ancestry.path)
+          FROM ancestry
+          JOIN LATERAL (
+            SELECT dog."sireId" AS parent_dog_id FROM public."Dog" dog
+            WHERE dog.id=ancestry.node_id AND dog."sireId" IS NOT NULL
+            UNION ALL
+            SELECT dog."damId" FROM public."Dog" dog
+            WHERE dog.id=ancestry.node_id AND dog."damId" IS NOT NULL
+            UNION ALL
+            SELECT planned.parent_dog_id
+            FROM _giq_history_stage.authoritative_pedigree_resolution planned
+            WHERE planned.subject_dog_id=ancestry.node_id
+              AND planned.disposition='verified_apply_candidate'
+          ) edge ON edge.parent_dog_id IS NOT NULL
+          WHERE NOT ancestry.cycle
+            AND cardinality(ancestry.path)<=(SELECT count(*)+1 FROM public."Dog")
+        )
+        SELECT 1 FROM ancestry WHERE cycle
+      ))+
+    (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition IN ('applied_verified','verified_no_change') AND (
+        canonical_write_eligible IS NOT FALSE
+        OR exact_identities_verified IS NOT TRUE
+        OR relationship_proof_verified IS NOT TRUE
+        OR subject_dog_id IS NULL OR parent_dog_id IS NULL
+        OR existing_parent_dog_id IS DISTINCT FROM parent_dog_id
+        OR creates_cycle IS DISTINCT FROM false
+        OR canonical_safety_blocking OR coverage_blocking
+      ))+
+    (SELECT CASE WHEN count(*)=5 THEN 0 ELSE 1 END
+      FROM pg_trigger trigger
+      WHERE (trigger.tgrelid,trigger.tgname) IN (
+        ('_giq_history_stage.authoritative_identity_evidence'::regclass,
+         'authoritative_identity_evidence_append_only'),
+        ('_giq_history_stage.authoritative_pedigree_evidence'::regclass,
+         'authoritative_pedigree_evidence_append_only'),
+        ('_giq_history_stage.authoritative_consolidation_proof'::regclass,
+         'authoritative_consolidation_proof_append_only'),
+        ('_giq_history_stage.authoritative_pedigree_assertion_occurrence'::regclass,
+         'authoritative_pedigree_occurrence_append_only'),
+        ('_giq_history_stage.authoritative_pedigree_terminal_proof'::regclass,
+         'authoritative_pedigree_terminal_proof_append_only')
+      ) AND NOT trigger.tgisinternal AND trigger.tgenabled<>'D')+
     (SELECT count(*) FROM _giq_history_stage.nonpedigree_authoritative_fetch_queue)+
     (SELECT count(*) FROM _giq_history_stage.nonpedigree_dog_composite_review_candidate)+
     (SELECT count(*) FROM _giq_history_stage.nonpedigree_dog_parent_review_candidate)+
@@ -298,73 +409,40 @@ WITH plan(entity,staged,inserts,existing_targets) AS (
   SELECT 'RaceDayArchive',count(*),count(*) FILTER(WHERE p.id IS NULL),count(*) FILTER(WHERE p.id IS NOT NULL)
   FROM _giq_history_stage.normalized_race_day_archive s LEFT JOIN public."RaceDayArchive" p ON p.id=s.target_id
   UNION ALL
-  SELECT 'PedigreeImportRun',9,
-    9-count(*),count(*)
-  FROM public."PedigreeImportRun"
-  WHERE ("sourceProvider"='thedogs' AND "artifactSha256"=(
-         SELECT normalized_manifest_sha256 FROM _giq_history_merge.run WHERE id=1
-       ))
-     OR ("sourceProvider"='galtd' AND "artifactSha256" IN (
-       SELECT DISTINCT payload->>'artifactSha256' FROM _giq_history_stage.galtd_observation
-     ))
+  SELECT 'PedigreeImportRun',count(*),count(*) FILTER(WHERE canonical.id IS NULL),
+    count(*) FILTER(WHERE canonical.id IS NOT NULL)
+  FROM (SELECT occurrence_id
+    FROM _giq_history_stage.authoritative_pedigree_resolution
+    WHERE disposition='verified_apply_candidate') staged
+  LEFT JOIN public."PedigreeImportRun" canonical
+    ON canonical.id=_giq_history_merge.history_id('pedrun-v2',staged.occurrence_id)
   UNION ALL
-  SELECT 'DogSourceIdentity',staged,
-    staged-existing,existing
-  FROM (
-    SELECT
-      (SELECT count(*) FROM _giq_history_stage.normalized_dog
-       WHERE source_provider='thedogs' AND source_id ~ '^[0-9]+$')+
-      (SELECT count(*) FROM _giq_history_stage.galtd_observation) AS staged,
-      (SELECT count(*) FROM public."DogSourceIdentity"
-       WHERE ("sourceProvider"='thedogs' AND "artifactSha256"=(
-              SELECT normalized_manifest_sha256 FROM _giq_history_merge.run WHERE id=1
-            ))
-          OR ("sourceProvider"='galtd' AND "artifactSha256" IN (
-            SELECT DISTINCT payload->>'artifactSha256' FROM _giq_history_stage.galtd_observation))) AS existing
-  ) identity_plan
+  SELECT 'DogSourceIdentity',count(*),
+    count(*) FILTER(WHERE canonical.id IS NULL),count(*) FILTER(WHERE canonical.id IS NOT NULL)
+  FROM _giq_history_stage.authoritative_pedigree_resolution staged
+  CROSS JOIN LATERAL unnest(ARRAY['subject','parent']::text[]) role
+  LEFT JOIN public."DogSourceIdentity" canonical
+    ON canonical.id=_giq_history_merge.history_id(
+      'dogidentity-v2',staged.occurrence_id || ':' || role)
+  WHERE staged.disposition='verified_apply_candidate'
   UNION ALL
-  SELECT 'PedigreeAssertion',staged,staged-existing,existing
-  FROM (
-    SELECT
-      (SELECT count(*) FROM _giq_history_stage.normalized_pedigree_edge WHERE duplicate_rank=1)+
-      (SELECT count(*) FROM _giq_history_stage.galtd_assertion) AS staged,
-      (SELECT count(*) FROM public."PedigreeAssertion"
-       WHERE ("sourceProvider"='thedogs' AND "artifactSha256"=(
-              SELECT normalized_manifest_sha256 FROM _giq_history_merge.run WHERE id=1
-            ))
-          OR ("sourceProvider"='galtd' AND "artifactSha256" IN (
-            SELECT DISTINCT payload->>'artifactSha256' FROM _giq_history_stage.galtd_assertion))) AS existing
-  ) assertion_plan
+  SELECT 'PedigreeAssertion',count(*),count(*) FILTER(WHERE canonical.id IS NULL),
+    count(*) FILTER(WHERE canonical.id IS NOT NULL)
+  FROM _giq_history_stage.authoritative_pedigree_resolution staged
+  LEFT JOIN public."PedigreeAssertion" canonical ON canonical.id=staged.occurrence_id
+  WHERE staged.disposition='verified_apply_candidate'
   UNION ALL
-  SELECT 'PedigreeMergeLedger',staged,staged-existing,existing
-  FROM (
-    SELECT
-      (SELECT count(*)
-       FROM _giq_history_stage.normalized_pedigree_edge edge
-       LEFT JOIN public."Dog" dog ON dog.id=edge.child_id
-       WHERE edge.duplicate_rank=1
-         AND (edge.self_parent OR
-              CASE edge.relationship WHEN 'sire' THEN dog."sireId" ELSE dog."damId" END IS NOT NULL))+
-      (SELECT count(*)*2 FROM _giq_history_stage.galtd_exact_crosswalk WHERE canonical_eligible) AS staged,
-      (SELECT count(*) FROM public."PedigreeMergeLedger"
-       WHERE ("sourceProvider"='thedogs' AND "artifactSha256"=(
-              SELECT normalized_manifest_sha256 FROM _giq_history_merge.run WHERE id=1
-            ))
-          OR ("sourceProvider"='galtd' AND "artifactSha256" IN (
-            SELECT DISTINCT payload->>'artifactSha256' FROM _giq_history_stage.galtd_assertion))) AS existing
-  ) ledger_plan
+  SELECT 'PedigreeMergeLedger',count(*),count(*) FILTER(WHERE canonical.id IS NULL),
+    count(*) FILTER(WHERE canonical.id IS NOT NULL)
+  FROM _giq_history_stage.authoritative_pedigree_resolution staged
+  LEFT JOIN public."PedigreeMergeLedger" canonical
+    ON canonical.id=_giq_history_merge.history_id('pedledger-v2',staged.occurrence_id)
+  WHERE staged.disposition='verified_apply_candidate'
   UNION ALL
   SELECT 'DogParentLink',count(*),
-    count(*) FILTER(WHERE existing_parent_id IS NULL),
-    count(*) FILTER(WHERE existing_parent_id IS NOT NULL)
-  FROM (
-    SELECT x.child_id,relationship,
-      CASE relationship WHEN 'sire' THEN d."sireId" ELSE d."damId" END AS existing_parent_id
-    FROM _giq_history_stage.galtd_exact_crosswalk x
-    CROSS JOIN LATERAL unnest(ARRAY['sire','dam']::text[]) relationship
-    LEFT JOIN public."Dog" d ON d.id=x.child_id
-    WHERE x.canonical_eligible
-  ) parent_plan
+    count(*),0::bigint
+  FROM _giq_history_stage.authoritative_pedigree_resolution
+  WHERE disposition='verified_apply_candidate'
 )
 SELECT jsonb_build_object(
   'event','CANONICAL_MERGE_PLAN_VERIFIED',
@@ -388,7 +466,7 @@ FROM plan;
 
 CREATE TEMP TABLE giq_canonical_merge_plan_attestation (
   id integer PRIMARY KEY CHECK(id=1),
-  schema_version text NOT NULL CHECK(schema_version='giq-canonical-merge-plan-attestation/v1'),
+  schema_version text NOT NULL CHECK(schema_version='giq-canonical-merge-plan-attestation/v2'),
   database_name name NOT NULL,
   database_oid oid NOT NULL,
   backend_pid integer NOT NULL,
@@ -402,6 +480,8 @@ CREATE TEMP TABLE giq_canonical_merge_plan_attestation (
   pedigree_source_history_cutoff timestamptz NOT NULL,
   pedigree_status text NOT NULL,
   pedigree_blockers_sha256 text NOT NULL CHECK(pedigree_blockers_sha256 ~ '^[0-9a-f]{64}$'),
+  pedigree_terminal_counts_sha256 text NOT NULL
+    CHECK(pedigree_terminal_counts_sha256 ~ '^[0-9a-f]{64}$'),
   nonpedigree_schema_version text NOT NULL,
   nonpedigree_manifest_sha256 text NOT NULL CHECK(nonpedigree_manifest_sha256 ~ '^[0-9a-f]{64}$'),
   nonpedigree_source_history_cutoff timestamptz NOT NULL,
@@ -429,6 +509,14 @@ WITH lineage AS (
     pedigree.status AS pedigree_status,
     encode(digest(convert_to(pedigree.blockers::text,'UTF8'),'sha256'),'hex')
       AS pedigree_blockers_sha256,
+    encode(digest(convert_to(jsonb_build_object(
+      'terminalInvalidImpossible',pedigree.counts->'terminalInvalidImpossible',
+      'terminalSupersededConflict',pedigree.counts->'terminalSupersededConflict',
+      'terminalUnlinkedConflictCovered',pedigree.counts->'terminalUnlinkedConflictCovered',
+      'terminalCorroborationOnlyCovered',pedigree.counts->'terminalCorroborationOnlyCovered',
+      'terminalNonblocking',pedigree.counts->'terminalNonblocking',
+      'terminalBlocking',pedigree.counts->'terminalBlocking'
+    )::text,'UTF8'),'sha256'),'hex') AS pedigree_terminal_counts_sha256,
     nonpedigree.schema_version AS nonpedigree_schema_version,
     nonpedigree.normalized_manifest_sha256 AS nonpedigree_manifest_sha256,
     nonpedigree.source_history_cutoff AS nonpedigree_source_history_cutoff,
@@ -451,7 +539,7 @@ WITH lineage AS (
 ), attestation AS (
   SELECT lineage.*,
     encode(digest(convert_to(jsonb_build_object(
-      'schemaVersion','giq-canonical-merge-plan-attestation/v1',
+      'schemaVersion','giq-canonical-merge-plan-attestation/v2',
       'database',database_name,
       'databaseOid',database_oid::text,
       'backendPid',backend_pid,
@@ -467,6 +555,7 @@ WITH lineage AS (
         'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
       'pedigreeStatus',pedigree_status,
       'pedigreeBlockersSha256',pedigree_blockers_sha256,
+      'pedigreeTerminalCountsSha256',pedigree_terminal_counts_sha256,
       'nonpedigreeSchemaVersion',nonpedigree_schema_version,
       'nonpedigreeManifestSha256',nonpedigree_manifest_sha256,
       'nonpedigreeSourceHistoryCutoff',to_char(nonpedigree_source_history_cutoff AT TIME ZONE 'UTC',
@@ -488,17 +577,19 @@ INSERT INTO pg_temp.giq_canonical_merge_plan_attestation (
   id,schema_version,database_name,database_oid,backend_pid,clone_operation_id,phase,
   normalized_manifest_sha256,normalized_transform_version,source_history_cutoff,
   pedigree_schema_version,pedigree_manifest_sha256,pedigree_source_history_cutoff,
-  pedigree_status,pedigree_blockers_sha256,nonpedigree_schema_version,
+  pedigree_status,pedigree_blockers_sha256,pedigree_terminal_counts_sha256,
+  nonpedigree_schema_version,
   nonpedigree_manifest_sha256,nonpedigree_source_history_cutoff,nonpedigree_status,
   nonpedigree_blockers_sha256,duplicate_proof_schema_version,
   duplicate_proof_manifest_sha256,duplicate_proof_source_history_cutoff,
   duplicate_proof_status,duplicate_proof_blockers_sha256,nonce,planned_at,attestation_sha256
 )
-SELECT 1,'giq-canonical-merge-plan-attestation/v1',database_name,database_oid,backend_pid,
+SELECT 1,'giq-canonical-merge-plan-attestation/v2',database_name,database_oid,backend_pid,
   clone_operation_id,phase,normalized_manifest_sha256,normalized_transform_version,
   source_history_cutoff,pedigree_schema_version,pedigree_manifest_sha256,
   pedigree_source_history_cutoff,pedigree_status,pedigree_blockers_sha256,
-  nonpedigree_schema_version,nonpedigree_manifest_sha256,nonpedigree_source_history_cutoff,
+  pedigree_terminal_counts_sha256,nonpedigree_schema_version,
+  nonpedigree_manifest_sha256,nonpedigree_source_history_cutoff,
   nonpedigree_status,nonpedigree_blockers_sha256,duplicate_proof_schema_version,
   duplicate_proof_manifest_sha256,duplicate_proof_source_history_cutoff,
   duplicate_proof_status,duplicate_proof_blockers_sha256,nonce,planned_at,attestation_sha256

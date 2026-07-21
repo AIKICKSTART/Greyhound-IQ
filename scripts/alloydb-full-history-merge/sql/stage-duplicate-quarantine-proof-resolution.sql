@@ -35,7 +35,10 @@ BEGIN
      OR to_regclass('_giq_history_stage.export_quarantine') IS NULL
      OR to_regclass('_giq_history_stage.runner_map') IS NULL
      OR to_regclass('_giq_history_stage.normalized_race') IS NULL
-     OR to_regclass('_giq_history_stage.normalized_runner') IS NULL THEN
+     OR to_regclass('_giq_history_stage.normalized_runner') IS NULL
+     OR to_regclass('_giq_history_merge.duplicate_quarantine_source_evidence_manifest') IS NULL
+     OR to_regclass('_giq_history_stage.duplicate_quarantine_source_evidence') IS NULL
+     OR to_regclass('_giq_history_stage.duplicate_quarantine_retrieval_queue') IS NULL THEN
     RAISE EXCEPTION 'duplicate/quarantine proof requires complete normalized source tables';
   END IF;
 END
@@ -50,7 +53,7 @@ CREATE TABLE IF NOT EXISTS _giq_history_stage.duplicate_quarantine_issue (
   source_natural_key text NOT NULL,
   source_payload_sha256 text NOT NULL CHECK(source_payload_sha256 ~ '^[0-9a-f]{64}$'),
   source_payload jsonb NOT NULL CHECK(jsonb_typeof(source_payload)='object'),
-  canonical_entity_type text NOT NULL CHECK(canonical_entity_type IN ('Race','Runner')),
+  canonical_entity_type text NOT NULL CHECK(canonical_entity_type IN ('Race','Runner','SourceArtifact')),
   exact_existing_candidate_id text,
   exact_existing_candidate_count bigint NOT NULL CHECK(exact_existing_candidate_count IN (0,1)),
   similarity_only_match_allowed boolean NOT NULL CHECK(NOT similarity_only_match_allowed),
@@ -82,8 +85,16 @@ WITH marker AS (
   UNION ALL
 
   SELECT
-    'quarantine',q.source_file,q.line_number,q.payload->>'issueType',q.payload->>'naturalKey',q.payload,
-    CASE q.payload->>'issueType' WHEN 'race-row' THEN 'Race' ELSE 'Runner' END,
+    'quarantine',q.source_file,q.line_number,q.payload->>'issueType',
+    coalesce(
+      nullif(q.payload->>'naturalKey',''),
+      'source-artifact:' || (q.payload->>'sourceSha256')
+    ),q.payload,
+    CASE q.payload->>'issueType'
+      WHEN 'race-row' THEN 'Race'
+      WHEN 'runner-row' THEN 'Runner'
+      ELSE 'SourceArtifact'
+    END,
     CASE
       WHEN q.payload->>'issueType'='race-row' AND canonical_race.id IS NOT NULL THEN race.target_id
       WHEN q.payload->>'issueType'='runner-row' AND canonical_runner.id IS NOT NULL THEN runner.target_id
@@ -113,7 +124,9 @@ SELECT source.source_dataset,source.source_file,source.line_number,
   source.issue_type,source.source_natural_key,
   encode(digest(source.payload::text,'sha256'),'hex'),source.payload,
   source.canonical_entity_type,source.exact_existing_candidate_id,
-  source.exact_existing_candidate_count,false,false,
+  source.exact_existing_candidate_count,
+  false AS similarity_only_match_allowed,
+  false AS create_entity_allowed,
   jsonb_build_array(
     'identity-audited-v2-source','whole-database-search','authoritative-exact-identity',
     'verified-field-inventory','unique-verified-field-merge','existing-verified-data-preservation',
@@ -270,7 +283,14 @@ BEGIN
 END
 $$;
 
-CREATE OR REPLACE VIEW _giq_history_stage.duplicate_quarantine_inbound_reference_catalog AS
+-- Replace the derived v1 views transactionally. PostgreSQL cannot rename view
+-- columns through CREATE OR REPLACE VIEW; non-cascading drops fail closed if an
+-- unexpected external dependency exists, and rollback restores the old views.
+DROP VIEW IF EXISTS _giq_history_stage.duplicate_quarantine_proof_resolution;
+DROP VIEW IF EXISTS _giq_history_stage.duplicate_quarantine_canonical_entity;
+DROP VIEW IF EXISTS _giq_history_stage.duplicate_quarantine_inbound_reference_catalog;
+
+CREATE VIEW _giq_history_stage.duplicate_quarantine_inbound_reference_catalog AS
 WITH column_pair AS (
   SELECT constraint_row.oid,parent.relname AS parent_table,
     child_namespace.nspname AS child_schema,child.relname AS child_table,
@@ -305,12 +325,12 @@ SELECT parent_table,child_schema,child_table,constraint_name,constraint_validate
     constraint_validated::text,child_columns::text,parent_columns::text),'sha256'),'hex') AS catalog_key
 FROM grouped;
 
-CREATE OR REPLACE VIEW _giq_history_stage.duplicate_quarantine_canonical_entity AS
+CREATE VIEW _giq_history_stage.duplicate_quarantine_canonical_entity AS
 SELECT 'Race'::text AS entity_type,id AS entity_id FROM public."Race"
 UNION ALL
 SELECT 'Runner',id FROM public."Runner";
 
-CREATE OR REPLACE VIEW _giq_history_stage.duplicate_quarantine_proof_resolution AS
+CREATE VIEW _giq_history_stage.duplicate_quarantine_proof_resolution AS
 WITH reference_evaluation AS (
   SELECT proof.proof_id,
     count(catalog.catalog_key) AS expected_reference_constraints,
@@ -359,6 +379,17 @@ WITH reference_evaluation AS (
    AND catalog.catalog_key=reference.catalog_key
   WHERE catalog.catalog_key IS NULL
   GROUP BY proof.proof_id
+), natural_key_target AS (
+  SELECT issue.source_dataset,issue.source_natural_key,
+    count(DISTINCT proof.canonical_entity_id) FILTER(
+      WHERE proof.verification_status='verified'
+        AND proof.source_row_comparison_class IN ('exact-duplicate','complementary-same-identity')
+    ) AS authoritative_target_count
+  FROM _giq_history_stage.duplicate_quarantine_issue issue
+  LEFT JOIN _giq_history_merge.duplicate_quarantine_resolution_audit proof
+    ON proof.source_dataset=issue.source_dataset
+   AND proof.source_file=issue.source_file AND proof.line_number=issue.line_number
+  GROUP BY issue.source_dataset,issue.source_natural_key
 ), evaluated AS (
   SELECT issue.*,
     run.normalized_transform_version='thedogs-normalized-harvest/v2'
@@ -387,6 +418,15 @@ WITH reference_evaluation AS (
     proof.relationship_integrity_verified,
     proof.no_data_loss_verified,
     proof.audit_ledger_recorded,
+    evidence.evidence_id IS NOT NULL AS immutable_source_evidence_proven,
+    evidence.classification IN ('potential-exact-same-identity','potential-complementary-same-identity')
+      AS preliminary_source_identity_candidate,
+    evidence.jurisdiction_review_status='known' AS jurisdiction_review_proven,
+    NOT EXISTS(
+      SELECT 1 FROM _giq_history_stage.duplicate_quarantine_retrieval_queue queue
+      WHERE queue.retrieval_status='unavailable' AND queue.evidence_ids ? evidence.evidence_id
+    ) AS retrieval_path_available,
+    coalesce(natural_key_target.authoritative_target_count,0)<=1 AS natural_key_target_consistent,
     proof.normalized_manifest_sha256=issue.normalized_manifest_sha256
       AND proof.source_history_cutoff=issue.source_history_cutoff AS source_binding_proven,
     coalesce(proof.whole_database_search_completed,false)
@@ -467,6 +507,14 @@ WITH reference_evaluation AS (
    AND proof.source_natural_key=issue.source_natural_key
    AND proof.issue_type=issue.issue_type
    AND proof.canonical_entity_type=issue.canonical_entity_type
+  LEFT JOIN _giq_history_stage.duplicate_quarantine_source_evidence evidence
+    ON evidence.source_dataset=issue.source_dataset
+   AND evidence.partition_dir || '/' || evidence.shard_file=issue.source_file
+   AND evidence.source_line=issue.line_number
+   AND evidence.natural_key=issue.source_natural_key AND evidence.issue_type=issue.issue_type
+  LEFT JOIN natural_key_target
+    ON natural_key_target.source_dataset=issue.source_dataset
+   AND natural_key_target.source_natural_key=issue.source_natural_key
   LEFT JOIN _giq_history_stage.duplicate_quarantine_canonical_entity canonical
     ON canonical.entity_type=proof.canonical_entity_type
    AND canonical.entity_id=proof.canonical_entity_id
@@ -479,6 +527,11 @@ WITH reference_evaluation AS (
   SELECT evaluated.*,
     identity_audited_v2_source
     AND proof_id IS NOT NULL
+    AND immutable_source_evidence_proven
+    AND preliminary_source_identity_candidate
+    AND jurisdiction_review_proven
+    AND retrieval_path_available
+    AND natural_key_target_consistent
     AND source_binding_proven
     AND whole_database_search_proven
     AND exact_authoritative_identity_proven
@@ -501,11 +554,15 @@ WITH reference_evaluation AS (
   FROM evaluated
 )
 SELECT decision.*,
-  false AS create_entity_allowed,
   resolution_allowed AND source_dataset='duplicates' AS duplicate_removal_allowed,
   resolution_allowed AND source_dataset='quarantine' AS quarantine_release_allowed,
   CASE
     WHEN NOT identity_audited_v2_source THEN 'blocked-non-final-identity-audited-source-required'
+    WHEN NOT immutable_source_evidence_proven THEN 'blocked-immutable-source-evidence-required'
+    WHEN NOT preliminary_source_identity_candidate THEN 'blocked-unknown-or-conflicting-source-identity'
+    WHEN NOT jurisdiction_review_proven THEN 'blocked-unknown-jurisdiction-review-required'
+    WHEN NOT retrieval_path_available THEN 'blocked-authoritative-retrieval-path-unavailable'
+    WHEN NOT natural_key_target_consistent THEN 'blocked-repeated-natural-key-target-inconsistent'
     WHEN proof_id IS NULL THEN 'blocked-authoritative-proof-required'
     WHEN NOT source_binding_proven THEN 'blocked-source-binding-mismatch'
     WHEN NOT whole_database_search_proven THEN 'blocked-whole-database-search-required'
@@ -633,17 +690,17 @@ SET schema_version=EXCLUDED.schema_version,
 
 DO $$
 DECLARE
-  expected_rows bigint;
+  expected_issue_rows bigint;
   observed_rows bigint;
 BEGIN
-  SELECT sum(expected_rows) INTO STRICT expected_rows
-  FROM _giq_history_merge.export_dataset_manifest
+  SELECT sum(manifest.expected_rows) INTO STRICT expected_issue_rows
+  FROM _giq_history_merge.export_dataset_manifest manifest
   WHERE dataset IN ('duplicates','quarantine');
   SELECT count(*) INTO STRICT observed_rows
   FROM _giq_history_stage.duplicate_quarantine_issue;
 
-  IF observed_rows<>expected_rows THEN
-    RAISE EXCEPTION 'duplicate/quarantine issue inventory changed: %/%',observed_rows,expected_rows;
+  IF observed_rows<>expected_issue_rows THEN
+    RAISE EXCEPTION 'duplicate/quarantine issue inventory changed: %/%',observed_rows,expected_issue_rows;
   END IF;
   IF EXISTS(
     WITH source_row AS (
@@ -652,7 +709,8 @@ BEGIN
         encode(digest(payload::text,'sha256'),'hex') AS source_payload_sha256
       FROM _giq_history_stage.export_duplicates
       UNION ALL
-      SELECT 'quarantine',source_file,line_number,payload->>'issueType',payload->>'naturalKey',
+      SELECT 'quarantine',source_file,line_number,payload->>'issueType',
+        coalesce(nullif(payload->>'naturalKey',''),'source-artifact:' || (payload->>'sourceSha256')),
         encode(digest(payload::text,'sha256'),'hex')
       FROM _giq_history_stage.export_quarantine
     )
@@ -682,7 +740,8 @@ BEGIN
       OR source_payload->>'selection'<>'completeness_then_latest_ordinal'))
        OR (source_dataset='quarantine' AND
           (issue_type,source_payload->>'reason') NOT IN (
-            ('runner-row','missing_dog_provider_identity'),('race-row','missing_race_distance')
+            ('runner-row','missing_dog_provider_identity'),('race-row','missing_race_distance'),
+            ('source-file','unverified_profile_identity')
           ))
   ) THEN
     RAISE EXCEPTION 'duplicate/quarantine source taxonomy changed';

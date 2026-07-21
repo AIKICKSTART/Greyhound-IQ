@@ -108,6 +108,8 @@ type NormalizedSource = {
   inventorySha256: string;
   sourceCutoff: string;
   sourceRaceRoot: string;
+  profileInvalidFiles: number;
+  profileQuarantineRows: number;
   partitionCount: number;
   diagnosticOnly: boolean;
   duplicateShardAggregateSha256: string;
@@ -239,6 +241,8 @@ export type DuplicateQuarantineEvidenceManifest = {
     sourceCutoff: string;
     transformVersion: string;
     sourceRaceRoot: string;
+    profileInvalidFiles: number;
+    profileQuarantineRows: number;
     fullCorpus: true;
     partitionCount: number;
     diagnosticOnly: boolean;
@@ -383,6 +387,8 @@ export async function buildDuplicateQuarantineEvidenceQueue(
       sourceCutoff: source.sourceCutoff,
       transformVersion: source.transformVersion,
       sourceRaceRoot: source.sourceRaceRoot,
+      profileInvalidFiles: source.profileInvalidFiles,
+      profileQuarantineRows: source.profileQuarantineRows,
       fullCorpus: true,
       partitionCount: source.partitionCount,
       diagnosticOnly: source.diagnosticOnly,
@@ -527,7 +533,7 @@ async function readNormalizedSource(normalizedDir: string): Promise<NormalizedSo
     source.raceRoot,
     "normalized source raceRoot",
   );
-  validateFullCorpus(manifest, transformVersion);
+  const profileInvalidFiles = validateFullCorpus(manifest, transformVersion);
   const partitions = requireArray(manifest.partitions, "normalized partitions");
   if (partitions.length === 0 || partitions.length > MAX_PARTITIONS) {
     throw new Error("normalized partition count is invalid");
@@ -545,6 +551,8 @@ async function readNormalizedSource(normalizedDir: string): Promise<NormalizedSo
     duplicates: 0,
     quarantine: 0,
   };
+  let profileQuarantineRows = 0;
+  let raceQuarantineRows = 0;
 
   for (let index = 0; index < partitions.length; index += 1) {
     const rootPartition = requireRecord(
@@ -638,9 +646,19 @@ async function readNormalizedSource(normalizedDir: string): Promise<NormalizedSo
             parseDuplicateIssue(row, line, index, directory, output.file, lineIndex + 1),
           );
         } else if (dataset === "quarantine") {
-          issues.push(
-            parseQuarantineIssue(row, line, index, directory, output.file, lineIndex + 1),
+          const issue = parseQuarantineIssue(
+            row,
+            line,
+            index,
+            directory,
+            output.file,
+            lineIndex + 1,
           );
+          if (issue === "profile-source-file") profileQuarantineRows += 1;
+          else {
+            raceQuarantineRows += 1;
+            issues.push(issue);
+          }
         } else {
           collectRaceArchive(row, raceArchives, `${output.file}:${lineIndex + 1}`);
         }
@@ -658,6 +676,12 @@ async function readNormalizedSource(normalizedDir: string): Promise<NormalizedSo
   ) {
     throw new Error("normalized issue totals do not match issue shards");
   }
+  if (raceQuarantineRows + profileQuarantineRows !== rowCounts.quarantine) {
+    throw new Error("normalized quarantine rows were not fully classified");
+  }
+  if (profileQuarantineRows !== profileInvalidFiles) {
+    throw new Error("normalized profile quarantine rows do not match profile invalid file inventory");
+  }
   issues.sort(compareIssueSource);
   return {
     manifestSha256,
@@ -665,6 +689,8 @@ async function readNormalizedSource(normalizedDir: string): Promise<NormalizedSo
     inventorySha256,
     sourceCutoff,
     sourceRaceRoot,
+    profileInvalidFiles,
+    profileQuarantineRows,
     partitionCount: partitions.length,
     diagnosticOnly: transformVersion === "thedogs-normalized-harvest/v1",
     duplicateShardAggregateSha256: aggregateShardSha(metadata.duplicates),
@@ -710,36 +736,57 @@ function validateFullCorpus(manifest: JsonRecord, transformVersion: string) {
     throw new Error("normalized v2 source lacks exact profile identity proof");
   }
   const inventory = requireRecord(manifest.inventory, "normalized inventory");
-  for (const kind of ["profile", "race-day"] as const) {
-    const row = requireRecord(inventory[kind], `normalized inventory.${kind}`);
-    const discovered = requireNonNegativeInteger(
-      row.discoveredFiles,
-      `normalized inventory.${kind}.discoveredFiles`,
-    );
-    const valid = requireNonNegativeInteger(
-      row.validFiles,
-      `normalized inventory.${kind}.validFiles`,
-    );
-    const unique = requireNonNegativeInteger(
-      row.uniqueNaturalKeys,
-      `normalized inventory.${kind}.uniqueNaturalKeys`,
-    );
-    const selected = requireNonNegativeInteger(
-      row.selectedFiles,
-      `normalized inventory.${kind}.selectedFiles`,
-    );
-    if (
-      row.coverageProven !== true ||
-      row.invalidFiles !== 0 ||
-      row.excludedByFilter !== 0 ||
-      row.excludedByLimit !== 0 ||
-      discovered !== valid ||
-      unique !== selected ||
-      unique > valid
-    ) {
-      throw new Error(`normalized ${kind} inventory coverage is not proven`);
-    }
+  const profileInvalidFiles = validateInventory(
+    requireRecord(inventory.profile, "normalized inventory.profile"),
+    "profile",
+    true,
+  );
+  validateInventory(
+    requireRecord(inventory["race-day"], "normalized inventory.race-day"),
+    "race-day",
+    false,
+  );
+  return profileInvalidFiles;
+}
+
+function validateInventory(row: JsonRecord, kind: "profile" | "race-day", allowInvalid: boolean) {
+  const discovered = requireNonNegativeInteger(
+    row.discoveredFiles,
+    `normalized inventory.${kind}.discoveredFiles`,
+  );
+  const valid = requireNonNegativeInteger(
+    row.validFiles,
+    `normalized inventory.${kind}.validFiles`,
+  );
+  const invalid = requireNonNegativeInteger(
+    row.invalidFiles,
+    `normalized inventory.${kind}.invalidFiles`,
+  );
+  const unique = requireNonNegativeInteger(
+    row.uniqueNaturalKeys,
+    `normalized inventory.${kind}.uniqueNaturalKeys`,
+  );
+  const duplicateSnapshots = requireNonNegativeInteger(
+    row.duplicateSnapshots,
+    `normalized inventory.${kind}.duplicateSnapshots`,
+  );
+  const selected = requireNonNegativeInteger(
+    row.selectedFiles,
+    `normalized inventory.${kind}.selectedFiles`,
+  );
+  if (
+    row.coverageProven !== true ||
+    row.excludedByFilter !== 0 ||
+    row.excludedByLimit !== 0 ||
+    discovered !== valid + invalid ||
+    valid !== unique + duplicateSnapshots ||
+    unique !== selected ||
+    unique > valid ||
+    (!allowInvalid && invalid !== 0)
+  ) {
+    throw new Error(`normalized ${kind} inventory coverage is not proven`);
   }
+  return invalid;
 }
 
 function validatePartitionContract(
@@ -887,7 +934,30 @@ function parseQuarantineIssue(
   partitionDirectory: string,
   shardFile: string,
   lineNumber: number,
-): NormalizedQuarantineIssue {
+): NormalizedQuarantineIssue | "profile-source-file" {
+  if (row.issueType === "source-file" && row.sourceKind === "profile") {
+    assertExactKeys(
+      row,
+      new Set([
+        "issueType",
+        "sourceKind",
+        "sourcePath",
+        "sourceSha256",
+        "sourceBytes",
+        "reason",
+      ]),
+      `${shardFile}:${lineNumber}`,
+    );
+    requireString(row.sourcePath, `${shardFile}:${lineNumber}.sourcePath`);
+    requireSha256(row.sourceSha256, `${shardFile}:${lineNumber}.sourceSha256`);
+    if (positiveInteger(row.sourceBytes) == null) {
+      throw new Error(`${shardFile}:${lineNumber}.sourceBytes must be positive`);
+    }
+    if (row.reason !== "unverified_profile_identity") {
+      throw new Error(`${shardFile}:${lineNumber} has an unsupported profile quarantine issue`);
+    }
+    return "profile-source-file";
+  }
   assertExactKeys(
     row,
     new Set(["issueType", "naturalKey", "sourceArchiveKey", "reason"]),

@@ -77,23 +77,23 @@ assert.match(
 );
 
 for (const expected of [
-  "1027915",
-  "266534",
-  "759359",
-  "1940",
-  "1939",
-  "42",
-  "40",
-  "29516",
-  "66051",
-  "314502",
-  "54944",
-  "169",
-  "314333",
-  "0",
+  "expected_row_dispositions",
+  "expected_runner_occurrences",
+  "expected_profile_occurrences",
+  "expected_duplicate_rows",
+  "expected_duplicate_keys",
+  "expected_missing_identity_rows",
+  "expected_missing_distance_rows",
+  "expected_dog_fetch_ids",
+  "expected_race_fetch_ids",
+  "expected_pseudo_rows",
+  "expected_pseudo_ids",
 ]) {
-  assert.match(sql, new RegExp(`${expected}::bigint`), `missing exact partition ${expected}`);
+  assert.ok(sql.includes(expected), `missing source-bound partition ${expected}`);
 }
+assert.match(sql, /expected_row_dispositions[\s\S]*FROM _giq_history_stage\.export_duplicates/);
+assert.match(sql, /expected_pseudo_rows[\s\S]*pseudo_exact_repairs\+pseudo_no_candidate_rows\+pseudo_ambiguous_rows<>pseudo_rows/);
+assert.match(sql, /non-pedigree saturation source partition changed: expected %, observed %/);
 
 assert.match(sql, /review-only-full-row-no-loss-proof-required/);
 assert.match(sql, /'authoritative-identity','full-row-no-data-loss','reference-redirection','append-only-audit-ledger'/);

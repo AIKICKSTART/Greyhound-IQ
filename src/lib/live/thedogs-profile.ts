@@ -1,5 +1,6 @@
 import { sanitizeProviderHtml } from "./raw-sanitizer";
 import { readBoundedTextResponse } from "../remote-response";
+import { assertTheDogsLicensedUseApproved } from "./thedogs-access";
 
 const THEDOGS_BASE =
   process.env.THEDOGS_BASE_URL ?? "https://www.thedogs.com.au";
@@ -109,16 +110,20 @@ export class TheDogsDogProfileProvider {
     kind: "profile" | "full-form",
     extraHeaders: Record<string, string> = {},
   ) {
+    assertTheDogsLicensedUseApproved();
     const url = new URL(pathOrUrl, THEDOGS_BASE);
     const pathPattern = kind === "profile"
       ? /^\/dogs\/\d+\/[^/?#]+\/?$/i
       : /^\/dogs\/\d+\/[^/?#]+\/full-form\/?$/i;
+    const queryIsValid = kind === "profile"
+      ? url.search === ""
+      : url.search === "?page=1&profile=true";
     if (
       url.origin !== THEDOGS_ORIGIN ||
       url.username ||
       url.password ||
       url.hash ||
-      url.search ||
+      !queryIsValid ||
       !pathPattern.test(url.pathname)
     ) {
       throw new Error("thedogs.profile_request_url_invalid");

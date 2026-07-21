@@ -15,6 +15,7 @@ import {
 import { GET } from "./route";
 
 process.env.REPLAY_PROXY_SECRET ||= "test-secret-for-replay-proxy-route";
+process.env.THEDOGS_LICENSED_USE_APPROVED = "true";
 
 const START = "https://d2w8yyjcswa0zt.cloudfront.net/start.m3u8";
 const FINAL = "https://mediatdogs.skyracing.com.au/final.m3u8";

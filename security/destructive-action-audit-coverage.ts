@@ -137,7 +137,7 @@ export const PRODUCTION_DESTRUCTIVE_ACTION_CLASSIFICATIONS = [
     reason: "Saved-listing toggles are user-local associations and can be recreated by the same bounded operation.",
   },
   {
-    actionId: "src/lib/listing-service.ts:1301:listingAttribute.deleteMany",
+    actionId: "src/lib/listing-service.ts:1303:listingAttribute.deleteMany",
     disposition: "derived-replacement",
     reason: "Listing attributes are replaced from the validated listing update in the same operation.",
   },

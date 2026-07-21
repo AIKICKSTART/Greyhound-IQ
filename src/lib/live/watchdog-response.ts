@@ -128,7 +128,9 @@ const watchdogParticipantSchema = z.object({
     z.string().trim().min(1).max(32).nullish(),
   ),
   averageFirstSplitSpeed: optionalNumber(0, 200),
-  resultPlace: z.union([boundedNumber(0, 64), z.literal("F")]).nullish(),
+  resultPlace: z
+    .union([boundedNumber(0, 64), z.enum(["F", "P", "T"])])
+    .nullish(),
   resultWeight: optionalNumber(0, 100),
   resultMargin: z
     .union([boundedNumber(-1_000, 1_000), z.string().trim().min(1).max(32)])
@@ -185,7 +187,12 @@ export type WatchdogParticipant = NonNullable<
 
 export function parseWatchdogPayload(payload: unknown): WatchdogPayload {
   const parsed = watchdogPayloadSchema.safeParse(payload);
-  if (!parsed.success) throw new Error("watchdog.response_invalid");
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new Error(
+      `watchdog.response_invalid:${issue?.path.join(".") || "root"}:${issue?.code || "unknown"}`,
+    );
+  }
   return parsed.data;
 }
 

@@ -43,17 +43,22 @@ BEGIN
     '_giq_history_stage.media_resolution',
     '_giq_history_stage.replay_standalone_only_provider_id',
     '_giq_history_stage.thedogs_source_identity',
-    '_giq_history_stage.normalized_pedigree_edge',
-    '_giq_history_stage.pedigree_merge_decision',
     '_giq_history_stage.galtd_source_identity',
-    '_giq_history_stage.galtd_assertion',
-    '_giq_history_stage.galtd_merge_decision',
+    '_giq_history_stage.authoritative_pedigree_assertion_occurrence',
+    '_giq_history_stage.authoritative_identity_evidence',
+    '_giq_history_stage.authoritative_pedigree_evidence',
+    '_giq_history_stage.authoritative_pedigree_evidence_leaf',
+    '_giq_history_stage.authoritative_consolidation_proof',
+    '_giq_history_stage.authoritative_pedigree_terminal_proof',
+    '_giq_history_stage.authoritative_pedigree_terminal_proof_leaf',
+    '_giq_history_stage.authoritative_pedigree_resolution',
     'public."Dog"',
     'public."RaceVideo"',
     'public."PedigreeImportRun"',
     'public."DogSourceIdentity"',
     'public."PedigreeAssertion"',
-    'public."PedigreeMergeLedger"'
+    'public."PedigreeMergeLedger"',
+    'public."LiveFeedQuarantine"'
   ]::text[] LOOP
     IF to_regclass(required_relation) IS NULL THEN
       missing_relations := array_append(missing_relations,required_relation);
@@ -1041,22 +1046,6 @@ VALUES
   WHERE "sireId" IS NOT NULL AND "sireId"="damId")),
 ('invalidAssertionRelationships',(SELECT count(*) FROM public."PedigreeAssertion"
   WHERE relationship NOT IN ('sire','dam'))),
-('unresolvedAssertionSubjects',(SELECT count(*)
-  FROM public."PedigreeAssertion" assertion
-  JOIN public."DogSourceIdentity" subject ON subject.id=assertion."subjectIdentityId"
-  WHERE subject."dogId" IS NULL)),
-('unresolvedAssertionParents',(SELECT count(*)
-  FROM public."PedigreeAssertion" assertion
-  LEFT JOIN public."DogSourceIdentity" parent ON parent.id=assertion."parentIdentityId"
-  WHERE assertion."verificationStatus" NOT IN ('rejected','conflict')
-    AND (assertion."parentIdentityId" IS NULL OR parent."dogId" IS NULL))),
-('unresolvedAssertionVerification',(SELECT count(*) FROM public."PedigreeAssertion"
-  WHERE "verificationStatus" NOT IN ('verified','conflict','rejected'))),
-('unresolvedIdentityVerification',(SELECT count(*) FROM public."DogSourceIdentity"
-  WHERE "verificationStatus" NOT IN ('verified','conflict','rejected'))),
-('unresolvedImportRunVerification',(SELECT count(*) FROM public."PedigreeImportRun"
-  WHERE "verificationStatus" NOT IN ('verified','conflict','rejected')
-     OR "completedAt" IS NULL)),
 ('invalidAssertionEvidenceHashes',(SELECT count(*) FROM public."PedigreeAssertion"
   WHERE "evidenceSha256" !~ '^[0-9a-f]{64}$')),
 ('invalidIdentityEvidenceHashes',(SELECT count(*) FROM public."DogSourceIdentity"
@@ -1068,32 +1057,6 @@ VALUES
      OR (canonical."dogId",lower(canonical."sourceProvider"),canonical."sourceId",
          canonical."importRunId")
        IS DISTINCT FROM (staged.target_id,'thedogs',staged.source_id,staged.import_run_id))),
-('thedogsAssertionProjectionGaps',(SELECT count(*)
-  FROM _giq_history_stage.normalized_pedigree_edge staged
-  JOIN _giq_history_stage.thedogs_source_identity subject
-    ON subject.target_id=staged.child_id
-  LEFT JOIN _giq_history_stage.thedogs_source_identity parent
-    ON parent.target_id=staged.parent_id
-  JOIN _giq_history_stage.pedigree_merge_decision decision
-    ON decision.natural_key=staged.natural_key
-  LEFT JOIN public."PedigreeAssertion" canonical
-    ON canonical.id=_giq_history_merge.history_id('pedassert',staged.natural_key)
-  WHERE staged.duplicate_rank=1
-    AND (canonical.id IS NULL
-      OR (lower(canonical."sourceProvider"),canonical."subjectIdentityId",
-          canonical."parentIdentityId",canonical.relationship,
-          canonical."assertedParentName",canonical."verificationStatus")
-        IS DISTINCT FROM (
-          'thedogs',subject.identity_id,
-          CASE WHEN staged.self_parent THEN NULL ELSE parent.identity_id END,
-          staged.relationship,staged.parent_name,
-          CASE decision.decision
-            WHEN 'no_change' THEN 'verified'
-            WHEN 'preserved_higher_authority' THEN 'conflict'
-            WHEN 'rejected_ambiguous' THEN 'rejected'
-            ELSE 'parsed'
-          END
-        )))),
 ('unexpectedThedogsIdentities',(SELECT count(*)
   FROM public."DogSourceIdentity" canonical
   WHERE lower(canonical."sourceProvider")='thedogs'
@@ -1105,18 +1068,6 @@ VALUES
       SELECT 1 FROM _giq_history_stage.thedogs_source_identity staged
       WHERE staged.identity_id=canonical.id
     ))),
-('unexpectedThedogsAssertions',(SELECT count(*)
-  FROM public."PedigreeAssertion" canonical
-  WHERE lower(canonical."sourceProvider")='thedogs'
-    AND EXISTS(
-      SELECT 1 FROM _giq_history_stage.thedogs_source_identity staged_run
-      WHERE staged_run.import_run_id=canonical."importRunId"
-    )
-    AND NOT EXISTS(
-      SELECT 1 FROM _giq_history_stage.normalized_pedigree_edge staged
-      WHERE staged.duplicate_rank=1
-        AND _giq_history_merge.history_id('pedassert',staged.natural_key)=canonical.id
-    ))),
 ('galtdIdentityProjectionGaps',(SELECT count(*)
   FROM _giq_history_stage.galtd_source_identity staged
   LEFT JOIN public."DogSourceIdentity" canonical ON canonical.id=staged.identity_id
@@ -1125,17 +1076,6 @@ VALUES
          canonical."importRunId",canonical."artifactSha256")
        IS DISTINCT FROM (staged.dog_id,'galtd',staged.payload->>'sourceId',
                          staged.import_run_id,staged.payload->>'artifactSha256'))),
-('galtdAssertionProjectionGaps',(SELECT count(*)
-  FROM _giq_history_stage.galtd_assertion staged
-  LEFT JOIN public."PedigreeAssertion" canonical
-    ON canonical.id=_giq_history_merge.history_id(
-      'pedassert','galtd:' || (staged.payload->>'sourceId')
-    )
-  WHERE canonical.id IS NULL
-     OR (lower(canonical."sourceProvider"),canonical.relationship,
-         canonical."artifactSha256",canonical."evidenceSha256")
-       IS DISTINCT FROM ('galtd',staged.payload->>'relationship',
-                         staged.payload->>'artifactSha256',staged.payload->>'evidenceSha256'))),
 ('unexpectedGaltdIdentities',(SELECT count(*)
   FROM public."DogSourceIdentity" canonical
   WHERE lower(canonical."sourceProvider")='galtd'
@@ -1147,78 +1087,203 @@ VALUES
       SELECT 1 FROM _giq_history_stage.galtd_source_identity staged
       WHERE staged.identity_id=canonical.id
     ))),
-('unexpectedGaltdAssertions',(SELECT count(*)
-  FROM public."PedigreeAssertion" canonical
-  WHERE lower(canonical."sourceProvider")='galtd'
-    AND EXISTS(
-      SELECT 1 FROM _giq_history_stage.galtd_source_identity staged_run
-      WHERE staged_run.import_run_id=canonical."importRunId"
+('occurrenceResolutionAccounting',(SELECT
+    abs((SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_assertion_occurrence)-
+        (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution))+
+    (SELECT count(*)-count(DISTINCT occurrence_id)
+     FROM _giq_history_stage.authoritative_pedigree_resolution))),
+('invalidFinalDispositions',(SELECT count(*)
+  FROM _giq_history_stage.authoritative_pedigree_resolution
+  WHERE disposition NOT IN (
+      'applied_verified','verified_no_change','terminal_invalid_impossible',
+      'terminal_superseded_conflict','terminal_unlinked_conflict_covered',
+      'terminal_corroboration_only_covered'
+    ) OR hard_blocker_class IS NOT NULL)),
+('applyCandidatesRemaining',(SELECT count(*)
+  FROM _giq_history_stage.authoritative_pedigree_resolution
+  WHERE disposition='verified_apply_candidate' OR canonical_write_eligible)),
+('terminalProofGaps',(SELECT count(*)
+  FROM _giq_history_stage.authoritative_pedigree_resolution resolution
+  WHERE disposition LIKE 'terminal_%' AND (
+    terminal_proof_leaf_count IS DISTINCT FROM 1
+    OR (SELECT count(*)
+        FROM _giq_history_stage.authoritative_pedigree_terminal_proof_leaf proof
+        WHERE proof.occurrence_id=resolution.occurrence_id)<>1
+    OR canonical_contribution_count IS DISTINCT FROM 0
+    OR canonical_safety_blocking OR coverage_blocking
+    OR quarantine_release_eligible IS NOT TRUE
+    OR canonical_write_eligible IS NOT FALSE
+  ))),
+('orphanTerminalProofLeaves',(SELECT count(*)
+  FROM _giq_history_stage.authoritative_pedigree_terminal_proof_leaf proof
+  LEFT JOIN _giq_history_stage.authoritative_pedigree_resolution resolution
+    USING(occurrence_id)
+  WHERE resolution.occurrence_id IS NULL OR resolution.disposition NOT LIKE 'terminal_%')),
+('terminalCanonicalLeaks',(SELECT count(*)
+  FROM _giq_history_stage.authoritative_pedigree_resolution resolution
+  WHERE resolution.disposition LIKE 'terminal_%'
+    AND (EXISTS(
+      SELECT 1 FROM public."PedigreeAssertion" assertion
+      WHERE assertion.id=resolution.occurrence_id
+         OR (assertion."importRunId"=resolution.import_run_id
+           AND lower(assertion."sourceProvider")=resolution.source_provider
+           AND assertion."artifactSha256"=resolution.artifact_sha256
+           AND assertion.relationship=resolution.relationship
+           AND assertion."evidenceSha256"=resolution.evidence_sha256)
+    ) OR EXISTS(
+      SELECT 1
+      FROM public."PedigreeMergeLedger" ledger
+      WHERE ledger."assertionId"=resolution.occurrence_id
+         OR ledger."winningAssertionId"=resolution.occurrence_id
+    )))),
+('appliedWinnerGaps',(SELECT count(*)
+  FROM _giq_history_stage.authoritative_pedigree_resolution resolution
+  JOIN public."Dog" dog ON dog.id=resolution.subject_dog_id
+  LEFT JOIN public."PedigreeAssertion" assertion
+    ON assertion.id=resolution.occurrence_id
+  LEFT JOIN public."DogSourceIdentity" subject_identity
+    ON subject_identity.id=assertion."subjectIdentityId"
+  LEFT JOIN public."DogSourceIdentity" parent_identity
+    ON parent_identity.id=assertion."parentIdentityId"
+  LEFT JOIN public."PedigreeImportRun" import_run
+    ON import_run.id=assertion."importRunId"
+   AND import_run."sourceProvider"=assertion."sourceProvider"
+   AND import_run."artifactSha256"=assertion."artifactSha256"
+  LEFT JOIN public."PedigreeMergeLedger" ledger
+    ON ledger.id=_giq_history_merge.history_id('pedledger-v2',resolution.occurrence_id)
+  WHERE resolution.disposition='applied_verified' AND (
+    assertion.id IS NULL OR assertion."verificationStatus"<>'verified'
+    OR assertion.relationship IS DISTINCT FROM resolution.relationship
+    OR assertion."evidenceSha256" IS DISTINCT FROM resolution.evidence_sha256
+    OR subject_identity."dogId" IS DISTINCT FROM resolution.subject_dog_id
+    OR subject_identity."verificationStatus" IS DISTINCT FROM 'verified'
+    OR parent_identity."dogId" IS DISTINCT FROM resolution.parent_dog_id
+    OR parent_identity."verificationStatus" IS DISTINCT FROM 'verified'
+    OR import_run."verificationStatus" IS DISTINCT FROM 'verified'
+    OR import_run.status IS DISTINCT FROM 'merged'
+    OR ledger."assertionId" IS DISTINCT FROM resolution.occurrence_id
+    OR ledger."winningAssertionId" IS DISTINCT FROM resolution.occurrence_id
+    OR ledger."dogId" IS DISTINCT FROM resolution.subject_dog_id
+    OR ledger."proposedParentDogId" IS DISTINCT FROM resolution.parent_dog_id
+    OR ledger.relationship IS DISTINCT FROM resolution.relationship
+    OR ledger.decision IS DISTINCT FROM 'accepted'
+    OR ledger."verificationStatus" IS DISTINCT FROM 'verified'
+    OR (CASE resolution.relationship WHEN 'sire' THEN dog."sireId" ELSE dog."damId" END)
+       IS DISTINCT FROM resolution.parent_dog_id
+    OR resolution.authority_row_count IS DISTINCT FROM 1
+    OR resolution.authority_parent_count IS DISTINCT FROM 1
+    OR resolution.authority_parent_dog_id IS DISTINCT FROM resolution.parent_dog_id
+    OR resolution.applied_authority IS NOT TRUE
+  ))),
+('verifiedNoChangeAuthorityGaps',(SELECT count(*)
+  FROM _giq_history_stage.authoritative_pedigree_resolution resolution
+  JOIN public."Dog" dog ON dog.id=resolution.subject_dog_id
+  WHERE resolution.disposition='verified_no_change' AND (
+    resolution.existing_parent_dog_id IS DISTINCT FROM resolution.parent_dog_id
+    OR resolution.authority_row_count IS DISTINCT FROM 1
+    OR resolution.authority_parent_count IS DISTINCT FROM 1
+    OR resolution.authority_parent_dog_id IS DISTINCT FROM resolution.parent_dog_id
+    OR resolution.no_change_authority IS NOT TRUE
+    OR (CASE resolution.relationship WHEN 'sire' THEN dog."sireId" ELSE dog."damId" END)
+       IS DISTINCT FROM resolution.parent_dog_id
+  ))),
+('pendingVerifiedAssertions',(SELECT count(*)
+  FROM public."PedigreeAssertion" assertion
+  LEFT JOIN public."DogSourceIdentity" subject
+    ON subject.id=assertion."subjectIdentityId"
+  LEFT JOIN public."DogSourceIdentity" parent
+    ON parent.id=assertion."parentIdentityId"
+  LEFT JOIN public."Dog" dog ON dog.id=subject."dogId"
+  WHERE assertion."verificationStatus"='verified' AND (
+    subject."dogId" IS NULL OR subject."verificationStatus"<>'verified'
+    OR parent."dogId" IS NULL OR parent."verificationStatus"<>'verified'
+    OR dog.id IS NULL
+    OR (CASE assertion.relationship WHEN 'sire' THEN dog."sireId" ELSE dog."damId" END)
+       IS DISTINCT FROM parent."dogId"
+    OR NOT EXISTS(
+      SELECT 1 FROM public."PedigreeMergeLedger" ledger
+      WHERE ledger."winningAssertionId"=assertion.id
+        AND ledger."dogId"=subject."dogId"
+        AND ledger.relationship=assertion.relationship
+        AND ledger."proposedParentDogId"=parent."dogId"
+        AND ledger.decision IN ('accepted','no_change')
+        AND ledger."verificationStatus"='verified'
     )
-    AND NOT EXISTS(
-      SELECT 1 FROM _giq_history_stage.galtd_assertion staged
-      WHERE _giq_history_merge.history_id(
-        'pedassert','galtd:' || (staged.payload->>'sourceId')
-      )=canonical.id
-    ))),
-('pendingAuthoritativeDecisions',(SELECT count(*)
-  FROM _giq_history_stage.pedigree_merge_decision
-  WHERE duplicate_rank=1 AND decision='pending_authoritative_verification')),
-('thedogsLedgerGaps',(SELECT count(*)
-  FROM _giq_history_stage.pedigree_merge_decision staged
-  LEFT JOIN public."PedigreeMergeLedger" ledger
-    ON ledger."assertionId"=_giq_history_merge.history_id('pedassert',staged.natural_key)
-   AND ledger."dogId"=staged.child_id
-   AND ledger.decision=staged.decision
-  WHERE staged.duplicate_rank=1
-    AND staged.decision<>'pending_authoritative_verification'
-    AND ledger.id IS NULL)),
-('galtdLedgerGaps',(SELECT count(*)
-  FROM _giq_history_stage.galtd_merge_decision staged
-  LEFT JOIN public."PedigreeMergeLedger" ledger
-    ON ledger."assertionId"=staged.assertion_id
-   AND ledger."dogId"=staged.child_id
-   AND ledger.decision=staged.decision
-  WHERE ledger.id IS NULL)),
-('unexpectedPedigreeLedgerRows',(SELECT count(*)
+  ))),
+('orphanV2ApplyAssertions',(SELECT count(*)
+  FROM public."PedigreeAssertion" assertion
+  JOIN public."PedigreeImportRun" import_run ON import_run.id=assertion."importRunId"
+  LEFT JOIN _giq_history_stage.authoritative_pedigree_resolution resolution
+    ON resolution.occurrence_id=assertion.id
+  WHERE import_run."parserVersion"='authoritative-pedigree-v2'
+    AND (resolution.occurrence_id IS NULL OR resolution.disposition<>'applied_verified'))),
+('orphanV2ApplyLedgers',(SELECT count(*)
   FROM public."PedigreeMergeLedger" ledger
-  WHERE lower(ledger."sourceProvider") IN ('thedogs','galtd')
-    AND NOT EXISTS(
-      SELECT 1 FROM _giq_history_stage.pedigree_merge_decision staged
-      WHERE staged.duplicate_rank=1
-        AND staged.decision<>'pending_authoritative_verification'
-        AND _giq_history_merge.history_id('pedassert',staged.natural_key)=ledger."assertionId"
-        AND staged.child_id=ledger."dogId"
-        AND staged.decision=ledger.decision
-    )
-    AND NOT EXISTS(
-      SELECT 1 FROM _giq_history_stage.galtd_merge_decision staged
-      WHERE staged.assertion_id=ledger."assertionId"
-        AND staged.child_id=ledger."dogId"
-        AND staged.decision=ledger.decision
+  JOIN public."PedigreeImportRun" import_run ON import_run.id=ledger."importRunId"
+  LEFT JOIN _giq_history_stage.authoritative_pedigree_resolution resolution
+    ON resolution.occurrence_id=ledger."assertionId"
+  WHERE import_run."parserVersion"='authoritative-pedigree-v2'
+    AND (resolution.occurrence_id IS NULL OR resolution.disposition<>'applied_verified'
+      OR ledger.id<>_giq_history_merge.history_id('pedledger-v2',resolution.occurrence_id)))),
+('internalPedigreeAppendOnlyTriggerGaps',(SELECT abs(5-count(*))
+  FROM pg_trigger trigger
+  WHERE NOT trigger.tgisinternal AND trigger.tgenabled<>'D'
+    AND (trigger.tgrelid,trigger.tgname) IN (
+      ('_giq_history_stage.authoritative_identity_evidence'::regclass,
+       'authoritative_identity_evidence_append_only'),
+      ('_giq_history_stage.authoritative_pedigree_evidence'::regclass,
+       'authoritative_pedigree_evidence_append_only'),
+      ('_giq_history_stage.authoritative_consolidation_proof'::regclass,
+       'authoritative_consolidation_proof_append_only'),
+      ('_giq_history_stage.authoritative_pedigree_assertion_occurrence'::regclass,
+       'authoritative_pedigree_occurrence_append_only'),
+      ('_giq_history_stage.authoritative_pedigree_terminal_proof'::regclass,
+       'authoritative_pedigree_terminal_proof_append_only')
     ))),
-('canonicalPedigreeDecisionMismatches',(SELECT count(*)
-  FROM (
-    SELECT staged.child_id,staged.relationship,staged.parent_id AS expected_parent
-    FROM _giq_history_stage.pedigree_merge_decision staged
-    WHERE staged.duplicate_rank=1 AND staged.decision='no_change'
-    UNION ALL
-    SELECT staged.child_id,staged.relationship,staged.existing_parent_id
-    FROM _giq_history_stage.pedigree_merge_decision staged
-    WHERE staged.duplicate_rank=1 AND staged.decision='preserved_higher_authority'
-    UNION ALL
-    SELECT staged.child_id,staged.relationship,staged.proposed_parent_id
-    FROM _giq_history_stage.galtd_merge_decision staged
-    WHERE staged.decision IN ('accepted','no_change')
-  ) decision
-  JOIN public."Dog" dog ON dog.id=decision.child_id
-  WHERE (CASE decision.relationship WHEN 'sire' THEN dog."sireId" ELSE dog."damId" END)
-    IS DISTINCT FROM decision.expected_parent)),
-('blockingPedigreeQuarantines',(SELECT count(*)
-  FROM _giq_history_merge.quarantine
-  WHERE blocking AND (
-    entity_type ILIKE '%dog%' OR entity_type ILIKE '%pedigree%'
-    OR reason_code ILIKE '%parent%' OR reason_code ILIKE '%identity%'
-  )));
+('publicPedigreeAppendOnlyTriggerGaps',(SELECT abs(4-count(*))
+  FROM pg_trigger trigger
+  WHERE NOT trigger.tgisinternal AND trigger.tgenabled<>'D'
+    AND (trigger.tgrelid,trigger.tgname) IN (
+      ('public."PedigreeImportRun"'::regclass,
+       'giq_pedigree_import_run_evidence_guard'),
+      ('public."DogSourceIdentity"'::regclass,
+       'giq_dog_source_identity_evidence_guard'),
+      ('public."PedigreeAssertion"'::regclass,
+       'giq_pedigree_assertion_evidence_guard'),
+      ('public."PedigreeMergeLedger"'::regclass,
+       'giq_pedigree_merge_ledger_evidence_guard')
+    ))),
+('liveFeedQuarantineRlsGaps',(SELECT CASE
+  WHEN relrowsecurity AND relforcerowsecurity THEN 0 ELSE 1 END
+  FROM pg_class WHERE oid='public."LiveFeedQuarantine"'::regclass)),
+('liveFeedQuarantineTriggerGaps',(SELECT CASE WHEN count(*)=1 THEN 0 ELSE 1 END
+  FROM pg_trigger
+  WHERE tgrelid='public."LiveFeedQuarantine"'::regclass
+    AND tgname='giq_live_feed_quarantine_append_only'
+    AND NOT tgisinternal AND tgenabled<>'D')),
+('liveFeedQuarantinePolicyGaps',(SELECT
+  abs(2-count(*))+
+  count(*) FILTER(WHERE policyname='giq_live_feed_quarantine_admin_read' AND cmd<>'SELECT')+
+  count(*) FILTER(WHERE policyname='giq_live_feed_quarantine_system_insert' AND cmd<>'INSERT')
+  FROM pg_policies
+  WHERE schemaname='public' AND tablename='LiveFeedQuarantine'
+    AND policyname IN (
+      'giq_live_feed_quarantine_admin_read','giq_live_feed_quarantine_system_insert'
+    ))),
+('liveFeedQuarantinePrivilegeGaps',(SELECT count(*)
+  FROM information_schema.role_table_grants
+  WHERE table_schema='public' AND table_name='LiveFeedQuarantine'
+    AND grantee IN ('PUBLIC','greyhoundiq_runtime','greyhoundiq_app')
+    AND privilege_type NOT IN ('SELECT','INSERT'))),
+('invalidLiveFeedQuarantineEvidence',(SELECT count(*)
+  FROM public."LiveFeedQuarantine"
+  WHERE "evidenceSha256" !~ '^[0-9a-f]{64}$'
+     OR octet_length("evidenceJson") NOT BETWEEN 2 AND 16384
+     OR jsonb_typeof("evidenceJson"::jsonb)<>'object'
+     OR classification NOT IN ('invalid','incomplete','conflict')
+     OR nullif(btrim(provider),'') IS NULL
+     OR nullif(btrim("entityKind"),'') IS NULL
+     OR nullif(btrim("reasonCode"),'') IS NULL));
 
 CREATE TEMP TABLE giq_audit_pedigree_edge (
   child_id text NOT NULL,
@@ -1275,7 +1340,14 @@ SELECT
     'importRuns',(SELECT count(*) FROM public."PedigreeImportRun"),
     'sourceIdentities',(SELECT count(*) FROM public."DogSourceIdentity"),
     'assertions',(SELECT count(*) FROM public."PedigreeAssertion"),
-    'mergeLedgerRows',(SELECT count(*) FROM public."PedigreeMergeLedger")
+    'mergeLedgerRows',(SELECT count(*) FROM public."PedigreeMergeLedger"),
+    'assertionOccurrences',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_assertion_occurrence),
+    'resolutions',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution),
+    'terminalProofLeaves',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_terminal_proof_leaf),
+    'liveFeedQuarantineRows',(SELECT count(*) FROM public."LiveFeedQuarantine")
   )
 FROM giq_audit_pedigree_metric;
 

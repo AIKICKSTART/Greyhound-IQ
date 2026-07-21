@@ -27,6 +27,7 @@ import {
   formatDogWinRate,
 } from "@/lib/dog-statistic-presentation";
 import { absoluteTheDogsUrl } from "@/lib/live/thedogs-replay";
+import { isTheDogsLicensedUseApproved } from "@/lib/live/thedogs-access";
 
 export const dynamic = "force-dynamic";
 
@@ -605,7 +606,11 @@ function findMatchingRunner(
 }
 
 function profileReplayHref(entry: DogDetail["profileForms"][number]) {
-  if (!entry.hasVideo || entry.sourceProvider.toLowerCase() !== "thedogs") return null;
+  if (
+    !isTheDogsLicensedUseApproved() ||
+    !entry.hasVideo ||
+    entry.sourceProvider.toLowerCase() !== "thedogs"
+  ) return null;
   try {
     return absoluteTheDogsUrl(entry.raceUrl);
   } catch {

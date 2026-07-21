@@ -112,6 +112,24 @@ model DogProfileMergeLedger {
   @@index([evidenceSha256])
 }
 
+model LiveFeedQuarantine {
+  id              String   @id
+  observedAt      DateTime
+  provider        String
+  entityKind      String
+  sourceId        String?
+  naturalIdentity String?
+  reasonCode      String
+  classification  String
+  evidenceSha256  String
+  evidenceJson    String
+  createdAt       DateTime @default(now())
+
+  @@index([classification, createdAt])
+  @@index([provider, entityKind, observedAt])
+  @@index([evidenceSha256])
+}
+
 model PedigreeImportRun {
   id                 String                @id @default(cuid())
   sourceProvider     String

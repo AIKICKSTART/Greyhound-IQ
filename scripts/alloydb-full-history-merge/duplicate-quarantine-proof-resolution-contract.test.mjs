@@ -40,6 +40,33 @@ function readDataset(dataset) {
 const duplicates = readDataset('duplicates');
 const quarantine = readDataset('quarantine');
 
+test('v2 derived views replace v1 columns transactionally and bind full source paths', () => {
+  const dropResolution = sql.indexOf(
+    'DROP VIEW IF EXISTS _giq_history_stage.duplicate_quarantine_proof_resolution;',
+  );
+  const dropCanonical = sql.indexOf(
+    'DROP VIEW IF EXISTS _giq_history_stage.duplicate_quarantine_canonical_entity;',
+  );
+  const dropCatalog = sql.indexOf(
+    'DROP VIEW IF EXISTS _giq_history_stage.duplicate_quarantine_inbound_reference_catalog;',
+  );
+  const createCatalog = sql.indexOf(
+    'CREATE VIEW _giq_history_stage.duplicate_quarantine_inbound_reference_catalog AS',
+  );
+  assert.ok(
+    dropResolution >= 0 &&
+      dropResolution < dropCanonical &&
+      dropCanonical < dropCatalog &&
+      dropCatalog < createCatalog,
+  );
+  assert.doesNotMatch(sql, /DROP VIEW[^;]*CASCADE/iu);
+  assert.match(
+    sql,
+    /evidence\.partition_dir \|\| '\/' \|\| evidence\.shard_file=issue\.source_file/u,
+  );
+  assert.doesNotMatch(sql, /AND evidence\.shard_file=issue\.source_file/u);
+});
+
 const requiredProofFlags = [
   'identityAuditedV2Source',
   'sourceBindingProven',
@@ -152,11 +179,15 @@ test('every proof prerequisite is independently fail-closed', () => {
 test('SQL records proof only and cannot create, mutate, merge, or delete public data', () => {
   assert.doesNotMatch(sql, /\b(?:insert\s+into|update|delete\s+from)\s+public\./iu);
   assert.doesNotMatch(sql, /\b(?:create|insert)[_ ]entity[_ ]allowed\s+(?:AS\s+)?true\b/iu);
-  assert.match(sql, /false AS create_entity_allowed/iu);
+  assert.match(sql, /create_entity_allowed boolean NOT NULL CHECK\(NOT create_entity_allowed\)/u);
   assert.match(sql, /similarity_only_match_allowed boolean NOT NULL CHECK\(NOT similarity_only_match_allowed\)/u);
   assert.match(sql, /blocked-similarity-is-not-identity/u);
   assert.match(sql, /identity_proof_kind<>'none'/u);
   assert.match(sql, /canonical_target_exists/u);
+  assert.match(sql, /canonical_entity_type IN \('Race','Runner','SourceArtifact'\)/u);
+  assert.match(sql, /duplicate_quarantine_source_evidence_manifest/u);
+  assert.match(sql, /'source-artifact:' \|\| \(q\.payload->>'sourceSha256'\)/u);
+  assert.match(sql, /\('source-file','unverified_profile_identity'\)/u);
 });
 
 test('SQL binds every issue and proof to the exact source manifest and cutoff', () => {
@@ -217,6 +248,17 @@ test('SQL requires whole-database search, preservation, reference conservation, 
     'relationship_integrity_verified',
     'no_data_loss_verified',
     'audit_ledger_recorded',
+    'duplicate_quarantine_source_evidence',
+    'immutable_source_evidence_proven',
+    'preliminary_source_identity_candidate',
+    'jurisdiction_review_proven',
+    'retrieval_path_available',
+    'natural_key_target_consistent',
+    'natural_key_target',
+    'blocked-unknown-or-conflicting-source-identity',
+    'blocked-unknown-jurisdiction-review-required',
+    'blocked-authoritative-retrieval-path-unavailable',
+    'blocked-repeated-natural-key-target-inconsistent',
   ]) {
     assert.match(sql, new RegExp(token, 'u'), token);
   }
@@ -238,6 +280,9 @@ test('SQL requires whole-database search, preservation, reference conservation, 
   assert.match(sql, /append-only/u);
   assert.match(sql, /REVOKE ALL ON _giq_history_merge\.duplicate_quarantine_resolution_audit FROM PUBLIC/u);
   assert.match(sql, /REVOKE ALL ON FUNCTION .* FROM PUBLIC/u);
+  assert.match(sql, /count\(DISTINCT proof\.canonical_entity_id\)/u);
+  assert.match(sql, /queue\.retrieval_status='unavailable'/u);
+  assert.match(sql, /evidence\.classification IN \('potential-exact-same-identity','potential-complementary-same-identity'\)/u);
 });
 
 test('current inventory report is explicit about what authoritative evidence is missing', () => {

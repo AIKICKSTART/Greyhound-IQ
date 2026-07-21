@@ -55,7 +55,7 @@ type DisplayTrack = {
 };
 
 const TRACK_BANNER = siteAssetUrl("/images/wentworth-track-banner-landscape.webp");
-const TRACK_STATES = ["NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"] as const;
+const TRACK_STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"] as const;
 
 export default async function TracksPage({ searchParams }: TracksPageProps) {
   const params = await searchParams;

@@ -118,14 +118,16 @@ export const SCHEDULED_TASK_SOURCE_INVENTORY = [
     900,
     [
       evidence("src/lib/live/dog-profile-sync.ts", [
-        "lastProfileSyncedAt: null",
-        "take: Math.min(Math.max(1, Math.trunc(limit)), MAX_LIMIT)",
-        "occurrenceRetryAlreadyCompleted(tx, dogId, profile, occurrence)",
+        "const LIVE_PROFILE_CANONICAL_WRITES_ENABLED = false",
+        "FROM \"DogProfileObservation\" observation",
+        "FROM \"LiveFeedQuarantine\" quarantine",
+        "PROFILE_REFRESH_INTERVAL_MS = 30 * 24",
+        "PROFILE_FAILURE_RETRY_INTERVAL_MS = 7 * 24",
+        "saveProfileObservation(tx, dog.id, profile, occurrence)",
         "tx.dogProfileObservation.create({",
-        "tx.dogProfileMergeLedger.create({",
       ]),
     ],
-    "Replay the capped unsynchronised-dog selector; completed occurrence ledgers short-circuit retries and accepted canonical fields only fill missing values.",
+    "Replay the capped due-observation selector; latest verified observations and quarantines suppress immediate retries while preserving periodic refresh, and canonical profile writes remain disabled.",
   ),
   task(
     "listing-expiry",

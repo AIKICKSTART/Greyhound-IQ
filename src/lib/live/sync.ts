@@ -20,6 +20,12 @@ import {
   type LiveRace,
   type LiveRunner,
 } from "./provider";
+import {
+  writeLiveFeedQuarantine,
+  writeLiveFeedQuarantines,
+  type LiveFeedQuarantineClassification,
+  type LiveFeedQuarantineInput,
+} from "./quarantine";
 import { canonicalTrackName } from "./track-name";
 import {
   whitelistProviderSnapshot,
@@ -37,9 +43,23 @@ export type SyncScope = "upcoming" | "results" | "all";
 
 const BULK_WRITE_CHUNK_SIZE = 100;
 const LOOKUP_QUERY_CHUNK_SIZE = 500;
+const NATURAL_LOOKUP_QUERY_CHUNK_SIZE = 50;
 const LOOKUP_QUERY_LIMIT = 5_000;
+const FORM_ENTRY_ORPHAN_SCAN_LIMIT = 5_000;
 const LIVE_SYNC_TRANSACTION_MAX_WAIT_MS = 30_000;
 const LIVE_SYNC_TRANSACTION_TIMEOUT_MS = 240_000;
+const AUSTRALIAN_TRACK_STATES = new Set([
+  "ACT",
+  "NSW",
+  "NT",
+  "QLD",
+  "SA",
+  "TAS",
+  "VIC",
+  "WA",
+] as const);
+
+type AustralianTrackState = "ACT" | "NSW" | "NT" | "QLD" | "SA" | "TAS" | "VIC" | "WA";
 
 function sanitizedRawJson(
   value: string | null | undefined,
@@ -58,6 +78,7 @@ type RunnerRow = { id: string; raceId: string; boxNumber: number; dogId: string 
 type RaceWithMeeting = {
   meeting: LiveMeeting;
   meetingId: string;
+  trackId: string;
   race: LiveRace;
 };
 
@@ -113,6 +134,12 @@ type FormEntryUpsertRow = {
   distance: number | null;
   grade: string | null;
   weight: number | null;
+};
+
+type OrphanedFormEntryRow = {
+  id: string;
+  dogId: string;
+  raceId: string;
 };
 
 type MeetingUpsertRow = {
@@ -210,11 +237,27 @@ export async function syncLiveData(
   });
   const counts: SyncCounts = { meetings: 0, races: 0, runners: 0, results: 0 };
   if (scope === "upcoming" || scope === "all") {
-    const meetings = stampMeetings(await provider.fetchUpcomingMeetings(days), provider.name);
+    const meetings = stampMeetings(
+      await fetchProviderMeetings(
+        () => provider.fetchUpcomingMeetings(days),
+        provider.name,
+        "upcoming",
+        days,
+      ),
+      provider.name,
+    );
     addCounts(counts, await upsertSystemMeetings(meetings, logContext));
   }
   if (scope === "results" || scope === "all") {
-    const meetings = stampMeetings(await provider.fetchResults(days), provider.name);
+    const meetings = stampMeetings(
+      await fetchProviderMeetings(
+        () => provider.fetchResults(days),
+        provider.name,
+        "results",
+        days,
+      ),
+      provider.name,
+    );
     addCounts(counts, await upsertSystemMeetings(meetings, logContext));
     await notifyDogWinnersFromRecentResults();
   }
@@ -225,6 +268,32 @@ export async function syncLiveData(
     ...counts,
   });
   return { synced: true, provider: provider.name, scope, ...counts };
+}
+
+async function fetchProviderMeetings(
+  fetchMeetings: () => Promise<LiveMeeting[]>,
+  providerName: string,
+  scope: Exclude<SyncScope, "all">,
+  days: number,
+) {
+  try {
+    return await fetchMeetings();
+  } catch (error) {
+    await writeLiveFeedQuarantine({
+      provider: quarantineProvider(providerName),
+      entityKind: "provider_batch",
+      sourceId: scope,
+      naturalIdentity: `${scope}:${days}`,
+      reasonCode: "provider_batch_failed",
+      classification: "incomplete",
+      evidence: {
+        scope,
+        days,
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      },
+    });
+    throw error;
+  }
 }
 
 // Hourly aggregate maintenance runs separately from live-result ingestion so
@@ -410,16 +479,33 @@ async function upsertSystemMeetings(
     return { meetings: 0, races: 0, runners: 0, results: 0 };
   }
 
-  return prisma.$transaction(
-    async (tx) => {
-      await setLiveSyncSystemContext(tx);
-      return upsertMeetings(tx, meetings, logContext);
-    },
-    {
-      maxWait: LIVE_SYNC_TRANSACTION_MAX_WAIT_MS,
-      timeout: LIVE_SYNC_TRANSACTION_TIMEOUT_MS,
-    }
-  );
+  const quarantineEvents: LiveFeedQuarantineInput[] = [];
+  const orphanedFormEntries: OrphanedFormEntryRow[] = [];
+  let counts: SyncCounts;
+  try {
+    counts = await prisma.$transaction(
+      async (tx) => {
+        await setLiveSyncSystemContext(tx);
+        return upsertMeetings(
+          tx,
+          meetings,
+          logContext,
+          quarantineEvents,
+          orphanedFormEntries,
+        );
+      },
+      {
+        maxWait: LIVE_SYNC_TRANSACTION_MAX_WAIT_MS,
+        timeout: LIVE_SYNC_TRANSACTION_TIMEOUT_MS,
+      }
+    );
+  } catch (error) {
+    await writeLiveFeedQuarantines(quarantineEvents);
+    throw error;
+  }
+  await writeLiveFeedQuarantines(quarantineEvents);
+  await detachQuarantinedFormEntryRaceLinks(orphanedFormEntries);
+  return counts;
 }
 
 async function setLiveSyncSystemContext(db: LiveSyncDbClient) {
@@ -464,7 +550,9 @@ function stampMeetings(meetings: LiveMeeting[], fallbackProvider: string) {
 async function upsertMeetings(
   db: LiveSyncDbClient,
   meetings: LiveMeeting[],
-  logContext: LogCorrelationContext
+  logContext: LogCorrelationContext,
+  quarantineEvents: LiveFeedQuarantineInput[],
+  orphanedFormEntries: OrphanedFormEntryRow[],
 ): Promise<SyncCounts> {
   const counts: SyncCounts = { meetings: 0, races: 0, runners: 0, results: 0 };
   if (meetings.length === 0) return counts;
@@ -481,27 +569,37 @@ async function upsertMeetings(
   const tracks = await syncStage(
     "ensureTracks",
     { meetings: meetings.length },
-    () => ensureTracks(db, meetings),
+    () => ensureTracks(db, meetings, quarantineEvents),
     logContext
   );
   const meetingRows = await syncStage(
     "ensureMeetings",
     { meetings: meetings.length, tracks: tracks.size },
-    () => ensureMeetings(db, meetings, tracks, now),
+    () => ensureMeetings(db, meetings, tracks, now, quarantineEvents),
     logContext
   );
-  counts.meetings = meetings.length;
+  const acceptedMeetingInputs = meetings.flatMap((meeting) => {
+    const key = acceptedMeetingKey(meeting, tracks);
+    const meetingRow = key ? meetingRows.get(key) : undefined;
+    return meetingRow ? [{ meeting, meetingRow }] : [];
+  });
+  counts.meetings = new Set(
+    acceptedMeetingInputs.map(({ meetingRow }) => meetingRow.id),
+  ).size;
 
-  const raceItems = meetings.flatMap((meeting) => {
-    const meetingId = meetingRows.get(meetingKey(meeting, tracks))?.id;
-    if (!meetingId) return [];
-    return meeting.races.map((race) => ({ meeting, meetingId, race }));
+  const raceItems = acceptedMeetingInputs.flatMap(({ meeting, meetingRow }) => {
+    return meeting.races.map((race) => ({
+      meeting,
+      meetingId: meetingRow.id,
+      trackId: meetingRow.trackId,
+      race,
+    }));
   });
 
   const raceRows = await syncStage(
     "ensureRaces",
     { races: raceItems.length },
-    () => ensureRaces(db, raceItems, now),
+    () => ensureRaces(db, raceItems, now, quarantineEvents),
     logContext
   );
   await syncStage(
@@ -514,11 +612,30 @@ async function upsertMeetings(
 
   const runnerItems = raceItems.flatMap((item) => {
     const raceId = raceRows.get(raceKey(item.meetingId, item.race))?.id;
-    const meetingRow = meetingRows.get(meetingKey(item.meeting, tracks));
-    if (!raceId || !meetingRow) return [];
-    return item.race.runners.map((runner) => ({
+    if (!raceId) return [];
+    return normalizeRaceRunners(item.race.runners, (discarded, preferred) => {
+      quarantineEvents.push({
+        provider: quarantineProvider(
+          discarded.sourceProvider ?? item.race.sourceProvider ?? item.meeting.sourceProvider,
+        ),
+        entityKind: "runner",
+        sourceId: normalizeSourceId(discarded.sourceId) ?? null,
+        naturalIdentity: `${raceId}:${dogKey(discarded.dog) || discarded.boxNumber}`,
+        reasonCode: "duplicate_runner_identity",
+        classification: "conflict",
+        evidence: {
+          raceSourceId: item.race.sourceId,
+          discardedBoxNumber: discarded.boxNumber,
+          preferredBoxNumber: preferred.boxNumber,
+          discardedHasResult: discarded.finishingPosition != null,
+          preferredHasResult: preferred.finishingPosition != null,
+          discardedScratched: discarded.scratched ?? false,
+          preferredScratched: preferred.scratched ?? false,
+        },
+      });
+    }).map((runner) => ({
       raceId,
-      trackId: meetingRow.trackId,
+      trackId: item.trackId,
       meetingDate: meetingDate(item.meeting),
       distance: item.race.distance,
       grade: item.race.grade,
@@ -531,7 +648,12 @@ async function upsertMeetings(
   const dogIds = await syncStage(
     "ensureDogs",
     { runners: runnerItems.length },
-    () => ensureDogs(db, runnerItems.map((item) => item.runner.dog), logContext),
+    () => ensureDogs(
+      db,
+      runnerItems.map((item) => item.runner.dog),
+      logContext,
+      quarantineEvents,
+    ),
     logContext
   );
   const trainerIds = await syncStage(
@@ -546,7 +668,7 @@ async function upsertMeetings(
   const runnerRows = await syncStage(
     "ensureRunners",
     { runners: runnerItems.length, dogs: dogIds.size, trainers: trainerIds.size },
-    () => ensureRunners(db, runnerItems, dogIds, trainerIds),
+    () => ensureRunners(db, runnerItems, dogIds, trainerIds, quarantineEvents),
     logContext
   );
   counts.runners = runnerItems.length;
@@ -561,6 +683,17 @@ async function upsertMeetings(
     { runners: runnerItems.length },
     () => ensureFormEntries(db, runnerItems, runnerRows),
     logContext
+  );
+  await syncStage(
+    "collectOrphanedFormEntries",
+    { races: new Set(runnerItems.map((item) => item.raceId)).size },
+    () => collectOrphanedFormEntries(
+      db,
+      runnerItems.filter((item) => dogIds.has(dogKey(item.runner.dog))),
+      quarantineEvents,
+      orphanedFormEntries,
+    ),
+    logContext,
   );
   syncDebug("upsertMeetings ok", counts, logContext);
 
@@ -630,16 +763,70 @@ function conflictAction(updateSql: Prisma.Sql) {
   return process.env.LIVE_SYNC_INSERT_ONLY === "1" ? Prisma.sql`DO NOTHING` : updateSql;
 }
 
-async function ensureTracks(db: LiveSyncDbClient, meetings: LiveMeeting[]) {
-  const byName = new Map<string, { name: string; state?: string }>();
+export function normalizeAustralianTrackState(
+  value: string | null | undefined,
+): AustralianTrackState | null {
+  return value && AUSTRALIAN_TRACK_STATES.has(value as AustralianTrackState)
+    ? (value as AustralianTrackState)
+    : null;
+}
+
+export async function ensureTracks(
+  db: LiveSyncDbClient,
+  meetings: LiveMeeting[],
+  quarantineEvents: LiveFeedQuarantineInput[] = [],
+) {
+  const byName = new Map<
+    string,
+    { name: string; state: AustralianTrackState; meetings: LiveMeeting[] }
+  >();
+  const conflictedNames = new Set<string>();
+
   for (const meeting of meetings) {
     const trackName = canonicalTrackName(meeting.trackName);
-    if (!byName.has(trackName)) {
-      byName.set(trackName, {
-        name: trackName,
-        state: meeting.state,
-      });
+    const state = normalizeAustralianTrackState(meeting.state);
+    if (!state) {
+      quarantineTrackJurisdiction(
+        quarantineEvents,
+        meeting,
+        trackName,
+        meeting.state?.trim() ? "unsupported_track_jurisdiction" : "missing_track_state",
+        meeting.state?.trim() ? "invalid" : "incomplete",
+        { observedState: meeting.state ?? null },
+      );
+      continue;
     }
+
+    const existing = byName.get(trackName);
+    if (!existing) {
+      byName.set(trackName, { name: trackName, state, meetings: [meeting] });
+      continue;
+    }
+    existing.meetings.push(meeting);
+    if (existing.state !== state) conflictedNames.add(trackName);
+  }
+
+  for (const trackName of conflictedNames) {
+    const claim = byName.get(trackName);
+    if (!claim) continue;
+    const observedStates = [
+      ...new Set(
+        claim.meetings
+          .map((meeting) => normalizeAustralianTrackState(meeting.state))
+          .filter((state): state is AustralianTrackState => Boolean(state)),
+      ),
+    ];
+    for (const meeting of claim.meetings) {
+      quarantineTrackJurisdiction(
+        quarantineEvents,
+        meeting,
+        trackName,
+        "conflicting_track_state",
+        "conflict",
+        { observedState: meeting.state ?? null, observedStates },
+      );
+    }
+    byName.delete(trackName);
   }
 
   const existing = await db.track.findMany({
@@ -647,12 +834,32 @@ async function ensureTracks(db: LiveSyncDbClient, meetings: LiveMeeting[]) {
     select: { id: true, name: true, state: true },
     take: LOOKUP_QUERY_LIMIT,
   });
-  const tracks = new Map(existing.map((track) => [track.name, track]));
+  const existingByName = new Map(existing.map((track) => [track.name, track]));
+  const tracks = new Map<string, TrackRow>();
+
+  for (const track of existing) {
+    const claim = byName.get(track.name);
+    if (!claim) continue;
+    if (track.state === claim.state) {
+      tracks.set(track.name, track);
+      continue;
+    }
+    for (const meeting of claim.meetings) {
+      quarantineTrackJurisdiction(
+        quarantineEvents,
+        meeting,
+        claim.name,
+        "track_state_mismatch",
+        "conflict",
+        { observedState: claim.state, canonicalState: track.state },
+      );
+    }
+  }
 
   for (const track of byName.values()) {
-    if (tracks.has(track.name)) continue;
+    if (existingByName.has(track.name)) continue;
     const created = await db.track.create({
-      data: { name: track.name, state: track.state ?? "NSW" },
+      data: { name: track.name, state: track.state },
       select: { id: true, name: true, state: true },
     });
     tracks.set(created.name, created);
@@ -661,14 +868,36 @@ async function ensureTracks(db: LiveSyncDbClient, meetings: LiveMeeting[]) {
   return tracks as Map<string, TrackRow>;
 }
 
+function quarantineTrackJurisdiction(
+  quarantineEvents: LiveFeedQuarantineInput[],
+  meeting: LiveMeeting,
+  trackName: string,
+  reasonCode: string,
+  classification: LiveFeedQuarantineClassification,
+  evidence: Record<string, unknown>,
+) {
+  quarantineEvents.push({
+    provider: quarantineProvider(meeting.sourceProvider),
+    entityKind: "track",
+    sourceId: normalizeSourceId(meeting.sourceId) ?? null,
+    naturalIdentity: trackName,
+    reasonCode,
+    classification,
+    evidence: { trackName, meetingDate: meeting.meetingDate, ...evidence },
+  });
+}
+
 async function ensureMeetings(
   db: LiveSyncDbClient,
   meetings: LiveMeeting[],
   tracks: Map<string, TrackRow>,
-  now: Date
+  now: Date,
+  quarantineEvents: LiveFeedQuarantineInput[],
 ) {
   const trackIds = [...new Set([...tracks.values()].map((track) => track.id))];
   const rows = meetings.flatMap((meeting): MeetingUpsertRow[] => {
+    const key = acceptedMeetingKey(meeting, tracks);
+    if (!key) return [];
     const track = tracks.get(canonicalTrackName(meeting.trackName));
     if (!track) return [];
     return [
@@ -689,7 +918,7 @@ async function ensureMeetings(
     ];
   });
 
-  await bulkUpsertMeetings(db, rows);
+  await bulkUpsertMeetings(db, rows, quarantineEvents);
 
   const dates = [
     ...new Set(rows.map((row) => row.meetingDate.toISOString())),
@@ -704,7 +933,12 @@ async function ensureMeetings(
   );
 }
 
-async function ensureRaces(db: LiveSyncDbClient, items: RaceWithMeeting[], now: Date) {
+async function ensureRaces(
+  db: LiveSyncDbClient,
+  items: RaceWithMeeting[],
+  now: Date,
+  quarantineEvents: LiveFeedQuarantineInput[],
+) {
   if (items.length === 0) return new Map<string, RaceRow>();
   const meetingIds = [...new Set(items.map((item) => item.meetingId))];
   const upserts: RaceUpsertRow[] = items.map((item) => ({
@@ -730,7 +964,7 @@ async function ensureRaces(db: LiveSyncDbClient, items: RaceWithMeeting[], now: 
     lastSyncedAt: now,
   }));
 
-  await bulkUpsertRaces(db, upserts);
+  await bulkUpsertRaces(db, upserts, quarantineEvents);
 
   const allRows: RaceRow[] = [];
   for (const meetingIdChunk of chunks(meetingIds, LOOKUP_QUERY_CHUNK_SIZE)) {
@@ -821,9 +1055,30 @@ async function bulkUpsertRaceVideos(db: LiveSyncDbClient, rows: RaceVideoUpsertR
   }
 }
 
-async function bulkUpsertMeetings(db: LiveSyncDbClient, rows: MeetingUpsertRow[]) {
-  const uniqueRows = uniqueByPreferredSource(rows, (row) =>
-    naturalMeetingKey(row.trackId, row.meetingDate)
+async function bulkUpsertMeetings(
+  db: LiveSyncDbClient,
+  rows: MeetingUpsertRow[],
+  quarantineEvents: LiveFeedQuarantineInput[],
+) {
+  const uniqueRows = uniqueByPreferredSource(
+    rows,
+    (row) => naturalMeetingKey(row.trackId, row.meetingDate),
+    (discarded, preferred, naturalIdentity) => {
+      quarantineEvents.push({
+        provider: quarantineProvider(discarded.sourceProvider),
+        entityKind: "meeting",
+        sourceId: normalizeSourceId(discarded.sourceId) ?? null,
+        naturalIdentity,
+        reasonCode: "preferred_source_discarded",
+        classification: "conflict",
+        evidence: {
+          discardedProvider: discarded.sourceProvider,
+          preferredProvider: preferred.sourceProvider,
+          discardedMeetingType: discarded.meetingType,
+          preferredMeetingType: preferred.meetingType,
+        },
+      });
+    },
   );
   for (let index = 0; index < uniqueRows.length; index += BULK_WRITE_CHUNK_SIZE) {
     const chunk = uniqueRows.slice(index, index + BULK_WRITE_CHUNK_SIZE);
@@ -847,9 +1102,34 @@ async function bulkUpsertMeetings(db: LiveSyncDbClient, rows: MeetingUpsertRow[]
   }
 }
 
-async function bulkUpsertRaces(db: LiveSyncDbClient, rows: RaceUpsertRow[]) {
-  const uniqueRows = uniqueByPreferredSource(rows, (row) =>
-    raceKey(row.meetingId, { raceNumber: row.raceNumber })
+async function bulkUpsertRaces(
+  db: LiveSyncDbClient,
+  rows: RaceUpsertRow[],
+  quarantineEvents: LiveFeedQuarantineInput[],
+) {
+  const uniqueRows = uniqueByPreferredSource(
+    rows,
+    (row) => raceKey(row.meetingId, { raceNumber: row.raceNumber }),
+    (discarded, preferred, naturalIdentity) => {
+      quarantineEvents.push({
+        provider: quarantineProvider(discarded.sourceProvider),
+        entityKind: "race",
+        sourceId: normalizeSourceId(discarded.sourceId) ?? null,
+        naturalIdentity,
+        reasonCode: "preferred_source_discarded",
+        classification: "conflict",
+        evidence: {
+          discardedProvider: discarded.sourceProvider,
+          preferredProvider: preferred.sourceProvider,
+          discardedDistance: discarded.distance,
+          preferredDistance: preferred.distance,
+          discardedGrade: discarded.grade,
+          preferredGrade: preferred.grade,
+          discardedRaceTime: discarded.raceTime,
+          preferredRaceTime: preferred.raceTime,
+        },
+      });
+    },
   );
   const confirmedRows = uniqueRows.filter((row) => row.raceTimeSource !== "fallback");
   const fallbackRows = uniqueRows.filter((row) => row.raceTimeSource === "fallback");
@@ -921,15 +1201,14 @@ type DogIdentityRow = DogIdentityParentRow & {
 };
 
 const AUTHORITATIVE_DOG_CREATION_PROVIDERS = new Set([
-  "thedogs",
   "topaz",
-  "watchdog",
 ]);
 
 export async function ensureDogs(
   db: DogIdentityDbClient,
   dogs: LiveDog[],
   logContext: LogCorrelationContext = { requestId: null, traceId: null },
+  quarantineEvents: LiveFeedQuarantineInput[] = [],
 ) {
   const groupedClaims = new Map<string, DogIdentityClaim[]>();
   for (const dog of dogs) {
@@ -940,7 +1219,7 @@ export async function ensureDogs(
       logDogIdentitySkip(logContext, "invalid_or_placeholder_name", {
         sourceProvider,
         sourceId,
-      });
+      }, quarantineEvents);
       continue;
     }
     if (!sourceProvider || !sourceId) {
@@ -948,7 +1227,7 @@ export async function ensureDogs(
         sourceProvider,
         sourceId,
         dogName: name,
-      });
+      }, quarantineEvents);
       continue;
     }
 
@@ -980,8 +1259,9 @@ export async function ensureDogs(
       logDogIdentitySkip(logContext, "conflicting_provider_observations", {
         sourceProvider: first?.sourceProvider,
         sourceId: first?.sourceId,
+        dogName: first?.dog.name,
         observations: grouped.length,
-      });
+      }, quarantineEvents);
       continue;
     }
     claims.push(merged);
@@ -995,14 +1275,19 @@ export async function ensureDogs(
   for (const claim of claims) {
     const exactIds = initialExact.idsByClaim.get(claim.key) ?? new Set<string>();
     if (initialExact.saturatedClaims.has(claim.key)) {
-      logDogIdentitySkip(logContext, "exact_identity_lookup_saturated", claim);
+      logDogIdentitySkip(
+        logContext,
+        "exact_identity_lookup_saturated",
+        claim,
+        quarantineEvents,
+      );
       continue;
     }
     if (exactIds.size > 1) {
       logDogIdentitySkip(logContext, "ambiguous_exact_identity", {
         ...claim,
         matchingCanonicalRecords: exactIds.size,
-      });
+      }, quarantineEvents);
       continue;
     }
     const exactId = exactIds.values().next().value as string | undefined;
@@ -1014,11 +1299,16 @@ export async function ensureDogs(
   }
 
   const eligibleForCreation: DogIdentityClaim[] = [];
-  for (const claimChunk of chunks(unresolved, LOOKUP_QUERY_CHUNK_SIZE)) {
+  for (const claimChunk of chunks(unresolved, NATURAL_LOOKUP_QUERY_CHUNK_SIZE)) {
     const natural = await loadNaturalDogCandidates(db, claimChunk);
     if (natural.saturated) {
       for (const claim of claimChunk) {
-        logDogIdentitySkip(logContext, "natural_identity_lookup_saturated", claim);
+        logDogIdentitySkip(
+          logContext,
+          "natural_identity_lookup_saturated",
+          claim,
+          quarantineEvents,
+        );
       }
       continue;
     }
@@ -1031,11 +1321,16 @@ export async function ensureDogs(
         logDogIdentitySkip(logContext, "possible_existing_candidate", {
           ...claim,
           matchingCanonicalRecords: possibleCandidates.length,
-        });
+        }, quarantineEvents);
         continue;
       }
       if (!AUTHORITATIVE_DOG_CREATION_PROVIDERS.has(claim.sourceProvider)) {
-        logDogIdentitySkip(logContext, "provider_not_approved_for_creation", claim);
+        logDogIdentitySkip(
+          logContext,
+          "provider_not_approved_for_creation",
+          claim,
+          quarantineEvents,
+        );
         continue;
       }
       eligibleForCreation.push(claim);
@@ -1064,12 +1359,17 @@ export async function ensureDogs(
       logDogIdentitySkip(logContext, "created_identity_confirmation_ambiguous", {
         ...claim,
         matchingCanonicalRecords: exactIds.size,
-      });
+      }, quarantineEvents);
       continue;
     }
     const dogId = exactIds.values().next().value as string | undefined;
     if (!dogId) {
-      logDogIdentitySkip(logContext, "created_identity_not_confirmed", claim);
+      logDogIdentitySkip(
+        logContext,
+        "created_identity_not_confirmed",
+        claim,
+        quarantineEvents,
+      );
       continue;
     }
     ids.set(claim.key, dogId);
@@ -1090,15 +1390,13 @@ async function loadExactDogIdentityClaims(
     const keyByLegacy = new Map(
       claimChunk.map((claim) => [claim.legacyKey, claim.key]),
     );
+    const providerConditions = providerIdentityConditions(claimChunk);
     const rows = await db.dog.findMany({
       where: {
-        OR: claimChunk.flatMap((claim) => [
-          {
-            sourceProvider: claim.sourceProvider,
-            sourceId: claim.sourceId,
-          },
-          { earBrand: claim.legacyKey },
-        ]),
+        OR: [
+          ...providerConditions,
+          { earBrand: { in: claimChunk.map((claim) => claim.legacyKey) } },
+        ],
       },
       select: {
         id: true,
@@ -1125,10 +1423,7 @@ async function loadExactDogIdentityClaims(
       where: {
         verificationStatus: "verified",
         dogId: { not: null },
-        OR: claimChunk.map((claim) => ({
-          sourceProvider: claim.sourceProvider,
-          sourceId: claim.sourceId,
-        })),
+        OR: providerConditions,
       },
       select: {
         dogId: true,
@@ -1156,11 +1451,41 @@ async function loadNaturalDogCandidates(
   db: DogIdentityDbClient,
   claims: DogIdentityClaim[],
 ) {
-  const where = claims.flatMap((claim) => naturalCandidateConditions(claim));
-  if (where.length === 0) return { rows: [] as DogIdentityRow[], saturated: false };
+  const candidateIds = new Set<string>();
+  const names = await loadDogIdsByNormalizedNames(
+    db,
+    claims.map((claim) => claim.dog.name),
+  );
+  if (names.saturated) return naturalLookupSaturated();
+  addAll(candidateIds, names.ids);
+
+  const earBrands = await loadDogIdsByEarBrands(
+    db,
+    claims.map((claim) => claim.dog.earBrand),
+  );
+  if (earBrands.saturated) return naturalLookupSaturated();
+  addAll(candidateIds, earBrands.ids);
+
+  const sireIds = await loadParentCandidateIds(
+    db,
+    claims.map((claim) => claim.dog.sire),
+  );
+  const damIds = await loadParentCandidateIds(
+    db,
+    claims.map((claim) => claim.dog.dam),
+  );
+  if (sireIds.saturated || damIds.saturated) return naturalLookupSaturated();
+
+  const pedigreeIds = await loadPedigreeCandidateIds(db, claims, sireIds.ids, damIds.ids);
+  if (pedigreeIds.saturated) return naturalLookupSaturated();
+  addAll(candidateIds, pedigreeIds.ids);
+  if (candidateIds.size >= LOOKUP_QUERY_LIMIT) return naturalLookupSaturated();
+  if (candidateIds.size === 0) {
+    return { rows: [] as DogIdentityRow[], saturated: false };
+  }
 
   const rows = await db.dog.findMany({
-    where: { OR: where },
+    where: { id: { in: [...candidateIds] } },
     select: {
       id: true,
       name: true,
@@ -1193,36 +1518,143 @@ async function loadNaturalDogCandidates(
   };
 }
 
-function naturalCandidateConditions(claim: DogIdentityClaim) {
-  const conditions: Prisma.DogWhereInput[] = [
-    { name: { equals: claim.dog.name, mode: "insensitive" } },
+async function loadDogIdsByNormalizedNames(
+  db: DogIdentityDbClient,
+  values: Array<string | null | undefined>,
+) {
+  const names = [
+    ...new Set(
+      values
+        .map((value) => cleanDogName(value))
+        .filter((value): value is string => Boolean(value)),
+    ),
   ];
-  if (claim.dog.earBrand) conditions.push({ earBrand: claim.dog.earBrand });
-  if (claim.whelpDate) conditions.push({ whelpDate: claim.whelpDate });
-  for (const [relation, parent] of [
-    ["sire", claim.dog.sire],
-    ["dam", claim.dog.dam],
-  ] as const) {
-    const parentConditions = parentNaturalConditions(parent);
-    if (parentConditions.length > 0) {
-      conditions.push({ [relation]: { is: { OR: parentConditions } } });
-    }
-  }
-  return conditions;
+  if (names.length === 0) return naturalIdLookup([]);
+  const rows = await db.dog.findMany({
+    where: { name: { in: names, mode: "insensitive" } },
+    select: { id: true },
+    take: LOOKUP_QUERY_LIMIT,
+  });
+  return naturalIdLookup(rows);
 }
 
-function parentNaturalConditions(parent: LiveDog["sire"]) {
-  if (!parent) return [];
-  const conditions: Prisma.DogWhereInput[] = [];
-  const provider = normalizeProvider(parent.sourceProvider);
-  const sourceId = normalizeSourceId(parent.sourceId);
-  if (provider && sourceId) {
-    conditions.push({ sourceProvider: provider, sourceId });
-    conditions.push({ earBrand: `${provider}:${sourceId}` });
+async function loadDogIdsByEarBrands(
+  db: DogIdentityDbClient,
+  values: Array<string | null | undefined>,
+) {
+  const earBrands = [
+    ...new Set(values.map(cleanRegistryToken).filter((value): value is string => Boolean(value))),
+  ];
+  if (earBrands.length === 0) return naturalIdLookup([]);
+  const rows = await db.dog.findMany({
+    where: { earBrand: { in: earBrands } },
+    select: { id: true },
+    take: LOOKUP_QUERY_LIMIT,
+  });
+  return naturalIdLookup(rows);
+}
+
+async function loadParentCandidateIds(
+  db: DogIdentityDbClient,
+  values: Array<LiveDog["sire"]>,
+) {
+  const parents = values.filter((value): value is NonNullable<LiveDog["sire"]> => Boolean(value));
+  const names = await loadDogIdsByNormalizedNames(
+    db,
+    parents.map((parent) => parent.name),
+  );
+  if (names.saturated) return names;
+
+  const sourceIdsByProvider = new Map<string, Set<string>>();
+  const legacyKeys = new Set<string>();
+  for (const parent of parents) {
+    const provider = normalizeProvider(parent.sourceProvider);
+    const sourceId = normalizeSourceId(parent.sourceId);
+    if (!provider || !sourceId) continue;
+    const sourceIds = sourceIdsByProvider.get(provider) ?? new Set<string>();
+    sourceIds.add(sourceId);
+    sourceIdsByProvider.set(provider, sourceIds);
+    legacyKeys.add(`${provider}:${sourceId}`);
   }
-  const name = cleanDogName(parent.name);
-  if (name) conditions.push({ name: { equals: name, mode: "insensitive" } });
-  return conditions;
+  const conditions: Prisma.DogWhereInput[] = [
+    ...[...sourceIdsByProvider].map(([sourceProvider, sourceIds]) => ({
+      sourceProvider,
+      sourceId: { in: [...sourceIds] },
+    })),
+  ];
+  if (legacyKeys.size > 0) conditions.push({ earBrand: { in: [...legacyKeys] } });
+  const exactRows = conditions.length > 0
+    ? await db.dog.findMany({
+        where: { OR: conditions },
+        select: { id: true },
+        take: LOOKUP_QUERY_LIMIT,
+      })
+    : [];
+  if (exactRows.length >= LOOKUP_QUERY_LIMIT) return naturalIdLookup(exactRows);
+  const ids = new Set(names.ids);
+  addAll(ids, exactRows.map((row) => row.id));
+  return { ids: [...ids], saturated: ids.size >= LOOKUP_QUERY_LIMIT };
+}
+
+async function loadPedigreeCandidateIds(
+  db: DogIdentityDbClient,
+  claims: DogIdentityClaim[],
+  sireIds: string[],
+  damIds: string[],
+) {
+  const conditions: Prisma.DogWhereInput[] = [];
+  const whelpDates = [
+    ...new Map(
+      claims
+        .map((claim) => claim.whelpDate)
+        .filter((value): value is Date => Boolean(value))
+        .map((value) => [value.toISOString(), value]),
+    ).values(),
+  ];
+  if (whelpDates.length > 0 && sireIds.length > 0) {
+    conditions.push({ whelpDate: { in: whelpDates }, sireId: { in: sireIds } });
+  }
+  if (whelpDates.length > 0 && damIds.length > 0) {
+    conditions.push({ whelpDate: { in: whelpDates }, damId: { in: damIds } });
+  }
+  if (sireIds.length > 0 && damIds.length > 0) {
+    conditions.push({ sireId: { in: sireIds }, damId: { in: damIds } });
+  }
+  if (conditions.length === 0) return naturalIdLookup([]);
+  const rows = await db.dog.findMany({
+    where: { OR: conditions },
+    select: { id: true },
+    take: LOOKUP_QUERY_LIMIT,
+  });
+  return naturalIdLookup(rows);
+}
+
+function naturalIdLookup(rows: Array<{ id: string }>) {
+  return {
+    ids: rows.slice(0, LOOKUP_QUERY_LIMIT).map((row) => row.id),
+    saturated: rows.length >= LOOKUP_QUERY_LIMIT,
+  };
+}
+
+function naturalLookupSaturated() {
+  return { rows: [] as DogIdentityRow[], saturated: true };
+}
+
+function addAll(target: Set<string>, values: Iterable<string>) {
+  for (const value of values) target.add(value);
+}
+
+function providerIdentityConditions(claims: DogIdentityClaim[]) {
+  const sourceIdsByProvider = new Map<string, Set<string>>();
+  for (const claim of claims) {
+    const sourceIds = sourceIdsByProvider.get(claim.sourceProvider) ?? new Set<string>();
+    sourceIds.add(claim.sourceId);
+    sourceIdsByProvider.set(claim.sourceProvider, sourceIds);
+  }
+  return [...sourceIdsByProvider].map(([sourceProvider, sourceIds]) => ({
+    sourceProvider,
+    sourceId: { in: [...sourceIds] },
+  }));
 }
 
 function isPossibleDogCandidate(row: DogIdentityRow, claim: DogIdentityClaim) {
@@ -1331,6 +1763,7 @@ function logDogIdentitySkip(
     observations?: number;
     matchingCanonicalRecords?: number;
   },
+  quarantineEvents: LiveFeedQuarantineInput[],
 ) {
   logCorrelatedWarn(logContext, "live.dog_identity.skipped", {
     reason,
@@ -1340,6 +1773,36 @@ function logDogIdentitySkip(
     observations: value.observations,
     matchingCanonicalRecords: value.matchingCanonicalRecords,
   });
+  const dogName = value.dogName ?? value.dog?.name;
+  quarantineEvents.push({
+    provider: quarantineProvider(value.sourceProvider),
+    entityKind: "dog",
+    sourceId: normalizeSourceId(value.sourceId) ?? null,
+    naturalIdentity: dogName ?? null,
+    reasonCode: reason,
+    classification: dogIdentityQuarantineClassification(reason),
+    evidence: {
+      dogName,
+      observations: value.observations,
+      matchingCanonicalRecords: value.matchingCanonicalRecords,
+    },
+  });
+}
+
+function dogIdentityQuarantineClassification(
+  reason: string,
+): LiveFeedQuarantineClassification {
+  if (reason === "invalid_or_placeholder_name") return "invalid";
+  if (
+    reason === "missing_stable_provider_identity" ||
+    reason === "exact_identity_lookup_saturated" ||
+    reason === "natural_identity_lookup_saturated" ||
+    reason === "provider_not_approved_for_creation" ||
+    reason === "created_identity_not_confirmed"
+  ) {
+    return "incomplete";
+  }
+  return "conflict";
 }
 
 function normalizeProvider(value?: string | null) {
@@ -1410,7 +1873,8 @@ async function ensureRunners(
   db: LiveSyncDbClient,
   items: RunnerWithRace[],
   dogIds: Map<string, string>,
-  trainerIds: Map<string, string>
+  trainerIds: Map<string, string>,
+  quarantineEvents: LiveFeedQuarantineInput[],
 ) {
   if (items.length === 0) return new Map<string, RunnerRow>();
   const raceIds = [...new Set(items.map((item) => item.raceId))];
@@ -1418,7 +1882,26 @@ async function ensureRunners(
 
   for (const item of items) {
     const dogId = dogIds.get(dogKey(item.runner.dog));
-    if (!dogId) continue;
+    if (!dogId) {
+      quarantineEvents.push({
+        provider: quarantineProvider(
+          item.runner.sourceProvider ?? item.sourceProvider,
+        ),
+        entityKind: "runner",
+        sourceId: normalizeSourceId(item.runner.sourceId) ?? null,
+        naturalIdentity: `${item.raceId}:${item.runner.boxNumber}`,
+        reasonCode: "missing_canonical_dog_identity",
+        classification: "incomplete",
+        evidence: {
+          raceSourceId: item.raceSourceId,
+          boxNumber: item.runner.boxNumber,
+          dogName: item.runner.dog.name,
+          dogSourceProvider: item.runner.dog.sourceProvider,
+          dogSourceId: item.runner.dog.sourceId,
+        },
+      });
+      continue;
+    }
     upserts.push({
       id: randomUUID(),
       raceId: item.raceId,
@@ -1442,6 +1925,7 @@ async function ensureRunners(
   }
 
   await bulkUpsertRunners(db, upserts);
+  await removeUnreferencedRunnerDuplicates(db, raceIds);
 
   const allRows: RunnerRow[] = [];
   for (const raceIdChunk of chunks(raceIds, LOOKUP_QUERY_CHUNK_SIZE)) {
@@ -1452,6 +1936,44 @@ async function ensureRunners(
     }));
   }
   return new Map(allRows.map((row) => [runnerKey(row.raceId, row.boxNumber), row]));
+}
+
+async function removeUnreferencedRunnerDuplicates(
+  db: LiveSyncDbClient,
+  raceIds: string[]
+) {
+  for (const chunk of chunks(raceIds, LOOKUP_QUERY_CHUNK_SIZE)) {
+    if (chunk.length === 0) continue;
+
+    await db.$executeRaw`
+      WITH ranked AS (
+        SELECT
+          runner.id,
+          result.id AS "resultId",
+          ROW_NUMBER() OVER (
+            PARTITION BY runner."raceId", runner."dogId"
+            ORDER BY
+              CASE WHEN result.id IS NOT NULL THEN 0 ELSE 1 END,
+              CASE WHEN runner.scratched THEN 1 ELSE 0 END,
+              CASE WHEN runner."boxNumber" BETWEEN 1 AND 8 THEN 0 ELSE 1 END,
+              runner."boxNumber",
+              runner.id
+          ) AS identity_rank
+        FROM "Runner" runner
+        LEFT JOIN "Result" result ON result."runnerId" = runner.id
+        WHERE runner."raceId" IN (${Prisma.join(chunk)})
+      ),
+      stale AS (
+        SELECT id
+        FROM ranked
+        WHERE identity_rank > 1
+          AND "resultId" IS NULL
+      )
+      DELETE FROM "Runner" runner
+      USING stale
+      WHERE runner.id = stale.id
+    `;
+  }
 }
 
 async function bulkUpsertRunners(db: LiveSyncDbClient, rows: RunnerUpsertRow[]) {
@@ -1629,13 +2151,120 @@ async function bulkUpsertFormEntries(db: LiveSyncDbClient, rows: FormEntryUpsert
   }
 }
 
+async function collectOrphanedFormEntries(
+  db: LiveSyncDbClient,
+  items: RunnerWithRace[],
+  quarantineEvents: LiveFeedQuarantineInput[],
+  orphanedFormEntries: OrphanedFormEntryRow[],
+) {
+  const providerByRaceId = new Map(
+    items.map((item) => [
+      item.raceId,
+      item.runner.sourceProvider ?? item.sourceProvider,
+    ] as const),
+  );
+  const affectedRaceIds = [...providerByRaceId.keys()];
+  const rows: OrphanedFormEntryRow[] = [];
+
+  for (const raceIdChunk of chunks(affectedRaceIds, LOOKUP_QUERY_CHUNK_SIZE)) {
+    const remaining = FORM_ENTRY_ORPHAN_SCAN_LIMIT + 1 - rows.length;
+    if (remaining <= 0) break;
+    const chunkRows = await db.$queryRaw<OrphanedFormEntryRow[]>(Prisma.sql`
+      SELECT
+        form_entry."id",
+        form_entry."dogId",
+        form_entry."raceId"
+      FROM "FormEntry" AS form_entry
+      WHERE form_entry."raceId" IN (${Prisma.join(raceIdChunk)})
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "Runner" AS runner
+          WHERE runner."raceId" = form_entry."raceId"
+            AND runner."dogId" = form_entry."dogId"
+        )
+      ORDER BY form_entry."id"
+      LIMIT ${remaining}
+    `);
+    rows.push(...chunkRows);
+    if (rows.length > FORM_ENTRY_ORPHAN_SCAN_LIMIT) break;
+  }
+
+  const boundedRows = rows.slice(0, FORM_ENTRY_ORPHAN_SCAN_LIMIT);
+  for (const row of boundedRows) {
+    orphanedFormEntries.push(row);
+    quarantineEvents.push({
+      provider: quarantineProvider(providerByRaceId.get(row.raceId)),
+      entityKind: "form_entry",
+      sourceId: row.id,
+      naturalIdentity: `${row.raceId}:${row.dogId}`,
+      reasonCode: "form_entry_runner_missing_after_live_sync",
+      classification: "conflict",
+      evidence: {
+        formEntryId: row.id,
+        dogId: row.dogId,
+        raceId: row.raceId,
+      },
+    });
+  }
+
+  if (rows.length > FORM_ENTRY_ORPHAN_SCAN_LIMIT) {
+    throw new Error("live.form_entry_orphan_scan_limit_exceeded");
+  }
+  return boundedRows.length;
+}
+
+async function detachQuarantinedFormEntryRaceLinks(
+  rows: OrphanedFormEntryRow[],
+) {
+  if (rows.length === 0) return 0;
+  return withDbSystemContext(
+    async (tx) => {
+      let detached = 0;
+      for (const rowChunk of chunks(rows, BULK_WRITE_CHUNK_SIZE)) {
+        detached += await tx.$executeRaw`
+          WITH captured ("id", "dogId", "raceId") AS (
+            VALUES ${Prisma.join(
+              rowChunk.map((row) => Prisma.sql`
+                (${row.id}, ${row.dogId}, ${row.raceId})
+              `),
+            )}
+          )
+          UPDATE "FormEntry" AS form_entry
+          SET "raceId" = NULL
+          FROM captured
+          WHERE form_entry."id" = captured."id"
+            AND form_entry."dogId" = captured."dogId"
+            AND form_entry."raceId" = captured."raceId"
+            AND NOT EXISTS (
+              SELECT 1
+              FROM "Runner" AS runner
+              WHERE runner."raceId" = captured."raceId"
+                AND runner."dogId" = captured."dogId"
+            )
+        `;
+      }
+      return detached;
+    },
+    {
+      maxWait: LIVE_SYNC_TRANSACTION_MAX_WAIT_MS,
+      timeout: LIVE_SYNC_TRANSACTION_TIMEOUT_MS,
+    },
+  );
+}
+
 function meetingDate(meeting: LiveMeeting) {
   return new Date(meeting.meetingDate);
 }
 
-function meetingKey(meeting: LiveMeeting, tracks: Map<string, TrackRow>) {
+export function acceptedMeetingKey(
+  meeting: LiveMeeting,
+  tracks: Map<string, TrackRow>,
+) {
   const track = tracks.get(canonicalTrackName(meeting.trackName));
-  return track ? naturalMeetingKey(track.id, meetingDate(meeting)) : "";
+  const state = normalizeAustralianTrackState(meeting.state);
+  return track && state && track.state === state
+    ? naturalMeetingKey(track.id, meetingDate(meeting))
+    : null;
 }
 
 function naturalMeetingKey(trackId: string, date: Date) {
@@ -1648,6 +2277,55 @@ function raceKey(meetingId: string, race: { raceNumber: number }) {
 
 function runnerKey(raceId: string, boxNumber: number) {
   return `${raceId}:B${boxNumber}`;
+}
+
+export function normalizeRaceRunners(
+  runners: LiveRunner[],
+  onDiscarded?: (discarded: LiveRunner, preferred: LiveRunner) => void,
+) {
+  const normalized: LiveRunner[] = [];
+  const indexesByDog = new Map<string, number>();
+
+  for (const runner of runners) {
+    const identity = dogKey(runner.dog);
+    if (!identity) {
+      normalized.push(runner);
+      continue;
+    }
+
+    const existingIndex = indexesByDog.get(identity);
+    if (existingIndex == null) {
+      indexesByDog.set(identity, normalized.length);
+      normalized.push(runner);
+      continue;
+    }
+
+    const existing = normalized[existingIndex];
+    if (isPreferredRunner(runner, existing)) {
+      normalized[existingIndex] = runner;
+      onDiscarded?.(existing, runner);
+    } else {
+      onDiscarded?.(runner, existing);
+    }
+  }
+
+  return normalized;
+}
+
+function isPreferredRunner(candidate: LiveRunner, existing: LiveRunner) {
+  const candidateScore = runnerIdentityScore(candidate);
+  const existingScore = runnerIdentityScore(existing);
+  if (candidateScore !== existingScore) return candidateScore > existingScore;
+  return candidate.boxNumber < existing.boxNumber;
+}
+
+function runnerIdentityScore(runner: LiveRunner) {
+  let score = 0;
+  if (runner.finishingPosition != null) score += 8;
+  if (!runner.scratched) score += 4;
+  if (runner.boxNumber >= 1 && runner.boxNumber <= 8) score += 2;
+  else if (runner.boxNumber > 0) score += 1;
+  return score;
 }
 
 function dogKey(dog: LiveDog) {
@@ -1691,14 +2369,22 @@ function chunks<T>(values: readonly T[], size: number): T[][] {
 
 function uniqueByPreferredSource<T extends { sourceProvider: string | null }>(
   rows: T[],
-  keyFor: (row: T) => string
+  keyFor: (row: T) => string,
+  onDiscarded?: (discarded: T, preferred: T, key: string) => void,
 ) {
   const byKey = new Map<string, T>();
   for (const row of rows) {
     const key = keyFor(row);
     const existing = byKey.get(key);
-    if (!existing || sourceProviderRank(row.sourceProvider) >= sourceProviderRank(existing.sourceProvider)) {
+    if (!existing) {
       byKey.set(key, row);
+      continue;
+    }
+    if (sourceProviderRank(row.sourceProvider) >= sourceProviderRank(existing.sourceProvider)) {
+      byKey.set(key, row);
+      onDiscarded?.(existing, row, key);
+    } else {
+      onDiscarded?.(row, existing, key);
     }
   }
   return [...byKey.values()];
@@ -1717,4 +2403,8 @@ function sourceProviderRank(sourceProvider: string | null) {
     default:
       return 0;
   }
+}
+
+function quarantineProvider(value?: string | null) {
+  return normalizeProvider(value) ?? "unknown";
 }

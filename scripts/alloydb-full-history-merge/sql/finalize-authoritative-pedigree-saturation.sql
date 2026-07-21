@@ -25,9 +25,11 @@ BEGIN
   FROM unnest(ARRAY[
     '_giq_history_merge.export_dataset_manifest',
     '_giq_history_stage.authoritative_provider_policy',
+    '_giq_history_stage.authoritative_pedigree_assertion_occurrence',
     '_giq_history_stage.authoritative_identity_evidence',
     '_giq_history_stage.authoritative_pedigree_evidence',
     '_giq_history_stage.authoritative_consolidation_proof',
+    '_giq_history_stage.authoritative_pedigree_terminal_proof',
     '_giq_history_stage.authoritative_identity_resolution',
     '_giq_history_stage.authoritative_pedigree_resolution',
     '_giq_history_stage.authoritative_pedigree_conflict_ledger',
@@ -46,12 +48,28 @@ BEGIN
       ('_giq_history_merge','run','source_history_cutoff'),
       ('_giq_history_merge','run','export_stage_manifest'),
       ('_giq_history_merge','run','galtd_stage_manifest'),
+      ('_giq_history_stage','authoritative_pedigree_assertion_occurrence','import_run_id'),
+      ('_giq_history_stage','authoritative_pedigree_assertion_occurrence','artifact_sha256'),
+      ('_giq_history_stage','authoritative_pedigree_assertion_occurrence','source_file'),
+      ('_giq_history_stage','authoritative_pedigree_assertion_occurrence','source_line'),
+      ('_giq_history_stage','authoritative_pedigree_assertion_occurrence','relationship'),
+      ('_giq_history_stage','authoritative_pedigree_assertion_occurrence','evidence_sha256'),
       ('_giq_history_stage','authoritative_identity_evidence','verification_status'),
+      ('_giq_history_stage','authoritative_identity_evidence','corroboration_only'),
+      ('_giq_history_stage','authoritative_identity_evidence','stable_bridge'),
       ('_giq_history_stage','authoritative_identity_resolution','canonical_write_eligible'),
       ('_giq_history_stage','authoritative_identity_resolution','quarantine_release_eligible'),
       ('_giq_history_stage','authoritative_pedigree_evidence','verification_status'),
+      ('_giq_history_stage','authoritative_pedigree_evidence','occurrence_id'),
+      ('_giq_history_stage','authoritative_pedigree_evidence','corroboration_only'),
+      ('_giq_history_stage','authoritative_pedigree_evidence','stable_bridge'),
+      ('_giq_history_stage','authoritative_pedigree_terminal_proof','canonical_safety_blocking'),
+      ('_giq_history_stage','authoritative_pedigree_terminal_proof','coverage_blocking'),
       ('_giq_history_stage','authoritative_pedigree_resolution','canonical_write_eligible'),
       ('_giq_history_stage','authoritative_pedigree_resolution','quarantine_release_eligible'),
+      ('_giq_history_stage','authoritative_pedigree_resolution','canonical_safety_blocking'),
+      ('_giq_history_stage','authoritative_pedigree_resolution','coverage_blocking'),
+      ('_giq_history_stage','authoritative_pedigree_resolution','hard_blocker_class'),
       ('_giq_history_stage','authoritative_consolidation_proof','release_eligible'),
       ('_giq_history_stage','current_pedigree_quarantine','blocking'),
       ('_giq_history_stage','current_pedigree_quarantine','quarantine_release_eligible')
@@ -88,8 +106,10 @@ BEGIN
       WHERE tgrelid IN (
         '_giq_history_stage.authoritative_identity_evidence'::regclass,
         '_giq_history_stage.authoritative_pedigree_evidence'::regclass,
-        '_giq_history_stage.authoritative_consolidation_proof'::regclass
-      ) AND NOT tgisinternal AND tgenabled<>'D')<>3 THEN
+        '_giq_history_stage.authoritative_consolidation_proof'::regclass,
+        '_giq_history_stage.authoritative_pedigree_assertion_occurrence'::regclass,
+        '_giq_history_stage.authoritative_pedigree_terminal_proof'::regclass
+      ) AND NOT tgisinternal AND tgenabled<>'D')<>5 THEN
     RAISE EXCEPTION 'authoritative pedigree append-only trigger partition is incomplete';
   END IF;
 END
@@ -155,136 +175,118 @@ WITH marker AS (
       CASE WHEN datasets.dataset_count<>12 OR datasets.verified_count<>12 THEN 1 ELSE 0 END
     )::bigint AS lineage_gaps
   FROM marker CROSS JOIN datasets
+), disposition_counts AS (
+  SELECT
+    coalesce(jsonb_object_agg(disposition,rows ORDER BY disposition),'{}'::jsonb) AS evidence,
+    coalesce(sum(rows),0)::bigint AS total
+  FROM (
+    SELECT disposition,count(*)::bigint AS rows
+    FROM _giq_history_stage.authoritative_pedigree_resolution
+    GROUP BY disposition
+  ) grouped
+), persistence_check AS (
+  SELECT greatest(5-count(*),0)::bigint AS trigger_gaps
+  FROM pg_trigger
+  WHERE tgrelid IN (
+    '_giq_history_stage.authoritative_identity_evidence'::regclass,
+    '_giq_history_stage.authoritative_pedigree_evidence'::regclass,
+    '_giq_history_stage.authoritative_consolidation_proof'::regclass,
+    '_giq_history_stage.authoritative_pedigree_assertion_occurrence'::regclass,
+    '_giq_history_stage.authoritative_pedigree_terminal_proof'::regclass
+  ) AND NOT tgisinternal AND tgenabled<>'D'
 ), counts AS (
   SELECT jsonb_build_object(
     'providerPolicies',(SELECT count(*) FROM _giq_history_stage.authoritative_provider_policy),
+    'assertionOccurrences',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_assertion_occurrence),
     'identityEvidence',(SELECT count(*) FROM _giq_history_stage.authoritative_identity_evidence),
     'identityResolutions',(SELECT count(*) FROM _giq_history_stage.authoritative_identity_resolution),
     'pedigreeEvidence',(SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_evidence),
-    'pedigreeResolutions',(SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution),
-    'consolidationProofs',(SELECT count(*) FROM _giq_history_stage.authoritative_consolidation_proof),
-    'currentQuarantineRows',(SELECT count(*) FROM _giq_history_stage.current_pedigree_quarantine),
-    'retrievalQueueRows',(SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_retrieval_queue),
-    'providerStubs',(SELECT count(*) FROM _giq_history_stage.current_pedigree_quarantine
-      WHERE issue_type='provider-stub'),
-    'raceObservedParents',(SELECT count(*) FROM _giq_history_stage.current_pedigree_quarantine
-      WHERE issue_type='race-observed-parent-profile-required'),
-    'selfParents',(SELECT count(*) FROM _giq_history_stage.current_pedigree_quarantine
-      WHERE issue_type='self-parent'),
-    'galtdConflicts',(SELECT count(*) FROM _giq_history_stage.current_pedigree_quarantine
-      WHERE issue_type='conflicting-source-observation'),
-    'galtdCompositeCandidates',(SELECT count(*) FROM _giq_history_stage.current_pedigree_quarantine
-      WHERE issue_type='composite-crosswalk-candidate'),
-    'canonicalWriteEligible',(
-      (SELECT count(*) FROM _giq_history_stage.authoritative_identity_resolution
-       WHERE canonical_write_eligible)+
-      (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
-       WHERE canonical_write_eligible)
-    ),
-    'quarantineReleaseEligible',(
-      (SELECT count(*) FROM _giq_history_stage.authoritative_identity_resolution
-       WHERE quarantine_release_eligible)+
-      (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
-       WHERE quarantine_release_eligible)+
-      (SELECT count(*) FROM _giq_history_stage.authoritative_consolidation_proof
-       WHERE release_eligible)
-    )
+    'pedigreeResolutions',disposition_counts.total,
+    'terminalProofs',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_terminal_proof),
+    'consolidationProofs',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_consolidation_proof),
+    'dispositions',disposition_counts.evidence,
+    'applyCandidates',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='verified_apply_candidate'),
+    'appliedVerified',(SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='applied_verified'),
+    'verifiedNoChange',(SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='verified_no_change'),
+    'terminalInvalidImpossible',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='terminal_invalid_impossible'),
+    'terminalSupersededConflict',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='terminal_superseded_conflict'),
+    'terminalUnlinkedConflictCovered',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='terminal_unlinked_conflict_covered'),
+    'terminalCorroborationOnlyCovered',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition='terminal_corroboration_only_covered'),
+    'terminalNonblocking',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition IN (
+        'terminal_invalid_impossible','terminal_superseded_conflict',
+        'terminal_unlinked_conflict_covered','terminal_corroboration_only_covered'
+      ) AND NOT canonical_safety_blocking AND NOT coverage_blocking),
+    'terminalBlocking',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE disposition IN (
+        'terminal_invalid_impossible','terminal_superseded_conflict',
+        'terminal_unlinked_conflict_covered','terminal_corroboration_only_covered'
+      ) AND (canonical_safety_blocking OR coverage_blocking)),
+    'canonicalWriteEligible',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE canonical_write_eligible),
+    'quarantineReleaseEligible',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE quarantine_release_eligible),
+    'currentQuarantineRows',(SELECT count(*)
+      FROM _giq_history_stage.current_pedigree_quarantine),
+    'retrievalQueueRows',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_retrieval_queue)
   ) AS evidence
+  FROM disposition_counts
 ), blockers AS (
   SELECT jsonb_build_object(
-    'retrievalRequired',(SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_retrieval_queue),
-    'unverifiedIdentityEvidence',(SELECT count(*) FROM _giq_history_stage.authoritative_identity_evidence
-      WHERE verification_status<>'verified'),
-    'unverifiedPedigreeEvidence',(SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_evidence
-      WHERE verification_status<>'verified'),
-    'conflictOrRejectedIdentityEvidence',(SELECT count(*)
-      FROM _giq_history_stage.authoritative_identity_evidence
-      WHERE verification_status IN ('conflict','rejected')),
-    'conflictOrRejectedPedigreeEvidence',(SELECT count(*)
-      FROM _giq_history_stage.authoritative_pedigree_evidence
-      WHERE verification_status IN ('conflict','rejected')),
-    'selfParentRows',(SELECT count(*) FROM _giq_history_stage.current_pedigree_quarantine
-      WHERE issue_type='self-parent'),
-    'galtdConflictRows',(SELECT count(*) FROM _giq_history_stage.current_pedigree_quarantine
-      WHERE issue_type='conflicting-source-observation'),
-    'galtdCompositeRowsPendingAuthoritativeResolution',(SELECT count(*)
-      FROM _giq_history_stage.current_pedigree_quarantine
-      WHERE issue_type='composite-crosswalk-candidate'),
-    'ambiguousCompositeRows',(SELECT count(*) FROM _giq_history_stage.current_pedigree_quarantine
-      WHERE disposition='quarantined-ambiguous-composite-match'),
-    'providerStubs',(SELECT count(*) FROM _giq_history_stage.current_pedigree_quarantine
-      WHERE issue_type='provider-stub'),
-    'raceObservedParentProfiles',(SELECT count(*)
-      FROM _giq_history_stage.current_pedigree_quarantine
-      WHERE issue_type='race-observed-parent-profile-required'),
-    'preservedProductionConflicts',(SELECT count(*)
+    'identityPending',(SELECT count(*)
       FROM _giq_history_stage.authoritative_pedigree_resolution
-      WHERE disposition='preserved-production-conflict')+
-      (SELECT count(*) FROM _giq_history_stage.current_pedigree_quarantine
-       WHERE disposition='preserved-production-conflict'),
-    'identityAmbiguities',(SELECT count(*) FROM _giq_history_stage.authoritative_identity_resolution
-      WHERE candidate_count>1 OR strong_candidate_count>1),
-    'pedigreeRelationshipConflicts',(SELECT count(*)
-      FROM _giq_history_stage.authoritative_pedigree_conflict_ledger),
-    'reviewOnlyRemovals',(SELECT count(*)
-      FROM _giq_history_stage.authoritative_consolidation_proof WHERE NOT release_eligible),
-    'canonicalWriteProofGaps',(
-      SELECT count(*) FROM _giq_history_stage.authoritative_identity_resolution
-      WHERE (canonical_write_eligible AND (
-          verification_status<>'verified' OR disposition NOT IN (
-            'verified-existing-identity-candidate','verified-new-identity-candidate'
-          ) OR candidate_count>1 OR strong_candidate_count>1
-        )) OR (NOT canonical_write_eligible AND verification_status='verified'
-          AND disposition IN (
-            'verified-existing-identity-candidate','verified-new-identity-candidate'
-          ))
-    )+(
-      SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
-      WHERE (canonical_write_eligible AND (
-          verification_status<>'verified' OR subject_dog_id IS NULL OR parent_dog_id IS NULL
-          OR creates_cycle OR disposition NOT IN (
-            'verified-no-change-candidate','verified-missing-parent-candidate'
-          )
-        )) OR (NOT canonical_write_eligible AND verification_status='verified'
-          AND disposition IN ('verified-no-change-candidate','verified-missing-parent-candidate'))
-    ),
-    'quarantineReleaseProofGaps',(
-      SELECT count(*) FROM _giq_history_stage.authoritative_identity_resolution
-      WHERE quarantine_release_eligible AND (
-        verification_status<>'verified' OR candidate_count<>1 OR strong_candidate_count<>1
-      )
-    )+(
-      SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
-      WHERE quarantine_release_eligible AND (
-        verification_status<>'verified' OR subject_dog_id IS NULL OR parent_dog_id IS NULL OR creates_cycle
-      )
-    ),
-    'blockingQuarantineRows',(SELECT count(*)
-      FROM _giq_history_stage.current_pedigree_quarantine WHERE blocking),
-    'unaccountedIdentityRows',abs(
-      (SELECT count(*) FROM _giq_history_stage.authoritative_identity_evidence)-
-      (SELECT count(*) FROM _giq_history_stage.authoritative_identity_resolution)
-    ),
-    'unaccountedPedigreeRows',abs(
-      (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_evidence)-
-      (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution)
-    ),
-    'unaccountedQuarantineRows',(SELECT count(*)
-      FROM _giq_history_stage.current_pedigree_quarantine
-      WHERE issue_type NOT IN (
-        'provider-stub','race-observed-parent-profile-required','self-parent',
-        'conflicting-source-observation','composite-crosswalk-candidate'
-      ) OR NOT blocking OR quarantine_release_eligible),
-    'sourceLineageGaps',source.lineage_gaps
+      WHERE hard_blocker_class='identity_pending'),
+    'relationshipPending',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE hard_blocker_class='relationship_pending'),
+    'authorityConflict',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE hard_blocker_class='authority_conflict'),
+    'canonicalIntegrity',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE hard_blocker_class='canonical_integrity')+
+      (SELECT count(*) FROM _giq_history_stage.authoritative_consolidation_proof
+       WHERE NOT release_eligible),
+    'persistence',persistence_check.trigger_gaps,
+    'accounting',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE hard_blocker_class='accounting')+
+      abs((SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_assertion_occurrence)-
+          (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution))+
+      (SELECT count(*) FROM _giq_history_stage.authoritative_pedigree_resolution
+       WHERE disposition LIKE 'hard_%' AND hard_blocker_class IS NULL),
+    'coverage',(SELECT count(*)
+      FROM _giq_history_stage.authoritative_pedigree_resolution
+      WHERE hard_blocker_class='coverage')+source.lineage_gaps
   ) AS evidence
-  FROM source
+  FROM source CROSS JOIN persistence_check
 )
 INSERT INTO _giq_history_merge.authoritative_pedigree_saturation_manifest
   (id,schema_version,normalized_manifest_sha256,source_history_cutoff,
    source_lineage,counts,blockers,status,updated_at)
-SELECT 1,'giq-authoritative-pedigree-saturation/v1',source.normalized_manifest_sha256,
+SELECT 1,'giq-authoritative-pedigree-saturation/v2',source.normalized_manifest_sha256,
   source.source_history_cutoff,source.lineage,counts.evidence,blockers.evidence,
-  CASE WHEN EXISTS(
+  CASE WHEN jsonb_object_length(blockers.evidence)<>7 OR EXISTS(
     SELECT 1
     FROM jsonb_each(blockers.evidence) item
     WHERE jsonb_typeof(item.value) IS DISTINCT FROM 'number'
@@ -314,10 +316,15 @@ SELECT jsonb_build_object(
   'normalizedManifestSha256',normalized_manifest_sha256,
   'sourceHistoryCutoff',source_history_cutoff,
   'counts',counts,
-  'blockers',blockers
+  'blockers',blockers,
+  'hardBlockerClasses',jsonb_build_array(
+    'identityPending','relationshipPending','authorityConflict',
+    'canonicalIntegrity','persistence','accounting','coverage'
+  )
 ) FROM _giq_history_merge.authoritative_pedigree_saturation_manifest WHERE id=1;
 
-SELECT (status<>'ready' OR EXISTS(
+SELECT (schema_version<>'giq-authoritative-pedigree-saturation/v2'
+ OR jsonb_object_length(blockers)<>7 OR status<>'ready' OR EXISTS(
   SELECT 1
   FROM jsonb_each(blockers) item
   WHERE jsonb_typeof(item.value) IS DISTINCT FROM 'number'
@@ -327,6 +334,6 @@ SELECT (status<>'ready' OR EXISTS(
 FROM _giq_history_merge.authoritative_pedigree_saturation_manifest WHERE id=1
 \gset
 \if :authoritative_pedigree_saturation_blocked
-\echo 'OPERATOR_ATTENTION: authoritative pedigree saturation remains blocked; resolve verified provider queues, conflicts, relationship gaps, and review-only removals before canonical merge.'
+\echo 'OPERATOR_ATTENTION: pedigree v2 has hard identity, relationship, authority, integrity, persistence, accounting, or coverage blockers; terminal source-only rows do not block after both proof gates pass.'
 \quit 3
 \endif

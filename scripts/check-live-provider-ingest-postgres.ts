@@ -389,7 +389,7 @@ function commitMeeting(): LiveMeeting {
             sourceId: "commit-runner",
             boxNumber: 1,
             dog: {
-              sourceProvider: "thedogs",
+              sourceProvider: "topaz",
               sourceId: "provider-ingest-commit-dog-proof",
               name: "Provider Ingest Commit Dog",
               earBrand: COMMIT_DOG_EAR_BRAND,
@@ -428,7 +428,7 @@ function rollbackMeeting(): LiveMeeting {
             sourceId: "rollback-runner",
             boxNumber: null,
             dog: {
-              sourceProvider: "thedogs",
+              sourceProvider: "topaz",
               sourceId: "provider-ingest-rollback-dog-proof",
               name: "Provider Ingest Rollback Dog",
               earBrand: ROLLBACK_DOG_EAR_BRAND,

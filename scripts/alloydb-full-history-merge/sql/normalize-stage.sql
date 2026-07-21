@@ -1,8 +1,11 @@
 \set ON_ERROR_STOP on
+\if :{?checkpointed_runner}
+\else
+\echo 'normalize-stage.sql must be run by normalize-checkpointed.sh'
+\quit 3
+\endif
 
-BEGIN;
-SET LOCAL synchronous_commit = on;
-SET LOCAL statement_timeout = 0;
+-- checkpoint-stage: 1-core-identities
 
 DO $$
 DECLARE
@@ -48,7 +51,7 @@ CREATE OR REPLACE FUNCTION _giq_history_merge.try_jsonb(value text)
 RETURNS jsonb
 LANGUAGE plpgsql
 IMMUTABLE
-PARALLEL SAFE
+PARALLEL UNSAFE
 AS $$
 BEGIN
   IF value IS NULL OR btrim(value) = '' THEN RETURN NULL; END IF;
@@ -82,6 +85,7 @@ IMMUTABLE
 PARALLEL SAFE
 RETURN CASE
   WHEN lower(btrim(name)) = 'canberra' THEN 'ACT'
+  WHEN lower(btrim(name)) = 'appin' THEN 'NSW'
   WHEN lower(btrim(name)) IN (
     'auckland','ashburton','cambridge','christchurch','manukau','manawatu',
     'otago','palmerston - north','southland','taranaki','tokoroa','wellington',
@@ -128,6 +132,7 @@ WITH source_rows AS MATERIALIZED (
   FROM _giq_history_stage."r2_Track" t
   WHERE lower(btrim(t.name)) <> 'greyhoundiq demo park'
   UNION ALL
+  (
   SELECT DISTINCT ON (e.payload->>'trackNaturalKey')
     'export', e.payload->>'trackNaturalKey',
     _giq_history_merge.track_key(e.payload->>'trackName', e.payload->>'state'),
@@ -137,6 +142,7 @@ WITH source_rows AS MATERIALIZED (
   FROM _giq_history_stage.export_meetings e
   WHERE lower(btrim(e.payload->>'trackName')) <> 'greyhoundiq demo park'
   ORDER BY e.payload->>'trackNaturalKey', e.source_file, e.line_number
+  )
 ), preferred AS (
   SELECT DISTINCT ON (natural_key) *
   FROM source_rows
@@ -214,6 +220,7 @@ CREATE TABLE _giq_history_stage.normalized_trainer (
   source_provenance jsonb NOT NULL
 );
 
+CREATE TABLE _giq_history_stage.trainer_identity_resolution AS
 WITH r2_identity AS MATERIALIZED (
   SELECT
     t.id AS source_id,
@@ -266,21 +273,41 @@ WITH r2_identity AS MATERIALIZED (
   GROUP BY provider_source_id
   HAVING count(DISTINCT trainer_id)=1
 )
-INSERT INTO _giq_history_stage.normalized_trainer
 SELECT
   p.natural_key,
-  coalesce(pp.trainer_id, _giq_history_merge.history_id('trainer', p.natural_key)),
+  coalesce(pp.trainer_id, _giq_history_merge.history_id('trainer', p.natural_key)) AS target_id,
   p.name,
   p.state,
   p.license_number,
   p.source_provider,
   p.provider_source_id,
-  jsonb_build_object('sourceIds', (
+  p.priority,
+  (
     SELECT jsonb_agg(i.source_id ORDER BY i.source_id)
     FROM identity i WHERE i.natural_key = p.natural_key
-  ))
+  ) AS source_ids
 FROM preferred p
 LEFT JOIN production_provider pp ON pp.provider_source_id = p.provider_source_id;
+
+CREATE INDEX trainer_identity_resolution_natural_key_idx
+  ON _giq_history_stage.trainer_identity_resolution(natural_key);
+CREATE INDEX trainer_identity_resolution_target_id_idx
+  ON _giq_history_stage.trainer_identity_resolution(target_id);
+
+INSERT INTO _giq_history_stage.normalized_trainer
+SELECT DISTINCT ON (resolution.target_id)
+  resolution.natural_key,resolution.target_id,resolution.name,resolution.state,
+  resolution.license_number,resolution.source_provider,resolution.provider_source_id,
+  jsonb_build_object('identities',(
+    SELECT jsonb_agg(jsonb_build_object(
+      'naturalKey',alias.natural_key,'sourceIds',alias.source_ids
+    ) ORDER BY alias.priority DESC,alias.natural_key)
+    FROM _giq_history_stage.trainer_identity_resolution alias
+    WHERE alias.target_id=resolution.target_id
+  ))
+FROM _giq_history_stage.trainer_identity_resolution resolution
+ORDER BY resolution.target_id,resolution.priority DESC,
+  (resolution.source_provider IS NOT NULL) DESC,resolution.natural_key;
 
 INSERT INTO _giq_history_merge.quarantine
   (source_name,entity_type,source_key,reason_code,disposition,blocking,evidence)
@@ -320,14 +347,17 @@ WITH r2_identity AS (
   GROUP BY t.id
 )
 INSERT INTO _giq_history_stage.trainer_map
-SELECT 'r2', r.id, r.natural_key, n.target_id
-FROM r2_identity r JOIN _giq_history_stage.normalized_trainer n USING (natural_key)
+SELECT 'r2', r.id, n.natural_key, n.target_id
+FROM r2_identity r
+JOIN _giq_history_stage.trainer_identity_resolution resolution USING (natural_key)
+JOIN _giq_history_stage.normalized_trainer n ON n.target_id=resolution.target_id
 UNION ALL
 SELECT DISTINCT 'export', e.payload->>'trainerSourceId',
-  'thedogs:trainer:' || (e.payload->>'trainerSourceId'), n.target_id
+  n.natural_key, n.target_id
 FROM _giq_history_stage.export_runners e
-JOIN _giq_history_stage.normalized_trainer n
-  ON n.natural_key = 'thedogs:trainer:' || (e.payload->>'trainerSourceId')
+JOIN _giq_history_stage.trainer_identity_resolution resolution
+  ON resolution.natural_key = 'thedogs:trainer:' || (e.payload->>'trainerSourceId')
+JOIN _giq_history_stage.normalized_trainer n ON n.target_id=resolution.target_id
 WHERE nullif(e.payload->>'trainerSourceId', '') IS NOT NULL;
 
 INSERT INTO _giq_history_merge.quarantine
@@ -538,8 +568,8 @@ BEGIN
   SELECT count(DISTINCT natural_key) INTO thedogs_identities
   FROM _giq_history_stage.dog_identity_source
   WHERE natural_key ~ '^thedogs:dog:[0-9]+$';
-  IF thedogs_identities <> 212391 THEN
-    RAISE EXCEPTION 'TheDogs identity union expected 212391, observed %', thedogs_identities;
+  IF thedogs_identities <> 212739 THEN
+    RAISE EXCEPTION 'TheDogs v2 identity union expected 212739, observed %', thedogs_identities;
   END IF;
   SELECT count(*) INTO missing_names
   FROM (SELECT DISTINCT natural_key FROM _giq_history_stage.dog_identity_source) i
@@ -556,6 +586,7 @@ BEGIN
 END
 $$;
 
+-- checkpoint-stage: 2-meetings
 CREATE TABLE _giq_history_stage.normalized_meeting (
   natural_key text PRIMARY KEY,
   target_id text NOT NULL UNIQUE,
@@ -653,6 +684,7 @@ SELECT s.source_name, s.source_id, s.natural_key, n.target_id
 FROM _giq_history_stage.meeting_source s
 JOIN _giq_history_stage.normalized_meeting n USING (natural_key);
 
+-- checkpoint-stage: 3-races
 CREATE TABLE _giq_history_stage.normalized_race (
   natural_key text PRIMARY KEY,
   target_id text NOT NULL UNIQUE,
@@ -700,7 +732,12 @@ SELECT
   e.payload::text, NULL, (e.payload->>'raceTime')::timestamptz, 10
 FROM _giq_history_stage.export_races e
 JOIN _giq_history_stage.meeting_map mm
-  ON mm.source_name='export' AND mm.source_id=e.payload->>'meetingNaturalKey';
+  ON mm.source_name='export' AND mm.source_id=e.payload->>'meetingNaturalKey'
+WHERE e.payload->>'provider' = 'thedogs'
+  AND e.payload->>'mergeStatus' = 'ready'
+  AND nullif(e.payload->>'naturalKey', '') IS NOT NULL
+  AND CASE WHEN e.payload->>'distance' ~ '^[0-9]+$'
+    THEN (e.payload->>'distance')::bigint > 0 ELSE false END;
 
 CREATE INDEX race_source_natural_key_idx ON _giq_history_stage.race_source(natural_key);
 
@@ -753,6 +790,7 @@ SELECT s.source_name,s.source_id,s.natural_key,n.target_id
 FROM _giq_history_stage.race_source s
 JOIN _giq_history_stage.normalized_race n USING(natural_key);
 
+-- checkpoint-stage: 4-runners
 CREATE TABLE _giq_history_stage.normalized_runner (
   natural_key text PRIMARY KEY,
   target_id text NOT NULL UNIQUE,
@@ -793,7 +831,14 @@ SELECT
 FROM _giq_history_stage.export_runners e
 JOIN _giq_history_stage.race_map rm ON rm.source_name='export' AND rm.source_id=e.payload->>'raceNaturalKey'
 JOIN _giq_history_stage.dog_map dm ON dm.source_name='runner' AND dm.source_id=e.payload->>'dogNaturalKey'
-LEFT JOIN _giq_history_stage.trainer_map tm ON tm.source_name='export' AND tm.source_id=e.payload->>'trainerSourceId';
+LEFT JOIN _giq_history_stage.trainer_map tm ON tm.source_name='export' AND tm.source_id=e.payload->>'trainerSourceId'
+WHERE e.payload->>'provider' = 'thedogs'
+  AND e.payload->>'mergeStatus' = 'ready'
+  AND nullif(e.payload->>'naturalKey', '') IS NOT NULL
+  AND nullif(e.payload->>'raceNaturalKey', '') IS NOT NULL
+  AND nullif(e.payload->>'dogNaturalKey', '') IS NOT NULL
+  AND CASE WHEN e.payload->>'boxNumber' ~ '^[0-9]+$'
+    THEN (e.payload->>'boxNumber')::bigint > 0 ELSE false END;
 
 CREATE INDEX runner_source_natural_key_idx ON _giq_history_stage.runner_source(natural_key);
 
@@ -836,6 +881,7 @@ SELECT s.source_name,s.source_id,s.natural_key,n.target_id
 FROM _giq_history_stage.runner_source s
 JOIN _giq_history_stage.normalized_runner n USING(natural_key);
 
+-- checkpoint-stage: 5-results
 CREATE TABLE _giq_history_stage.normalized_result (
   natural_key text PRIMARY KEY,
   target_id text NOT NULL UNIQUE,
@@ -960,10 +1006,10 @@ BEGIN
     export_runners_sourced,export_runners_mapped,
     export_results_sourced,export_results_mapped
   ) <> (
-    170780::bigint,
+    200211::bigint,
     76620::bigint,76620::bigint,
-    838526::bigint,838526::bigint,
-    6434145::bigint,6434145::bigint,
+    838486::bigint,838486::bigint,
+    6434094::bigint,6434094::bigint,
     5660837::bigint,5660837::bigint
   ) THEN
     RAISE EXCEPTION
@@ -994,12 +1040,32 @@ BEGIN
     LEFT JOIN _giq_history_stage.race_map mapped
       ON mapped.source_name='export' AND mapped.source_id=race.payload->>'naturalKey'
     WHERE mapped.source_id IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM _giq_history_stage.export_quarantine quarantine
+        WHERE quarantine.payload->>'issueType'='race-row'
+          AND quarantine.payload->>'reason'='missing_race_distance'
+          AND quarantine.payload->>'naturalKey'=race.payload->>'naturalKey'
+      )
     UNION ALL
     SELECT runner.source_file,runner.line_number
     FROM _giq_history_stage.export_runners runner
     LEFT JOIN _giq_history_stage.runner_map mapped
       ON mapped.source_name='export' AND mapped.source_id=runner.payload->>'naturalKey'
     WHERE mapped.source_id IS NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM _giq_history_stage.export_quarantine quarantine
+        WHERE quarantine.payload->>'issueType'='race-row'
+          AND quarantine.payload->>'reason'='missing_race_distance'
+          AND quarantine.payload->>'naturalKey'=runner.payload->>'raceNaturalKey'
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM _giq_history_stage.export_quarantine quarantine
+        WHERE quarantine.payload->>'issueType'='runner-row'
+          AND quarantine.payload->>'reason'='missing_dog_provider_identity'
+          AND quarantine.payload->>'naturalKey'=runner.payload->>'naturalKey'
+      )
     UNION ALL
     SELECT result.source_file,result.line_number
     FROM _giq_history_stage.export_results result
@@ -1015,6 +1081,7 @@ END
 $$;
 
 
+-- checkpoint-stage: 6-profile-resolution
 CREATE TABLE _giq_history_stage.profile_form_resolution (
   source_file text NOT NULL,
   line_number bigint NOT NULL,
@@ -1028,20 +1095,6 @@ CREATE TABLE _giq_history_stage.profile_form_resolution (
   PRIMARY KEY(source_file,line_number)
 );
 
-CREATE TABLE _giq_history_stage.race_lookup AS
-SELECT
-  _giq_history_merge.slug(t.name) AS track_slug,
-  (m.meeting_date AT TIME ZONE 'UTC')::date AS meeting_date,
-  r.race_number,
-  r.natural_key,
-  r.target_id,
-  r.distance
-FROM _giq_history_stage.normalized_race r
-JOIN _giq_history_stage.normalized_meeting m ON m.target_id=r.meeting_id
-JOIN _giq_history_stage.normalized_track t ON t.target_id=m.track_id;
-CREATE INDEX race_lookup_exact_idx
-  ON _giq_history_stage.race_lookup(track_slug,meeting_date,race_number);
-
 WITH parsed AS MATERIALIZED (
   SELECT
     e.source_file,e.line_number,e.payload,
@@ -1052,24 +1105,23 @@ WITH parsed AS MATERIALIZED (
       WHEN coalesce(e.payload->>'raceUrl',e.payload->>'sourceId') ~ '^/dogs/[0-9]+(?:/[^?]*)?(?:\?.*)?$'
         THEN 'dog-url-recovery-only'
       ELSE 'invalid-url'
-    END AS url_class,
-    regexp_match(coalesce(e.payload->>'raceUrl',e.payload->>'sourceId'),
-      '^/racing/([^/]+)/([0-9]{4}-[0-9]{2}-[0-9]{2})/([0-9]+)(?:/[^?]*)?(?:\?.*)?$') AS race_parts
+    END AS url_class
   FROM _giq_history_stage.export_profile_forms e
   LEFT JOIN _giq_history_stage.dog_map dm
     ON dm.source_name='profile' AND dm.source_id=e.payload->>'dogNaturalKey'
-), canonical_candidates AS MATERIALIZED (
+), exact_provider_candidates AS MATERIALIZED (
   SELECT
     p.source_file,p.line_number,
-    count(l.*)::integer AS candidate_count,
-    min(l.target_id) AS race_id,
-    min(l.natural_key) AS race_natural_key
+    count(DISTINCT n.target_id)::integer AS candidate_count,
+    min(n.target_id) AS race_id,
+    min(n.natural_key) AS race_natural_key
   FROM parsed p
-  LEFT JOIN _giq_history_stage.race_lookup l
+  LEFT JOIN _giq_history_stage.race_source s
     ON p.url_class='canonical-racing-url'
-   AND l.track_slug=_giq_history_merge.slug(p.race_parts[1])
-   AND l.meeting_date=p.race_parts[2]::date
-   AND l.race_number=p.race_parts[3]::integer
+   AND s.source_name='export'
+   AND lower(coalesce(s.source_provider,''))='thedogs'
+   AND p.payload->>'raceProviderKey'='thedogs:race:' || s.provider_source_id
+  LEFT JOIN _giq_history_stage.normalized_race n ON n.natural_key=s.natural_key
   WHERE p.url_class='canonical-racing-url'
   GROUP BY p.source_file,p.line_number
 ), dog_candidates AS MATERIALIZED (
@@ -1106,14 +1158,24 @@ WITH parsed AS MATERIALIZED (
 INSERT INTO _giq_history_stage.profile_form_resolution
 SELECT
   p.source_file,p.line_number,p.payload,p.url_class,p.dog_id,
-  CASE WHEN coalesce(c.candidate_count,d.candidate_count,0)=1 THEN coalesce(c.race_id,d.race_id) END,
-  CASE WHEN coalesce(c.candidate_count,d.candidate_count,0)=1 THEN coalesce(c.race_natural_key,d.race_natural_key) END,
-  coalesce(c.candidate_count,d.candidate_count,0),
+  CASE
+    WHEN coalesce(x.candidate_count,0)=1 THEN x.race_id
+    WHEN p.url_class='dog-url-recovery-only' AND coalesce(d.candidate_count,0)=1 THEN d.race_id
+  END,
+  CASE
+    WHEN coalesce(x.candidate_count,0)=1 THEN x.race_natural_key
+    WHEN p.url_class='dog-url-recovery-only' AND coalesce(d.candidate_count,0)=1 THEN d.race_natural_key
+  END,
+  CASE
+    WHEN p.url_class='canonical-racing-url' THEN coalesce(x.candidate_count,0)
+    ELSE coalesce(d.candidate_count,0)
+  END,
   CASE
     WHEN p.dog_id IS NULL THEN 'quarantined-dog-unresolved'
-    WHEN coalesce(c.candidate_count,d.candidate_count,0)=1 AND p.url_class='canonical-racing-url'
+    WHEN coalesce(x.candidate_count,0)>1 THEN 'quarantined-ambiguous-provider-race'
+    WHEN coalesce(x.candidate_count,0)=1 AND p.url_class='canonical-racing-url'
       THEN 'verified-canonical-race-url'
-    WHEN coalesce(c.candidate_count,d.candidate_count,0)>1 THEN 'quarantined-ambiguous-race'
+    WHEN coalesce(d.candidate_count,0)>1 THEN 'quarantined-ambiguous-race'
     WHEN p.url_class='canonical-racing-url'
       THEN 'preserved-provider-racing-url-without-canonical-race'
     WHEN p.url_class='dog-url-recovery-only' AND coalesce(d.candidate_count,0)=1
@@ -1123,7 +1185,7 @@ SELECT
     ELSE 'quarantined-unresolved-race'
   END
 FROM parsed p
-LEFT JOIN canonical_candidates c USING(source_file,line_number)
+LEFT JOIN exact_provider_candidates x USING(source_file,line_number)
 LEFT JOIN dog_candidates d USING(source_file,line_number);
 
 CREATE INDEX profile_form_resolution_race_idx
@@ -1138,6 +1200,7 @@ DECLARE
   dog_url_count bigint;
   canonical_linked bigint;
   canonical_unlinked bigint;
+  provider_identity_ambiguities bigint;
   temora_slugless bigint;
 BEGIN
   SELECT count(*),
@@ -1145,7 +1208,7 @@ BEGIN
          count(*) FILTER(WHERE url_class='dog-url-recovery-only')
   INTO total,canonical_count,dog_url_count
   FROM _giq_history_stage.profile_form_resolution;
-  IF (total,canonical_count,dog_url_count) <> (6218839::bigint,5904337::bigint,314502::bigint) THEN
+  IF (total,canonical_count,dog_url_count) <> (6474962::bigint,6160604::bigint,314358::bigint) THEN
     RAISE EXCEPTION 'profile-form URL partition changed: total %, canonical %, dog-url %',
       total,canonical_count,dog_url_count;
   END IF;
@@ -1153,9 +1216,16 @@ BEGIN
          count(*) FILTER(WHERE disposition='preserved-provider-racing-url-without-canonical-race')
   INTO canonical_linked,canonical_unlinked
   FROM _giq_history_stage.profile_form_resolution;
-  IF (canonical_linked,canonical_unlinked)<>(5459480::bigint,444857::bigint) THEN
+  IF (canonical_linked,canonical_unlinked)<>(5692109::bigint,468495::bigint) THEN
     RAISE EXCEPTION 'canonical profile-form linked/unlinked partition changed: linked %, unlinked %',
       canonical_linked,canonical_unlinked;
+  END IF;
+  SELECT count(*) INTO provider_identity_ambiguities
+  FROM _giq_history_stage.profile_form_resolution
+  WHERE disposition='quarantined-ambiguous-provider-race';
+  IF provider_identity_ambiguities<>0 THEN
+    RAISE EXCEPTION 'profile-form provider identity resolution produced % ambiguities',
+      provider_identity_ambiguities;
   END IF;
   SELECT count(*) INTO temora_slugless
   FROM _giq_history_stage.profile_form_resolution
@@ -1183,6 +1253,7 @@ WHERE disposition LIKE 'quarantined-%'
 
 ON CONFLICT DO NOTHING;
 
+-- checkpoint-stage: 7-profile-materialization
 CREATE TABLE _giq_history_stage.normalized_profile_form (
   natural_key text PRIMARY KEY,
   target_id text NOT NULL UNIQUE,
@@ -1254,7 +1325,7 @@ SELECT
   d.dog_id,'thedogs',d.canonical_source_id,
   CASE WHEN race.target_id IS NOT NULL THEN
     '/racing/' || _giq_history_merge.slug(track.name) || '/' ||
-      to_char(meeting.meeting_date AT TIME ZONE 'UTC','YYYY-MM-DD') || '/' || race.race_number || '/'
+      d.canonical_parts[2] || '/' || race.race_number || '/'
     ELSE '/racing/' || _giq_history_merge.slug(d.canonical_parts[1]) || '/' ||
       d.canonical_parts[2] || '/' || d.canonical_parts[3]::integer || '/'
   END,
@@ -1304,7 +1375,8 @@ BEGIN
   JOIN _giq_history_stage.normalized_track t ON t.target_id=m.track_id
   WHERE f.resolved_race_id IS NOT NULL
     AND f.race_url <> '/racing/' || _giq_history_merge.slug(t.name) || '/' ||
-    to_char(m.meeting_date AT TIME ZONE 'UTC','YYYY-MM-DD') || '/' || r.race_number || '/';
+    substring(f.source_id from '^/racing/[^/]+/([0-9]{4}-[0-9]{2}-[0-9]{2})/') ||
+    '/' || r.race_number || '/';
   IF mismatched_urls<>0 THEN
     RAISE EXCEPTION '% resolved profile-form URLs disagree with their canonical race',mismatched_urls;
   END IF;
@@ -1320,6 +1392,7 @@ BEGIN
 END
 $$;
 
+-- checkpoint-stage: 8-form-entries
 CREATE TABLE _giq_history_stage.normalized_form_entry (
   natural_key text PRIMARY KEY,
   target_id text NOT NULL UNIQUE,
@@ -1367,8 +1440,12 @@ WITH r2 AS MATERIALIZED (
   WHERE p.url_class='dog-url-recovery-only'
     AND p.candidate_count=1
     AND p.dog_id IS NOT NULL
-), source AS (
+), source AS MATERIALIZED (
   SELECT * FROM r2 UNION ALL SELECT * FROM export
+), provenance AS MATERIALIZED (
+  SELECT dog_id,race_id,jsonb_agg(source_key ORDER BY source_key) AS source_keys
+  FROM source
+  GROUP BY dog_id,race_id
 ), preferred AS (
   SELECT DISTINCT ON(dog_id,race_id) * FROM source
   ORDER BY dog_id,race_id,priority DESC,source_key
@@ -1380,14 +1457,12 @@ SELECT
   'form:' || p.dog_id || ':' || p.race_id,
   coalesce(prod.id,_giq_history_merge.history_id('form',p.dog_id || ':' || p.race_id)),
   p.dog_id,p.race_id,p.track_id,p.date,p.box_number,p.finish,p.time,p.distance,p.grade,p.weight,
-  p.created_at,jsonb_build_object('sources',(
-
-    SELECT jsonb_agg(source_key ORDER BY source_key)
-    FROM source s WHERE s.dog_id=p.dog_id AND s.race_id=p.race_id
-  ))
+  p.created_at,jsonb_build_object('sources',provenance.source_keys)
 FROM preferred p
+JOIN provenance USING(dog_id,race_id)
 LEFT JOIN production prod ON prod."dogId"=p.dog_id AND prod."raceId"=p.race_id;
 
+-- checkpoint-stage: 9-media
 CREATE TABLE _giq_history_stage.media_resolution (
   source_file text NOT NULL,
   line_number bigint NOT NULL,
@@ -1589,8 +1664,12 @@ FROM _giq_history_stage.media_resolution
 WHERE disposition LIKE 'quarantined-%'
 ON CONFLICT DO NOTHING;
 
+-- checkpoint-stage: 10-pedigree
 CREATE TABLE _giq_history_stage.normalized_pedigree_edge (
   natural_key text PRIMARY KEY,
+  source_file text NOT NULL,
+  source_line bigint NOT NULL,
+  evidence_sha256 text NOT NULL CHECK(evidence_sha256 ~ '^[0-9a-f]{64}$'),
   child_id text NOT NULL,
   parent_id text NOT NULL,
   relationship text NOT NULL,
@@ -1607,6 +1686,8 @@ CREATE TABLE _giq_history_stage.normalized_pedigree_edge (
 WITH resolved AS (
   SELECT
     e.payload->>'naturalKey' AS natural_key,
+    e.source_file,e.line_number AS source_line,
+    encode(digest(e.payload::text,'sha256'),'hex') AS evidence_sha256,
     child.target_id AS child_id,parent.target_id AS parent_id,
     e.payload->>'relation' AS relationship,e.payload->>'parentName' AS parent_name,
     e.payload->>'sourceArchiveKey' AS source_archive_key,e.payload,
@@ -1620,7 +1701,8 @@ WITH resolved AS (
     ON parent.source_name='pedigree-parent' AND parent.source_id=e.payload->>'parentNaturalKey'
 )
 INSERT INTO _giq_history_stage.normalized_pedigree_edge
-SELECT natural_key,child_id,parent_id,relationship,parent_name,'thedogs',source_archive_key,
+SELECT natural_key,source_file,source_line,evidence_sha256,
+       child_id,parent_id,relationship,parent_name,'thedogs',source_archive_key,
        self_parent,duplicate_rank,(NOT self_parent AND duplicate_rank=1),payload
 FROM resolved;
 
@@ -1634,7 +1716,7 @@ BEGIN
          count(*) FILTER(WHERE duplicate_rank>1)
   INTO staged,self_rows,duplicate_rows
   FROM _giq_history_stage.normalized_pedigree_edge;
-  IF staged<>328069 OR self_rows<>16 OR duplicate_rows<>0 THEN
+  IF staged<>384568 OR self_rows<>16 OR duplicate_rows<>0 THEN
     RAISE EXCEPTION 'TheDogs pedigree partition changed: staged %, self %, duplicate %',
       staged,self_rows,duplicate_rows;
   END IF;
@@ -1650,6 +1732,13 @@ SELECT
 FROM _giq_history_stage.normalized_pedigree_edge
 WHERE NOT canonical_eligible
 ON CONFLICT DO NOTHING;
+
+CREATE UNIQUE INDEX normalized_pedigree_edge_canonical_child_relationship_key
+  ON _giq_history_stage.normalized_pedigree_edge(child_id,relationship)
+  INCLUDE(parent_id,parent_name)
+  WHERE canonical_eligible;
+ANALYZE _giq_history_stage.normalized_dog;
+ANALYZE _giq_history_stage.normalized_pedigree_edge;
 
 CREATE TABLE _giq_history_stage.thedogs_pedigree_pair AS
 SELECT
@@ -1672,6 +1761,9 @@ CREATE UNIQUE INDEX thedogs_pedigree_pair_child_key
   ON _giq_history_stage.thedogs_pedigree_pair(child_natural_key);
 CREATE INDEX thedogs_pedigree_pair_evidence_idx
   ON _giq_history_stage.thedogs_pedigree_pair(normalized_name,whelp_month,sire_name,dam_name);
+ANALYZE _giq_history_stage.thedogs_pedigree_pair;
+ANALYZE _giq_history_stage.galtd_observation;
+ANALYZE _giq_history_stage.galtd_assertion;
 
 CREATE TABLE _giq_history_stage.galtd_exact_crosswalk AS
 WITH galtd_pair AS MATERIALIZED (
@@ -1712,6 +1804,8 @@ WITH galtd_pair AS MATERIALIZED (
 SELECT *,
   (thedogs_candidates=1 AND galtd_candidates=1 AND NOT higher_authority_conflict)
     AS provider_retrieval_candidate,
+  true AS corroboration_only,
+  false AS stable_bridge,
   false AS canonical_eligible,
   CASE
     WHEN higher_authority_conflict THEN 'preserved-production-conflict'
@@ -1725,6 +1819,7 @@ CREATE INDEX galtd_exact_crosswalk_source_idx
 CREATE UNIQUE INDEX galtd_exact_crosswalk_eligible_source_key
   ON _giq_history_stage.galtd_exact_crosswalk(galtd_source_id)
   WHERE canonical_eligible;
+ANALYZE _giq_history_stage.galtd_exact_crosswalk;
 
 DO $$
 BEGIN
@@ -1733,6 +1828,12 @@ BEGIN
     WHERE canonical_eligible
   ) THEN
     RAISE EXCEPTION 'descriptive GALTD/TheDogs composite matching cannot establish canonical identity';
+  END IF;
+  IF EXISTS(
+    SELECT 1 FROM _giq_history_stage.galtd_exact_crosswalk
+    WHERE stable_bridge OR (canonical_eligible AND corroboration_only)
+  ) THEN
+    RAISE EXCEPTION 'GALTD descriptive composite evidence cannot be a stable identity bridge';
   END IF;
   IF EXISTS(
     SELECT 1 FROM _giq_history_stage.galtd_exact_crosswalk
@@ -1752,6 +1853,20 @@ SELECT
 FROM _giq_history_stage.galtd_observation
 WHERE payload ? 'conflictGroup'
 ON CONFLICT DO NOTHING;
+
+-- checkpoint-stage: 11-archives-and-accounting
+ANALYZE _giq_history_stage."r2_Meeting";
+ANALYZE _giq_history_stage."r2_Race";
+ANALYZE _giq_history_stage."r2_Runner";
+ANALYZE _giq_history_stage."r2_Result";
+ANALYZE _giq_history_stage.dog_identity_source;
+ANALYZE _giq_history_stage.dog_map;
+ANALYZE _giq_history_stage.meeting_source;
+ANALYZE _giq_history_stage.race_source;
+ANALYZE _giq_history_stage.runner_source;
+ANALYZE _giq_history_stage.result_source;
+ANALYZE _giq_history_stage.profile_form_resolution;
+ANALYZE _giq_history_stage.normalized_form_entry;
 
 CREATE TABLE _giq_history_stage.normalized_dog_profile_archive AS
 SELECT
@@ -1836,12 +1951,166 @@ BEGIN
 END
 $$;
 
+CREATE TABLE _giq_history_merge.production_natural_key_duplicate (
+  entity_type text NOT NULL CHECK(entity_type IN ('Meeting','Race')),
+  natural_key text NOT NULL,
+  canonical_id text NOT NULL,
+  duplicate_id text NOT NULL,
+  canonical_selection_basis text NOT NULL CHECK(
+    canonical_selection_basis IN ('normalized-source-target','provider-authority-and-completeness')
+  ),
+  source_provider text,
+  provider_source_id text,
+  canonical_row_sha256 text NOT NULL CHECK(canonical_row_sha256 ~ '^[0-9a-f]{64}$'),
+  duplicate_row_sha256 text NOT NULL CHECK(duplicate_row_sha256 ~ '^[0-9a-f]{64}$'),
+  duplicate_row jsonb NOT NULL,
+  PRIMARY KEY(entity_type,duplicate_id),
+  CHECK(canonical_id<>duplicate_id)
+);
+
+INSERT INTO _giq_history_merge.production_natural_key_duplicate
+WITH production_meeting AS MATERIALIZED (
+  SELECT
+    _giq_history_merge.track_key(track.name,track.state) || ':meeting:' ||
+      to_char(meeting."meetingDate" AT TIME ZONE 'UTC','YYYY-MM-DD') AS natural_key,
+    meeting.id,meeting."sourceProvider",meeting."sourceId",to_jsonb(meeting) AS row_json,
+    CASE lower(coalesce(meeting."sourceProvider",''))
+      WHEN 'thedogs' THEN 400 WHEN 'fasttrack' THEN 300 WHEN 'watchdog' THEN 200
+      WHEN '' THEN 0 ELSE 100
+    END AS provider_rank,
+    (meeting."meetingType" IS NOT NULL)::integer +
+    (meeting."sourceProvider" IS NOT NULL)::integer +
+    (meeting."sourceId" IS NOT NULL)::integer +
+    (meeting."lastSyncedAt" IS NOT NULL)::integer +
+    (meeting."sourceRawJson" IS NOT NULL)::integer AS completeness_rank
+  FROM public."Meeting" meeting
+  JOIN public."Track" track ON track.id=meeting."trackId"
+  WHERE lower(btrim(track.name))<>'greyhoundiq demo park'
+    AND coalesce(lower(meeting."sourceProvider"),'') NOT IN ('demo','greyhoundiq-demo')
+), ranked_meeting AS MATERIALIZED (
+  SELECT
+    production.*,
+    normalized.target_id AS normalized_target_id,
+    first_value(production.id) OVER (
+      PARTITION BY production.natural_key
+      ORDER BY
+        coalesce(production.id=normalized.target_id,false) DESC,
+        production.provider_rank DESC,
+        production.completeness_rank DESC,
+        production.id
+    ) AS canonical_id,
+    count(*) OVER (PARTITION BY production.natural_key) AS group_rows
+  FROM production_meeting production
+  LEFT JOIN _giq_history_stage.normalized_meeting normalized USING(natural_key)
+)
+SELECT
+  'Meeting',duplicate.natural_key,duplicate.canonical_id,duplicate.id,
+  CASE WHEN duplicate.normalized_target_id IS NOT NULL
+    THEN 'normalized-source-target' ELSE 'provider-authority-and-completeness' END,
+  duplicate."sourceProvider",duplicate."sourceId",
+  encode(digest(canonical.row_json::text,'sha256'),'hex'),
+  encode(digest(duplicate.row_json::text,'sha256'),'hex'),duplicate.row_json
+FROM ranked_meeting duplicate
+JOIN ranked_meeting canonical
+  ON canonical.natural_key=duplicate.natural_key AND canonical.id=duplicate.canonical_id
+WHERE duplicate.group_rows>1 AND duplicate.id<>duplicate.canonical_id;
+
+INSERT INTO _giq_history_merge.production_natural_key_duplicate
+WITH production_race AS MATERIALIZED (
+SELECT
+    _giq_history_merge.track_key(track.name,track.state) || ':meeting:' ||
+      to_char(meeting."meetingDate" AT TIME ZONE 'UTC','YYYY-MM-DD') ||
+      ':race:' || race."raceNumber" AS natural_key,
+    race.id,race."meetingId",race."sourceProvider",race."sourceId",to_jsonb(race) AS row_json,
+    coalesce(meeting_duplicate.canonical_id,meeting.id) AS canonical_meeting_id,
+    CASE lower(coalesce(race."sourceProvider",''))
+      WHEN 'thedogs' THEN 400 WHEN 'fasttrack' THEN 300 WHEN 'watchdog' THEN 200
+      WHEN '' THEN 0 ELSE 100
+    END AS provider_rank,
+    (race."raceTime" IS NOT NULL)::integer +
+    (race.distance IS NOT NULL)::integer +
+    (race.grade IS NOT NULL)::integer +
+    (race."prizeMoney" IS NOT NULL)::integer +
+    (race."sourceProvider" IS NOT NULL)::integer +
+    (race."sourceId" IS NOT NULL)::integer +
+    (race."lastSyncedAt" IS NOT NULL)::integer +
+    (race."resultStatus" IS NOT NULL)::integer +
+    (race."replayUrl" IS NOT NULL)::integer +
+    (race."photoFinishUrl" IS NOT NULL)::integer +
+    (race."sourceRawJson" IS NOT NULL)::integer AS completeness_rank
+  FROM public."Race" race
+  JOIN public."Meeting" meeting ON meeting.id=race."meetingId"
+  JOIN public."Track" track ON track.id=meeting."trackId"
+  LEFT JOIN _giq_history_merge.production_natural_key_duplicate meeting_duplicate
+    ON meeting_duplicate.entity_type='Meeting' AND meeting_duplicate.duplicate_id=meeting.id
+  WHERE lower(btrim(track.name))<>'greyhoundiq demo park'
+    AND coalesce(lower(meeting."sourceProvider"),'') NOT IN ('demo','greyhoundiq-demo')
+), ranked_race AS MATERIALIZED (
+  SELECT
+    production.*,
+    normalized.target_id AS normalized_target_id,
+    first_value(production.id) OVER (
+      PARTITION BY production.natural_key
+      ORDER BY
+        coalesce(production.id=normalized.target_id,false) DESC,
+        (production."meetingId"=production.canonical_meeting_id) DESC,
+        production.provider_rank DESC,
+        production.completeness_rank DESC,
+        production.id
+    ) AS canonical_id,
+    count(*) OVER (PARTITION BY production.natural_key) AS group_rows
+  FROM production_race production
+  LEFT JOIN _giq_history_stage.normalized_race normalized USING(natural_key)
+)
+SELECT
+  'Race',duplicate.natural_key,duplicate.canonical_id,duplicate.id,
+  CASE WHEN duplicate.normalized_target_id IS NOT NULL
+    THEN 'normalized-source-target' ELSE 'provider-authority-and-completeness' END,
+  duplicate."sourceProvider",duplicate."sourceId",
+  encode(digest(canonical.row_json::text,'sha256'),'hex'),
+  encode(digest(duplicate.row_json::text,'sha256'),'hex'),duplicate.row_json
+FROM ranked_race duplicate
+JOIN ranked_race canonical
+  ON canonical.natural_key=duplicate.natural_key AND canonical.id=duplicate.canonical_id
+WHERE duplicate.group_rows>1 AND duplicate.id<>duplicate.canonical_id;
+
+INSERT INTO _giq_history_merge.quarantine
+  (source_name,entity_type,source_key,reason_code,disposition,blocking,evidence)
+SELECT
+  'production-clone',lower(entity_type),duplicate_id,'confirmed-natural-key-duplicate',
+  'pending-reference-safe-canonical-consolidation',false,
+  jsonb_build_object(
+    'naturalKey',natural_key,'canonicalId',canonical_id,
+    'canonicalSelectionBasis',canonical_selection_basis,
+    'sourceProvider',source_provider,'providerSourceId',provider_source_id,
+    'canonicalRowSha256',canonical_row_sha256,'duplicateRowSha256',duplicate_row_sha256,
+    'duplicateRow',duplicate_row
+  )
+FROM _giq_history_merge.production_natural_key_duplicate
+ON CONFLICT DO NOTHING;
+
+INSERT INTO _giq_history_merge.disposition
+  (source_name,issue_type,source_key,disposition_code,canonical_entity_type,canonical_natural_key,evidence)
+SELECT
+  'production-clone','natural-key-duplicate',duplicate_id,
+  'pending-reference-safe-canonical-consolidation',entity_type,natural_key,
+  jsonb_build_object(
+    'canonicalId',canonical_id,'canonicalSelectionBasis',canonical_selection_basis,
+    'duplicateRowSha256',duplicate_row_sha256
+  )
+FROM _giq_history_merge.production_natural_key_duplicate
+ON CONFLICT DO NOTHING;
+
 DO $$
 DECLARE
   meeting_duplicates bigint;
   race_duplicates bigint;
   production_meeting_duplicates bigint;
   production_race_duplicates bigint;
+  production_meeting_duplicate_groups bigint;
+  production_race_duplicate_groups bigint;
+  inventoried_meeting_duplicate_groups bigint;
+  inventoried_race_duplicate_groups bigint;
   real_meetings bigint;
   real_races bigint;
   real_runners bigint;
@@ -1862,33 +2131,64 @@ BEGIN
       meeting_duplicates,race_duplicates;
   END IF;
 
-  SELECT count(*) INTO production_meeting_duplicates
-  FROM (
-    SELECT _giq_history_merge.track_key(t.name,t.state),
-           (m."meetingDate" AT TIME ZONE 'UTC')::date
-    FROM public."Meeting" m JOIN public."Track" t ON t.id=m."trackId"
-    WHERE lower(btrim(t.name))<>'greyhoundiq demo park'
-      AND coalesce(lower(m."sourceProvider"),'') NOT IN ('demo','greyhoundiq-demo')
-    GROUP BY _giq_history_merge.track_key(t.name,t.state),
-             (m."meetingDate" AT TIME ZONE 'UTC')::date
-    HAVING count(*)>1
-  ) duplicate;
-  SELECT count(*) INTO production_race_duplicates
-  FROM (
-    SELECT _giq_history_merge.track_key(t.name,t.state),
-           (m."meetingDate" AT TIME ZONE 'UTC')::date,r."raceNumber"
-    FROM public."Race" r
-    JOIN public."Meeting" m ON m.id=r."meetingId"
-    JOIN public."Track" t ON t.id=m."trackId"
-    WHERE lower(btrim(t.name))<>'greyhoundiq demo park'
-      AND coalesce(lower(m."sourceProvider"),'') NOT IN ('demo','greyhoundiq-demo')
-    GROUP BY _giq_history_merge.track_key(t.name,t.state),
-             (m."meetingDate" AT TIME ZONE 'UTC')::date,r."raceNumber"
-    HAVING count(*)>1
-  ) duplicate;
-  IF production_meeting_duplicates<>0 OR production_race_duplicates<>0 THEN
-    RAISE EXCEPTION 'production natural-key collision: meeting groups %, race groups %',
+  SELECT count(*) FILTER(WHERE entity_type='Meeting'),
+         count(*) FILTER(WHERE entity_type='Race')
+  INTO production_meeting_duplicates,production_race_duplicates
+  FROM _giq_history_merge.production_natural_key_duplicate;
+  IF production_meeting_duplicates<>7 OR production_race_duplicates<>72 THEN
+    RAISE EXCEPTION 'production natural-key duplicate inventory changed: meeting aliases %, race aliases %',
       production_meeting_duplicates,production_race_duplicates;
+  END IF;
+
+  SELECT count(*) INTO production_meeting_duplicate_groups
+  FROM (
+    SELECT
+      _giq_history_merge.track_key(track.name,track.state) || ':meeting:' ||
+        to_char(meeting."meetingDate" AT TIME ZONE 'UTC','YYYY-MM-DD') AS natural_key
+    FROM public."Meeting" meeting
+    JOIN public."Track" track ON track.id=meeting."trackId"
+    WHERE lower(btrim(track.name))<>'greyhoundiq demo park'
+      AND coalesce(lower(meeting."sourceProvider"),'') NOT IN ('demo','greyhoundiq-demo')
+    GROUP BY 1 HAVING count(*)>1
+  ) duplicate_group;
+  SELECT count(*) INTO production_race_duplicate_groups
+  FROM (
+    SELECT
+      _giq_history_merge.track_key(track.name,track.state) || ':meeting:' ||
+        to_char(meeting."meetingDate" AT TIME ZONE 'UTC','YYYY-MM-DD') ||
+        ':race:' || race."raceNumber" AS natural_key
+    FROM public."Race" race
+    JOIN public."Meeting" meeting ON meeting.id=race."meetingId"
+    JOIN public."Track" track ON track.id=meeting."trackId"
+    WHERE lower(btrim(track.name))<>'greyhoundiq demo park'
+      AND coalesce(lower(meeting."sourceProvider"),'') NOT IN ('demo','greyhoundiq-demo')
+    GROUP BY 1 HAVING count(*)>1
+  ) duplicate_group;
+  SELECT
+    count(DISTINCT natural_key) FILTER(WHERE entity_type='Meeting'),
+    count(DISTINCT natural_key) FILTER(WHERE entity_type='Race')
+  INTO inventoried_meeting_duplicate_groups,inventoried_race_duplicate_groups
+  FROM _giq_history_merge.production_natural_key_duplicate;
+  IF (production_meeting_duplicate_groups,production_race_duplicate_groups) <>
+     (inventoried_meeting_duplicate_groups,inventoried_race_duplicate_groups) OR
+     (production_meeting_duplicate_groups,production_race_duplicate_groups) <> (7::bigint,72::bigint) THEN
+    RAISE EXCEPTION
+      'production natural-key duplicate group coverage changed: source meeting/race %/%, inventory meeting/race %/%',
+      production_meeting_duplicate_groups,production_race_duplicate_groups,
+      inventoried_meeting_duplicate_groups,inventoried_race_duplicate_groups;
+  END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM _giq_history_merge.production_natural_key_duplicate duplicate
+    JOIN _giq_history_stage.normalized_meeting normalized USING(natural_key)
+    WHERE duplicate.entity_type='Meeting' AND duplicate.canonical_id<>normalized.target_id
+    UNION ALL
+    SELECT 1
+    FROM _giq_history_merge.production_natural_key_duplicate duplicate
+    JOIN _giq_history_stage.normalized_race normalized USING(natural_key)
+    WHERE duplicate.entity_type='Race' AND duplicate.canonical_id<>normalized.target_id
+  ) THEN
+    RAISE EXCEPTION 'production duplicate inventory did not preserve normalized canonical targets';
   END IF;
 
   SELECT
@@ -1960,6 +2260,71 @@ FROM _giq_history_stage."r2_Runner" runner
 JOIN _giq_history_stage."r2_Race" r ON r.id=runner."raceId"
 JOIN _giq_history_stage."r2_Meeting" m ON m.id=r."meetingId"
 WHERE lower(m."sourceProvider") IN ('demo','greyhoundiq-demo')
+ON CONFLICT DO NOTHING;
+
+CREATE TABLE _giq_history_stage.synthetic_r2_pedigree_edge AS
+SELECT
+  dog.id AS child_source_id,parent.id AS parent_source_id,
+  child_map.target_id AS child_id,parent_map.target_id AS parent_id,
+  dog.name AS child_name,parent.name AS parent_name,edge.relationship,
+  dog.name LIKE 'Option A %' AND parent.name LIKE 'Option A %' AS synthetic_demo
+FROM _giq_history_stage."r2_Dog" dog
+JOIN _giq_history_stage.dog_map child_map
+  ON child_map.source_name='r2' AND child_map.source_id=dog.id
+CROSS JOIN LATERAL (VALUES('sire',dog."sireId"),('dam',dog."damId")) edge(relationship,parent_source_id)
+JOIN _giq_history_stage."r2_Dog" parent ON parent.id=edge.parent_source_id
+JOIN _giq_history_stage.dog_map parent_map
+  ON parent_map.source_name='r2' AND parent_map.source_id=parent.id
+WHERE edge.parent_source_id IS NOT NULL;
+ALTER TABLE _giq_history_stage.synthetic_r2_pedigree_edge
+  ADD PRIMARY KEY(child_source_id,relationship,parent_source_id);
+
+DO $$
+DECLARE
+  edge_rows bigint;
+  non_demo_rows bigint;
+  provider_overlap_rows bigint;
+BEGIN
+  SELECT count(*),count(*) FILTER(WHERE NOT synthetic_demo)
+  INTO edge_rows,non_demo_rows
+  FROM _giq_history_stage.synthetic_r2_pedigree_edge;
+  SELECT count(*) INTO provider_overlap_rows
+  FROM _giq_history_stage.synthetic_r2_pedigree_edge r2
+  JOIN _giq_history_stage.normalized_pedigree_edge provider
+    ON provider.child_id=r2.child_id AND provider.parent_id=r2.parent_id
+   AND provider.relationship=r2.relationship;
+  IF edge_rows<>14 OR non_demo_rows<>0 OR provider_overlap_rows<>0 THEN
+    RAISE EXCEPTION
+      'synthetic R2 pedigree exclusion partition changed: rows %, non-demo %, provider overlap %',
+      edge_rows,non_demo_rows,provider_overlap_rows;
+  END IF;
+END
+$$;
+
+INSERT INTO _giq_history_merge.quarantine
+  (source_name,entity_type,source_key,reason_code,disposition,blocking,evidence)
+SELECT
+  'r2','pedigree',child_source_id || ':' || relationship,'synthetic-demo-pedigree',
+  'excluded-synthetic-pedigree-dogs-preserved',false,
+  jsonb_build_object(
+    'childSourceId',child_source_id,'childId',child_id,'childName',child_name,
+    'parentSourceId',parent_source_id,'parentId',parent_id,'parentName',parent_name,
+    'relationship',relationship,'syntheticDemo',synthetic_demo
+  )
+FROM _giq_history_stage.synthetic_r2_pedigree_edge
+ON CONFLICT DO NOTHING;
+
+INSERT INTO _giq_history_merge.disposition
+  (source_name,issue_type,source_key,disposition_code,canonical_entity_type,canonical_natural_key,evidence)
+SELECT
+  'r2','synthetic-demo-pedigree',edge.child_source_id || ':' || edge.relationship,
+  'excluded-synthetic-pedigree-dogs-preserved','Dog',dog.natural_key,
+  jsonb_build_object(
+    'childId',edge.child_id,'parentId',edge.parent_id,'parentName',edge.parent_name,
+    'relationship',edge.relationship,'syntheticDemo',edge.synthetic_demo
+  )
+FROM _giq_history_stage.synthetic_r2_pedigree_edge edge
+JOIN _giq_history_stage.normalized_dog dog ON dog.target_id=edge.child_id
 ON CONFLICT DO NOTHING;
 
 DO $$
@@ -2042,12 +2407,46 @@ CREATE TABLE _giq_history_stage.export_issue_outcome (
 INSERT INTO _giq_history_stage.export_issue_outcome
 SELECT
   'duplicates',d.source_file,d.line_number,d.payload->>'issueType',
-  CASE WHEN r.target_id IS NOT NULL THEN 'selected-runner-exists-by-natural-key'
-       ELSE 'unaccounted-duplicate' END,
-  'Runner',r.natural_key,d.payload
+  'selected-runner-exists-by-natural-key','Runner',r.natural_key,d.payload
 FROM _giq_history_stage.export_duplicates d
-LEFT JOIN _giq_history_stage.runner_map r
+JOIN _giq_history_stage.runner_map r
   ON r.source_name='export' AND r.source_id=d.payload->>'naturalKey';
+
+WITH unmatched_duplicate AS MATERIALIZED (
+  SELECT d.*
+  FROM _giq_history_stage.export_duplicates d
+  WHERE NOT EXISTS (
+    SELECT 1 FROM _giq_history_stage.runner_map r
+    WHERE r.source_name='export' AND r.source_id=d.payload->>'naturalKey'
+  )
+)
+INSERT INTO _giq_history_stage.export_issue_outcome
+SELECT
+  'duplicates',d.source_file,d.line_number,d.payload->>'issueType',
+  CASE WHEN selected.payload IS NOT NULL AND excluded_race.payload IS NOT NULL
+    THEN 'duplicate-runner-excluded-with-quarantined-race'
+    ELSE 'unaccounted-duplicate' END,
+  NULL,NULL,
+  d.payload || CASE
+    WHEN selected.payload IS NOT NULL AND excluded_race.payload IS NOT NULL THEN
+      jsonb_build_object(
+        'selectedRunner',selected.payload,
+        'excludedRaceQuarantine',excluded_race.payload
+      )
+    ELSE '{}'::jsonb
+  END
+FROM unmatched_duplicate d
+LEFT JOIN LATERAL (
+  SELECT runner.payload
+  FROM _giq_history_stage.export_runners runner
+  WHERE runner.payload->>'naturalKey'=d.payload->>'naturalKey'
+    AND runner.payload->>'mergeStatus'='ready'
+  LIMIT 2
+) selected ON true
+LEFT JOIN _giq_history_stage.export_quarantine excluded_race
+  ON excluded_race.payload->>'issueType'='race-row'
+ AND excluded_race.payload->>'reason'='missing_race_distance'
+ AND excluded_race.payload->>'naturalKey'=selected.payload->>'raceNaturalKey';
 
 WITH profile_outcome AS MATERIALIZED (
   SELECT
@@ -2126,6 +2525,8 @@ SELECT
       THEN 'quarantined-missing-dog-provider-identity'
     WHEN q.payload->>'issueType'='race-row' AND q.payload->>'reason'='missing_race_distance'
       THEN 'quarantined-missing-race-distance'
+    WHEN q.payload->>'issueType'='source-file' AND q.payload->>'reason'='unverified_profile_identity'
+      THEN 'quarantined-unverified-profile-source'
     ELSE 'unaccounted-source-quarantine'
   END,
   NULL,NULL,q.payload
@@ -2139,9 +2540,11 @@ DECLARE
   pedigree_orphans bigint;
   quarantine_runner bigint;
   quarantine_race bigint;
+  quarantine_profile_source bigint;
   unaccounted bigint;
   valid_unlinked bigint;
   non_race_quarantined bigint;
+  duplicate_runner_quarantined_race bigint;
 BEGIN
   SELECT count(*) FILTER(WHERE source_dataset='duplicates'),
     count(*) FILTER(WHERE issue_type='profile-form-race-unresolved'),
@@ -2149,23 +2552,33 @@ BEGIN
     count(*) FILTER(WHERE issue_type='pedigree-parent-profile-unresolved'),
     count(*) FILTER(WHERE outcome='quarantined-missing-dog-provider-identity'),
     count(*) FILTER(WHERE outcome='quarantined-missing-race-distance'),
+    count(*) FILTER(WHERE outcome='quarantined-unverified-profile-source'),
     count(*) FILTER(WHERE outcome LIKE 'unaccounted-%'),
     count(*) FILTER(WHERE outcome='profile-form-valid-unlinked-history-preserved'),
-    count(*) FILTER(WHERE outcome='profile-form-non-race-url-quarantined')
+    count(*) FILTER(WHERE outcome='profile-form-non-race-url-quarantined'),
+    count(*) FILTER(WHERE outcome='duplicate-runner-excluded-with-quarantined-race')
   INTO duplicates,profile_orphans,runner_orphans,pedigree_orphans,
-       quarantine_runner,quarantine_race,unaccounted,valid_unlinked,non_race_quarantined
+       quarantine_runner,quarantine_race,quarantine_profile_source,
+       unaccounted,valid_unlinked,non_race_quarantined,duplicate_runner_quarantined_race
   FROM _giq_history_stage.export_issue_outcome;
   IF (duplicates,profile_orphans,runner_orphans,pedigree_orphans,quarantine_runner,quarantine_race) <>
-     (1940::bigint,759359::bigint,266534::bigint,162387::bigint,42::bigint,40::bigint)
+     (1940::bigint,782852::bigint,1445::bigint,168512::bigint,42::bigint,40::bigint)
      OR unaccounted<>0 THEN
     RAISE EXCEPTION 'normalized issue outcome inventory changed or has % unaccounted rows',unaccounted;
   END IF;
-  IF (valid_unlinked,non_race_quarantined)<>(444857::bigint,314502::bigint) THEN
+  IF quarantine_profile_source<>115 THEN
+    RAISE EXCEPTION 'profile source quarantine count changed: %',quarantine_profile_source;
+  END IF;
+  IF duplicate_runner_quarantined_race<>1 THEN
+    RAISE EXCEPTION 'duplicate runner quarantined-race evidence count changed: %',
+      duplicate_runner_quarantined_race;
+  END IF;
+  IF (valid_unlinked,non_race_quarantined)<>(468494::bigint,314358::bigint) THEN
     RAISE EXCEPTION 'profile-form orphan preservation partition changed: valid unlinked %, non-race quarantined %',
       valid_unlinked,non_race_quarantined;
   END IF;
-  IF (SELECT count(*) FROM _giq_history_stage.export_issue_outcome)<>1190302 THEN
-    RAISE EXCEPTION 'normalized issue outcomes do not cover all 1,190,302 source issue rows';
+  IF (SELECT count(*) FROM _giq_history_stage.export_issue_outcome)<>954946 THEN
+    RAISE EXCEPTION 'normalized issue outcomes do not cover all 954,946 source issue rows';
   END IF;
 END
 $$;
@@ -2348,7 +2761,7 @@ VALUES
     WHERE source_name='r2' AND entity_type='trainer' AND reason_code='multiple_provider_identities')
 )),
 ('thedogs_pedigree_partition',jsonb_build_object(
-  'staged',328069,'rejectedSelf',16,
+  'staged',384568,'rejectedSelf',16,
   'rejectedDuplicate',(SELECT count(*) FROM _giq_history_stage.normalized_pedigree_edge
     WHERE duplicate_rank>1 AND NOT self_parent),
   'canonicalEligible',(SELECT count(*) FROM _giq_history_stage.normalized_pedigree_edge WHERE canonical_eligible),
@@ -2386,7 +2799,7 @@ VALUES
   'demoRunnersExcluded',1080,'demoResultsExcluded',0,'meadowsDateConflicts',0
 )),
 ('profile_form_partition',jsonb_build_object(
-  'staged',6218839,'canonicalUrlRows',5904337,'dogUrlRows',314502,'temoraSluglessRows',8,
+  'staged',6474962,'canonicalUrlRows',6160604,'dogUrlRows',314358,'temoraSluglessRows',8,
   'canonicalResolved',(SELECT count(*) FROM _giq_history_stage.profile_form_resolution
     WHERE disposition='verified-canonical-race-url'),
   'validUnlinkedPreserved',(SELECT count(*) FROM _giq_history_stage.profile_form_resolution
@@ -2452,14 +2865,8 @@ ALTER TABLE _giq_history_merge.source_membership_partition ADD PRIMARY KEY(entit
 
 CREATE TABLE _giq_history_merge.pedigree_source_partition AS
 WITH r2_edges AS (
-  SELECT child_map.target_id AS child_id,parent_map.target_id AS parent_id,relationship
-  FROM _giq_history_stage."r2_Dog" dog
-  JOIN _giq_history_stage.dog_map child_map
-    ON child_map.source_name='r2' AND child_map.source_id=dog.id
-  CROSS JOIN LATERAL (VALUES('sire',dog."sireId"),('dam',dog."damId")) edge(relationship,parent_source_id)
-  JOIN _giq_history_stage.dog_map parent_map
-    ON parent_map.source_name='r2' AND parent_map.source_id=edge.parent_source_id
-  WHERE edge.parent_source_id IS NOT NULL
+  SELECT child_id,parent_id,relationship
+  FROM _giq_history_stage.synthetic_r2_pedigree_edge
 ), membership AS (
   SELECT child_id,parent_id,relationship,'r2'::text AS source_name FROM r2_edges
   UNION ALL
@@ -2472,7 +2879,7 @@ WITH r2_edges AS (
 SELECT
   count(*) FILTER(WHERE has_r2) AS r2_identities,
   count(*) FILTER(WHERE has_export) AS export_identities,
-  count(*) AS normalized_identities,
+  count(*) FILTER(WHERE has_export) AS normalized_identities,
   count(*) FILTER(WHERE has_r2 AND has_export) AS overlap_identities,
   count(*) FILTER(WHERE has_r2 AND NOT has_export) AS r2_only_identities,
   count(*) FILTER(WHERE has_export AND NOT has_r2) AS export_only_identities
@@ -2499,10 +2906,11 @@ BEGIN
   END IF;
   IF EXISTS(
     SELECT 1 FROM _giq_history_merge.pedigree_source_partition
-    WHERE r2_identities<>14 OR export_identities<>328069 OR r2_only_identities<>0
-       OR normalized_identities<>328069
+    WHERE r2_identities<>14 OR export_identities<>384568 OR overlap_identities<>0
+       OR r2_only_identities<>14 OR export_only_identities<>384568
+       OR normalized_identities<>384568
   ) THEN
-    RAISE EXCEPTION 'r2 pedigree relationships are not fully represented in normalized provider evidence';
+    RAISE EXCEPTION 'synthetic R2 pedigree exclusion reconciliation changed';
   END IF;
 END
 $$;
@@ -2523,16 +2931,16 @@ SELECT p.entity_type,p.r2_identities,p.export_identities,p.normalized_identities
       WHEN 'Meeting' THEN 76668 WHEN 'Race' THEN 838672 WHEN 'Runner' THEN 6435322
       WHEN 'Result' THEN 5627298 WHEN 'FormEntry' THEN 5627293 END,
     'rawExportRows',CASE p.entity_type
-      WHEN 'Track' THEN 76620 WHEN 'Trainer' THEN 6434145 WHEN 'Dog' THEN 170780
+      WHEN 'Track' THEN 76620 WHEN 'Trainer' THEN 6434145 WHEN 'Dog' THEN 200211
       WHEN 'Meeting' THEN 76620 WHEN 'Race' THEN 838526 WHEN 'Runner' THEN 6434145
-      WHEN 'Result' THEN 5660837 WHEN 'FormEntry' THEN 6218839 END
+      WHEN 'Result' THEN 5660837 WHEN 'FormEntry' THEN 6474962 END
   )
 FROM _giq_history_merge.source_membership_partition p
 UNION ALL
 SELECT 'DogProfileForm',0,count(*),count(*),0,0,count(*),
   (SELECT count(*) FROM _giq_history_stage.profile_form_resolution WHERE disposition LIKE 'quarantined-%'),
   jsonb_build_object(
-    'rawExportRows',6218839,
+    'rawExportRows',6474962,
     'validUnlinkedPreserved',(SELECT count(*) FROM _giq_history_stage.normalized_profile_form WHERE resolved_race_id IS NULL),
     'nonRaceDogUrlsQuarantined',(SELECT count(*) FROM _giq_history_stage.profile_form_resolution
       WHERE disposition LIKE 'quarantined-dog-url-%'))
@@ -2558,8 +2966,13 @@ FROM _giq_history_stage.normalized_race_day_archive
 UNION ALL
 SELECT 'Pedigree',p.r2_identities,p.export_identities,p.normalized_identities,
   p.overlap_identities,p.r2_only_identities,p.export_only_identities,
-  (SELECT count(*) FROM _giq_history_stage.normalized_pedigree_edge WHERE NOT canonical_eligible),
-  jsonb_build_object('galtdObservations',105374,'galtdAssertions',210734)
+  (SELECT count(*) FROM _giq_history_stage.normalized_pedigree_edge WHERE NOT canonical_eligible) +
+    (SELECT count(*) FROM _giq_history_stage.synthetic_r2_pedigree_edge),
+  jsonb_build_object(
+    'galtdObservations',105374,'galtdAssertions',210734,
+    'syntheticR2EdgesExcluded',(SELECT count(*) FROM _giq_history_stage.synthetic_r2_pedigree_edge),
+    'normalizedProviderEdges',(SELECT count(*) FROM _giq_history_stage.normalized_pedigree_edge)
+  )
 FROM _giq_history_merge.pedigree_source_partition p
 ON CONFLICT(entity_type) DO UPDATE SET
   r2_rows=EXCLUDED.r2_rows,export_rows=EXCLUDED.export_rows,normalized_rows=EXCLUDED.normalized_rows,
@@ -2586,8 +2999,6 @@ WHERE id=1;
 
 REVOKE ALL ON ALL TABLES IN SCHEMA _giq_history_stage FROM PUBLIC;
 REVOKE ALL ON ALL TABLES IN SCHEMA _giq_history_merge FROM PUBLIC;
-
-COMMIT;
 
 SELECT jsonb_build_object(
   'event','CANDIDATE_NORMALIZATION_VERIFIED',

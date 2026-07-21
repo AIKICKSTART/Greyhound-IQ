@@ -3,6 +3,7 @@
 
 import { logExecutionWarn } from "../logger";
 import { FastTrackPrototypeProvider } from "./fasttrack";
+import { isTheDogsLicensedUseApproved } from "./thedogs-access";
 import { TheDogsProvider } from "./thedogs";
 import { TopazProvider } from "./topaz";
 import { WatchdogProvider } from "./watchdog";
@@ -105,7 +106,7 @@ export function getLiveProviderConfig() {
         implemented: true,
         configured: theDogsEnabled,
         blocking: false,
-        requiredEnv: [],
+        requiredEnv: ["THEDOGS_LICENSED_USE_APPROVED"],
         optionalEnv: [
           "THEDOGS_PROVIDER_ENABLED",
           "THEDOGS_BASE_URL",
@@ -113,7 +114,9 @@ export function getLiveProviderConfig() {
           "THEDOGS_CONCURRENCY",
           "THEDOGS_TIME_ZONE",
         ],
-        missingEnv: [],
+        missingEnv: isTheDogsLicensedUseApproved()
+          ? []
+          : ["THEDOGS_LICENSED_USE_APPROVED"],
       },
       {
         name: "topaz",
@@ -205,25 +208,29 @@ export class CompositeLiveProvider implements LiveDataProvider {
     operation: "fetchUpcomingMeetings" | "fetchResults",
     days: number
   ): Promise<LiveMeeting[]> {
-    return (
-      await Promise.all(
-        this.providers.map(async (provider) => {
-          try {
-            return withSourceProvider(
-              await provider[operation](days),
-              provider.name
-            );
-          } catch (err) {
-            await logExecutionWarn(
-              "live.composite.provider_failed",
-              { provider: provider.name, operation },
-              err
-            );
-            return [];
-          }
-        })
-      )
-    ).flat();
+    const results = await Promise.all(
+      this.providers.map(async (provider) => {
+        try {
+          return withSourceProvider(
+            await provider[operation](days),
+            provider.name
+          );
+        } catch (err) {
+          await logExecutionWarn(
+            "live.composite.provider_failed",
+            { provider: provider.name, operation },
+            err
+          );
+          return null;
+        }
+      })
+    );
+
+    if (results.some((meetings) => meetings == null)) {
+      throw new Error("live.composite.provider_failed");
+    }
+
+    return results.flatMap((meetings) => meetings ?? []);
   }
 }
 
@@ -254,6 +261,7 @@ function withSourceProvider(meetings: LiveMeeting[], sourceProvider: string) {
 }
 
 function isTheDogsProviderEnabled() {
+  if (!isTheDogsLicensedUseApproved()) return false;
   const raw = process.env.THEDOGS_PROVIDER_ENABLED?.trim().toLowerCase();
   if (!raw) return true;
   return !["0", "false", "off", "no"].includes(raw);
@@ -261,8 +269,7 @@ function isTheDogsProviderEnabled() {
 
 function isWatchdogProviderEnabled() {
   const raw = process.env.WATCHDOG_PROVIDER_ENABLED?.trim().toLowerCase();
-  if (!raw) return true;
-  return !["0", "false", "off", "no"].includes(raw);
+  return ["1", "true", "on", "yes"].includes(raw ?? "");
 }
 
 function isFastTrackPrototypeEnabled(topazConfigured: boolean) {

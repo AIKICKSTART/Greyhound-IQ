@@ -7,6 +7,9 @@ const root = dirname(fileURLToPath(import.meta.url));
 const read = (relative) => readFileSync(join(root, relative), "utf8");
 
 const mergeShell = read("merge.sh");
+const normalizeRunner = read("normalize-checkpointed.sh");
+const normalizeStage = read("sql/normalize-stage.sql");
+const mergeDockerfile = read("Dockerfile");
 const initialize = read("sql/initialize-candidate.sql");
 const cloneControl = read("sql/initialize-physical-clone-control.sql");
 const automationInventory = read("sql/inventory-database-automation.sql");
@@ -18,7 +21,9 @@ const plan = read("sql/plan-canonical-merge.sql");
 const verify = read("sql/verify-candidate.sql");
 const pedigreeFinalizer = read("sql/finalize-authoritative-pedigree-saturation.sql");
 const nonpedigreeStage = read("sql/stage-nonpedigree-saturation.sql");
+const duplicateSourceEvidenceStage = read("sql/stage-duplicate-quarantine-source-evidence.sql");
 const duplicateProofStage = read("sql/stage-duplicate-quarantine-proof-resolution.sql");
+const inputRebind = read("sql/rebind-normalized-input.sql");
 const candidatePathSql = [
   "sql/initialize-physical-clone-control.sql",
   "sql/inventory-database-automation.sql",
@@ -38,6 +43,7 @@ const candidatePathSql = [
   "sql/stage-authoritative-pedigree-resolution.sql",
   "sql/finalize-authoritative-pedigree-saturation.sql",
   "sql/stage-nonpedigree-saturation.sql",
+  "sql/stage-duplicate-quarantine-source-evidence.sql",
   "sql/stage-duplicate-quarantine-proof-resolution.sql",
   "sql/plan-canonical-merge.sql",
   "sql/merge-canonical.sql",
@@ -49,7 +55,95 @@ assert.match(
   "delta and verify must remain visibly blocked",
 );
 assert.match(mergeShell, /EXPECTED_RUNTIME_UID="999"/);
-assert.match(mergeShell, /NORMALIZED_ROOT=.*thedogs-normalized-v1-99279ed8105e70ff/);
+assert.match(mergeShell, /NORMALIZE_CHECKPOINTED_RUNNER/);
+assert.doesNotMatch(mergeShell, /psql_db "\$CANDIDATE_DATABASE" --file="\$SQL_ROOT\/normalize-stage\.sql"/);
+assert.match(mergeDockerfile, /COPY scripts\/alloydb-full-history-merge\/normalize-checkpointed\.sh \/usr\/local\/bin\/giq-normalize-checkpointed/);
+assert.deepEqual(
+  [...normalizeStage.matchAll(/^-- checkpoint-stage: (\S+)$/gm)].map((match) => match[1]),
+  [
+    "1-core-identities",
+    "2-meetings",
+    "3-races",
+    "4-runners",
+    "5-results",
+    "6-profile-resolution",
+    "7-profile-materialization",
+    "8-form-entries",
+    "9-media",
+    "10-pedigree",
+    "11-archives-and-accounting",
+  ],
+);
+assert.doesNotMatch(normalizeStage, /^BEGIN;|^COMMIT;$/m);
+assert.match(normalizeStage, /must be run by normalize-checkpointed\.sh/);
+assert.match(normalizeRunner, /normalization_checkpoint/);
+assert.match(normalizeRunner, /checkpoint hash mismatch/);
+assert.match(normalizeRunner, /reason=verified-checkpoint/);
+assert.match(normalizeRunner, /NORMALIZE_MIN_FREE_GB:-100/);
+assert.match(normalizeRunner, /SET LOCAL synchronous_commit = on/);
+assert.match(normalizeRunner, /cygpath -m "\$stage_file"/);
+assert.match(normalizeRunner, /stage_ordinal BETWEEN 1 AND 11/);
+assert.match(normalizeStage, /d\.canonical_parts\[2\] \|\| '\/' \|\| race\.race_number/);
+assert.match(normalizeStage, /provenance AS MATERIALIZED \([\s\S]*GROUP BY dog_id,race_id/);
+assert.match(normalizeStage, /JOIN provenance USING\(dog_id,race_id\)/);
+assert.doesNotMatch(normalizeStage, /FROM source s WHERE s\.dog_id=p\.dog_id/);
+const stage11 = normalizeStage.slice(
+  normalizeStage.indexOf("-- checkpoint-stage: 11-archives-and-accounting"),
+);
+for (const relation of [
+  '"r2_Meeting"',
+  '"r2_Race"',
+  '"r2_Runner"',
+  '"r2_Result"',
+  "dog_map",
+  "profile_form_resolution",
+  "normalized_form_entry",
+]) {
+  assert.ok(stage11.includes(`ANALYZE _giq_history_stage.${relation};`));
+}
+assert.match(stage11, /CREATE TABLE _giq_history_merge\.production_natural_key_duplicate/);
+assert.match(stage11, /canonical_row_sha256 text NOT NULL/);
+assert.match(stage11, /duplicate_row_sha256 text NOT NULL/);
+assert.match(stage11, /canonical_selection_basis IN \('normalized-source-target','provider-authority-and-completeness'\)/);
+assert.match(stage11, /coalesce\(production\.id=normalized\.target_id,false\) DESC/);
+assert.match(stage11, /production\."meetingId"=production\.canonical_meeting_id/);
+assert.match(stage11, /WHEN 'thedogs' THEN 400 WHEN 'fasttrack' THEN 300 WHEN 'watchdog' THEN 200/);
+assert.match(stage11, /production natural-key duplicate group coverage changed/);
+assert.match(stage11, /production duplicate inventory did not preserve normalized canonical targets/);
+assert.match(stage11, /'pending-reference-safe-canonical-consolidation',false/);
+assert.match(stage11, /'duplicate-runner-excluded-with-quarantined-race'/);
+assert.match(stage11, /WITH unmatched_duplicate AS MATERIALIZED/);
+assert.match(stage11, /LEFT JOIN LATERAL \(/);
+assert.match(stage11, /'selectedRunner',selected\.payload/);
+assert.match(stage11, /'excludedRaceQuarantine',excluded_race\.payload/);
+assert.match(stage11, /duplicate_runner_quarantined_race<>1/);
+assert.match(stage11, /CREATE TABLE _giq_history_stage\.synthetic_r2_pedigree_edge AS/);
+assert.match(stage11, /dog\.name LIKE 'Option A %' AND parent\.name LIKE 'Option A %' AS synthetic_demo/);
+assert.match(stage11, /edge_rows<>14 OR non_demo_rows<>0 OR provider_overlap_rows<>0/);
+assert.match(stage11, /'excluded-synthetic-pedigree-dogs-preserved'/);
+assert.match(stage11, /r2_only_identities<>14 OR export_only_identities<>384568/);
+assert.match(stage11, /'syntheticR2EdgesExcluded'/);
+assert.match(stage11, /production_meeting_duplicates<>7 OR production_race_duplicates<>72/);
+assert.match(mergeShell, /NORMALIZED_ROOT=.*thedogs-normalized-v2-a43d10e4aaa5ef82/);
+assert.match(mergeShell, /NORMALIZED_MANIFEST_SHA256="13bc8d83c048633b57c5299ec1e778179276fee855182b9c932f8a28a77fbf1c"/);
+assert.match(mergeShell, /HISTORY_SOURCE_CUTOFF="2026-07-16T16:12:26\.544Z"/);
+assert.match(
+  mergeShell,
+  /readonly NORMALIZED_INPUT_REBIND_CONFIRMATION_TOKEN="I_CONFIRM_REBIND_UNSTAGED_CANDIDATE_INPUT_FROM_LEGACY_V1_TO_VERIFIED_V2"/,
+);
+assert.doesNotMatch(mergeShell, /readonly NORMALIZED_INPUT_REBIND_CONFIRMATION=/);
+assert.match(
+  mergeShell,
+  /\[ "\$\{NORMALIZED_INPUT_REBIND_CONFIRMATION:-\}" = "\$NORMALIZED_INPUT_REBIND_CONFIRMATION_TOKEN" \]/,
+);
+assert.match(
+  mergeShell,
+  /--set=confirmation="\$NORMALIZED_INPUT_REBIND_CONFIRMATION_TOKEN"/,
+);
+assert.match(mergeShell, /rebind-normalized-input\) rebind_normalized_input/);
+assert.match(inputRebind, /requires the exact never-staged legacy candidate/);
+assert.match(inputRebind, /refuses a candidate with export stage relations/);
+assert.match(inputRebind, /normalized_input_rebinding/);
 assert.match(mergeShell, /NORMALIZED_TRANSFORM_VERSION="thedogs-normalized-harvest\/v2"/);
 assert.match(mergeShell, /identityPolicy\.profileArchivesExactProviderIdentity/);
 assert.match(mergeShell, /normalized export v2 rebuild is required/);
@@ -294,6 +388,7 @@ for (const mode of [
   "stage-authoritative-pedigree-resolution",
   "finalize-authoritative-pedigree-saturation",
   "stage-nonpedigree-saturation",
+  "stage-duplicate-quarantine-source-evidence",
   "stage-duplicate-quarantine-proof-resolution",
 ]) {
   assert.match(mergeShell, new RegExp(`${mode.replaceAll("-", "\\-")}\\)`));
@@ -301,9 +396,11 @@ for (const mode of [
 assert.match(mergeShell, /stage_authoritative_pedigree_resolution\(\)/);
 assert.match(mergeShell, /finalize_authoritative_pedigree_saturation\(\)/);
 assert.match(mergeShell, /stage_nonpedigree_saturation\(\)/);
+assert.match(mergeShell, /stage_duplicate_quarantine_source_evidence\(\)/);
 assert.match(mergeShell, /stage_duplicate_quarantine_proof_resolution\(\)/);
 assert.match(mergeShell, /stage-authoritative-pedigree-resolution\.sql/);
 assert.match(mergeShell, /stage-nonpedigree-saturation\.sql/);
+assert.match(mergeShell, /stage-duplicate-quarantine-source-evidence\.sql/);
 assert.match(mergeShell, /stage-duplicate-quarantine-proof-resolution\.sql/);
 assert.match(mergeShell, /finalize-authoritative-pedigree-saturation\.sql/);
 assert.match(mergeShell, /authoritativePedigreeSaturation/);
@@ -312,6 +409,39 @@ assert.match(mergeShell, /duplicateQuarantineProof/);
 assert.match(mergeShell, /'storedStatus',manifest\.status/);
 assert.match(mergeShell, /blocker_contract_valid/);
 assert.match(mergeShell, /THEN manifest\.status ELSE 'invalid' END/);
+
+const duplicateSourceEvidenceFunction =
+  mergeShell.match(/^stage_duplicate_quarantine_source_evidence\(\) \{[\s\S]*?^\}/m)?.[0] ?? "";
+const duplicateProofFunction =
+  mergeShell.match(/^stage_duplicate_quarantine_proof_resolution\(\) \{[\s\S]*?^\}/m)?.[0] ?? "";
+assert.match(
+  mergeShell,
+  /readonly DUPLICATE_QUARANTINE_SOURCE_EVIDENCE_ROOT="\.backfill\/evidence\/thedogs-duplicate-quarantine-evidence-20260718T190916AEST"/,
+);
+assert.match(duplicateSourceEvidenceFunction, /assert_normalized_saturation_phase/);
+for (const [variable, file] of [
+  ["manifest_file", "queue.manifest.json"],
+  ["manifest_sha_file", "queue.manifest.sha256"],
+  ["source_evidence_file", "duplicate-quarantine-evidence.jsonl"],
+  ["retrieval_queue_file", "duplicate-quarantine-race-retrieval-queue.jsonl"],
+]) {
+  assert.ok(
+    duplicateSourceEvidenceFunction.includes(
+      `--set=${variable}="$DUPLICATE_QUARANTINE_SOURCE_EVIDENCE_ROOT/${file}"`,
+    ),
+    `duplicate/quarantine source-evidence stage must bind ${variable}`,
+  );
+}
+assert.match(duplicateSourceEvidenceFunction, /candidate_phase\)" = "normalized"/);
+assert.doesNotMatch(duplicateSourceEvidenceFunction, /\b(?:curl|wget|gcloud|gsutil|fetch|provider)\b/i);
+assert.doesNotMatch(
+  duplicateSourceEvidenceFunction,
+  /stage_duplicate_quarantine_proof_resolution|stage-duplicate-quarantine-proof-resolution|UPDATE\s+_giq_history_merge\.run/i,
+);
+assert.match(duplicateProofFunction, /duplicate_quarantine_source_evidence_relation_count/);
+assert.match(duplicateProofFunction, /case "\$stage_relation_count" in\s*1\|7\)/);
+assert.match(duplicateSourceEvidenceStage, /observed_phase<>'normalized'/);
+assert.doesNotMatch(duplicateSourceEvidenceStage, /UPDATE\s+_giq_history_merge\.run/i);
 
 const pedigreeStageFunction =
   mergeShell.match(/stage_authoritative_pedigree_resolution\(\) \{[\s\S]*?\n\}/)?.[0] ?? "";
@@ -357,7 +487,41 @@ assert.match(plan, /jsonb_typeof\(value\) IS DISTINCT FROM 'number'/);
 assert.match(plan, /value::text !~ '\^\(0\|\[1-9\]\[0-9\]\*\)\$'/);
 assert.match(plan, /value <> '0'::jsonb/);
 assert.doesNotMatch(plan, /jsonb_each_text\([^)]*blockers|value::bigint|sum\(value::bigint\)/);
-assert.match(plan, /jsonb_object_length\(pedigree\.blockers\)=22/);
+assert.match(plan, /pedigree\.schema_version='giq-authoritative-pedigree-saturation\/v2'/);
+assert.match(plan, /jsonb_object_length\(pedigree\.blockers\)=7/);
+for (const blocker of [
+  "identityPending",
+  "relationshipPending",
+  "authorityConflict",
+  "canonicalIntegrity",
+  "persistence",
+  "accounting",
+  "coverage",
+]) {
+  assert.ok(plan.includes(`'${blocker}'`), `merge plan is missing pedigree v2 blocker ${blocker}`);
+}
+for (const count of [
+  "assertionOccurrences",
+  "pedigreeResolutions",
+  "terminalInvalidImpossible",
+  "terminalSupersededConflict",
+  "terminalUnlinkedConflictCovered",
+  "terminalCorroborationOnlyCovered",
+  "terminalNonblocking",
+  "terminalBlocking",
+  "applyCandidates",
+]) {
+  assert.ok(plan.includes(`'${count}'`), `merge plan is missing pedigree v2 count ${count}`);
+}
+const terminalNonblockingPredicate = /WHERE disposition IN \(\s*'terminal_invalid_impossible','terminal_superseded_conflict',\s*'terminal_unlinked_conflict_covered','terminal_corroboration_only_covered'\s*\) AND NOT canonical_safety_blocking AND NOT coverage_blocking/;
+for (const [name, source] of [
+  ["pedigree finalizer", pedigreeFinalizer],
+  ["merge plan", plan],
+  ["canonical merge", canonical],
+  ["candidate verifier", verify],
+]) {
+  assert.match(source, terminalNonblockingPredicate, `${name} must use the producer's exact terminalNonblocking predicate`);
+}
 assert.match(plan, /jsonb_object_length\(nonpedigree\.blockers\)=11/);
 assert.match(plan, /jsonb_object_length\(duplicate_proof\.blockers\)=19/);
 assert.match(plan, /duplicate_proof\.source_datasets=\(/);
@@ -365,7 +529,9 @@ assert.match(plan, /unvalidatedInboundForeignKeyProofGaps/);
 assert.match(plan, /unvalidated_reference_constraints_proven IS NOT TRUE/);
 assert.match(plan, /SELECT normalized_manifest_sha256 FROM _giq_history_merge\.run WHERE id=1/);
 assert.doesNotMatch(plan, /b84eab94d931b4e038766db7393b141b190548ba4a4e6bdb906b5692cb7b1116/);
-assert.match(plan, /authoritative_pedigree_retrieval_queue/);
+assert.match(plan, /authoritative_pedigree_assertion_occurrence/);
+assert.match(plan, /authoritative_pedigree_resolution/);
+assert.match(plan, /authoritative_pedigree_terminal_proof_leaf/);
 assert.match(plan, /nonpedigree_authoritative_fetch_queue/);
 assert.match(plan, /review-only removals/);
 assert.match(plan, /candidate_count IS DISTINCT FROM 1 OR canonical_entity_id IS NULL/);
@@ -377,6 +543,7 @@ assert.match(plan, /ON COMMIT PRESERVE ROWS/);
 assert.match(plan, /pg_backend_pid\(\)/);
 assert.match(plan, /clone_operation_id/);
 assert.match(plan, /pedigree_blockers_sha256/);
+assert.match(plan, /pedigree_terminal_counts_sha256/);
 assert.match(plan, /nonpedigree_blockers_sha256/);
 assert.match(plan, /duplicate_proof_blockers_sha256/);
 assert.match(plan, /gen_random_uuid\(\)/);
@@ -386,8 +553,8 @@ for (const attestationGuard of [
   "same-session read-only plan attestation",
   "pg_my_temp_schema()",
   "relpersistence='t'",
-  "attestation_expected_columns<>28",
-  "attestation_actual_columns<>28",
+  "attestation_expected_columns<>29",
+  "attestation_actual_columns<>29",
   "attestation_backend_pid IS DISTINCT FROM pg_backend_pid()",
   "attestation_database_oid IS DISTINCT FROM current_database_oid",
   "attestation_clone_operation_id IS DISTINCT FROM run_clone_operation_id",
@@ -402,6 +569,10 @@ for (const attestationGuard of [
 ]) {
   assert.ok(canonical.includes(attestationGuard), `canonical merge is missing ${attestationGuard}`);
 }
+assert.match(
+  canonical,
+  /attestation_pedigree_terminal_counts_sha256 IS DISTINCT FROM\s*current_pedigree_terminal_counts_sha256/,
+);
 assert.ok(
   canonical.indexOf("DELETE FROM pg_temp.giq_canonical_merge_plan_attestation") <
     canonical.indexOf("CREATE TABLE _giq_history_merge.track_alias_map"),
@@ -416,16 +587,13 @@ assert.match(
 assert.match(pedigreeFinalizer, /authoritative_pedigree_saturation_manifest/);
 assert.match(pedigreeFinalizer, /source_lineage jsonb NOT NULL/);
 assert.match(pedigreeFinalizer, /status text NOT NULL CHECK\(status IN \('ready','blocked'\)\)/);
-assert.match(pedigreeFinalizer, /retrievalRequired/);
-assert.match(pedigreeFinalizer, /conflictOrRejectedIdentityEvidence/);
-assert.match(pedigreeFinalizer, /conflictOrRejectedPedigreeEvidence/);
-assert.match(pedigreeFinalizer, /galtdCompositeRowsPendingAuthoritativeResolution/);
-assert.match(pedigreeFinalizer, /reviewOnlyRemovals/);
-assert.match(pedigreeFinalizer, /canonicalWriteProofGaps/);
-assert.match(pedigreeFinalizer, /NOT canonical_write_eligible AND verification_status='verified'/);
-assert.match(pedigreeFinalizer, /quarantineReleaseProofGaps/);
-assert.match(pedigreeFinalizer, /unaccountedQuarantineRows/);
-assert.match(pedigreeFinalizer, /sourceLineageGaps/);
+assert.match(pedigreeFinalizer, /giq-authoritative-pedigree-saturation\/v2/);
+assert.match(pedigreeFinalizer, /terminalInvalidImpossible/);
+assert.match(pedigreeFinalizer, /terminalSupersededConflict/);
+assert.match(pedigreeFinalizer, /terminalUnlinkedConflictCovered/);
+assert.match(pedigreeFinalizer, /terminalCorroborationOnlyCovered/);
+assert.match(pedigreeFinalizer, /terminalBlocking/);
+assert.match(pedigreeFinalizer, /authoritative_pedigree_terminal_proof/);
 const pedigreeBlockerSection = pedigreeFinalizer.slice(
   pedigreeFinalizer.indexOf("blockers AS ("),
   pedigreeFinalizer.indexOf(")\nINSERT INTO _giq_history_merge.authoritative_pedigree_saturation_manifest"),
@@ -433,8 +601,15 @@ const pedigreeBlockerSection = pedigreeFinalizer.slice(
 const pedigreeBlockerKeys = [...pedigreeBlockerSection.matchAll(/^\s{4}'([^']+)',/gm)].map(
   (match) => match[1],
 );
-assert.equal(pedigreeBlockerKeys.length, 22);
-assert.equal(new Set(pedigreeBlockerKeys).size, 22);
+assert.deepEqual(pedigreeBlockerKeys, [
+  "identityPending",
+  "relationshipPending",
+  "authorityConflict",
+  "canonicalIntegrity",
+  "persistence",
+  "accounting",
+  "coverage",
+]);
 assert.match(pedigreeFinalizer, /REVOKE ALL ON _giq_history_merge\.authoritative_pedigree_saturation_manifest FROM PUBLIC/);
 assert.match(pedigreeFinalizer, /\\quit 3/);
 assert.doesNotMatch(pedigreeFinalizer, /jsonb_each_text\([^)]*blockers|item\.value::bigint/);
@@ -547,15 +722,52 @@ const aliasLedgerInsert = aliasLedger.indexOf(
 assert.ok(aliasDelete >= 0 && aliasProofCheck > aliasDelete && aliasLedgerInsert > aliasProofCheck);
 assert.doesNotMatch(aliasLedger, /ON CONFLICT[^;]*DO UPDATE/i);
 
-const galtdDecisionPosition = canonical.indexOf(
-  "CREATE TABLE _giq_history_stage.galtd_merge_decision",
+const applyInputPosition = canonical.indexOf(
+  "CREATE TABLE _giq_history_stage.authoritative_pedigree_apply_input",
 );
-const postGaltdPosition = canonical.indexOf("Re-adjudicate TheDogs assertions only after exact GALTD");
-assert.ok(galtdDecisionPosition >= 0 && postGaltdPosition > galtdDecisionPosition);
-assert.match(canonical, /winning_source_provider='galtd'/);
-assert.match(canonical, /verified-by-exact-galtd-crosswalk/);
-assert.match(canonical, /left a populated canonical parent pending/);
-assert.match(canonical, /"verificationStatus"=CASE decision\.decision/);
-assert.match(canonical, /decision\.winning_assertion_id/);
+const dogApplyPosition = canonical.indexOf('UPDATE public."Dog" dog', applyInputPosition);
+const applyLedgerPosition = canonical.indexOf(
+  'INSERT INTO public."PedigreeMergeLedger"',
+  dogApplyPosition,
+);
+assert.ok(applyInputPosition >= 0 && dogApplyPosition > applyInputPosition);
+assert.ok(applyLedgerPosition > dogApplyPosition);
+assert.match(canonical, /resolution\.disposition='verified_apply_candidate'/);
+assert.match(canonical, /resolution\.canonical_write_eligible/);
+assert.match(canonical, /exact_candidate_cardinality_verified IS NOT TRUE/);
+assert.match(canonical, /FOR UPDATE/);
+assert.match(canonical, /dog\."sireId" IS NULL/);
+assert.match(canonical, /dog\."damId" IS NULL/);
+assert.match(canonical, /history_id\('pedrun-v2',resolution\.occurrence_id\)/);
+assert.match(canonical, /history_id\('pedledger-v2',resolution\.occurrence_id\)/);
+assert.match(canonical, /occurrence_id AS "assertionId",occurrence_id AS "winningAssertionId"/);
+assert.match(canonical, /'verified-authoritative-compare-and-set'/);
+assert.match(canonical, /authoritative pedigree apply batch would create a pedigree cycle/);
+assert.match(canonical, /GALTD descriptive composite evidence cannot mutate canonical Dog parent relationships/);
+assert.match(canonical, /resolution\.disposition<>'applied_verified'/);
+for (const gateSource of [plan, canonical, verify]) {
+  assert.match(
+    gateSource,
+    /\('_giq_history_stage\.authoritative_identity_evidence'::regclass,\s*'authoritative_identity_evidence_append_only'\)/,
+  );
+}
+assert.match(
+  verify,
+  /\('public\."PedigreeMergeLedger"'::regclass,\s*'giq_pedigree_merge_ledger_evidence_guard'\)/,
+);
+for (const auditSource of [verify]) {
+  assert.match(auditSource, /authoritative_pedigree_assertion_occurrence/);
+  assert.match(auditSource, /authoritative_pedigree_terminal_proof_leaf/);
+  assert.match(auditSource, /public\."LiveFeedQuarantine"/);
+  assert.match(auditSource, /giq_live_feed_quarantine_append_only/);
+}
+
+const statusFunction = mergeShell.match(/^status\(\) \{[\s\S]*?^\}/m)?.[0] ?? "";
+assert.match(statusFunction, /base_status="\$\(scalar/);
+assert.match(statusFunction, /jq -cn[\s\S]*--argjson base/);
+assert.doesNotMatch(
+  statusFunction,
+  /:'(?:pedigree_saturation|nonpedigree_saturation|duplicate_quarantine_proof)'/,
+);
 
 console.log("alloydb full-history isolated candidate source contract: PASS");

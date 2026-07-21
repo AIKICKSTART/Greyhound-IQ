@@ -408,6 +408,7 @@ jobs:
             --concurrency 20 \
             --timeout 900 \
             --min "$min_instances" \
+            --min-instances 0 \
             --max-instances "$max_instances" \
             --no-traffic \
             --tag "$candidate_tag" \

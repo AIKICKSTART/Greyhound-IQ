@@ -48,6 +48,12 @@ assert.match(
   cloudRunWorkflow,
   /google-github-actions\/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db/u,
 );
+const webCandidateDeploy =
+  cloudRunWorkflow.match(
+    /gcloud run deploy "\$service"[\s\S]*?--project "\$\{\{ secrets\.GCP_PROJECT_ID \}\}"/u,
+  )?.[0] ?? "";
+assert.match(webCandidateDeploy, /--min "\$min_instances"/u);
+assert.match(webCandidateDeploy, /--min-instances 0/u);
 const staleCandidateCleanup =
   cloudRunWorkflow.match(
     /web_service_json="\$\([\s\S]*?gcloud run deploy "\$service"/u,

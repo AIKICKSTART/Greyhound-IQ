@@ -33,7 +33,16 @@ export async function POST(request: Request) {
 }
 
 async function runReadinessChecks(request: Request) {
-    const runWriteProbe = new URL(request.url).searchParams.get("write") === "true";
+    const searchParams = new URL(request.url).searchParams;
+    const runWriteProbe = searchParams.get("write") === "true";
+    if (searchParams.get("probe") === "livekit") {
+      const livekit = await checkLiveKit();
+      return {
+        checks: { livekit },
+        missing: livekit === "ok" ? [] : ["livekit"],
+      };
+    }
+
     // The write probe creates real rows; require an explicit env opt-in.
     if (runWriteProbe && process.env.ALLOW_COMMUNITY_WRITE_PROBE !== "true") {
       throw new Error("auth.forbidden");
@@ -92,31 +101,36 @@ async function checkLiveKit() {
   const apiSecret = process.env.LIVEKIT_API_SECRET;
   if (!url || !apiKey || !apiSecret) return "missing";
 
-  const validateUrl = new URL("/rtc/validate", liveKitHttpUrl(url));
-  const unauthenticated = await fetch(validateUrl, {
-    cache: "no-store",
-    redirect: "manual",
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (unauthenticated.status !== 401) {
-    throw new Error("livekit.connectivity_failed");
-  }
+  try {
+    const validateUrl = new URL("/rtc/validate", liveKitHttpUrl(url));
+    const unauthenticated = await fetch(validateUrl, {
+      cache: "no-store",
+      redirect: "manual",
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (unauthenticated.status !== 401) {
+      return `unauthenticated_${unauthenticated.status}`;
+    }
 
-  const signed = await createLiveKitCallToken(
-    { profileId: "community-readiness", displayName: "Community Readiness" },
-    `community-readiness-${Date.now()}`,
-    "voice",
-    { url, apiKey, apiSecret },
-  );
-  const authenticated = await fetch(validateUrl, {
-    cache: "no-store",
-    redirect: "manual",
-    signal: AbortSignal.timeout(10_000),
-    headers: { authorization: `Bearer ${signed.token}` },
-  });
-  const body = await authenticated.text();
-  if (authenticated.status !== 200 || body.trim() !== "success") {
-    throw new Error("livekit.connectivity_failed");
+    const signed = await createLiveKitCallToken(
+      { profileId: "community-readiness", displayName: "Community Readiness" },
+      `community-readiness-${Date.now()}`,
+      "voice",
+      { url, apiKey, apiSecret },
+    );
+    const authenticated = await fetch(validateUrl, {
+      cache: "no-store",
+      redirect: "manual",
+      signal: AbortSignal.timeout(10_000),
+      headers: { authorization: `Bearer ${signed.token}` },
+    });
+    if (authenticated.status !== 200) {
+      return `authenticated_${authenticated.status}`;
+    }
+    const body = await authenticated.text();
+    if (body.trim() !== "success") return "unexpected_response";
+  } catch {
+    return "unreachable";
   }
 
   return "ok";

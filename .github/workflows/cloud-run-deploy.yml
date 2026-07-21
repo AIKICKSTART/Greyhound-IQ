@@ -559,7 +559,7 @@ jobs:
                 --max-time 45 \
                 --request POST \
                 --header "X-Internal-Secret: $internal_secret" \
-                "$CANDIDATE_URL/api/internal/community-readiness"
+                "$CANDIDATE_URL/api/internal/community-readiness?probe=livekit"
             )"
             if jq -e '.checks.livekit == "ok"' >/dev/null <<<"$readiness_body"; then
               echo "Candidate LiveKit connectivity check passed."

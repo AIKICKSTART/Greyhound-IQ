@@ -316,6 +316,17 @@ export const RATE_LIMITS: readonly RateLimitContract[] = [
     owner: "racing-security",
   }),
   databaseRateLimit({
+    route: "/api/breeding/pedigree",
+    method: "GET",
+    operationId: "getBreedingPedigree",
+    keyShape: "breeding-pedigree:<client-ip-or-missing-forwarded-for>",
+    sourceKeyExpression:
+      "`breeding-pedigree:${clientIp || \"missing-forwarded-for\"}`",
+    maximum: 60,
+    windowMilliseconds: 60_000,
+    owner: "racing-security",
+  }),
+  databaseRateLimit({
     route: "/api/discover",
     method: "GET",
     operationId: "getDiscover",

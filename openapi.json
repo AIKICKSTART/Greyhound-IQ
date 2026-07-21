@@ -2547,6 +2547,75 @@
         "x-rate-limit-policy": "RATE.API.getBreedingCross"
       }
     },
+    "/api/breeding/pedigree": {
+      "get": {
+        "operationId": "getBreedingPedigree",
+        "summary": "Get a dog pedigree",
+        "description": "Returns the reviewed five-generation pedigree tree for a validated dog identifier.",
+        "tags": [
+          "Breeding"
+        ],
+        "parameters": [
+          {
+            "name": "dogId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9-]+$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pedigree tree or null when no reviewed parent links are recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid dogId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "x-endpoint-id": "HTTP.GET.API_BREEDING_PEDIGREE",
+        "x-source-file": "src/app/api/breeding/pedigree/route.ts",
+        "x-authentication-status": "public",
+        "x-registry-verification": "Partially verified",
+        "x-request-schema-source": "dogId query parameter validated in route source",
+        "x-output-schema-source": "five-generation pedigree tree from getDogPedigree",
+        "x-known-gaps": [
+          "Deployed rate-limit and representative missing-pedigree behavior remain to be verified."
+        ],
+        "x-rate-limit-policy": "RATE.API.getBreedingPedigree"
+      }
+    },
     "/api/discover": {
       "get": {
         "operationId": "getDiscover",

@@ -2744,7 +2744,7 @@ async function topProgeny(
       prisma.dog.findMany({
         where: { ...where, prizeMoney: { not: null } },
         orderBy: { prizeMoney: "desc" },
-        take: limit,
+        take: Math.min(Math.max(Math.trunc(limit), 1), PROGENY_TOP_LIMIT),
         select: PROGENY_SELECT,
       }),
     [],
@@ -2915,12 +2915,16 @@ export interface DamPartner {
 // other direction when a dam is picked first.
 async function getParentPartners(
   parentId: string,
-  parentColumn: "sireId" | "damId",
-  otherColumn: "sireId" | "damId",
+  role: ParentRole,
   limit: number,
 ): Promise<DamPartner[]> {
-  const parentCol = Prisma.raw(`"${parentColumn}"`);
-  const otherCol = Prisma.raw(`"${otherColumn}"`);
+  const relationship =
+    role === "sire"
+      ? Prisma.sql`JOIN "Dog" other ON other.id = d."damId"
+          WHERE d."sireId" = ${parentId} AND d."damId" IS NOT NULL`
+      : Prisma.sql`JOIN "Dog" other ON other.id = d."sireId"
+          WHERE d."damId" = ${parentId} AND d."sireId" IS NOT NULL`;
+  const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 100);
   const rows = await safeQuery(
     () =>
       prisma.$queryRaw<{ id: string; name: string; progeny: number; winners: number }[]>(Prisma.sql`
@@ -2928,11 +2932,10 @@ async function getParentPartners(
           COUNT(*)::int AS progeny,
           COUNT(*) FILTER (WHERE d."careerWins" > 0)::int AS winners
         FROM "Dog" d
-        JOIN "Dog" other ON other.id = d.${otherCol}
-        WHERE d.${parentCol} = ${parentId} AND d.${otherCol} IS NOT NULL
+        ${relationship}
         GROUP BY other.id, other.name
         ORDER BY progeny DESC, winners DESC, other.name ASC
-        LIMIT ${limit}
+        LIMIT ${boundedLimit}
       `),
     [],
   );
@@ -2941,12 +2944,12 @@ async function getParentPartners(
 
 export const getSireDamPartners = cache(
   (sireId: string, limit = 8): Promise<DamPartner[]> =>
-    getParentPartners(sireId, "sireId", "damId", limit),
+    getParentPartners(sireId, "sire", limit),
 );
 
 export const getDamSirePartners = cache(
   (damId: string, limit = 8): Promise<DamPartner[]> =>
-    getParentPartners(damId, "damId", "sireId", limit),
+    getParentPartners(damId, "dam", limit),
 );
 
 export interface LitterCross {
@@ -3025,6 +3028,7 @@ async function loadLitters(
       () =>
         prisma.dog.findMany({
           where: { id: { in: parentIds } },
+          take: 100,
           select: { id: true, name: true },
         }),
       [],

@@ -39,7 +39,7 @@ try {
   assert.equal(headers.get("X-Frame-Options"), "DENY");
   assert.equal(
     headers.get("Permissions-Policy"),
-    "camera=(self), microphone=(self), display-capture=(self), geolocation=()",
+    "camera=(self), microphone=(self), display-capture=(self), geolocation=(self)",
   );
   csp = contentSecurityPolicy("evidence-nonce");
 } finally {

@@ -92,11 +92,38 @@ async function checkLiveKit() {
   const apiSecret = process.env.LIVEKIT_API_SECRET;
   if (!url || !apiKey || !apiSecret) return "missing";
 
-  await createLiveKitCallToken(
+  const validateUrl = new URL("/rtc/validate", liveKitHttpUrl(url));
+  const unauthenticated = await fetch(validateUrl, {
+    cache: "no-store",
+    redirect: "manual",
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (unauthenticated.status !== 401) {
+    throw new Error("livekit.connectivity_failed");
+  }
+
+  const signed = await createLiveKitCallToken(
     { profileId: "community-readiness", displayName: "Community Readiness" },
-    "community-readiness",
+    `community-readiness-${Date.now()}`,
     "voice",
-    { url, apiKey, apiSecret }
+    { url, apiKey, apiSecret },
   );
+  const authenticated = await fetch(validateUrl, {
+    cache: "no-store",
+    redirect: "manual",
+    signal: AbortSignal.timeout(10_000),
+    headers: { authorization: `Bearer ${signed.token}` },
+  });
+  const body = await authenticated.text();
+  if (authenticated.status !== 200 || body.trim() !== "success") {
+    throw new Error("livekit.connectivity_failed");
+  }
+
   return "ok";
+}
+
+function liveKitHttpUrl(value: string) {
+  if (value.startsWith("wss://")) return value.replace(/^wss:\/\//u, "https://");
+  if (value.startsWith("ws://")) return value.replace(/^ws:\/\//u, "http://");
+  return value;
 }

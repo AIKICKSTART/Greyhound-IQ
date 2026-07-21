@@ -111,7 +111,7 @@ export function FeedRaceDayCommand({
             </div>
             <Link
               href="/races"
-              className="text-[12px] font-semibold text-[hsl(var(--primary-light))]"
+              className="inline-flex min-h-11 items-center rounded-lg px-3 text-[12px] font-semibold text-[hsl(var(--primary-light))] hover:bg-white/[0.04]"
             >
               Full race card
             </Link>
@@ -144,7 +144,7 @@ export function FeedRaceDayCommand({
           </p>
           <Link
             href="/races"
-            className="giq-button giq-button-carbon mt-4 min-h-10 w-fit px-4 text-[12px] font-semibold"
+            className="giq-button giq-button-carbon mt-4 min-h-11 w-fit px-4 text-[12px] font-semibold"
           >
             <CalendarDays className="size-4" aria-hidden="true" />
             Review race cards

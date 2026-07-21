@@ -113,7 +113,7 @@ export function PedigreeExplorer() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search any greyhound — race dogs and breeding sires and dams…"
-            className="w-full bg-transparent text-[14px] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--subtle-foreground))] focus:outline-none"
+            className="w-full bg-transparent text-[14px] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--subtle-foreground))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]"
             aria-label="Search a dog to view its pedigree"
           />
           {searching && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[hsl(var(--muted-foreground))]" />}
@@ -121,7 +121,7 @@ export function PedigreeExplorer() {
             <button
               type="button"
               onClick={reset}
-              className="shrink-0 rounded-md p-1 text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
+              className="grid size-11 shrink-0 place-items-center rounded-md text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]"
               aria-label="Clear"
             >
               <X className="h-4 w-4" />

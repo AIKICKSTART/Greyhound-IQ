@@ -10,6 +10,10 @@ const formControlsSource = readFileSync(
   join(__dirname, "form-controls.tsx"),
   "utf8"
 );
+const listingsSource = readFileSync(
+  join(__dirname, "listings", "page.tsx"),
+  "utf8"
+);
 
 for (const [name, source] of Object.entries({
   dashboard: dashboardSource,
@@ -85,6 +89,12 @@ assert.ok(
   dashboardSource.includes("focus-visible:ring-2") &&
     dashboardSource.includes("admin-attention-heading"),
   "Dashboard navigation must retain visible keyboard focus and queue hierarchy"
+);
+assert.ok(
+  listingsSource.includes("inline-flex min-h-11 items-center") &&
+    listingsSource.includes("flex min-h-11 items-center") &&
+    listingsSource.includes("size-5 shrink-0"),
+  "Marketplace review links and checkbox controls must retain 44px touch targets"
 );
 
 console.log("Core admin visual-polish contract tests passed");

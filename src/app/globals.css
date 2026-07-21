@@ -98,6 +98,7 @@
   --tracking-sm: -0.006em;
   --tracking-caption: 0;
   --tracking-micro: 0.08em;
+  --giq-member-header-clearance: 158px;
   --giq-mobile-dock-clearance: calc(104px + env(safe-area-inset-bottom, 0px));
 
   /* Gate order: 1 red, 2 stripes, 3 silver, 4 blue, 5 yellow, 6 green, 7 black, 8 pink */
@@ -1293,6 +1294,10 @@ body {
   top: 4px;
 }
 
+body.giq-member-shell:has(.giq-member-header[data-header-state="compact"]) {
+  --giq-member-header-clearance: 106px;
+}
+
 .giq-member-header[data-header-state="compact"] .giq-member-header-frame,
 .giq-member-header[data-header-state="compact"] .giq-member-header-inner {
   min-height: 108px;
@@ -1346,7 +1351,7 @@ body {
 .giq-member-header[data-header-state="compact"] .giq-member-race-nav .giq-header-nav-link,
 .giq-member-header[data-header-state="compact"] .giq-member-race-nav .giq-header-nav-link.is-active {
   width: auto;
-  min-height: 38px;
+  min-height: 44px;
   padding-inline: 12px;
   white-space: nowrap;
 }
@@ -1527,6 +1532,10 @@ body.giq-public-shell:has([data-standalone-member-preview="true"]) #main-content
 }
 
 @media (max-width: 767px) {
+  body.giq-member-shell {
+    --giq-member-header-clearance: 76px;
+  }
+
   .giq-member-header .giq-member-header-frame,
   .giq-member-header .giq-member-header-inner,
   .giq-member-header[data-header-state="compact"] .giq-member-header-frame,
@@ -2930,7 +2939,7 @@ h2,
   }
 
   .giq-mobile-footer-links a {
-    min-height: 32px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     border: 1px solid hsl(var(--metal-silver) / 0.18);
@@ -3005,7 +3014,7 @@ h2,
   }
 
   .giq-mobile-footer-links a {
-    min-height: 30px;
+    min-height: 44px;
     padding: 0 12px;
   }
 
@@ -4525,7 +4534,7 @@ h2,
 .giq-filter-chip {
   display: inline-flex;
   min-width: max-content;
-  min-height: 38px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   border: 1px solid hsl(var(--metal-silver) / 0.16);
@@ -6848,7 +6857,7 @@ select.giq-form-control option:checked {
   }
 
   .giq-mobile-footer-links a {
-    min-height: 30px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     border: 1px solid hsl(var(--metal-silver) / 0.18);
@@ -7165,6 +7174,76 @@ select.giq-form-control option:checked {
 
   .giq-mobile-dock-sheet.is-admin {
     width: min(960px, calc(100vw - 32px));
+  }
+}
+
+/* Shared viewport geometry for signed-in sticky columns and modal sheets. */
+@media (min-width: 1024px) {
+  .giq-social-column-sticky {
+    position: sticky;
+    top: var(--giq-member-header-clearance);
+    max-height: calc(100dvh - var(--giq-member-header-clearance) - var(--giq-mobile-dock-clearance) - 16px);
+  }
+
+  .giq-social-feed-scroll {
+    height: calc(100dvh - var(--giq-member-header-clearance) - var(--giq-mobile-dock-clearance) - 16px);
+  }
+
+  .giq-social-messenger {
+    max-height: 100%;
+  }
+}
+
+[data-slot="sheet-content"] {
+  max-width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+
+[data-slot="sheet-content"][data-side="left"],
+[data-slot="sheet-content"][data-side="right"] {
+  top: env(safe-area-inset-top, 0px);
+  bottom: env(safe-area-inset-bottom, 0px);
+  height: auto;
+}
+
+[data-slot="sheet-content"][data-side="left"] {
+  left: env(safe-area-inset-left, 0px);
+}
+
+[data-slot="sheet-content"][data-side="right"] {
+  right: env(safe-area-inset-right, 0px);
+}
+
+[data-slot="sheet-content"][data-side="top"] {
+  top: env(safe-area-inset-top, 0px);
+}
+
+[data-slot="sheet-content"][data-side="bottom"] {
+  bottom: env(safe-area-inset-bottom, 0px);
+}
+
+[data-admin-shell] label:has(input[type="checkbox"]),
+[data-admin-shell] label:has(input[type="radio"]) {
+  min-height: 44px;
+}
+
+[data-admin-shell] input[type="checkbox"],
+[data-admin-shell] input[type="radio"] {
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 359.98px) {
+  .giq-recent-form-row-interactive {
+    grid-template-columns: minmax(0, 1fr) 36px 48px 54px;
+  }
+
+  .giq-recent-form-actions-slot {
+    grid-column: 1 / -1;
+    justify-self: stretch;
   }
 }
 

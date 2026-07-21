@@ -125,7 +125,7 @@ export function AccountSupportHelpCentre({
               </p>
               <Link
                 href={topic.href}
-                className="giq-text-link mt-4 w-fit text-[12px] font-semibold"
+                className="giq-button giq-button-carbon mt-4 min-h-11 w-fit px-3 text-[12px] font-semibold"
               >
                 Open relevant workspace
                 <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -149,7 +149,7 @@ export function AccountSupportHelpCentre({
         className="giq-subpanel mt-5 p-4 sm:p-5"
         open={Boolean(normalizedQuery)}
       >
-        <summary className="cursor-pointer text-[14px] font-semibold text-[hsl(var(--foreground))]">
+        <summary className="flex min-h-11 cursor-pointer items-center text-[14px] font-semibold text-[hsl(var(--foreground))]">
           Available guided tours ({tours.length})
         </summary>
         <p className="mt-2 text-[12px] leading-5 text-[hsl(var(--muted-foreground))]">

@@ -210,7 +210,7 @@ function ListingTable({
                 <td className="px-4 py-3">
                   <Link
                     href={`/marketplace/${listing.id}`}
-                    className="rounded-sm text-[13px] font-semibold text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary-bright))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))]"
+                    className="inline-flex min-h-11 items-center rounded-sm text-[13px] font-semibold text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary-bright))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))]"
                   >
                     {listing.title}
                   </Link>
@@ -291,13 +291,13 @@ function ListingActions({ listing }: { listing: ListingRow }) {
   if (listing.status === "active") {
     return (
       <form action={removeAction} className="grid min-w-[220px] gap-2">
-        <label className="flex items-start gap-2 text-[11px] leading-4 text-[hsl(var(--muted-foreground))]">
+        <label className="flex min-h-11 items-center gap-2 text-[11px] leading-4 text-[hsl(var(--muted-foreground))]">
           <input
             type="checkbox"
             name="confirmation"
             value="remove"
             required
-            className="mt-0.5 size-4 shrink-0 accent-[hsl(var(--primary))]"
+            className="size-5 shrink-0 accent-[hsl(var(--primary))]"
           />
           Confirm this listing should be removed from the marketplace.
         </label>

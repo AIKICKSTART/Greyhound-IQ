@@ -988,7 +988,7 @@ export function InteractiveHelpMenuControls({
         onClick={() =>
           updateInteractiveHelp(state.enabled ? "disable" : "enable")
         }
-        className={`${styles.secondaryControl} giq-button giq-button-carbon min-h-10 w-full justify-start px-3 text-[13px] font-semibold`}
+        className={`${styles.secondaryControl} giq-button giq-button-carbon min-h-11 w-full justify-start px-3 text-[13px] font-semibold`}
       >
         {state.enabled ? (
           <ToggleRight
@@ -1010,7 +1010,7 @@ export function InteractiveHelpMenuControls({
           });
           updateInteractiveHelp("restart");
         }}
-        className={`${styles.secondaryControl} giq-button giq-button-carbon min-h-10 w-full justify-start px-3 text-[13px] font-semibold`}
+        className={`${styles.secondaryControl} giq-button giq-button-carbon min-h-11 w-full justify-start px-3 text-[13px] font-semibold`}
       >
         <CircleHelp className="h-3.5 w-3.5" aria-hidden="true" />
         Restart guided tour
@@ -1018,7 +1018,7 @@ export function InteractiveHelpMenuControls({
       <button
         type="button"
         onClick={() => resetAllInteractiveHelp(profileScope)}
-        className={`${styles.secondaryControl} giq-button giq-button-carbon min-h-10 w-full justify-start px-3 text-[13px] font-semibold`}
+        className={`${styles.secondaryControl} giq-button giq-button-carbon min-h-11 w-full justify-start px-3 text-[13px] font-semibold`}
       >
         <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
         Reset all tours on this device
@@ -1062,7 +1062,7 @@ export function InteractiveHelpMenuControls({
                   tourId: ONBOARDING_ANALYTICS_LEGACY_TOUR_ID,
                 })
               }
-              className="w-fit text-[11px] font-semibold text-[hsl(var(--primary-light))] underline-offset-4 hover:underline"
+              className="giq-button giq-button-carbon min-h-11 w-fit px-3 text-[11px] font-semibold"
             >
               Open {selectedIntentOption.label} guidance
             </Link>
@@ -1114,7 +1114,7 @@ export function InteractiveHelpMenuControls({
                           "restart",
                         );
                       }}
-                      className="mt-1 w-fit text-[11px] font-semibold text-[hsl(var(--primary-light))] underline-offset-4 hover:underline"
+                      className="giq-button giq-button-carbon mt-1 min-h-11 w-fit px-3 text-[11px] font-semibold"
                     >
                       Run again
                     </Link>
@@ -1138,7 +1138,7 @@ export function InteractiveHelpMenuControls({
             tourId: ONBOARDING_ANALYTICS_LEGACY_TOUR_ID,
           })
         }
-        className={`${styles.secondaryControl} giq-button giq-button-carbon min-h-10 w-full justify-start px-3 text-[13px] font-semibold`}
+        className={`${styles.secondaryControl} giq-button giq-button-carbon min-h-11 w-full justify-start px-3 text-[13px] font-semibold`}
       >
         <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
         Search help topics
@@ -1165,7 +1165,7 @@ export function InteractiveHelpMenuControls({
           </p>
           <Link
             href="/pricing"
-            className="w-fit text-[11px] font-semibold text-[hsl(var(--primary-light))] underline-offset-4 hover:underline"
+            className="giq-button giq-button-carbon min-h-11 w-fit px-3 text-[11px] font-semibold"
           >
             Compare plans
           </Link>
@@ -1180,7 +1180,7 @@ export function InteractiveHelpMenuControls({
             tourId: ONBOARDING_ANALYTICS_LEGACY_TOUR_ID,
           })
         }
-        className={`${styles.secondaryControl} giq-button giq-button-carbon min-h-10 w-full justify-start px-3 text-[13px] font-semibold`}
+        className={`${styles.secondaryControl} giq-button giq-button-carbon min-h-11 w-full justify-start px-3 text-[13px] font-semibold`}
       >
         <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" />
         Open support

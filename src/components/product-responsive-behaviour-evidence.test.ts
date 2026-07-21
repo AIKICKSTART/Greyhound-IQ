@@ -45,6 +45,11 @@ const races = source("src/app/races/page.tsx");
 const discover = source("src/app/discover/page.tsx");
 const listingMedia = source("src/components/listing-card-media-carousel.tsx");
 const video = source("src/components/processed-video.tsx");
+const feed = source("src/app/feed/page.tsx");
+const vetFinder = source("src/components/vet-finder/VetFinder.tsx");
+const dogs = source("src/app/dogs/page.tsx");
+const dogSearch = source("src/components/dog-search.tsx");
+const dogDetail = source("src/app/dogs/[id]/page.tsx");
 
 assert.match(globals, /overflow-x: clip;/, "the document shell must suppress horizontal overflow");
 assert.match(
@@ -61,6 +66,11 @@ assert.match(
   sheet,
   /data-\[side=bottom\]:inset-x-0[\s\S]*data-\[side=bottom\]:bottom-0/,
   "bottom sheets must be anchored rather than offset off screen",
+);
+assert.match(
+  sheet,
+  /max-h-dvh[\s\S]*max-w-\[calc\(100vw-1rem\)\][\s\S]*overflow-y-auto[\s\S]*overscroll-contain/,
+  "shared sheets must remain bounded and scrollable inside the dynamic viewport",
 );
 assert.match(
   globals,
@@ -115,6 +125,21 @@ assert.match(
 assert.match(races, /type="search"/, "race lookup must request a search keyboard");
 assert.match(races, /type="date"/, "date selection must request a date keyboard");
 assert.match(discover, /enterKeyHint="search"/, "discovery search must expose its mobile submit intent");
+assert.match(
+  globals,
+  /--giq-member-header-clearance:\s*158px[\s\S]*body\.giq-member-shell:has\(\.giq-member-header\[data-header-state="compact"\]\)[\s\S]*--giq-member-header-clearance:\s*106px/,
+  "sticky workspaces must share expanded and compact member-header clearance",
+);
+assert.match(feed, /giq-social-column-sticky/);
+assert.doesNotMatch(feed, /top-\[84px\]|100dvh-105px/);
+assert.match(
+  vetFinder,
+  /h-\[clamp\(320px,calc\(100dvh-var\(--giq-mobile-dock-clearance\)-220px\),720px\)\]/,
+  "Vet Finder must fit the dynamic viewport and dock clearance",
+);
+assert.match(dogs, /grid-cols-1[\s\S]*min-\[360px\]:grid-cols-3/);
+assert.match(dogSearch, /flex-col[\s\S]*min-\[360px\]:flex-row/);
+assert.match(dogDetail, /giq-recent-form-actions-slot[\s\S]*min-h-11/);
 assert.ok(
   [768, 820, 1024].every((width) =>
     new Set<number>(PRODUCT_RESPONSIVE_REQUIRED_WIDTHS).has(width),
@@ -127,4 +152,4 @@ assert.match(
   "the shell must define both tablet portrait and landscape behaviour",
 );
 
-console.log("Responsive behaviour evidence passed: 10 shared source controls");
+console.log("Responsive behaviour evidence passed: shared shell and compact-route controls");

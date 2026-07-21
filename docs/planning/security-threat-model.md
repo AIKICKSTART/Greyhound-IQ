@@ -316,7 +316,7 @@ Internal:
 | X-Frame-Options | `DENY` |
 | X-Content-Type-Options | `nosniff` |
 | Referrer-Policy | `strict-origin-when-cross-origin` |
-| Permissions-Policy | `camera=(), microphone=(), geolocation=()` |
+| Permissions-Policy | `camera=(self), microphone=(self), display-capture=(self), geolocation=(self)`; same-origin access supports authenticated calls and the user-initiated Vet Finder locator |
 | CORS | Same-origin only; mobile app later gets explicit allowlist |
 | Rate limit | Per-IP, per-user, per-endpoint; tier-based for Pro+ |
 

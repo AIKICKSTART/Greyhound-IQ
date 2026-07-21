@@ -54,7 +54,7 @@ export function VetFilters({
             list="vet-suggestions"
             autoComplete="off"
             spellCheck={false}
-            className="h-full w-full min-w-0 border-0 bg-transparent pl-11 pr-3 text-[14px] text-[hsl(var(--foreground))] outline-none placeholder:text-[hsl(var(--muted-foreground))]"
+            className="h-full w-full min-w-0 border-0 bg-transparent pl-11 pr-3 text-[14px] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[hsl(var(--primary-light))]"
           />
           <datalist id="vet-suggestions">
             {suggestions.map((value) => (
@@ -205,7 +205,7 @@ function SelectField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-label={ariaLabel}
-        className="h-full w-full min-w-0 appearance-none border-0 bg-transparent pl-3.5 pr-9 text-[13px] text-[hsl(var(--foreground))] outline-none"
+        className="h-full w-full min-w-0 appearance-none border-0 bg-transparent pl-3.5 pr-9 text-[13px] text-[hsl(var(--foreground))] focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[hsl(var(--primary-light))]"
       >
         {children}
       </select>

@@ -168,8 +168,8 @@ function DogSearchInner({ initialQuery = "" }: { initialQuery?: string }) {
                       "border-[hsl(var(--secondary-light)/0.62)]!"
                   )}
                 >
-                  <div className="flex justify-between items-center">
-                    <div>
+                  <div className="flex flex-col items-start gap-2 min-[360px]:flex-row min-[360px]:items-center min-[360px]:justify-between">
+                    <div className="min-w-0">
                       <span className="text-[15px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.013em]">
                         {dog.name}
                       </span>
@@ -179,7 +179,7 @@ function DogSearchInner({ initialQuery = "" }: { initialQuery?: string }) {
                         </span>
                       )}
                     </div>
-                    <span className="text-[12px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em] tabular-nums">
+                    <span className="text-left text-[12px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em] tabular-nums min-[360px]:text-right">
                       {dog.careerStarts ?? dog._count.formEntries} starts
                       {dog.careerWins != null && ` · ${dog.careerWins}W`}
                       {dog.prizeMoney !== null &&

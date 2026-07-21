@@ -24,6 +24,41 @@ assert.equal(
   2,
 );
 
+const ciWorkflow =
+  sources.find(({ path }) => path.endsWith("/ci.yml"))?.source ?? "";
+const cloudRunWorkflow =
+  sources.find(({ path }) => path.endsWith("/cloud-run-deploy.yml"))?.source ??
+  "";
+assert.match(ciWorkflow, /image: postgres:16@sha256:[0-9a-f]{64}/u);
+assert.match(
+  cloudRunWorkflow,
+  /group: cloud-run-\$\{\{ github\.workflow \}\}-\$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.environment \|\| 'staging' \}\}/u,
+);
+assert.doesNotMatch(
+  cloudRunWorkflow.match(/concurrency:[\s\S]*?cancel-in-progress: false/u)?.[0] ?? "",
+  /github\.ref/u,
+);
+assert.equal(
+  cloudRunWorkflow.match(
+    /google-github-actions\/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093/gu,
+  )?.length,
+  2,
+);
+assert.match(
+  cloudRunWorkflow,
+  /google-github-actions\/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db/u,
+);
+const liveKitGate =
+  cloudRunWorkflow.match(
+    /- name: Post-deploy LiveKit connectivity check \(staging only\)[\s\S]*?\n      - name: Promote tested revisions/u,
+  )?.[0] ?? "";
+assert.match(liveKitGate, /gcloud scheduler jobs describe "\$scheduler_name"/u);
+assert.match(liveKitGate, /\$CANDIDATE_URL\/api\/internal\/community-readiness/u);
+assert.match(liveKitGate, /\.checks\.livekit == "ok"/u);
+assert.match(liveKitGate, /echo "::add-mask::\$internal_secret"/u);
+assert.doesNotMatch(liveKitGate, /gcloud secrets versions access latest/u);
+assert.doesNotMatch(liveKitGate, /skipping LiveKit connectivity check/u);
+
 const requirement = SECURITY_MASTER_REQUIREMENTS.find(
   ({ id }) => id === DEPLOYMENT_APPROVAL_CONTROL_REQUIREMENT_ID,
 );

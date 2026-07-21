@@ -50,7 +50,7 @@ export default async function DogsPage({
       />
       <section className="mx-auto max-w-3xl px-6 py-16">
         <DogSearch initialQuery={initialQuery} />
-        <div className="mt-8 grid grid-cols-3 gap-3">
+        <div className="mt-8 grid grid-cols-1 gap-3 min-[360px]:grid-cols-3">
           {stats.map((stat) => (
             <div
               key={stat.label}

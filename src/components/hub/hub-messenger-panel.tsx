@@ -50,7 +50,7 @@ export function HubMessengerPanel({
   const outgoing = requests.filter((request) => request.direction === "outgoing");
 
   return (
-    <div className="giq-social-messenger max-h-[calc(100dvh-105px)] space-y-4 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
+    <div className="giq-social-messenger min-h-0 space-y-4 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
       {invites.map((invite) => (
         <HubIncomingCall key={invite.inviteId} invite={invite} />
       ))}

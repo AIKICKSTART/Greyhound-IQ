@@ -134,7 +134,7 @@ export function VetFinder(): React.JSX.Element {
         </div>
       </div>
 
-      <div className="grid h-[72vh] overflow-hidden rounded-2xl border border-[hsl(var(--border))] shadow-[0_22px_60px_-24px_hsl(0_0%_0%/0.7)] lg:h-[clamp(560px,calc(100vh-340px),800px)] lg:grid-cols-[minmax(300px,360px)_1fr]">
+      <div className="grid h-[clamp(320px,calc(100dvh-var(--giq-mobile-dock-clearance)-220px),720px)] overflow-hidden rounded-2xl border border-[hsl(var(--border))] shadow-[0_22px_60px_-24px_hsl(0_0%_0%/0.7)] lg:h-[clamp(560px,calc(100dvh-var(--giq-member-header-clearance)-var(--giq-mobile-dock-clearance)-32px),800px)] lg:grid-cols-[minmax(300px,360px)_1fr]">
         <div
           className={`min-h-0 flex-col border-r border-[hsl(var(--border))] bg-[hsl(var(--surface-1)/0.55)] ${
             mobileView === "map" ? "hidden lg:flex" : "flex"

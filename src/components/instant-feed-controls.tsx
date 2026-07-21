@@ -225,7 +225,7 @@ export function InstantFeedPostComposer({
           <button
             type="button"
             onClick={() => setExpanded(false)}
-            className="ml-auto min-h-10 rounded-lg px-3 text-[11px] font-semibold text-[hsl(var(--muted-foreground))] hover:bg-white/[0.04] hover:text-[hsl(var(--foreground))]"
+            className="ml-auto min-h-11 rounded-lg px-3 text-[11px] font-semibold text-[hsl(var(--muted-foreground))] hover:bg-white/[0.04] hover:text-[hsl(var(--foreground))]"
           >
             Collapse
           </button>
@@ -521,7 +521,7 @@ export function InstantFeedReactionButton({
       </button>
       <details className="group/reactions relative">
         <summary
-          className="grid min-h-11 w-8 cursor-pointer list-none place-items-center rounded-r-lg text-[hsl(var(--subtle-foreground))] transition hover:bg-white/[0.04] hover:text-[hsl(var(--foreground))]"
+          className="grid min-h-11 w-11 cursor-pointer list-none place-items-center rounded-r-lg text-[hsl(var(--subtle-foreground))] transition hover:bg-white/[0.04] hover:text-[hsl(var(--foreground))]"
           aria-label="Choose a reaction"
         >
           <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
@@ -541,7 +541,7 @@ export function InstantFeedReactionButton({
                 disabled={disabled || busy}
                 aria-label={reaction.label}
                 aria-pressed={reactionType === reaction.type}
-                className={`grid h-10 w-10 place-items-center rounded-full transition hover:-translate-y-0.5 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))] ${reaction.tone}`}
+                className={`grid h-11 w-11 place-items-center rounded-full transition hover:-translate-y-0.5 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))] ${reaction.tone}`}
               >
                 <Icon
                   className={`h-5 w-5 ${reaction.type === "love" && reactionType === reaction.type ? "fill-current" : ""}`}
@@ -801,7 +801,7 @@ export function InstantFeedShareControls({
       <button
         type="button"
         onClick={() => void nativeShare()}
-        className="min-h-11 border-l border-white/[0.07] px-2 text-[10px] font-semibold text-[hsl(var(--subtle-foreground))] transition hover:bg-white/[0.04] hover:text-[hsl(var(--foreground))]"
+        className="min-h-11 min-w-11 border-l border-white/[0.07] px-2 text-[10px] font-semibold text-[hsl(var(--subtle-foreground))] transition hover:bg-white/[0.04] hover:text-[hsl(var(--foreground))]"
         aria-label="Share link"
       >
         Link
@@ -909,7 +909,7 @@ export function InstantFeedOwnerControls({
           <button
             type="submit"
             disabled={busy}
-            className="giq-button giq-button-primary min-h-10 px-3 text-[12px] disabled:opacity-50"
+            className="giq-button giq-button-primary min-h-11 px-3 text-[12px] disabled:opacity-50"
           >
             Save changes
           </button>
@@ -917,7 +917,7 @@ export function InstantFeedOwnerControls({
             type="button"
             onClick={remove}
             disabled={busy}
-            className="giq-outline-action min-h-10 px-3 text-[12px] text-red-200 disabled:opacity-50"
+            className="giq-outline-action min-h-11 px-3 text-[12px] text-red-200 disabled:opacity-50"
           >
             <Trash2 className="h-3.5 w-3.5" />
             Delete

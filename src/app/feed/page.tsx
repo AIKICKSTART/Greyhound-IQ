@@ -259,9 +259,9 @@ export default async function FeedPage({
         firstName={user.firstName || user.name}
         data={raceDayData}
       />
-      <div className="giq-social-hub-grid mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_300px] 2xl:grid-cols-[260px_minmax(0,1fr)_340px]">
+      <div className="giq-social-hub-grid mt-4 grid min-h-0 gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_300px] 2xl:grid-cols-[260px_minmax(0,1fr)_340px]">
         <aside className="hidden lg:block" aria-label="Hub navigation">
-          <div className="sticky top-[84px] max-h-[calc(100dvh-105px)] overflow-y-auto pr-1">
+          <div className="giq-social-column-sticky overflow-y-auto pr-1">
             <HubLeftSidebar
               identity={identity}
               pages={ownedPages}
@@ -276,7 +276,7 @@ export default async function FeedPage({
           data-feed-scroll
           aria-label="Community feed"
           tabIndex={0}
-          className="giq-social-feed-scroll min-w-0 space-y-4 lg:h-[calc(100dvh-105px)] lg:overflow-y-auto lg:overscroll-contain lg:pb-8 lg:pr-1 [scrollbar-gutter:stable]"
+          className="giq-social-feed-scroll min-h-0 min-w-0 space-y-4 lg:overflow-y-auto lg:overscroll-contain lg:pb-8 lg:pr-1 [scrollbar-gutter:stable]"
         >
           {/* Ringing card surfaces above the feed on mobile where the right
               messenger column is hidden. */}
@@ -289,7 +289,7 @@ export default async function FeedPage({
           {/* Mobile: identity switcher + shortcuts live in a left drawer. */}
           <div className="lg:hidden">
             <Sheet>
-              <SheetTrigger className="giq-button giq-button-glass min-h-10 w-full justify-between px-3 text-[13px] font-semibold">
+              <SheetTrigger className="giq-button giq-button-glass min-h-11 w-full justify-between px-3 text-[13px] font-semibold">
                 <span className="truncate">
                   Acting as{" "}
                   <span className="text-[hsl(var(--primary-light))]">
@@ -334,7 +334,7 @@ export default async function FeedPage({
             <Link
               href="/feed?mode=for-you"
               aria-current={mode === "for-you" ? "page" : undefined}
-              className={`min-h-10 flex-1 rounded-lg px-4 py-2 text-center text-[13px] font-semibold transition ${
+              className={`inline-flex min-h-11 flex-1 items-center justify-center rounded-lg px-4 py-2 text-center text-[13px] font-semibold transition ${
                 mode === "for-you"
                   ? "bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary-light))]"
                   : "text-[hsl(var(--muted-foreground))] hover:bg-white/[0.04]"
@@ -345,7 +345,7 @@ export default async function FeedPage({
             <Link
               href="/feed?mode=latest"
               aria-current={mode === "latest" ? "page" : undefined}
-              className={`min-h-10 flex-1 rounded-lg px-4 py-2 text-center text-[13px] font-semibold transition ${
+              className={`inline-flex min-h-11 flex-1 items-center justify-center rounded-lg px-4 py-2 text-center text-[13px] font-semibold transition ${
                 mode === "latest"
                   ? "bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary-light))]"
                   : "text-[hsl(var(--muted-foreground))] hover:bg-white/[0.04]"
@@ -403,7 +403,7 @@ export default async function FeedPage({
         </main>
 
         <aside className="giq-social-messenger-rail hidden xl:block" aria-label="Messenger">
-          <div className="sticky top-[84px] max-h-[calc(100dvh-105px)]">
+          <div className="giq-social-column-sticky">
             <HubMessengerPanel
               selfProfileId={user.profileId}
               invites={invites}

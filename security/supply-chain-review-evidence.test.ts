@@ -29,9 +29,9 @@ const dockerfile = readFileSync("Dockerfile", "utf8");
 
 assert.equal(VERIFIED_SUPPLY_CHAIN_REVIEW_IDS.length, 12);
 assert.deepEqual(dependencyReviewSummary, {
-  reviewedDirectDependencies: 41,
+  reviewedDirectDependencies: 42,
   reviewedLifecyclePackages: 8,
-  duplicateLibraryFamilies: 76,
+  duplicateLibraryFamilies: 78,
   deprecatedDevelopmentPackages: 3,
 });
 assert.match(policy, /forbidden URL, Git/i);

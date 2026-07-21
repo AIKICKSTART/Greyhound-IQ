@@ -232,6 +232,7 @@ async function linkStoredRaces(candidates: ReplayCandidate[]) {
               sourceProvider,
               sourceId: { in: ids.slice(index, index + RACE_LOOKUP_CHUNK_SIZE) },
             },
+            take: RACE_LOOKUP_CHUNK_SIZE,
             select: {
               id: true,
               sourceProvider: true,

@@ -381,7 +381,9 @@ export default async function DogProfilePage({
                     {formatSeconds(entry.time)}
                   </span>
                 </FormSummaryValue>
-              <RaceActions raceHref={entry.raceHref} replayHref={entry.replayHref} compact />
+              <span className="giq-recent-form-actions-slot flex justify-end">
+                <RaceActions raceHref={entry.raceHref} replayHref={entry.replayHref} compact />
+              </span>
             </div>
           ))}
         </div>
@@ -692,7 +694,7 @@ function RaceActions({
   return (
     <Link
       href={raceHref}
-      className="giq-recent-form-row-actions inline-flex min-h-9 items-center justify-center gap-0.5 rounded-md px-1.5 text-[10px] font-bold text-[hsl(var(--primary-bright))] hover:bg-[hsl(var(--primary)/0.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-bright))]"
+      className="giq-recent-form-row-actions inline-flex min-h-11 items-center justify-center gap-0.5 rounded-md px-2 text-[10px] font-bold text-[hsl(var(--primary-bright))] hover:bg-[hsl(var(--primary)/0.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-bright))]"
     >
       View race
       <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -701,7 +703,7 @@ function RaceActions({
 }
 
 function ReplayLink({ href, compact = false }: { href: string | null; compact?: boolean }) {
-  const size = compact ? "h-8 w-8" : "h-14 w-14";
+  const size = compact ? "h-11 w-11" : "h-14 w-14";
   if (!href) {
     return (
       <span

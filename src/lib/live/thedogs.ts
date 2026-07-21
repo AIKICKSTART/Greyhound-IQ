@@ -65,7 +65,13 @@ export class TheDogsProvider implements LiveDataProvider {
   }
 
   async fetchResults(days: number): Promise<LiveMeeting[]> {
-    return this.fetchMeetings("recent", days);
+    const dates = recentSydneyDates(days);
+    const meetings = await mapLimit(
+      dates,
+      Math.min(2, THEDOGS_CONCURRENCY),
+      (date) => this.fetchResultsForDate(date)
+    );
+    return meetings.flat();
   }
 
   async fetchResultsForDate(date: string): Promise<LiveMeeting[]> {
@@ -666,6 +672,13 @@ function isMeetingInWindow(date: string, kind: FeedKind, days: number) {
   const span = Math.max(days, 1) * MS_PER_DAY;
   if (kind === "upcoming") return meetingDay >= today && meetingDay <= today + span;
   return meetingDay <= today && meetingDay >= today - span;
+}
+
+function recentSydneyDates(days: number) {
+  const today = dayValue(formatSydneyDate(new Date()));
+  return Array.from({ length: Math.max(days, 1) + 1 }, (_, offset) =>
+    new Date(today - offset * MS_PER_DAY).toISOString().slice(0, 10)
+  );
 }
 
 function raceTimeWithSource(

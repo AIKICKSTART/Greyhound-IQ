@@ -13,10 +13,32 @@ void main();
 
 async function main() {
   await assertTransportBoundaries();
+  await assertTheDogsResultDateDiscovery();
   await assertTheDogsFollowUpBoundaries();
   assertWatchdogSchema();
   assertHtmlParserBounds();
   console.log("live provider response-validation tests passed");
+}
+
+async function assertTheDogsResultDateDiscovery() {
+  const requestedUrls: URL[] = [];
+  const provider = new TheDogsProvider(
+    fetchInspectingRequest((input) => {
+      requestedUrls.push(
+        new URL(input instanceof Request ? input.url : input.toString()),
+      );
+      return htmlResponse("");
+    }),
+  );
+
+  assert.deepEqual(await provider.fetchResults(2), []);
+  assert.equal(requestedUrls.length, 3);
+  assert.ok(requestedUrls.every((url) => url.pathname === "/racing"));
+  assert.ok(
+    requestedUrls.every((url) =>
+      /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get("date") ?? ""),
+    ),
+  );
 }
 
 async function assertTheDogsFollowUpBoundaries() {

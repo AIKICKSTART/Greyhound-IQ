@@ -5,6 +5,7 @@ import {
   INTERACTIVE_HELP_DEVICE_CLASSES,
   resolveInteractiveHelpPopupLayout,
   type InteractiveHelpDeviceClass,
+  type InteractiveHelpPopupLayout,
   type InteractiveHelpViewport,
 } from "./interactive-help-layout";
 import { PRODUCT_MASTER_EVIDENCE } from "./master-audit-evidence";
@@ -58,6 +59,7 @@ const viewportCases = [
   { expected: "large-phone", height: 812, width: 375 },
   { expected: "large-phone", height: 844, width: 390 },
   { expected: "large-phone", height: 932, width: 430 },
+  { expected: "large-phone", height: 956, width: 440 },
   { expected: "foldable", height: 720, width: 540 },
   { expected: "foldable", height: 512, width: 717 },
   { expected: "tablet-portrait", height: 1024, width: 768 },
@@ -75,20 +77,18 @@ const viewportCases = [
 const observedDeviceClasses = new Set<InteractiveHelpDeviceClass>();
 for (const testCase of viewportCases) {
   const viewport: InteractiveHelpViewport = {
+    bottomInset: testCase.width < 1024 ? 76 : 0,
     height: testCase.height,
     keyboardInset: 0,
+    offsetLeft: 0,
     offsetTop: 0,
+    topInset: testCase.width < 1024 ? 72 : 150,
     width: testCase.width,
   };
   const layout = resolveInteractiveHelpPopupLayout(viewport, null);
   observedDeviceClasses.add(layout.deviceClass);
   assert.equal(layout.deviceClass, testCase.expected, `${testCase.width}px`);
-  assert.ok(layout.width <= testCase.width - (layout.mobile ? 24 : 40));
-  assert.ok(layout.top >= viewport.offsetTop);
-  assert.ok(
-    layout.top + layout.maxHeight <=
-      viewport.offsetTop + viewport.height - layout.navigationClearance,
-  );
+  assertPopupFits(viewport, layout);
 }
 assert.deepEqual(
   [...observedDeviceClasses].toSorted(),
@@ -96,9 +96,12 @@ assert.deepEqual(
 );
 
 const phoneViewport: InteractiveHelpViewport = {
+  bottomInset: 76,
   height: 844,
   keyboardInset: 0,
+  offsetLeft: 0,
   offsetTop: 0,
+  topInset: 64,
   width: 390,
 };
 const upperTarget = {
@@ -135,9 +138,12 @@ assert.ok(
 );
 
 const keyboardViewport: InteractiveHelpViewport = {
+  bottomInset: 0,
   height: 360,
   keyboardInset: 420,
+  offsetLeft: 0,
   offsetTop: 24,
+  topInset: 64,
   width: 390,
 };
 const keyboardLayout = resolveInteractiveHelpPopupLayout(
@@ -146,13 +152,8 @@ const keyboardLayout = resolveInteractiveHelpPopupLayout(
 );
 assert.equal(keyboardLayout.keyboardOpen, true);
 assert.equal(keyboardLayout.navigationClearance, 12);
-assert.ok(
-  keyboardLayout.top >= keyboardViewport.offsetTop,
-);
-assert.ok(
-  keyboardLayout.top + keyboardLayout.maxHeight <=
-    keyboardViewport.offsetTop + keyboardViewport.height - 12,
-);
+assert.equal(keyboardLayout.placement, "sheet");
+assertPopupFits(keyboardViewport, keyboardLayout);
 
 const interactiveHelp = source("src/components/interactive-help.tsx");
 const interactiveHelpStyles = source(
@@ -162,6 +163,8 @@ for (const sourceContract of [
   /window\.visualViewport/,
   /visualViewport\?\.addEventListener\("resize", onChange\)/,
   /visualViewport\?\.addEventListener\("scroll", onChange\)/,
+  /visualViewport\?\.offsetLeft/,
+  /measureInteractiveHelpObstructions/,
   /popupLayout\.maxHeight/,
   /popupLayout\.top/,
   /popupLayout\.width/,
@@ -171,7 +174,7 @@ for (const sourceContract of [
 }
 assert.match(
   interactiveHelpStyles,
-  /\.content\s*{[\s\S]*?overscroll-behavior:\s*contain;/,
+  /\.body\s*{[\s\S]*?overscroll-behavior:\s*contain;/,
 );
 
 console.log(
@@ -180,4 +183,35 @@ console.log(
 
 function source(path: string) {
   return readFileSync(path, "utf8");
+}
+
+function assertPopupFits(
+  viewport: InteractiveHelpViewport,
+  layout: InteractiveHelpPopupLayout,
+) {
+  const compact =
+    viewport.width <= 767 || (viewport.height <= 500 && viewport.width <= 1023);
+  const margin = compact ? 12 : 20;
+  const left = viewport.offsetLeft ?? 0;
+  const right = left + viewport.width;
+  const top = viewport.offsetTop + (viewport.topInset ?? 0) + margin;
+  const bottom =
+    viewport.offsetTop +
+    viewport.height -
+    (viewport.bottomInset ?? 0) -
+    margin;
+  const popupLeft = layout.transform.startsWith("translate(-50%")
+    ? layout.left - layout.width / 2
+    : layout.transform === "translateX(-100%)"
+      ? layout.left - layout.width
+      : layout.left;
+  const popupTop =
+    layout.transform === "translateY(-100%)" ||
+    layout.transform.includes(", -100%)")
+      ? layout.top - layout.maxHeight
+      : layout.top;
+  assert.ok(popupLeft >= left - 0.5);
+  assert.ok(popupLeft + layout.width <= right + 0.5);
+  assert.ok(popupTop >= top - 0.5);
+  assert.ok(popupTop + layout.maxHeight <= bottom + 0.5);
 }

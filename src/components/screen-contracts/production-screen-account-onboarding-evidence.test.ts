@@ -216,7 +216,7 @@ assert.match(interactiveHelpSource, /resolveContextualOnboardingTour/);
 assert.match(interactiveHelpSource, /findVisibleOnboardingTarget/);
 assert.match(interactiveHelpSource, /getClientRects\(\)\.length > 0/);
 assert.match(interactiveHelpSource, /prefers-reduced-motion: reduce/);
-assert.match(interactiveHelpSource, /previousFocus\?\.isConnected/);
+assert.match(interactiveHelpSource, /finalFocus=\{restoreFocusRef\}/);
 assert.match(
   interactiveHelpSource,
   /function dismissHelp\(\)[\s\S]*updateInteractiveHelpProgress\(progressStorageKey, "disable"\)[\s\S]*updateInteractiveHelp\("disable"\)/,

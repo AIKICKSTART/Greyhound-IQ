@@ -248,11 +248,21 @@ function PersonalProfileView({
     : [personal.kennelName, personal.state])
     .filter((value): value is string => Boolean(value))
     .join(" · ");
+  // Gold status badge on the banner. Subscription tier is only known for the
+  // owner (viewer context); otherwise fall back to Founder/Member.
+  const ownerTier = (profile.viewer.isOwner ? viewer?.tier : null)?.toLowerCase() ?? "";
+  const statusLabel = ownerTier.includes("plus")
+    ? "Pro+"
+    : ownerTier.includes("pro")
+      ? "Pro"
+      : personal.isFounder
+        ? "Founder"
+        : "Member";
 
   return (
     <main className="giq-custom-page mx-auto max-w-5xl px-3 py-4 sm:px-6 sm:py-10">
       <header className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[hsl(var(--surface-1))] shadow-[0_24px_70px_hsl(0_0%_0%/0.32)]">
-        <div className="relative aspect-[3/1] min-h-36 w-full bg-gradient-to-br from-[hsl(var(--surface-2))] via-[hsl(var(--primary)/0.18)] to-black sm:aspect-[16/5] sm:min-h-0">
+        <div className="relative aspect-[16/10] max-h-[320px] min-h-[220px] w-full bg-gradient-to-br from-[hsl(var(--surface-2))] via-[hsl(var(--primary)/0.28)] to-[hsl(var(--secondary)/0.14)] sm:aspect-[16/6] sm:max-h-[380px]">
           {profile.actor.coverUrl ? (
             <ActorMediaImage
               src={profile.actor.coverUrl}
@@ -266,71 +276,111 @@ function PersonalProfileView({
               rotation={profile.actor.coverRotation}
               priority
             />
-          ) : null}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent" />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 opacity-40 [background:radial-gradient(120%_140%_at_20%_-10%,hsl(var(--primary-bright)/0.5),transparent_55%)]"
+            />
+          )}
+          {/* Readability + depth: stronger bottom gradient so the overlaid
+              identity text reads over any cover image. */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 [box-shadow:inset_0_0_120px_hsl(0_0%_0%/0.55)]"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--primary-bright)/0.75)] to-transparent"
+          />
           {profile.viewer.isOwner ? (
             <Link
               href="/account/profile#cover-image-editor"
-              className="absolute right-3 top-3 z-10 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/20 bg-black/70 px-3 text-[12px] font-semibold text-white shadow-lg backdrop-blur-md transition hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:right-4 sm:top-4"
+              className="absolute right-3 top-3 z-10 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/20 bg-black/60 px-3 text-[12px] font-semibold text-white shadow-lg backdrop-blur-md transition hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:right-4 sm:top-4"
             >
               <Pencil className="h-4 w-4" aria-hidden="true" />
               Edit cover
             </Link>
           ) : null}
-        </div>
-        <div className="relative flex flex-wrap items-end gap-4 px-4 pb-5 sm:px-7">
-          <div className="relative -mt-20 h-40 w-40 shrink-0 sm:-mt-24 sm:h-52 sm:w-52 lg:-mt-[150px] lg:h-[300px] lg:w-[300px]">
-            <div className="h-full w-full overflow-hidden rounded-full border-4 border-[hsl(var(--surface-1))] bg-black shadow-[0_14px_35px_hsl(0_0%_0%/0.45)] ring-2 ring-[hsl(var(--primary-bright)/0.75)] lg:border-[6px]">
-              {avatarUrl ? (
-                <ActorMediaImage
-                  src={avatarUrl}
-                  alt={profile.actor.displayName}
-                  width={300}
-                  height={300}
-                  sizes="(min-width: 1024px) 300px, (min-width: 640px) 208px, 160px"
-                  className="h-full w-full object-cover"
-                  focalX={profile.actor.avatarFocalX}
-                  focalY={profile.actor.avatarFocalY}
-                  zoom={profile.actor.avatarZoom}
-                  rotation={profile.actor.avatarRotation}
-                />
-              ) : (
-                <div className="grid h-full w-full place-items-center text-4xl font-bold text-white/70 sm:text-5xl lg:text-7xl">
-                  {profile.actor.displayName.slice(0, 1).toUpperCase()}
-                </div>
-              )}
-            </div>
-            {profile.viewer.isOwner ? (
-              <Link
-                href="/account/profile#profile-picture-editor"
-                aria-label="Edit profile picture"
-                className="absolute bottom-0 right-0 z-10 grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-[hsl(var(--primary)/0.95)] text-white shadow-xl transition hover:bg-[hsl(var(--primary-bright))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
-              >
-                <Pencil className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            ) : null}
-          </div>
-          <div className="min-w-0 flex-1 pb-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <PageTitle size="compact" className="min-w-0">
-                {profile.actor.displayName}
-              </PageTitle>
-              {personal.verified ? (
-                <BadgeCheck
-                  className="h-5 w-5 shrink-0 text-[hsl(var(--primary-bright))]"
-                  aria-label="Verified member"
-                />
+
+          {/* Identity overlaid on the banner: avatar + name + gold badge. */}
+          <div className="absolute inset-x-0 bottom-0 z-[6] flex items-end gap-3 p-3 sm:gap-4 sm:p-5">
+            <div className="relative shrink-0">
+              <div className="h-[76px] w-[76px] overflow-hidden rounded-full border-[3px] border-[hsl(var(--surface-1))] bg-black shadow-[0_10px_28px_hsl(0_0%_0%/0.55)] ring-2 ring-[hsl(var(--primary-bright)/0.85)] sm:h-[112px] sm:w-[112px] lg:h-[132px] lg:w-[132px]">
+                {avatarUrl ? (
+                  <ActorMediaImage
+                    src={avatarUrl}
+                    alt={profile.actor.displayName}
+                    width={140}
+                    height={140}
+                    sizes="132px"
+                    className="h-full w-full object-cover"
+                    focalX={profile.actor.avatarFocalX}
+                    focalY={profile.actor.avatarFocalY}
+                    zoom={profile.actor.avatarZoom}
+                    rotation={profile.actor.avatarRotation}
+                  />
+                ) : (
+                  <div className="grid h-full w-full place-items-center text-3xl font-bold text-white/70">
+                    {profile.actor.displayName.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              {profile.viewer.isOwner ? (
+                <Link
+                  href="/account/profile#profile-picture-editor"
+                  aria-label="Edit profile picture"
+                  className="absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full border border-white/25 bg-[hsl(var(--primary)/0.95)] text-white shadow-lg transition hover:bg-[hsl(var(--primary-bright))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                >
+                  <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                </Link>
               ) : null}
-              <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${personal.isFounder ? "border border-[hsl(var(--secondary)/0.55)] bg-[hsl(var(--secondary)/0.15)] text-[hsl(var(--secondary))]" : "bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary-bright))]"}`}>
-                {personal.isFounder ? "Founder" : "Member"}
-              </span>
             </div>
-            {details ? (
-              <p className="mt-1 text-[14px] text-[hsl(var(--muted-foreground))]">
-                {details}
-              </p>
-            ) : null}
+            <div className="min-w-0 flex-1 pb-0.5">
+              <div className="flex min-w-0 items-center gap-2">
+                <PageTitle
+                  size="compact"
+                  className="min-w-0 truncate !text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.9)]"
+                >
+                  {profile.actor.displayName}
+                </PageTitle>
+                {personal.verified ? (
+                  <BadgeCheck
+                    className="h-5 w-5 shrink-0 text-[hsl(var(--primary-bright))] drop-shadow"
+                    aria-label="Verified member"
+                  />
+                ) : null}
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full bg-gradient-to-b from-[hsl(46_92%_64%)] to-[hsl(var(--secondary))] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-black shadow-[0_2px_10px_hsl(var(--secondary)/0.55)] ring-1 ring-white/40">
+                  {statusLabel}
+                </span>
+                {details ? (
+                  <span className="truncate text-[12px] font-medium text-white/85 [text-shadow:0_1px_10px_rgba(0,0,0,0.85)]">
+                    {details}
+                  </span>
+                ) : null}
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Stats + actions sit in a clean row below the banner. */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
+          <ProfileStatStrip
+            stats={[
+              profile.friendCount != null
+                ? { label: "Friends", value: profile.friendCount.toLocaleString("en-AU") }
+                : null,
+              profile.gallery.length > 0
+                ? { label: profile.gallery.length === 1 ? "Photo" : "Photos", value: String(profile.gallery.length) }
+                : null,
+              {
+                label: "Member since",
+                value: personal.createdAt.toLocaleDateString("en-AU", { month: "short", year: "numeric" }),
+              },
+            ]}
+          />
           <PersonalProfileActions
             profile={profile}
             friendship={friendship}
@@ -515,6 +565,31 @@ function PersonalProfileActions({
         </SubmitButton>
       </form>
     </div>
+  );
+}
+
+function ProfileStatStrip({
+  stats,
+}: {
+  stats: Array<{ label: string; value: string } | null>;
+}) {
+  const items = stats.filter(
+    (stat): stat is { label: string; value: string } => stat !== null,
+  );
+  if (items.length === 0) return null;
+  return (
+    <dl className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+      {items.map((stat) => (
+        <div key={stat.label} className="flex items-baseline gap-1.5">
+          <dt className="order-2 text-[11px] font-medium uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
+            {stat.label}
+          </dt>
+          <dd className="order-1 text-[15px] font-semibold tabular-nums text-[hsl(var(--foreground))]">
+            {stat.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

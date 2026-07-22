@@ -1,8 +1,11 @@
 import type { AdminOnboardingIcon } from "./onboarding-tour-registry";
 
-export const PUBLIC_ONBOARDING_TOUR_ID = "tour:public-foundations:v1";
-export const PUBLIC_ONBOARDING_TOUR_VERSION = 1;
+export const PUBLIC_ONBOARDING_TOUR_ID = "tour:public-foundations:v2";
+export const PUBLIC_ONBOARDING_TOUR_VERSION = 2;
 export const PUBLIC_ONBOARDING_TARGET_IDS = [
+  "public-home-features",
+  "public-home-pricing",
+  "public-home-races",
   "public-navigation",
   "public-page-content",
 ] as const;
@@ -191,6 +194,50 @@ function publicStepsForRoute(
     config.route
       .replaceAll(/[^a-z0-9]+/gi, "-")
       .replace(/^-+|-+$/g, "") || "home";
+  if (config.route === "/") {
+    return [
+      {
+        id: "home:purpose",
+        title: "Start with today's racing",
+        body: "GreyhoundIQ puts today's Australian meetings first. From here you can open a meeting, choose a race, then move into runner form, track context and deeper analysis without hunting through the site.",
+        icon: "sparkles",
+        targetId: "public-page-content",
+        fallbackTargetId: "public-navigation",
+      },
+      {
+        id: "home:navigation",
+        title: "Everything stays within reach",
+        body: "Use the five-button dock for Home, Feed, Post, Chat and Menu. Menu opens the complete screen map; on wider screens the header also keeps the main racing destinations visible.",
+        icon: "navigation",
+        targetId: "public-navigation",
+        fallbackTargetId: "public-page-content",
+      },
+      {
+        id: "home:features",
+        title: "Choose the depth you need",
+        body: "Jump into full career form, AI predictions, breeding analytics or advanced statistics. Each card is a direct route into that workflow—not a separate marketing page.",
+        icon: "layout",
+        targetId: "public-home-features",
+        fallbackTargetId: "public-page-content",
+      },
+      {
+        id: "home:races",
+        title: "Open a meeting, then a race",
+        body: "Today's Races shows the meetings currently available and the races inside each card. Select the meeting or race you want; loading, empty and recoverable states will keep the next safe action visible.",
+        icon: "user",
+        targetId: "public-home-races",
+        fallbackTargetId: "public-page-content",
+      },
+      {
+        id: "home:continue",
+        title: "Start free and grow into the tools",
+        body: "Plans are shown in AUD with the included tools listed clearly. You can begin free, compare plans when ready, and restart this walkthrough at any time from Account > Support.",
+        icon: "shield",
+        targetId: "public-home-pricing",
+        fallbackTargetId: "public-page-content",
+      },
+    ];
+  }
   return [
     {
       id: `${id}:purpose`,

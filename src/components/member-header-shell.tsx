@@ -53,15 +53,22 @@ export function MemberHeaderShell({ children }: { children: ReactNode }) {
     );
     const readScrollY = () => containedScroller?.scrollTop ?? window.scrollY;
     const scrollTarget: EventTarget = containedScroller ?? window;
+    // On mobile the header is a fixed 68px in both states, so "compact" buys no
+    // space — it only nudges `top` 8px→4px and swaps the frame glow. Mobile URL-bar
+    // collapse and rubber-band scrolling jitter across the 48px threshold, which
+    // made the header flicker. Compaction is desktop-only; mobile stays expanded.
+    const compactMedia = window.matchMedia("(min-width: 768px)");
 
     const update = () => {
       const scrollY = readScrollY();
       activeScrollY.current = scrollY;
-      const next = nextMemberHeaderState(
-        scrollState.current,
-        scrollY,
-        headerRef.current?.contains(document.activeElement) ?? false
-      );
+      const next = compactMedia.matches
+        ? nextMemberHeaderState(
+            scrollState.current,
+            scrollY,
+            headerRef.current?.contains(document.activeElement) ?? false
+          )
+        : { compact: false, anchorY: scrollY };
       if (next.compact !== scrollState.current.compact) {
         setRenderedState({ pathname, compact: next.compact });
       }
@@ -71,8 +78,10 @@ export function MemberHeaderShell({ children }: { children: ReactNode }) {
     scrollState.current = { compact: false, anchorY: readScrollY() };
     update();
     scrollTarget.addEventListener("scroll", update, { passive: true });
+    compactMedia.addEventListener("change", update);
     return () => {
       scrollTarget.removeEventListener("scroll", update);
+      compactMedia.removeEventListener("change", update);
     };
   }, [pathname]);
 

@@ -132,11 +132,11 @@ assert.doesNotMatch(statisticsSource, /4,800\+ meetings/);
 
 const breedingSource = readFileSync("src/app/breeding/page.tsx", "utf8");
 for (const sourceAssertion of [
-  "SIRE_LEADERS.length > 0",
+  "sires.length > 0",
   "Sire statistics are not available",
   's.strike === null ? "Not available"',
   'data-metric-state={s.strike === null ? "missing" : "measured"}',
-  "current read-only aggregate",
+  "current read-only snapshot",
 ]) {
   assert.ok(
     breedingSource.includes(sourceAssertion),

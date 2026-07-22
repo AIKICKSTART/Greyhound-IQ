@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Loader2,
   MessageSquare,
+  Minus,
   Paperclip,
   Phone,
   RotateCcw,
@@ -14,7 +15,14 @@ import {
   ShieldAlert,
   X,
 } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
 import { ProcessedVideo } from "@/components/processed-video";
@@ -22,11 +30,18 @@ import {
   ensureBrowserRealtimeAuthorization,
   getBrowserRealtimeClient,
 } from "@/components/realtime-refresh";
+import {
+  dockReducer,
+  minimizedWindowIds,
+  openWindowIds,
+  type DockWindow,
+} from "@/components/hub/hub-chat-window-state";
 
 export type HubDockConversation = {
   id: string;
   otherName: string;
   otherAvatarUrl: string | null;
+  otherProfileId: string;
   preview: string;
   unread: number;
   attachmentCount?: number;
@@ -59,7 +74,6 @@ type QuickMessage = {
   pending?: boolean;
 };
 
-const MAX_OPEN_WINDOWS = 2;
 const OPEN_CHAT_EVENT = "giq:open-chat";
 export const TOGGLE_CHAT_DOCK_EVENT = "giq:toggle-chat-dock";
 const CHAT_TIME_FORMATTER = new Intl.DateTimeFormat("en-AU", {
@@ -82,15 +96,11 @@ export function HubConversationDock({
   mode?: "list" | "floating";
   externalLauncher?: boolean;
 }) {
-  const [openIds, setOpenIds] = useState<string[]>([]);
+  const [windows, dispatch] = useReducer(dockReducer, [] as DockWindow[]);
   const [launcherOpen, setLauncherOpen] = useState(false);
 
   const openConversation = useCallback((id: string) => {
-    setOpenIds((current) =>
-      current.includes(id)
-        ? current
-        : [...current, id].slice(-MAX_OPEN_WINDOWS)
-    );
+    dispatch({ type: "open", id });
     setLauncherOpen(false);
   }, []);
 
@@ -146,28 +156,48 @@ export function HubConversationDock({
   );
 
   return (
-    <div className={`fixed right-4 z-[60] hidden items-end gap-3 lg:flex ${externalLauncher ? "bottom-[96px]" : "bottom-4"}`}>
-      {openIds.map((id) => {
+    <div className={`fixed right-3 z-[60] flex items-end gap-3 sm:right-4 ${externalLauncher ? "bottom-[calc(92px+env(safe-area-inset-bottom))] lg:bottom-[96px]" : "bottom-4"}`}>
+      {openWindowIds(windows).map((id, index, ids) => {
         const conversation = conversations.find((item) => item.id === id);
         if (!conversation) return null;
+        // Desktop docks multiple chat windows side by side; mobile has room for
+        // one, so only the most-recently-opened stays expanded (the rest remain
+        // reachable as minimised bubbles).
         return (
-          <QuickChatWindow
-            key={id}
-            conversation={conversation}
-            selfProfileId={selfProfileId}
-            canStartCall={canStartCall}
-            onClose={() =>
-              setOpenIds((current) => current.filter((item) => item !== id))
-            }
-          />
+          <div key={id} className={index < ids.length - 1 ? "hidden lg:block" : ""}>
+            <QuickChatWindow
+              conversation={conversation}
+              selfProfileId={selfProfileId}
+              canStartCall={canStartCall}
+              onMinimize={() => dispatch({ type: "minimize", id })}
+              onClose={() => dispatch({ type: "close", id })}
+            />
+          </div>
         );
       })}
+
+      {minimizedWindowIds(windows).length > 0 && (
+        <div className="flex flex-col-reverse items-center gap-2">
+          {minimizedWindowIds(windows).map((id) => {
+            const conversation = conversations.find((item) => item.id === id);
+            if (!conversation) return null;
+            return (
+              <MinimizedChatBubble
+                key={id}
+                conversation={conversation}
+                onRestore={() => openConversation(id)}
+                onClose={() => dispatch({ type: "close", id })}
+              />
+            );
+          })}
+        </div>
+      )}
 
       <div className="relative flex flex-col items-end">
         {launcherOpen && (
           <section
             aria-label="Chat dock"
-            className={`absolute right-0 max-h-[min(520px,calc(100dvh-120px))] w-[320px] overflow-hidden rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] shadow-2xl backdrop-blur-xl ${externalLauncher ? "bottom-0" : "bottom-[calc(100%+0.75rem)]"}`}
+            className={`absolute right-0 max-h-[min(520px,calc(100dvh-120px))] w-[min(320px,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] shadow-2xl backdrop-blur-xl ${externalLauncher ? "bottom-0" : "bottom-[calc(100%+0.75rem)]"}`}
           >
             <header className="flex min-h-12 items-center gap-2 border-b border-white/[0.08] px-3">
               <MessageSquare className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
@@ -293,11 +323,13 @@ function QuickChatWindow({
   conversation,
   selfProfileId,
   canStartCall,
+  onMinimize,
   onClose,
 }: {
   conversation: HubDockConversation;
   selfProfileId: string;
   canStartCall: boolean;
+  onMinimize: () => void;
   onClose: () => void;
 }) {
   const messagesViewportRef = useRef<HTMLDivElement>(null);
@@ -307,6 +339,8 @@ function QuickChatWindow({
   const [attachmentResetKey, setAttachmentResetKey] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [otherOnline, setOtherOnline] = useState(false);
+  const tracksPresence = conversation.personToPerson;
 
   const loadMessages = useCallback(async () => {
     const response = await fetch(
@@ -345,12 +379,34 @@ function QuickChatWindow({
         conversation.realtimeChannel,
       ]);
       if (cancelled) return;
-      channel = client
+      const ch = client
         .channel(conversation.realtimeChannel, { config: { private: true } })
         .on("broadcast", { event: "message_created" }, () => {
           void loadMessages().catch(() => null);
-        })
-        .subscribe();
+        });
+      if (tracksPresence) {
+        const applyPresence = () => {
+          const state = ch.presenceState<{ profileId?: string }>();
+          setOtherOnline(
+            Object.values(state)
+              .flat()
+              .some((entry) => entry.profileId === conversation.otherProfileId)
+          );
+        };
+        ch.on("presence", { event: "sync" }, applyPresence).on(
+          "presence",
+          { event: "leave" },
+          applyPresence
+        );
+      }
+      channel = ch.subscribe((status) => {
+        if (status === "SUBSCRIBED" && tracksPresence) {
+          void ch.track({
+            profileId: selfProfileId,
+            onlineAt: new Date().toISOString(),
+          });
+        }
+      });
     };
     void subscribe().catch(() => null);
 
@@ -359,7 +415,14 @@ function QuickChatWindow({
       window.clearTimeout(initialLoadTimer);
       if (client && channel) void client.removeChannel(channel);
     };
-  }, [conversation.realtimeChannel, loadMessages, retryLoad]);
+  }, [
+    conversation.realtimeChannel,
+    conversation.otherProfileId,
+    loadMessages,
+    retryLoad,
+    selfProfileId,
+    tracksPresence,
+  ]);
 
   useEffect(() => {
     if (loading || loadError) return;
@@ -417,23 +480,44 @@ function QuickChatWindow({
   }
 
   return (
-    <section className="giq-social-quick-chat flex h-[440px] w-[320px] flex-col overflow-hidden rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] shadow-2xl backdrop-blur-xl">
+    <section className="giq-social-quick-chat flex h-[min(440px,calc(100dvh-176px))] w-[min(320px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] shadow-2xl backdrop-blur-xl">
       <header className="giq-social-quick-chat-header flex min-h-12 items-center gap-2 border-b border-white/[0.08] px-3">
-        {conversation.otherAvatarUrl ? (
-          <NextImage
-            src={conversation.otherAvatarUrl}
-            alt=""
-            width={32}
-            height={32}
-            className="size-8 rounded-full object-cover"
-            unoptimized={conversation.otherAvatarUrl.startsWith("/api/media/")}
-          />
-        ) : (
-          <MessageSquare className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
-        )}
-        <h2 className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[hsl(var(--foreground))]">
-          {conversation.otherName}
-        </h2>
+        <span className="relative grid size-8 shrink-0 place-items-center">
+          {conversation.otherAvatarUrl ? (
+            <NextImage
+              src={conversation.otherAvatarUrl}
+              alt=""
+              width={32}
+              height={32}
+              className="size-8 rounded-full object-cover"
+              unoptimized={conversation.otherAvatarUrl.startsWith("/api/media/")}
+            />
+          ) : (
+            <MessageSquare className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
+          )}
+          {tracksPresence && otherOnline && (
+            <span
+              className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[hsl(var(--surface-1))] bg-emerald-400"
+              aria-hidden="true"
+            />
+          )}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-semibold text-[hsl(var(--foreground))]">
+            {conversation.otherName}
+          </span>
+          {tracksPresence && (
+            <span
+              className={`block text-[11px] ${
+                otherOnline
+                  ? "text-emerald-300"
+                  : "text-[hsl(var(--subtle-foreground))]"
+              }`}
+            >
+              {otherOnline ? "Active now" : "Offline"}
+            </span>
+          )}
+        </span>
         <Link
           href={`/pulse/${conversation.id}`}
           className="grid min-h-11 w-11 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05]"
@@ -441,6 +525,14 @@ function QuickChatWindow({
         >
           <ExternalLink className="h-3.5 w-3.5" />
         </Link>
+        <button
+          type="button"
+          onClick={onMinimize}
+          className="grid min-h-11 w-11 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05]"
+          aria-label={`Minimise quick chat with ${conversation.otherName}`}
+        >
+          <Minus className="h-4 w-4" />
+        </button>
         <button
           type="button"
           onClick={onClose}
@@ -568,6 +660,60 @@ function QuickChatWindow({
         )}
       </form>
     </section>
+  );
+}
+
+function MinimizedChatBubble({
+  conversation,
+  onRestore,
+  onClose,
+}: {
+  conversation: HubDockConversation;
+  onRestore: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={onClose}
+        className="grid size-11 place-items-center rounded-full border border-white/[0.12] bg-[hsl(var(--surface-1)/0.94)] text-[hsl(var(--muted-foreground))] shadow-lg transition-colors hover:border-white/[0.2] hover:text-[hsl(var(--foreground))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
+        aria-label={`Close quick chat with ${conversation.otherName}`}
+      >
+        <X className="h-4 w-4" aria-hidden="true" />
+      </button>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={onRestore}
+          className="relative grid size-12 place-items-center overflow-hidden rounded-full border border-white/[0.14] bg-[hsl(var(--surface-2))] text-[13px] font-bold text-white/70 shadow-2xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
+          aria-label={`Restore quick chat with ${conversation.otherName}${
+            conversation.unread > 0 ? `, ${conversation.unread} unread` : ""
+          }`}
+        >
+          {conversation.otherAvatarUrl ? (
+            <NextImage
+              src={conversation.otherAvatarUrl}
+              alt=""
+              fill
+              className="rounded-full object-cover"
+              sizes="48px"
+              unoptimized={conversation.otherAvatarUrl.startsWith("/api/media/")}
+            />
+          ) : (
+            conversation.otherName.slice(0, 1).toUpperCase()
+          )}
+        </button>
+        {conversation.unread > 0 && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[hsl(var(--primary-bright))] px-1.5 text-[10px] font-bold leading-5 tabular-nums text-[hsl(var(--primary-foreground))]"
+          >
+            {conversation.unread > 99 ? "99+" : conversation.unread}
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 

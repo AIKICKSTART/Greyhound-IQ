@@ -27,7 +27,7 @@ const headers = [
   "1st Sec",
   "Mgn",
   "Winner / 2nd",
-  "Video",
+  "Race",
 ];
 let previousHeader = -1;
 for (const header of headers) {
@@ -35,7 +35,14 @@ for (const header of headers) {
   assert.ok(index > previousHeader, `${header} must remain in the approved column order`);
   previousHeader = index;
 }
-assert.ok(page.includes("<details key={entry.id}"));
+assert.ok(page.includes("giq-recent-form-row-interactive"));
+assert.ok(
+  page.includes(
+    "grid-cols-[minmax(60px,1fr)_32px_44px_48px_44px]",
+  ),
+);
+assert.ok(page.includes("min-[390px]:grid-cols-"));
+assert.ok(page.includes("min-h-11 min-w-11"));
 assert.ok(page.includes('aria-label="Play race replay"'));
 assert.ok(page.includes('"h-14 w-14"'));
 assert.ok(page.includes('"h-6 w-6 fill-current"'));

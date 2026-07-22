@@ -270,7 +270,7 @@ assert.deepEqual(
 );
 
 const rolePaths = [
-  ["/", false, "visitor", "tour:public-foundations:v1"],
+  ["/", false, "visitor", "tour:public-foundations:v2"],
   ["/account", true, "member", "tour:account:v1"],
   ["/races", false, "visitor", "tour:racing-intelligence:v1"],
   ["/dogs/example", true, "member", "tour:racing-intelligence:v1"],
@@ -402,7 +402,7 @@ const anonymousKey = buildInteractiveHelpProgressStorageKey({
   role: "visitor",
   route: "/",
   tier: "free",
-  tourId: "tour:public-foundations:v1",
+  tourId: "tour:public-foundations:v2",
   version: 1,
 });
 assert.match(profileKey, /profile-a/);
@@ -474,11 +474,13 @@ const helpSource = readFileSync("src/components/interactive-help.tsx", "utf8");
 const layoutSource = readFileSync("src/app/layout.tsx", "utf8");
 const targetSource = [
   "src/app/layout.tsx",
+  "src/app/page.tsx",
   "src/app/account/layout.tsx",
   "src/app/admin/layout.tsx",
   "src/app/admin/admin-nav.tsx",
   "src/app/admin/admin-page-header.tsx",
   "src/components/site-header.tsx",
+  "src/components/mobile-bottom-dock.tsx",
   "src/components/design-lab-onboarding-disclosure-targets.tsx",
 ]
   .map((path) => readFileSync(path, "utf8"))
@@ -496,13 +498,13 @@ for (const sourceContract of [
   /onClick=\{openHelp\}/,
   /changeStep\(stepIndex \+ 1\)/,
   /changeStep\(stepIndex - 1\)/,
-  /aria-label="Dismiss onboarding help"/,
+  /aria-label="Close and turn off guided help"/,
   /updateInteractiveHelp\("disable"\)/,
   /updateInteractiveHelpProgress\(progressStorageKey, "resume"\)/,
   /completedAt: Date\.now\(\)/,
   /updateInteractiveHelpProgress\(progressStorageKey, "disable"\)/,
   /Restart guided tour/,
-  /Skip step/,
+  /Skip tour/,
   /Reset all tours on this device/,
   /Recently completed/,
   /listRecentlyCompletedInteractiveHelpTours/,
@@ -532,7 +534,7 @@ for (const sourceContract of [
   /aria-label="Tour progress"/,
   /aria-current=\{index === stepIndex \? "step" : undefined\}/,
   /focus-visible:outline-2/,
-  /previousFocus\?\.isConnected/,
+  /finalFocus=\{restoreFocusRef\}/,
   /prefers-reduced-motion: reduce/,
   /min-h-11/,
   /styles\.content/,
@@ -544,7 +546,7 @@ for (const sourceContract of [
   /popupLayout\.arrowOffset/,
   /window\.visualViewport/,
   /DialogPrimitive\.Root/,
-  /modal=\{false\}/,
+  /modal="trap-focus"/,
   /DialogPrimitive\.Popup/,
   /giq-mobile-dock-clearance/,
 ]) {

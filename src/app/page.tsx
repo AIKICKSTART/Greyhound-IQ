@@ -2,16 +2,8 @@ import { getTodaysMeetings } from "@/lib/queries";
 import { MeetingCard } from "@/components/meeting-card";
 import { HomeHero } from "@/components/home-hero";
 import { formatLongRaceDayLabel } from "@/lib/race-time";
-import {
-  ArrowRight,
-  BadgeDollarSign,
-  CheckCircle2,
-  CircleMinus,
-  DatabaseZap,
-  ShieldCheck,
-  Smartphone,
-  Sparkles,
-} from "lucide-react";
+import { getPricingContent } from "@/lib/site-content";
+import { ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { siteAssetUrl } from "@/lib/storage-paths";
@@ -63,64 +55,15 @@ const FEATURES = [
   },
 ] as const;
 
-const COMPARISON = [
-  {
-    feature: "Data source",
-    them: "User-contributed",
-    us: "Official feeds",
-    Icon: DatabaseZap,
-    tone: "official",
-  },
-  {
-    feature: "Currency",
-    them: "GBP (£)",
-    us: "AUD ($)",
-    Icon: BadgeDollarSign,
-    tone: "currency",
-  },
-  {
-    feature: "Pro price/year",
-    them: "~$125 AUD",
-    us: "$204 AUD",
-    Icon: BadgeDollarSign,
-    tone: "price",
-  },
-  {
-    feature: "AI predictions",
-    them: "Not available",
-    us: "ML-powered",
-    Icon: Sparkles,
-    tone: "ai",
-  },
-  {
-    feature: "Mobile-first",
-    them: "Not available",
-    us: "Built mobile-first",
-    Icon: Smartphone,
-    tone: "mobile",
-  },
-  {
-    feature: "Ad-free",
-    them: "Ad-heavy",
-    us: "Zero ads",
-    Icon: ShieldCheck,
-    tone: "clean",
-  },
-  {
-    feature: "Marketplace tools",
-    them: "Not available",
-    us: "Pro tier",
-    Icon: Sparkles,
-    tone: "api",
-  },
-] as const;
-
 export default function HomePage() {
   return (
     <div className="giq-home-page">
       <HomeHero />
 
-      <section className="giq-home-features-section relative mx-auto max-w-7xl px-6 py-16">
+      <section
+        className="giq-home-features-section relative mx-auto max-w-7xl px-6 py-16"
+        data-onboarding-target="public-home-features"
+      >
         <div className="giq-home-feature-grid grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => (
             <FeatureCard key={f.title} {...f} />
@@ -132,7 +75,9 @@ export default function HomePage() {
         <TodaysRacesSection />
       </Suspense>
 
-      <WhyGreyhoundIQSection />
+      <Suspense fallback={<PricingCtaFallback />}>
+        <PricingCtaSection />
+      </Suspense>
     </div>
   );
 }
@@ -142,7 +87,11 @@ async function TodaysRacesSection() {
   const totalRaces = meetings.reduce((acc, m) => acc + m.races.length, 0);
 
   return (
-    <section id="races" className="giq-home-races-section relative mx-auto max-w-7xl px-6 py-8">
+    <section
+      id="races"
+      className="giq-home-races-section relative mx-auto max-w-7xl px-6 py-8"
+      data-onboarding-target="public-home-races"
+    >
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
@@ -184,7 +133,11 @@ async function TodaysRacesSection() {
 
 function TodaysRacesFallback() {
   return (
-    <section id="races" className="giq-home-races-section relative mx-auto max-w-7xl px-6 py-8">
+    <section
+      id="races"
+      className="giq-home-races-section relative mx-auto max-w-7xl px-6 py-8"
+      data-onboarding-target="public-home-races"
+    >
       <div className="mb-6">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
           Today&apos;s Races
@@ -217,76 +170,97 @@ function TodaysRacesFallback() {
   );
 }
 
-function WhyGreyhoundIQSection() {
+async function PricingCtaSection() {
+  const { plans } = await getPricingContent();
   return (
-    <section className="giq-home-why-section giq-comparison-section relative mx-auto max-w-7xl px-6 py-12 md:py-14">
-      <div className="giq-comparison-heading">
-        <div>
-          <h2>
-            Why <span className="giq-text-purple-glass">Greyhound</span><span className="giq-text-gold-glass">IQ?</span>
-          </h2>
-          <p>
-            Built for serious local racing users with official feeds, AUD pricing, marketplace tools, mobile-first workflows, and zero ads.
-          </p>
-        </div>
-        <div className="giq-comparison-meta" aria-label="GreyhoundIQ advantages">
-          <span className="giq-pill giq-pill-sky">Official data</span>
-          <span className="giq-pill giq-pill-gold">$20 AUD/mo</span>
-          <span className="giq-pill giq-pill-green">Mobile first</span>
-        </div>
+    <section
+      id="pricing"
+      className="relative mx-auto max-w-6xl px-6 py-14 md:py-16"
+      data-onboarding-target="public-home-pricing"
+    >
+      <div className="mb-8 text-center">
+        <span className="giq-pill giq-pill-gold mb-3 inline-flex">AUD pricing · zero ads</span>
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
+          Simple, honest <span className="gradient-text">pricing.</span>
+        </h2>
+        <p className="mx-auto mt-2 max-w-xl text-[14px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
+          Start free in seconds. Upgrade to Pro for AI predictions, breeding tools, and marketplace access — priced in AUD with no conversion fees.
+        </p>
       </div>
 
-      <div className="giq-comparison-board">
-        <div className="giq-comparison-board-glow" aria-hidden="true" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {plans.map((plan) => (
+          <div
+            key={plan.name}
+            className={`giq-pricing-card flex flex-col ${plan.highlighted ? "giq-pricing-card-featured lg:scale-[1.02]" : ""}`}
+          >
+            {plan.highlighted && (
+              <div className="giq-badge giq-badge-purple giq-plan-popular">MOST POPULAR</div>
+            )}
+            <div className="mb-4 flex items-center gap-2">
+              <span className="text-[16px] font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))]">
+                {plan.name}
+              </span>
+            </div>
+            <div className="mb-1">
+              <span className="giq-plan-price">{plan.price}</span>
+              <span className="ml-1 text-[13px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
+                {plan.period}
+              </span>
+            </div>
+            <p className="mb-5 mt-2 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
+              {plan.description}
+            </p>
+            <Link
+              href={plan.id === "free" ? "/sign-in?plan=free" : "/pricing#plans"}
+              className={`giq-button mb-5 w-full text-center text-[13px] font-semibold ${plan.highlighted ? "giq-button-primary" : "giq-button-carbon"}`}
+            >
+              {plan.id === "free" ? "Start Free" : plan.cta || "View plan"}
+            </Link>
+            <ul className="space-y-2">
+              {plan.features.slice(0, 5).map((f) => (
+                <li key={f} className="giq-plan-feature">
+                  <Check className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[hsl(var(--primary-bright))]" />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
 
-        <div className="giq-comparison-column-header">
-          <span>Feature</span>
-          <span>greyhound-data.com</span>
-          <span>GreyhoundIQ</span>
-        </div>
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+        <Link
+          href="/sign-in?plan=free"
+          className="giq-button giq-button-primary min-h-11 px-6 text-[13px] font-semibold"
+        >
+          Create your free account
+        </Link>
+        <Link
+          href="/pricing"
+          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[hsl(var(--primary-bright))] hover:underline"
+        >
+          Compare all plans &amp; features <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      </div>
+    </section>
+  );
+}
 
-        <div className="giq-comparison-row-list">
-          {COMPARISON.map((item) => {
-            const isUnavailable = item.them === "Not available";
-            const isLimited = isUnavailable || item.them === "Ad-heavy";
-            const isEmphasis = "emphasis" in item && item.emphasis;
-            const Icon = item.Icon;
-
-            return (
-              <article
-                key={item.feature}
-                className={`giq-comparison-row giq-comparison-row--${item.tone}${isEmphasis ? " is-emphasis" : ""}`}
-              >
-                <div className="giq-comparison-feature">
-                  <span className="giq-comparison-feature-icon">
-                    <Icon aria-hidden="true" className="h-4 w-4" />
-                  </span>
-                  <span>{item.feature}</span>
-                </div>
-
-                <div className={`giq-comparison-cell giq-comparison-cell--competitor${isLimited ? " is-limited" : ""}`}>
-                  <span className="giq-comparison-mobile-label">greyhound-data.com</span>
-                  <span className="giq-comparison-value">
-                    {isLimited ? (
-                      <CircleMinus aria-hidden="true" className="h-4 w-4" />
-                    ) : (
-                      <span className="giq-comparison-neutral-dot" aria-hidden="true" />
-                    )}
-                    {item.them}
-                  </span>
-                </div>
-
-                <div className={`giq-comparison-cell giq-comparison-cell--giq${isEmphasis ? " is-highlight" : ""}`}>
-                  <span className="giq-comparison-mobile-label">GreyhoundIQ</span>
-                  <span className="giq-comparison-value">
-                    <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
-                    {item.us}
-                  </span>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+function PricingCtaFallback() {
+  return (
+    <section
+      className="relative mx-auto max-w-6xl px-6 py-14 md:py-16"
+      data-onboarding-target="public-home-pricing"
+    >
+      <div className="mb-8 text-center">
+        <Skeleton className="mx-auto h-8 w-64" />
+        <Skeleton className="mx-auto mt-3 h-4 w-96 max-w-full" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <SkeletonPanel key={i} className="h-80" />
+        ))}
       </div>
     </section>
   );

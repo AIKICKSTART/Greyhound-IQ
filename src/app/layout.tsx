@@ -138,6 +138,7 @@ export default async function RootLayout({
         id: conversation.id,
         otherName: otherActor?.displayName ?? other.displayName,
         otherAvatarUrl: otherActor?.avatarUrl ?? other.avatarUrl,
+        otherProfileId: other.id,
         preview: message
           ? `${sentByCurrentUser ? "You: " : ""}${message.body}`
           : "Conversation started",

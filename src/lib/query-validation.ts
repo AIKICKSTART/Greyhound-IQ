@@ -32,7 +32,13 @@ export const listingCreatePrefillQuerySchema = z
   .strict();
 
 export const directorySearchQuerySchema = z
-  .object({ q: searchTextSchema(80).default("") })
+  .object({
+    q: searchTextSchema(80).default(""),
+    // Autocomplete pickers pass a small limit; clamp 1..100.
+    limit: boundedIntegerSchema(100, 20),
+    // Breeding surfaces pass breeding=1 to include non-racing studbook dogs.
+    breeding: z.enum(["0", "1"]).optional(),
+  })
   .strict();
 
 export const feedPageQuerySchema = z

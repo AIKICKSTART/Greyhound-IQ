@@ -33,7 +33,16 @@ for (const invalid of [
 
 assert.deepEqual(directorySearchQuerySchema.parse({ q: "  box   dog " }), {
   q: "box dog",
+  limit: 20,
 });
+assert.deepEqual(
+  directorySearchQuerySchema.parse({
+    q: "  Fernando   Bale ",
+    limit: "8",
+    breeding: "1",
+  }),
+  { q: "Fernando Bale", limit: 8, breeding: "1" },
+);
 assert.equal(
   directorySearchQuerySchema.safeParse({ q: "x".repeat(81) }).success,
   false,

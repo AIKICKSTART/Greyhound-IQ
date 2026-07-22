@@ -19,6 +19,7 @@ export type HubConversationRow = {
   id: string;
   otherName: string;
   otherAvatarUrl: string | null;
+  otherProfileId: string;
   preview: string;
   unread: number;
   attachmentCount?: number;

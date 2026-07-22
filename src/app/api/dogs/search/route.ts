@@ -47,6 +47,9 @@ export async function GET(request: Request) {
       { status: 400 },
     );
   }
-  const results = await searchDogs(query.data.q, 20);
+  // Breeding surfaces pass ?breeding=1 to include studbook sires/dams that
+  // never raced; the default directory stays racing-only.
+  const includeNonRacing = searchParams.get("breeding") === "1";
+  const results = await searchDogs(query.data.q, query.data.limit, includeNonRacing);
   return NextResponse.json(results);
 }

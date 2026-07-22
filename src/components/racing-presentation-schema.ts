@@ -533,16 +533,20 @@ export const RACING_ROUTE_PRESENTATION_SCHEMAS = [
         id: "sire-leaderboard",
         title: "Active sire leaderboard",
         sourceFile: "src/app/breeding/page.tsx",
-        sourceMarkers: ["Top Active Sires", ">Progeny</th>", ">Earnings</th>"],
+        sourceMarkers: ["Top active sires", ">Progeny</th>", ">Prize from wins</th>"],
         columns: [
           column("sire.name", "Sire", "text"),
           column("sire.progeny", "Progeny", "integer"),
           column("sire.winners", "Winners", "integer"),
-          column("sire.strike", "Strike %", "percentage", true),
-          column("sire.earnings", "Earnings", "currency"),
+          // Denominator disclosed: winners over ALL mapped progeny, not a
+          // runners-only strike rate (the matview has no racing-progeny count).
+          column("sire.strike", "Winners / progeny", "percentage", true),
+          // The matview earnings are prize money from winning runs only, not
+          // total career earnings — labelled truthfully to match.
+          column("sire.earnings", "Prize from wins", "currency"),
         ],
         missingBehavior:
-          "Show the sire-statistics unavailable panel for an empty aggregate and Not available for an undefined strike rate.",
+          "Show the sire-statistics unavailable panel for an empty aggregate and Not available for an undefined winners-over-progeny ratio.",
       },
     ],
   },

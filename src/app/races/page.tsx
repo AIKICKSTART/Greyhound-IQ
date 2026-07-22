@@ -30,6 +30,7 @@ import {
   formatRaceDayLabel,
   formatRaceTime,
   formatShortRaceDayLabel,
+  orderRaceDates,
 } from "@/lib/race-time";
 import {
   getRacePresentationStatus,
@@ -84,7 +85,11 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
   const hasMeetings = data.meetings.length > 0;
   const now = new Date();
   const nextToGo = getNextToGo(data.meetings, now);
-  const dateRail = buildDateRail(data.recentRaceDates, data.selectedDate);
+  const dateRail = buildDateRail(
+    data.recentRaceDates,
+    data.selectedDate,
+    formatRaceDateInput(now),
+  );
   const activeDateForFilterLinks = data.isGlobalSearch
     ? null
     : data.dateInputValue
@@ -220,7 +225,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
           </div>
 
           <div className="giq-filter-band">
-            <FilterGroup label="State">
+            <FilterGroup label="State" className="giq-filter-group-state">
               <FilterChip
                 href={dateLink(
                   activeDateForFilterLinks,
@@ -648,12 +653,14 @@ function RaceRowLink({
 function FilterGroup({
   label,
   children,
+  className = "",
 }: {
   label: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="giq-filter-group">
+    <div className={`giq-filter-group ${className}`.trim()}>
       <span>{label}</span>
       <div className="giq-filter-scroll">{children}</div>
     </div>
@@ -776,15 +783,17 @@ function getNextToGo(meetings: RaceExplorerMeeting[], now: Date): NextRaceItem[]
 
 function buildDateRail(
   recentRaceDates: { date: string; races: number }[],
-  selectedDate: string
+  selectedDate: string,
+  today: string,
 ): RaceDateRailItem[] {
   const selected = recentRaceDates.find((item) => item.date === selectedDate) ?? {
     date: selectedDate,
     races: null,
   };
-  const rail = [selected, ...recentRaceDates.filter((item) => item.date !== selectedDate)]
-    .slice(0, 10);
-  return rail;
+  return orderRaceDates(
+    [selected, ...recentRaceDates.filter((item) => item.date !== selectedDate)],
+    today,
+  ).slice(0, 10);
 }
 
 function dateChipLabel(date: string, now: Date) {

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Monitor, Move, RotateCcw, RotateCw, Smartphone } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
+import { actorMediaStyle } from "@/components/actor-media-image";
 
 type MediaFocalPointEditorProps = {
   src: string;
@@ -76,9 +77,13 @@ export function MediaFocalPointEditor({
       rect.width / image.naturalWidth,
       rect.height / image.naturalHeight,
     );
+    // Include zoom: a scaled image adds pannable overflow even when the base
+    // object-cover fit has none (e.g. a square avatar in a square frame).
+    const displayWidth = image.naturalWidth * scale * zoom;
+    const displayHeight = image.naturalHeight * scale * zoom;
     return {
-      x: Math.max(0, image.naturalWidth * scale - rect.width),
-      y: Math.max(0, image.naturalHeight * scale - rect.height),
+      x: Math.max(0, displayWidth - rect.width),
+      y: Math.max(0, displayHeight - rect.height),
     };
   }
 
@@ -127,7 +132,6 @@ export function MediaFocalPointEditor({
     setRotation((current) => normalizeRotation(current + delta));
   }
 
-  const position = `${x * 100}% ${y * 100}%`;
   const instructionId = `${id}-instruction`;
   const horizontalId = `${id}-horizontal`;
   const verticalId = `${id}-vertical`;
@@ -189,10 +193,7 @@ export function MediaFocalPointEditor({
                 : "(max-width: 768px) 100vw, 1024px"
             }
             className="pointer-events-none object-cover"
-            style={{
-              objectPosition: position,
-              transform: `rotate(${rotation}deg) scale(${zoom})`,
-            }}
+            style={actorMediaStyle({ focalX: x, focalY: y, zoom, rotation })}
           />
           {shape === "banner" ? (
             <div className="pointer-events-none absolute inset-3 border border-dashed border-white/45 sm:inset-x-[10%]">

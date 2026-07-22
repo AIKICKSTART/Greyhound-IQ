@@ -163,10 +163,10 @@ assert.match(interactiveHelpSource, /buildInteractiveHelpProgressStorageKey/);
 assert.match(interactiveHelpSource, /findVisibleOnboardingTarget/);
 assert.match(interactiveHelpSource, /getClientRects\(\)\.length > 0/);
 assert.match(interactiveHelpSource, /prefers-reduced-motion: reduce/);
-assert.match(interactiveHelpSource, /previousFocus\?\.isConnected/);
+assert.match(interactiveHelpSource, /finalFocus=\{restoreFocusRef\}/);
 assert.match(
   interactiveHelpSource,
-  /aria-label="Dismiss onboarding help"/,
+  /aria-label="Close and turn off guided help"/,
 );
 assert.match(
   interactiveHelpSource,

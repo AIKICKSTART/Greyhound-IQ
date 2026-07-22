@@ -21,6 +21,7 @@ import {
   Search,
   ShieldCheck,
   ShoppingBag,
+  Stethoscope,
   Trophy,
   User,
   Users,
@@ -62,6 +63,7 @@ const MENU_SECTIONS: Array<{ title: string; entries: MenuEntry[] }> = [
       { href: "/tracks", label: "Tracks", icon: Map },
       { href: "/dogs", label: "Dogs", icon: Dog },
       { href: "/breeding", label: "Breeding", icon: Dna },
+      { href: "/vets", label: "Vets", icon: Stethoscope },
     ],
   },
   {
@@ -138,7 +140,12 @@ export function MobileBottomDock({
     ) || (canAccessAdmin && pathname.startsWith("/admin"));
 
   return (
-    <nav aria-label="Quick actions" className="giq-mobile-dock is-visible">
+    <nav
+      aria-label="Quick actions"
+      className="giq-mobile-dock is-visible"
+      data-onboarding-priority="high"
+      data-onboarding-target="account-navigation agents-navigation community-navigation marketplace-navigation public-navigation racing-navigation"
+    >
       {DOCK_LINKS.map((item) => {
         const Icon = item.icon;
         const active = isDockLinkActive(pathname, hash, item);
@@ -154,10 +161,9 @@ export function MobileBottomDock({
               } else if (item.href === "/feed") {
                 setHash("");
               }
-              if (
-                item.href === "/pulse" &&
-                window.matchMedia("(min-width: 1024px)").matches
-              ) {
+              if (item.href === "/pulse") {
+                // Pop the floating Messenger dock on every width instead of
+                // routing to the full inbox; the dock header links to /pulse.
                 event.preventDefault();
                 window.dispatchEvent(new Event(TOGGLE_CHAT_DOCK_EVENT));
               }

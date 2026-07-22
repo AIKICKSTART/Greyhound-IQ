@@ -31,7 +31,7 @@ export function HeaderNav({ links, variant }: HeaderNavProps) {
             <details key={link.label} className="group relative shrink-0">
               <summary
                 className={cn(
-                  "giq-header-nav-link flex cursor-pointer list-none items-center gap-1",
+                  "giq-header-nav-link flex min-h-11 cursor-pointer list-none items-center gap-1",
                   active && "is-active",
                 )}
               >
@@ -49,7 +49,7 @@ export function HeaderNav({ links, variant }: HeaderNavProps) {
                       href={item.href}
                       aria-current={itemActive ? "page" : undefined}
                       className={cn(
-                        "block rounded-lg px-3 py-2 text-[13px] font-semibold text-[hsl(var(--muted-foreground))] transition hover:bg-white/[0.06] hover:text-[hsl(var(--foreground))]",
+                        "flex min-h-11 items-center rounded-lg px-3 py-2 text-[13px] font-semibold text-[hsl(var(--muted-foreground))] transition hover:bg-white/[0.06] hover:text-[hsl(var(--foreground))]",
                         itemActive && "bg-white/[0.06] text-[hsl(var(--foreground))]",
                       )}
                     >
@@ -70,9 +70,9 @@ export function HeaderNav({ links, variant }: HeaderNavProps) {
             aria-current={active ? "page" : undefined}
             className={
               variant === "desktop"
-                ? cn("giq-header-nav-link shrink-0", active && "is-active")
+                ? cn("giq-header-nav-link inline-flex min-h-11 shrink-0 items-center", active && "is-active")
                 : cn(
-                    "giq-button justify-start px-4 text-base font-semibold",
+                    "giq-button min-h-11 justify-start px-4 text-base font-semibold",
                     active ? "giq-button-primary is-active" : "giq-button-carbon",
                   )
             }

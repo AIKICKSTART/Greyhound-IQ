@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   Sparkles,
+  Stethoscope,
   Trophy,
   User,
   X,
@@ -88,6 +89,7 @@ const NAV_SECTIONS: { title: string; links: NavLink[] }[] = [
     links: [
       { href: "/dogs", label: "Dogs", description: "Profiles, form, trainers, and records", icon: Search },
       { href: "/breeding", label: "Breeding", description: "Pedigree and breeding analysis", icon: Dna },
+      { href: "/vets", label: "Vets", description: "Greyhound-friendly vet clinics across Australia", icon: Stethoscope },
       { href: "/agents", label: "Agents", description: "AI workflows and racing analysis", icon: Bot },
     ],
   },
@@ -118,6 +120,7 @@ const NAV_LINKS = [
   { href: "/tracks", label: "Tracks" },
   { href: "/dogs", label: "Dogs" },
   { href: "/breeding", label: "Breeding" },
+  { href: "/vets", label: "Vets" },
   { href: "/agents", label: "Agents" },
   { href: "/marketplace", label: "Marketplace" },
   { href: "/pricing", label: "Pricing" },
@@ -135,6 +138,7 @@ const MEMBER_RACE_NAV_LINKS = [
   { href: "/tracks", label: "Tracks" },
   { href: "/dogs", label: "Dogs" },
   { href: "/breeding", label: "Breeding" },
+  { href: "/vets", label: "Vets" },
   { href: "/statistics", label: "Statistics" },
 ];
 const HEADER_BANNER_LANDSCAPE = siteAssetUrl("/images/wentworth-track-banner-landscape.webp");

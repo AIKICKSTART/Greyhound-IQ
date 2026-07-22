@@ -60,6 +60,9 @@ const publicStateContracts = PRODUCTION_SCREEN_STATE_CONTRACTS.filter(
 );
 
 assert.deepEqual(PUBLIC_ONBOARDING_TARGET_IDS, [
+  "public-home-features",
+  "public-home-pricing",
+  "public-home-races",
   "public-navigation",
   "public-page-content",
 ]);
@@ -289,6 +292,7 @@ assert.doesNotMatch(
 );
 
 const rootLayoutSource = readFileSync("src/app/layout.tsx", "utf8");
+const homePageSource = readFileSync("src/app/page.tsx", "utf8");
 const headerSource = readFileSync("src/components/site-header.tsx", "utf8");
 const interactiveHelpSource = readFileSync(
   "src/components/interactive-help.tsx",
@@ -298,6 +302,16 @@ assert.match(
   rootLayoutSource,
   /data-onboarding-target="[^"]*\bpublic-page-content\b[^"]*"/,
 );
+for (const targetId of [
+  "public-home-features",
+  "public-home-pricing",
+  "public-home-races",
+]) {
+  assert.match(
+    homePageSource,
+    new RegExp(`data-onboarding-target=["'][^"']*\\b${targetId}\\b`),
+  );
+}
 assert.match(rootLayoutSource, /allowAutomaticOpen=\{Boolean\(user\)\}/);
 assert.match(rootLayoutSource, /allowContextualAutomaticOpen/);
 assert.match(rootLayoutSource, /role=\{user\?\.role \?\? "visitor"\}/);
@@ -314,7 +328,7 @@ assert.match(
 );
 assert.match(interactiveHelpSource, /getClientRects\(\)\.length > 0/);
 assert.match(interactiveHelpSource, /prefers-reduced-motion: reduce/);
-assert.match(interactiveHelpSource, /previousFocus\?\.isConnected/);
+assert.match(interactiveHelpSource, /finalFocus=\{restoreFocusRef\}/);
 
 assert.equal(
   SCREEN_CONTRACTS.filter(

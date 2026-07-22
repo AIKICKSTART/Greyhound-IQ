@@ -169,7 +169,7 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
                   API keys or payment-card details.
                 </p>
                 <details className="mt-2 rounded-lg border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-[11px] text-[hsl(var(--muted-foreground))]">
-                  <summary className="min-h-8 cursor-pointer font-semibold text-[hsl(var(--foreground))]">
+                  <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-[hsl(var(--foreground))]">
                     Show a safe example
                   </summary>
                   <p className="mt-2 leading-5">

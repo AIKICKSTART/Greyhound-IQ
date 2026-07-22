@@ -89,15 +89,15 @@ const interactiveHelp = source(INTERACTIVE_HELP_SOURCE);
 assert.deepEqual(findTourKeyboardGateIssues(interactiveHelp), []);
 assert.match(interactiveHelp, /disabled=\{stepIndex === 0\}/);
 assert.match(interactiveHelp, /changeStep\(stepIndex - 1\)/);
-assert.match(interactiveHelp, /onClick=\{skipCurrentStep\}/);
+assert.match(interactiveHelp, /onClick=\{skipTour\}/);
 assert.match(interactiveHelp, /if \(lastStep\) closeAndComplete\(\);/);
 assert.match(interactiveHelp, /else changeStep\(stepIndex \+ 1\);/);
 assert.match(interactiveHelp, />\s*Back\s*<\/button>/);
 assert.match(interactiveHelp, /\bFinish\b/);
 assert.match(interactiveHelp, /\bNext\b/);
-assert.match(interactiveHelp, /\bSkip step\b/);
+assert.match(interactiveHelp, /\bSkip tour\b/);
 assert.match(interactiveHelp, /document\.activeElement instanceof HTMLElement/);
-assert.match(interactiveHelp, /previousFocus\?\.isConnected\) previousFocus\.focus\(\)/);
+assert.match(interactiveHelp, /finalFocus=\{restoreFocusRef\}/);
 assert.match(interactiveHelp, /aria-live="polite"/);
 
 const sheet = source("src/components/ui/sheet.tsx");
@@ -182,10 +182,10 @@ function findTourKeyboardGateIssues(sourceText: string) {
     ...findKeyboardSourceIssues(sourceText),
     ...[
       [/changeStep\(stepIndex - 1\)/, "back transition missing"],
-      [/onClick=\{skipCurrentStep\}/, "skip transition missing"],
+      [/onClick=\{skipTour\}/, "skip transition missing"],
       [/else changeStep\(stepIndex \+ 1\);/, "next transition missing"],
       [/if \(lastStep\) closeAndComplete\(\);/, "finish transition missing"],
-      [/previousFocus\?\.isConnected\) previousFocus\.focus\(\)/, "focus restoration missing"],
+      [/finalFocus=\{restoreFocusRef\}/, "focus restoration missing"],
     ].flatMap(([pattern, issue]) =>
       (pattern as RegExp).test(sourceText) ? [] : [issue as string],
     ),

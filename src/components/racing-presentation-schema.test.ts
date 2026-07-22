@@ -119,7 +119,13 @@ const expectedTableColumns = {
     "Win rate",
     "Prize money",
   ],
-  "/breeding/sire-leaderboard": ["Sire", "Progeny", "Winners", "Strike %", "Earnings"],
+  "/breeding/sire-leaderboard": [
+    "Sire",
+    "Progeny",
+    "Winners",
+    "Winners / progeny",
+    "Prize from wins",
+  ],
 } as const;
 
 for (const [key, expectedLabels] of Object.entries(expectedTableColumns)) {

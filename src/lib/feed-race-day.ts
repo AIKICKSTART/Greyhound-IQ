@@ -3,6 +3,7 @@ import { getRacePresentationStatus } from "@/lib/race-status";
 export type FeedRaceDaySourceMeeting = {
   id: string;
   track: {
+    id: string;
     name: string;
     state: string;
   };
@@ -32,6 +33,40 @@ export type FeedRaceDayData = {
   stateLabel: string;
   nextRaces: FeedRaceDayRace[];
 };
+
+export type RacingDayTrackOption = {
+  id: string;
+  name: string;
+  state: string;
+};
+
+// Distinct tracks running today, for the "My racing day" configurator.
+export function listRacingDayTrackOptions(
+  meetings: readonly FeedRaceDaySourceMeeting[],
+): RacingDayTrackOption[] {
+  const seen = new Map<string, RacingDayTrackOption>();
+  for (const { track } of meetings) {
+    if (!seen.has(track.id)) {
+      seen.set(track.id, { id: track.id, name: track.name, state: track.state });
+    }
+  }
+  return [...seen.values()].sort(
+    (a, b) => a.state.localeCompare(b.state) || a.name.localeCompare(b.name),
+  );
+}
+
+// Filters today's meetings to the user's saved tracks. Empty/absent selection
+// keeps every meeting, so a user with no preference sees the full racing day.
+export function selectRacingDayMeetings(
+  meetings: readonly FeedRaceDaySourceMeeting[],
+  selectedTrackIds?: readonly string[] | null,
+): readonly FeedRaceDaySourceMeeting[] {
+  if (!selectedTrackIds || selectedTrackIds.length === 0) return meetings;
+  const selected = new Set(selectedTrackIds);
+  const filtered = meetings.filter(({ track }) => selected.has(track.id));
+  // A stale selection (all chosen tracks idle today) falls back to all meetings.
+  return filtered.length > 0 ? filtered : meetings;
+}
 
 export function buildFeedRaceDayData(
   meetings: readonly FeedRaceDaySourceMeeting[],

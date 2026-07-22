@@ -31,16 +31,18 @@ import {
 import { resolvePageAvatarUrls } from "@/lib/custom-page-service";
 import { withDbRequestContext } from "@/lib/db-context";
 import { getFeedPageForViewer, getFeedTopics } from "@/lib/feed-service";
-import { buildFeedRaceDayData } from "@/lib/feed-race-day";
+import {
+  buildFeedRaceDayData,
+  listRacingDayTrackOptions,
+  selectRacingDayMeetings,
+} from "@/lib/feed-race-day";
+import { parseRacingDayTrackIds } from "@/lib/feed-racing-day";
 import type { FeedMode } from "@/lib/feed-pagination";
 import {
   listFriendRequestsForProfile,
   listFriendsForProfile,
 } from "@/lib/friend-service";
-import {
-  getActiveIdentity,
-  getOwnedPageIdentities,
-} from "@/lib/identity";
+import { getActiveIdentity, getOwnedPageIdentities } from "@/lib/identity";
 import {
   ensureOwnedPageActor,
   ensurePersonalActor,
@@ -159,35 +161,46 @@ export default async function FeedPage({
     pendingInvites,
     profile,
     todaysMeetings,
-  ] = await runFeedReadTasks([
-    () => getFeedTopics(),
-    () => getFeedPageForViewer({
-      mode,
-      actorId: activeActor.id,
-      limit: 20,
-      current,
-    }),
-    () => listFriendsForProfile(current),
-    () => listFriendRequestsForProfile(current),
-    () => listConversationsForProfile(current),
-    () => countUnreadMessagesByConversation(current),
-    () => listPendingCallInvitesForProfile(current),
-    () => withDbRequestContext(current, (tx) =>
-      tx.profile.findUnique({
-        where: { id: current.profileId },
-        select: {
-          displayName: true,
-          avatarUrl: true,
-          verified: true,
-          kennelName: true,
-          state: true,
-        },
-      })
-    ),
-    () => getTodaysMeetings(),
-  ], isFullAccessDemo());
+  ] = await runFeedReadTasks(
+    [
+      () => getFeedTopics(),
+      () =>
+        getFeedPageForViewer({
+          mode,
+          actorId: activeActor.id,
+          limit: 20,
+          current,
+        }),
+      () => listFriendsForProfile(current),
+      () => listFriendRequestsForProfile(current),
+      () => listConversationsForProfile(current),
+      () => countUnreadMessagesByConversation(current),
+      () => listPendingCallInvitesForProfile(current),
+      () =>
+        withDbRequestContext(current, (tx) =>
+          tx.profile.findUnique({
+            where: { id: current.profileId },
+            select: {
+              displayName: true,
+              avatarUrl: true,
+              verified: true,
+              kennelName: true,
+              state: true,
+              racingDayTrackIds: true,
+            },
+          }),
+        ),
+      () => getTodaysMeetings(),
+    ],
+    isFullAccessDemo(),
+  );
   const posts = feedPage.items;
-  const raceDayData = buildFeedRaceDayData(todaysMeetings, new Date());
+  const racingDayTrackOptions = listRacingDayTrackOptions(todaysMeetings);
+  const selectedTrackIds = parseRacingDayTrackIds(profile?.racingDayTrackIds);
+  const raceDayData = buildFeedRaceDayData(
+    selectRacingDayMeetings(todaysMeetings, selectedTrackIds),
+    new Date(),
+  );
   const canUseFeedAsActiveIdentity = !activePage || isPro;
 
   const pagesInPosts = posts
@@ -236,6 +249,7 @@ export default async function FeedPage({
         id: conversation.id,
         otherName: otherActor?.displayName ?? other.displayName,
         otherAvatarUrl: otherActor?.avatarUrl ?? other.avatarUrl,
+        otherProfileId: other.id,
         preview: message
           ? `${isSent ? "You: " : ""}${message.body}`
           : "Conversation started",
@@ -258,10 +272,12 @@ export default async function FeedPage({
       <FeedRaceDayCommand
         firstName={user.firstName || user.name}
         data={raceDayData}
+        trackOptions={racingDayTrackOptions}
+        selectedTrackIds={selectedTrackIds}
       />
       <div className="giq-social-hub-grid mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_300px] 2xl:grid-cols-[260px_minmax(0,1fr)_340px]">
         <aside className="hidden lg:block" aria-label="Hub navigation">
-          <div className="sticky top-[84px] max-h-[calc(100dvh-105px)] overflow-y-auto pr-1">
+          <div className="sticky top-[118px] max-h-[calc(100dvh-130px)] overflow-y-auto pr-1">
             <HubLeftSidebar
               identity={identity}
               pages={ownedPages}
@@ -276,7 +292,7 @@ export default async function FeedPage({
           data-feed-scroll
           aria-label="Community feed"
           tabIndex={0}
-          className="giq-social-feed-scroll min-w-0 space-y-4 lg:h-[calc(100dvh-105px)] lg:overflow-y-auto lg:overscroll-contain lg:pb-8 lg:pr-1 [scrollbar-gutter:stable]"
+          className="giq-social-feed-scroll min-w-0 space-y-4 lg:h-[calc(100dvh-130px)] lg:overflow-y-auto lg:overscroll-contain lg:pb-8 lg:pr-1 [scrollbar-gutter:stable]"
         >
           {/* Ringing card surfaces above the feed on mobile where the right
               messenger column is hidden. */}
@@ -305,7 +321,11 @@ export default async function FeedPage({
               </SheetTrigger>
               <SheetContent
                 side="left"
-                className="w-[300px] overflow-y-auto bg-[hsl(var(--surface-1)/0.97)] p-4 backdrop-blur-xl"
+                style={{
+                  width:
+                    "min(300px, calc(100vw - max(1rem, env(safe-area-inset-left)) - max(1rem, env(safe-area-inset-right))))",
+                }}
+                className="overflow-y-auto bg-[hsl(var(--surface-1)/0.97)] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-xl"
               >
                 <SheetTitle className="sr-only">
                   Identity and navigation
@@ -363,7 +383,9 @@ export default async function FeedPage({
               <InstantFeedPostComposer
                 topics={topics}
                 pageId={activePage?.id ?? null}
-                identityLabel={activePage ? activePage.title : personal.displayName}
+                identityLabel={
+                  activePage ? activePage.title : personal.displayName
+                }
                 identityAvatarUrl={activeIdentityAvatarUrl}
               />
             </section>
@@ -376,8 +398,8 @@ export default async function FeedPage({
                 </h2>
               </div>
               <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
-                Switch to your personal identity to post, comment, and react
-                for free. Pro is required to publish as {activePage?.title}.
+                Switch to your personal identity to post, comment, and react for
+                free. Pro is required to publish as {activePage?.title}.
               </p>
               <Link
                 href="/pricing"
@@ -402,8 +424,11 @@ export default async function FeedPage({
           />
         </main>
 
-        <aside className="giq-social-messenger-rail hidden xl:block" aria-label="Messenger">
-          <div className="sticky top-[84px] max-h-[calc(100dvh-105px)]">
+        <aside
+          className="giq-social-messenger-rail hidden xl:block"
+          aria-label="Messenger"
+        >
+          <div className="sticky top-[118px] max-h-[calc(100dvh-130px)]">
             <HubMessengerPanel
               selfProfileId={user.profileId}
               invites={invites}
@@ -415,12 +440,14 @@ export default async function FeedPage({
                 avatarUrl: friend.avatarUrl,
                 verified: friend.verified,
                 conversationId: activePage
-                  ? actorConversations.find((conversation) =>
-                      (conversation.participantAActorId === activeActor.id ||
-                        conversation.participantBActorId === activeActor.id) &&
-                      (conversation.participantAId === friend.profileId ||
-                        conversation.participantBId === friend.profileId)
-                    )?.id ?? null
+                  ? (actorConversations.find(
+                      (conversation) =>
+                        (conversation.participantAActorId === activeActor.id ||
+                          conversation.participantBActorId ===
+                            activeActor.id) &&
+                        (conversation.participantAId === friend.profileId ||
+                          conversation.participantBId === friend.profileId),
+                    )?.id ?? null)
                   : friend.conversationId,
               }))}
               conversations={conversationRows}
@@ -435,9 +462,6 @@ export default async function FeedPage({
   );
 }
 
-function feedListKey(
-  mode: FeedMode,
-  actorId: string | null
-) {
+function feedListKey(mode: FeedMode, actorId: string | null) {
   return `${mode}:${actorId ?? "anonymous"}`;
 }

@@ -246,7 +246,7 @@ function CommentCard({
             commentId={comment.id}
             actorId={activeActorId}
             initialCount={comment._count?.reactions ?? 0}
-            initiallyActive={Boolean(comment.reactions?.length)}
+            initialReaction={comment.reactions?.[0]?.reactionType ?? null}
           />
           {!isReply && (
             <details>
@@ -294,51 +294,65 @@ function CommentCard({
   );
 }
 
+const COMMENT_REACTIONS = [
+  { type: "like", emoji: "👍", label: "Like" },
+  { type: "love", emoji: "❤️", label: "Love" },
+  { type: "celebrate", emoji: "🎉", label: "Celebrate" },
+  { type: "insightful", emoji: "💡", label: "Insightful" },
+  { type: "support", emoji: "🤝", label: "Support" },
+] as const;
+
 function CommentReactionButton({
   commentId,
   actorId,
   initialCount,
-  initiallyActive,
+  initialReaction,
 }: {
   commentId: string;
   actorId?: string | null;
   initialCount: number;
-  initiallyActive: boolean;
+  initialReaction: string | null;
 }) {
-  const [active, setActive] = useState(initiallyActive);
+  const [reaction, setReaction] = useState<string | null>(initialReaction);
   const [count, setCount] = useState(initialCount);
   const [busy, setBusy] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const active = reaction !== null;
+  const activeEmoji = COMMENT_REACTIONS.find((r) => r.type === reaction)?.emoji;
 
-  async function toggle() {
+  async function react(reactionType: string) {
+    setPickerOpen(false);
     if (busy) return;
-    const previous = { active, count };
-    setActive(!active);
-    setCount((current) => Math.max(0, current + (active ? -1 : 1)));
+    const previous = { reaction, count };
+    // Same reaction toggles off; a different one switches without changing count.
+    const nextReaction = reaction === reactionType ? null : reactionType;
+    setReaction(nextReaction);
+    setCount((current) =>
+      Math.max(0, current + (previous.reaction ? 0 : 1) - (nextReaction ? 0 : 1)),
+    );
     setBusy(true);
     try {
       const response = await fetch(`/api/feed/comments/${commentId}/reaction`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ reactionType: "like", actorId }),
+        body: JSON.stringify({ reactionType, actorId }),
       });
       if (!response.ok) throw new Error("Could not react to comment");
       const payload = (await response.json()) as {
-        item?: { active?: boolean };
+        item?: { active?: boolean; reactionType?: string };
       };
       if (typeof payload.item?.active === "boolean") {
         const serverActive = payload.item.active;
-        setActive(serverActive);
+        setReaction(serverActive ? payload.item.reactionType ?? reactionType : null);
         setCount(
           Math.max(
             0,
-            previous.count +
-              (serverActive ? 1 : 0) -
-              (previous.active ? 1 : 0)
-          )
+            previous.count + (serverActive ? 1 : 0) - (previous.reaction ? 1 : 0),
+          ),
         );
       }
     } catch {
-      setActive(previous.active);
+      setReaction(previous.reaction);
       setCount(previous.count);
     } finally {
       setBusy(false);
@@ -346,16 +360,50 @@ function CommentReactionButton({
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => void toggle()}
-      disabled={busy}
-      aria-pressed={active}
-      className="giq-outline-action min-h-11 px-3 text-[11px]"
+    <div
+      className="relative"
+      onMouseLeave={() => setPickerOpen(false)}
     >
-      <Heart className={`h-3 w-3 ${active ? "fill-current" : ""}`} />
-      {count}
-    </button>
+      <button
+        type="button"
+        onClick={() => (active ? void react(reaction!) : setPickerOpen((v) => !v))}
+        onMouseEnter={() => setPickerOpen(true)}
+        disabled={busy}
+        aria-pressed={active}
+        aria-label={active ? "Remove reaction" : "React"}
+        className={`giq-outline-action min-h-11 px-3 text-[11px] ${active ? "text-[hsl(var(--primary-bright))]" : ""}`}
+      >
+        {active && activeEmoji ? (
+          <span className="text-[13px] leading-none">{activeEmoji}</span>
+        ) : (
+          <Heart className="h-3 w-3" />
+        )}
+        {count > 0 ? count : "React"}
+      </button>
+
+      {pickerOpen && (
+        <div
+          role="menu"
+          aria-label="Pick a reaction"
+          className="giq-panel absolute bottom-[calc(100%+0.4rem)] left-0 z-30 flex gap-0.5 rounded-full border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] p-1 shadow-2xl backdrop-blur-xl"
+        >
+          {COMMENT_REACTIONS.map((r) => (
+            <button
+              key={r.type}
+              type="button"
+              role="menuitem"
+              onClick={() => void react(r.type)}
+              disabled={busy}
+              aria-label={r.label}
+              title={r.label}
+              className={`grid h-9 w-9 place-items-center rounded-full text-[18px] leading-none transition-transform hover:scale-125 ${reaction === r.type ? "bg-[hsl(var(--primary)/0.2)]" : "hover:bg-white/[0.08]"}`}
+            >
+              {r.emoji}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

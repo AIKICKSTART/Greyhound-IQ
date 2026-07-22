@@ -26,6 +26,13 @@ export const feedActorSelectionSchema = z.object({
   actorId: z.string().trim().min(1).max(120).optional().nullable(),
 });
 
+export const feedRacingDaySchema = z.object({
+  trackIds: z
+    .array(z.string().trim().min(1).max(120))
+    .max(100)
+    .transform((ids) => [...new Set(ids)]),
+});
+
 export const feedReactionWriteSchema = z.object({
   reactionType: z
     .enum(["like", "love", "celebrate", "insightful", "support"])

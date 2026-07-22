@@ -8,17 +8,27 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import type { FeedRaceDayData, FeedRaceDayRace } from "@/lib/feed-race-day";
+import type {
+  FeedRaceDayData,
+  FeedRaceDayRace,
+  RacingDayTrackOption,
+} from "@/lib/feed-race-day";
+import { FeedRacingDayConfig } from "@/components/feed-racing-day-config";
 import { formatRaceTime } from "@/lib/race-time";
 
 export function FeedRaceDayCommand({
   firstName,
   data,
+  trackOptions,
+  selectedTrackIds,
 }: {
   firstName: string;
   data: FeedRaceDayData;
+  trackOptions: RacingDayTrackOption[];
+  selectedTrackIds: string[];
 }) {
   const nextRace = data.nextRaces[0] ?? null;
+  const isFiltered = selectedTrackIds.length > 0;
 
   return (
     <section
@@ -63,6 +73,10 @@ export function FeedRaceDayCommand({
             >
               Latest results
             </Link>
+            <FeedRacingDayConfig
+              trackOptions={trackOptions}
+              selectedTrackIds={selectedTrackIds}
+            />
           </div>
         </div>
       </div>
@@ -82,9 +96,11 @@ export function FeedRaceDayCommand({
           }
         />
         <Metric
-          label="Meetings today"
+          label={isFiltered ? "My racing day" : "Meetings today"}
           value={String(data.meetingCount)}
-          detail={data.stateLabel}
+          detail={
+            isFiltered ? `${data.stateLabel} · filtered` : data.stateLabel
+          }
         />
         <Metric
           label="Saved watchlist"

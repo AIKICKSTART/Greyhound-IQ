@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { blockFeedPostAuthor } from "@/app/actions";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
+import { EmojiPicker, insertAtCursor } from "@/components/emoji-picker";
 
 type FeedTopicOption = {
   id: string;
@@ -245,6 +246,18 @@ export function InstantFeedPostComposer({
           placeholder="Share a race note, kennel update, question, or marketplace context."
         />
 
+        <div className="flex items-center justify-end">
+          <EmojiPicker
+            ariaLabel="Add emoji to post"
+            onSelect={(emoji) =>
+              insertAtCursor(
+                formRef.current?.querySelector<HTMLTextAreaElement>('textarea[name="body"]') ?? null,
+                emoji,
+              )
+            }
+          />
+        </div>
+
         <details className="rounded-xl border border-white/[0.07] bg-white/[0.02]">
           <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-[12px] font-semibold text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
             <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
@@ -365,6 +378,7 @@ export function InstantFeedCommentForm({
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [refreshing, startTransition] = useTransition();
@@ -401,8 +415,9 @@ export function InstantFeedCommentForm({
 
   return (
     <form ref={formRef} onSubmit={onSubmit} className="space-y-2">
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         <input
+          ref={inputRef}
           name="body"
           aria-label={parentCommentId ? "Reply" : "Comment"}
           required
@@ -413,6 +428,10 @@ export function InstantFeedCommentForm({
           aria-errormessage={error ? errorId : undefined}
           className="giq-form-control min-w-0 flex-1 px-3 py-2 text-[13px] disabled:cursor-not-allowed disabled:opacity-50"
           placeholder={parentCommentId ? "Write a reply" : "Add a comment"}
+        />
+        <EmojiPicker
+          ariaLabel="Add emoji to comment"
+          onSelect={(emoji) => insertAtCursor(inputRef.current, emoji)}
         />
         <button
           type="submit"

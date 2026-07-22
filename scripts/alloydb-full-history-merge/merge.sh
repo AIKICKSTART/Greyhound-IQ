@@ -1862,8 +1862,11 @@ normalize_stage() {
     --set=replay_contract="$replay_contract_json" \
     --file="$SQL_ROOT/stage-replay-evidence.sql"
   [ -x "$NORMALIZE_CHECKPOINTED_RUNNER" ] || die "checkpointed normalization runner is absent"
-  CANDIDATE_DATABASE="$CANDIDATE_DATABASE" NORMALIZE_SQL_ROOT="$SQL_ROOT" \
-    "$NORMALIZE_CHECKPOINTED_RUNNER"
+  # CANDIDATE_DATABASE is readonly, so a command-prefix assignment aborts under
+  # POSIX sh ("is read only"). export the readonly var and pass the non-readonly
+  # one via prefix; the runner reads both from the environment.
+  export CANDIDATE_DATABASE
+  NORMALIZE_SQL_ROOT="$SQL_ROOT" "$NORMALIZE_CHECKPOINTED_RUNNER"
 }
 
 assert_normalized_saturation_phase() {

@@ -155,7 +155,9 @@ const watchdogPayloadSchema = z
   .object({
     meetings: uniqueRecords(
       watchdogMeetingSchema,
-      128,
+      // calendar-month responses carry a ~6-week VIC meeting window (observed
+      // peak ~140); keep a tight DoS bound with headroom above that.
+      256,
       (meeting) => String(meeting.id),
     ).optional(),
     races: uniqueRecords(watchdogRaceSchema, 2_048, (race) => String(race.id)).optional(),

@@ -307,6 +307,55 @@ export function embedUrlFromReplayPage(value: string | null | undefined) {
   return null;
 }
 
+export function officialRaceReplayUrl({
+  sourceProvider,
+  pageUrl,
+  sourceStatus,
+}: Pick<
+  RaceVideoReplayRecord,
+  "sourceProvider" | "pageUrl" | "sourceStatus"
+>) {
+  if (
+    sourceStatus != null &&
+    (!Number.isInteger(sourceStatus) || sourceStatus < 200 || sourceStatus > 299)
+  ) {
+    return null;
+  }
+  if (!pageUrl) return null;
+
+  try {
+    const url = new URL(pageUrl);
+    if (
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      url.port ||
+      url.hash
+    ) {
+      return null;
+    }
+
+    switch (normaliseKey(sourceProvider)) {
+      case "watchdog":
+        return officialYoutubeReplayUrl(url) ?? officialWatchdogReplayUrl(url);
+      case "sa-race-replay":
+        return officialYoutubeReplayUrl(url);
+      case "greyhoundswa":
+        return officialVimeoReplayUrl(url);
+      case "thedogs":
+        return officialTheDogsReplayUrl(url);
+      case "racing-queensland":
+        return officialRacingQueenslandReplayUrl(url);
+      case "tasracing":
+        return officialTasracingReplayUrl(url);
+      default:
+        return null;
+    }
+  } catch {
+    return null;
+  }
+}
+
 export function youtubeEmbedUrlFromPage(value: string | null | undefined) {
   if (!value) return null;
   try {
@@ -585,6 +634,109 @@ function racingQueenslandPageUrl(value: string | null | undefined) {
   } catch {
     return null;
   }
+}
+
+function officialYoutubeReplayUrl(url: URL) {
+  const host = url.hostname.toLowerCase();
+  let videoId: string | null = null;
+
+  if (
+    (host === "youtube.com" ||
+      host === "www.youtube.com" ||
+      host === "m.youtube.com") &&
+    url.pathname === "/watch" &&
+    [...url.searchParams.keys()].every((key) => key === "v") &&
+    url.searchParams.getAll("v").length === 1
+  ) {
+    videoId = url.searchParams.get("v");
+  } else if (
+    host === "youtu.be" &&
+    url.search === "" &&
+    /^\/[A-Za-z0-9_-]{11}$/.test(url.pathname)
+  ) {
+    videoId = url.pathname.slice(1);
+  } else if (
+    (host === "youtube-nocookie.com" || host === "www.youtube-nocookie.com") &&
+    url.search === ""
+  ) {
+    videoId = url.pathname.match(/^\/embed\/([A-Za-z0-9_-]{11})$/)?.[1] ?? null;
+  }
+
+  return videoId && /^[A-Za-z0-9_-]{11}$/.test(videoId)
+    ? `https://www.youtube.com/watch?v=${videoId}`
+    : null;
+}
+
+function officialWatchdogReplayUrl(url: URL) {
+  return url.hostname === "watchdog.grv.org.au" &&
+    url.search === "" &&
+    /^\/meeting\/[A-Za-z0-9-]+\/race\/\d+\/?$/.test(url.pathname)
+    ? url.toString()
+    : null;
+}
+
+function officialVimeoReplayUrl(url: URL) {
+  if (url.hostname === "player.vimeo.com") {
+    const videoId = url.pathname.match(/^\/video\/(\d{6,})\/?$/)?.[1];
+    const hashes = url.searchParams.getAll("h");
+    if (
+      !videoId ||
+      [...url.searchParams.keys()].some((key) => key !== "h") ||
+      hashes.length > 1 ||
+      (hashes[0] != null && !/^[A-Za-z0-9]+$/.test(hashes[0]))
+    ) {
+      return null;
+    }
+    const canonical = new URL(`https://player.vimeo.com/video/${videoId}`);
+    if (hashes[0]) canonical.searchParams.set("h", hashes[0]);
+    return canonical.toString();
+  }
+
+  if (
+    url.hostname !== "vimeo.com" &&
+    url.hostname !== "www.vimeo.com"
+  ) {
+    return null;
+  }
+  if (url.search) return null;
+  const match = url.pathname.match(/^\/(\d{6,})(?:\/([A-Za-z0-9]+))?\/?$/);
+  return match
+    ? `https://vimeo.com/${match[1]}${match[2] ? `/${match[2]}` : ""}`
+    : null;
+}
+
+function officialTheDogsReplayUrl(url: URL) {
+  return url.hostname === "www.thedogs.com.au" &&
+    url.search === "" &&
+    /^\/videos\/watch\/races\/\d+\/replay\/?$/.test(url.pathname)
+    ? url.toString()
+    : null;
+}
+
+function officialRacingQueenslandReplayUrl(url: URL) {
+  if (url.hostname !== "www.racingqueensland.com.au" || url.search !== "") {
+    return null;
+  }
+  const match = url.pathname.match(
+    /^\/racing\/replays\/tab-race-replays\/race-player\/greyhound\/([^/]+)\/\d{8}\/race\/\d+\/?$/
+  );
+  const rawTrackCode = match?.[1] ?? "";
+  if (!/^(?:[A-Za-z0-9-]|%20)+$/i.test(rawTrackCode)) return null;
+  const trackCode = safeDecodeURIComponent(rawTrackCode).trim();
+  return trackCode && /^[A-Za-z0-9-]+$/.test(trackCode)
+    ? url.toString()
+    : null;
+}
+
+function officialTasracingReplayUrl(url: URL) {
+  const races = url.searchParams.getAll("race");
+  return url.hostname === "form.tasracing.com.au" &&
+    /^\/replays\/[A-Za-z0-9_-]+\/?$/.test(url.pathname) &&
+    [...url.searchParams.keys()].every((key) => key === "race") &&
+    races.length === 1 &&
+    /^\d+$/.test(races[0] ?? "")
+    ? url.toString()
+    : null;
 }
 
 function normalisePublicUrl(value?: string | null, base?: string) {

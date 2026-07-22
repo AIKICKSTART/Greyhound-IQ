@@ -310,10 +310,16 @@ const sqlWrites = [...source.matchAll(/\b(?:INSERT INTO|UPDATE|DELETE FROM|TRUNC
 assert.deepEqual(
   sqlWrites,
   [
+    'UPDATE "Race"',
     "INSERT INTO _giq_history_merge.quarantine",
     'INSERT INTO "RaceVideo"',
   ],
-  "the script may write only candidate-local quarantine and RaceVideo rows"
+  "the script may write only quarantine and RaceVideo rows plus the guarded photo finish column"
+);
+assert.match(
+  source,
+  /UPDATE "Race"\s+SET "photoFinishUrl" = \$\{url\}\s+WHERE "id" = \$\{raceId\} AND "photoFinishUrl" IS NULL/,
+  "the only Race mutation is the null-only photoFinishUrl fill"
 );
 assert.doesNotMatch(source, /(?:INSERT INTO|UPDATE|DELETE FROM|TRUNCATE)[^\n]*(?:giq_rehearsal_restore_v8|giq_full_history_rehearsal_20260716_r2)/);
 
@@ -358,5 +364,37 @@ assert.match(
 );
 assert.match(replayConflictBlock, /JOIN "RaceVideo" rv/);
 assert.doesNotMatch(replayConflictBlock, /INSERT INTO|UPDATE|DELETE FROM|TRUNCATE/);
+
+const watchdogBlock = sourceBlock(
+  "async function backfillWatchdog(options: Options)",
+  "async function queryTheDogsExistingRows"
+);
+assert.match(
+  mainBlock,
+  /providerEnabled\(options, "watchdog"\) && stateEnabled\(options, "VIC"\)/,
+  "the watchdog backfill is VIC-only and provider-gated"
+);
+assert.match(
+  watchdogBlock,
+  /fetchMeetingsByCalendarMonth/,
+  "historical VIC enumeration must go through the watchdog calendar-month endpoint"
+);
+assert.match(watchdogBlock, /watchdog_replay_match_ambiguous/);
+assert.match(
+  watchdogBlock,
+  /sourceCode: "watchdog-calendar-month"/,
+  "watchdog replay rows must record their enumeration provenance"
+);
+assert.match(watchdogBlock, /embedSourceType: "youtube"/);
+assert.match(
+  watchdogBlock,
+  /AND "photoFinishUrl" IS NULL/,
+  "the photo finish write must never overwrite an existing value"
+);
+assert.match(
+  watchdogBlock,
+  /if \(options\.dryRun\) return 0;/,
+  "the photo finish write must honour dry-run"
+);
 
 console.log("candidate-only all-state race replay backfill contract checks passed");

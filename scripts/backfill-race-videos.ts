@@ -23,6 +23,9 @@ import {
   tasracingStreamUrl,
 } from "../src/lib/live/race-replay";
 import { absoluteTheDogsUrl } from "../src/lib/live/thedogs-replay";
+import type { LiveMeeting, LiveRace } from "../src/lib/live/provider";
+import { WatchdogProvider } from "../src/lib/live/watchdog";
+import { PHOTO_FINISH_IMAGE_ORIGIN } from "../src/lib/csp";
 import { readBoundedTextResponse } from "../src/lib/remote-response";
 
 const DEFAULT_KIND = "replay";
@@ -135,6 +138,7 @@ type Options = {
   compact: boolean;
   normalizeOnly: boolean;
   nativeLocal: boolean;
+  serving: boolean;
 };
 
 type RaceRow = {
@@ -318,9 +322,17 @@ type ReplayUrlEvidenceConflictRow = {
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
-  await assertCandidateReplayTarget(options);
-  await assertHistoricalReplayTaxonomy();
-  await assertSnapshotRaceVideosPresent();
+  if (options.serving) {
+    // Serving-DB mode: per-state provider backfill against the live database.
+    // The merge-candidate identity/marker/taxonomy contracts do not apply
+    // (the _giq_history_* schemas exist only on merge candidates), and the
+    // canonical normalization/quarantine pre-steps are merge-only.
+    await assertServingReplayTarget();
+  } else {
+    await assertCandidateReplayTarget(options);
+    await assertHistoricalReplayTaxonomy();
+    await assertSnapshotRaceVideosPresent();
+  }
   const auditBefore = await auditRaceVideos(options);
 
   if (options.auditOnly) {
@@ -328,10 +340,12 @@ async function main() {
     return;
   }
 
-  const backfill: BackfillSummary[] = [
-    await quarantineUnsupportedJurisdictionReplays(options),
-    await normaliseLegacyRaceReplayUrls(options),
-  ];
+  const backfill: BackfillSummary[] = options.serving
+    ? []
+    : [
+        await quarantineUnsupportedJurisdictionReplays(options),
+        await normaliseLegacyRaceReplayUrls(options),
+      ];
   if (options.normalizeOnly) {
     const auditAfter = await auditRaceVideos(options);
     await assertSnapshotRaceVideosPresent();
@@ -369,9 +383,14 @@ async function main() {
   if (providerEnabled(options, "sa-race-replay") && stateEnabled(options, "SA")) {
     backfill.push(await backfillSaRaceReplayYoutube(options));
   }
+  if (providerEnabled(options, "watchdog") && stateEnabled(options, "VIC")) {
+    backfill.push(await backfillWatchdog(options));
+  }
 
   const auditAfter = await auditRaceVideos(options);
-  await assertSnapshotRaceVideosPresent();
+  if (!options.serving) {
+    await assertSnapshotRaceVideosPresent();
+  }
   console.log(
     json(
       {
@@ -388,6 +407,36 @@ async function main() {
       options.compact
     )
   );
+}
+
+const EXPECTED_SERVING_DATABASE = "giq_production_stage11_20260718_r2";
+
+async function assertServingReplayTarget() {
+  const [identity] = await prisma.$queryRaw<
+    Array<{ database: string; host: string; port: number; user: string; ssl: boolean }>
+  >`
+    SELECT
+      current_database()::text AS "database",
+      host(inet_server_addr())::text AS "host",
+      inet_server_port()::int AS "port",
+      current_user::text AS "user",
+      COALESCE(
+        (SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()),
+        FALSE
+      ) AS "ssl"
+  `;
+  if (
+    !identity ||
+    identity.database !== EXPECTED_SERVING_DATABASE ||
+    identity.host !== EXPECTED_ALLOYDB_HOST ||
+    identity.port !== EXPECTED_ALLOYDB_PORT ||
+    identity.user !== EXPECTED_DATABASE_USER ||
+    !identity.ssl
+  ) {
+    throw new Error(
+      `race_videos.serving_identity_mismatch observed=${JSON.stringify(identity ?? null)}`,
+    );
+  }
 }
 
 async function assertCandidateReplayTarget(options: Options) {
@@ -1696,6 +1745,176 @@ async function backfillSaRaceReplayYoutube(
   return summary;
 }
 
+async function backfillWatchdog(options: Options): Promise<BackfillSummary> {
+  const summary = newSummary("watchdog");
+  const provider = new WatchdogProvider();
+  const range = { from: startOfDay(options.from), to: endOfDay(options.to) };
+
+  // calendar-month returns a ~6-week VIC meeting window around the anchor
+  // (metadata back to 2006, race replay videoIds from 2014-01-01), so one
+  // mid-month anchor per month covers the whole range; dedupe by meeting id.
+  const meetingsById = new Map<string, LiveMeeting>();
+  for (const anchor of eachMonthAnchor(options.from, options.to)) {
+    try {
+      const meetings = await provider.fetchMeetingsByCalendarMonth(anchor, range);
+      for (const meeting of meetings) {
+        meetingsById.set(
+          meeting.sourceId ?? `${meeting.trackName}:${meeting.meetingDate}`,
+          meeting
+        );
+      }
+    } catch (err) {
+      summary.errors += 1;
+      if (summary.notes.length < 8) {
+        summary.notes.push(
+          `Watchdog calendar month ${formatDate(anchor)} failed: ${errorMessage(err)}`
+        );
+      }
+    }
+  }
+
+  const meetingsByDate = new Map<string, LiveMeeting[]>();
+  for (const meeting of meetingsById.values()) {
+    const date = formatDate(new Date(meeting.meetingDate));
+    const group = meetingsByDate.get(date) ?? [];
+    group.push(meeting);
+    meetingsByDate.set(date, group);
+  }
+
+  let photoFinishRowsWritten = 0;
+  for (const [date, meetings] of [...meetingsByDate.entries()].sort()) {
+    if (!canSelect(summary, options)) break;
+    const races = await queryRacesByMeetingDate(date, options, {
+      state: "VIC",
+      onlyWithoutProvider: options.onlyMissing ? "watchdog" : null,
+    });
+    if (races.length === 0) continue;
+
+    // Two watchdog meetings can share a track and date (day/night slots); a
+    // race number matching more than one watchdog race is ambiguous evidence.
+    const liveByKey = new Map<string, LiveRace[]>();
+    for (const meeting of meetings) {
+      for (const liveRace of meeting.races) {
+        const key = raceKey(meeting.trackName, liveRace.raceNumber);
+        const group = liveByKey.get(key) ?? [];
+        group.push(liveRace);
+        liveByKey.set(key, group);
+      }
+    }
+
+    for (const race of races) {
+      if (!canSelect(summary, options)) break;
+      const candidates =
+        liveByKey.get(raceKey(race.trackName, race.raceNumber)) ?? [];
+      if (candidates.length === 0) continue;
+      summary.selected += 1;
+      if (candidates.length > 1) {
+        summary.skipped += 1;
+        summary.quarantined += 1;
+        summary.quarantineRowsWritten += await writeReplayQuarantines(
+          [
+            {
+              raceId: race.id,
+              reasonCode: "watchdog_replay_match_ambiguous",
+              sourceKey: `${date}:${race.trackName}:${race.raceNumber}`,
+            },
+          ],
+          options
+        );
+        continue;
+      }
+
+      const liveRace = candidates[0];
+      try {
+        if (liveRace.photoFinishUrl) {
+          photoFinishRowsWritten += await writeRacePhotoFinish(
+            race.id,
+            liveRace.photoFinishUrl,
+            options
+          );
+        }
+        const videoId = liveRace.videoSourceId;
+        if (!videoId) {
+          summary.skipped += 1;
+          continue;
+        }
+        summary.resolved += 1;
+        summary.wouldWrite += 1;
+        summary.written += await writeRaceVideo(
+          {
+            raceId: race.id,
+            sourceProvider: "watchdog",
+            sourceId: videoId,
+            kind: DEFAULT_KIND,
+            pageUrl: `https://www.youtube.com/watch?v=${videoId}`,
+            embedSourceType: "youtube",
+            sourceStatus: 200,
+            sourceCode: "watchdog-calendar-month",
+            streamUrl: null,
+            streamContentType: null,
+            title: `${race.trackName} Race ${race.raceNumber}`,
+            description: race.name,
+            sourceRawJson: liveRace.sourceRawJson ?? null,
+          },
+          options
+        );
+      } catch (err) {
+        summary.errors += 1;
+        if (summary.notes.length < 8) {
+          summary.notes.push(
+            `VIC ${date} ${race.trackName} R${race.raceNumber} failed: ${errorMessage(err)}`
+          );
+        }
+      }
+    }
+  }
+  if (photoFinishRowsWritten > 0) {
+    summary.notes.push(`Race.photoFinishUrl rows written: ${photoFinishRowsWritten}`);
+  }
+  return summary;
+}
+
+async function writeRacePhotoFinish(
+  raceId: string,
+  url: string,
+  options: Options
+) {
+  if (options.dryRun) return 0;
+  // Defense in depth: provider data is untrusted; persist only the known GRV
+  // photo-finish origin (the same origin the CSP img-src allowlist admits).
+  try {
+    if (new URL(url).origin !== PHOTO_FINISH_IMAGE_ORIGIN) return 0;
+  } catch {
+    return 0;
+  }
+  // FORCE RLS on Race requires giq_is_system(); claim it in the same
+  // transaction as the write so pool recycling cannot drop the claim.
+  const [, written] = await prisma.$transaction([
+    prisma.$executeRawUnsafe("SELECT set_config('app.system', 'true', true)"),
+    prisma.$executeRaw`
+      UPDATE "Race"
+      SET "photoFinishUrl" = ${url}
+      WHERE "id" = ${raceId} AND "photoFinishUrl" IS NULL
+    `,
+  ]);
+  return written;
+}
+
+function eachMonthAnchor(from: string, to: string) {
+  const anchors: Date[] = [];
+  const end = Date.UTC(Number(to.slice(0, 4)), Number(to.slice(5, 7)) - 1, 15);
+  let anchor = new Date(
+    Date.UTC(Number(from.slice(0, 4)), Number(from.slice(5, 7)) - 1, 15)
+  );
+  while (anchor.getTime() <= end) {
+    anchors.push(anchor);
+    anchor = new Date(
+      Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + 1, 15)
+    );
+  }
+  return anchors;
+}
+
 async function queryTheDogsExistingRows(options: Options, limit: number) {
   if (!options.full && limit <= 0) return [];
   const limitSql = options.full ? Prisma.empty : Prisma.sql`LIMIT ${limit}`;
@@ -1891,6 +2110,10 @@ async function writeReplayQuarantines(
   options: Options
 ) {
   if (options.dryRun || rows.length === 0) return 0;
+  if (options.serving) {
+    // Serving DB has no _giq_history_merge schema; skip the evidence side-write.
+    return 0;
+  }
   const values = rows.map((row) => {
     const sourceKeySha256 = createHash("sha256")
       .update(row.sourceKey)
@@ -1960,7 +2183,11 @@ async function writeRaceVideo(
           OR ("RaceVideo"."title" IS NULL AND EXCLUDED."title" IS NOT NULL)
           OR ("RaceVideo"."description" IS NULL AND EXCLUDED."description" IS NOT NULL)
           OR ("RaceVideo"."sourceRawJson" IS NULL AND EXCLUDED."sourceRawJson" IS NOT NULL)`;
-  return prisma.$executeRaw`
+  // FORCE RLS on RaceVideo requires giq_is_system(); claim it in the same
+  // transaction as the write so pool recycling cannot drop the claim.
+  const [, written] = await prisma.$transaction([
+    prisma.$executeRawUnsafe("SELECT set_config('app.system', 'true', true)"),
+    prisma.$executeRaw`
     INSERT INTO "RaceVideo" (
       "id",
       "raceId",
@@ -2002,7 +2229,9 @@ async function writeRaceVideo(
       NOW()
     )
     ON CONFLICT ("raceId", "sourceProvider", "kind") ${conflictSql}
-  `;
+  `,
+  ]);
+  return written;
 }
 
 function parseOptions(args: string[]): Options {
@@ -2036,6 +2265,7 @@ function parseOptions(args: string[]): Options {
     compact: flags.has("compact"),
     normalizeOnly: flags.has("normalize-only"),
     nativeLocal: flags.has("native-local"),
+    serving: flags.has("serving"),
   };
 }
 

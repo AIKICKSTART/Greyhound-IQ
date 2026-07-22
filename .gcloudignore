@@ -6,6 +6,8 @@
 .next-dev-logs
 .backfill
 .remember
+native-postgres16
+prediction-engine
 node_modules
 output
 !output/

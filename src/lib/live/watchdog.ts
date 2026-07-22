@@ -58,6 +58,26 @@ export class WatchdogProvider implements LiveDataProvider {
     return this.fetchMeetingDetails(meetings);
   }
 
+  /**
+   * Historical enumeration. The calendar-month endpoint returns roughly a
+   * six-week window of VIC meetings around the given date (verified back to
+   * 2006; race-level replay videoIds exist from 2014-01-01).
+   */
+  async fetchMeetingsByCalendarMonth(
+    monthDate: Date,
+    range: { from: Date; to: Date }
+  ): Promise<LiveMeeting[]> {
+    const payload = await this.getJson(
+      `/api/public/form/calendar-month/${monthDate.toISOString()}`
+    );
+    const meetings = ensureArray(payload.meetings).filter((meeting) => {
+      const date = new Date(meeting.meetingDate ?? meeting.startTime ?? "");
+      if (Number.isNaN(date.getTime())) return false;
+      return date >= range.from && date <= range.to;
+    });
+    return this.fetchMeetingDetails(meetings);
+  }
+
   private async fetchMeetingDetails(
     meetings: WatchdogMeeting[]
   ): Promise<LiveMeeting[]> {

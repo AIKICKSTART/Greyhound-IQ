@@ -7,6 +7,33 @@
 // origins are needed here — the browser only ever talks to 'self'.
 const replayFrameOrigins =
   "https://www.youtube-nocookie.com https://player.vimeo.com";
+// GRV FastTrack photo-finish images (Race.photoFinishUrl) are static JPEGs on
+// GRV's public Azure blob storage; the browser loads them directly. Shared by
+// the race-detail renderer and the replay backfill as the only accepted origin.
+export const PHOTO_FINISH_IMAGE_ORIGIN =
+  "https://grvaueprdfasttrackstr03.blob.core.windows.net";
+
+export function safePhotoFinishSrc(
+  value: string | null | undefined
+): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol !== "https:" ||
+      url.origin !== PHOTO_FINISH_IMAGE_ORIGIN ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash
+    ) {
+      return null;
+    }
+    return url.href;
+  } catch {
+    return null;
+  }
+}
 
 export function contentSecurityPolicy(nonce: string) {
   const supa = safeOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
@@ -24,6 +51,13 @@ export function contentSecurityPolicy(nonce: string) {
   const join = (...parts: Array<string | undefined>) =>
     parts.filter(Boolean).join(" ");
 
+  // Keyless map sources for the Vet Finder (MapLibre): OpenFreeMap vector
+  // styles/tiles/glyphs/sprites, Esri World Imagery satellite, OSM raster
+  // fallback. Vector tiles + style JSON + glyphs load via fetch (connect-src);
+  // sprites and raster tiles are images (img-src).
+  const mapHosts =
+    "https://tiles.openfreemap.org https://server.arcgisonline.com https://tile.openstreetmap.org https://tiles.mapterhorn.com";
+
   // 'strict-dynamic' lets nonce-trusted Next bootstrap scripts load the rest of
   // the bundle graph without listing every hashed chunk. 'unsafe-eval' is only
   // needed in dev, where React uses eval for readable server error stacks.
@@ -38,9 +72,9 @@ export function contentSecurityPolicy(nonce: string) {
     "default-src 'self'",
     scriptSrc,
     "style-src 'self' 'unsafe-inline'",
-    join("img-src 'self' data: blob:", supa, gcs),
+    join("img-src 'self' data: blob:", supa, gcs, PHOTO_FINISH_IMAGE_ORIGIN, mapHosts),
     join("media-src 'self' blob:", supa, gcs),
-    join("connect-src 'self'", supa, supaWs, gcs, lk, devWs),
+    join("connect-src 'self'", supa, supaWs, gcs, lk, devWs, mapHosts),
     join("frame-src 'self'", replayFrameOrigins),
     "worker-src 'self' blob:",
     "font-src 'self' data:",

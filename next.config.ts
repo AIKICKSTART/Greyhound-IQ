@@ -58,7 +58,9 @@ const nextConfig: NextConfig = {
           {
             key: "Permissions-Policy",
             value:
-              "camera=(self), microphone=(self), display-capture=(self), geolocation=()",
+              // geolocation=(self): the Vet Finder "Use my location" needs the
+              // app's own origin to read geolocation. Third-party frames stay blocked.
+              "camera=(self), microphone=(self), display-capture=(self), geolocation=(self)",
           },
           // Content-Security-Policy is set per-request in src/proxy.ts so
           // script-src can carry a fresh nonce. Keep it out of here to avoid a

@@ -174,6 +174,7 @@
     "livekit-client": "^2.20.0",
     "livekit-server-sdk": "^2.16.0",
     "lucide-react": "^1.21.0",
+    "maplibre-gl": "^5.24.0",
     "motion": "^12.42.2",
     "next": "16.2.10",
     "next-auth": "^4.24.14",

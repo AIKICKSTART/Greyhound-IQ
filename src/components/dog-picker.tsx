@@ -8,11 +8,15 @@ interface DogHit {
   name: string;
   colour: string | null;
   sex: string | null;
+  whelpDate: string | null;
+  careerStarts: number | null;
+  careerWins: number | null;
 }
 
 export interface PickedDog {
   id: string;
   name: string;
+  whelpYear?: number | null;
 }
 
 interface DogPickerProps {
@@ -24,6 +28,31 @@ interface DogPickerProps {
 }
 
 const MIN_QUERY = 1;
+
+function whelpYearOf(hit: DogHit): number | null {
+  if (!hit.whelpDate) return null;
+  const year = new Date(hit.whelpDate).getUTCFullYear();
+  return Number.isFinite(year) ? year : null;
+}
+
+// One meta line per hit: whelp year, colour and career record are what tell
+// two same-named dogs apart, so they always render when known.
+function hitMeta(hit: DogHit): string {
+  const parts: string[] = [];
+  const year = whelpYearOf(hit);
+  if (year) parts.push(`Whelped ${year}`);
+  if (hit.colour) parts.push(hit.colour);
+  if (hit.careerStarts !== null) {
+    parts.push(
+      `${hit.careerStarts} start${hit.careerStarts === 1 ? "" : "s"}${
+        hit.careerWins ? ` · ${hit.careerWins} win${hit.careerWins === 1 ? "" : "s"}` : ""
+      }`,
+    );
+  } else {
+    parts.push("Studbook record");
+  }
+  return parts.join(" · ");
+}
 
 /**
  * Single-dog search field. Debounced lookup against the shared dog directory
@@ -67,7 +96,7 @@ export function DogPicker({
   }, [query]);
 
   function pick(dog: DogHit) {
-    onSelect({ id: dog.id, name: dog.name });
+    onSelect({ id: dog.id, name: dog.name, whelpYear: whelpYearOf(dog) });
     setQuery("");
     setHits([]);
   }
@@ -81,8 +110,15 @@ export function DogPicker({
             <span className="giq-icon-plate flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
               <Dna className="h-3.5 w-3.5 text-[hsl(var(--primary-bright))]" />
             </span>
-            <span className="truncate text-[14px] font-medium text-[hsl(var(--foreground))]">
-              {selected.name}
+            <span className="min-w-0">
+              <span className="block truncate text-[14px] font-medium text-[hsl(var(--foreground))]">
+                {selected.name}
+              </span>
+              {selected.whelpYear ? (
+                <span className="block text-[11px] text-[hsl(var(--subtle-foreground))]">
+                  Whelped {selected.whelpYear}
+                </span>
+              ) : null}
             </span>
           </span>
           <button
@@ -126,11 +162,9 @@ export function DogPicker({
                       <span className="block truncate text-[13px] font-medium text-[hsl(var(--foreground))]">
                         {dog.name}
                       </span>
-                      {(dog.colour || dog.sex) && (
-                        <span className="block truncate text-[11px] text-[hsl(var(--subtle-foreground))]">
-                          {[dog.sex, dog.colour].filter(Boolean).join(" · ")}
-                        </span>
-                      )}
+                      <span className="block truncate text-[11px] text-[hsl(var(--subtle-foreground))]">
+                        {hitMeta(dog)}
+                      </span>
                     </span>
                   </button>
                 </li>

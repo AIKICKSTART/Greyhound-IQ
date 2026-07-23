@@ -1,6 +1,15 @@
 import { cache } from "react";
 
 import { prisma, safeQuery } from "@/lib/db";
+import {
+  DOG_IDENTITY_SELECT,
+  clusterDogRows,
+  fetchRowsByNames,
+  mergeCluster,
+  resolveDogIdentity,
+  type DogIdentityRow,
+  type MergedDogIdentity,
+} from "@/lib/dog-identity";
 
 export interface PedigreeNode {
   id: string | null;
@@ -17,40 +26,16 @@ export interface PedigreeNode {
   dam?: PedigreeNode;
 }
 
-interface DogRow {
-  id: string;
-  name: string;
-  sex: string | null;
-  colour: string | null;
-  whelpDate: Date | null;
-  sireId: string | null;
-  damId: string | null;
-  careerStarts: number | null;
-  careerWins: number | null;
-  prizeMoney: number | null;
-}
-
-const NODE_SELECT = {
-  id: true,
-  name: true,
-  sex: true,
-  colour: true,
-  whelpDate: true,
-  sireId: true,
-  damId: true,
-  careerStarts: true,
-  careerWins: true,
-  prizeMoney: true,
-} as const;
-
 const MAX_PEDIGREE_GENERATIONS = 5;
 
 const yearOf = (d: Date | null): number | null => (d ? d.getUTCFullYear() : null);
 
 /**
  * Build a pedigree tree up to `generations` deep from reviewed parent links.
- * Name-based bridging is deliberately excluded because greyhound names are not
- * unique; normalization must resolve source identities before this read path.
+ * Each node is resolved through query-time identity bridging (dog-identity)
+ * so a dog split across racing and studbook rows contributes its deepest
+ * known parents and its racing record together. Rows only bridge under the
+ * conservative cluster rule — ambiguous names stay separate.
  */
 export const getDogPedigree = cache(
   async (rootId: string, generations = 5): Promise<PedigreeNode | null> => {
@@ -62,10 +47,10 @@ export const getDogPedigree = cache(
         MAX_PEDIGREE_GENERATIONS,
         Math.max(0, requestedGenerations),
       );
-      const root = await prisma.dog.findUnique({ where: { id: rootId }, select: NODE_SELECT });
+      const root = await resolveDogIdentity(rootId);
       if (!root) return null;
 
-      const rootNode: PedigreeNode = toNode(root);
+      const rootNode: PedigreeNode = identityToNode(root);
       let frontier: { node: PedigreeNode; sireId: string | null; damId: string | null }[] = [
         { node: rootNode, sireId: root.sireId, damId: root.damId },
       ];
@@ -78,24 +63,39 @@ export const getDogPedigree = cache(
         ];
         if (ids.length === 0) break;
 
-        const rows = await prisma.dog.findMany({
-          where: { id: { in: ids } },
-          select: NODE_SELECT,
-          take: 64,
-        });
-        const byId = new Map(rows.map((r) => [r.id, r]));
+        const rows = await safeQuery(
+          () =>
+            prisma.dog.findMany({
+              where: { id: { in: ids } },
+              select: DOG_IDENTITY_SELECT,
+              take: 64,
+            }),
+          [] as DogIdentityRow[],
+        );
+        if (rows.length === 0) break;
+
+        // Bridge each fetched parent with its same-name twins so studbook-only
+        // parents pick up racing stats and deeper links (and vice versa).
+        const twins = await fetchRowsByNames(rows.map((r) => r.name));
+        const poolById = new Map<string, DogIdentityRow>();
+        for (const row of [...rows, ...twins]) poolById.set(row.id, row);
+        const mergedByMemberId = new Map<string, MergedDogIdentity>();
+        for (const cluster of clusterDogRows([...poolById.values()])) {
+          const merged = mergeCluster(cluster);
+          for (const member of cluster) mergedByMemberId.set(member.id, merged);
+        }
 
         const next: typeof frontier = [];
         for (const { node, sireId, damId } of frontier) {
-          if (sireId && byId.has(sireId)) {
-            const r = byId.get(sireId)!;
-            node.sire = toNode(r);
-            next.push({ node: node.sire, sireId: r.sireId, damId: r.damId });
+          const sire = sireId ? mergedByMemberId.get(sireId) : undefined;
+          if (sire) {
+            node.sire = identityToNode(sire);
+            next.push({ node: node.sire, sireId: sire.sireId, damId: sire.damId });
           }
-          if (damId && byId.has(damId)) {
-            const r = byId.get(damId)!;
-            node.dam = toNode(r);
-            next.push({ node: node.dam, sireId: r.sireId, damId: r.damId });
+          const dam = damId ? mergedByMemberId.get(damId) : undefined;
+          if (dam) {
+            node.dam = identityToNode(dam);
+            next.push({ node: node.dam, sireId: dam.sireId, damId: dam.damId });
           }
         }
         frontier = next;
@@ -106,15 +106,15 @@ export const getDogPedigree = cache(
   }
 );
 
-function toNode(row: DogRow): PedigreeNode {
+function identityToNode(identity: MergedDogIdentity): PedigreeNode {
   return {
-    id: row.id,
-    name: row.name,
-    sex: row.sex,
-    colour: row.colour,
-    whelpYear: yearOf(row.whelpDate),
-    careerStarts: row.careerStarts,
-    careerWins: row.careerWins,
-    prizeMoney: row.prizeMoney,
+    id: identity.primaryId,
+    name: identity.name,
+    sex: identity.sex,
+    colour: identity.colour,
+    whelpYear: yearOf(identity.whelpDate),
+    careerStarts: identity.careerStarts,
+    careerWins: identity.careerWins,
+    prizeMoney: identity.prizeMoney,
   };
 }

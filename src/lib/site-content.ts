@@ -48,6 +48,7 @@ export const DEFAULT_PRICING: PricingContent = {
         "Save marketplace listings",
       ],
       notIncluded: [
+        "No test mating tool",
         "No marketplace listing creation",
         "No messaging trainers/sellers",
         "No custom trainer, punter, business, or dog marketing pages",
@@ -64,6 +65,7 @@ export const DEFAULT_PRICING: PricingContent = {
       description: "For marketplace sellers, trainers, and serious racing users.",
       features: [
         "Everything in Free",
+        "Test mating — full sire × dam cross records",
         "Message trainers and sellers about listings",
         "Create marketplace listings",
         "Custom trainer page",

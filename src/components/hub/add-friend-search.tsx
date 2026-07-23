@@ -42,6 +42,12 @@ export function AddFriendSearch({
 
   useEffect(() => {
     const q = query.trim();
+    // Owner ruling: never list the member directory unprompted — results only
+    // appear once the user has typed something. The onChange handler already
+    // resets the searching flag when the field empties.
+    if (!q) {
+      return;
+    }
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       setSearching(true);
@@ -220,7 +226,7 @@ export function AddFriendSearch({
       ) : null}
       {!query.trim() && visibleOptions.length === 0 && !searching ? (
         <p className="text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          No other members are available to add yet.
+          Start typing a name or kennel to find members.
         </p>
       ) : null}
     </div>

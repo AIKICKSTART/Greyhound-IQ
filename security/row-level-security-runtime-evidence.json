@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "auditKind": "rls-access-matrix",
-  "generatedAt": "2026-07-18T13:02:41.477Z",
+  "generatedAt": "2026-07-23T14:26:33.805Z",
   "safety": {
     "scope": "literal-loopback-disposable-database",
     "target": {
@@ -17,9 +17,9 @@
     "dbContextSha256": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
     "billingPageSha256": "75dc4b0a10b5a1a0b65b2fad0666cce0df4d93aead1643f743546360b23206fb",
     "sensitiveAdminPolicyMigrationSha256": "38ed8c2b14183b2b55211b137cbc09c800a490861317148513571a68a511a918",
-    "migrationsSha256": "0726fdfe15d9e1fc82868ac7e8ac0d138430a9d7454401f443c4330d0787b21d",
-    "prismaSchemaSha256": "9395ca8a01f7e640e8c26f23f6d13e9d4ad0d3066cb92a143a06ca0176888873",
-    "verifierSha256": "e4f68b28f81aa28924898744195a24e1cf721c392a5fe8c9a6b1c46c01bc5f1a"
+    "migrationsSha256": "7ab0703f5657f942adc6cd948252792d35a00a42aed0f07af615f956bd0ba2bd",
+    "prismaSchemaSha256": "9ddc3308c0775ea118ebceda6ded038f5adc56eaa58160e77bbf97ceb33d35eb",
+    "verifierSha256": "12552ccdb254a071262bd3135f1db4838fe5256db8243370282e4003a4a27e9f"
   },
   "runtimeIdentity": {
     "currentRole": "greyhoundiq_runtime",
@@ -56,11 +56,11 @@
       "adminOptionCount": 0
     },
     "directGrants": {
-      "applicationDmlTableCount": 114,
+      "applicationDmlTableCount": 115,
       "projectionReadCount": 6,
       "sequenceUsageCount": 1,
-      "routineCount": 45,
-      "securityDefinerRoutineCount": 27,
+      "routineCount": 46,
+      "securityDefinerRoutineCount": 28,
       "grantableCount": 0
     },
     "systemCatalog": {
@@ -77,9 +77,9 @@
     }
   },
   "catalog": {
-    "applicationModelCount": 114,
-    "forceRlsCount": 114,
-    "rlsEnabledCount": 114
+    "applicationModelCount": 115,
+    "forceRlsCount": 115,
+    "rlsEnabledCount": 115
   },
   "invoiceOwnership": {
     "policy": {

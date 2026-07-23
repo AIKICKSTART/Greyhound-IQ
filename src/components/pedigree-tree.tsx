@@ -41,7 +41,7 @@ interface Crumb {
   path: string;
 }
 
-const DESKTOP_DEPTH = 4;
+const DESKTOP_DEPTH = 5;
 const MOBILE_DEPTH = 2;
 
 const GENERATION_LABELS = [
@@ -50,6 +50,7 @@ const GENERATION_LABELS = [
   "Grandparents",
   "3rd generation",
   "4th generation",
+  "5th generation",
 ];
 
 /**
@@ -58,7 +59,8 @@ const GENERATION_LABELS = [
  * boxes on a grid. On small screens only the subject plus two generations are
  * shown at full width — tapping an ancestor with deeper recorded lineage
  * re-roots the view into that line, with a breadcrumb trail back. The same
- * focus drill works on desktop above the full five-column spread.
+ * focus drill works on desktop above the full six-column, five-generation
+ * spread.
  */
 export function PedigreeTree({
   root,

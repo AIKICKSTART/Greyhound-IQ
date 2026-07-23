@@ -17,10 +17,15 @@ import { PageTitle } from "@/components/page-title";
 import { RaceMeetingNavigation } from "@/components/race-meeting-navigation";
 import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
 import { RunnerRow } from "@/components/runner-row";
+import { RaceReplayPlayer } from "@/components/race-replay-player";
+import type { ResolvedRaceReplay } from "@/lib/live/race-replay";
 import {
   embedUrlFromReplayPage,
   officialRaceReplayUrl,
+  resolveProviderRaceReplay,
+  resolveRaceVideoReplay,
 } from "@/lib/live/race-replay";
+import { proxiedStreamPath } from "@/lib/live/replay-proxy";
 import {
   buildRaceDetailHref,
   buildRaceListReturnHref,
@@ -48,6 +53,9 @@ type PreviousRaceVideoRunner = Awaited<
 type PreviousRaceVideoCandidate = {
   id: string;
   pageUrl: string;
+  sourceProvider: string;
+  sourceId: string;
+  embedSourceType?: string | null;
   dogNames: string[];
   date: Date;
   trackName: string;
@@ -57,10 +65,11 @@ type PreviousRaceVideoCandidate = {
   runningTime: number | null;
   winnerTime: number | null;
   title: string | null;
+  localReplay: ResolvedRaceReplay | null;
 };
 
 type ResolvedPreviousRaceVideo = PreviousRaceVideoCandidate & {
-  embedUrl: string | null;
+  replay: ResolvedRaceReplay | null;
 };
 
 export async function generateMetadata({
@@ -130,7 +139,11 @@ export default async function RacePage({
   const replayCandidate = race.videos
     .map((video) => ({ video, officialUrl: officialRaceReplayUrl(video) }))
     .find((candidate) => candidate.officialUrl);
-  const primaryVideo = replayCandidate?.video ?? race.videos[0] ?? null;
+  const primaryVideo =
+    replayCandidate?.video ??
+    race.videos.find((video) => video.streamUrl) ??
+    race.videos[0] ??
+    null;
   const replayOfficialUrl =
     replayCandidate?.officialUrl ??
     officialRaceReplayUrl({
@@ -138,9 +151,39 @@ export default async function RacePage({
       pageUrl: race.replayUrl,
       sourceStatus: null,
     });
-  const replayEmbedUrl =
-    embedUrlFromReplayPage(replayOfficialUrl)?.embedUrl ?? null;
-  const replayTitle = primaryVideo?.title ?? race.name;
+  // Resolve a playable stream or embed from the stored record (may fetch the
+  // provider page), falling back to the race-level provider fields. The
+  // official URL above stays the authority for the outbound source link.
+  const storedReplay = primaryVideo
+    ? await resolveRaceVideoReplay(primaryVideo)
+    : null;
+  const providerReplay =
+    storedReplay?.streamUrl || storedReplay?.embedUrl
+      ? null
+      : await resolveProviderRaceReplay({
+          sourceProvider: race.sourceProvider,
+          sourceId: race.sourceId,
+          replayUrl: race.replayUrl,
+        });
+  // Proxy the provider stream through our own origin so the browser never sees
+  // the source host. Unknown hosts return null and fall through to embed/none.
+  const replayStreamUrl = proxiedStreamPath(
+    storedReplay?.streamUrl ?? providerReplay?.streamUrl ?? null
+  );
+  const replayStreamContentType =
+    storedReplay?.streamContentType ?? providerReplay?.streamContentType ?? null;
+  const replayEmbedUrl = replayStreamUrl
+    ? null
+    : storedReplay?.embedUrl ??
+      providerReplay?.embedUrl ??
+      embedUrlFromReplayPage(replayOfficialUrl)?.embedUrl ??
+      null;
+  const replayTitle =
+    storedReplay?.title ??
+    providerReplay?.title ??
+    primaryVideo?.title ??
+    race.name;
+  const hasPlayableReplay = Boolean(replayStreamUrl || replayEmbedUrl);
   const hasOfficialReplaySource = Boolean(replayOfficialUrl);
   const photoFinishSrc = safePhotoFinishSrc(race.photoFinishUrl);
   const resultCount = race.runners.filter((runner) => runner.result).length;
@@ -153,7 +196,7 @@ export default async function RacePage({
     raceTime: race.raceTime,
     now: new Date(),
     hasResults,
-    hasReplay: hasOfficialReplaySource,
+    hasReplay: hasPlayableReplay || hasOfficialReplaySource,
   });
   const resultStatusLabel =
     resultCount === 0
@@ -171,7 +214,7 @@ export default async function RacePage({
   );
   const raceTimeLabel = formatRaceDetailTime(race.raceTime);
   const previousVideoRunners = await getPreviousRaceVideoRunners(race.id);
-  const previousRaceVideos = resolvePreviousRaceVideos(
+  const previousRaceVideos = await resolvePreviousRaceVideos(
     collectPreviousRaceVideoCandidates(race, previousVideoRunners)
   );
 
@@ -234,12 +277,12 @@ export default async function RacePage({
               </span>
             </>
           )}
-          {hasOfficialReplaySource && (
+          {(hasPlayableReplay || hasOfficialReplaySource) && (
             <>
               <span className="text-white/[0.1]">/</span>
               <span className="flex items-center gap-1.5 text-[hsl(var(--secondary))]">
                 <PlayCircle className="h-3.5 w-3.5" />
-                Replay source ready
+                {hasPlayableReplay ? "Replay ready" : "Replay source ready"}
               </span>
             </>
           )}
@@ -297,10 +340,18 @@ export default async function RacePage({
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,430px)]">
         <section className="min-w-0 space-y-5">
-          {replayEmbedUrl && replayOfficialUrl ? (
+          {replayStreamUrl ? (
+            <RaceReplayPlayer
+              streamUrl={replayStreamUrl}
+              streamContentType={replayStreamContentType}
+              trackName={track.name}
+              raceLabel={`Race ${race.raceNumber} / ${race.distance}m`}
+              raceTimeLabel={raceTimeLabel}
+            />
+          ) : replayEmbedUrl ? (
             <ReplayEmbed
               embedUrl={replayEmbedUrl}
-              officialUrl={replayOfficialUrl}
+              officialUrl={replayOfficialUrl ?? replayEmbedUrl}
               title={replayTitle ?? "Race replay"}
               trackName={track.name}
               raceLabel={`Race ${race.raceNumber} / ${race.distance}m`}
@@ -440,9 +491,15 @@ export default async function RacePage({
               />
               <SummaryTile
                 label="Replay"
-                value={hasOfficialReplaySource ? "Official replay available" : "No official replay linked"}
+                value={
+                  hasPlayableReplay
+                    ? "Playable replay"
+                    : hasOfficialReplaySource
+                      ? "Official replay available"
+                      : "No official replay linked"
+                }
                 icon={<PlayCircle className="h-4 w-4" />}
-                tone={hasOfficialReplaySource ? "gold" : "primary"}
+                tone={hasPlayableReplay || hasOfficialReplaySource ? "gold" : "primary"}
               />
               <SummaryTile
                 label="Race status"
@@ -508,9 +565,14 @@ function collectPreviousRaceVideoCandidates(
       });
     if (!pageUrl) continue;
 
+    const streamVideo = pastRace.videos.find((entry) => entry.streamUrl);
     upsertPreviousVideoCandidate(byPageUrl, {
       id: video?.id ?? pastRace.id,
       pageUrl,
+      sourceProvider:
+        video?.sourceProvider ?? pastRace.sourceProvider ?? "",
+      sourceId: video?.sourceId ?? pastRace.sourceId ?? pageUrl,
+      embedSourceType: video?.embedSourceType,
       dogNames: [pastRunner.dog.name],
       date: pastRace.raceTime,
       trackName: pastRace.meeting.track.name,
@@ -520,6 +582,17 @@ function collectPreviousRaceVideoCandidates(
       runningTime: pastRunner.result?.runningTime ?? null,
       winnerTime: null,
       title: video?.title ?? pastRace.name,
+      localReplay: streamVideo?.streamUrl
+        ? {
+            pageUrl,
+            streamUrl: streamVideo.streamUrl,
+            streamContentType: streamVideo.streamContentType,
+            title: streamVideo.title,
+            description: streamVideo.description,
+            sourceStatus: streamVideo.sourceStatus,
+            sourceCode: streamVideo.sourceCode,
+          }
+        : null,
     });
   }
 
@@ -545,6 +618,8 @@ function collectPreviousRaceVideoCandidates(
       upsertPreviousVideoCandidate(byPageUrl, {
         id: entry.id,
         pageUrl,
+        sourceProvider: entry.sourceProvider,
+        sourceId: entry.raceUrl,
         dogNames: [runner.dog.name],
         date: entry.date,
         trackName: entry.trackName ?? entry.trackCode ?? "Previous race",
@@ -554,22 +629,37 @@ function collectPreviousRaceVideoCandidates(
         runningTime: entry.runningTime,
         winnerTime: entry.winnerTime,
         title: entry.raceName,
+        localReplay: null,
       });
     }
   }
 
   return [...byPageUrl.values()].sort(
-    (a, b) => b.date.getTime() - a.date.getTime()
+    (a, b) =>
+      Number(Boolean(b.localReplay?.streamUrl)) -
+        Number(Boolean(a.localReplay?.streamUrl)) ||
+      b.date.getTime() - a.date.getTime()
   );
 }
 
-function resolvePreviousRaceVideos(
+async function resolvePreviousRaceVideos(
   candidates: PreviousRaceVideoCandidate[]
-): ResolvedPreviousRaceVideo[] {
-  return candidates.slice(0, MAX_PREVIOUS_RACE_VIDEO_RESOLVES).map((candidate) => ({
-    ...candidate,
-    embedUrl: embedUrlFromReplayPage(candidate.pageUrl)?.embedUrl ?? null,
-  }));
+): Promise<ResolvedPreviousRaceVideo[]> {
+  return Promise.all(
+    candidates
+      .slice(0, MAX_PREVIOUS_RACE_VIDEO_RESOLVES)
+      .map(async (candidate) => ({
+        ...candidate,
+        replay:
+          candidate.localReplay ??
+          (await resolveRaceVideoReplay({
+            sourceProvider: candidate.sourceProvider,
+            sourceId: candidate.sourceId,
+            pageUrl: candidate.pageUrl,
+            embedSourceType: candidate.embedSourceType,
+          })),
+      }))
+  );
 }
 
 function upsertPreviousVideoCandidate(
@@ -584,6 +674,9 @@ function upsertPreviousVideoCandidate(
 
   for (const dogName of candidate.dogNames) {
     if (!existing.dogNames.includes(dogName)) existing.dogNames.push(dogName);
+  }
+  if (!existing.localReplay && candidate.localReplay) {
+    existing.localReplay = candidate.localReplay;
   }
 }
 
@@ -606,7 +699,9 @@ function PreviousRaceVideoSection({
         </span>
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
-        {videos.map((video) => (
+        {videos.map((video) => {
+          const proxiedStream = proxiedStreamPath(video.replay?.streamUrl);
+          return (
             <article key={video.pageUrl} className="min-w-0 space-y-3">
             <div className="flex flex-col gap-2 rounded-lg border border-white/[0.07] bg-white/[0.025] p-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
@@ -629,11 +724,19 @@ function PreviousRaceVideoSection({
                 )}
               </div>
             </div>
-            {video.embedUrl ? (
+            {proxiedStream ? (
+              <RaceReplayPlayer
+                streamUrl={proxiedStream}
+                streamContentType={video.replay?.streamContentType}
+                trackName={video.trackName}
+                raceLabel={video.raceLabel}
+                raceTimeLabel={formatRaceDetailTime(video.date)}
+              />
+            ) : video.replay?.embedUrl ? (
               <ReplayEmbed
-                embedUrl={video.embedUrl}
+                embedUrl={video.replay.embedUrl}
                 officialUrl={video.pageUrl}
-                title={video.title ?? video.raceName ?? "Race replay"}
+                title={video.replay.title ?? video.raceName ?? "Race replay"}
                 trackName={video.trackName}
                 raceLabel={video.raceLabel}
                 raceTimeLabel={formatRaceDetailTime(video.date)}
@@ -646,7 +749,8 @@ function PreviousRaceVideoSection({
               />
             )}
             </article>
-          ))}
+          );
+        })}
       </div>
     </section>
   );

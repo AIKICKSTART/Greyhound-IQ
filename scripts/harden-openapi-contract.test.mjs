@@ -98,8 +98,8 @@ test("hardening is bounded, structural, and idempotent", () => {
   const source = JSON.parse(readFileSync(new URL("../openapi.json", import.meta.url), "utf8"));
   const hardened = hardenOpenApiContract(source);
 
-  assert.equal(Object.keys(source.paths).length, 85);
-  assert.equal(operationInventory(source).length, 106);
+  assert.equal(Object.keys(source.paths).length, 90);
+  assert.equal(operationInventory(source).length, 111);
   assert.equal(Object.keys(source.components.schemas).length, 7);
   assert.equal(
     source.paths["/api/media/{id}/local-upload"],

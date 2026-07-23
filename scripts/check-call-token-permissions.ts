@@ -9,6 +9,7 @@ import {
   callRoomJoinWhere,
   createLiveKitCallToken,
 } from "../src/lib/call-token";
+import { assertCallInitiationAccess } from "../src/lib/tier-access";
 
 main().catch((err) => {
   console.error("Call token permission checks failed:");
@@ -133,10 +134,11 @@ async function main() {
   console.log("PASS: wrong-secret JWT rejected");
   // ── End webhook signature verification ────────────────────────────────────
 
-  // ── Tier-gate placement (free receivers may join, only paid may start) ────
-  // Source-level invariant: createCallRoomForConversation keeps the paid gate;
-  // createCallTokenForCurrentUser must NOT have it (free receivers mint join
-  // tokens for rooms holding their CallPermission.canJoin row).
+  // ── Tier-gate placement (free/pro receivers may join, only Pro+ may start) ─
+  // Source-level invariant: createCallRoomForConversation gates initiation at
+  // Pro+ via assertCallInitiationAccess; createCallTokenForCurrentUser must NOT
+  // have it (free/pro receivers mint join tokens for rooms holding their
+  // CallPermission.canJoin row).
   const callServiceSource = readFileSync(
     join(__dirname, "..", "src", "lib", "call-service.ts"),
     "utf8"
@@ -150,20 +152,39 @@ async function main() {
     "createCallTokenForCurrentUser"
   );
   assert.ok(
-    createRoomBody.includes("assertPaidFeatureAccess"),
-    "createCallRoomForConversation must keep the paid initiation gate"
+    createRoomBody.includes("assertCallInitiationAccess("),
+    "createCallRoomForConversation must gate initiation at Pro+"
   );
   assert.ok(
-    !createTokenBody.includes("assertPaidFeatureAccess("),
+    !createTokenBody.includes("assertCallInitiationAccess(") &&
+      !createTokenBody.includes("assertPaidFeatureAccess("),
     "createCallTokenForCurrentUser must not tier-gate receivers joining"
   );
+
+  // Runtime invariant: only Pro+ may initiate. Pro (and free) must be rejected;
+  // Pro+ must pass. This is the enforced rule, not just a hidden button.
+  assert.throws(
+    () => assertCallInitiationAccess({ tier: "pro" }),
+    /payment\.required/,
+    "Pro must NOT be able to initiate a call"
+  );
+  assert.throws(
+    () => assertCallInitiationAccess({ tier: "free" }),
+    /payment\.required/,
+    "free must NOT be able to initiate a call"
+  );
+  assert.doesNotThrow(
+    () => assertCallInitiationAccess({ tier: "pro_plus" }),
+    "Pro+ must be able to initiate a call"
+  );
+
   const callTokenSource = readFileSync(
     join(__dirname, "..", "src", "lib", "call-token.ts"),
     "utf8"
   );
   assert.ok(callTokenSource.includes("new AccessToken("), "LiveKit SDK must sign call tokens");
   assert.ok(!callTokenSource.includes("createHmac"), "call tokens must not use hand-built JWT signing");
-  console.log("PASS: call initiation paid-gated, token join ungated");
+  console.log("PASS: call initiation Pro+-gated, token join ungated");
   // ── End tier-gate placement ────────────────────────────────────────────────
 }
 

@@ -113,7 +113,7 @@ const WORKSPACE_COVERAGE_BADGE_TITLES = SCREEN_CONTRACT_COVERAGE_AREAS.map(
   (area) =>
     `${area.replace(/([a-z])([A-Z])/g, "$1 $2")}: ${WORKSPACE_SAMPLE_CONTRACT.coverage[area].status}`,
 );
-const RACING_SCREEN_ROUTE_COUNT = 10;
+const RACING_SCREEN_ROUTE_COUNT = 14;
 if (
   DEMO_SCREEN_FAMILIES.find((family) => family.key === "racing")?.screens
     .length !== RACING_SCREEN_ROUTE_COUNT

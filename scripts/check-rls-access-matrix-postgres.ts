@@ -49,6 +49,9 @@ const REDUCED_RUNTIME_DML_GRANTS = new Map<string, readonly string[]>([
   ["DogProfileMergeLedger", ["INSERT", "SELECT"]],
   ["DogProfileObservation", ["INSERT", "SELECT"]],
   ["DogSourceIdentity", ["INSERT", "SELECT"]],
+  // Boost purchases are an append-only payment record: created at checkout,
+  // settled by the webhook, expired by date — never deleted at runtime.
+  ["ListingBoost", ["INSERT", "SELECT", "UPDATE"]],
   ["LiveFeedQuarantine", ["INSERT", "SELECT"]],
   ["PedigreeAssertion", ["INSERT", "SELECT"]],
   ["PedigreeImportRun", ["INSERT", "SELECT", "UPDATE"]],

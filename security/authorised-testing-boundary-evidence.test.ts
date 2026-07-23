@@ -108,7 +108,7 @@ for (const target of [
 }
 assert.throws(() => assertDemoFixtureVerifierTarget(disposableUrl, undefined));
 
-assert.equal(DESIGN_LAB_LOCAL_DATA_POLICY_SUMMARY.totalModels, 113);
+assert.equal(DESIGN_LAB_LOCAL_DATA_POLICY_SUMMARY.totalModels, 115);
 assert.equal(
   DESIGN_LAB_LOCAL_DATA_POLICY_SUMMARY.productionDatabaseCopyAllowed,
   0,

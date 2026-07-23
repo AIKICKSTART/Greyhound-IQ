@@ -143,7 +143,12 @@ assert.match(
   csp,
   /OBJECT_STORAGE_PROVIDER[\s\S]*?=== "gcs"[\s\S]*?"https:\/\/storage\.googleapis\.com"/,
 );
-assert.match(csp, /join\("connect-src 'self'", supa, supaWs, gcs, lk, devWs\)/);
+// mapHosts: fixed keyless origins for the Vet Finder map (OpenFreeMap, Esri,
+// OSM, Mapterhorn) — reviewed, no wildcards.
+assert.match(
+  csp,
+  /join\("connect-src 'self'", supa, supaWs, gcs, lk, devWs, mapHosts\)/,
+);
 assert.doesNotMatch(csp, /connect-src[^\n]*\*/);
 
 const routeSources = collectTypeScriptFiles(join("src", "app", "api"))

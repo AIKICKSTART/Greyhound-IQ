@@ -30,6 +30,13 @@ export const LOG_CALLSITE_REGISTRY: readonly LogCallsiteRegistryEntry[] = [
     "request",
   ),
   entry(
+    "src/app/api/billing/boost/checkout/route.ts",
+    "POST",
+    "billing.boost_checkout_start_failed",
+    "logRequestError",
+    "request",
+  ),
+  entry(
     "src/app/api/billing/checkout/route.ts",
     "POST",
     "billing.checkout_start_failed",

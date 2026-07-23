@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "auditKind": "account-deletion-finalize-disposable-proof",
-  "generatedAt": "2026-07-23T10:21:54.867Z",
+  "generatedAt": "2026-07-23T13:29:20.693Z",
   "safety": {
     "scope": "literal-loopback-disposable-replay-only",
     "host": "127.0.0.1",
@@ -22,18 +22,18 @@
   },
   "sourceBinding": {
     "files": {
-      "prisma/schema.prisma": "c8847698e08907d29859a0e6be2142a7946b3d9cb998bfe4f5d343c383dfc3b8",
+      "prisma/schema.prisma": "9ddc3308c0775ea118ebceda6ded038f5adc56eaa58160e77bbf97ceb33d35eb",
       "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d",
       "prisma/migrations/20260715053000_add_account_deletion_pending_index/migration.sql": "a6052fc820a613128afec7457724c4fb0f0311ea07b2d9cdd8fdf87b6eb4ad11",
       "scripts/check-account-deletion-finalize-postgres.ts": "2b1e3e2cbcc8835e4390644014bef3a0958325b67640993fdfd0eb43b3a09a59",
       "scripts/check-account-deletion-finalize-postgres.test.ts": "bd45206efa1f70a4842951e106c1b9bd4ea10ad339ab3389c6514aeab55da1ba",
-      "security/database-operations.ts": "93b1bf1fc55484835f0918339cb91a00231ff9579600b2a2d2a0aedae012d12c",
+      "security/database-operations.ts": "2cd0b1af8af31d80e96f79c548c5cf6a2d3b37e4bcd2ed07abbd6bcfbda2bc81",
       "src/lib/account-deletion.test.ts": "9373cd3f633f59ac439c780f4ab086a6d177df56bf070a04063a050fe559fd0a",
       "src/lib/account-service.ts": "2a10581b11cc1426006fe40c6083d3e412fc7bb97f084d0ab67de3f8a6ff165f",
       "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
       "src/lib/db.ts": "b11f3357d3daea521e825d8483b4bb8050c8c7d059e2aa311f1788b1b09d9035"
     },
-    "combinedSha256": "502eff9b26bec48da977b095af7d10a8fcf2ddb06cc3d6a9f19412fed29d7afc"
+    "combinedSha256": "c34f100fdadbc5fabafe7ddffa2b651afd570f7841b55e662315949d83c8d73e"
   },
   "proof": {
     "queryId": "DB.ACCOUNT.DELETION.FINALIZE.TRANSACTION",

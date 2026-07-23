@@ -523,7 +523,7 @@ async function createSecUser(
     firstName,
     lastName,
     name: displayName,
-    tier: "pro",
+    tier: "pro_plus",
     role: profile.role,
     isBanned: false,
     deletionRequestedAt: null,

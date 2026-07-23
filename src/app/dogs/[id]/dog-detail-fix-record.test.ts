@@ -70,7 +70,7 @@ assert.ok(pedigree.includes('overflow-x-auto'));
 assert.ok(tree.includes('lineage === "sire"'));
 assert.ok(tree.includes('hsl(var(--secondary) / 0.8)'));
 assert.ok(tree.includes('hsl(var(--primary-bright) / 0.8)'));
-assert.ok(tree.includes('DESKTOP_DEPTH = 4'));
+assert.ok(tree.includes('DESKTOP_DEPTH = 5'));
 assert.ok(tree.includes('MOBILE_DEPTH = 2'));
 assert.ok(tree.includes('min-h-[64px]'));
 assert.ok(tree.includes('w-[104px] lg:w-[220px]'));

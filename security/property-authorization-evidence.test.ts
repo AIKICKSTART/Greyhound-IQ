@@ -34,6 +34,7 @@ type ObjectBodyBoundary = {
 const OBJECT_BODY_BOUNDARIES: readonly ObjectBodyBoundary[] = [
   body("POST", "src/app/api/actors/[actorId]/mute/route.ts", "muteSchema"),
   body("POST", "src/app/api/agents/[type]/run/route.ts", "agentRunSchema"),
+  body("POST", "src/app/api/billing/boost/checkout/route.ts", "boostCheckoutRequestSchema"),
   body("POST", "src/app/api/billing/checkout/route.ts", "checkoutRequestSchema"),
   body("POST", "src/app/api/calls/[roomId]/invite/route.ts", "callInviteActionSchema"),
   body("POST", "src/app/api/calls/rooms/route.ts", "callRoomCreateSchema"),
@@ -47,6 +48,7 @@ const OBJECT_BODY_BOUNDARIES: readonly ObjectBodyBoundary[] = [
   body("POST", "src/app/api/feed/[postId]/share/route.ts", "feedShareWriteSchema"),
   body("POST", "src/app/api/feed/comments/[commentId]/reaction/route.ts", "feedReactionWriteSchema"),
   body("PATCH", "src/app/api/feed/comments/[commentId]/route.ts", "editCommentSchema"),
+  body("POST", "src/app/api/feed/racing-day/route.ts", "feedRacingDaySchema"),
   body("POST", "src/app/api/feed/route.ts", "feedPostWriteSchema"),
   body("POST", "src/app/api/feed/topics/[topicId]/follow/route.ts", "followSchema"),
   body("POST", "src/app/api/forum/categories/[slug]/threads/route.ts", "createThreadSchema"),

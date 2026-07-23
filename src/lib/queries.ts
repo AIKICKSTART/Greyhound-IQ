@@ -2757,7 +2757,9 @@ export interface ProgenySummary {
   prizeMoney: number | null;
 }
 
-const PROGENY_FETCH_LIMIT = 6000;
+// Capped at the audited collection-query maximum (security/collection-query-
+// bound-evidence.ts); the most prolific sire clusters sit under 3k rows.
+const PROGENY_FETCH_LIMIT = 5000;
 
 interface ParentProgenyData {
   identity: MergedDogIdentity;
@@ -2994,6 +2996,7 @@ async function getParentPartners(
       prisma.dog.findMany({
         where: { id: { in: otherIds } },
         select: { id: true, name: true },
+        take: PROGENY_FETCH_LIMIT,
       }),
     [] as { id: string; name: string }[],
   );
@@ -3121,6 +3124,7 @@ async function loadLitters(
         prisma.dog.findMany({
           where: { id: { in: parentIds } },
           select: { id: true, name: true },
+          take: PROGENY_FETCH_LIMIT,
         }),
       [],
     ),

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "auditKind": "user-export-read-disposable-proof",
-  "generatedAt": "2026-07-18T12:28:37.302Z",
+  "generatedAt": "2026-07-23T13:31:12.566Z",
   "safety": {
     "scope": "literal-loopback-disposable-replay-only",
     "providerContact": false,
@@ -10,13 +10,13 @@
   },
   "sourceBinding": {
     "files": {
-      "prisma/schema.prisma": "9395ca8a01f7e640e8c26f23f6d13e9d4ad0d3066cb92a143a06ca0176888873",
+      "prisma/schema.prisma": "9ddc3308c0775ea118ebceda6ded038f5adc56eaa58160e77bbf97ceb33d35eb",
       "prisma/migrations/20260706223000_add_rls_entitlement_policies/migration.sql": "953db33c0662f936b67a88b8859fd49b5d76b28e90f2a5e8851669fb5ff6334e",
       "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d",
       "prisma/migrations/20260708210000_memory_owner_writes/migration.sql": "8bdac9e206b834d4ddc7130fdf2c097695a1ae5de0f0ca1dbcce61f3512c9146",
       "scripts/check-user-export-read-postgres.ts": "86cd4b49c5917ddc9c1a87cb2c745ee8668a1f1d7f0be83d80bae6ecb922c5e2",
       "scripts/check-user-export-read-postgres.test.ts": "6c80cb13ca8b4de4d4741c1a9cc459513811eb46e8f72cb2396ba2601f0ec19e",
-      "security/database-operations.ts": "93b1bf1fc55484835f0918339cb91a00231ff9579600b2a2d2a0aedae012d12c",
+      "security/database-operations.ts": "2cd0b1af8af31d80e96f79c548c5cf6a2d3b37e4bcd2ed07abbd6bcfbda2bc81",
       "src/app/api/users/me/export/route.ts": "c1e770c1eeec68fbb5742d789db9898da51459cc34f4288f23a4f99aa5c0ce92",
       "src/app/api/users/me/export/route.test.ts": "930db9223a6fa7cee485ffa0f604490e97fe3c484db5bd8bfc4592b94be7e2c7",
       "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
@@ -25,7 +25,7 @@
       "src/lib/user-export-policy.test.ts": "ffa3ed507e10db9617b0a221f7e5e183fec5db0e580bf29bc5b1766711b7ccdb",
       "src/lib/user-export-service.ts": "f3eb4b201aa556665825eb94327161dc43315ffac1fb059874c672062700e34b"
     },
-    "combinedSha256": "58017e2ce209fc0f8fdaefa432659047725d159e9571a23ad8e7e047275c9478"
+    "combinedSha256": "e1afd7dd7f07caf6f4905dfc62fc50f87691acc343c23252f3b02b70e59e1e81"
   },
   "proof": {
     "queryId": "DB.ACCOUNT.DATA_EXPORT.READ",

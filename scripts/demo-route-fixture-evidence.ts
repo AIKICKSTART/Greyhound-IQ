@@ -11,8 +11,10 @@ import {
 
 export const DEMO_FIXTURE_EVIDENCE_SCHEMA_VERSION = 16;
 export const DEMO_FIXTURE_EVIDENCE_MAX_AGE_MS = 24 * 60 * 60 * 1_000;
+// 2026-07-23: payload hash absorbed the reviewed Profile.messengerLayout
+// column (default "dual") added by the messenger consolidation.
 export const DEMO_FIXTURE_EXPECTED_PAYLOAD_SHA256 =
-  "9af22bdcf145059d5ce804c111692ef37c6799f39e4aec6bfea6187b5a763b86";
+  "ed0197892dd6328aebbc79a1658d6a1fc8cc4f6644e3c155c2f9804fc53ab67e";
 export const DEMO_FIXTURE_EXPECTED_PROVIDER_SENTINEL_SHA256 =
   "7156bbc85ea2ed6be73d15521c897a0d6bdf04affb878751c1ce5ec841e16d4b";
 
@@ -159,7 +161,8 @@ export const DEMO_FIXTURE_EXPECTED_DATABASE_OPERATION_PROOFS = [
           { name: "displayName", positions: [3] },
           { name: "profile.role", positions: [4] },
           { name: "profile.flags", positions: [5, 6] },
-          { name: "prisma.profileTimestamps", positions: [7, 8] },
+          { name: "profile.messengerLayout", positions: [7] },
+          { name: "prisma.profileTimestamps", positions: [8, 9] },
         ],
       },
       {

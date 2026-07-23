@@ -67,6 +67,8 @@ const USAGE_OUTBOX_LEASE =
   "prisma/migrations/20260715110000_add_usage_outbox_delivery_lease/migration.sql";
 const PEDIGREE_PROVENANCE =
   "prisma/migrations/20260716154500_add_pedigree_provenance_foundation/migration.sql";
+const LISTING_BOOSTS =
+  "prisma/migrations/20260723170000_add_listing_boosts/migration.sql";
 
 export const REVIEWED_MIGRATION_RETENTION_IMPACTS = [
   ...bindToSchedule(
@@ -129,6 +131,7 @@ export const REVIEWED_MIGRATION_RETENTION_IMPACTS = [
   ...nonBinding(
     [
       key(BILLING_SNAPSHOTS, "EntitlementSnapshot", "expiresAt", "create-column"),
+      key(LISTING_BOOSTS, "ListingBoost", "expiresAt", "create-column"),
       key(ORGANIZATION_INVITATIONS, "OrganizationInvitation", "expiresAt", "create-column"),
       key(CALL_FOUNDATIONS, "CallInvite", "expiresAt", "create-column"),
       key(REALTIME_AUTHORIZATION, "RealtimeTopicGrant", "expiresAt", "create-column"),

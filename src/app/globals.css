@@ -1931,9 +1931,9 @@ body.giq-public-shell:has([data-standalone-member-preview="true"])
   bottom: max(10px, env(safe-area-inset-bottom));
   z-index: 60;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 3px;
-  width: min(calc(100vw - 44px), 420px);
+  width: min(calc(100vw - 44px), 352px);
   padding: 6px;
   border: 1px solid hsl(var(--metal-silver) / 0.24);
   border-radius: 16px;
@@ -3198,9 +3198,9 @@ h2,
   left: 50%;
   right: auto;
   bottom: max(10px, env(safe-area-inset-bottom));
-  width: min(calc(100vw - 44px), 420px);
+  width: min(calc(100vw - 44px), 352px);
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 3px;
   border-radius: 16px;
   padding: 6px;
@@ -8362,7 +8362,7 @@ select.giq-form-control option:checked {
 
   .giq-mobile-dock {
     display: grid !important;
-    grid-template-columns: repeat(5, 52px);
+    grid-template-columns: repeat(4, 52px);
     width: max-content;
     max-width: calc(100vw - 16px);
     gap: 4px;
@@ -8400,7 +8400,7 @@ select.giq-form-control option:checked {
 
   .giq-mobile-dock {
     display: grid !important;
-    grid-template-columns: repeat(5, 56px);
+    grid-template-columns: repeat(4, 56px);
     width: max-content;
     gap: 4px;
     padding: 6px;

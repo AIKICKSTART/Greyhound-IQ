@@ -23,12 +23,12 @@ const current = auditOrmCallLocations(
 
 assert.ok(sources.length > 600);
 assert.deepEqual(current.issues, []);
-assert.equal(current.locations.length, 944);
+assert.equal(current.locations.length, 968);
 assert.equal(current.digest, PRODUCTION_ORM_LOCATION_BASELINE.digest);
-assert.equal(new Set(current.locations.map(({ key }) => key)).size, 944);
+assert.equal(new Set(current.locations.map(({ key }) => key)).size, 968);
 assert.equal(
   new Set(current.locations.map(({ sourceFile }) => sourceFile)).size,
-  99,
+  103,
 );
 assert.equal(
   new Set(
@@ -36,44 +36,44 @@ assert.equal(
       ({ sourceFile, sourceSymbol }) => `${sourceFile}:${sourceSymbol}`,
     ),
   ).size,
-  448,
+  470,
 );
 assert.equal(
   current.locations.filter(({ model }) => model !== null).length,
-  866,
+  880,
 );
 assert.equal(
   current.locations.filter(({ model }) => model === null).length,
-  78,
+  88,
 );
 assert.equal(
   current.locations.filter(({ invocation }) => invocation === "call").length,
-  880,
+  899,
 );
 assert.equal(
   current.locations.filter(({ invocation }) => invocation === "tagged-template")
     .length,
-  64,
+  69,
 );
 assert.deepEqual(operationCounts(current.locations), {
-  $executeRaw: 21,
-  $queryRaw: 52,
+  $executeRaw: 23,
+  $queryRaw: 60,
   $transaction: 5,
   aggregate: 2,
-  count: 84,
-  create: 92,
-  createMany: 13,
+  count: 85,
+  create: 95,
+  createMany: 14,
   delete: 11,
   deleteMany: 42,
-  findFirst: 115,
+  findFirst: 116,
   findFirstOrThrow: 3,
-  findMany: 186,
+  findMany: 191,
   findUnique: 98,
   findUniqueOrThrow: 3,
   groupBy: 17,
-  update: 118,
-  updateMany: 50,
-  upsert: 32,
+  update: 119,
+  updateMany: 51,
+  upsert: 33,
 });
 
 const requirement = SECURITY_MASTER_REQUIREMENTS.find(

@@ -26,7 +26,10 @@ const rootLayout = readFileSync(
   "utf8",
 );
 
-assert.doesNotMatch(component, /if \(!q\) return/);
+// Owner ruling 2026-07-23: the member list stays empty until the user types —
+// an empty query must never fetch the browsable directory.
+assert.match(component, /if \(!q\) \{/);
+assert.match(component, /Start typing a name or kennel/);
 assert.match(
   component,
   /const visibleOptions = options\.filter\(\(option\) => !excluded\.has\(option\.id\)\)/,

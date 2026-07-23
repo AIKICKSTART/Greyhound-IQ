@@ -436,7 +436,7 @@ export const MANDATORY_PUBLIC_RACING_DATABASE_OPERATIONS = [
     ormOperation:
       "exact-projection race detail reads, per-dog LATERAL form reads, bounded previous-runner lookup and per-race LATERAL replay reads",
     normalizedSql:
-      'SELECT "public"."Race"."id", "public"."Race"."raceNumber", "public"."Race"."name", "public"."Race"."raceTime", "public"."Race"."distance", "public"."Race"."grade", "public"."Race"."prizeMoney", "public"."Race"."resultStatus", "public"."Race"."replayUrl", "public"."Race"."sourceProvider", "public"."Race"."sourceId", "public"."Race"."meetingId" FROM "public"."Race" WHERE ("public"."Race"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3',
+      'SELECT "public"."Race"."id", "public"."Race"."raceNumber", "public"."Race"."name", "public"."Race"."raceTime", "public"."Race"."distance", "public"."Race"."grade", "public"."Race"."prizeMoney", "public"."Race"."resultStatus", "public"."Race"."replayUrl", "public"."Race"."photoFinishUrl", "public"."Race"."sourceProvider", "public"."Race"."sourceId", "public"."Race"."meetingId" FROM "public"."Race" WHERE ("public"."Race"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3',
     databaseRole: "greyhoundiq_runtime",
     databaseName: "greyhoundiq",
     schemaName: "public",
@@ -619,38 +619,43 @@ export const MANDATORY_PUBLIC_RACING_DATABASE_OPERATIONS = [
       ),
       capturedDogDetailSelect(
         "pedigree-01",
-        'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."sex", "public"."Dog"."colour", "public"."Dog"."whelpDate", "public"."Dog"."sireId", "public"."Dog"."damId" FROM "public"."Dog" WHERE "public"."Dog"."id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32) ORDER BY "public"."Dog"."id" ASC LIMIT $33 OFFSET $34',
+        'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."sex", "public"."Dog"."colour", "public"."Dog"."whelpDate", "public"."Dog"."sourceProvider", "public"."Dog"."sireId", "public"."Dog"."damId", "public"."Dog"."careerStarts", "public"."Dog"."careerWins", "public"."Dog"."prizeMoney" FROM "public"."Dog" WHERE "public"."Dog"."id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32) ORDER BY "public"."Dog"."id" ASC LIMIT $33 OFFSET $34',
         34,
       ),
       capturedDogDetailSelect(
         "pedigree-02",
-        'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."sex", "public"."Dog"."colour", "public"."Dog"."whelpDate", "public"."Dog"."sireId", "public"."Dog"."damId" FROM "public"."Dog" WHERE "public"."Dog"."id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) ORDER BY "public"."Dog"."id" ASC LIMIT $17 OFFSET $18',
+        'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."sex", "public"."Dog"."colour", "public"."Dog"."whelpDate", "public"."Dog"."sourceProvider", "public"."Dog"."sireId", "public"."Dog"."damId", "public"."Dog"."careerStarts", "public"."Dog"."careerWins", "public"."Dog"."prizeMoney" FROM "public"."Dog" WHERE "public"."Dog"."id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) ORDER BY "public"."Dog"."id" ASC LIMIT $17 OFFSET $18',
         18,
       ),
       capturedDogDetailSelect(
         "pedigree-03",
-        'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."sex", "public"."Dog"."colour", "public"."Dog"."whelpDate", "public"."Dog"."sireId", "public"."Dog"."damId" FROM "public"."Dog" WHERE "public"."Dog"."id" IN ($1,$2,$3,$4,$5,$6,$7,$8) ORDER BY "public"."Dog"."id" ASC LIMIT $9 OFFSET $10',
+        'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."sex", "public"."Dog"."colour", "public"."Dog"."whelpDate", "public"."Dog"."sourceProvider", "public"."Dog"."sireId", "public"."Dog"."damId", "public"."Dog"."careerStarts", "public"."Dog"."careerWins", "public"."Dog"."prizeMoney" FROM "public"."Dog" WHERE "public"."Dog"."id" IN ($1,$2,$3,$4,$5,$6,$7,$8) ORDER BY "public"."Dog"."id" ASC LIMIT $9 OFFSET $10',
         10,
       ),
       capturedDogDetailSelect(
         "pedigree-04",
-        'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."sex", "public"."Dog"."colour", "public"."Dog"."whelpDate", "public"."Dog"."sireId", "public"."Dog"."damId" FROM "public"."Dog" WHERE "public"."Dog"."id" IN ($1,$2,$3,$4) ORDER BY "public"."Dog"."id" ASC LIMIT $5 OFFSET $6',
+        'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."sex", "public"."Dog"."colour", "public"."Dog"."whelpDate", "public"."Dog"."sourceProvider", "public"."Dog"."sireId", "public"."Dog"."damId", "public"."Dog"."careerStarts", "public"."Dog"."careerWins", "public"."Dog"."prizeMoney" FROM "public"."Dog" WHERE "public"."Dog"."id" IN ($1,$2,$3,$4) ORDER BY "public"."Dog"."id" ASC LIMIT $5 OFFSET $6',
         6,
       ),
       capturedDogDetailSelect(
         "pedigree-05",
-        'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."sex", "public"."Dog"."colour", "public"."Dog"."whelpDate", "public"."Dog"."sireId", "public"."Dog"."damId" FROM "public"."Dog" WHERE "public"."Dog"."id" IN ($1,$2) ORDER BY "public"."Dog"."id" ASC LIMIT $3 OFFSET $4',
+        'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."sex", "public"."Dog"."colour", "public"."Dog"."whelpDate", "public"."Dog"."sourceProvider", "public"."Dog"."sireId", "public"."Dog"."damId", "public"."Dog"."careerStarts", "public"."Dog"."careerWins", "public"."Dog"."prizeMoney" FROM "public"."Dog" WHERE "public"."Dog"."id" IN ($1,$2) ORDER BY "public"."Dog"."id" ASC LIMIT $3 OFFSET $4',
         4,
       ),
       capturedDogDetailSelect(
         "pedigree-06",
-        'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."sex", "public"."Dog"."colour", "public"."Dog"."whelpDate", "public"."Dog"."sireId", "public"."Dog"."damId" FROM "public"."Dog" WHERE ("public"."Dog"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3',
+        'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."sex", "public"."Dog"."colour", "public"."Dog"."whelpDate", "public"."Dog"."sourceProvider", "public"."Dog"."sireId", "public"."Dog"."damId", "public"."Dog"."careerStarts", "public"."Dog"."careerWins", "public"."Dog"."prizeMoney" FROM "public"."Dog" WHERE ("public"."Dog"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3',
         3,
       ),
       capturedDogDetailSelect(
         "pedigree-07",
-        'SELECT "public"."Dog"."id", "public"."Dog"."name", "public"."Dog"."sex", "public"."Dog"."colour", "public"."Dog"."whelpDate", "public"."Dog"."sireId", "public"."Dog"."damId" FROM "public"."Dog" WHERE ("public"."Dog"."sourceProvider" = $1 AND "public"."Dog"."name" ILIKE $2 AND ("public"."Dog"."sireId" IS NOT NULL OR "public"."Dog"."damId" IS NOT NULL)) ORDER BY "public"."Dog"."id" ASC LIMIT $3 OFFSET $4',
-        4,
+        'SELECT "public"."PedigreeAssertion"."id", "public"."PedigreeAssertion"."relationship", "public"."PedigreeAssertion"."assertedParentName", "public"."PedigreeAssertion"."subjectIdentityId", "public"."PedigreeAssertion"."importRunId", "public"."PedigreeAssertion"."sourceProvider", "public"."PedigreeAssertion"."artifactSha256", "public"."PedigreeAssertion"."parentIdentityId" FROM "public"."PedigreeAssertion" LEFT JOIN "public"."DogSourceIdentity" AS "j0" ON ("j0"."id","j0"."importRunId","j0"."sourceProvider","j0"."artifactSha256") = ("public"."PedigreeAssertion"."subjectIdentityId","public"."PedigreeAssertion"."importRunId","public"."PedigreeAssertion"."sourceProvider","public"."PedigreeAssertion"."artifactSha256") WHERE ("public"."PedigreeAssertion"."verificationStatus" IN ($1,$2) AND ("j0"."dogId" IN ($3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34) AND ("j0"."id" IS NOT NULL))) ORDER BY "public"."PedigreeAssertion"."id" ASC LIMIT $35 OFFSET $36',
+        36,
+      ),
+      capturedDogDetailSelect(
+        "pedigree-08",
+        'SELECT d.id, d.name, d.sex, d.colour, d."whelpDate", d."sourceProvider", d."sireId", d."damId", d."careerStarts", d."careerWins", d."prizeMoney" FROM "Dog" d WHERE lower(d.name) = ANY($1) LIMIT 400',
+        1,
       ),
     ],
     databaseRole: "greyhoundiq_runtime",

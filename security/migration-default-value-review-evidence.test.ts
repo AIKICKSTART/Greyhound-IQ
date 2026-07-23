@@ -24,8 +24,8 @@ assert.deepEqual(
   [],
   `current migration defaults must be fully reviewed:\n${JSON.stringify(current.issues, null, 2)}`,
 );
-assert.equal(current.migrationFiles, 100);
-assert.equal(current.reviewedDefaults.length, 261);
+assert.equal(current.migrationFiles, 108);
+assert.equal(current.reviewedDefaults.length, 268);
 assert.equal(
   current.reviewedDefaults.length + current.skippedDefaultPrivilegeClauses,
   current.executableDefaultKeywords,
@@ -33,9 +33,9 @@ assert.equal(
 );
 assert.deepEqual(countClassifications(current.reviewedDefaults), {
   "boolean-literal": 23,
-  "numeric-literal": 41,
-  "string-literal": 69,
-  "transaction-timestamp": 128,
+  "numeric-literal": 42,
+  "string-literal": 72,
+  "transaction-timestamp": 131,
 });
 assert.ok(
   current.reviewedDefaults.every(
@@ -123,7 +123,7 @@ try {
 }
 
 console.log(
-  "Migration default-value review passed: 261/261 defaults across 100 migrations have explicit behavior classifications; unsafe and vacuous fixtures fail closed.",
+  "Migration default-value review passed: 268/268 defaults across 108 migrations have explicit behavior classifications; unsafe and vacuous fixtures fail closed.",
 );
 
 function createMigrationFixture(source: string) {

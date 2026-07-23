@@ -70,9 +70,9 @@ assert.deepEqual(
     dependencyReviewSnapshot,
   ),
   {
-    reviewedDirectDependencies: 41,
+    reviewedDirectDependencies: 42,
     reviewedLifecyclePackages: 8,
-    duplicateLibraryFamilies: 76,
+    duplicateLibraryFamilies: 78,
     deprecatedDevelopmentPackages: 3,
   },
 );

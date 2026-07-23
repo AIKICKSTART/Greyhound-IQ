@@ -265,7 +265,7 @@ assertOrdered(raceDetail, [
   'resolveDemoProviderRouteId("race", routeId)',
   "getRaceById(id)",
   "if (!race) notFound()",
-  "resolveProviderReplay({",
+  "resolveProviderRaceReplay({",
   "proxiedStreamPath(",
   "getPreviousRaceVideoRunners(race.id)",
 ]);

@@ -140,10 +140,18 @@ const pageSource = readFileSync("src/app/races/[id]/page.tsx", "utf8");
 assert.match(pageSource, /Watch on official source/);
 assert.match(pageSource, /target="_blank"/);
 assert.match(pageSource, /rel="noopener noreferrer"/);
-assert.doesNotMatch(pageSource, /RaceReplayPlayer/);
-assert.doesNotMatch(pageSource, /proxiedStreamPath/);
-assert.doesNotMatch(pageSource, /\.streamUrl/);
-assert.doesNotMatch(pageSource, /resolveRaceVideoReplay|resolveProviderRaceReplay/);
+// The page may render an inline player, but only with same-origin proxied
+// stream capabilities — raw provider stream URLs must never reach the client.
+assert.match(pageSource, /const replayStreamUrl = proxiedStreamPath\(/);
+assert.match(pageSource, /const proxiedStream = proxiedStreamPath\(/);
+const streamUrlProps = [...pageSource.matchAll(/streamUrl=\{([^}]+)\}/g)].map(
+  (match) => match[1],
+);
+assert.deepEqual(
+  [...new Set(streamUrlProps)].sort(),
+  ["proxiedStream", "replayStreamUrl"],
+  "RaceReplayPlayer must only receive proxied stream paths",
+);
 assert.doesNotMatch(pageSource, /\bdownload\b/i);
 assert.doesNotMatch(
   pageSource,

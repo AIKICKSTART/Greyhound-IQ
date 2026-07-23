@@ -80,6 +80,7 @@ export const RUNTIME_DEPENDENCY_CLASSIFICATION = {
     "livekit-client",
     "livekit-server-sdk",
     "lucide-react",
+    "maplibre-gl",
     "motion",
     "next",
     "react",

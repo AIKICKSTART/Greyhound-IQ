@@ -234,6 +234,7 @@
     "ListingReport",
     "ListingModerationAction",
     "ListingView",
+    "ListingBoost",
     "ListingSearchIndex",
     "TrustSafetyFlag",
     "BannedPhrase",

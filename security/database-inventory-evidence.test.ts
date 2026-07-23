@@ -22,15 +22,15 @@ const inventory = collectDatabaseCompatibilityInventory();
 assert.deepEqual(databaseCompatibilityInventoryDiff(inventory), []);
 assert.deepEqual(inventory, DATABASE_COMPATIBILITY_BASELINE);
 assert.deepEqual(inventory.counts, {
-  models: 114,
-  migrations: 101,
+  models: 115,
+  migrations: 108,
   extensions: 1,
-  functions: 58,
+  functions: 59,
   triggers: 22,
-  policies: 266,
+  policies: 268,
   ordinaryViews: 1,
   materializedViews: 5,
-  indexes: 464,
+  indexes: 468,
   createdRoles: 1,
 });
 

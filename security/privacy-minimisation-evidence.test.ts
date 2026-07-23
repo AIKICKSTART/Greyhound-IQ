@@ -32,7 +32,7 @@ const databaseRecords = buildDatabaseColumnRecords(
 const records = buildPersonalInformationRecords(databaseRecords, THIRD_PARTIES);
 const decisions = buildPrivacyMinimisationDecisions(records);
 
-assert.equal(records.length, 150);
+assert.equal(records.length, 152);
 assert.equal(decisions.length, records.length);
 assert.equal(new Set(decisions.map(({ recordId }) => recordId)).size, records.length);
 assert.deepEqual(validatePrivacyMinimisationDecisions(records, decisions), []);

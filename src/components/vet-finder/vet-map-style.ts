@@ -26,7 +26,7 @@ export const MAP_CONFIG = {
   // view. Requires the tiles.mapterhorn.com host in csp.ts img-src/connect-src.
   terrainTilesUrl: "https://tiles.mapterhorn.com/{z}/{x}/{y}.webp",
   rasterAttribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>',
+    '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>',
   australiaCentre: [134.0, -26.8] as [number, number],
   australiaZoom: 4,
   clusterMaxZoom: 11,
@@ -187,14 +187,14 @@ function buildSatelliteStyle(): StyleSpecification {
         tileSize: 256,
         maxzoom: 19,
         attribution:
-          'Imagery &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a>, Maxar, Earthstar Geographics',
+          'Imagery &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener noreferrer">Esri</a>, Maxar, Earthstar Geographics',
       },
       "esri-labels": {
         type: "raster",
         tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"],
         tileSize: 256,
         maxzoom: 19,
-        attribution: 'Labels &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a>',
+        attribution: 'Labels &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener noreferrer">Esri</a>',
       },
     },
     layers: [
@@ -516,7 +516,7 @@ export function ensureTerrain(map: MlMap): void {
         tileSize: 512,
         maxzoom: 12,
         attribution:
-          '<a href="https://mapterhorn.com/attribution" target="_blank" rel="noopener">© Mapterhorn</a>',
+          '<a href="https://mapterhorn.com/attribution" target="_blank" rel="noopener noreferrer">© Mapterhorn</a>',
       });
     }
     map.setTerrain({ source: "terrain-dem", exaggeration: 1.25 });

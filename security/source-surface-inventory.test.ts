@@ -44,48 +44,48 @@ const inventories = {
 } as const;
 
 const expectedCounts = {
-  serverComponentData: 744,
+  serverComponentData: 779,
   worker: 17,
   queuePublisher: 10,
   queueConsumer: 6,
-  databaseFunction: 60,
-  databaseTrigger: 21,
+  databaseFunction: 62,
+  databaseTrigger: 22,
   searchIndex: 87,
-  cache: 275,
+  cache: 288,
   rpc: 2,
   realtimeConnection: 7,
-  realtimeEvent: 69,
-  adminCli: 73,
+  realtimeEvent: 68,
+  adminCli: 76,
   clientSearch: 4,
-  emailWorkerSearch: 4,
+  emailWorkerSearch: 5,
 } as const;
 
 const expectedDigests = {
   serverComponentData:
-    "81bbb3d4dd9296c8eda287169e2b3018ee1366c45af95b406eb03570a6dae41d",
+    "f75eed1dccda2db6527995027419713cd80997df0cfc4529fc7d4aa8876b324e",
   worker: "22e462a7185be9ecc52051c1cdc3b28f296f6440061c616256923fc30ad205eb",
   queuePublisher:
     "d6776df6c198950b39573cf710e98f6fff341f6c195276a1d03aaa0dcda7db2b",
   queueConsumer:
     "0eae0c98347873771e614442cb780b9fd921f38f1872ee617abe532939116eb8",
   databaseFunction:
-    "ef16370c1ed17e8219428291d868438a158395a2800d39c1b72eee136d368f4f",
+    "e481ade077e1d47ae328f0e1c1033d9f9f337e95fac877f6ad7decc631031a4d",
   databaseTrigger:
-    "6987d2cb4a13dd58063df215d327552c8cecc5d4c0a082ef9be6ad406869f16b",
+    "dcb30ffaa5e17ed2a89ad0fb0a0f72ea1eaaf3a528f9d1ea15590bc4c71a9572",
   searchIndex:
     "0ff7a75667f873e8a32f3c89bd339c9bc3247af9b2826daf6c06e211d5365acb",
-  cache: "4e29068925037c424bc5e77f2b6a9b79b1742f8d89fa13559ab55829a65cc9d4",
+  cache: "d4f967ee64fea727853a7a50ec5afb7d063b8fb9c0bbbc6f80acce2901f40a82",
   rpc: "787958d1c1d51dc3050d1a27deed55f0329bb4a832bd3ae59aa5685797e6d1e9",
   realtimeConnection:
     "de8d002b265408f9c7d46ad5ab46f0f4364f0923e19d0716ed0a55eadc2fc966",
   realtimeEvent:
-    "b58b931a0fffe410d88ad6e52460a042fe2733cfceecc3de5f64a4be0b9dc957",
+    "989002767c6ee5cfb8d217b83576ae58e380b213886d86caa74514f6be4a406a",
   adminCli:
-    "8e9e88c4889d676902df4ecd1ad9abe3f78afbf35fd18e7c9ff3ee60a1002cdb",
+    "488caf2b1bba47da5a3fda82e5a1663a00254f79731ea28f017a2b1cbe2b9fce",
   clientSearch:
     "f1291446c4fb21044bbc02ede994121a291cb1662836f891d43ac880ad09f44d",
   emailWorkerSearch:
-    "cd5018a48b02d4fc9d5ae98ab32ca7220a46236d75716254fe089a502187ddd4",
+    "6177c3d140dcc48afe7e1796e8848f89fc9043dffec8fd518631c90cdb135a18",
 } as const;
 
 for (const key of Object.keys(inventories) as Array<keyof typeof inventories>) {
@@ -203,6 +203,7 @@ assert.deepEqual(EMAIL_WORKER_SEARCH_MEMBERS, [
   "EMAIL-ABSENT outbound-provider:no runtime email SDK import",
   "EMAIL-SCOPE repository-source-only:provider-managed email delivery is outside this proof",
   "EMAIL-SURFACE src/app/p/[handle]/page.tsx#link:mailto",
+  "EMAIL-SURFACE src/components/vet-finder/VetDetail.tsx#link:mailto",
 ]);
 
 const packageSource = readFileSync("package.json", "utf8");

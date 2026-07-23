@@ -11,12 +11,7 @@ import { spawnSync } from "node:child_process";
 // repeatedly trapped agents in fix-the-test loops. The four entries below are
 // that machinery, quarantined deliberately — production screen/security/tier
 // contracts remain fully enforced. Reversible: delete these lines.
-const SKIP_FILES: string[] = [
-  "src/components/design-lab-prisma-schema-parity-evidence.test.ts",
-  "src/components/design-lab-sync.test.ts",
-  "src/components/screen-contracts/design-lab-screen-inventory.test.ts",
-  "scripts/check-design-lab-doc-counters.test.ts",
-];
+const SKIP_FILES: string[] = [];
 
 const tsxBin = join("node_modules", "tsx", "dist", "cli.mjs");
 

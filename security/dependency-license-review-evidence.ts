@@ -40,6 +40,7 @@ export const REVIEWED_DEPENDENCY_LICENSES = {
   ),
   Unlicense: disposition("public-domain", "approved-package-metadata"),
   "(Apache-2.0 AND BSD-3-Clause)": disposition("notice", "retain-notices"),
+  "(MIT OR Apache-2.0)": disposition("permissive", "approved-package-metadata"),
   "Apache-2.0 AND LGPL-3.0-or-later": disposition(
     "reciprocal-component",
     "review-distribution-boundary",

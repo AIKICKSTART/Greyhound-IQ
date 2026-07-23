@@ -2,6 +2,9 @@ export const FRONTEND_AUTHORIZATION_GUARDS = [
   "requireCurrentUserProfile",
   "requireModeratorProfile",
   "requireAdminProfile",
+  // Session + tier gate for Pro-plan API routes; returns null for anonymous
+  // and under-tier users so handlers fail closed with 403 tier.pro_required.
+  "requireProUser",
 ] as const;
 
 export const FRONTEND_AUTHORIZATION_EVIDENCE_SCOPE =

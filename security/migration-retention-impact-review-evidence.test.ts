@@ -40,14 +40,14 @@ const current = auditMigrationRetentionImpacts(
 
 assert.deepEqual(databaseCompatibilityInventoryDiff(compatibility), []);
 assert.deepEqual(compatibility, DATABASE_COMPATIBILITY_BASELINE);
-assert.equal(sources.length, 100);
+assert.equal(sources.length, 108);
 assert.deepEqual(current.issues, []);
-assert.equal(current.candidates.length, 27);
-assert.equal(REVIEWED_MIGRATION_RETENTION_IMPACTS.length, 27);
+assert.equal(current.candidates.length, 28);
+assert.equal(REVIEWED_MIGRATION_RETENTION_IMPACTS.length, 28);
 assert.equal(
   current.candidates.filter(({ operation }) => operation === "create-column")
     .length,
-  23,
+  24,
 );
 assert.equal(
   current.candidates.filter(({ operation }) => operation === "add-column").length,
@@ -63,7 +63,7 @@ assert.equal(
   REVIEWED_MIGRATION_RETENTION_IMPACTS.filter(
     ({ decision }) => decision === "operational-validity-only",
   ).length,
-  6,
+  7,
 );
 assert.equal(
   REVIEWED_MIGRATION_RETENTION_IMPACTS.filter(

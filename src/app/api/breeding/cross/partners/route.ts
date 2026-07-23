@@ -4,12 +4,11 @@ import {
   emergencyControlResponse,
   isEmergencyControlActive,
 } from "@/lib/emergency-controls";
-import { getCurrentUser } from "@/lib/auth";
+import { requireProUser } from "@/lib/auth";
 import { getDamSirePartners, getSireDamPartners } from "@/lib/queries";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request-ip";
 import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
-import { hasTier } from "@/lib/tier-access";
 
 const PARTNERS_RATE_LIMIT = 60;
 const PARTNERS_RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -38,8 +37,8 @@ export async function GET(request: Request) {
   }
 
   // Test mating is a Pro plan feature; the page upsells, the API enforces.
-  const user = await getCurrentUser();
-  if (!user || !hasTier(user.tier, "pro")) {
+  const user = await requireProUser();
+  if (!user) {
     return NextResponse.json(
       { error: { code: "tier.pro_required", message: "Test mating is a Pro feature" } },
       { status: 403 },

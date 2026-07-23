@@ -31,7 +31,7 @@ export const REVIEWED_SELECT_STAR_PROJECTIONS = [
   {
     path: "src/lib/feed-service.ts",
     signature: "SELECT ranked.* FROM ranked",
-    contextSha256: "8b186a4709c1b0a52d8ede1248ef4e319c9b0e2b729145841740d4aa488c85a9",
+    contextSha256: "f009f2f6454ced8cfd22c8e059d5d35de9c9b2e31d47a2da9e7fb76bb0fb4a0c",
     disposition:
       "This exact internal CTE projection is accepted because both UNION branches explicitly construct only the RankedFeedRow fields; it is not a star selection from a database table or sensitive record. Any CTE context change invalidates the review digest.",
   },

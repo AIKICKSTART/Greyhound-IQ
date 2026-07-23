@@ -90,6 +90,14 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   };
 }
 
+// Session + tier gate for Pro-plan API routes: returns the current user only
+// when signed in at Pro or above, otherwise null so handlers fail closed.
+export async function requireProUser(): Promise<CurrentUser | null> {
+  const user = await getCurrentUser();
+  if (!user || !hasTier(user.tier, "pro")) return null;
+  return user;
+}
+
 export async function requireCurrentUserProfile(): Promise<CurrentUserProfile> {
   if (isFullAccessDemo()) return getDemoCurrentUserProfile();
 

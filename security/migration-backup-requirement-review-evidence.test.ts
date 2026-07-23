@@ -47,7 +47,7 @@ const nonDmlRiskKeys = [
 
 assert.deepEqual(databaseCompatibilityInventoryDiff(compatibility), []);
 assert.deepEqual(compatibility, DATABASE_COMPATIBILITY_BASELINE);
-assert.equal(sources.length, 100);
+assert.equal(sources.length, 108);
 assert.deepEqual(mutationAudit.issues, []);
 assert.equal(mutationAudit.records.length, 21);
 assert.equal(mutationAudit.requiredBackupCount, 20);

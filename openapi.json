@@ -9215,6 +9215,392 @@
           "Complete sign-in trace is not yet registered."
         ]
       }
+    },
+    "/api/breeding/cross": {
+      "get": {
+        "operationId": "getBreedingCross",
+        "summary": "Get /api/breeding/cross",
+        "description": "Source-derived contract for `GET /api/breeding/cross`. Unspecified object shapes remain intentionally open until their source schemas are registered.",
+        "tags": [
+          "Breeding"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "WorkOSSession": []
+          }
+        ],
+        "x-endpoint-id": "HTTP.GET.API_BREEDING_CROSS",
+        "x-source-file": "src/app/api/breeding/cross/route.ts",
+        "x-authentication-status": "required",
+        "x-registry-verification": "Not verified",
+        "x-request-schema-source": "not verified",
+        "x-output-schema-source": "not verified",
+        "x-known-gaps": [
+          "Discovered from source; security metadata and implementation trace have not been verified."
+        ]
+      }
+    },
+    "/api/breeding/cross/partners": {
+      "get": {
+        "operationId": "getBreedingCrossPartners",
+        "summary": "Get /api/breeding/cross/partners",
+        "description": "Source-derived contract for `GET /api/breeding/cross/partners`. Unspecified object shapes remain intentionally open until their source schemas are registered.",
+        "tags": [
+          "Breeding"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "WorkOSSession": []
+          }
+        ],
+        "x-endpoint-id": "HTTP.GET.API_BREEDING_CROSS_PARTNERS",
+        "x-source-file": "src/app/api/breeding/cross/partners/route.ts",
+        "x-authentication-status": "required",
+        "x-registry-verification": "Not verified",
+        "x-request-schema-source": "not verified",
+        "x-output-schema-source": "not verified",
+        "x-known-gaps": [
+          "Discovered from source; security metadata and implementation trace have not been verified."
+        ]
+      }
+    },
+    "/api/breeding/pedigree": {
+      "get": {
+        "operationId": "getBreedingPedigree",
+        "summary": "Get /api/breeding/pedigree",
+        "description": "Source-derived contract for `GET /api/breeding/pedigree`. Unspecified object shapes remain intentionally open until their source schemas are registered.",
+        "tags": [
+          "Breeding"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "x-endpoint-id": "HTTP.GET.API_BREEDING_PEDIGREE",
+        "x-source-file": "src/app/api/breeding/pedigree/route.ts",
+        "x-authentication-status": "public",
+        "x-registry-verification": "Not verified",
+        "x-request-schema-source": "not verified",
+        "x-output-schema-source": "not verified",
+        "x-known-gaps": [
+          "Discovered from source; security metadata and implementation trace have not been verified."
+        ]
+      }
+    },
+    "/api/billing/boost/checkout": {
+      "post": {
+        "operationId": "postBillingBoostCheckout",
+        "summary": "Post /api/billing/boost/checkout",
+        "description": "Source-derived contract for `POST /api/billing/boost/checkout`. Unspecified object shapes remain intentionally open until their source schemas are registered.",
+        "tags": [
+          "Billing"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed source Zod validation in checkoutRequestSchema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "WorkOSSession": []
+          }
+        ],
+        "x-endpoint-id": "HTTP.POST.API_BILLING_BOOST_CHECKOUT",
+        "x-source-file": "src/app/api/billing/boost/checkout/route.ts",
+        "x-authentication-status": "required",
+        "x-registry-verification": "Not verified",
+        "x-request-schema-source": "checkoutRequestSchema and readRequestInput in src/app/api/billing/checkout/route.ts",
+        "x-output-schema-source": "not verified",
+        "x-known-gaps": [
+          "Discovered from source; security metadata and implementation trace have not been verified."
+        ]
+      }
+    },
+    "/api/feed/racing-day": {
+      "post": {
+        "operationId": "postFeedRacingDay",
+        "summary": "Post /api/feed/racing-day",
+        "description": "Source-derived contract for `POST /api/feed/racing-day`. Unspecified object shapes remain intentionally open until their source schemas are registered.",
+        "tags": [
+          "Feed"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed source Zod validation in checkoutRequestSchema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnspecifiedJsonObject"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "WorkOSSession": []
+          }
+        ],
+        "x-endpoint-id": "HTTP.POST.API_FEED_RACING_DAY",
+        "x-source-file": "src/app/api/feed/racing-day/route.ts",
+        "x-authentication-status": "required",
+        "x-registry-verification": "Not verified",
+        "x-request-schema-source": "checkoutRequestSchema and readRequestInput in src/app/api/billing/checkout/route.ts",
+        "x-output-schema-source": "not verified",
+        "x-known-gaps": [
+          "Discovered from source; security metadata and implementation trace have not been verified."
+        ]
+      }
     }
   },
   "components": {

@@ -198,14 +198,15 @@ const DATABASE_OPERATION_RECORDS: readonly DatabaseOperationContract[] = [
       {
         variant: "profile-insert",
         normalizedSql:
-          'INSERT INTO "public"."Profile" ("id","userId","displayName","role","verified","isFounder","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING "public"."Profile"."id", "public"."Profile"."userId", "public"."Profile"."displayName", "public"."Profile"."bio", "public"."Profile"."avatarUrl", "public"."Profile"."state", "public"."Profile"."kennelName", "public"."Profile"."kennelPrefix", "public"."Profile"."role", "public"."Profile"."verified", "public"."Profile"."isFounder", "public"."Profile"."website", "public"."Profile"."phone", "public"."Profile"."createdAt", "public"."Profile"."updatedAt"',
+          'INSERT INTO "public"."Profile" ("id","userId","displayName","role","verified","isFounder","messengerLayout","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING "public"."Profile"."id", "public"."Profile"."userId", "public"."Profile"."displayName", "public"."Profile"."bio", "public"."Profile"."avatarUrl", "public"."Profile"."state", "public"."Profile"."kennelName", "public"."Profile"."kennelPrefix", "public"."Profile"."role", "public"."Profile"."verified", "public"."Profile"."isFounder", "public"."Profile"."racingDayTrackIds", "public"."Profile"."messengerLayout", "public"."Profile"."website", "public"."Profile"."phone", "public"."Profile"."createdAt", "public"."Profile"."updatedAt"',
         boundParameters: [
           "generated Profile.id ($1)",
           "created User.id ($2)",
           "server-derived display name ($3)",
           "member role ($4)",
           "verified/isFounder defaults ($5, $6)",
-          "Prisma createdAt/updatedAt ($7, $8)",
+          "messengerLayout default ($7)",
+          "Prisma createdAt/updatedAt ($8, $9)",
         ],
         explainPlanEvidence:
           "Sanitized PostgreSQL JSON COSTS ModifyTable plan over Profile with ANALYZE/BUFFERS disabled and a 5 s statement timeout.",

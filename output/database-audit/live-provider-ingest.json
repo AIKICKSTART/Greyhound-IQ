@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "auditKind": "live-provider-ingest-disposable-proof",
-  "generatedAt": "2026-07-18T12:50:59.262Z",
+  "generatedAt": "2026-07-23T14:46:41.938Z",
   "safety": {
     "scope": "literal-loopback-disposable-replay-only",
     "host": "127.0.0.1",
@@ -26,12 +26,12 @@
       "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d",
       "scripts/check-live-provider-ingest-postgres.ts": "eb0117185bc63039f1461d2cdf225fd0c908afb775f7338aec503dabb50efd4f",
       "scripts/check-live-provider-ingest-postgres.test.ts": "c771624441e058847e7ca4e4d429d5f9d04e2668a12d25f7461cdcf54deed765",
-      "security/mandatory-public-racing-database-operations.ts": "3b6f0afff9bcb5b6b31752fe82baa07d9a4f84c67f8f16dd0431cbbdd322390f",
+      "security/mandatory-public-racing-database-operations.ts": "6c28067e6be257bbe567d7ea8251d73a1595019954e1c6fa9751b4c6fbb5e5d8",
       "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
       "src/lib/db.ts": "b11f3357d3daea521e825d8483b4bb8050c8c7d059e2aa311f1788b1b09d9035",
-      "src/lib/live/sync.ts": "ca04a0ac9caabe8a106431f55b860cea405a5b0d9c3bf424c30a769af0ca08c9"
+      "src/lib/live/sync.ts": "8abbddf3a7c76e81050eec58685817a15d06bff02c47359337c638a2fe14355a"
     },
-    "combinedSha256": "588e3715f77e68a4a532c01e56e748c8a5ea7ca0c400ebd53d185fd3d2dcf635"
+    "combinedSha256": "89c6b95970e9c4ca74694e69eb4b0aa1a1fae1af09d60a779cf62159e1221ae5"
   },
   "proof": {
     "queryId": "DB.RACING.PROVIDER.INGEST.TRANSACTION",
@@ -166,8 +166,8 @@
         "table": "Race",
         "observedSql": {
           "statementType": "INSERT",
-          "normalizedSql": "INSERT INTO \"Race\" (\"id\", \"meetingId\", \"raceNumber\", \"name\", \"raceTime\", \"distance\", \"grade\", \"prizeMoney\", \"resultStatus\", \"replayUrl\", \"photoFinishUrl\", \"sourceProvider\", \"sourceId\", \"sourceRawJson\", \"lastSyncedAt\", \"createdAt\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW()) ON CONFLICT (\"meetingId\", \"raceNumber\") DO UPDATE SET \"name\" = EXCLUDED.\"name\", \"raceTime\" = EXCLUDED.\"raceTime\", \"distance\" = EXCLUDED.\"distance\", \"grade\" = EXCLUDED.\"grade\", \"prizeMoney\" = EXCLUDED.\"prizeMoney\", \"resultStatus\" = EXCLUDED.\"resultStatus\", \"replayUrl\" = EXCLUDED.\"replayUrl\", \"photoFinishUrl\" = EXCLUDED.\"photoFinishUrl\", \"sourceProvider\" = EXCLUDED.\"sourceProvider\", \"sourceId\" = EXCLUDED.\"sourceId\", \"sourceRawJson\" = EXCLUDED.\"sourceRawJson\", \"lastSyncedAt\" = EXCLUDED.\"lastSyncedAt\"",
-          "sha256": "52dcdb7b2905f574ec05f6f923c4ef28c22d4f13c307d2c2f6f94ed683c25862",
+          "normalizedSql": "INSERT INTO \"Race\" (\"id\", \"meetingId\", \"raceNumber\", \"name\", \"raceTime\", \"distance\", \"grade\", \"prizeMoney\", \"resultStatus\", \"replayUrl\", \"photoFinishUrl\", \"sourceProvider\", \"sourceId\", \"sourceRawJson\", \"lastSyncedAt\", \"createdAt\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW()) ON CONFLICT (\"meetingId\", \"raceNumber\") DO UPDATE SET \"name\" = EXCLUDED.\"name\", \"raceTime\" = EXCLUDED.\"raceTime\", \"distance\" = EXCLUDED.\"distance\", \"grade\" = EXCLUDED.\"grade\", \"prizeMoney\" = EXCLUDED.\"prizeMoney\", \"resultStatus\" = EXCLUDED.\"resultStatus\", \"replayUrl\" = COALESCE(\"Race\".\"replayUrl\", EXCLUDED.\"replayUrl\"), \"photoFinishUrl\" = COALESCE(\"Race\".\"photoFinishUrl\", EXCLUDED.\"photoFinishUrl\"), \"sourceProvider\" = EXCLUDED.\"sourceProvider\", \"sourceId\" = EXCLUDED.\"sourceId\", \"sourceRawJson\" = EXCLUDED.\"sourceRawJson\", \"lastSyncedAt\" = EXCLUDED.\"lastSyncedAt\"",
+          "sha256": "4eca23889ed3ab9f8a3201f51ffb206ea8deaa5cc91107257fbaebd6797510a1",
           "parameterCount": 15,
           "persistedParameterValues": false
         }
@@ -176,8 +176,8 @@
         "table": "RaceVideo",
         "observedSql": {
           "statementType": "INSERT",
-          "normalizedSql": "INSERT INTO \"RaceVideo\" (\"id\", \"raceId\", \"sourceProvider\", \"sourceId\", \"kind\", \"pageUrl\", \"embedSourceType\", \"sourceStatus\", \"sourceCode\", \"streamUrl\", \"streamContentType\", \"title\", \"description\", \"sourceRawJson\", \"fetchedAt\", \"lastSyncedAt\", \"createdAt\", \"updatedAt\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW()) ON CONFLICT (\"raceId\", \"sourceProvider\", \"kind\") DO UPDATE SET \"sourceId\" = EXCLUDED.\"sourceId\", \"pageUrl\" = EXCLUDED.\"pageUrl\", \"embedSourceType\" = EXCLUDED.\"embedSourceType\", \"sourceStatus\" = EXCLUDED.\"sourceStatus\", \"sourceCode\" = EXCLUDED.\"sourceCode\", \"streamUrl\" = COALESCE(EXCLUDED.\"streamUrl\", \"RaceVideo\".\"streamUrl\"), \"streamContentType\" = COALESCE(EXCLUDED.\"streamContentType\", \"RaceVideo\".\"streamContentType\"), \"title\" = EXCLUDED.\"title\", \"description\" = EXCLUDED.\"description\", \"sourceRawJson\" = EXCLUDED.\"sourceRawJson\", \"fetchedAt\" = COALESCE(EXCLUDED.\"fetchedAt\", \"RaceVideo\".\"fetchedAt\"), \"lastSyncedAt\" = EXCLUDED.\"lastSyncedAt\", \"updatedAt\" = NOW()",
-          "sha256": "d69d0e579a21a3b39239fb9a323d05897447e6a030ab6a2fb9b9837c47197bed",
+          "normalizedSql": "INSERT INTO \"RaceVideo\" (\"id\", \"raceId\", \"sourceProvider\", \"sourceId\", \"kind\", \"pageUrl\", \"embedSourceType\", \"sourceStatus\", \"sourceCode\", \"streamUrl\", \"streamContentType\", \"title\", \"description\", \"sourceRawJson\", \"fetchedAt\", \"lastSyncedAt\", \"createdAt\", \"updatedAt\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW()) ON CONFLICT (\"raceId\", \"sourceProvider\", \"kind\") DO UPDATE SET \"sourceId\" = COALESCE(\"RaceVideo\".\"sourceId\", EXCLUDED.\"sourceId\"), \"pageUrl\" = COALESCE(\"RaceVideo\".\"pageUrl\", EXCLUDED.\"pageUrl\"), \"embedSourceType\" = COALESCE(\"RaceVideo\".\"embedSourceType\", EXCLUDED.\"embedSourceType\"), \"sourceStatus\" = COALESCE(\"RaceVideo\".\"sourceStatus\", EXCLUDED.\"sourceStatus\"), \"sourceCode\" = COALESCE(\"RaceVideo\".\"sourceCode\", EXCLUDED.\"sourceCode\"), \"streamUrl\" = COALESCE(\"RaceVideo\".\"streamUrl\", EXCLUDED.\"streamUrl\"), \"streamContentType\" = COALESCE(\"RaceVideo\".\"streamContentType\", EXCLUDED.\"streamContentType\"), \"title\" = COALESCE(\"RaceVideo\".\"title\", EXCLUDED.\"title\"), \"description\" = COALESCE(\"RaceVideo\".\"description\", EXCLUDED.\"description\"), \"sourceRawJson\" = COALESCE(\"RaceVideo\".\"sourceRawJson\", EXCLUDED.\"sourceRawJson\"), \"fetchedAt\" = COALESCE(\"RaceVideo\".\"fetchedAt\", EXCLUDED.\"fetchedAt\"), \"lastSyncedAt\" = EXCLUDED.\"lastSyncedAt\", \"updatedAt\" = NOW()",
+          "sha256": "50f12a6ff920e66553cb16c567a4f5d5f93d312eca6e5a31a20eee01ed520f01",
           "parameterCount": 16,
           "persistedParameterValues": false
         }

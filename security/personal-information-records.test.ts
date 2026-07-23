@@ -39,7 +39,7 @@ const providerPersonalCount = THIRD_PARTIES.filter(
   (provider) => provider.personalInformation.length > 0,
 ).length;
 
-assert.equal(databasePersonalCount, 141);
+assert.equal(databasePersonalCount, 143);
 assert.equal(providerPersonalCount, 9);
 assert.equal(records.length, databasePersonalCount + providerPersonalCount);
 assert.deepEqual(

@@ -158,8 +158,8 @@ for (const [id, gap] of Object.entries(MANDATORY_ACTION_TRACE_OPEN_GAPS)) {
 
 const discoveredHttp = discoverRouteHandlers(repositoryRoot);
 const discoveredActions = discoverServerActions(repositoryRoot);
-assert.equal(discoveredHttp.length, 106);
-assert.equal(discoveredActions.length, 81);
+assert.equal(discoveredHttp.length, 111);
+assert.equal(discoveredActions.length, 82);
 assert.equal(ENDPOINTS.length, discoveredHttp.length + discoveredActions.length);
 assert.deepEqual(
   ENDPOINTS.map(

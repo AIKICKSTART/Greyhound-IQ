@@ -174,8 +174,8 @@ assert.match(webhookRoute, /const auth = request\.headers\.get\("authorization"\
 assert.match(webhookRoute, /receiveLiveKitWebhook\(body, auth\)/);
 assert.match(webhookBody, /event\.event === "participant_left"/);
 assert.match(webhookBody, /profileId = event\.participant\?\.identity/);
-assert.match(webhookBody, /profileId, leftAt: null/);
-assert.match(webhookBody, /data: joined \? \{ joinedAt: new Date\(\) \} : \{ leftAt: new Date\(\) \}/);
+assert.match(webhookBody, /profileId,\s+joinedAt: \{ not: null \},\s+leftAt: null/);
+assert.match(webhookBody, /data: joined\s*\?\s*\{ joinedAt: new Date\(\), leftAt: null \}\s*:\s*\{ leftAt: new Date\(\) \}/);
 
 const maintenanceBody = exportedFunction(callService, "runCallMaintenance");
 assert.match(maintenanceBody, /CALL_ROOM_JOIN_TTL_MS/);

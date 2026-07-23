@@ -45,6 +45,7 @@ export const BROWSER_URL_SURFACE_FILES = [
   "src/components/dog-search.tsx",
   "src/components/feed-comments-panel.tsx",
   "src/components/feed-infinite-list.tsx",
+  "src/components/hub/hub-conversation-dock.tsx",
   "src/components/hub/hub-friends-list.tsx",
   "src/components/hub/hub-incoming-call.tsx",
   "src/components/instant-feed-controls.tsx",
@@ -59,6 +60,8 @@ export const BROWSER_URL_SURFACE_FILES = [
   "src/components/screen-contracts/design-lab-user-stories.ts",
   "src/components/screen-contracts/production-screen-coverage.ts",
   "src/components/screen-contracts/production-screen-member-support-interactions.ts",
+  "src/components/vet-finder/VetDetail.tsx",
+  "src/components/vet-finder/VetFinder.tsx",
   "src/lib/json-request.ts",
   "src/lib/marketplace-navigation.ts",
   "src/lib/query-validation.ts",
@@ -74,12 +77,14 @@ export const BROWSER_HISTORY_SURFACE_FILES = [
   "src/components/design-lab-pending-work-panel.tsx",
   "src/components/design-lab-scenario-controls.tsx",
   "src/components/dog-search.tsx",
+  "src/components/hub/hub-conversation-dock.tsx",
   "src/components/hub/hub-friends-list.tsx",
   "src/components/hub/hub-incoming-call.tsx",
   "src/components/instant-listing-enquiry-form.tsx",
   "src/components/master-audit-checklist.tsx",
   "src/components/prototype-member-chrome.tsx",
   "src/components/prototype-switcher.tsx",
+  "src/components/vet-finder/VetFinder.tsx",
 ] as const;
 
 export const BROWSER_CLIENT_LOG_ALLOWLIST = [

@@ -269,7 +269,7 @@ export function validateDogPublicDetailEvidence(
   });
   const statements = proof.statements as Array<Record<string, unknown>>;
   assert.equal(statements.length, proof.statementCount);
-  assert.equal(statements.length, 21);
+  assert.equal(statements.length, 22);
   assert.equal(
     new Set(statements.map((statement) => statement.variant)).size,
     statements.length,
@@ -406,7 +406,7 @@ export async function runDogPublicDetailVerifier() {
       [...pedigreeCapture.queries, ...bridgePedigreeCapture.queries],
     );
     const statements = [...detailStatements, ...pedigreeStatements];
-    assert.equal(statements.length, 21);
+    assert.equal(statements.length, 22);
     assert.equal(
       statements.some((statement) =>
         statement.normalizedSql.includes('"public"."User"'),

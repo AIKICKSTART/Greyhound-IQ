@@ -6,12 +6,11 @@ import {
 } from "@/lib/emergency-controls";
 import { getDogPedigree } from "@/lib/pedigree";
 import { analyzePedigreeOverlap } from "@/lib/pedigree-analysis";
-import { getCurrentUser } from "@/lib/auth";
+import { requireProUser } from "@/lib/auth";
 import { getCrossRecord } from "@/lib/queries";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request-ip";
 import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
-import { hasTier } from "@/lib/tier-access";
 
 const CROSS_RATE_LIMIT = 60;
 const CROSS_RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -40,8 +39,8 @@ export async function GET(request: Request) {
   }
 
   // Test mating is a Pro plan feature; the page upsells, the API enforces.
-  const user = await getCurrentUser();
-  if (!user || !hasTier(user.tier, "pro")) {
+  const user = await requireProUser();
+  if (!user) {
     return NextResponse.json(
       { error: { code: "tier.pro_required", message: "Test mating is a Pro feature" } },
       { status: 403 },

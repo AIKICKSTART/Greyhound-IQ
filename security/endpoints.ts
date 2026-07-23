@@ -38,6 +38,9 @@ export type OpenApiEndpointAuthentication = {
 
 const PUBLIC_HTTP_ENDPOINTS = new Set([
   "POST /api/analytics/onboarding",
+  // Multi-generation pedigree trees are the same public data rendered on the
+  // open dog pages; the endpoint is anonymous and IP rate-limited.
+  "GET /api/breeding/pedigree",
   "GET /api/dogs/search",
   "GET /api/forum/categories",
   "GET /api/forum/categories/[slug]/threads",

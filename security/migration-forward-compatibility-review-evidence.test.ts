@@ -53,28 +53,28 @@ assert.deepEqual(databaseCompatibilityInventoryDiff(compatibility), []);
 assert.deepEqual(compatibility, DATABASE_COMPATIBILITY_BASELINE);
 assert.equal(provider, "postgresql");
 assert.deepEqual(structure.issues, []);
-assert.equal(structure.records.length, 100);
+assert.equal(structure.records.length, 108);
 assert.equal(structure.records[0]?.timestamp, "20260630093000");
-assert.equal(structure.records.at(-1)?.timestamp, "20260717010000");
+assert.equal(structure.records.at(-1)?.timestamp, "20260723210000");
 assert.deepEqual(backward.issues, []);
 assert.equal(backward.risks.length, 1);
 assert.deepEqual(nullability.issues, []);
-assert.equal(nullability.addColumnOccurrences, 124);
-assert.equal(nullability.columns.length, 124);
-assert.equal(nullability.createdTableColumns.length, 1076);
+assert.equal(nullability.addColumnOccurrences, 126);
+assert.equal(nullability.columns.length, 126);
+assert.equal(nullability.createdTableColumns.length, 1103);
 assert.deepEqual(defaults.issues, []);
-assert.equal(defaults.reviewedDefaults.length, 261);
+assert.equal(defaults.reviewedDefaults.length, 268);
 assert.deepEqual(rewrites.issues, []);
 assert.equal(rewrites.risks.length, 1);
 assert.deepEqual(constraints.issues, []);
-assert.equal(constraints.records.length, 412);
+assert.equal(constraints.records.length, 427);
 assert.equal(
   constraints.records.filter(({ strategy }) => strategy === "deferred-pending")
     .length,
   3,
 );
 assert.deepEqual(indexes.issues, []);
-assert.equal(indexes.records.length, 462);
+assert.equal(indexes.records.length, 469);
 assert.equal(
   indexes.records.filter(
     ({ strategy }) => strategy === "existing-relation-reviewed-immediate",
@@ -82,7 +82,7 @@ assert.equal(
   67,
 );
 assert.deepEqual(locks.issues, []);
-assert.equal(locks.records.length, 435);
+assert.equal(locks.records.length, 443);
 
 const facts = buildFacts();
 assert.deepEqual(assessMigrationForwardCompatibility(facts), []);
@@ -190,7 +190,7 @@ assertAssessmentIssue(
 );
 
 console.log(
-  "Migration forward-compatibility review passed: 100 ordered PostgreSQL migrations composed with 7 exact source audits covering 124 added columns, 261 defaults, 1 contract break, 1 rewrite, 412 constraints, 462 indexes and 435 ALTER TABLE operations.",
+  "Migration forward-compatibility review passed: 108 ordered PostgreSQL migrations composed with 7 exact source audits covering 126 added columns, 268 defaults, 1 contract break, 1 rewrite, 427 constraints, 469 indexes and 443 ALTER TABLE operations.",
 );
 
 function buildFacts(): MigrationForwardReviewFacts {

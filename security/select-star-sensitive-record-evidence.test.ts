@@ -23,6 +23,7 @@ const EXPECTED_RAW_SQL_SOURCE_PATHS = [
   "src/lib/db-context.ts",
   "src/lib/db-stats.ts",
   "src/lib/db.ts",
+  "src/lib/dog-identity.ts",
   "src/lib/feed-service.ts",
   "src/lib/live/dog-profile-sync.ts",
   "src/lib/live/status.ts",
@@ -45,22 +46,22 @@ assert.deepEqual(
   sources.map(({ path }) => path),
   EXPECTED_RAW_SQL_SOURCE_PATHS,
 );
-assert.equal(audit.sourceCount, 22);
-assert.equal(audit.rawQueryPrimitiveCount, 118);
+assert.equal(audit.sourceCount, 23);
+assert.equal(audit.rawQueryPrimitiveCount, 138);
 assert.deepEqual(audit.issues, []);
 assert.deepEqual(audit.records, [
   {
     path: "src/lib/feed-service.ts",
-    line: 661,
+    line: 617,
     projection: "ranked.*",
     relation: "ranked",
     signature: "SELECT ranked.* FROM ranked",
     contextSha256:
-      "8b186a4709c1b0a52d8ede1248ef4e319c9b0e2b729145841740d4aa488c85a9",
+      "f009f2f6454ced8cfd22c8e059d5d35de9c9b2e31d47a2da9e7fb76bb0fb4a0c",
   },
   {
     path: "src/lib/queries.ts",
-    line: 2068,
+    line: 2140,
     projection: "*",
     relation: null,
     signature: "SELECT *",

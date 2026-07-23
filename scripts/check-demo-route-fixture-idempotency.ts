@@ -4528,7 +4528,11 @@ async function proveAuthCallbackAcceptance(
       AUTH_ACCEPTANCE_EMAIL,
     ),
   );
-  assertAuthAcceptanceCounts(after, 1);
+  // 20260723160000_fix_member_actor_visibility: a banned member's personal
+  // actor is RLS-hidden from every reader (the account-active check precedes
+  // the system/moderator branch), so the actor count reads 0 while banned —
+  // the row itself remains and is visible again on restore.
+  assertAuthAcceptanceCounts(after, 1, { expectedActor: 0 });
   assert.equal(after.user?.isBanned, true);
   assert.equal(after.user?.deletionRequestedAt, null);
   assert.equal(
@@ -4816,8 +4820,13 @@ function authAcceptanceProfileInsertBinds(
       expectedValues: [false, false],
     },
     {
+      name: "profile.messengerLayout",
+      positions: [7],
+      expectedValues: ["dual"],
+    },
+    {
       name: "prisma.profileTimestamps",
-      positions: [7, 8],
+      positions: [8, 9],
       expectedKinds: ["date", "date"],
     },
   ];
@@ -6016,6 +6025,7 @@ async function collectAuthAcceptanceState(
 function assertAuthAcceptanceCounts(
   state: Awaited<ReturnType<typeof collectAuthAcceptanceState>>,
   expected: 0 | 1,
+  options: { expectedActor?: 0 | 1 } = {},
 ) {
   assert.deepEqual(
     {
@@ -6024,7 +6034,12 @@ function assertAuthAcceptanceCounts(
       actor: state.actorCount,
       outbox: state.outboxCount,
     },
-    { user: expected, profile: expected, actor: expected, outbox: expected },
+    {
+      user: expected,
+      profile: expected,
+      actor: options.expectedActor ?? expected,
+      outbox: expected,
+    },
   );
 }
 

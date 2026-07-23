@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
   dogOwnershipClaimSchema,
   hasProfileMarketingFields,
+  personalActorMediaUpdateSchema,
   profileUpdateSchema,
 } from "@/lib/account-validation";
 import {
@@ -51,6 +53,7 @@ import {
   feedTopicWriteSchema,
 } from "@/lib/feed-validation";
 import {
+  archiveListingForCurrentUser,
   approveListingForModerator,
   createMarketplaceCategoryForModerator,
   createListingEnquiryForCurrentUser,
@@ -60,6 +63,7 @@ import {
   removeListingForModerator,
   renewListingForCurrentUser,
   setMarketplaceCategoryActiveForModerator,
+  submitDraftListingForCurrentUser,
   toggleSavedListingForCurrentUser,
   withdrawListingForCurrentUser,
 } from "@/lib/listing-service";
@@ -69,7 +73,17 @@ import {
   updateCustomPage,
   setCustomPagePublished,
   deleteCustomPage,
+  listCustomPagesForCurrentUser,
 } from "@/lib/custom-page-service";
+import {
+  removeFriend,
+  respondToFriendRequest,
+  sendFriendRequest,
+} from "@/lib/friend-service";
+import {
+  ACTIVE_IDENTITY_COOKIE,
+  PERSONAL_IDENTITY,
+} from "@/lib/identity";
 import {
   customPageCreateSchema,
   customPageUpdateSchema,
@@ -90,6 +104,7 @@ import {
   resolveReportForModerator,
 } from "@/lib/report-service";
 import { reportCreateSchema, reportResolveSchema } from "@/lib/report-validation";
+import { updatePersonalActorMedia } from "@/lib/social-actor-service";
 
 const forumThreadSchema = z.object({
   categoryId: z.string().min(1),
@@ -99,6 +114,10 @@ const forumThreadSchema = z.object({
 
 const forumReplySchema = z.object({
   body: z.string().trim().min(20).max(20_000),
+});
+
+const destructiveConfirmationSchema = z.object({
+  confirmation: z.literal("DELETE"),
 });
 
 const listingSchema = z.object({
@@ -143,6 +162,7 @@ const listingSchema = z.object({
     }),
   welfareAcknowledged: z.boolean().default(false),
   legalAcknowledged: z.boolean().default(false),
+  submissionIntent: z.enum(["draft", "review"]),
   mediaIds: z.array(z.string().trim().min(1)).max(11).default([]),
   attributes: z
     .array(
@@ -153,6 +173,22 @@ const listingSchema = z.object({
     )
     .max(8)
     .default([]),
+});
+
+const listingArchiveSchema = z.object({
+  confirmation: z.literal("archive"),
+});
+
+const listingWithdrawConfirmationSchema = z.object({
+  confirmation: z.literal("withdraw"),
+});
+
+const listingRemovalConfirmationSchema = z.object({
+  confirmation: z.literal("remove"),
+});
+
+const messageDeleteConfirmationSchema = z.object({
+  confirmation: z.literal("delete"),
 });
 
 const listingReportSchema = z.object({
@@ -220,6 +256,10 @@ const supportTicketSchema = z.object({
 
 const SUPPORT_TICKET_RATE_LIMIT = 3;
 const SUPPORT_TICKET_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const FORUM_THREAD_RATE_LIMIT = 3;
+const FORUM_THREAD_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const FORUM_REPLY_RATE_LIMIT = 5;
+const FORUM_REPLY_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const FEED_POST_RATE_LIMIT = 5;
 const FEED_POST_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const DOG_CLAIM_RATE_LIMIT = 5;
@@ -230,6 +270,10 @@ const FEED_REACTION_RATE_LIMIT = 60;
 const FEED_REACTION_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const FEED_BLOCK_RATE_LIMIT = 20;
 const FEED_BLOCK_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const FRIEND_REQUEST_RATE_LIMIT = 20;
+const FRIEND_REQUEST_RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const FRIEND_RESPOND_RATE_LIMIT = 60;
+const FRIEND_RESPOND_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const MESSAGE_SEND_RATE_LIMIT = 10;
 const MESSAGE_SEND_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MESSAGE_REACTION_RATE_LIMIT = 30;
@@ -242,8 +286,17 @@ const LISTING_REPORT_RATE_LIMIT = 10;
 const LISTING_REPORT_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const LISTING_SAVE_RATE_LIMIT = 30;
 const LISTING_SAVE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const LISTING_CREATE_RATE_LIMIT = 3;
+const LISTING_CREATE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const FEED_REPORT_RATE_LIMIT = 10;
+const FEED_REPORT_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const AGENT_RUN_RATE_LIMIT = 10;
+const AGENT_RUN_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const ACCOUNT_DELETION_RATE_LIMIT = 3;
+const ACCOUNT_DELETION_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const REPORT_RESOLVE_RATE_LIMIT = 30;
 const REPORT_RESOLVE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const FAIL_CLOSED_RATE_LIMIT = { failClosed: true } as const;
 
 function field(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -276,6 +329,13 @@ function moderationReason(formData: FormData, fallback: string) {
 export async function createForumThread(formData: FormData) {
   const current = await requireCurrentUserProfile();
   assertPaidFeatureAccess(current);
+  const rateLimit = await checkRateLimit(
+    `forum:thread:${current.dbUserId}`,
+    FORUM_THREAD_RATE_LIMIT,
+    FORUM_THREAD_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
   const parsed = forumThreadSchema.parse({
     categoryId: field(formData, "categoryId"),
     title: field(formData, "title"),
@@ -313,6 +373,13 @@ export async function createForumThread(formData: FormData) {
 export async function replyToForumThread(threadId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
   assertPaidFeatureAccess(current);
+  const rateLimit = await checkRateLimit(
+    `forum:reply:${current.dbUserId}:${threadId}`,
+    FORUM_REPLY_RATE_LIMIT,
+    FORUM_REPLY_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
   const parsed = forumReplySchema.parse({ body: field(formData, "body") });
 
   const thread = await prisma.thread.findUnique({
@@ -346,7 +413,8 @@ export async function createFeedPost(formData: FormData) {
   const rateLimit = await checkRateLimit(
     `feed:post:${current.dbUserId}`,
     FEED_POST_RATE_LIMIT,
-    FEED_POST_RATE_LIMIT_WINDOW_MS
+    FEED_POST_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -354,6 +422,7 @@ export async function createFeedPost(formData: FormData) {
     topicId: field(formData, "topicId") || null,
     body: field(formData, "body"),
     mediaIds: fields(formData, "mediaIds"),
+    pageId: field(formData, "pageId") || null,
   });
 
   await createFeedPostForCurrentUser(current, parsed);
@@ -366,7 +435,8 @@ export async function replyToFeedPost(postId: string, formData: FormData) {
   const rateLimit = await checkRateLimit(
     `feed:comment:${current.dbUserId}:${postId}`,
     FEED_COMMENT_RATE_LIMIT,
-    FEED_COMMENT_RATE_LIMIT_WINDOW_MS
+    FEED_COMMENT_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -389,7 +459,8 @@ export async function toggleFeedPostReaction(
   const rateLimit = await checkRateLimit(
     `feed:reaction:${current.dbUserId}:${postId}`,
     FEED_REACTION_RATE_LIMIT,
-    FEED_REACTION_RATE_LIMIT_WINDOW_MS
+    FEED_REACTION_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -400,6 +471,13 @@ export async function toggleFeedPostReaction(
 
 export async function reportFeedPost(postId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `feed:report:${current.dbUserId}:${postId}`,
+    FEED_REPORT_RATE_LIMIT,
+    FEED_REPORT_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
   const parsed = feedReportSchema.parse({
     reason: field(formData, "reason") || "other",
     description: field(formData, "description") || null,
@@ -415,19 +493,18 @@ export async function reportFeedPost(postId: string, formData: FormData) {
   redirect("/feed");
 }
 
-export async function blockFeedPostAuthor(postId: string, _formData?: FormData) {
-  void _formData;
+export async function blockFeedPostAuthor(postId: string) {
   const current = await requireCurrentUserProfile();
   const rateLimit = await checkRateLimit(
     `feed:block:${current.dbUserId}:${postId}`,
     FEED_BLOCK_RATE_LIMIT,
-    FEED_BLOCK_RATE_LIMIT_WINDOW_MS
+    FEED_BLOCK_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
   await blockFeedPostAuthorForCurrentUser(current, postId);
   revalidatePath("/feed");
-  redirect("/feed");
 }
 
 export async function createFeedTopic(formData: FormData) {
@@ -474,6 +551,13 @@ export async function moderateFeedPost(postId: string, formData: FormData) {
 
 export async function createListing(formData: FormData) {
   const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `listing:create:${current.dbUserId}`,
+    LISTING_CREATE_RATE_LIMIT,
+    LISTING_CREATE_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
   const parsed = listingSchema.parse({
     type: field(formData, "type"),
     categoryId: field(formData, "categoryId") || undefined,
@@ -494,6 +578,7 @@ export async function createListing(formData: FormData) {
     price: field(formData, "price") || undefined,
     welfareAcknowledged: field(formData, "welfareAcknowledged") === "true",
     legalAcknowledged: field(formData, "legalAcknowledged") === "true",
+    submissionIntent: field(formData, "submissionIntent") || "review",
     mediaIds: fields(formData, "mediaIds"),
     attributes: listingAttributes(formData),
   });
@@ -524,12 +609,19 @@ export async function createListing(formData: FormData) {
     price: parsed.price,
     welfareAcknowledged: parsed.welfareAcknowledged,
     legalAcknowledged: parsed.legalAcknowledged,
+    submissionIntent: parsed.submissionIntent,
     mediaIds: parsed.mediaIds,
     attributes: parsed.attributes,
   });
 
   revalidatePath("/marketplace");
-  redirect("/marketplace?submitted=review");
+  revalidatePath("/account/listings");
+  revalidatePath("/account/listings/drafts");
+  redirect(
+    parsed.submissionIntent === "draft"
+      ? "/account/listings/drafts?created=1"
+      : "/marketplace?submitted=review",
+  );
 }
 
 export async function enquireAboutListing(
@@ -540,7 +632,8 @@ export async function enquireAboutListing(
   const rateLimit = await checkRateLimit(
     `listing:enquiry:${current.dbUserId}:${listingId}`,
     LISTING_ENQUIRY_RATE_LIMIT,
-    LISTING_ENQUIRY_RATE_LIMIT_WINDOW_MS
+    LISTING_ENQUIRY_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -564,7 +657,8 @@ export async function reportListing(listingId: string, formData: FormData) {
   const rateLimit = await checkRateLimit(
     `listing:report:${current.dbUserId}:${listingId}`,
     LISTING_REPORT_RATE_LIMIT,
-    LISTING_REPORT_RATE_LIMIT_WINDOW_MS
+    LISTING_REPORT_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -591,7 +685,8 @@ export async function toggleSavedListing(listingId: string, _formData?: FormData
   const rateLimit = await checkRateLimit(
     `listing:save:${current.dbUserId}:${listingId}`,
     LISTING_SAVE_RATE_LIMIT,
-    LISTING_SAVE_RATE_LIMIT_WINDOW_MS
+    LISTING_SAVE_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -623,14 +718,49 @@ export async function markListingSold(listingId: string, _formData?: FormData) {
   redirect(`/marketplace/${listingId}`);
 }
 
-export async function withdrawListing(listingId: string, _formData?: FormData) {
-  void _formData;
+export async function withdrawListing(listingId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
+  listingWithdrawConfirmationSchema.parse({
+    confirmation: field(formData, "confirmation"),
+  });
   await withdrawListingForCurrentUser(current, listingId);
 
   revalidatePath("/marketplace");
   revalidatePath(`/marketplace/${listingId}`);
   redirect(`/marketplace/${listingId}`);
+}
+
+export async function submitListingForReview(
+  listingId: string,
+  _formData?: FormData,
+) {
+  void _formData;
+  const current = await requireCurrentUserProfile();
+  await submitDraftListingForCurrentUser(current, listingId);
+
+  revalidatePath("/marketplace");
+  revalidatePath("/account/listings");
+  revalidatePath("/account/listings/drafts");
+  revalidatePath(`/marketplace/${listingId}`);
+  redirect(`/marketplace/${listingId}`);
+}
+
+export async function archiveListing(
+  listingId: string,
+  formData: FormData,
+) {
+  const current = await requireCurrentUserProfile();
+  listingArchiveSchema.parse({
+    confirmation: field(formData, "confirmation"),
+  });
+  await archiveListingForCurrentUser(current, listingId);
+
+  revalidatePath("/marketplace");
+  revalidatePath("/account/listings");
+  revalidatePath("/account/listings/drafts");
+  revalidatePath("/account/listings/archived");
+  revalidatePath(`/marketplace/${listingId}`);
+  redirect("/account/listings/archived");
 }
 
 export async function approveListing(listingId: string, _formData?: FormData) {
@@ -661,6 +791,9 @@ export async function rejectListing(listingId: string, formData: FormData) {
 
 export async function removeListing(listingId: string, formData: FormData) {
   const current = await requireModeratorProfile();
+  listingRemovalConfirmationSchema.parse({
+    confirmation: field(formData, "confirmation"),
+  });
   await removeListingForModerator(
     current,
     listingId,
@@ -709,7 +842,8 @@ export async function resolveReport(reportId: string, formData: FormData) {
   const rateLimit = await checkRateLimit(
     `report:resolve:${current.dbUserId}`,
     REPORT_RESOLVE_RATE_LIMIT,
-    REPORT_RESOLVE_RATE_LIMIT_WINDOW_MS
+    REPORT_RESOLVE_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -770,7 +904,8 @@ export async function sendMessage(formData: FormData) {
   const rateLimit = await checkRateLimit(
     `message:send:${current.dbUserId}`,
     MESSAGE_SEND_RATE_LIMIT,
-    MESSAGE_SEND_RATE_LIMIT_WINDOW_MS
+    MESSAGE_SEND_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -801,7 +936,8 @@ export async function replyToConversation(
   const rateLimit = await checkRateLimit(
     `message:send:${current.dbUserId}`,
     MESSAGE_SEND_RATE_LIMIT,
-    MESSAGE_SEND_RATE_LIMIT_WINDOW_MS
+    MESSAGE_SEND_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -823,10 +959,12 @@ export async function replyToConversation(
 export async function deleteConversationMessage(
   conversationId: string,
   messageId: string,
-  _formData?: FormData
+  formData: FormData
 ) {
-  void _formData;
   const current = await requireCurrentUserProfile();
+  messageDeleteConfirmationSchema.parse({
+    confirmation: field(formData, "confirmation"),
+  });
   await softDeleteConversationMessage(current, conversationId, messageId);
 
   revalidatePath("/pulse");
@@ -880,7 +1018,8 @@ export async function toggleMessageReaction(
   const rateLimit = await checkRateLimit(
     `message:reaction:${current.dbUserId}:${messageId}`,
     MESSAGE_REACTION_RATE_LIMIT,
-    MESSAGE_REACTION_RATE_LIMIT_WINDOW_MS
+    MESSAGE_REACTION_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -904,7 +1043,8 @@ export async function reportConversationMessage(
   const rateLimit = await checkRateLimit(
     `message:report:${current.dbUserId}:${messageId}`,
     MESSAGE_REPORT_RATE_LIMIT,
-    MESSAGE_REPORT_RATE_LIMIT_WINDOW_MS
+    MESSAGE_REPORT_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -942,6 +1082,13 @@ export async function reportConversationMessage(
 
 export async function createAgentRun(formData: FormData) {
   const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `agent-run:${current.dbUserId}`,
+    AGENT_RUN_RATE_LIMIT,
+    AGENT_RUN_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
   const parsed = agentFormSchema.parse({
     agentType: field(formData, "agentType"),
     input: field(formData, "input"),
@@ -962,7 +1109,8 @@ export async function createSupportTicket(formData: FormData) {
   const rateLimit = await checkRateLimit(
     `support:${current.dbUserId}`,
     SUPPORT_TICKET_RATE_LIMIT,
-    SUPPORT_TICKET_RATE_LIMIT_WINDOW_MS
+    SUPPORT_TICKET_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("support.rate_limit");
 
@@ -1017,31 +1165,83 @@ export async function markAllNotificationsRead(_formData?: FormData) {
 
 export async function updateProfile(formData: FormData) {
   const current = await requireCurrentUserProfile();
-  const parsed = profileUpdateSchema.parse({
-    displayName: field(formData, "displayName"),
-    bio: field(formData, "bio"),
-    state: field(formData, "state"),
-    kennelName: field(formData, "kennelName"),
-    kennelPrefix: field(formData, "kennelPrefix"),
-    website: field(formData, "website"),
-    phone: field(formData, "phone"),
-  });
-  if (hasProfileMarketingFields(parsed)) assertPaidFeatureAccess(current);
-  const data = hasTier(current.tier, "pro")
-    ? parsed
-    : {
-        displayName: parsed.displayName,
-        bio: parsed.bio,
-        state: parsed.state,
+  try {
+    const parsed = profileUpdateSchema.parse({
+      displayName: field(formData, "displayName"),
+      bio: field(formData, "bio"),
+      state: field(formData, "state"),
+      kennelName: field(formData, "kennelName"),
+      kennelPrefix: field(formData, "kennelPrefix"),
+      website: field(formData, "website"),
+      phone: field(formData, "phone"),
+      profileVisibility: field(formData, "profileVisibility") || "members",
+      contactVisibility: field(formData, "contactVisibility") || "only_me",
+    });
+    if (hasProfileMarketingFields(parsed)) assertPaidFeatureAccess(current);
+    const { profileVisibility, contactVisibility, ...profileFields } = parsed;
+    const data = hasTier(current.tier, "pro")
+      ? profileFields
+      : {
+        displayName: profileFields.displayName,
+        bio: profileFields.bio,
+        state: profileFields.state,
       };
-
-  await withDbRequestContext(current, (tx) => tx.profile.update({
-    where: { id: current.profileId },
-    data,
-  }));
+    await withDbRequestContext(current, async (tx) => {
+      const profile = await tx.profile.update({
+        where: { id: current.profileId },
+        data,
+      });
+      await tx.socialActor.updateMany({
+        where: { profileId: current.profileId },
+        data: {
+          displayName: profile.displayName,
+          avatarUrl: profile.avatarUrl,
+          profileVisibility,
+          contactVisibility,
+        },
+      });
+    });
+  } catch {
+    redirect("/account#profile-error");
+  }
 
   revalidatePath("/account");
-  redirect("/account");
+  redirect("/account#profile-updated");
+}
+
+export async function updatePersonalIdentityMedia(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const avatarMediaId =
+    field(formData, "removeAvatar") === "true"
+      ? null
+      : firstMedia(formData, "avatarMediaIdNew") ??
+        firstMedia(formData, "avatarMediaId");
+  const coverMediaId =
+    field(formData, "removeCover") === "true"
+      ? null
+      : firstMedia(formData, "coverMediaIdNew") ??
+        firstMedia(formData, "coverMediaId");
+  const parsed = personalActorMediaUpdateSchema.parse({
+    avatarMediaId,
+    coverMediaId,
+    removeAvatar: field(formData, "removeAvatar") === "true",
+    removeCover: field(formData, "removeCover") === "true",
+    avatarFocalX: field(formData, "avatarFocalX") || undefined,
+    avatarFocalY: field(formData, "avatarFocalY") || undefined,
+    avatarZoom: field(formData, "avatarZoom") || 1,
+    avatarRotation: field(formData, "avatarRotation") || 0,
+    coverFocalX: field(formData, "coverFocalX") || 0.5,
+    coverFocalY: field(formData, "coverFocalY") || 0.5,
+    coverZoom: field(formData, "coverZoom") || 1,
+    coverRotation: field(formData, "coverRotation") || 0,
+  });
+  const actor = await updatePersonalActorMedia(current, parsed);
+
+  revalidatePath("/account");
+  revalidatePath("/account/profile");
+  revalidatePath("/feed");
+  revalidatePath(`/p/${actor.handle}`);
+  redirect("/account/profile");
 }
 
 export async function claimDogOwnership(dogId: string, formData: FormData) {
@@ -1054,7 +1254,8 @@ export async function claimDogOwnership(dogId: string, formData: FormData) {
   const rateLimit = await checkRateLimit(
     `dog:claim:${current.dbUserId}`,
     DOG_CLAIM_RATE_LIMIT,
-    DOG_CLAIM_RATE_LIMIT_WINDOW_MS
+    DOG_CLAIM_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
 
@@ -1100,16 +1301,33 @@ export async function claimDogOwnership(dogId: string, formData: FormData) {
   redirect(`/dogs/${dogId}`);
 }
 
-export async function requestAccountDeletion() {
+export async function requestAccountDeletion(formData: FormData) {
   const current = await requireCurrentUserProfile();
-  await requestAccountDeletionForUser(current);
+  try {
+    const rateLimit = await checkRateLimit(
+      `account:delete:${current.dbUserId}`,
+      ACCOUNT_DELETION_RATE_LIMIT,
+      ACCOUNT_DELETION_RATE_LIMIT_WINDOW_MS,
+      FAIL_CLOSED_RATE_LIMIT,
+    );
+    if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
+    destructiveConfirmationSchema.parse({
+      confirmation: field(formData, "confirmation"),
+    });
+    await requestAccountDeletionForUser(current);
+  } catch {
+    redirect("/account#deletion-error");
+  }
 
   revalidatePath("/account");
-  redirect("/account");
+  redirect("/account#deletion-requested");
 }
 
 const CUSTOM_PAGE_RATE_LIMIT = 20;
 const CUSTOM_PAGE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const customPagePublishSchema = z.object({
+  publish: z.enum(["true", "false"]),
+});
 
 function optional(formData: FormData, name: string): string | null {
   const v = field(formData, name).trim();
@@ -1124,7 +1342,10 @@ function firstMedia(formData: FormData, name: string): string | null {
 // merges existing hidden ids with any new uploads. Lets edit preserve untouched
 // media without re-uploading.
 function customPageMediaFields(formData: FormData) {
-  const pick = (name: string) => firstMedia(formData, `${name}New`) ?? firstMedia(formData, name);
+  const pick = (name: string) =>
+    field(formData, `remove${name[0].toUpperCase()}${name.slice(1)}`) === "true"
+      ? null
+      : firstMedia(formData, `${name}New`) ?? firstMedia(formData, name);
   return {
     avatarMediaId: pick("avatarMediaId"),
     bannerMediaId: pick("bannerMediaId"),
@@ -1141,7 +1362,8 @@ export async function createCustomPageAction(formData: FormData) {
   const rl = await checkRateLimit(
     `custom-page:create:${current.dbUserId}`,
     CUSTOM_PAGE_RATE_LIMIT,
-    CUSTOM_PAGE_RATE_LIMIT_WINDOW_MS
+    CUSTOM_PAGE_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rl.allowed) throw new Error("rate_limit.exceeded");
 
@@ -1152,9 +1374,14 @@ export async function createCustomPageAction(formData: FormData) {
     about: optional(formData, "about"),
     contactEmail: optional(formData, "contactEmail"),
     contactPhone: optional(formData, "contactPhone"),
+    contactVisibility: field(formData, "contactVisibility") || "only_me",
     website: optional(formData, "website"),
     accentColor: optional(formData, "accentColor"),
     heroMediaId: null,
+    avatarFocalX: field(formData, "avatarFocalX") || 0.5,
+    avatarFocalY: field(formData, "avatarFocalY") || 0.5,
+    coverFocalX: field(formData, "coverFocalX") || 0.5,
+    coverFocalY: field(formData, "coverFocalY") || 0.5,
     ...customPageMediaFields(formData),
   };
   const raw =
@@ -1181,7 +1408,8 @@ export async function updateCustomPageAction(pageId: string, formData: FormData)
   const rl = await checkRateLimit(
     `custom-page:update:${current.dbUserId}`,
     CUSTOM_PAGE_RATE_LIMIT,
-    CUSTOM_PAGE_RATE_LIMIT_WINDOW_MS
+    CUSTOM_PAGE_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rl.allowed) throw new Error("rate_limit.exceeded");
 
@@ -1191,9 +1419,14 @@ export async function updateCustomPageAction(pageId: string, formData: FormData)
     about: optional(formData, "about"),
     contactEmail: optional(formData, "contactEmail"),
     contactPhone: optional(formData, "contactPhone"),
+    contactVisibility: field(formData, "contactVisibility") || "only_me",
     website: optional(formData, "website"),
     accentColor: optional(formData, "accentColor"),
     heroMediaId: null,
+    avatarFocalX: field(formData, "avatarFocalX") || undefined,
+    avatarFocalY: field(formData, "avatarFocalY") || undefined,
+    coverFocalX: field(formData, "coverFocalX") || 0.5,
+    coverFocalY: field(formData, "coverFocalY") || 0.5,
     businessCategory: optional(formData, "businessCategory"),
     saleStatus: optional(formData, "saleStatus"),
     priceOrFee: optional(formData, "priceOrFee"),
@@ -1207,14 +1440,19 @@ export async function updateCustomPageAction(pageId: string, formData: FormData)
 
 export async function publishCustomPageAction(pageId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
-  const publish = field(formData, "publish") === "true";
-  await setCustomPagePublished(current, pageId, publish);
+  const parsed = customPagePublishSchema.parse({
+    publish: field(formData, "publish"),
+  });
+  await setCustomPagePublished(current, pageId, parsed.publish === "true");
   revalidatePath("/account/pages");
   revalidatePath(`/account/pages/${pageId}`);
 }
 
-export async function deleteCustomPageAction(pageId: string) {
+export async function deleteCustomPageAction(pageId: string, formData: FormData) {
   const current = await requireCurrentUserProfile();
+  destructiveConfirmationSchema.parse({
+    confirmation: field(formData, "confirmation"),
+  });
   await deleteCustomPage(current, pageId);
   revalidatePath("/account/pages");
   redirect("/account/pages");
@@ -1225,9 +1463,121 @@ export async function generateDogCardAction(pageId: string) {
   const rl = await checkRateLimit(
     `dog-card:generate:${current.dbUserId}`,
     10,
-    60 * 60 * 1000
+    60 * 60 * 1000,
+    FAIL_CLOSED_RATE_LIMIT,
   );
   if (!rl.allowed) throw new Error("rate_limit.exceeded");
   await generateDogCard(current, pageId);
   revalidatePath(`/account/pages/${pageId}`);
+}
+
+// === Member hub: friends + active identity ===
+
+const friendTargetSchema = z.object({
+  profileId: z.string().trim().min(1).max(120),
+  senderActorId: z.string().trim().min(1).max(120).optional().nullable(),
+});
+
+const friendRespondSchema = z.object({
+  friendshipId: z.string().trim().min(1).max(120),
+  response: z.enum(["accept", "decline"]),
+});
+
+export async function sendFriendRequestAction(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `friend:request:${current.dbUserId}`,
+    FRIEND_REQUEST_RATE_LIMIT,
+    FRIEND_REQUEST_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
+
+  const parsed = friendTargetSchema.parse({
+    profileId: field(formData, "profileId"),
+  });
+  await sendFriendRequest(current, parsed.profileId);
+  revalidatePath("/feed");
+  revalidatePath("/pulse/friends");
+}
+
+export async function respondToFriendRequestAction(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `friend:respond:${current.dbUserId}`,
+    FRIEND_RESPOND_RATE_LIMIT,
+    FRIEND_RESPOND_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
+
+  const parsed = friendRespondSchema.parse({
+    friendshipId: field(formData, "friendshipId"),
+    response: field(formData, "response"),
+  });
+  await respondToFriendRequest(current, parsed.friendshipId, parsed.response);
+  revalidatePath("/feed");
+  revalidatePath("/pulse/friends");
+}
+
+export async function removeFriendAction(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `friend:respond:${current.dbUserId}`,
+    FRIEND_RESPOND_RATE_LIMIT,
+    FRIEND_RESPOND_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
+
+  const parsed = z
+    .object({ friendshipId: z.string().trim().min(1).max(120) })
+    .parse({ friendshipId: field(formData, "friendshipId") });
+  await removeFriend(current, parsed.friendshipId);
+  revalidatePath("/feed");
+  revalidatePath("/pulse/friends");
+}
+
+// Personal cold-starts are free; page identity cold-starts remain Pro-only.
+export async function startChatAction(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const rateLimit = await checkRateLimit(
+    `conversation:start:${current.dbUserId}`,
+    MESSAGE_SEND_RATE_LIMIT,
+    MESSAGE_SEND_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
+
+  const parsed = friendTargetSchema.parse({
+    profileId: field(formData, "profileId"),
+    senderActorId: field(formData, "senderActorId") || null,
+  });
+  const conversation = await startOrGetConversation(current, parsed.profileId, {
+    senderActorId: parsed.senderActorId,
+  });
+  redirect(`/pulse/${conversation.id}`);
+}
+
+export async function setActiveIdentityAction(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const requested = field(formData, "identity") || PERSONAL_IDENTITY;
+
+  // The cookie is a hint, never an authority — but refuse to store ids the
+  // session does not own so the UI can't even appear to switch.
+  let value = PERSONAL_IDENTITY;
+  if (requested !== PERSONAL_IDENTITY) {
+    const pages = await listCustomPagesForCurrentUser(current);
+    if (pages.some((page) => page.id === requested)) value = requested;
+  }
+
+  const store = await cookies();
+  store.set(ACTIVE_IDENTITY_COOKIE, value, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  revalidatePath("/feed");
 }

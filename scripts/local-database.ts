@@ -2,7 +2,7 @@
  * Local Postgres control plane for high-volume The Dogs imports.
  *
  * This keeps bulk replay away from the remote Supabase pooler. It defaults to
- * postgres://postgres:postgres@localhost:55432/greyhoundiq and never edits .env.
+ * postgres://postgres:postgres@127.0.0.1:55433/greyhoundiq and never edits .env.
  *
  * Examples:
  *   npm run db:local:up
@@ -13,10 +13,15 @@
  */
 import { spawnSync } from "node:child_process";
 
+import {
+  assertLocalDatabaseUrl,
+  maskDatabaseUrl,
+} from "./local-database-policy";
+
 const COMPOSE_FILE = "docker-compose.local-db.yml";
 const LOCAL_DATABASE_URL =
   process.env.LOCAL_DATABASE_URL ??
-  "postgresql://postgres:postgres@localhost:55432/greyhoundiq?connection_limit=20&pool_timeout=60&connect_timeout=10";
+  "postgresql://postgres:postgres@127.0.0.1:55433/greyhoundiq?connection_limit=20&pool_timeout=60&connect_timeout=10";
 const LOCAL_PROGRESS_DIR = ".backfill";
 
 type Command =
@@ -27,6 +32,8 @@ type Command =
   | "migrate"
   | "preflight"
   | "status"
+  | "analyze"
+  | "sync-live"
   | "import-race-archive"
   | "import-race-normalized"
   | "import-dog-archive"
@@ -34,6 +41,7 @@ type Command =
 
 async function main() {
   const [command = "help", ...forwardedArgs] = process.argv.slice(2);
+  assertLocalDatabaseUrl(LOCAL_DATABASE_URL);
   switch (command as Command | "help") {
     case "up":
       runDockerCompose(["up", "-d"]);
@@ -65,6 +73,12 @@ async function main() {
     case "status":
       await printStatus();
       break;
+    case "analyze":
+      await analyzeDatabase();
+      break;
+    case "sync-live":
+      runNpm(["run", "sync:live", "--", ...forwardedArgs]);
+      break;
     case "import-race-archive":
       await ensureDatabaseTimezone();
       runNpm([
@@ -84,6 +98,7 @@ async function main() {
         `${LOCAL_PROGRESS_DIR}/thedogs-local-race-day-archive-import-progress.jsonl`,
         ...forwardedArgs,
       ]);
+      await analyzeDatabase();
       break;
     case "import-race-normalized":
       await ensureDatabaseTimezone();
@@ -107,6 +122,7 @@ async function main() {
         `${LOCAL_PROGRESS_DIR}/thedogs-local-raw-import-progress.jsonl`,
         ...forwardedArgs,
       ]);
+      await analyzeDatabase();
       break;
     case "import-dog-archive":
       await ensureDatabaseTimezone();
@@ -130,6 +146,7 @@ async function main() {
         `${LOCAL_PROGRESS_DIR}/thedogs-local-dog-profile-archive-import-progress.jsonl`,
         ...forwardedArgs,
       ]);
+      await analyzeDatabase();
       break;
     case "import-dog-normalized":
       await ensureDatabaseTimezone();
@@ -152,6 +169,7 @@ async function main() {
         `${LOCAL_PROGRESS_DIR}/thedogs-local-dog-profile-normalized-import-progress.jsonl`,
         ...forwardedArgs,
       ]);
+      await analyzeDatabase();
       break;
     default:
       printHelp();
@@ -298,13 +316,16 @@ async function printStatus() {
   }
 }
 
-function maskDatabaseUrl(value: string) {
+async function analyzeDatabase() {
+  process.env.DATABASE_URL = LOCAL_DATABASE_URL;
+  process.env.DIRECT_URL = LOCAL_DATABASE_URL;
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
   try {
-    const url = new URL(value);
-    if (url.password) url.password = "***";
-    return url.toString();
-  } catch {
-    return "<invalid-url>";
+    await prisma.$executeRawUnsafe("ANALYZE");
+    console.log("[db:local] planner statistics refreshed");
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -369,6 +390,8 @@ Commands:
   migrate                  Apply Prisma migrations to local Postgres
   preflight                Validate env, Prisma schema, and migration status
   status                   Print local row counts
+  analyze                  Refresh Postgres planner statistics
+  sync-live                Sync current racing data into local Postgres
   import-race-archive      Load raw day JSON into RaceDayArchive
   import-race-normalized   Replay raw day JSON into Meeting/Race/Runner/Result
   import-dog-archive       Load dog profile JSON into DogProfileArchive only

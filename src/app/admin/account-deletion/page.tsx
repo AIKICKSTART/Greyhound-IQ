@@ -1,7 +1,7 @@
 import { AdminStatusForm } from "@/app/admin/form-controls";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
 import { StatusPill } from "@/components/admin/status-pill";
-import { requireModeratorProfile } from "@/lib/auth";
+import { requireAdminProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
 
@@ -49,7 +49,7 @@ type DeletionJobRow = {
 };
 
 export default async function AdminAccountDeletionPage() {
-  await requireModeratorProfile();
+  await requireAdminProfile();
   const [pendingRequests, deletionJobs, auditLogs] = await Promise.all([
     getPendingDeletionRequests(),
     getDeletionJobs(),

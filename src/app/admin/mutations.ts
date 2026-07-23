@@ -1,8 +1,27 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { safeAdminPath } from "@/app/admin/admin-operation-path";
+import {
+  adminAudCurrencySchema,
+  adminBugReportSeveritySchema,
+  adminBugReportStatusSchema,
+  adminEntitlementInputSchema,
+  adminOrganizationInvitationRoleSchema,
+  adminOptionalDateSchema,
+  adminPlanStatusSchema,
+  adminPriceIntervalSchema,
+  adminPriceStatusSchema,
+  adminSourceHealthStatusSchema,
+  adminSupportTicketCategorySchema,
+  adminSupportTicketPrioritySchema,
+  adminSupportTicketStatusSchema,
+  adminRequiredDateSchema,
+} from "@/app/admin/admin-input-contract";
+import { assertAdminResourceMutation } from "@/app/admin/admin-status-contract";
 import { requireAdminProfile, requireModeratorProfile } from "@/lib/auth";
 import { setPlatformFlag, PLATFORM_FLAGS } from "@/lib/platform-settings";
 import {
@@ -84,6 +103,7 @@ const createUserSchema = z.object({
   tier: tierSchema.default("free"),
   role: roleSchema.default("member"),
   verified: z.boolean(),
+  confirmation: z.literal("CONFIRM USER ACCESS"),
   reason: reasonSchema,
   path: z.string().trim().optional(),
 });
@@ -95,6 +115,7 @@ const updateUserAccessSchema = z.object({
   verified: z.boolean(),
   banned: z.boolean(),
   cancelDeletion: z.boolean(),
+  confirmation: z.literal("CONFIRM USER ACCESS"),
   reason: reasonSchema,
   path: z.string().trim().optional(),
 });
@@ -102,30 +123,30 @@ const updateUserAccessSchema = z.object({
 const planSchema = z.object({
   code: z.string().trim().min(2).max(80),
   name: z.string().trim().min(2).max(120),
-  status: statusSchema,
+  status: adminPlanStatusSchema,
   reason: reasonSchema,
   path: z.string().trim().optional(),
 });
 
 const priceSchema = z.object({
   planId: idSchema,
-  interval: z.string().trim().min(2).max(40),
-  currency: z.string().trim().min(3).max(3).transform((value) => value.toUpperCase()),
+  interval: adminPriceIntervalSchema,
+  currency: adminAudCurrencySchema,
   amountCents: z.coerce.number().int().min(0).max(10_000_000),
-  status: statusSchema,
+  status: adminPriceStatusSchema,
   reason: reasonSchema,
   path: z.string().trim().optional(),
 });
 
-const entitlementSchema = z.object({
-  planId: idSchema,
-  featureKey: z.string().trim().min(2).max(120),
-  enabled: z.boolean(),
-  limitValue: z.coerce.number().int().min(0).max(100_000_000).nullable(),
-  unit: z.string().trim().max(40).nullable(),
-  reason: reasonSchema,
-  path: z.string().trim().optional(),
-});
+const entitlementSchema = z
+  .object({
+    planId: idSchema,
+    enabled: z.boolean(),
+    unit: z.string().trim().max(40).nullable(),
+    reason: reasonSchema,
+    path: z.string().trim().optional(),
+  })
+  .and(adminEntitlementInputSchema);
 
 const retentionPolicySchema = z.object({
   code: z.string().trim().min(2).max(80),
@@ -142,7 +163,7 @@ const deletionJobSchema = z.object({
   targetUserId: nullableIdSchema,
   storageBucket: z.string().trim().max(120).transform((value) => value || null),
   storagePath: z.string().trim().max(500).transform((value) => value || null),
-  scheduledFor: z.coerce.date(),
+  scheduledFor: adminRequiredDateSchema,
   reason: reasonSchema,
   path: z.string().trim().optional(),
 });
@@ -158,8 +179,8 @@ const organizationSchema = z.object({
 const invitationSchema = z.object({
   organizationId: idSchema,
   email: z.string().trim().toLowerCase().email(),
-  role: z.string().trim().min(2).max(40),
-  expiresAt: z.coerce.date(),
+  role: adminOrganizationInvitationRoleSchema,
+  expiresAt: adminRequiredDateSchema,
   reason: reasonSchema,
   path: z.string().trim().optional(),
 });
@@ -168,14 +189,14 @@ const exportSchema = z.object({
   exportType: z.string().trim().min(2).max(80),
   targetUserId: nullableIdSchema,
   organizationId: nullableIdSchema,
-  expiresAt: z.coerce.date().nullable(),
+  expiresAt: adminOptionalDateSchema,
   reason: reasonSchema,
   path: z.string().trim().optional(),
 });
 
 const sourceHealthSchema = z.object({
   sourceProvider: z.string().trim().min(2).max(120),
-  status: statusSchema,
+  status: adminSourceHealthStatusSchema,
   latencyMs: z.coerce.number().int().min(0).max(600_000).nullable(),
   reason: reasonSchema,
   path: z.string().trim().optional(),
@@ -183,9 +204,9 @@ const sourceHealthSchema = z.object({
 
 const supportTicketSchema = z.object({
   ticketId: idSchema,
-  status: statusSchema,
-  priority: z.string().trim().min(2).max(40),
-  category: z.string().trim().min(2).max(40),
+  status: adminSupportTicketStatusSchema,
+  priority: adminSupportTicketPrioritySchema,
+  category: adminSupportTicketCategorySchema,
   replyBody: z.string().trim().max(2000).nullable(),
   reason: reasonSchema,
   path: z.string().trim().optional(),
@@ -193,8 +214,8 @@ const supportTicketSchema = z.object({
 
 const bugReportSchema = z.object({
   bugReportId: idSchema,
-  status: statusSchema,
-  severity: z.string().trim().min(2).max(40),
+  status: adminBugReportStatusSchema,
+  severity: adminBugReportSeveritySchema,
   reason: reasonSchema,
   path: z.string().trim().optional(),
 });
@@ -215,6 +236,11 @@ export async function updateAdminStatus(formData: FormData) {
     reason: field(formData, "reason"),
     path: optionalField(formData, "path"),
   });
+  assertAdminResourceMutation(
+    parsed.resource as AdminResource,
+    parsed.status,
+    parsed.enabled
+  );
   await updateAdminResourceStatus(current, {
     resource: parsed.resource as AdminResource,
     id: parsed.id,
@@ -233,6 +259,7 @@ export async function createAdminUserAction(formData: FormData) {
     tier: optionalField(formData, "tier") ?? "free",
     role: optionalField(formData, "role") ?? "member",
     verified: checkbox(formData, "verified"),
+    confirmation: field(formData, "confirmation"),
     reason: field(formData, "reason"),
     path: optionalField(formData, "path"),
   });
@@ -249,6 +276,7 @@ export async function updateAdminUserAccessAction(formData: FormData) {
     verified: checkbox(formData, "verified"),
     banned: checkbox(formData, "banned"),
     cancelDeletion: checkbox(formData, "cancelDeletion"),
+    confirmation: field(formData, "confirmation"),
     reason: field(formData, "reason"),
     path: optionalField(formData, "path"),
   });
@@ -454,9 +482,10 @@ function optionalBoolean(formData: FormData, name: string) {
 }
 
 function revalidateAdmin(path?: string) {
-  const target = path?.startsWith("/admin") ? path : "/admin";
+  const target = safeAdminPath(path);
   revalidatePath(target);
   if (target !== "/admin") revalidatePath("/admin");
+  redirect(`${target}?adminResult=success`);
 }
 
 export async function updatePageRulesAction(formData: FormData) {

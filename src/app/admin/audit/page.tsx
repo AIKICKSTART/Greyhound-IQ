@@ -1,5 +1,5 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
-import { requireModeratorProfile } from "@/lib/auth";
+import { requireAdminProfile } from "@/lib/auth";
 import { safeQuery } from "@/lib/db";
 import { withDbSystemContext } from "@/lib/db-context";
 
@@ -20,7 +20,7 @@ type AuditLogRow = {
 };
 
 export default async function AdminAuditLogPage() {
-  await requireModeratorProfile();
+  await requireAdminProfile();
   const auditLogs = await getAuditLogs();
 
   return (

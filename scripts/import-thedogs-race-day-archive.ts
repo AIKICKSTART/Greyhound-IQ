@@ -10,6 +10,7 @@ import { access, appendFile, mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "../src/lib/db";
 import type { LiveMeeting } from "../src/lib/live/provider";
+import { sanitizeArchiveText } from "../src/lib/live/raw-sanitizer";
 
 const DEFAULT_RAW_DIR = ".backfill/thedogs-raw";
 const DEFAULT_PROGRESS = ".backfill/thedogs-raw-archive-import-progress.jsonl";
@@ -95,7 +96,7 @@ async function main() {
   for (const candidate of selected) {
     const startedAt = Date.now();
     try {
-      const rawJson = await readFile(candidate.rawPath, "utf8");
+      const rawJson = sanitizeArchiveText(await readFile(candidate.rawPath, "utf8"));
       const archive = parseArchive(candidate, rawJson);
       const counts = countsFromMeetings(archive.meetings ?? []);
       let dbAttempts = 0;

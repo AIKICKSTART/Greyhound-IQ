@@ -14,7 +14,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/app/actions";
-import { PageHero } from "@/components/page-hero";
+import { PageTitle } from "@/components/page-title";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { safeQuery } from "@/lib/db";
@@ -28,14 +28,16 @@ export const metadata = {
   description: "Review your GreyhoundIQ marketing notification preferences.",
 };
 
-const PANEL_CLASS = "giq-panel p-6";
-const ACTION_CLASS = "giq-outline-action";
+const PANEL_CLASS = "giq-panel p-5 sm:p-6";
+const ACTION_CLASS =
+  "giq-outline-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]";
 const WITHHELD_SOURCE_LABEL = "Withheld";
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-AU", {
   day: "2-digit",
   hour: "2-digit",
   minute: "2-digit",
   month: "short",
+  timeZone: "Australia/Sydney",
   timeZoneName: "short",
   year: "numeric",
 });
@@ -62,36 +64,46 @@ export default async function AccountNotificationsPage() {
 
   return (
     <div>
-      <PageHero
-        image="/images/wentworth-gate-hero.webp"
-        title={
-          <>
-            Account
-            <br />
-            <span className="gradient-text">notifications.</span>
-          </>
-        }
-        subtitle="Read-only marketing notification preferences for your signed-in account."
-      />
+      <header className="relative overflow-hidden border-b border-white/[0.07] bg-[linear-gradient(135deg,hsl(var(--card)/0.92),hsl(var(--background))_72%)]">
+        <div
+          aria-hidden="true"
+          className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[hsl(var(--primary-bright)/0.12)] blur-3xl"
+        />
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-8">
+          <div className="max-w-2xl">
+            <p className="program-label">Account settings</p>
+            <PageTitle className="mt-2">
+              Notifications
+            </PageTitle>
+            <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
+              Review in-app updates and your recorded communication preferences.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="giq-status-pill giq-status-pill-purple min-h-8 px-3">
+              <Bell className="h-3.5 w-3.5" aria-hidden="true" />
+              {unreadCount} unread
+            </span>
+            <Link href="/account" className={ACTION_CLASS}>
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              Back to account
+            </Link>
+          </div>
+        </div>
+      </header>
 
-      <section className="mx-auto max-w-5xl px-6 py-12">
-        <Link href="/account" className={`${ACTION_CLASS} mb-6 w-fit`}>
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to account
-        </Link>
-
+      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         <section className={`${PANEL_CLASS} mb-6`}>
-          <div className="mb-5 flex items-center gap-3">
+          <div className="mb-5 flex flex-wrap items-center gap-3">
             <Bell className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-            <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+            <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
               In-app notifications
             </h2>
-            <span className="giq-status-pill">{unreadCount} unread</span>
           </div>
 
           {unreadCount > 0 ? (
             <form action={markAllNotificationsRead} className="mb-4">
-              <button className="giq-outline-action min-h-9 px-3 text-[12px]">
+              <button className={`${ACTION_CLASS} px-3 text-[12px]`}>
                 <CheckCheck className="h-3.5 w-3.5" />
                 Mark all read
               </button>
@@ -108,7 +120,7 @@ export default async function AccountNotificationsPage() {
         <section className={PANEL_CLASS}>
           <div className="mb-5 flex items-center gap-3">
             <Bell className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-            <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+            <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
               Marketing preferences
             </h2>
           </div>
@@ -142,6 +154,7 @@ function getMarketingPreferences(
       const rows = await withDbRequestContext(current, (tx) =>
         tx.marketingPreference.findMany({
           orderBy: [{ updatedAt: "desc" }],
+          take: 20,
           select: {
             channel: true,
             createdAt: true,
@@ -171,7 +184,12 @@ function NotificationList({ records }: { records: NotificationRecord[] }) {
       {records.map((record) => {
         const readAction = markNotificationRead.bind(null, record.id);
         return (
-          <article key={record.id} className="giq-subpanel p-4">
+          <article
+            key={record.id}
+            className={`giq-subpanel p-4 sm:p-5 ${
+              record.readAt ? "" : "border-[hsl(var(--primary-light)/0.28)]"
+            }`}
+          >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -202,7 +220,7 @@ function NotificationList({ records }: { records: NotificationRecord[] }) {
                 {record.href ? (
                   <Link
                     href={record.href}
-                    className="giq-outline-action min-h-9 px-3 text-[12px]"
+                    className={`${ACTION_CLASS} px-3 text-[12px]`}
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                     Open
@@ -210,7 +228,7 @@ function NotificationList({ records }: { records: NotificationRecord[] }) {
                 ) : null}
                 {!record.readAt ? (
                   <form action={readAction}>
-                    <button className="giq-outline-action min-h-9 px-3 text-[12px]">
+                    <button className={`${ACTION_CLASS} px-3 text-[12px]`}>
                       <CheckCheck className="h-3.5 w-3.5" />
                       Mark read
                     </button>
@@ -231,10 +249,15 @@ function MarketingPreferenceTable({
   records: MarketingPreferenceRecord[];
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-white/[0.06]">
+    <div
+      className="giq-table-shell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
+      role="region"
+      aria-label="Scrollable marketing preference records"
+      tabIndex={0}
+    >
       <table className="w-full min-w-[720px] border-collapse text-left text-[13px]">
         <thead>
-          <tr className="border-b border-white/[0.06] bg-white/[0.03] text-[11px] font-semibold uppercase text-[hsl(var(--subtle-foreground))]">
+          <tr className="giq-table-head">
             <th className="px-4 py-3">Channel</th>
             <th className="px-4 py-3">Opt-in status</th>
             <th className="px-4 py-3">Source label</th>
@@ -246,7 +269,7 @@ function MarketingPreferenceTable({
           {records.map((record, index) => (
             <tr
               key={`${record.channel}-${record.updatedAt.toISOString()}-${index}`}
-              className="border-b border-white/[0.05] last:border-0"
+              className="giq-table-row"
             >
               <td className="px-4 py-4 font-semibold text-[hsl(var(--foreground))]">
                 {formatLabel(record.channel)}

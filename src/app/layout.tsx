@@ -1,16 +1,46 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { headers } from "next/headers";
 import "@/lib/workos-env";
 import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import "./globals.css";
 import { CookieConsentBanner } from "@/components/cookie-consent";
+import { getCurrentUser, hasTier, isModeratorRole } from "@/lib/auth";
+import {
+  countUnreadMessagesByConversation,
+  listConversationsForProfile,
+} from "@/lib/conversation-service";
+import {
+  HubConversationDock,
+  type HubDockConversation,
+  type HubDockFriend,
+  type HubDockFriendRequest,
+} from "@/components/hub/hub-conversation-dock";
 import { MobileBottomDock } from "@/components/mobile-bottom-dock";
-import { ResponsibleUseAlert } from "@/components/responsible-use-alert";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { JsonLd, organizationSchema, websiteSchema } from "@/components/json-ld";
+import { HomeRouteContent } from "@/components/home-route-content";
+import {
+  JsonLd,
+  organizationSchema,
+  websiteSchema,
+} from "@/components/json-ld";
 import { siteAssetUrl } from "@/lib/storage-paths";
+import { conversationRealtimeChannel } from "@/lib/realtime-service";
+import {
+  listFriendRequestsForProfile,
+  listFriendsForProfile,
+} from "@/lib/friend-service";
+import { InteractiveHelp } from "@/components/interactive-help";
+import { DemoReadOnlyGuard } from "@/components/demo-read-only-guard";
+import { NetworkRecoveryBanner } from "@/components/network-recovery-banner";
+import { AuthenticationNavigationFeedback } from "@/components/authentication-navigation-feedback";
+import {
+  DEMO_ADMIN_DISPLAY_NAME,
+  DEMO_SUPPRESS_OVERLAYS_HEADER,
+  isFullAccessDemo,
+} from "@/lib/demo-access";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -75,14 +105,93 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const auth = await withAuth();
+  const fullAccessDemo = isFullAccessDemo();
+  const auth = fullAccessDemo ? { user: null as null } : await withAuth();
   const initialAuth = { ...auth };
   delete (initialAuth as { accessToken?: unknown }).accessToken;
+  const suppressDemoOverlays =
+    (await headers()).get(DEMO_SUPPRESS_OVERLAYS_HEADER) === "1";
+
+  // The isolated Design Lab/demo runtime must not read production-backed user
+  // or conversation data. Its personas are synthetic and are selected inside
+  // the preview surface rather than inferred from a real session.
+  const user = fullAccessDemo ? null : await getCurrentUser();
+  let conversations: HubDockConversation[] = [];
+  let friends: HubDockFriend[] = [];
+  let requests: HubDockFriendRequest[] = [];
+  let unreadMessages = 0;
+  if (user?.dbUserId && user.profileId) {
+    const current = {
+      dbUserId: user.dbUserId,
+      profileId: user.profileId,
+      profileRole: user.role ?? "member",
+      tier: user.tier,
+    };
+    const [
+      conversationRecords,
+      unreadByConversation,
+      friendRecords,
+      requestRecords,
+    ] = await Promise.all([
+      listConversationsForProfile(current),
+      countUnreadMessagesByConversation(current),
+      listFriendsForProfile(current),
+      listFriendRequestsForProfile(current),
+    ]);
+    unreadMessages = Array.from(unreadByConversation.values()).reduce(
+      (total, count) => total + count,
+      0,
+    );
+    conversations = conversationRecords.slice(0, 12).map((conversation) => {
+      const other =
+        conversation.participantAId === user.profileId
+          ? conversation.participantB
+          : conversation.participantA;
+      const otherActor =
+        conversation.participantAId === user.profileId
+          ? conversation.participantBActor
+          : conversation.participantAActor;
+      const message = conversation.messages[0];
+      const sentByCurrentUser = message?.senderId === user.profileId;
+      return {
+        id: conversation.id,
+        otherName: otherActor?.displayName ?? other.displayName,
+        otherAvatarUrl: otherActor?.avatarUrl ?? other.avatarUrl,
+        otherProfileId: other.id,
+        preview: message
+          ? `${sentByCurrentUser ? "You: " : ""}${message.body}`
+          : "Conversation started",
+        attachmentCount: message?._count.media ?? 0,
+        unread: unreadByConversation.get(conversation.id) ?? 0,
+        personToPerson:
+          conversation.participantAActor?.kind !== "page" &&
+          conversation.participantBActor?.kind !== "page",
+        realtimeChannel: conversationRealtimeChannel(conversation.id),
+      };
+    });
+    friends = friendRecords.map((friend) => ({
+      friendshipId: friend.friendshipId,
+      profileId: friend.profileId,
+      displayName: friend.displayName,
+      avatarUrl: friend.avatarUrl,
+      conversationId: friend.conversationId,
+    }));
+    requests = requestRecords.map((request) => ({
+      friendshipId: request.friendshipId,
+      direction: request.direction,
+      profileId: request.profileId,
+      displayName: request.displayName,
+      avatarUrl: request.avatarUrl,
+      kennelName: request.kennelName,
+      state: request.state,
+    }));
+  }
 
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body
-        className={`${inter.className} antialiased min-h-screen`}
+        data-demo-read-only={fullAccessDemo ? "true" : undefined}
+        className={`${inter.className} ${user ? "giq-member-shell" : "giq-public-shell"} antialiased min-h-screen`}
         style={{ fontFeatureSettings: '"cv01", "ss03", "rlig" 1, "calt" 1' }}
       >
         <JsonLd data={[organizationSchema, websiteSchema]} />
@@ -93,14 +202,58 @@ export default async function RootLayout({
           >
             Skip to main content
           </a>
+          <NetworkRecoveryBanner />
+          <AuthenticationNavigationFeedback />
           <div className="flex min-h-screen flex-col">
-            <SiteHeader />
-            <ResponsibleUseAlert />
-            <main id="main-content" className="min-h-screen flex-1">{children}</main>
-            <SiteFooter />
+            <SiteHeader user={user} unreadMessages={unreadMessages} />
+            {fullAccessDemo && !suppressDemoOverlays ? (
+              <DemoReadOnlyGuard personaName={DEMO_ADMIN_DISPLAY_NAME} />
+            ) : null}
+            <main
+              id="main-content"
+              data-onboarding-target="racing-page-content community-page-content public-page-content marketplace-page-content agents-page-content design-lab-page-content"
+              className="flex-1"
+            >
+              {children}
+            </main>
+            {user ? (
+              <HomeRouteContent home={<SiteFooter />} app={null} />
+            ) : (
+              <SiteFooter />
+            )}
           </div>
-          <MobileBottomDock />
-          <CookieConsentBanner />
+          {!suppressDemoOverlays && !fullAccessDemo ? (
+            <InteractiveHelp
+              allowAutomaticOpen={Boolean(user)}
+              allowContextualAutomaticOpen
+              firstName={user?.firstName || user?.name || "Visitor"}
+              profileScope={user?.profileId}
+              role={user?.role ?? "visitor"}
+              showFloatingLauncher
+              tier={user?.tier ?? "free"}
+            />
+          ) : null}
+          {user && !suppressDemoOverlays && (
+            <>
+              <MobileBottomDock
+                unreadMessages={unreadMessages}
+                canAccessAdmin={isModeratorRole(user.role)}
+              />
+              <HubConversationDock
+                mode="floating"
+                externalLauncher
+                layout={user.messengerLayout}
+                conversations={conversations}
+                friends={friends}
+                requests={requests}
+                selfProfileId={user.profileId!}
+                canStartCall={hasTier(user.tier, "pro_plus")}
+              />
+            </>
+          )}
+          {!suppressDemoOverlays && !fullAccessDemo ? (
+            <CookieConsentBanner />
+          ) : null}
         </AuthKitProvider>
       </body>
     </html>

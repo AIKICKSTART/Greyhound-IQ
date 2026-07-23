@@ -2,17 +2,21 @@ export const SITE_ASSETS_BUCKET = "site-assets";
 export const PUBLIC_USER_MEDIA_BUCKET = "public-user-media";
 export const PRIVATE_USER_MEDIA_BUCKET = "private-user-media";
 
-export const SUPABASE_STORAGE_BUCKETS = [
+export const OBJECT_STORAGE_BUCKETS = [
   SITE_ASSETS_BUCKET,
   PUBLIC_USER_MEDIA_BUCKET,
   PRIVATE_USER_MEDIA_BUCKET,
 ] as const;
 
-export type SupabaseStorageBucket = (typeof SUPABASE_STORAGE_BUCKETS)[number];
+export type ObjectStorageBucket = (typeof OBJECT_STORAGE_BUCKETS)[number];
 
-const PUBLIC_BUCKETS = new Set<SupabaseStorageBucket>([
+// Transitional compatibility aliases. Runtime storage callers can move to the
+// provider-neutral names without changing the current Supabase implementation.
+export const SUPABASE_STORAGE_BUCKETS = OBJECT_STORAGE_BUCKETS;
+export type SupabaseStorageBucket = ObjectStorageBucket;
+
+const PUBLIC_BUCKETS = new Set<ObjectStorageBucket>([
   SITE_ASSETS_BUCKET,
-  PUBLIC_USER_MEDIA_BUCKET,
 ]);
 
 const SITE_ASSET_SECTIONS: Record<string, string> = {
@@ -68,11 +72,17 @@ const SITE_ASSET_SECTIONS: Record<string, string> = {
 export function isSupabaseStorageBucket(
   value: string
 ): value is SupabaseStorageBucket {
-  return SUPABASE_STORAGE_BUCKETS.includes(value as SupabaseStorageBucket);
+  return isObjectStorageBucket(value);
+}
+
+export function isObjectStorageBucket(
+  value: string
+): value is ObjectStorageBucket {
+  return OBJECT_STORAGE_BUCKETS.includes(value as ObjectStorageBucket);
 }
 
 export function isPublicStorageBucket(bucket: string) {
-  return PUBLIC_BUCKETS.has(bucket as SupabaseStorageBucket);
+  return PUBLIC_BUCKETS.has(bucket as ObjectStorageBucket);
 }
 
 export function mediaTypeForMimeType(mimeType: string) {
@@ -84,10 +94,11 @@ export function mediaTypeForMimeType(mimeType: string) {
 }
 
 export function publicStorageUrl(
-  bucket: SupabaseStorageBucket,
+  bucket: ObjectStorageBucket,
   objectPath: string
 ) {
   if (!isPublicStorageBucket(bucket)) return null;
+  if (selectedObjectStorageProvider() !== "supabase") return null;
   const supabaseUrl = configuredSupabaseUrl();
   if (!supabaseUrl) return null;
 
@@ -102,6 +113,10 @@ export function siteAssetObjectPath(localPath: string) {
   const filename = normalized.split("/").filter(Boolean).pop();
   if (!filename) return "site/general/asset";
 
+  if (normalized.startsWith("images/tracks/")) {
+    return `site/tracks/${normalized.slice("images/tracks/".length)}`;
+  }
+
   const section = SITE_ASSET_SECTIONS[filename] ?? "general";
   return `site/${section}/${filename}`;
 }
@@ -114,9 +129,16 @@ export function siteAssetUrl(localPath: string) {
 
 function shouldUseSupabaseSiteAssets() {
   return (
-    process.env.NEXT_PUBLIC_USE_SUPABASE_SITE_ASSETS === "true" ||
-    process.env.USE_SUPABASE_SITE_ASSETS === "true"
+    selectedObjectStorageProvider() === "supabase" &&
+    (process.env.NEXT_PUBLIC_USE_SUPABASE_SITE_ASSETS === "true" ||
+      process.env.USE_SUPABASE_SITE_ASSETS === "true")
   );
+}
+
+function selectedObjectStorageProvider() {
+  const value = process.env.OBJECT_STORAGE_PROVIDER?.trim().toLowerCase();
+  if (!value || value === "supabase") return "supabase";
+  return value === "gcs" ? "gcs" : null;
 }
 
 function configuredSupabaseUrl() {

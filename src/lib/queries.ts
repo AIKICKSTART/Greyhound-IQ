@@ -3,10 +3,21 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { safeQuery } from "@/lib/db";
 import {
+  withDbAnonymousQueryDeadline,
   withDbRequestContext,
+  type DbContextClient,
   type DbContextUser,
 } from "@/lib/db-context";
 import { cached } from "@/lib/ttl-cache";
+import {
+  DOG_IDENTITY_SELECT,
+  clusterDogRows,
+  fetchRowsByNames,
+  mergeCluster,
+  resolveDogIdentity,
+  type DogIdentityRow,
+  type MergedDogIdentity,
+} from "@/lib/dog-identity";
 import { getApproximateTableCounts } from "@/lib/db-stats";
 import {
   formatRaceDateInput,
@@ -14,12 +25,43 @@ import {
   raceClockTimeWindow,
   raceDateWindow,
 } from "@/lib/race-time";
+import { resolveRaceSearchDate } from "@/lib/race-search";
 import { canonicalTrackName, trackNameAliasKey } from "@/lib/live/track-name";
+import { parseMarketplaceOffset } from "@/lib/marketplace-navigation";
 
 const MARKETPLACE_CARD_MEDIA_LIMIT = 6;
+const RACE_DETAIL_RUNNER_LIMIT = 12;
+const RACE_DETAIL_VIDEO_LIMIT = 16;
+const RACE_DETAIL_MEETING_RACE_LIMIT = 24;
+const RACE_DETAIL_DOG_FORM_LIMIT = 6;
+const RACE_DETAIL_DOG_PROFILE_FORM_LIMIT = 8;
+const RACE_DETAIL_PREVIOUS_RUNNER_LIMIT = 24;
+const TRACK_DETAIL_MEETING_LIMIT = 8;
+const TRACK_DETAIL_RACE_LIMIT = 16;
+const TRACK_DETAIL_RUNNER_LIMIT = 12;
+const TRACK_DETAIL_RACE_QUERY_LIMIT =
+  TRACK_DETAIL_MEETING_LIMIT * TRACK_DETAIL_RACE_LIMIT;
+const TRACK_DETAIL_RUNNER_QUERY_LIMIT =
+  TRACK_DETAIL_RACE_QUERY_LIMIT * TRACK_DETAIL_RUNNER_LIMIT;
+const RACE_EXPLORER_MEETING_LIMIT = 128;
+const RACE_EXPLORER_RACE_LIMIT = 2_048;
+const RACE_EXPLORER_STATE_LIMIT = 16;
+const RACE_EXPLORER_REPLAY_LIMIT = 8;
+const PUBLIC_RACING_QUERY_DEADLINE = Object.freeze({
+  statementTimeoutMilliseconds: 10_000,
+  transactionTimeoutMilliseconds: 30_000,
+});
 
 const marketplaceListingCardInclude = {
-  profile: { select: { id: true, displayName: true, verified: true } },
+  profile: {
+    select: {
+      id: true,
+      displayName: true,
+      verified: true,
+      state: true,
+      createdAt: true,
+    },
+  },
   category: { select: { id: true, slug: true, name: true } },
   location: {
     select: {
@@ -51,6 +93,14 @@ const marketplaceListingCardInclude = {
     select: {
       id: true,
       name: true,
+      colour: true,
+      sex: true,
+      careerStarts: true,
+      careerWins: true,
+      careerSeconds: true,
+      careerThirds: true,
+      prizeMoney: true,
+      winPercentage: true,
       sire: { select: { name: true } },
       dam: { select: { name: true } },
     },
@@ -77,58 +127,146 @@ export async function getTodaysMeetings() {
   const meetingWhere: Prisma.MeetingWhereInput = {
     races: { some: raceWhere },
   };
-  const meetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
+  const meetings = await withDbAnonymousQueryDeadline(
+    (tx) => getRaceExplorerMeetings(meetingWhere, raceWhere, tx),
+    PUBLIC_RACING_QUERY_DEADLINE,
+  );
 
   return orderMeetingsByFirstRaceTime(meetings);
 }
 
-export const getRaceById = cache(async (id: string) => {
+export const getMeetingById = cache(async (id: string) => {
   return safeQuery(
     () =>
-      prisma.race.findUnique({
+      prisma.meeting.findUnique({
         where: { id },
-        include: {
-          meeting: { include: { track: true } },
-          runners: {
-            orderBy: { boxNumber: "asc" },
-            include: {
-              dog: {
-                include: {
-                  trainer: true,
-                  formEntries: {
-                    where: { OR: [{ raceId: null }, { raceId: { not: id } }] },
-                    orderBy: { date: "desc" },
-                    take: 6,
-                  },
-                  profileForms: {
-                    where: { hasVideo: true },
-                    orderBy: { date: "desc" },
-                    take: 8,
+        select: {
+          id: true,
+          meetingDate: true,
+          meetingType: true,
+          sourceProvider: true,
+          lastSyncedAt: true,
+          track: {
+            select: {
+              id: true,
+              name: true,
+              state: true,
+            },
+          },
+          races: {
+            orderBy: [{ raceNumber: "asc" }, { raceTime: "asc" }],
+            take: 24,
+            select: {
+              id: true,
+              raceNumber: true,
+              name: true,
+              raceTime: true,
+              distance: true,
+              grade: true,
+              prizeMoney: true,
+              resultStatus: true,
+              replayUrl: true,
+              _count: { select: { runners: true } },
+              runners: {
+                where: { result: { isNot: null } },
+                orderBy: [{ boxNumber: "asc" }, { id: "asc" }],
+                take: 24,
+                select: {
+                  boxNumber: true,
+                  dog: { select: { id: true, name: true } },
+                  result: {
                     select: {
-                      id: true,
-                      sourceProvider: true,
-                      raceUrl: true,
-                      date: true,
-                      trackCode: true,
-                      trackName: true,
-                      raceName: true,
-                      finishText: true,
                       finishingPosition: true,
-                      distance: true,
-                      grade: true,
                       runningTime: true,
-                      winnerTime: true,
-                      hasVideo: true,
+                      margin: true,
                     },
                   },
                 },
               },
-              trainer: true,
-              result: true,
+              videos: {
+                where: { streamUrl: { not: null } },
+                orderBy: { fetchedAt: "desc" },
+                take: 1,
+                select: { id: true, streamUrl: true },
+              },
+            },
+          },
+        },
+      }),
+    null,
+  );
+});
+
+export const getRaceById = cache(async (id: string) => {
+  return safeQuery(
+    () =>
+      withDbAnonymousQueryDeadline(async (tx) => {
+      const race = await tx.race.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          raceNumber: true,
+          name: true,
+          raceTime: true,
+          distance: true,
+          grade: true,
+          prizeMoney: true,
+          resultStatus: true,
+          replayUrl: true,
+          photoFinishUrl: true,
+          sourceProvider: true,
+          sourceId: true,
+          meeting: {
+            select: {
+              id: true,
+              meetingDate: true,
+              track: { select: { name: true, state: true } },
+              races: {
+                orderBy: [{ raceNumber: "asc" }, { raceTime: "asc" }],
+                take: RACE_DETAIL_MEETING_RACE_LIMIT,
+                select: {
+                  id: true,
+                  raceNumber: true,
+                  raceTime: true,
+                  distance: true,
+                  grade: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          runners: {
+            orderBy: { boxNumber: "asc" },
+            take: RACE_DETAIL_RUNNER_LIMIT,
+            select: {
+              id: true,
+              boxNumber: true,
+              weight: true,
+              scratched: true,
+              dog: {
+                select: {
+                  id: true,
+                  name: true,
+                  colour: true,
+                  sex: true,
+                  trainer: { select: { name: true } },
+                },
+              },
+              trainer: { select: { name: true } },
+              result: {
+                select: {
+                  finishingPosition: true,
+                  runningTime: true,
+                  margin: true,
+                  prizeMoneyWon: true,
+                  splitTime: true,
+                },
+              },
             },
           },
           videos: {
             orderBy: { fetchedAt: "desc" },
+            take: RACE_DETAIL_VIDEO_LIMIT,
             select: {
               id: true,
               sourceProvider: true,
@@ -147,31 +285,59 @@ export const getRaceById = cache(async (id: string) => {
             },
           },
         },
-      }),
+      });
+      if (!race) return null;
+
+      const dogIds = [...new Set(race.runners.map((runner) => runner.dog.id))];
+      const [formRows, profileFormRows] = await Promise.all([
+        getBoundedRaceDetailFormEntries(dogIds, id, tx),
+        getBoundedRaceDetailProfileForms(dogIds, tx),
+      ]);
+      const formEntriesByDog = groupRowsByKey(formRows, "dogId");
+      const profileFormsByDog = groupRowsByKey(profileFormRows, "dogId");
+
+      return {
+        ...race,
+        runners: race.runners.map((runner) => ({
+          ...runner,
+          dog: {
+            ...runner.dog,
+            formEntries: (formEntriesByDog.get(runner.dog.id) ?? []).map(
+              (entry) => omitGroupingKey(entry, "dogId"),
+            ),
+            profileForms: (profileFormsByDog.get(runner.dog.id) ?? []).map(
+              (entry) => omitGroupingKey(entry, "dogId"),
+            ),
+          },
+        })),
+      };
+      }, PUBLIC_RACING_QUERY_DEADLINE),
     null
   );
 });
 
 export async function getPreviousRaceVideoRunners(raceId: string) {
-  const currentRace = await safeQuery(
+  return safeQuery(
     () =>
-      prisma.race.findUnique({
+      withDbAnonymousQueryDeadline(async (tx) => {
+      const currentRace = await tx.race.findUnique({
         where: { id: raceId },
         select: {
           raceTime: true,
-          runners: { select: { dogId: true } },
+          runners: {
+            take: RACE_DETAIL_RUNNER_LIMIT,
+            select: { dogId: true },
+          },
         },
-      }),
-    null
-  );
-  if (!currentRace) return [];
+      });
+      if (!currentRace) return [];
 
-  const dogIds = [...new Set(currentRace.runners.map((runner) => runner.dogId))];
-  if (dogIds.length === 0) return [];
+      const dogIds = [
+        ...new Set(currentRace.runners.map((runner) => runner.dogId)),
+      ];
+      if (dogIds.length === 0) return [];
 
-  return safeQuery(
-    () =>
-      prisma.runner.findMany({
+      const candidates = await tx.runner.findMany({
         where: {
           dogId: { in: dogIds },
           raceId: { not: raceId },
@@ -181,38 +347,240 @@ export async function getPreviousRaceVideoRunners(raceId: string) {
           },
         },
         orderBy: { race: { raceTime: "desc" } },
-        take: 24,
-        include: {
+        take: RACE_DETAIL_PREVIOUS_RUNNER_LIMIT,
+        select: {
           dog: { select: { name: true } },
-          result: true,
+          result: {
+            select: { finishingPosition: true, runningTime: true },
+          },
           race: {
-            include: {
-              meeting: { include: { track: true } },
-              videos: {
-                orderBy: { fetchedAt: "desc" },
-                select: {
-                  id: true,
-                  sourceProvider: true,
-                  sourceId: true,
-                  kind: true,
-                  pageUrl: true,
-                  embedSourceType: true,
-                  sourceStatus: true,
-                  sourceCode: true,
-                  streamUrl: true,
-                  streamContentType: true,
-                  title: true,
-                  description: true,
-                  fetchedAt: true,
-                  lastSyncedAt: true,
-                },
+            select: {
+              id: true,
+              raceNumber: true,
+              name: true,
+              raceTime: true,
+              distance: true,
+              grade: true,
+              replayUrl: true,
+              sourceProvider: true,
+              sourceId: true,
+              meeting: {
+                select: { track: { select: { name: true } } },
               },
             },
           },
         },
-      }),
+      });
+      const videosByRace = groupRowsByKey(
+        await getBoundedRaceDetailVideos(
+          [...new Set(candidates.map((candidate) => candidate.race.id))],
+          tx,
+        ),
+        "raceId",
+      );
+      return candidates.map((candidate) => ({
+        ...candidate,
+        race: {
+          ...candidate.race,
+          videos: (videosByRace.get(candidate.race.id) ?? []).map(
+            (video) => omitGroupingKey(video, "raceId"),
+          ),
+        },
+      }));
+      }, PUBLIC_RACING_QUERY_DEADLINE),
     []
   );
+}
+
+type RaceDetailFormEntryRow = {
+  dogId: string;
+  finish: number | null;
+  date: Date;
+  trackId: string | null;
+};
+
+type RaceDetailProfileFormRow = {
+  dogId: string;
+  id: string;
+  sourceProvider: string;
+  raceUrl: string;
+  date: Date;
+  trackCode: string | null;
+  trackName: string | null;
+  raceName: string | null;
+  finishText: string | null;
+  finishingPosition: number | null;
+  distance: number | null;
+  grade: string | null;
+  runningTime: number | null;
+  winnerTime: number | null;
+  hasVideo: boolean;
+};
+
+type RaceDetailVideoRow = {
+  raceId: string;
+  id: string;
+  sourceProvider: string;
+  sourceId: string;
+  kind: string;
+  pageUrl: string;
+  embedSourceType: string | null;
+  sourceStatus: number | null;
+  sourceCode: string | null;
+  streamUrl: string | null;
+  streamContentType: string | null;
+  title: string | null;
+  description: string | null;
+  fetchedAt: Date | null;
+  lastSyncedAt: Date | null;
+};
+
+function getBoundedRaceDetailFormEntries(
+  dogIds: string[],
+  raceId: string,
+  db: DbContextClient,
+) {
+  if (dogIds.length === 0) return Promise.resolve<RaceDetailFormEntryRow[]>([]);
+  const values = Prisma.join(dogIds.map((dogId) => Prisma.sql`(${dogId})`));
+  return db.$queryRaw<RaceDetailFormEntryRow[]>(Prisma.sql`
+    SELECT
+      bounded."dogId",
+      bounded.finish,
+      bounded.date,
+      bounded."trackId"
+    FROM (VALUES ${values}) AS selected("dogId")
+    CROSS JOIN LATERAL (
+      SELECT f."dogId", f.finish, f.date, f."trackId"
+      FROM "FormEntry" AS f
+      WHERE f."dogId" = selected."dogId"
+        AND (f."raceId" IS NULL OR f."raceId" <> ${raceId})
+      ORDER BY f.date DESC, f.id DESC
+      LIMIT ${RACE_DETAIL_DOG_FORM_LIMIT}
+    ) AS bounded
+    ORDER BY bounded."dogId" ASC, bounded.date DESC
+  `);
+}
+
+function getBoundedRaceDetailProfileForms(
+  dogIds: string[],
+  db: DbContextClient,
+) {
+  if (dogIds.length === 0) return Promise.resolve<RaceDetailProfileFormRow[]>([]);
+  const values = Prisma.join(dogIds.map((dogId) => Prisma.sql`(${dogId})`));
+  return db.$queryRaw<RaceDetailProfileFormRow[]>(Prisma.sql`
+    SELECT
+      bounded."dogId",
+      bounded.id,
+      bounded."sourceProvider",
+      bounded."raceUrl",
+      bounded.date,
+      bounded."trackCode",
+      bounded."trackName",
+      bounded."raceName",
+      bounded."finishText",
+      bounded."finishingPosition",
+      bounded.distance,
+      bounded.grade,
+      bounded."runningTime",
+      bounded."winnerTime",
+      bounded."hasVideo"
+    FROM (VALUES ${values}) AS selected("dogId")
+    CROSS JOIN LATERAL (
+      SELECT
+        p."dogId",
+        p.id,
+        p."sourceProvider",
+        p."raceUrl",
+        p.date,
+        p."trackCode",
+        p."trackName",
+        p."raceName",
+        p."finishText",
+        p."finishingPosition",
+        p.distance,
+        p.grade,
+        p."runningTime",
+        p."winnerTime",
+        p."hasVideo"
+      FROM "DogProfileForm" AS p
+      WHERE p."dogId" = selected."dogId" AND p."hasVideo" = true
+      ORDER BY p.date DESC, p.id DESC
+      LIMIT ${RACE_DETAIL_DOG_PROFILE_FORM_LIMIT}
+    ) AS bounded
+    ORDER BY bounded."dogId" ASC, bounded.date DESC
+  `);
+}
+
+function getBoundedRaceDetailVideos(
+  raceIds: string[],
+  db: DbContextClient,
+) {
+  if (raceIds.length === 0) return Promise.resolve<RaceDetailVideoRow[]>([]);
+  const values = Prisma.join(raceIds.map((raceId) => Prisma.sql`(${raceId})`));
+  return db.$queryRaw<RaceDetailVideoRow[]>(Prisma.sql`
+    SELECT
+      bounded."raceId",
+      bounded.id,
+      bounded."sourceProvider",
+      bounded."sourceId",
+      bounded.kind,
+      bounded."pageUrl",
+      bounded."embedSourceType",
+      bounded."sourceStatus",
+      bounded."sourceCode",
+      bounded."streamUrl",
+      bounded."streamContentType",
+      bounded.title,
+      bounded.description,
+      bounded."fetchedAt",
+      bounded."lastSyncedAt"
+    FROM (VALUES ${values}) AS selected("raceId")
+    CROSS JOIN LATERAL (
+      SELECT
+        v."raceId",
+        v.id,
+        v."sourceProvider",
+        v."sourceId",
+        v.kind,
+        v."pageUrl",
+        v."embedSourceType",
+        v."sourceStatus",
+        v."sourceCode",
+        v."streamUrl",
+        v."streamContentType",
+        v.title,
+        v.description,
+        v."fetchedAt",
+        v."lastSyncedAt"
+      FROM "RaceVideo" AS v
+      WHERE v."raceId" = selected."raceId"
+      ORDER BY v."fetchedAt" DESC, v.id ASC
+      LIMIT ${RACE_DETAIL_VIDEO_LIMIT}
+    ) AS bounded
+    ORDER BY bounded."raceId" ASC, bounded."fetchedAt" DESC, bounded.id ASC
+  `);
+}
+
+function groupRowsByKey<
+  TKey extends "dogId" | "raceId",
+  TRow extends Record<TKey, string>,
+>(rows: TRow[], key: TKey) {
+  const groups = new Map<string, TRow[]>();
+  for (const row of rows) {
+    const group = groups.get(row[key]) ?? [];
+    group.push(row);
+    groups.set(row[key], group);
+  }
+  return groups;
+}
+
+function omitGroupingKey<TRow extends object, TKey extends keyof TRow>(
+  row: TRow,
+  key: TKey,
+): Omit<TRow, TKey> {
+  const { [key]: omitted, ...remaining } = row;
+  void omitted;
+  return remaining;
 }
 
 // Minimal payload: only the fields the search dropdown renders. Heavy relations
@@ -222,6 +590,7 @@ const dogSearchSelect = {
   name: true,
   colour: true,
   sex: true,
+  whelpDate: true,
   careerStarts: true,
   careerWins: true,
   prizeMoney: true,
@@ -236,27 +605,39 @@ type DogSearchResult = Prisma.DogGetPayload<{ select: typeof dogSearchSelect }> 
 
 export async function searchDogs(
   query: string,
-  limit = 20
+  limit = 20,
+  // Breeding surfaces (pedigree explorer, sire/dam pickers) must find studbook
+  // sires and dams that never raced; the racing directory keeps racing-only.
+  includeNonRacing = false
 ): Promise<DogSearchResult[]> {
   const trimmed = query?.trim().replace(/\s+/g, " ").slice(0, 80);
   if (!trimmed) return [];
+  const dogSearchLimit = Math.min(Math.max(Math.trunc(limit), 1), 100);
+  const scope = includeNonRacing ? "all" : "racing";
 
   // 1-2 char prefixes are the hottest autocomplete keystrokes and the slowest
   // (widest match set). There are only ~a few thousand distinct short prefixes
   // and the result is identical for every user, so cache them for a minute.
   if (trimmed.length < 3) {
-    return cached(`dogsearch:${trimmed.toLowerCase()}:${limit}`, 60_000, () =>
-      runDogSearch(trimmed, limit)
+    return cached(`dogsearch:${scope}:${trimmed.toLowerCase()}:${dogSearchLimit}`, 60_000, () =>
+      runDogSearch(trimmed, dogSearchLimit, includeNonRacing)
     );
   }
-  return runDogSearch(trimmed, limit);
+  return runDogSearch(trimmed, dogSearchLimit, includeNonRacing);
 }
 
 async function runDogSearch(
   trimmed: string,
-  limit: number
+  limit: number,
+  includeNonRacing = false
 ): Promise<DogSearchResult[]> {
   const prefixPattern = `${escapeLikePattern(trimmed)}%`;
+  const racedFilter = includeNonRacing
+    ? Prisma.empty
+    : Prisma.sql`AND EXISTS (SELECT 1 FROM "Runner" r WHERE r."dogId" = d.id)`;
+  // Breeding scope overfetches because identity dedupe below may collapse
+  // several ranked rows into one dog; the final list is sliced back to limit.
+  const fetchLimit = includeNonRacing ? Math.min(limit * 3, 100) : limit;
 
   // pg_trgm needs 3+ chars to be index-useful; a 1-2 char "%x%" contains scan
   // would seq-scan 200k+ rows. For short queries do a case-insensitive prefix
@@ -270,16 +651,48 @@ async function runDogSearch(
               SELECT d.id
               FROM "Dog" d
               WHERE lower(d.name) LIKE lower(${prefixPattern}) ESCAPE '\\'
-                AND EXISTS (SELECT 1 FROM "Runner" r WHERE r."dogId" = d.id)
+                ${racedFilter}
               ORDER BY d.name ASC
-              LIMIT ${limit}
+              LIMIT ${fetchLimit}
             `,
           []
         )
-      : await searchDogsTrigram(trimmed, prefixPattern, limit);
+      : await searchDogsTrigram(trimmed, prefixPattern, fetchLimit, racedFilter);
 
   if (ranked.length === 0) return [];
-  const ids = ranked.map((row) => row.id);
+  let ids = ranked.map((row) => row.id);
+  // Breeding scope bridges split identities (racing row + studbook row for the
+  // same real dog) so the picker shows one dog once. Racing scope already
+  // excludes studbook-only rows, so it keeps the untouched fast path.
+  let mergedByMemberId: Map<string, MergedDogIdentity> | null = null;
+  if (includeNonRacing) {
+    const identityRows = await safeQuery(
+      () =>
+        prisma.dog.findMany({
+          where: { id: { in: ids } },
+          select: DOG_IDENTITY_SELECT,
+          take: 100,
+        }),
+      [] as DogIdentityRow[]
+    );
+    const twins = await fetchRowsByNames(identityRows.map((row) => row.name));
+    const poolById = new Map<string, DogIdentityRow>();
+    for (const row of [...identityRows, ...twins]) poolById.set(row.id, row);
+    mergedByMemberId = new Map();
+    for (const cluster of clusterDogRows([...poolById.values()])) {
+      const merged = mergeCluster(cluster);
+      for (const member of cluster) mergedByMemberId.set(member.id, merged);
+    }
+    const seen = new Set<string>();
+    const deduped: string[] = [];
+    for (const id of ids) {
+      const primary = mergedByMemberId.get(id)?.primaryId ?? id;
+      if (seen.has(primary)) continue;
+      seen.add(primary);
+      deduped.push(primary);
+    }
+    ids = deduped;
+  }
 
   // Form counts fetched separately: Prisma's relation _count compiles to a
   // GROUP BY over the whole 5.6M-row FormEntry table joined back in (the
@@ -290,6 +703,8 @@ async function runDogSearch(
       () =>
         prisma.dog.findMany({
           where: { id: { in: ids } },
+          orderBy: { id: "asc" },
+          take: 100,
           select: dogSearchSelect,
         }),
       []
@@ -300,6 +715,8 @@ async function runDogSearch(
           by: ["dogId"],
           where: { dogId: { in: ids } },
           _count: { _all: true },
+          orderBy: { dogId: "asc" },
+          take: 100,
         }),
       []
     ),
@@ -315,8 +732,25 @@ async function runDogSearch(
     ])
   );
   return ids
-    .map((id) => byId.get(id))
-    .filter((dog): dog is DogSearchResult => dog != null);
+    .map((id) => {
+      const dog = byId.get(id);
+      if (!dog) return null;
+      const merged = mergedByMemberId?.get(id);
+      if (!merged) return dog;
+      // Present the bridged view: racing stats from the primary row plus any
+      // display fields (colour/sex/whelp) only the twin row knows.
+      return {
+        ...dog,
+        sex: dog.sex ?? merged.sex,
+        colour: dog.colour ?? merged.colour,
+        whelpDate: dog.whelpDate ?? merged.whelpDate,
+        careerStarts: dog.careerStarts ?? merged.careerStarts,
+        careerWins: dog.careerWins ?? merged.careerWins,
+        prizeMoney: dog.prizeMoney ?? merged.prizeMoney,
+      };
+    })
+    .filter((dog): dog is DogSearchResult => dog != null)
+    .slice(0, limit);
 }
 
 // 3+ char search: each whitespace word must appear anywhere in the name (AND);
@@ -325,7 +759,8 @@ async function runDogSearch(
 function searchDogsTrigram(
   trimmed: string,
   prefixPattern: string,
-  limit: number
+  limit: number,
+  racedFilter: Prisma.Sql = Prisma.sql`AND EXISTS (SELECT 1 FROM "Runner" r WHERE r."dogId" = d.id)`
 ) {
   const words = trimmed.split(" ");
   const wordConditions = Prisma.join(
@@ -342,7 +777,7 @@ function searchDogsTrigram(
         SELECT d.id
         FROM "Dog" d
         WHERE ${wordConditions}
-          AND EXISTS (SELECT 1 FROM "Runner" r WHERE r."dogId" = d.id)
+          ${racedFilter}
         ORDER BY
           CASE WHEN d.name ILIKE ${prefixPattern} ESCAPE '\\' THEN 1 ELSE 0 END DESC,
           similarity(d.name, ${trimmed}) DESC,
@@ -354,11 +789,15 @@ function searchDogsTrigram(
 }
 
 const DOG_TALLY_TTL_MS = 10 * 60 * 1000;
+const DOG_DETAIL_FORM_ENTRY_LIMIT = 64;
+const DOG_DETAIL_PROFILE_FORM_LIMIT = 20;
+const DOG_DETAIL_RUNNER_LIMIT = 20;
+const DOG_DETAIL_OWNERSHIP_LIMIT = 16;
 
 export type DogSearchTallies = {
-  dogs: number;
-  races: number;
-  results: number;
+  dogs: number | null;
+  races: number | null;
+  results: number | null;
 };
 
 // Approximate row counts (pg_class.reltuples) for the dog-search landing page.
@@ -368,55 +807,137 @@ export async function getDogSearchTallies(): Promise<DogSearchTallies> {
   return cached("dog-search-tallies", DOG_TALLY_TTL_MS, async () => {
     const counts = await getApproximateTableCounts(["Dog", "Race", "Result"]);
     return {
-      dogs: counts.get("Dog") ?? 0,
-      races: counts.get("Race") ?? 0,
-      results: counts.get("Result") ?? 0,
+      dogs: counts.get("Dog") ?? null,
+      races: counts.get("Race") ?? null,
+      results: counts.get("Result") ?? null,
     };
   });
 }
 
 export const getDogById = cache(async (id: string) => {
-  return safeQuery(
-    () =>
+  return safeQuery(async () => {
+    const [dog, careerStarts, finishGroups] = await Promise.all([
       prisma.dog.findUnique({
         where: { id },
-        include: {
-          trainer: true,
-          sire: { include: { sire: true, dam: true } },
-          dam: { include: { sire: true, dam: true } },
+        select: {
+          id: true,
+          name: true,
+          earBrand: true,
+          colour: true,
+          sex: true,
+          whelpDate: true,
+          prizeMoney: true,
+          trainer: { select: { name: true } },
+          sire: { select: { name: true } },
+          dam: { select: { name: true } },
           formEntries: {
             orderBy: { date: "desc" },
-            include: { track: true },
+            take: DOG_DETAIL_FORM_ENTRY_LIMIT,
+            select: {
+              id: true,
+              raceId: true,
+              date: true,
+              boxNumber: true,
+              finish: true,
+              time: true,
+              distance: true,
+              grade: true,
+              weight: true,
+              track: { select: { name: true } },
+            },
+          },
+          profileForms: {
+            orderBy: { date: "desc" },
+            take: DOG_DETAIL_PROFILE_FORM_LIMIT,
+            select: {
+              id: true,
+              sourceProvider: true,
+              raceUrl: true,
+              date: true,
+              trackCode: true,
+              trackName: true,
+              finishingPosition: true,
+              boxNumber: true,
+              weight: true,
+              distance: true,
+              grade: true,
+              runningTime: true,
+              firstSectional: true,
+              margin: true,
+              winnerDogName: true,
+              hasVideo: true,
+            },
           },
           runners: {
-            include: {
+            select: {
+              boxNumber: true,
+              weight: true,
               race: {
-                include: { meeting: { include: { track: true } } },
+                select: {
+                  id: true,
+                  raceTime: true,
+                  distance: true,
+                  grade: true,
+                  replayUrl: true,
+                  meeting: {
+                    select: { track: { select: { name: true } } },
+                  },
+                },
               },
-              result: true,
+              result: {
+                select: {
+                  finishingPosition: true,
+                  runningTime: true,
+                  splitTime: true,
+                  margin: true,
+                },
+              },
             },
             orderBy: { createdAt: "desc" },
-            take: 20,
+            take: DOG_DETAIL_RUNNER_LIMIT,
           },
           ownership: {
+            where: { status: "approved" },
             orderBy: [{ verified: "desc" }, { createdAt: "desc" }],
-            include: {
+            take: DOG_DETAIL_OWNERSHIP_LIMIT,
+            select: {
+              id: true,
+              role: true,
+              status: true,
               profile: {
-                include: {
-                  user: {
-                    select: {
-                      email: true,
-                      subscriptionTier: true,
-                    },
-                  },
+                select: {
+                  displayName: true,
+                  kennelName: true,
+                  state: true,
                 },
               },
             },
           },
         },
       }),
-    null
-  );
+      prisma.formEntry.count({ where: { dogId: id } }),
+      prisma.formEntry.groupBy({
+        by: ["finish"],
+        where: { dogId: id, finish: { in: [1, 2, 3] } },
+        _count: { _all: true },
+        orderBy: { finish: "asc" },
+        take: 3,
+      }),
+    ]);
+    if (!dog) return null;
+    return {
+      ...dog,
+      careerStats: {
+        starts: careerStarts,
+        wins:
+          finishGroups.find((row) => row.finish === 1)?._count._all ?? 0,
+        placings: finishGroups.reduce(
+          (total, row) => total + row._count._all,
+          0,
+        ),
+      },
+    };
+  }, null);
 });
 
 // The claimant's own ownership row for a dog, at ANY status. getDogById runs on
@@ -477,6 +998,7 @@ export const getDogPrizeMoney = cache(
             _sum: { prizeMoneyWon: true },
             _count: { _all: true },
             orderBy: { finishingPosition: "asc" },
+            take: 32,
           }),
         []
       ),
@@ -493,24 +1015,43 @@ export const getDogPrizeMoney = cache(
   }
 );
 
+export type ResultsSort = "newest" | "oldest" | "track";
+
 type RecentResultsFilters = {
   date?: string | null;
   trackId?: string | null;
+  sort?: ResultsSort;
   limit?: number;
 };
-
 export async function getRecentResults(filters: RecentResultsFilters = {}) {
+  const boundedFilters = {
+    ...filters,
+    limit: Math.min(Math.max(Math.trunc(filters.limit ?? 50), 1), 100),
+  };
   // The unfiltered default view is identical for every visitor — cache it.
-  if (!filters.date && !filters.trackId) {
-    return cached("results:recent:default", 60_000, () =>
-      fetchRecentResults(filters)
+  if (!boundedFilters.date && !boundedFilters.trackId) {
+    return cached(
+      `results:recent:${boundedFilters.sort ?? "newest"}:${boundedFilters.limit}`,
+      60_000,
+      () => fetchRecentResults(boundedFilters)
     );
   }
-  return fetchRecentResults(filters);
+  return fetchRecentResults(boundedFilters);
 }
 
 async function fetchRecentResults(filters: RecentResultsFilters = {}) {
   const selectedDate = normaliseRaceDateInput(filters.date);
+  const sort = filters.sort ?? "newest";
+  const orderBy: Prisma.RaceOrderByWithRelationInput[] =
+    sort === "oldest"
+      ? [{ raceTime: "asc" }, { id: "asc" }]
+      : sort === "track"
+        ? [
+            { meeting: { track: { name: "asc" } } },
+            { raceTime: "desc" },
+            { id: "desc" },
+          ]
+        : [{ raceTime: "desc" }, { id: "desc" }];
   const raceFilters: Prisma.RaceWhereInput[] = [
     { runners: { some: { result: { isNot: null } } } },
   ];
@@ -528,26 +1069,39 @@ async function fetchRecentResults(filters: RecentResultsFilters = {}) {
         include: {
           meeting: { include: { track: true } },
           runners: {
-            where: { result: { isNot: null } },
-            orderBy: { result: { finishingPosition: "asc" } },
-            take: 3,
-            include: {
+            orderBy: { boxNumber: "asc" },
+            take: 16,
+            select: {
+              id: true,
+              boxNumber: true,
+              weight: true,
+              scratched: true,
               dog: {
-                include: {
-                  trainer: true,
+                select: {
+                  id: true,
+                  name: true,
+                  colour: true,
+                  sex: true,
+                  trainer: { select: { name: true } },
                   formEntries: {
                     orderBy: { date: "desc" },
                     take: 7,
+                    select: {
+                      finish: true,
+                      date: true,
+                      trackId: true,
+                      raceId: true,
+                    },
                   },
                 },
               },
-              trainer: true,
+              trainer: { select: { name: true } },
               result: true,
             },
           },
         },
-        orderBy: { raceTime: "desc" },
-        take: filters.limit ?? 50,
+        orderBy,
+        take: Math.min(Math.max(Math.trunc(filters.limit ?? 50), 1), 100),
       }),
     []
   );
@@ -571,6 +1125,7 @@ export async function getResultFilterOptions() {
             WHERE ra."raceTime" >= now() - make_interval(days => ${RESULT_FILTER_WINDOW_DAYS}::int)
               AND EXISTS (SELECT 1 FROM "Result" res WHERE res."raceId" = ra.id)
             ORDER BY t.state ASC, t.name ASC
+            LIMIT 100
           `,
         []
       ),
@@ -595,10 +1150,11 @@ export async function getResultFilterOptions() {
 }
 
 export async function getUpcomingRaces(days = 7) {
+  const boundedDays = Math.min(Math.max(Math.trunc(days), 1), 31);
   const now = new Date();
   now.setHours(0, 0, 0, 0); // include today's meetings even after some races have run
   const until = new Date();
-  until.setDate(until.getDate() + days);
+  until.setDate(until.getDate() + boundedDays);
   until.setHours(23, 59, 59, 999);
 
   return safeQuery(
@@ -611,10 +1167,17 @@ export async function getUpcomingRaces(days = 7) {
           track: true,
           races: {
             orderBy: { raceTime: "asc" },
-            include: { runners: true },
+            take: 32,
+            include: {
+              runners: {
+                orderBy: [{ boxNumber: "asc" }, { id: "asc" }],
+                take: 16,
+              },
+            },
           },
         },
         orderBy: { meetingDate: "asc" },
+        take: 500,
       }),
     []
   );
@@ -634,27 +1197,33 @@ export async function getRaceExplorerData(filters: RaceExplorerFilters = {}) {
   // request. Any filter/search/date/state/sort bypasses the cache.
   const isDefaultView =
     !filters.date && !filters.state && !filters.q && !filters.status && !filters.sort;
-  if (isDefaultView) {
-    return cached("races:explorer:default", 60_000, () =>
-      fetchRaceExplorerData(filters)
+  const load = () =>
+    withDbAnonymousQueryDeadline(
+      (tx) => fetchRaceExplorerData(filters, tx),
+      PUBLIC_RACING_QUERY_DEADLINE,
     );
+  if (isDefaultView) {
+    return cached("races:explorer:default", 60_000, load);
   }
-  return fetchRaceExplorerData(filters);
+  return load();
 }
 
-async function fetchRaceExplorerData(filters: RaceExplorerFilters = {}) {
+async function fetchRaceExplorerData(
+  filters: RaceExplorerFilters,
+  db: DbContextClient,
+) {
   const [latestRace, states, datasetStats, recentRaceDates] = await Promise.all([
     safeQuery(
       () =>
-        prisma.race.findFirst({
+        db.race.findFirst({
           orderBy: { raceTime: "desc" },
           select: { raceTime: true },
         }),
       null
     ),
-    getRaceStates(),
-    getDatasetStats(),
-    getRecentRaceDates(),
+    getRaceStates(db),
+    getDatasetStats(db),
+    getRecentRaceDates(db),
   ]);
 
   const currentDate = formatRaceDateInput(new Date());
@@ -677,10 +1246,10 @@ async function fetchRaceExplorerData(filters: RaceExplorerFilters = {}) {
         query: searchQuery,
         selectedDate: dateScope.isGlobalSearch ? null : selectedDate,
         selectedState,
-        selectedStatus,
-        gte,
-        lt,
-      })
+      selectedStatus,
+      gte,
+      lt,
+      }, db)
     : null;
   const searchFilter: Prisma.RaceWhereInput | null = searchQuery
     ? rankedRaceIds
@@ -700,29 +1269,38 @@ async function fetchRaceExplorerData(filters: RaceExplorerFilters = {}) {
     ...(selectedState ? { track: { state: selectedState } } : {}),
   };
 
-  const rawMeetings = await getRaceExplorerMeetings(meetingWhere, raceWhere);
+  const rawMeetings = await getRaceExplorerMeetings(
+    meetingWhere,
+    raceWhere,
+    db,
+  );
   const [dateSummary, replayRaces] = searchQuery
     ? await Promise.all([
-        summarizeRaceExplorerMeetings(rawMeetings),
+        summarizeRaceExplorerMeetings(rawMeetings, db),
         Promise.resolve(replayRacesFromExplorerMeetings(rawMeetings)),
       ])
     : await Promise.all([
-        getRaceDateSummary(raceWhere, meetingWhere),
+        getRaceDateSummary(raceWhere, meetingWhere, db),
         safeQuery(
           () =>
-            prisma.race.findMany({
+            db.race.findMany({
               where: {
                 ...raceWhere,
                 videos: { some: { streamUrl: { not: null } } },
               },
               orderBy: { raceTime: "desc" },
-              take: 8,
-              include: {
-                meeting: { include: { track: true } },
-                videos: {
-                  where: { streamUrl: { not: null } },
-                  orderBy: { fetchedAt: "desc" },
-                  take: 1,
+              take: RACE_EXPLORER_REPLAY_LIMIT,
+              select: {
+                id: true,
+                raceNumber: true,
+                raceTime: true,
+                distance: true,
+                grade: true,
+                meeting: {
+                  select: {
+                    id: true,
+                    track: { select: { name: true, state: true } },
+                  },
                 },
               },
             }),
@@ -771,6 +1349,7 @@ type RaceExplorerRace = {
   raceTime: Date;
   distance: number;
   grade: string | null;
+  resultStatus: string | null;
   _count: { runners: number };
   videos: {
     id: string;
@@ -781,10 +1360,11 @@ type RaceExplorerRace = {
 
 async function getRaceExplorerMeetings(
   meetingWhere: Prisma.MeetingWhereInput,
-  raceWhere: Prisma.RaceWhereInput
+  raceWhere: Prisma.RaceWhereInput,
+  db: DbContextClient,
 ) {
   return safeQuery(async (): Promise<RaceExplorerMeeting[]> => {
-    const meetings = await prisma.meeting.findMany({
+    const meetings = await db.meeting.findMany({
       where: meetingWhere,
       select: {
         id: true,
@@ -800,11 +1380,12 @@ async function getRaceExplorerMeetings(
         },
       },
       orderBy: [{ track: { state: "asc" } }, { track: { name: "asc" } }],
+      take: RACE_EXPLORER_MEETING_LIMIT,
     });
     if (meetings.length === 0) return [];
 
     const meetingIds = meetings.map((meeting) => meeting.id);
-    const races = await prisma.race.findMany({
+    const races = await db.race.findMany({
       where: { AND: [raceWhere, { meetingId: { in: meetingIds } }] },
       orderBy: { raceTime: "asc" },
       select: {
@@ -814,7 +1395,9 @@ async function getRaceExplorerMeetings(
         raceTime: true,
         distance: true,
         grade: true,
+        resultStatus: true,
       },
+      take: RACE_EXPLORER_RACE_LIMIT,
     });
     if (races.length === 0) {
       return meetings.map((meeting) => ({ ...meeting, races: [] }));
@@ -822,14 +1405,17 @@ async function getRaceExplorerMeetings(
 
     const raceIds = races.map((race) => race.id);
     const [runnerCounts, videos] = await Promise.all([
-      prisma.runner.groupBy({
+      db.runner.groupBy({
         by: ["raceId"],
         where: { raceId: { in: raceIds } },
         _count: { _all: true },
+        orderBy: { raceId: "asc" },
+        take: RACE_EXPLORER_RACE_LIMIT,
       }),
-      prisma.raceVideo.findMany({
+      db.raceVideo.findMany({
         where: { raceId: { in: raceIds } },
-        orderBy: { fetchedAt: "desc" },
+        orderBy: [{ fetchedAt: "desc" }, { id: "asc" }],
+        take: RACE_EXPLORER_RACE_LIMIT,
         select: {
           id: true,
           raceId: true,
@@ -844,13 +1430,15 @@ async function getRaceExplorerMeetings(
     );
     const videosByRace = new Map<string, RaceExplorerRace["videos"]>();
     for (const video of videos) {
-      const raceVideos = videosByRace.get(video.raceId) ?? [];
-      raceVideos.push({
-        id: video.id,
-        streamUrl: video.streamUrl,
-        sourceStatus: video.sourceStatus,
-      });
-      videosByRace.set(video.raceId, raceVideos);
+      if (!videosByRace.has(video.raceId)) {
+        videosByRace.set(video.raceId, [
+          {
+            id: video.id,
+            streamUrl: video.streamUrl,
+            sourceStatus: video.sourceStatus,
+          },
+        ]);
+      }
     }
 
     const racesByMeeting = new Map<string, RaceExplorerRace[]>();
@@ -862,6 +1450,7 @@ async function getRaceExplorerMeetings(
         raceTime: race.raceTime,
         distance: race.distance,
         grade: race.grade,
+        resultStatus: race.resultStatus,
         _count: { runners: runnersByRace.get(race.id) ?? 0 },
         videos: videosByRace.get(race.id) ?? [],
       });
@@ -875,11 +1464,11 @@ async function getRaceExplorerMeetings(
   }, []);
 }
 
-async function getRaceStates() {
+async function getRaceStates(db: DbContextClient) {
   if (raceStatesCache && raceStatesCache.expiresAt > Date.now()) {
     return raceStatesCache.value;
   }
-  const value = await loadRaceStates();
+  const value = await loadRaceStates(db);
   raceStatesCache = {
     expiresAt: Date.now() + RACE_EXPLORER_META_TTL_MS,
     value,
@@ -887,24 +1476,24 @@ async function getRaceStates() {
   return value;
 }
 
-async function loadRaceStates() {
+async function loadRaceStates(db: DbContextClient) {
   const rows = await safeQuery(
     () =>
-      prisma.track.findMany({
-        distinct: ["state"],
-        select: { state: true },
+      db.track.groupBy({
+        by: ["state"],
         orderBy: { state: "asc" },
+        take: RACE_EXPLORER_STATE_LIMIT,
       }),
     []
   );
   return rows.map((row) => row.state).filter(Boolean);
 }
 
-async function getDatasetStats() {
+async function getDatasetStats(db: DbContextClient) {
   if (datasetStatsCache && datasetStatsCache.expiresAt > Date.now()) {
     return datasetStatsCache.value;
   }
-  const value = await loadDatasetStats();
+  const value = await loadDatasetStats(db);
   datasetStatsCache = {
     expiresAt: Date.now() + RACE_EXPLORER_META_TTL_MS,
     value,
@@ -912,18 +1501,28 @@ async function getDatasetStats() {
   return value;
 }
 
-async function loadDatasetStats() {
-  const fallback = {
-    races: 0,
-    runners: 0,
-    results: 0,
-    dogs: 0,
-    dogProfileForms: 0,
-    videos: 0,
-    videosWithStream: 0,
+async function loadDatasetStats(db: DbContextClient) {
+  type DatasetStats = {
+    races: number | null;
+    runners: number | null;
+    results: number | null;
+    dogs: number | null;
+    dogProfileForms: number | null;
+    videos: number | null;
+    videosWithStream: number | null;
+    latestRaceTime: string | null;
+  };
+  const fallback: DatasetStats = {
+    races: null,
+    runners: null,
+    results: null,
+    dogs: null,
+    dogProfileForms: null,
+    videos: null,
+    videosWithStream: null,
     latestRaceTime: null as string | null,
   };
-  return safeQuery(async () => {
+  return safeQuery<DatasetStats>(async () => {
     const [tableCounts, videosWithStream, latestRace] = await Promise.all([
       getApproximateTableCounts([
         "Race",
@@ -933,31 +1532,31 @@ async function loadDatasetStats() {
         "DogProfileForm",
         "RaceVideo",
       ]),
-      prisma.raceVideo.count({ where: { streamUrl: { not: null } } }),
-      prisma.race.findFirst({
+      db.raceVideo.count({ where: { streamUrl: { not: null } } }),
+      db.race.findFirst({
         orderBy: { raceTime: "desc" },
         select: { raceTime: true },
       }),
     ]);
 
     return {
-      races: tableCounts.get("Race") ?? 0,
-      runners: tableCounts.get("Runner") ?? 0,
-      results: tableCounts.get("Result") ?? 0,
-      dogs: tableCounts.get("Dog") ?? 0,
-      dogProfileForms: tableCounts.get("DogProfileForm") ?? 0,
-      videos: tableCounts.get("RaceVideo") ?? 0,
+      races: tableCounts.get("Race") ?? null,
+      runners: tableCounts.get("Runner") ?? null,
+      results: tableCounts.get("Result") ?? null,
+      dogs: tableCounts.get("Dog") ?? null,
+      dogProfileForms: tableCounts.get("DogProfileForm") ?? null,
+      videos: tableCounts.get("RaceVideo") ?? null,
       videosWithStream,
       latestRaceTime: latestRace?.raceTime.toISOString() ?? null,
     };
   }, fallback);
 }
 
-async function getRecentRaceDates() {
+async function getRecentRaceDates(db: DbContextClient) {
   if (recentRaceDatesCache && recentRaceDatesCache.expiresAt > Date.now()) {
     return recentRaceDatesCache.value;
   }
-  const value = await loadRecentRaceDates();
+  const value = await loadRecentRaceDates(db);
   recentRaceDatesCache = {
     expiresAt: Date.now() + RACE_EXPLORER_META_TTL_MS,
     value,
@@ -965,10 +1564,10 @@ async function getRecentRaceDates() {
   return value;
 }
 
-async function loadRecentRaceDates() {
+async function loadRecentRaceDates(db: DbContextClient) {
   const rows = await safeQuery(
     () =>
-      prisma.$queryRaw<{ date: string; races: number }[]>`
+      db.$queryRaw<{ date: string; races: number }[]>`
         SELECT to_char(((r."raceTime" AT TIME ZONE 'UTC') AT TIME ZONE 'Australia/Sydney')::date, 'YYYY-MM-DD') AS date,
                COUNT(*)::int AS races
         FROM "Race" r
@@ -987,26 +1586,35 @@ async function loadRecentRaceDates() {
 
 async function getRaceDateSummary(
   raceWhere: Prisma.RaceWhereInput,
-  meetingWhere: Prisma.MeetingWhereInput
+  meetingWhere: Prisma.MeetingWhereInput,
+  db: DbContextClient,
 ) {
-  const fallback = {
-    meetings: 0,
-    races: 0,
-    runners: 0,
-    results: 0,
-    videos: 0,
-    videosWithStream: 0,
+  type RaceDateSummary = {
+    meetings: number | null;
+    races: number | null;
+    runners: number | null;
+    results: number | null;
+    videos: number | null;
+    videosWithStream: number | null;
+  };
+  const fallback: RaceDateSummary = {
+    meetings: null,
+    races: null,
+    runners: null,
+    results: null,
+    videos: null,
+    videosWithStream: null,
   };
 
-  return safeQuery(async () => {
+  return safeQuery<RaceDateSummary>(async () => {
     const [meetings, races, runners, results, videos, videosWithStream] =
       await Promise.all([
-        prisma.meeting.count({ where: meetingWhere }),
-        prisma.race.count({ where: raceWhere }),
-        prisma.runner.count({ where: { race: raceWhere } }),
-        prisma.result.count({ where: { runner: { race: raceWhere } } }),
-        prisma.raceVideo.count({ where: { race: raceWhere } }),
-        prisma.raceVideo.count({
+        db.meeting.count({ where: meetingWhere }),
+        db.race.count({ where: raceWhere }),
+        db.runner.count({ where: { race: raceWhere } }),
+        db.result.count({ where: { runner: { race: raceWhere } } }),
+        db.raceVideo.count({ where: { race: raceWhere } }),
+        db.raceVideo.count({
           where: { race: raceWhere, streamUrl: { not: null } },
         }),
       ]);
@@ -1019,18 +1627,19 @@ async function summarizeRaceExplorerMeetings(
   meetings: {
     races: {
       id: string;
-      _count?: { runners: number };
-      videos?: { streamUrl: string | null }[];
+      _count: { runners: number };
+      videos: { streamUrl: string | null }[];
     }[];
-  }[]
+  }[],
+  db: DbContextClient,
 ) {
   const raceIds = meetings.flatMap((meeting) =>
     meeting.races.map((race) => race.id)
   );
-  const results = raceIds.length
-    ? await safeQuery(
-        () => prisma.result.count({ where: { raceId: { in: raceIds } } }),
-        0
+  const results: number | null = raceIds.length
+    ? await safeQuery<number | null>(
+        () => db.result.count({ where: { raceId: { in: raceIds } } }),
+        null
       )
     : 0;
 
@@ -1039,10 +1648,11 @@ async function summarizeRaceExplorerMeetings(
       summary.meetings += 1;
       summary.races += meeting.races.length;
       for (const race of meeting.races) {
-        summary.runners += race._count?.runners ?? 0;
-        summary.videos += race.videos?.length ?? 0;
-        summary.videosWithStream +=
-          race.videos?.filter((video) => video.streamUrl).length ?? 0;
+        summary.runners += race._count.runners;
+        summary.videos += race.videos.length;
+        summary.videosWithStream += race.videos.filter(
+          (video) => video.streamUrl
+        ).length;
       }
       return summary;
     },
@@ -1120,18 +1730,7 @@ function normaliseRaceSearchParam(value: string | null | undefined) {
   return trimmed;
 }
 
-export function resolveRaceSearchDate(
-  value: string | null | undefined,
-  searchQuery: string | null,
-  defaultDate: string
-) {
-  const explicitDate = normaliseRaceDateInput(value);
-  return {
-    selectedDate: explicitDate ?? defaultDate,
-    dateInputValue: explicitDate ?? "",
-    isGlobalSearch: Boolean(searchQuery && !explicitDate),
-  };
-}
+export { resolveRaceSearchDate } from "@/lib/race-search";
 
 function normaliseRaceStatusParam(
   value: string | null | undefined
@@ -1220,7 +1819,7 @@ async function findRankedRaceSearchIds({
   selectedStatus: RaceStatusFilter;
   gte: Date;
   lt: Date;
-}) {
+}, db: DbContextClient) {
   const parsed = parseRaceSearchQuery(query);
   const textQuery = parsed.text ?? query;
   const likePattern = `%${escapeLikePattern(textQuery)}%`;
@@ -1251,7 +1850,7 @@ async function findRankedRaceSearchIds({
         selectedStatus,
         gte,
         lt,
-      });
+      }, db);
 
   if (globalRunnerRows?.length) {
     return globalRunnerRows;
@@ -1259,7 +1858,7 @@ async function findRankedRaceSearchIds({
 
   const fieldRows = await safeQuery(
     () =>
-      prisma.$queryRaw<{ id: string }[]>`
+      db.$queryRaw<{ id: string }[]>`
         WITH field_race AS (
           SELECT
             r.id,
@@ -1368,7 +1967,7 @@ async function findRankedRaceSearchIds({
         selectedStatus,
         gte,
         lt,
-      })
+      }, db)
     : null;
 
   if (runnerRows?.length) {
@@ -1377,7 +1976,7 @@ async function findRankedRaceSearchIds({
 
   const exactRows = await safeQuery(
     () =>
-      prisma.$queryRaw<{ id: string }[]>`
+      db.$queryRaw<{ id: string }[]>`
         WITH exact_race AS (
           SELECT
             r.id,
@@ -1475,7 +2074,7 @@ async function findRankedRaceSearchIds({
 
   const rows = await safeQuery(
     () =>
-      prisma.$queryRaw<{ id: string }[]>`
+      db.$queryRaw<{ id: string }[]>`
         WITH race_search AS (
           SELECT
             r.id,
@@ -1623,14 +2222,14 @@ async function findRunnerRaceSearchIds({
   selectedStatus: RaceStatusFilter;
   gte: Date;
   lt: Date;
-}) {
+}, db: DbContextClient) {
   if (!parsed.text) return null;
   if (parsed.clockTime && !selectedDate) return null;
 
   const insensitive = "insensitive" as const;
   const dogRows = await safeQuery(
     () =>
-      prisma.dog.findMany({
+      db.dog.findMany({
         where: {
           name: { contains: textQuery, mode: insensitive },
         },
@@ -1667,7 +2266,7 @@ async function findRunnerRaceSearchIds({
 
   const rows = await safeQuery(
     () =>
-      prisma.runner.findMany({
+      db.runner.findMany({
         where: {
           dogId: { in: dogRows.map((dog) => dog.id) },
           race: { AND: raceFilters },
@@ -1933,6 +2532,7 @@ export async function getActiveTracks() {
             include: {
               races: {
                 orderBy: { raceTime: "asc" },
+                take: 32,
                 include: {
                   videos: {
                     take: 1,
@@ -1943,6 +2543,7 @@ export async function getActiveTracks() {
             },
           },
         },
+        take: 100,
       }),
     []
   );
@@ -1954,66 +2555,59 @@ export interface BoxBiasRow {
   box: number;
   starts: number;
   wins: number;
-  winRate: number;
+  winRate: number | null;
 }
 
 export async function getBoxBias(): Promise<BoxBiasRow[]> {
-  const rows = await safeQuery(
-    () =>
-      prisma.$queryRaw<{ box: number; starts: number; wins: number }[]>`
-        SELECT rn."boxNumber" AS box,
-               COUNT(*)::int AS starts,
-               COUNT(*) FILTER (WHERE res."finishingPosition" = 1)::int AS wins
-        FROM "Result" res
-        JOIN "Runner" rn ON rn.id = res."runnerId"
-        WHERE rn."boxNumber" BETWEEN 1 AND 8
-        GROUP BY rn."boxNumber"
-        ORDER BY rn."boxNumber" ASC
-      `,
-    []
+  // Served from the giq_box_bias materialized view (hourly cron refresh, see
+  // live/sync.ts). The inline aggregation scanned Result(5.6M) per view and
+  // hung /statistics.
+  const rows = await cached("stats:box-bias", 5 * 60_000, () =>
+    safeQuery(
+      () =>
+        prisma.$queryRaw<{ box: number; starts: number; wins: number }[]>`
+          SELECT box, starts, wins
+          FROM giq_box_bias
+          ORDER BY box ASC
+        `,
+      []
+    )
   );
   return rows.map((r) => ({
     ...r,
-    winRate: r.starts > 0 ? parseFloat(((r.wins / r.starts) * 100).toFixed(1)) : 0,
+    winRate:
+      r.starts > 0 ? parseFloat(((r.wins / r.starts) * 100).toFixed(1)) : null,
   }));
 }
 
 export interface TrainerLeaderRow {
   name: string;
+  starts: number;
   wins: number;
-  starters: number;
-  strike: number;
-  roi: number;
+  places: number;
+  winRate: number;
+  prizeMoney: number;
 }
 
 export async function getTrainerLeaderboard(limit = 10): Promise<TrainerLeaderRow[]> {
-  const rows = await safeQuery(
-    () =>
-      prisma.$queryRaw<
-        { name: string; wins: number; starters: number; winsp: number }[]
-      >`
-        SELECT t.name AS name,
-               COUNT(rn.id)::int AS starters,
-               COUNT(*) FILTER (WHERE res."finishingPosition" = 1)::int AS wins,
-               COALESCE(SUM(rn."startingPrice") FILTER (WHERE res."finishingPosition" = 1), 0)::float AS winsp
-        FROM "Runner" rn
-        JOIN "Result" res ON res."runnerId" = rn.id
-        JOIN "Trainer" t ON t.id = rn."trainerId"
-        GROUP BY t.id, t.name
-        HAVING COUNT(rn.id) >= 5
-        ORDER BY wins DESC
-        LIMIT ${limit}
-      `,
-    []
+  // Served from the non-betting aggregate refreshed by the live results cron.
+  return cached(`stats:trainer-performance:${limit}`, 5 * 60_000, () =>
+    safeQuery(
+      () =>
+        prisma.$queryRaw<TrainerLeaderRow[]>`
+          SELECT name,
+                 starts,
+                 wins,
+                 places,
+                 win_rate AS "winRate",
+                 prize_money AS "prizeMoney"
+          FROM giq_trainer_performance
+          ORDER BY wins DESC, places DESC, prize_money DESC, name ASC
+          LIMIT ${limit}
+        `,
+      []
+    )
   );
-  // ROI from flat $1 win bets at starting price: (returns - outlay) / outlay.
-  return rows.map((r) => ({
-    name: r.name,
-    wins: r.wins,
-    starters: r.starters,
-    strike: r.starters > 0 ? parseFloat(((r.wins / r.starters) * 100).toFixed(1)) : 0,
-    roi: r.starters > 0 ? parseFloat((((r.winsp - r.starters) / r.starters) * 100).toFixed(1)) : 0,
-  }));
 }
 
 export interface TrackRecordRow {
@@ -2025,36 +2619,29 @@ export interface TrackRecordRow {
 }
 
 export async function getTrackRecords(limit = 12): Promise<TrackRecordRow[]> {
-  return safeQuery(
-    () =>
-      prisma.$queryRaw<TrackRecordRow[]>`
-        SELECT DISTINCT ON (tr.name, ra.distance)
-               tr.name AS track,
-               ra.distance AS dist,
-               res."runningTime" AS time,
-               d.name AS dog,
-               EXTRACT(YEAR FROM ra."raceTime")::int AS year
-        FROM "Result" res
-        JOIN "Runner" rn ON rn.id = res."runnerId"
-        JOIN "Race" ra ON ra.id = rn."raceId"
-        JOIN "Meeting" m ON m.id = ra."meetingId"
-        JOIN "Track" tr ON tr.id = m."trackId"
-        JOIN "Dog" d ON d.id = rn."dogId"
-        WHERE res."runningTime" IS NOT NULL
-        ORDER BY tr.name, ra.distance, res."runningTime" ASC
-        LIMIT ${limit}
-      `,
-    []
+  // Served from giq_track_records (hourly cron refresh, see live/sync.ts).
+  return cached(`stats:track-records:${limit}`, 5 * 60_000, () =>
+    safeQuery(
+      () =>
+        prisma.$queryRaw<TrackRecordRow[]>`
+          SELECT track, dist, time, dog, year
+          FROM giq_track_records
+          ORDER BY track ASC, dist ASC
+          LIMIT ${limit}
+        `,
+      []
+    )
   );
 }
 
 // === BREEDING (computed from sire relations + results) ===
 
 export interface SireLeaderRow {
+  sireId: string;
   name: string;
   progeny: number;
   winners: number;
-  strike: number;
+  strike: number | null;
   earnings: number;
 }
 
@@ -2066,9 +2653,9 @@ export async function getSireLeaderboard(limit = 10): Promise<SireLeaderRow[]> {
     safeQuery(
       () =>
         prisma.$queryRaw<
-          { name: string; progeny: number; winners: number; earnings: number }[]
+          { sire_id: string; name: string; progeny: number; winners: number; earnings: number }[]
         >`
-          SELECT name, progeny, winners, earnings
+          SELECT sire_id, name, progeny, winners, earnings
           FROM giq_sire_leaderboard
           ORDER BY winners DESC, progeny DESC
           LIMIT ${limit}
@@ -2077,12 +2664,527 @@ export async function getSireLeaderboard(limit = 10): Promise<SireLeaderRow[]> {
     )
   );
   return rows.map((r) => ({
+    sireId: r.sire_id,
     name: r.name,
     progeny: r.progeny,
     winners: r.winners,
-    strike: r.progeny > 0 ? parseFloat(((r.winners / r.progeny) * 100).toFixed(1)) : 0,
+    strike:
+      r.progeny > 0
+        ? parseFloat(((r.winners / r.progeny) * 100).toFixed(1))
+        : null,
     earnings: r.earnings,
   }));
+}
+
+export interface BreedingStats {
+  totalDogs: number;
+  breedingDogs: number;
+  pedigreedDogs: number;
+  studbookVolumes: number;
+}
+
+export async function getBreedingStats(): Promise<BreedingStats> {
+  // Counts over the Dog table (indexed on sourceProvider / sireId / damId).
+  // Cached 5min — these move only when the pedigree loader or live sync runs.
+  const [row] = await cached("breeding:stats", 5 * 60_000, () =>
+    safeQuery(
+      () =>
+        prisma.$queryRaw<
+          { total: bigint; breeding: bigint; pedigreed: bigint }[]
+        >`
+          SELECT
+            COUNT(*) AS total,
+            COUNT(*) FILTER (WHERE "sourceProvider" = 'galtd') AS breeding,
+            COUNT(*) FILTER (WHERE "sireId" IS NOT NULL OR "damId" IS NOT NULL)
+              + (
+                SELECT COUNT(DISTINCT si."dogId")
+                FROM "DogSourceIdentity" si
+                JOIN "PedigreeAssertion" pa ON pa."subjectIdentityId" = si.id
+                WHERE si."dogId" IS NOT NULL
+                  AND pa."verificationStatus" IN ('parsed', 'verified')
+                  AND NOT EXISTS (
+                    SELECT 1 FROM "Dog" d2
+                    WHERE d2.id = si."dogId"
+                      AND (d2."sireId" IS NOT NULL OR d2."damId" IS NOT NULL)
+                  )
+              ) AS pedigreed
+          FROM "Dog"
+        `,
+      [{ total: BigInt(0), breeding: BigInt(0), pedigreed: BigInt(0) }]
+    )
+  );
+  return {
+    totalDogs: Number(row?.total ?? 0),
+    breedingDogs: Number(row?.breeding ?? 0),
+    pedigreedDogs: Number(row?.pedigreed ?? 0),
+    // 9 distinct GALTD studbook artifacts imported (PedigreeImportRun is
+    // system-only under RLS, so this stays a constant; bump on new volumes).
+    studbookVolumes: 9,
+  };
+}
+
+// === BREEDING TOOLS: sire detail, litters, cross ===
+// All figures come from the Dog table's stored career aggregates (careerStarts /
+// careerWins / prizeMoney), sourced from the racing record. Progeny link through
+// the sireId / damId FKs (both indexed). Nothing here is predicted or inferred:
+// a progeny with no racing record contributes to the count but never fabricates
+// a win or an earning, and metrics with no underlying data return null.
+
+const PROGENY_TOP_LIMIT = 10;
+const CROSS_PROGENY_LIMIT = 50;
+const LITTER_LIMIT = 20;
+
+type ParentRole = "sire" | "dam";
+
+export interface ProgenyRecord {
+  count: number;
+  // Progeny that actually carry a racing record (careerStarts is set). Winners
+  // and earnings are only meaningful across these; the rest are studbook-only.
+  withRacingRecord: number;
+  winners: number | null;
+  totalEarnings: number | null;
+  avgCareerWins: number | null;
+}
+
+export interface ProgenySummary {
+  id: string;
+  name: string;
+  sex: string | null;
+  colour: string | null;
+  whelpYear: number | null;
+  careerStarts: number | null;
+  careerWins: number | null;
+  prizeMoney: number | null;
+}
+
+const PROGENY_FETCH_LIMIT = 6000;
+
+interface ParentProgenyData {
+  identity: MergedDogIdentity;
+  clusters: DogIdentityRow[][];
+  merged: MergedDogIdentity[];
+}
+
+// One fetch per (parent, role) request: every progeny row across the parent's
+// bridged identity cluster, deduped so a pup imported by both the racing and
+// studbook sources counts once. progenyRecord / topProgeny / cross / partners
+// all derive from this; react cache() collapses repeat calls per request.
+const getParentProgenyData = cache(
+  async (parentId: string, role: ParentRole): Promise<ParentProgenyData | null> => {
+    const identity = await resolveDogIdentity(parentId);
+    if (!identity) return null;
+    const where: Prisma.DogWhereInput =
+      role === "sire" ? { sireId: { in: identity.ids } } : { damId: { in: identity.ids } };
+    const rows = await safeQuery(
+      () =>
+        prisma.dog.findMany({
+          where,
+          select: DOG_IDENTITY_SELECT,
+          take: PROGENY_FETCH_LIMIT,
+        }),
+      [] as DogIdentityRow[],
+    );
+    const clusters = clusterDogRows(rows);
+    return { identity, clusters, merged: clusters.map(mergeCluster) };
+  },
+);
+
+function mergedToProgenySummary(m: MergedDogIdentity): ProgenySummary {
+  return {
+    id: m.primaryId,
+    name: m.name,
+    sex: m.sex,
+    colour: m.colour,
+    whelpYear: m.whelpDate ? m.whelpDate.getUTCFullYear() : null,
+    careerStarts: m.careerStarts,
+    careerWins: m.careerWins,
+    prizeMoney: m.prizeMoney,
+  };
+}
+
+function identityToParentDog(identity: MergedDogIdentity): SireStats["dog"] {
+  return {
+    id: identity.primaryId,
+    name: identity.name,
+    sex: identity.sex,
+    colour: identity.colour,
+    whelpYear: identity.whelpDate ? identity.whelpDate.getUTCFullYear() : null,
+    careerStarts: identity.careerStarts,
+    careerWins: identity.careerWins,
+    prizeMoney: identity.prizeMoney,
+  };
+}
+
+function progenyRecordFromMerged(merged: MergedDogIdentity[]): ProgenyRecord {
+  const withRecord = merged.filter((m) => m.careerStarts !== null);
+  const winners = merged.filter((m) => (m.careerWins ?? 0) > 0).length;
+  const earnings = merged.reduce((sum, m) => sum + (m.prizeMoney ?? 0), 0);
+  const withWins = merged.filter((m) => m.careerWins !== null);
+  const avgCareerWins =
+    withWins.length > 0
+      ? withWins.reduce((sum, m) => sum + (m.careerWins ?? 0), 0) / withWins.length
+      : null;
+  return {
+    count: merged.length,
+    withRacingRecord: withRecord.length,
+    winners: withRecord.length > 0 ? winners : null,
+    totalEarnings: withRecord.length > 0 ? earnings : null,
+    avgCareerWins,
+  };
+}
+
+async function progenyRecord(
+  parentId: string,
+  role: ParentRole,
+): Promise<ProgenyRecord> {
+  const data = await getParentProgenyData(parentId, role);
+  if (!data) {
+    return { count: 0, withRacingRecord: 0, winners: null, totalEarnings: null, avgCareerWins: null };
+  }
+  return progenyRecordFromMerged(data.merged);
+}
+
+async function topProgeny(
+  parentId: string,
+  role: ParentRole,
+  limit: number,
+): Promise<ProgenySummary[]> {
+  const data = await getParentProgenyData(parentId, role);
+  if (!data) return [];
+  return data.merged
+    .filter((m) => m.prizeMoney !== null)
+    .sort((a, b) => (b.prizeMoney ?? 0) - (a.prizeMoney ?? 0))
+    .slice(0, limit)
+    .map(mergedToProgenySummary);
+}
+
+export interface SireStats {
+  dog: {
+    id: string;
+    name: string;
+    sex: string | null;
+    colour: string | null;
+    whelpYear: number | null;
+    careerStarts: number | null;
+    careerWins: number | null;
+    prizeMoney: number | null;
+  };
+  progeny: ProgenyRecord;
+  topProgeny: ProgenySummary[];
+}
+
+// Per-sire detail: the sire's own record plus an aggregate over its progeny.
+export const getSireStats = cache(
+  async (dogId: string): Promise<SireStats | null> => {
+    const identity = await resolveDogIdentity(dogId);
+    if (!identity) return null;
+    const [progeny, top] = await Promise.all([
+      progenyRecord(dogId, "sire"),
+      topProgeny(dogId, "sire", PROGENY_TOP_LIMIT),
+    ]);
+    return { dog: identityToParentDog(identity), progeny, topProgeny: top };
+  },
+);
+
+// Per-dam detail: the dam's own record plus an aggregate over its progeny.
+// Mirrors getSireStats with the dam FK so dam names stop dead-ending at /dogs.
+export const getDamStats = cache(
+  async (dogId: string): Promise<SireStats | null> => {
+    const identity = await resolveDogIdentity(dogId);
+    if (!identity) return null;
+    const [progeny, top] = await Promise.all([
+      progenyRecord(dogId, "dam"),
+      topProgeny(dogId, "dam", PROGENY_TOP_LIMIT),
+    ]);
+    return { dog: identityToParentDog(identity), progeny, topProgeny: top };
+  },
+);
+
+export interface ParentHeader {
+  id: string;
+  name: string;
+  sex: string | null;
+  colour: string | null;
+  whelpYear: number | null;
+}
+
+export interface CrossRecord {
+  sire: ParentHeader;
+  dam: ParentHeader;
+  progeny: ProgenySummary[];
+  sireProgeny: ProgenyRecord;
+  damProgeny: ProgenyRecord;
+}
+
+// Historical record of a sire x dam pairing — NOT a prediction. Returns the
+// progeny that pairing actually produced, plus each parent's overall progeny
+// record for context. No genetics or trait modelling.
+export const getCrossRecord = cache(
+  async (sireId: string, damId: string): Promise<CrossRecord | null> => {
+    const [sireData, damData] = await Promise.all([
+      getParentProgenyData(sireId, "sire"),
+      getParentProgenyData(damId, "dam"),
+    ]);
+    if (!sireData || !damData) return null;
+    // The exact pairing: any progeny row whose dam link lands anywhere in the
+    // dam's bridged identity cluster (and vice versa via the sire fetch).
+    const damIds = new Set(damData.identity.ids);
+    const pairProgeny = sireData.clusters
+      .filter((cluster) => cluster.some((row) => row.damId !== null && damIds.has(row.damId)))
+      .map(mergeCluster)
+      .sort(
+        (a, b) =>
+          (b.prizeMoney ?? -1) - (a.prizeMoney ?? -1) || a.name.localeCompare(b.name),
+      )
+      .slice(0, CROSS_PROGENY_LIMIT);
+    const toHeader = (identity: MergedDogIdentity): ParentHeader => ({
+      id: identity.primaryId,
+      name: identity.name,
+      sex: identity.sex,
+      colour: identity.colour,
+      whelpYear: identity.whelpDate ? identity.whelpDate.getUTCFullYear() : null,
+    });
+    return {
+      sire: toHeader(sireData.identity),
+      dam: toHeader(damData.identity),
+      progeny: pairProgeny.map(mergedToProgenySummary),
+      sireProgeny: progenyRecordFromMerged(sireData.merged),
+      damProgeny: progenyRecordFromMerged(damData.merged),
+    };
+  },
+);
+
+export interface DamPartner {
+  id: string;
+  name: string;
+  progeny: number;
+  winners: number;
+}
+
+// Dams this sire has already produced recorded progeny with — real historical
+// partners, ranked by litter size then winners. Powers the "top dam picks"
+// suggestions once a sire is chosen. NOT a prediction: only pairings that exist
+// in the current snapshot. Mirror function (getSirePartnersForDam) narrows the
+// other direction when a dam is picked first.
+async function getParentPartners(
+  parentId: string,
+  parentColumn: "sireId" | "damId",
+  otherColumn: "sireId" | "damId",
+  limit: number,
+): Promise<DamPartner[]> {
+  const role: ParentRole = parentColumn === "sireId" ? "sire" : "dam";
+  const data = await getParentProgenyData(parentId, role);
+  if (!data) return [];
+
+  // Resolve the partner side of every progeny row, then group the deduped
+  // progeny clusters by partner name so a partner split across racing and
+  // studbook rows appears once with its true litter count.
+  const otherIdOf = (row: DogIdentityRow) =>
+    otherColumn === "damId" ? row.damId : row.sireId;
+  const otherIds = [
+    ...new Set(
+      data.clusters.flatMap((cluster) =>
+        cluster.map(otherIdOf).filter((id): id is string => Boolean(id)),
+      ),
+    ),
+  ];
+  if (otherIds.length === 0) return [];
+  const otherRows = await safeQuery(
+    () =>
+      prisma.dog.findMany({
+        where: { id: { in: otherIds } },
+        select: { id: true, name: true },
+      }),
+    [] as { id: string; name: string }[],
+  );
+  const nameById = new Map(otherRows.map((row) => [row.id, row.name]));
+
+  const partners = new Map<
+    string,
+    { name: string; progeny: number; winners: number; idVotes: Map<string, number> }
+  >();
+  for (const cluster of data.clusters) {
+    const merged = mergeCluster(cluster);
+    const ids = cluster.map(otherIdOf).filter((id): id is string => Boolean(id));
+    const named = ids.find((id) => nameById.has(id));
+    if (!named) continue;
+    const displayName = nameById.get(named)!;
+    const key = displayName.trim().replace(/\s+/g, " ").toLowerCase();
+    let entry = partners.get(key);
+    if (!entry) {
+      entry = { name: displayName, progeny: 0, winners: 0, idVotes: new Map() };
+      partners.set(key, entry);
+    }
+    entry.progeny += 1;
+    if ((merged.careerWins ?? 0) > 0) entry.winners += 1;
+    for (const id of ids) entry.idVotes.set(id, (entry.idVotes.get(id) ?? 0) + 1);
+  }
+
+  return [...partners.values()]
+    .map((entry) => ({
+      id: [...entry.idVotes.entries()].sort((a, b) => b[1] - a[1])[0][0],
+      name: entry.name,
+      progeny: entry.progeny,
+      winners: entry.winners,
+    }))
+    .sort(
+      (a, b) =>
+        b.progeny - a.progeny || b.winners - a.winners || a.name.localeCompare(b.name),
+    )
+    .slice(0, limit);
+}
+
+export const getSireDamPartners = cache(
+  (sireId: string, limit = 8): Promise<DamPartner[]> =>
+    getParentPartners(sireId, "sireId", "damId", limit),
+);
+
+export const getDamSirePartners = cache(
+  (damId: string, limit = 8): Promise<DamPartner[]> =>
+    getParentPartners(damId, "damId", "sireId", limit),
+);
+
+export interface LitterCross {
+  sireId: string;
+  damId: string;
+  sireName: string;
+  damName: string;
+  progeny: number;
+  winners: number;
+  earnings: number;
+  // Nicking signal (all from Dog aggregates). strike = this cross's winners rate;
+  // earningsPerProgeny normalises so big litters don't dominate on totals alone;
+  // the baselines are each parent's OVERALL progeny winners rate (careerWins > 0
+  // over all mapped progeny) — same definition as `strike`, so they compare.
+  strike: number | null;
+  earningsPerProgeny: number;
+  sireBaselineStrike: number | null;
+  damBaselineStrike: number | null;
+  topPerformer: { id: string; name: string; prizeMoney: number | null } | null;
+}
+
+function round1(value: number | null): number | null {
+  return value === null ? null : parseFloat(value.toFixed(1));
+}
+
+// Progeny grouped by (sireId, damId) — i.e. actual litters/crosses. Only pairs
+// that produced 2+ recorded progeny count as a litter; ranked by progeny
+// winners. Winners = progeny with a recorded career win; earnings = summed
+// progeny prize money. Optional sireId narrows to one sire's crosses.
+export async function getLitters(
+  sireId?: string,
+  limit = LITTER_LIMIT,
+): Promise<LitterCross[]> {
+  const bounded = Math.min(Math.max(Math.trunc(limit), 1), 50);
+  return cached(`breeding:litters:${sireId ?? "all"}:${bounded}`, 5 * 60_000, () =>
+    loadLitters(sireId, bounded),
+  );
+}
+
+async function loadLitters(
+  sireId: string | undefined,
+  limit: number,
+): Promise<LitterCross[]> {
+  // Grouped aggregate over the Dog table (~261k rows). ponytail: full scan +
+  // hash aggregate is sub-second and cached 5min; revisit with a matview only
+  // if this ever shows up hot.
+  const sireFilter = sireId ? Prisma.sql`AND "sireId" = ${sireId}` : Prisma.empty;
+  const groups = await safeQuery(
+    () =>
+      prisma.$queryRaw<
+        { sireId: string; damId: string; progeny: number; winners: number; earnings: number }[]
+      >(Prisma.sql`
+        SELECT "sireId", "damId",
+          COUNT(*)::int AS progeny,
+          COUNT(*) FILTER (WHERE "careerWins" > 0)::int AS winners,
+          COALESCE(SUM("prizeMoney"), 0)::float AS earnings
+        FROM "Dog"
+        WHERE "sireId" IS NOT NULL AND "damId" IS NOT NULL ${sireFilter}
+        GROUP BY "sireId", "damId"
+        HAVING COUNT(*) > 1
+        ORDER BY winners DESC, progeny DESC, earnings DESC
+        LIMIT ${limit}
+      `),
+    [],
+  );
+  if (groups.length === 0) return [];
+
+  const parentIds = [...new Set(groups.flatMap((g) => [g.sireId, g.damId]))];
+  const sireIds = [...new Set(groups.map((g) => g.sireId))];
+  const damIds = [...new Set(groups.map((g) => g.damId))];
+  const pairTuples = Prisma.join(
+    groups.map((g) => Prisma.sql`(${g.sireId}, ${g.damId})`),
+  );
+  const [names, tops, sireBase, damBase] = await Promise.all([
+    safeQuery(
+      () =>
+        prisma.dog.findMany({
+          where: { id: { in: parentIds } },
+          select: { id: true, name: true },
+        }),
+      [],
+    ),
+    safeQuery(
+      () =>
+        prisma.$queryRaw<
+          { sireId: string; damId: string; id: string; name: string; prizeMoney: number | null }[]
+        >(Prisma.sql`
+          SELECT DISTINCT ON ("sireId", "damId")
+            "sireId", "damId", id, name, "prizeMoney"
+          FROM "Dog"
+          WHERE ("sireId", "damId") IN (${pairTuples})
+          ORDER BY "sireId", "damId", "prizeMoney" DESC NULLS LAST, name ASC
+        `),
+      [],
+    ),
+    // Each involved sire's OVERALL progeny winners rate (indexed scan on sireId,
+    // restricted to the few ranked sires). Baseline for the nicking comparison.
+    safeQuery(
+      () =>
+        prisma.$queryRaw<{ pid: string; prog: number; win: number }[]>(Prisma.sql`
+          SELECT "sireId" AS pid, COUNT(*)::int AS prog,
+            COUNT(*) FILTER (WHERE "careerWins" > 0)::int AS win
+          FROM "Dog" WHERE "sireId" IN (${Prisma.join(sireIds)}) GROUP BY "sireId"
+        `),
+      [],
+    ),
+    safeQuery(
+      () =>
+        prisma.$queryRaw<{ pid: string; prog: number; win: number }[]>(Prisma.sql`
+          SELECT "damId" AS pid, COUNT(*)::int AS prog,
+            COUNT(*) FILTER (WHERE "careerWins" > 0)::int AS win
+          FROM "Dog" WHERE "damId" IN (${Prisma.join(damIds)}) GROUP BY "damId"
+        `),
+      [],
+    ),
+  ]);
+
+  const nameById = new Map(names.map((d) => [d.id, d.name]));
+  const topByPair = new Map(tops.map((t) => [`${t.sireId}|${t.damId}`, t]));
+  const baselineStrike = (rows: { pid: string; prog: number; win: number }[]) =>
+    new Map(rows.map((r) => [r.pid, r.prog > 0 ? (r.win / r.prog) * 100 : null]));
+  const sireStrike = baselineStrike(sireBase);
+  const damStrike = baselineStrike(damBase);
+
+  return groups.map((g) => {
+    const top = topByPair.get(`${g.sireId}|${g.damId}`) ?? null;
+    return {
+      sireId: g.sireId,
+      damId: g.damId,
+      sireName: nameById.get(g.sireId) ?? "Unknown",
+      damName: nameById.get(g.damId) ?? "Unknown",
+      progeny: g.progeny,
+      winners: g.winners,
+      earnings: g.earnings,
+      strike: g.progeny > 0 ? round1((g.winners / g.progeny) * 100) : null,
+      earningsPerProgeny: g.progeny > 0 ? g.earnings / g.progeny : 0,
+      sireBaselineStrike: round1(sireStrike.get(g.sireId) ?? null),
+      damBaselineStrike: round1(damStrike.get(g.damId) ?? null),
+      topPerformer: top
+        ? { id: top.id, name: top.name, prizeMoney: top.prizeMoney }
+        : null,
+    };
+  });
 }
 
 export async function getTrackByName(name: string) {
@@ -2104,29 +3206,58 @@ export async function getTrackByName(name: string) {
 
 export const getTrackById = cache(async (id: string) => {
   return safeQuery(
-    () =>
-      prisma.track.findUnique({
-        where: { id },
-        include: {
-          meetings: {
-            orderBy: { meetingDate: "desc" },
-            take: 8,
-            include: {
-              races: {
-                orderBy: { raceNumber: "asc" },
-                include: {
-                  runners: {
-                    include: {
-                      dog: true,
-                      result: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      }),
+    async () => {
+      const track = await prisma.track.findUnique({ where: { id } });
+      if (!track) return null;
+
+      const meetings = await prisma.meeting.findMany({
+        where: { trackId: id },
+        orderBy: [{ meetingDate: "desc" }, { id: "asc" }],
+        take: TRACK_DETAIL_MEETING_LIMIT,
+      });
+      const meetingIds = meetings.map((meeting) => meeting.id);
+      const races = meetingIds.length
+        ? await prisma.race.findMany({
+            where: { meetingId: { in: meetingIds } },
+            orderBy: [{ meetingId: "asc" }, { raceNumber: "asc" }, { id: "asc" }],
+            take: TRACK_DETAIL_RACE_QUERY_LIMIT,
+          })
+        : [];
+      const raceIds = races.map((race) => race.id);
+      const runners = raceIds.length
+        ? await prisma.runner.findMany({
+            where: { raceId: { in: raceIds } },
+            orderBy: [{ raceId: "asc" }, { boxNumber: "asc" }, { id: "asc" }],
+            take: TRACK_DETAIL_RUNNER_QUERY_LIMIT,
+            include: { dog: true, result: true },
+          })
+        : [];
+      const runnersByRace = new Map<string, typeof runners>();
+      for (const runner of runners) {
+        const rows = runnersByRace.get(runner.raceId) ?? [];
+        if (rows.length < TRACK_DETAIL_RUNNER_LIMIT) rows.push(runner);
+        runnersByRace.set(runner.raceId, rows);
+      }
+      const racesByMeeting = new Map<
+        string,
+        Array<(typeof races)[number] & { runners: typeof runners }>
+      >();
+      for (const race of races) {
+        const rows = racesByMeeting.get(race.meetingId) ?? [];
+        if (rows.length < TRACK_DETAIL_RACE_LIMIT) {
+          rows.push({ ...race, runners: runnersByRace.get(race.id) ?? [] });
+        }
+        racesByMeeting.set(race.meetingId, rows);
+      }
+
+      return {
+        ...track,
+        meetings: meetings.map((meeting) => ({
+          ...meeting,
+          races: racesByMeeting.get(meeting.id) ?? [],
+        })),
+      };
+    },
     null
   );
 });
@@ -2136,6 +3267,7 @@ export async function getForumOverview() {
     () =>
       prisma.forumCategory.findMany({
         orderBy: { sortOrder: "asc" },
+        take: 100,
         include: {
           _count: { select: { threads: true } },
           threads: {
@@ -2157,7 +3289,7 @@ export async function getRecentThreads(limit = 8) {
     () =>
       prisma.thread.findMany({
         orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
-        take: limit,
+        take: Math.min(Math.max(Math.trunc(limit), 1), 100),
         include: {
           category: true,
           author: true,
@@ -2176,6 +3308,7 @@ export const getForumCategoryBySlug = cache(async (slug: string) => {
         include: {
           threads: {
             orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
+            take: 100,
             include: {
               author: true,
               _count: { select: { posts: true } },
@@ -2202,6 +3335,7 @@ export const getForumThreadById = cache(async (id: string) => {
           author: true,
           posts: {
             orderBy: { createdAt: "asc" },
+            take: 500,
             include: { author: true },
           },
           _count: { select: { posts: true } },
@@ -2220,6 +3354,7 @@ export interface MarketplaceListingFilters {
   q?: string | null;
   status?: "active";
   sort?: "created_at" | "price" | "expires_at" | null;
+  offset?: number;
 }
 
 const LISTING_SEARCH_CANDIDATE_LIMIT = 500;
@@ -2236,7 +3371,7 @@ export function getActiveListingsForProfile(profileId: string, limit = 12) {
         },
         include: marketplaceListingCardInclude,
         orderBy: { createdAt: "desc" },
-        take: limit,
+        take: Math.min(Math.max(Math.trunc(limit), 1), 100),
       }),
     []
   );
@@ -2246,7 +3381,15 @@ export async function getMarketplaceListings(
   limit = 24,
   filters: MarketplaceListingFilters = {}
 ) {
-  const cacheKey = marketplaceListingsCacheKey(limit, filters);
+  const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 100);
+  const normalisedFilters = {
+    ...filters,
+    offset: parseMarketplaceOffset(filters.offset),
+  };
+  const cacheKey = marketplaceListingsCacheKey(
+    boundedLimit,
+    normalisedFilters,
+  );
   const cached = marketplaceListingsCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;
@@ -2255,15 +3398,17 @@ export async function getMarketplaceListings(
   const pending = pendingMarketplaceListings.get(cacheKey);
   if (pending) return pending;
 
-  const query = fetchMarketplaceListings(limit, filters).then((value) => {
-    marketplaceListingsCache.set(cacheKey, {
-      expiresAt: Date.now() + MARKETPLACE_LISTINGS_CACHE_MS,
-      value,
+  const query = fetchMarketplaceListings(boundedLimit, normalisedFilters)
+    .then((value) => {
+      marketplaceListingsCache.set(cacheKey, {
+        expiresAt: Date.now() + MARKETPLACE_LISTINGS_CACHE_MS,
+        value,
+      });
+      return value;
+    })
+    .finally(() => {
+      pendingMarketplaceListings.delete(cacheKey);
     });
-    return value;
-  }).finally(() => {
-    pendingMarketplaceListings.delete(cacheKey);
-  });
   pendingMarketplaceListings.set(cacheKey, query);
   return query;
 }
@@ -2273,6 +3418,7 @@ async function fetchMarketplaceListings(
   filters: MarketplaceListingFilters = {}
 ): Promise<MarketplaceListingCard[]> {
   const now = new Date();
+  const offset = parseMarketplaceOffset(filters.offset);
   const where: Prisma.ListingWhereInput = {
     status: "active",
     moderationStatus: "approved",
@@ -2291,7 +3437,7 @@ async function fetchMarketplaceListings(
   if (q) {
     searchCandidateIds = await findMarketplaceListingSearchCandidates(
       q,
-      Math.max(limit * 10, LISTING_SEARCH_CANDIDATE_LIMIT)
+      Math.max(offset + limit, LISTING_SEARCH_CANDIDATE_LIMIT)
     );
     if (searchCandidateIds) {
       if (searchCandidateIds.length === 0) return [];
@@ -2309,28 +3455,29 @@ async function fetchMarketplaceListings(
     }
   }
 
-  const orderBy: Prisma.ListingOrderByWithRelationInput =
+  const orderBy: Prisma.ListingOrderByWithRelationInput[] =
     filters.sort === "price"
-      ? { price: "asc" }
+      ? [{ price: "asc" }, { createdAt: "desc" }, { id: "asc" }]
       : filters.sort === "expires_at"
-        ? { expiresAt: "asc" }
-        : { createdAt: "desc" };
+        ? [{ expiresAt: "asc" }, { createdAt: "desc" }, { id: "asc" }]
+        : [{ createdAt: "desc" }, { id: "asc" }];
 
-  const queryLimit = q && searchCandidateIds && !filters.sort
-    ? Math.min(searchCandidateIds.length, Math.max(limit * 10, limit))
-    : limit;
+  const useRankedSearch = Boolean(q && searchCandidateIds && !filters.sort);
+  const queryLimit =
+    useRankedSearch && searchCandidateIds ? searchCandidateIds.length : limit;
   const listings = await safeQuery(
     () =>
       prisma.listing.findMany({
         where,
         orderBy,
-        take: queryLimit,
+        skip: useRankedSearch ? undefined : offset,
+        take: Math.min(Math.max(Math.trunc(queryLimit), 1), 1_000),
         include: marketplaceListingCardInclude,
       }),
     []
   );
 
-  if (q && searchCandidateIds && !filters.sort) {
+  if (useRankedSearch && searchCandidateIds) {
     const rank = new Map(
       searchCandidateIds.map((listingId, index) => [listingId, index])
     );
@@ -2340,7 +3487,7 @@ async function fetchMarketplaceListings(
           (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
           (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER)
       )
-      .slice(0, limit);
+      .slice(offset, offset + limit);
   }
 
   return listings;
@@ -2360,6 +3507,7 @@ function marketplaceListingsCacheKey(
     q: filters.q?.trim() ?? null,
     status: filters.status ?? null,
     sort: filters.sort ?? null,
+    offset: parseMarketplaceOffset(filters.offset),
   });
 }
 
@@ -2406,6 +3554,7 @@ export async function getMarketplaceCategories() {
       prisma.marketplaceCategory.findMany({
         where: { active: true },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        take: 100,
       }),
     []
   );
@@ -2416,7 +3565,7 @@ export async function getDogsForListingSelect(limit = 80) {
     () =>
       prisma.dog.findMany({
         orderBy: { name: "asc" },
-        take: limit,
+        take: Math.min(Math.max(Math.trunc(limit), 1), 200),
         select: {
           id: true,
           name: true,
@@ -2439,22 +3588,47 @@ export async function getMessagingProfiles(
     () =>
       withDbRequestContext(current, (tx) => tx.profile.findMany({
         where: {
+          socialActor: {
+            is: {
+              kind: "personal",
+              published: true,
+            },
+          },
           user: {
-            ...(excludeEmail ? { email: { not: excludeEmail } } : {}),
+            AND: [
+              ...(excludeEmail ? [{ email: { not: excludeEmail } }] : []),
+              { email: { not: { endsWith: "@example.invalid" } } },
+            ],
             isBanned: false,
             deletionRequestedAt: null,
           },
           ...(trimmedSearch
             ? {
-                displayName: {
-                  contains: trimmedSearch,
-                  mode: "insensitive" as const,
-                },
+                OR: [
+                  {
+                    displayName: {
+                      contains: trimmedSearch,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    kennelName: {
+                      contains: trimmedSearch,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    kennelPrefix: {
+                      contains: trimmedSearch,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                ],
               }
             : {}),
         },
         orderBy: [{ verified: "desc" }, { displayName: "asc" }],
-        take: limit,
+        take: Math.min(Math.max(Math.trunc(limit), 1), 100),
         include: {
           user: {
             select: {
@@ -2573,7 +3747,7 @@ export async function getAgentRuns(current: DbContextUser, limit = 12) {
         tx.agentRun.findMany({
           where: { userId: current.dbUserId },
           orderBy: { createdAt: "desc" },
-          take: limit,
+          take: Math.min(Math.max(Math.trunc(limit), 1), 100),
         })
       ),
     []
@@ -2591,8 +3765,10 @@ export async function getAccountSummary(
         include: {
           profile: {
             include: {
+              socialActor: true,
               dogsOwned: {
                 orderBy: [{ verified: "desc" }, { createdAt: "desc" }],
+                take: 100,
                 include: {
                   dog: {
                     select: {

@@ -17,8 +17,8 @@ jobs:
     name: docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 24
           cache: npm
@@ -48,6 +48,7 @@ jobs:
       NEXTAUTH_URL: http://127.0.0.1:3000
       NEXTAUTH_SECRET: ci-nextauth-secret-32-characters-minimum
       AUTH_SECRET: ci-nextauth-secret-32-characters-minimum
+      REPLAY_PROXY_SECRET: ci-replay-proxy-secret-32-characters-min # gitleaks:allow - CI sentinel
       SUPABASE_URL: https://ci.supabase.co
       NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-supabase-anon-key
@@ -56,7 +57,7 @@ jobs:
       WORKOS_API_KEY: sk_test_ci_dummy
       WORKOS_COOKIE_PASSWORD: ci-workos-cookie-password-32-characters
       NEXT_PUBLIC_WORKOS_REDIRECT_URI: http://127.0.0.1:3000/callback
-      INTERNAL_API_SECRET: ci-internal-secret-32-characters-min
+      INTERNAL_API_SECRET: ci-internal-secret-32-characters-min # gitleaks:allow - CI sentinel
       LAGO_API_URL: https://billing-api.example.test
       LAGO_FRONT_URL: https://billing.example.test
       LAGO_API_KEY: ci-lago-api-key
@@ -67,6 +68,7 @@ jobs:
       STRIPE_PRICE_PRO_MONTHLY: price_ciProMonthly
       STRIPE_PRICE_PRO_YEARLY: price_ciProYearly
       REALTIME_CHANNEL_SECRET: ci-realtime-channel-secret-32-chars-min
+      SUPABASE_JWT_SECRET: ci-supabase-jwt-secret-32-characters-min
       LIVEKIT_URL: wss://livekit.ci.invalid
       LIVEKIT_API_KEY: ci-livekit-key
       LIVEKIT_API_SECRET: ci-livekit-api-secret-32-characters-min
@@ -74,32 +76,71 @@ jobs:
       SMOKE_BASE_URL: http://127.0.0.1:3000
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 0
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 24
           cache: npm
 
       - run: npm ci
-      - run: npm audit --audit-level=high
+      - name: Scan git history for secrets
+        run: >-
+          docker run --rm -v "$PWD:/repo:ro" -w /repo
+          ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          git . --redact --no-banner
+      - name: Run Semgrep SAST
+        run: >-
+          docker run --rm -v "$PWD:/src:ro" -w /src
+          semgrep/semgrep@sha256:59fbed6127ea7c5dde3ba6a85142733bb20ea9aaa36120c953904f1539aaf66e
+          semgrep --config p/typescript --config p/owasp-top-ten --config p/secrets
+          --jobs 4 --timeout 15 --max-target-bytes 1000000 --exclude "*.test.ts"
+          --exclude "*.test.tsx" --error src/app src/lib scripts
+      - name: Reject unsafe production SQL construction
+        run: npm run check:production-sql-safety
+      - name: Validate dependency sources, SBOM and vulnerability policy
+        run: npm run check:supply-chain
+      - name: Validate Terraform source and provider schema
+        run: |
+          npm run check:terraform-source
+          docker run --rm \
+            --mount "type=bind,source=$PWD/infra/terraform,target=/src,readonly" \
+            --entrypoint sh \
+            hashicorp/terraform@sha256:96d2bc440714bf2b2f2998ac730fd4612f30746df43fca6f0892b2e2035b11bc \
+            -c 'cp -R /src /tmp/tf && cd /tmp/tf && terraform fmt -check -recursive && TF_DATA_DIR=/tmp/tfdata terraform init -backend=false -lockfile=readonly && TF_DATA_DIR=/tmp/tfdata terraform validate'
+          docker run --rm \
+            --mount "type=bind,source=$PWD/infra/terraform-production,target=/src,readonly" \
+            --entrypoint sh \
+            hashicorp/terraform@sha256:96d2bc440714bf2b2f2998ac730fd4612f30746df43fca6f0892b2e2035b11bc \
+            -c 'cp -R /src /tmp/tf && cd /tmp/tf && terraform fmt -check -recursive && TF_DATA_DIR=/tmp/tfdata terraform init -backend=false -lockfile=readonly && TF_DATA_DIR=/tmp/tfdata terraform validate'
       - run: npm run check:env -- --ci --production
       - run: npx prisma validate
       - run: npm run check:production-safety
+      - run: npm run check:openapi-contract
+      - run: npm run check:openapi-static
+      - run: npm run check:security-trace-registry
       - run: npm run check:migrations
       - run: npx prisma migrate deploy
       - run: npm run db:seed
       - run: npm run check:internal-auth
       - run: npm run check:calls
       - run: npm run check:auth-profile-sync
-      - run: npm run check:community-flow
+      - name: Run community flow under the runtime RLS role
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}?options=-c%20role%3Dgreyhoundiq_runtime
+        run: npm run check:community-flow
       - run: npm run check:marketplace-safety
       - run: npm run check:visibility-policies
+      - run: npm run check:structured-logging
       - run: npm run test:unit
       - run: npm run check:comms-security
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
+      - name: Verify built client bundles contain no configured server secrets
+        run: npm run check:secret-boundaries -- --built
 
       - name: Start production server
         run: |

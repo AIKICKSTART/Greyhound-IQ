@@ -31,7 +31,11 @@ export const getPlatformFlag = cache(
 
 export async function getAllPlatformFlags(): Promise<Record<PlatformFlagKey, boolean>> {
   const rows = await withDbSystemContext((tx) =>
-    tx.platformSetting.findMany({ select: { key: true, value: true } })
+    tx.platformSetting.findMany({
+      where: { key: { in: Object.values(PLATFORM_FLAGS) } },
+      select: { key: true, value: true },
+      take: 5,
+    })
   );
   const byKey = new Map(rows.map((r) => [r.key, r.value === "true"]));
   const out = {} as Record<PlatformFlagKey, boolean>;

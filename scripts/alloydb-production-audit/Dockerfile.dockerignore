@@ -1,0 +1,6 @@
+**
+!scripts/
+!scripts/alloydb-production-audit/
+!scripts/alloydb-production-audit/Dockerfile
+!scripts/alloydb-production-audit/Dockerfile.dockerignore
+!scripts/alloydb-production-audit/audit.sh

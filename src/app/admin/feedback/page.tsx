@@ -23,13 +23,18 @@ type FeedbackRow = {
 
 export default async function AdminFeedbackPage() {
   const current = await requireModeratorProfile();
+  const canManageFeedback = current.profileRole === "admin";
   const feedback = await getFeedback(current);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
       <AdminPageHeader
         title="Feedback"
-        description="Latest 20 stored feedback records from the local database. Only identifiers, status, timestamps, and audited status controls are shown."
+        description={
+          canManageFeedback
+            ? "Latest 20 stored feedback records. Only identifiers, status, timestamps, and audited status controls are shown."
+            : "Latest 20 stored feedback records. Moderator access is read-only; an administrator is required to change feedback status."
+        }
       />
 
       <section className="giq-panel p-6">
@@ -74,13 +79,17 @@ export default async function AdminFeedbackPage() {
                       {formatDateTime(item.updatedAt)}
                     </td>
                     <td className="px-4 py-3">
-                      <AdminStatusForm
-                        resource="feedback"
-                        id={item.id}
-                        currentStatus={item.status}
-                        statuses={["new", "reviewing", "planned", "closed"]}
-                        path="/admin/feedback"
-                      />
+                      {canManageFeedback ? (
+                        <AdminStatusForm
+                          resource="feedback"
+                          id={item.id}
+                          currentStatus={item.status}
+                          statuses={["new", "reviewing", "planned", "closed"]}
+                          path="/admin/feedback"
+                        />
+                      ) : (
+                        <AdminRequiredLabel />
+                      )}
                     </td>
                   </tr>
                 ))
@@ -90,6 +99,14 @@ export default async function AdminFeedbackPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function AdminRequiredLabel() {
+  return (
+    <span className="inline-flex min-h-11 items-center rounded-lg border border-amber-300/20 bg-amber-300/[0.07] px-3 text-[12px] font-semibold text-amber-200">
+      Administrator required
+    </span>
   );
 }
 

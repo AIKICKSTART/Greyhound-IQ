@@ -14,6 +14,7 @@ import { prisma } from "../src/lib/db";
 import { syncLiveMeetings, type SyncCounts } from "../src/lib/live/sync";
 import type { LiveMeeting } from "../src/lib/live/provider";
 import { TheDogsProvider } from "../src/lib/live/thedogs";
+import { sanitizeArchiveValue } from "../src/lib/live/raw-sanitizer";
 
 const DEFAULT_FROM = process.env.THEDOGS_BACKFILL_FROM ?? "2006-08-01";
 const DEFAULT_PROGRESS = ".backfill/thedogs-history-progress.jsonl";
@@ -401,12 +402,12 @@ async function writeRawArchive(
   await mkdir(path.dirname(file), { recursive: true });
   await writeFile(
     file,
-    `${JSON.stringify({
+    `${JSON.stringify(sanitizeArchiveValue({
       source: "thedogs",
       date,
       fetchedAt: new Date().toISOString(),
       meetings,
-    })}\n`
+    }))}\n`
   );
   return file;
 }

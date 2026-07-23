@@ -7,15 +7,35 @@ import { withDbRequestContext, withDbSystemContext } from "@/lib/db-context";
 import type { CurrentUserProfile } from "@/lib/auth-types";
 import { assertPaidFeatureAccess } from "@/lib/tier-access";
 import { getPlatformFlag, PLATFORM_FLAGS } from "@/lib/platform-settings";
-import { getSupabaseAdminClient } from "@/lib/supabase-storage";
-import { PUBLIC_USER_MEDIA_BUCKET, publicStorageUrl } from "@/lib/storage-paths";
+import {
+  objectStorage,
+} from "@/lib/object-storage";
+import {
+  isObjectStorageBucket,
+  PUBLIC_USER_MEDIA_BUCKET,
+  publicStorageUrl,
+} from "@/lib/storage-paths";
 import { createAuditLog } from "@/lib/account-service";
-import { resolveCustomPageMedia } from "@/lib/custom-page-service";
+import {
+  parseCustomPageContent,
+  resolveCustomPageMedia,
+} from "@/lib/custom-page-service";
 import { computeCardTier, type CardTierResult } from "@/lib/dog-card-tier";
+import { isEmergencyControlActive } from "@/lib/emergency-controls";
+import {
+  assertDogCardPhotoSize,
+  MAX_DOG_CARD_SOURCE_BYTES,
+  resolveBundledDogCardPhotoPath,
+} from "@/lib/dog-card-photo-policy";
+import { readBoundedTextResponse } from "@/lib/remote-response";
 
 const OPENAI_IMAGE_EDITS_URL = "https://api.openai.com/v1/images/edits";
 const CARD_SIZE = "1024x1536"; // portrait trading-card
 const WORDMARK_PATH = "public/images/brand/logo-wordmark-purple-gold.webp";
+const OPENAI_IMAGE_RESPONSE_POLICY = {
+  maxBytes: 35 * 1024 * 1024,
+  allowedContentTypes: ["application/json"],
+} as const;
 
 // Per-tier prompt. gpt-image-2 gets the dog photo + wordmark as reference images.
 // GreyhoundsIQ wordmark is REQUIRED (also composited post-gen as a guarantee).
@@ -33,16 +53,6 @@ function cardPrompt(dogName: string, tier: CardTierResult, statLines: string[]) 
   ].join(" ");
 }
 
-async function fetchBytes(url: string): Promise<Buffer | null> {
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
-    if (!res.ok) return null;
-    return Buffer.from(await res.arrayBuffer());
-  } catch {
-    return null;
-  }
-}
-
 // Belt-and-suspenders wordmark guarantee: composite the official wordmark onto
 // the generated card so the hard rule holds regardless of model output.
 async function stampWordmark(cardPng: Buffer): Promise<Buffer> {
@@ -58,6 +68,10 @@ async function stampWordmark(cardPng: Buffer): Promise<Buffer> {
 }
 
 export async function generateDogCard(current: CurrentUserProfile, pageId: string) {
+  if (isEmergencyControlActive(process.env.AI_DISABLED)) {
+    throw new Error("dog_card.disabled");
+  }
+
   assertPaidFeatureAccess(current);
   if (!(await getPlatformFlag(PLATFORM_FLAGS.cardGenerationEnabled, false))) {
     throw new Error("dog_card.disabled");
@@ -68,21 +82,16 @@ export async function generateDogCard(current: CurrentUserProfile, pageId: strin
   const page = await withDbRequestContext(current, (tx) =>
     tx.customPage.findFirst({
       where: { id: pageId, ownerProfileId: current.profileId, pageType: "dog" },
-      include: { dog: true },
+      include: { dog: true, socialActor: { select: { id: true } } },
     })
   );
-  if (!page || !page.dog) throw new Error("dog_card.page_not_found");
+  if (!page || !page.dog || !page.socialActor) {
+    throw new Error("dog_card.page_not_found");
+  }
 
-  // Source dog photo: the page's avatar or hero image (user-uploaded, clean).
-  const media = await resolveCustomPageMedia(page.contentJson);
-  const photoUrl = media.avatarUrl ?? media.bannerUrl;
-  if (!photoUrl) throw new Error("dog_card.photo_required");
-  const photo = await fetchBytes(
-    photoUrl.startsWith("http")
-      ? photoUrl
-      : `${process.env.NEXTAUTH_URL ?? ""}${photoUrl}`
-  );
-  if (!photo) throw new Error("dog_card.photo_unreadable");
+  // Read only an actor-owned, clean storage object. The demo fallback is a
+  // bounded local public image; this path never follows a database/provider URL.
+  const photo = await readDogCardPhoto(page.contentJson, page.socialActor.id);
 
   const dog = page.dog;
   const tier = computeCardTier({
@@ -114,12 +123,15 @@ export async function generateDogCard(current: CurrentUserProfile, pageId: strin
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}` },
     body: form,
+    redirect: "manual",
     signal: AbortSignal.timeout(120_000),
   });
   if (!res.ok) {
     throw new Error(`dog_card.generation_failed:${res.status}`);
   }
-  const json = (await res.json()) as { data?: { b64_json?: string }[] };
+  const json = JSON.parse(
+    await readBoundedTextResponse(res, OPENAI_IMAGE_RESPONSE_POLICY),
+  ) as { data?: { b64_json?: string }[] };
   const b64 = json.data?.[0]?.b64_json;
   if (!b64) throw new Error("dog_card.no_image");
 
@@ -127,10 +139,23 @@ export async function generateDogCard(current: CurrentUserProfile, pageId: strin
 
   // Upload to public bucket + register a clean MediaAsset linked to the page.
   const objectPath = `users/${current.dbUserId}/custom-page/${pageId}/card-${randomUUID()}.png`;
-  const { error } = await getSupabaseAdminClient()
-    .storage.from(PUBLIC_USER_MEDIA_BUCKET)
-    .upload(objectPath, stamped, { contentType: "image/png", upsert: false });
-  if (error) throw new Error("dog_card.upload_failed");
+  try {
+    await objectStorage.putObject({
+      bucket: PUBLIC_USER_MEDIA_BUCKET,
+      key: objectPath,
+      body: stamped,
+      contentType: "image/png",
+      upsert: false,
+    });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.startsWith("storage.upload_failed:")
+    ) {
+      throw new Error("dog_card.upload_failed");
+    }
+    throw error;
+  }
   const publicUrl = publicStorageUrl(PUBLIC_USER_MEDIA_BUCKET, objectPath);
 
   const asset = await withDbSystemContext((tx) =>
@@ -173,4 +198,65 @@ export async function generateDogCard(current: CurrentUserProfile, pageId: strin
   });
 
   return { mediaId: asset.id, publicUrl, tier: tier.tier };
+}
+
+async function readDogCardPhoto(contentJson: string | null, actorId: string) {
+  const content = parseCustomPageContent(contentJson);
+  const preferredIds = [content.avatarMediaId, content.bannerMediaId].filter(
+    (id): id is string => Boolean(id),
+  );
+  if (preferredIds.length > 0) {
+    const attachments = await withDbSystemContext((tx) =>
+      tx.actorGalleryMedia.findMany({
+        where: {
+          actorId,
+          mediaId: { in: preferredIds },
+          media: {
+            deletedAt: null,
+            scanStatus: "clean",
+            processingStatus: "ready",
+          },
+        },
+        select: {
+          media: {
+            select: {
+              id: true,
+              storageBucket: true,
+              storagePath: true,
+              mimeType: true,
+              sizeBytes: true,
+            },
+          },
+        },
+        take: 2,
+      }),
+    );
+    const byId = new Map(attachments.map(({ media }) => [media.id, media]));
+    const source = preferredIds.map((id) => byId.get(id)).find(Boolean);
+    if (source) {
+      if (
+        !isObjectStorageBucket(source.storageBucket) ||
+        !source.mimeType.startsWith("image/") ||
+        source.sizeBytes <= 0 ||
+        source.sizeBytes > MAX_DOG_CARD_SOURCE_BYTES
+      ) {
+        throw new Error("dog_card.photo_invalid");
+      }
+      const body = await objectStorage.streamObject({
+        bucket: source.storageBucket,
+        key: source.storagePath,
+        range: { start: 0, end: source.sizeBytes - 1 },
+      });
+      const bytes = Buffer.from(await new Response(body).arrayBuffer());
+      assertDogCardPhotoSize(bytes.byteLength, source.sizeBytes);
+      return bytes;
+    }
+  }
+
+  const demoMedia = await resolveCustomPageMedia(contentJson, actorId);
+  const bundledPathname = demoMedia.avatarUrl ?? demoMedia.bannerUrl;
+  if (!bundledPathname) throw new Error("dog_card.photo_required");
+  const bytes = await readFile(resolveBundledDogCardPhotoPath(bundledPathname));
+  assertDogCardPhotoSize(bytes.byteLength);
+  return bytes;
 }

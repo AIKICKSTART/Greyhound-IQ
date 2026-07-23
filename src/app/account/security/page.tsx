@@ -2,7 +2,7 @@ import { ArrowLeft, Lock, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { PageHero } from "@/components/page-hero";
+import { PageTitle } from "@/components/page-title";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import type { CurrentUserProfile } from "@/lib/auth";
 
@@ -14,8 +14,9 @@ export const metadata = {
     "Review the safe local security fields for your GreyhoundIQ account.",
 };
 
-const PANEL_CLASS = "giq-panel p-6";
-const ACTION_CLASS = "giq-outline-action";
+const PANEL_CLASS = "giq-panel p-5 sm:p-6";
+const ACTION_CLASS =
+  "giq-outline-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]";
 const TIER_LABELS = {
   free: "Free",
   pro: "Pro",
@@ -37,29 +38,35 @@ export default async function AccountSecurityPage() {
 
   return (
     <div>
-      <PageHero
-        image="/images/wentworth-gate-hero.webp"
-        title={
-          <>
-            Account
-            <br />
-            <span className="gradient-text">security.</span>
-          </>
-        }
-        subtitle="WorkOS handles sign-in and session security; GreyhoundIQ only shows safe local account fields here."
-      />
+      <header className="relative overflow-hidden border-b border-white/[0.07] bg-[linear-gradient(135deg,hsl(var(--card)/0.92),hsl(var(--background))_72%)]">
+        <div
+          aria-hidden="true"
+          className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[hsl(var(--primary-bright)/0.12)] blur-3xl"
+        />
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-8">
+          <div className="max-w-2xl">
+            <p className="program-label">Account settings</p>
+            <PageTitle className="mt-2">
+              Security
+            </PageTitle>
+            <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
+              WorkOS protects sign-in and sessions; GreyhoundIQ shows only safe
+              local account details.
+            </p>
+          </div>
+          <Link href="/account" className={ACTION_CLASS}>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Back to account
+          </Link>
+        </div>
+      </header>
 
-      <section className="mx-auto max-w-5xl px-6 py-12">
-        <Link href="/account" className={`${ACTION_CLASS} mb-6 w-fit`}>
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to account
-        </Link>
-
-        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <div className="grid gap-5 sm:gap-6 lg:grid-cols-2">
           <section className={PANEL_CLASS}>
             <div className="mb-5 flex items-center gap-3">
               <ShieldCheck className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-              <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+              <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
                 Local account fields
               </h2>
             </div>
@@ -81,7 +88,7 @@ export default async function AccountSecurityPage() {
           <section className={PANEL_CLASS}>
             <div className="mb-5 flex items-center gap-3">
               <Lock className="h-5 w-5 text-[hsl(var(--secondary))]" />
-              <h2 className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+              <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] sm:text-2xl">
                 Identity handoff
               </h2>
             </div>
@@ -93,7 +100,7 @@ export default async function AccountSecurityPage() {
             <div className="mt-6 flex flex-wrap gap-3">
               <a
                 href="/sign-in"
-                className="giq-liquid-purple-button min-h-10 px-4 text-[13px] font-semibold"
+                className="giq-liquid-purple-button min-h-11 px-4 text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
               >
                 Open sign-in
               </a>
@@ -128,9 +135,9 @@ async function requireSecurityAccount(): Promise<SecurityAccount> {
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-white/[0.05] pb-3 last:border-0 last:pb-0">
+    <div className="flex flex-col items-start justify-between gap-1.5 border-b border-white/[0.05] pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:gap-4">
       <span className="text-[hsl(var(--subtle-foreground))]">{label}</span>
-      <span className="text-right font-semibold text-[hsl(var(--foreground))]">
+      <span className="min-w-0 break-all font-semibold text-[hsl(var(--foreground))] sm:text-right">
         {value}
       </span>
     </div>

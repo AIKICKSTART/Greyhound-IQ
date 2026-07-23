@@ -6,7 +6,7 @@ import {
 } from "@/lib/platform-settings";
 import { updatePageRulesAction } from "@/app/admin/mutations";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
-import { SubmitButton } from "@/components/submit-button";
+import { AdminSubmitButton } from "@/app/admin/admin-submit-button";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -93,9 +93,12 @@ export default async function PageRulesAdmin() {
               </span>
             </span>
           </label>
-          <SubmitButton className="giq-button giq-button-primary px-5 text-[13px] font-semibold">
-            Save rules
-          </SubmitButton>
+          <AdminSubmitButton
+            label="Save rules"
+            pendingLabel="Saving rules…"
+            confirmMessage="Save these audited page-rule changes?"
+            className="giq-button giq-button-primary min-h-11 px-5 text-[13px] font-semibold"
+          />
         </form>
       </section>
     </main>

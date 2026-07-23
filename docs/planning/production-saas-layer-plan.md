@@ -1,17 +1,21 @@
 # GreyhoundIQ Production SaaS Layer Plan
 
-> Status: Planning baseline for the next production layer
-> Scope: accounts, WorkOS auth flows, organisations, subscription tiers, Lago billing and metering, payment flows, onboarding, admin/support, analytics, security, and Google Cloud VPS operations
+> Status: Product/SaaS planning baseline; legacy VPS and Supabase production-infrastructure directions are superseded
+> Scope: accounts, WorkOS auth flows, organisations, subscription tiers, Lago billing and metering, payment flows, onboarding, admin/support, analytics, and security
 > Non-goals: redesigning the existing UI identity, replacing race data providers, or touching source-ingestion contracts during this layer
+
+Infrastructure authority is [`../architecture/greyhoundiq-australia-production-architecture.md`](../architecture/greyhoundiq-australia-production-architecture.md). Account, entitlement, metering and billing requirements in this plan remain product inputs. Any statement below that assigns production hosting to a single Google Cloud VPS, self-hosted application PostgreSQL or Supabase Storage/Realtime is historical and must not be used as deployment guidance. Lago's product role remains a planning decision; its production hosting, data, network, IAM, backup, restore and cost boundaries require a separate reviewed architecture decision.
+
+This plan authorises no provisioning, provider probes, credentials, billing attachment or upgrade, automatic payment, DNS, deployment, staging or production promotion.
 
 ## Hard Constraints
 
 - WorkOS is the only identity provider. Do not reintroduce Supabase Auth in code, docs, diagrams, or future plans.
-- Production runs on AI Kick Start-owned Google Cloud VPS infrastructure for the app, database layer, workers, billing services, and future AI agent harnesses.
+- Production infrastructure follows the canonical Sydney/Melbourne Google Cloud target. A single AI Kick Start-owned VPS is not the production application or database target.
 - Preserve current race data-source contracts and ingestion paths for Topaz, TheDogs, Watchdog, FastTrack, and archive/import scripts. Account and billing work must wrap access and entitlements around these systems without breaking provider connectivity.
 - Lago is included in the target billing layer. Lago owns metering, plans, subscriptions, invoices, entitlements, dunning, and usage-based billing logic. Stripe or another payment service provider collects payments from Lago-managed billing flows.
 - The local GreyhoundIQ database remains the app's authorization, entitlement-cache, audit, and operational source of truth. The frontend cannot be trusted for subscription or permission enforcement.
-- Supabase may remain as storage or integration where current code uses it, but not as auth and not as the source of user/account truth.
+- Supabase may remain visible while current dependencies are inventoried, but it is not an accepted production auth, database, storage or realtime dependency. The affected MVP journeys remain blocked until their canonical replacements pass.
 - Keep the current polished GreyhoundIQ design system. Add missing states and flows without changing the visual identity.
 
 ## Current State
@@ -21,7 +25,7 @@ Confirmed in the codebase:
 - WorkOS AuthKit is active through `src/proxy.ts`, `src/app/sign-in/route.ts`, `src/app/callback/route.ts`, and `AuthKitProvider`.
 - Local account state exists in Prisma `User` and `Profile`; `syncAuthUser` creates a free user after WorkOS callback.
 - WorkOS-only docs cleanup is complete for the production SaaS layer. Supabase Auth is no longer the documented account path.
-- Google Cloud VPS is now the documented production target for app runtime, database, workers, Lago, queues, reverse proxy/TLS, backups, logs, and future AI agent harness isolation.
+- The former Google Cloud VPS production target is superseded. The canonical source records dual-region Cloud Run, AlloyDB and separately reviewed supporting services; Lago hosting remains undecided.
 - Lago now has a local repo/proof-of-concept layer for billing architecture validation. It is not yet the production billing source of truth.
 - Read-only admin dashboards now exist for operator visibility. Admin mutation workflows still need reason-required actions, approvals, and audit enforcement.
 - Billing, usage, retention, and export foundations now exist for account-facing product surfaces, including a billing status banner foundation. Full Lago-backed subscription, invoice, entitlement, webhook, and metering flows are still pending.
@@ -68,7 +72,7 @@ Ownership:
 - GreyhoundIQ DB: local user/account/org records, memberships, roles, entitlements cache, route authorization, usage outbox, audit log, support/admin records.
 - Lago: billing customer, billable metrics, plan catalog, subscriptions, usage aggregation, invoices, taxes, dunning, credits, coupons, entitlements.
 - Stripe/payment provider: payment methods, payment collection, card compliance, receipts where provider-owned.
-- Google Cloud VPS: app runtime, database, workers, Lago services, queue, reverse proxy/TLS, backups, logs, and AI agent harness isolation.
+- GreyhoundIQ production platform: canonical Sydney/Melbourne application and data services; Lago and future agent-hosting boundaries require separate reviewed decisions.
 
 Do not use both Lago and Stripe Billing as competing subscription ledgers. If Lago is included, Lago is the billing source of truth and Stripe is the payment rail.
 
@@ -76,9 +80,9 @@ Do not use both Lago and Stripe Billing as competing subscription ledgers. If La
 
 Lago fits GreyhoundIQ because future prediction agents and premium data features are naturally metered. Lago supports usage-based, subscription, and hybrid pricing models; self-hosting; payment-provider integrations; REST APIs; usage ingestion; billable metrics; invoices; entitlements; and dunning.
 
-Recommended deployment:
+Hosting boundary:
 
-- Run Lago as a separate service group on the Google Cloud VPS stack or a dedicated billing VM.
+- Do not deploy Lago from the historical VPS runbook. Select its production hosting only through a separate review covering Australian data paths, isolation, IAM, backups, restore, monitoring, cost and failure behaviour.
 - Put Lago behind the internal reverse proxy with restricted admin UI access.
 - Store Lago API keys in the server secret store only.
 - Use Lago's API for customer creation, subscription assignment, usage event ingestion, and entitlement reads.
@@ -298,7 +302,7 @@ Required:
 - Rate limits per IP, user, organisation, endpoint, plan, upload, webhook, and agent workload.
 - Signed internal job auth instead of one broad shared secret over time.
 - Webhook signature verification, idempotency, replay tooling, and alerting.
-- Secrets only in Google Cloud/VPS secret environment, never docs/logs/browser.
+- Secrets only in the approved production secret-management boundary, never docs, logs, browser code or build arguments.
 - PII and sensitive content redaction in logs, analytics, and error reporting.
 - Private-by-default storage for originals, previews, exports, and user uploads.
 - Storage deletion jobs with retry/evidence for account deletion and retention expiry.
@@ -380,7 +384,7 @@ Send analytics from server-side events where possible and attach only local user
 
 Completed for the current demo baseline:
 
-- Correct public/product docs to WorkOS-only and Google Cloud VPS target.
+- Correct public/product docs to WorkOS-only and the canonical Sydney/Melbourne Google Cloud target.
 - Add account dropdown/menu and billing/usage/export/admin navigation foundations.
 - Add account security and notifications settings foundations.
 - Add Lago repo/proof-of-concept layer in non-production.
@@ -411,7 +415,7 @@ Remaining before demo:
 - Complete rate limiting and abuse prevention beyond the public search foundation.
 - Admin override workflow with audit.
 - Privacy/Terms/refund/cookie/subprocessor/AI processing updates.
-- Google Cloud VPS deployment runbook, rollback plan, backup restore drill, and smoke tests.
+- Canonical pre-production deployment plan, rollback path, backup/restore drill and smoke tests bound to the exact candidate.
 - Race source provider regression suite.
 
 ### Should-have soon after launch
@@ -432,7 +436,7 @@ Remaining before demo:
 - Custom retention and audit exports.
 - Data room/investor demo workspace.
 - Advanced fraud/abuse detection.
-- Separate billing infrastructure VM or managed service boundary.
+- Separately reviewed billing service boundary based on measured isolation, residency, recovery and cost needs.
 - Formal penetration test and compliance review.
 
 ## Acceptance Criteria

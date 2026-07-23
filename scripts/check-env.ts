@@ -1,5 +1,7 @@
 import { loadEnvConfig } from "@next/env";
 import { databaseUrlConfigurationError } from "../src/lib/database-url";
+import { resolveGcsBucketNames } from "../src/lib/gcs-object-storage-config";
+import { resolveNotificationWebhookConfig } from "../src/lib/notification-webhook-policy";
 
 loadEnvConfig(process.cwd());
 
@@ -28,31 +30,38 @@ const specs: EnvSpec[] = [
   },
   {
     names: ["NEXTAUTH_SECRET", "AUTH_SECRET"],
-    description: "server-side signing secret for sessions and media URLs",
+    description: "server-side signing secret for sessions",
+    productionOnly: true,
+    validate: (value) =>
+      value.length >= 32 ? null : "must be at least 32 characters",
+  },
+  {
+    names: ["REPLAY_PROXY_SECRET"],
+    description: "dedicated server-only HMAC secret for short-lived replay URLs",
     productionOnly: true,
     validate: (value) =>
       value.length >= 32 ? null : "must be at least 32 characters",
   },
   {
     names: ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"],
-    description: "Supabase project URL for database-adjacent services and Storage",
+    description: "Supabase project URL for Realtime and Supabase-compatible development",
     productionOnly: true,
     validate: validateUrl,
   },
   {
     names: ["NEXT_PUBLIC_SUPABASE_URL"],
-    description: "browser-visible Supabase project URL for Storage uploads",
+    description: "browser-visible Supabase project URL for Realtime compatibility",
     productionOnly: true,
     validate: validateUrl,
   },
   {
     names: ["NEXT_PUBLIC_SUPABASE_ANON_KEY"],
-    description: "browser-visible Supabase anon key for Storage signed uploads",
+    description: "browser-visible Supabase anon key for Realtime compatibility",
     productionOnly: true,
   },
   {
     names: ["SUPABASE_SERVICE_ROLE_KEY"],
-    description: "server-only Supabase service-role key for signed Storage operations",
+    description: "server-only Supabase service-role key for Realtime grants and development storage",
     productionOnly: true,
   },
   {
@@ -111,6 +120,13 @@ const specs: EnvSpec[] = [
       value.length >= 32 ? null : "must be at least 32 characters",
   },
   {
+    names: ["SUPABASE_JWT_SECRET"],
+    description: "server-only key for short-lived Realtime authorization JWTs",
+    productionOnly: true,
+    validate: (value) =>
+      value.length >= 32 ? null : "must be at least 32 characters",
+  },
+  {
     names: ["REALTIME_CHANNEL_SECRET"],
     description: "server-only HMAC secret deriving realtime channel names",
     productionOnly: true,
@@ -146,6 +162,10 @@ const optional = [
   "DIRECT_URL",
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "OBJECT_STORAGE_PROVIDER",
+  "GCS_SITE_ASSETS_BUCKET",
+  "GCS_PUBLIC_USER_MEDIA_BUCKET",
+  "GCS_PRIVATE_USER_MEDIA_BUCKET",
   "LAGO_API_URL",
   "LAGO_FRONT_URL",
   "LAGO_API_KEY",
@@ -170,14 +190,19 @@ const optional = [
   "NEXT_PUBLIC_ENABLE_DEMO_LISTING_MEDIA",
   "NEXT_PUBLIC_ENABLE_DEMO_ACCOUNT",
   "REALTIME_CHANNEL_SECRET",
+  "ACTOR_CONVERSATION_MULTIPLEX_ENABLED",
   "LIVEKIT_URL",
   "LIVEKIT_API_KEY",
   "LIVEKIT_API_SECRET",
   "NEXT_PUBLIC_LIVEKIT_URL",
   "MEDIA_SCAN_MODE",
   "MEDIA_CLAMSCAN_BIN",
+  "MEDIA_FRESHCLAM_BIN",
   "MEDIA_CLAMAV_DATABASE",
   "MEDIA_CLAMSCAN_TIMEOUT_MS",
+  "MEDIA_FRESHCLAM_TIMEOUT_MS",
+  "MEDIA_CLAMAV_REFRESH_INTERVAL_MS",
+  "MEDIA_CLAMAV_MAX_DEFINITION_AGE_MS",
   "NOTIFICATION_WEBHOOK_URL",
   "NOTIFICATION_WEBHOOK_SECRET",
   "NOTIFICATION_DELIVERY_MAX_ATTEMPTS",
@@ -230,20 +255,33 @@ for (const name of optionalDatabaseUrlNames) {
   }
 }
 
+const objectStorageProvider =
+  process.env.OBJECT_STORAGE_PROVIDER?.trim().toLowerCase() || "supabase";
+if (objectStorageProvider !== "supabase" && objectStorageProvider !== "gcs") {
+  failures.push("OBJECT_STORAGE_PROVIDER must be supabase or gcs");
+} else if (objectStorageProvider === "gcs") {
+  try {
+    resolveGcsBucketNames(process.env);
+  } catch (error) {
+    failures.push(
+      error instanceof Error ? error.message : "storage.gcs_configuration_invalid",
+    );
+  }
+}
+
+try {
+  resolveNotificationWebhookConfig();
+} catch (error) {
+  failures.push(
+    error instanceof Error ? error.message : "notification.webhook_invalid_config",
+  );
+}
+
 if (production) {
   for (const name of productionFalseFlags) {
     if (process.env[name]?.trim().toLowerCase() === "true") {
       failures.push(`${name} must be false or unset in production`);
     }
-  }
-
-  if (
-    process.env.NOTIFICATION_WEBHOOK_URL?.trim() &&
-    !process.env.NOTIFICATION_WEBHOOK_SECRET?.trim()
-  ) {
-    failures.push(
-      "NOTIFICATION_WEBHOOK_SECRET missing (required when NOTIFICATION_WEBHOOK_URL is set)"
-    );
   }
 }
 

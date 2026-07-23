@@ -90,6 +90,20 @@ export function formatRaceDateInput(date: Date) {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
+export function orderRaceDates<T extends { date: string }>(
+  dates: readonly T[],
+  today: string,
+) {
+  return [...dates].sort((left, right) => {
+    const leftIsPast = left.date < today;
+    const rightIsPast = right.date < today;
+    if (leftIsPast !== rightIsPast) return leftIsPast ? 1 : -1;
+    return leftIsPast
+      ? right.date.localeCompare(left.date)
+      : left.date.localeCompare(right.date);
+  });
+}
+
 export function formatRaceDayLabel(date: string) {
   return raceDayFormatter.format(raceDateForDisplay(date));
 }

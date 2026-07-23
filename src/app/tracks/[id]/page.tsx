@@ -1,14 +1,20 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, Clock, MapPin, Route, Trophy } from "lucide-react";
 import { getBoxColourStyle } from "@/lib/box-colours";
 import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
+import { PageTitle } from "@/components/page-title";
+import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
+import { resolveDemoProviderRouteId } from "@/lib/demo-route-samples";
 import { getTrackById } from "@/lib/queries";
 import {
   formatRaceDateInput,
   formatRaceDayLabel,
   formatRaceTime,
 } from "@/lib/race-time";
+import { siteAssetUrl } from "@/lib/storage-paths";
+import { trackMediaPathForName } from "@/lib/track-media";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +23,8 @@ export async function generateMetadata({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: routeId } = await params;
+  const id = await resolveDemoProviderRouteId("track", routeId);
   const track = await getTrackById(id);
   if (!track) {
     return {
@@ -45,9 +52,11 @@ export default async function TrackDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: routeId } = await params;
+  const id = await resolveDemoProviderRouteId("track", routeId);
   const track = await getTrackById(id);
   if (!track) notFound();
+  const trackMediaPath = trackMediaPathForName(track.name);
 
   const races = track.meetings.flatMap((meeting) => meeting.races);
   const runners = races.flatMap((race) =>
@@ -58,8 +67,10 @@ export default async function TrackDetailPage({
     (runner) => runner.result?.finishingPosition === 1
   );
   const bestRun = completed
-    .filter((runner) => runner.result?.runningTime)
-    .sort((a, b) => (a.result!.runningTime ?? 99) - (b.result!.runningTime ?? 99))[0];
+    .filter((runner) => runner.result?.runningTime != null)
+    .sort(
+      (a, b) => a.result!.runningTime! - b.result!.runningTime!,
+    )[0];
 
   const boxWins = Array.from({ length: track.boxCount }, (_, index) => {
     const box = index + 1;
@@ -94,8 +105,18 @@ export default async function TrackDetailPage({
         ]}
       />
       <section className="relative overflow-hidden border-b border-white/[0.06] bg-[hsl(var(--background))]">
+        {trackMediaPath ? (
+          <Image
+            src={siteAssetUrl(trackMediaPath)}
+            alt=""
+            fill
+            className="absolute inset-0 object-cover object-center opacity-[0.52]"
+            sizes="100vw"
+            priority
+          />
+        ) : null}
         <div className="absolute inset-0 grid-bg opacity-60" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_15%,hsl(var(--primary)/0.18),transparent_36%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,hsl(var(--background)/0.94)_0%,hsl(var(--background)/0.70)_55%,hsl(var(--background)/0.45)_100%),radial-gradient(circle_at_70%_15%,hsl(var(--primary)/0.18),transparent_36%)]" />
         <div className="relative mx-auto max-w-6xl px-6 py-16">
           <div className="mb-5 flex flex-wrap items-center gap-3 text-[13px] text-[hsl(var(--muted-foreground))]">
             <Link href="/tracks" className="hover:text-[hsl(var(--foreground))]">
@@ -106,9 +127,9 @@ export default async function TrackDetailPage({
           </div>
           <div className="grid gap-8 lg:grid-cols-[1fr_360px] lg:items-end">
             <div>
-              <h1 className="text-4xl font-semibold leading-tight text-[hsl(var(--foreground))] md:text-6xl">
+              <PageTitle size="display">
                 {track.name}
-              </h1>
+              </PageTitle>
               <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[hsl(var(--muted-foreground))]">
                 {track.state} track guide with recent meetings, race distances,
                 box-bias signals, and current seeded records.
@@ -128,6 +149,10 @@ export default async function TrackDetailPage({
           </div>
         </div>
       </section>
+
+      <div className="mx-auto mt-6 max-w-6xl px-6">
+        <RacingDataDisclosure />
+      </div>
 
       <section className="giq-track-detail-content mx-auto grid max-w-6xl gap-8 px-6 py-12 lg:grid-cols-[1fr_0.85fr]">
         <div>
@@ -158,6 +183,12 @@ export default async function TrackDetailPage({
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={`/meetings/${meeting.id}`}
+                      className="giq-outline-action min-h-8 px-3 py-1.5 text-[12px] font-semibold"
+                    >
+                      Open meeting
+                    </Link>
                     {meeting.races.slice(0, 10).map((race) => (
                       <Link
                         key={race.id}

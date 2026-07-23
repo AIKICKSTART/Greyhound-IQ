@@ -13,11 +13,18 @@ import { access, appendFile, mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../src/lib/db";
+import {
+  sanitizeArchiveValue,
+  sanitizeProviderHtml,
+  sanitizeRawJson,
+} from "../src/lib/live/raw-sanitizer";
+import { verifyTheDogsProfileArchiveIdentity } from "./thedogs-profile-archive-identity";
 
 const DEFAULT_PROFILE_DIR = ".backfill/thedogs-dog-profiles-raw";
 const DEFAULT_PROGRESS = ".backfill/thedogs-dog-profile-import-progress.jsonl";
 const DB_UNAVAILABLE_EXIT_CODE = 75;
 const DB_PREFLIGHT_TIMEOUT_MS = 30_000;
+const CANONICAL_IMPORT_DISABLED_EXIT_CODE = 64;
 
 type Options = {
   sourceId?: string;
@@ -125,7 +132,6 @@ type ArchivedProfileForm = {
   winnerDogName?: string;
   winnerDogSourceId?: string;
   inRunningPositions?: string;
-  startingPrice?: number;
   hasVideo?: boolean;
   sourceRawJson?: string;
 };
@@ -141,6 +147,13 @@ type NormalizedProfileForm = Omit<
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
+  if (!options.dryRun && !options.archiveOnly) {
+    console.error(
+      "[import:thedogs:dog-profiles:raw] direct canonical Dog import is disabled: use the identity-audited v2 full-history merge so whole-database matching, provenance, relationship review, and no-loss checks run before any canonical write",
+    );
+    process.exitCode = CANONICAL_IMPORT_DISABLED_EXIT_CODE;
+    return;
+  }
   const completed = options.resume
     ? await readImportedSourceIds(options.progressFile)
     : new Set<string>();
@@ -435,9 +448,9 @@ async function saveProfileArchiveOnly(
       ${dateOrUndefined(archive.fetchedAt) ?? null},
       ${archive.showMorePath ?? null},
       ${archive.candidate ? JSON.stringify(archive.candidate) : null},
-      ${JSON.stringify(profile)},
-      ${archive.profileHtml ?? null},
-      ${archive.fullFormHtml ?? null},
+      ${JSON.stringify(sanitizeArchiveValue(profile))},
+      ${archive.profileHtml ? sanitizeProviderHtml(archive.profileHtml) : null},
+      ${archive.fullFormHtml ? sanitizeProviderHtml(archive.fullFormHtml) : null},
       NOW(),
       NOW()
     )
@@ -496,7 +509,9 @@ async function saveProfileArchive(
     bestTimesJson: profile.bestTimesJson,
     boxHistoryJson: profile.boxHistoryJson,
     distanceHistoryJson: profile.distanceHistoryJson,
-    profileSourceRawJson: profile.profileSourceRawJson,
+    profileSourceRawJson: profile.profileSourceRawJson
+      ? sanitizeRawJson(profile.profileSourceRawJson)
+      : undefined,
     lastProfileSyncedAt: new Date(),
   };
   const dog = await upsertProfileDog(sourceProvider, sourceId, earBrand, dogData);
@@ -510,9 +525,11 @@ async function saveProfileArchive(
     fetchedAt: dateOrUndefined(archive.fetchedAt) ?? null,
     showMorePath: archive.showMorePath ?? null,
     candidateJson: archive.candidate ? JSON.stringify(archive.candidate) : null,
-    parsedJson: JSON.stringify(profile),
-    profileHtml: archive.profileHtml ?? null,
-    fullFormHtml: archive.fullFormHtml ?? null,
+    parsedJson: JSON.stringify(sanitizeArchiveValue(profile)),
+    profileHtml: archive.profileHtml ? sanitizeProviderHtml(archive.profileHtml) : null,
+    fullFormHtml: archive.fullFormHtml
+      ? sanitizeProviderHtml(archive.fullFormHtml)
+      : null,
   };
 
   await prisma.$executeRaw`
@@ -587,9 +604,8 @@ async function saveProfileArchive(
         winnerDogName: row.winnerDogName,
         winnerDogSourceId: prefixedSourceId(row.winnerDogSourceId, sourceProvider),
         inRunningPositions: row.inRunningPositions,
-        startingPrice: row.startingPrice,
         hasVideo: row.hasVideo ?? false,
-        sourceRawJson: row.sourceRawJson,
+        sourceRawJson: row.sourceRawJson ? sanitizeRawJson(row.sourceRawJson) : undefined,
       })),
     });
   }
@@ -754,6 +770,12 @@ async function readProfileArchive(
   if (!archive.parsed) throw new Error(`${candidate.profilePath} is missing parsed`);
   if (!Array.isArray(archive.parsed.formRows)) {
     throw new Error(`${candidate.profilePath} is missing parsed.formRows[]`);
+  }
+  const identity = verifyTheDogsProfileArchiveIdentity(candidate.sourceId, archive);
+  if (!identity.verified) {
+    throw new Error(
+      `${candidate.profilePath} failed exact provider identity verification: ${identity.reasons.join("; ")}`,
+    );
   }
   return archive;
 }

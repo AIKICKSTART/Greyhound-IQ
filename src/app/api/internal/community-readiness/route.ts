@@ -4,11 +4,35 @@ import { jsonError } from "@/lib/api-errors";
 import { runCommunityFlowProbe } from "@/lib/community-flow-probe";
 import { withDbSystemContext } from "@/lib/db-context";
 import { requireInternalRequest } from "@/lib/internal-auth";
+import { executeScheduledTask } from "@/lib/scheduled-task-control";
 import { getSupabaseAdminClient } from "@/lib/supabase-storage";
 
 export async function POST(request: Request) {
   try {
     requireInternalRequest(request);
+    const execution = await executeScheduledTask("community-readiness", () =>
+      runReadinessChecks(request),
+    );
+    if (execution.status === "overlap") {
+      return NextResponse.json({ ok: true, skipped: "overlap" });
+    }
+
+    const { checks, missing } = execution.value;
+    return NextResponse.json(
+      {
+        ok: missing.length === 0,
+        checks,
+        missing,
+        timestamp: new Date().toISOString(),
+      },
+      { status: missing.length === 0 ? 200 : 503 },
+    );
+  } catch (err) {
+    return jsonError(err, "Could not run community readiness check");
+  }
+}
+
+async function runReadinessChecks(request: Request) {
     const runWriteProbe = new URL(request.url).searchParams.get("write") === "true";
     // The write probe creates real rows; require an explicit env opt-in.
     if (runWriteProbe && process.env.ALLOW_COMMUNITY_WRITE_PROBE !== "true") {
@@ -31,7 +55,7 @@ export async function POST(request: Request) {
       marketplaceCategories,
       activeListings,
       realtime: await checkRealtime(),
-      livekit: checkLiveKit(),
+      livekit: await checkLiveKit(),
       writeFlow: runWriteProbe
         ? await runCommunityFlowProbe({ liveKitMode: "configured" })
         : "skipped",
@@ -48,18 +72,7 @@ export async function POST(request: Request) {
         : null,
     ].filter(Boolean);
 
-    return NextResponse.json(
-      {
-        ok: missing.length === 0,
-        checks,
-        missing,
-        timestamp: new Date().toISOString(),
-      },
-      { status: missing.length === 0 ? 200 : 503 }
-    );
-  } catch (err) {
-    return jsonError(err, "Could not run community readiness check");
-  }
+  return { checks, missing };
 }
 
 async function checkRealtime() {
@@ -73,15 +86,16 @@ async function checkRealtime() {
   }
 }
 
-function checkLiveKit() {
+async function checkLiveKit() {
   const url = process.env.LIVEKIT_URL;
   const apiKey = process.env.LIVEKIT_API_KEY;
   const apiSecret = process.env.LIVEKIT_API_SECRET;
   if (!url || !apiKey || !apiSecret) return "missing";
 
-  createLiveKitCallToken(
+  await createLiveKitCallToken(
     { profileId: "community-readiness", displayName: "Community Readiness" },
     "community-readiness",
+    "voice",
     { url, apiKey, apiSecret }
   );
   return "ok";

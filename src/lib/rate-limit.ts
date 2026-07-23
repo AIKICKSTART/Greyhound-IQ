@@ -1,7 +1,7 @@
 import { withDbSystemContext } from "@/lib/db-context";
-import { logError } from "@/lib/logger";
+import { logRequestError } from "@/lib/logger";
 
-type RateLimitResult = { allowed: boolean; remaining: number; resetAt: number };
+export type RateLimitResult = { allowed: boolean; remaining: number; resetAt: number };
 
 export async function checkRateLimit(
   key: string,
@@ -9,12 +9,7 @@ export async function checkRateLimit(
   windowMs: number,
   opts?: { failClosed?: boolean }
 ): Promise<RateLimitResult> {
-  const normalizedKey = key.trim();
-  if (!normalizedKey) throw new Error("rate_limit.key_required");
-  if (!Number.isInteger(limit) || limit < 1) throw new Error("rate_limit.limit_invalid");
-  if (!Number.isInteger(windowMs) || windowMs < 1) {
-    throw new Error("rate_limit.window_invalid");
-  }
+  const normalizedKey = validateRateLimitInput(key, limit, windowMs);
 
   const windowSeconds = windowMs / 1000;
 
@@ -42,7 +37,7 @@ export async function checkRateLimit(
       resetAt: row.resetAt.getTime(),
     };
   } catch (err) {
-    logError("rate_limit.db_error", { key: normalizedKey }, err);
+    await logRequestError("rate_limit.db_error", { key: normalizedKey }, err);
     // Security-sensitive keys (auth, credential, abuse-critical) opt in to
     // failing closed; a DB outage must not disable those limits.
     if (opts?.failClosed) {
@@ -59,16 +54,30 @@ type RateLimitEntry = {
 };
 
 const rateLimitEntries = new Map<string, RateLimitEntry>();
+const MAX_IN_MEMORY_RATE_LIMIT_ENTRIES = 10_000;
+
+export function checkLocalRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+  nowMs = Date.now()
+): RateLimitResult {
+  const normalizedKey = validateRateLimitInput(key, limit, windowMs);
+  return checkRateLimitInMemory(normalizedKey, limit, windowMs, nowMs);
+}
 
 function checkRateLimitInMemory(
   normalizedKey: string,
   limit: number,
-  windowMs: number
+  windowMs: number,
+  now = Date.now()
 ): RateLimitResult {
-  const now = Date.now();
   pruneExpiredEntries(now);
 
   const existing = rateLimitEntries.get(normalizedKey);
+  if (!existing && rateLimitEntries.size >= MAX_IN_MEMORY_RATE_LIMIT_ENTRIES) {
+    return { allowed: false, remaining: 0, resetAt: now + windowMs };
+  }
   const entry =
     existing && existing.resetAt > now
       ? existing
@@ -82,6 +91,18 @@ function checkRateLimitInMemory(
     remaining: Math.max(0, limit - entry.count),
     resetAt: entry.resetAt,
   };
+}
+
+function validateRateLimitInput(key: string, limit: number, windowMs: number) {
+  const normalizedKey = key.trim();
+  if (!normalizedKey) throw new Error("rate_limit.key_required");
+  if (!Number.isInteger(limit) || limit < 1) {
+    throw new Error("rate_limit.limit_invalid");
+  }
+  if (!Number.isInteger(windowMs) || windowMs < 1) {
+    throw new Error("rate_limit.window_invalid");
+  }
+  return normalizedKey;
 }
 
 function pruneExpiredEntries(now: number) {

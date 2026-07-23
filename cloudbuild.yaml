@@ -10,6 +10,8 @@ steps:
       - NEXT_PUBLIC_WORKOS_REDIRECT_URI=${_NEXT_PUBLIC_WORKOS_REDIRECT_URI}
       - --build-arg
       - NEXT_PUBLIC_LIVEKIT_URL=${_NEXT_PUBLIC_LIVEKIT_URL}
+      - --build-arg
+      - ENABLE_DEVICE_PREVIEWS=${_ENABLE_DEVICE_PREVIEWS}
       - -t
       - ${_IMAGE}
       - .
@@ -17,3 +19,4 @@ images:
   - ${_IMAGE}
 options:
   logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8

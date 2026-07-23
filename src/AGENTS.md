@@ -13,6 +13,8 @@
 
 - Use codebase-memory MCP before reading or changing source code. Trace callers before changing shared services, route handlers, or reusable components.
 - Keep server/client boundaries explicit. Prefer server components unless the component needs browser state, effects, or event handlers.
+- Generate request IDs at `src/proxy.ts`; never trust a caller-supplied request ID as GreyhoundIQ's correlation identity, and keep upstream trace propagation separate.
+- Keep `MAINTENANCE_MODE` enforcement in `src/proxy.ts` after request-security rejection and before authentication; health, internal-job, and webhook paths must remain available for recovery.
 - Do not introduce secrets, local credential paths, or service-role keys into source code.
 - Reuse existing components, services, validators, and utilities before adding new ones.
 - Preserve the premium GreyhoundIQ product style: dark racing analytics UI, glass/chrome surfaces, purple and molten-gold accents, clear mobile/tablet behavior.

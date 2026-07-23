@@ -3,6 +3,11 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 
 import type { CurrentUserProfile } from "@/lib/auth-types";
+import {
+  assertAdminSelfAccessChange,
+  assertLastAdminAccessChange,
+  lockAdminAccessChanges,
+} from "@/lib/admin-access-contract";
 import { isAdminRole, isModeratorRole } from "@/lib/auth-roles";
 import { withDbRequestContext, type DbContextClient } from "@/lib/db-context";
 
@@ -169,6 +174,7 @@ export async function createAdminUser(
   assertAdmin(current);
   const reason = cleanAdminReason(input.reason);
   return withDbRequestContext(current, async (tx) => {
+    await lockAdminAccessChanges(tx);
     const user = await tx.user.upsert({
       where: { email: input.email },
       update: {
@@ -180,6 +186,27 @@ export async function createAdminUser(
         name: input.name ?? input.email,
         subscriptionTier: input.tier,
       },
+      include: { profile: { select: { role: true } } },
+    });
+    const activeAdminCount = await tx.profile.count({
+      where: {
+        role: "admin",
+        user: { isBanned: false, deletionRequestedAt: null },
+      },
+    });
+    assertAdminSelfAccessChange({
+      actingUserId: current.dbUserId,
+      targetUserId: user.id,
+      nextRole: input.role,
+      banned: false,
+    });
+    assertLastAdminAccessChange({
+      targetCurrentRole: user.profile?.role ?? "member",
+      targetCurrentlyActive:
+        !user.isBanned && user.deletionRequestedAt === null,
+      nextRole: input.role,
+      nextBanned: false,
+      activeAdminCount,
     });
     await tx.profile.upsert({
       where: { userId: user.id },
@@ -210,6 +237,39 @@ export async function updateAdminUserAccess(
   assertAdmin(current);
   const reason = cleanAdminReason(input.reason);
   return withDbRequestContext(current, async (tx) => {
+    await lockAdminAccessChanges(tx);
+    const [target, activeAdminCount] = await Promise.all([
+      tx.user.findUnique({
+        where: { id: input.userId },
+        select: {
+          isBanned: true,
+          deletionRequestedAt: true,
+          profile: { select: { role: true } },
+        },
+      }),
+      tx.profile.count({
+        where: {
+          role: "admin",
+          user: { isBanned: false, deletionRequestedAt: null },
+        },
+      }),
+    ]);
+    if (!target?.profile) throw new Error("admin.user_not_found");
+
+    assertAdminSelfAccessChange({
+      actingUserId: current.dbUserId,
+      targetUserId: input.userId,
+      nextRole: input.role,
+      banned: input.banned,
+    });
+    assertLastAdminAccessChange({
+      targetCurrentRole: target.profile.role,
+      targetCurrentlyActive:
+        !target.isBanned && target.deletionRequestedAt === null,
+      nextRole: input.role,
+      nextBanned: input.banned,
+      activeAdminCount,
+    });
     const user = await tx.user.update({
       where: { id: input.userId },
       data: {

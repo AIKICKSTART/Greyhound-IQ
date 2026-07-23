@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>GreyhoundIQ — Production Launch Architecture</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7f9fc;
+      --muted: #9cabbb;
+      --dim: #617186;
+      --bg: #071019;
+      --panel: #0c1824;
+      --panel-2: #102131;
+      --line: rgba(183, 213, 236, .16);
+      --line-strong: rgba(183, 213, 236, .3);
+      --green: #44e0a3;
+      --cyan: #49c7ff;
+      --amber: #ffbe55;
+      --red: #ff7886;
+      --violet: #b697ff;
+      --shadow: 0 24px 80px rgba(0, 0, 0, .38);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 82% -8%, rgba(73, 199, 255, .16), transparent 30rem),
+        radial-gradient(circle at 5% 27%, rgba(68, 224, 163, .1), transparent 32rem),
+        linear-gradient(180deg, #071019 0%, #08131e 48%, #050b12 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0 0 auto;
+      height: 3px;
+      z-index: 20;
+      background: linear-gradient(90deg, var(--green), var(--cyan), var(--violet), var(--amber));
+    }
+
+    a { color: var(--cyan); }
+    code { font-family: "SFMono-Regular", Consolas, monospace; }
+    .shell { width: min(1480px, calc(100% - 36px)); margin: 0 auto; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--line);
+      background: rgba(7, 16, 25, .88);
+      backdrop-filter: blur(20px);
+    }
+    .topbar-inner { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(68, 224, 163, .42);
+      border-radius: 12px;
+      background: linear-gradient(145deg, rgba(68, 224, 163, .2), rgba(73, 199, 255, .08));
+      color: var(--green);
+      font: 900 11px/1 Consolas, monospace;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 0 30px rgba(68, 224, 163, .1);
+    }
+    .brand strong { display: block; font-size: 13px; }
+    .brand small { display: block; margin-top: 3px; color: var(--muted); font: 700 9px/1.3 Consolas, monospace; letter-spacing: .1em; text-transform: uppercase; }
+    nav { display: flex; gap: 5px; overflow: auto; }
+    nav a { padding: 10px; border-radius: 9px; color: var(--muted); font-size: 10px; font-weight: 800; text-decoration: none; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+    nav a:hover, nav a:focus-visible { color: var(--ink); background: rgba(255,255,255,.05); outline: none; }
+
+    main { padding: 30px 0 72px; }
+    .hero, .section {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(145deg, rgba(16, 33, 49, .97), rgba(7, 16, 25, .98));
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.035);
+    }
+    .hero { position: relative; overflow: hidden; padding: clamp(28px, 4.5vw, 64px); }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(116deg, transparent 0 46px, rgba(255,255,255,.018) 47px, transparent 48px);
+    }
+    .hero > * { position: relative; z-index: 1; }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(290px, 390px); gap: 36px; align-items: end; }
+    .eyebrow { color: var(--green); font: 900 10px/1.4 Consolas, monospace; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { max-width: 980px; margin: 14px 0 0; font-size: clamp(38px, 5.4vw, 76px); line-height: .98; letter-spacing: -.055em; }
+    h1 span { color: var(--green); }
+    .lede { max-width: 990px; margin: 23px 0 0; color: #b9c4d0; font: 13px/1.8 Consolas, monospace; }
+    .decision { display: grid; gap: 9px; }
+    .decision-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 11px; background: rgba(255,255,255,.025); }
+    .decision-row span:first-child { color: var(--muted); font: 800 9px/1.4 Consolas, monospace; letter-spacing: .06em; text-transform: uppercase; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border: 1px solid currentColor; border-radius: 999px; font: 900 8px/1 Consolas, monospace; letter-spacing: .07em; text-transform: uppercase; }
+    .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 12px currentColor; }
+    .fact { color: var(--green); }
+    .launching { color: var(--cyan); }
+    .deferred { color: var(--amber); }
+    .blocked { color: var(--red); }
+    .unverified { color: var(--violet); }
+    .metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; margin-top: 32px; }
+    .metric { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: rgba(255,255,255,.025); }
+    .metric small { display: block; color: var(--muted); font: 800 8px/1.45 Consolas, monospace; letter-spacing: .1em; text-transform: uppercase; }
+    .metric strong { display: block; margin-top: 7px; font-size: 17px; overflow-wrap: anywhere; }
+
+    .section { margin-top: 20px; padding: clamp(22px, 3vw, 42px); scroll-margin-top: 90px; }
+    .section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+    .section-title { display: flex; align-items: flex-start; gap: 13px; }
+    .number { width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid rgba(73,199,255,.34); border-radius: 10px; color: var(--cyan); font: 900 10px/1 Consolas, monospace; }
+    h2 { margin: 0; font-size: clamp(24px, 3vw, 40px); line-height: 1.08; letter-spacing: -.035em; }
+    h3 { margin: 0; font-size: 14px; }
+    .section-head p, .muted { color: var(--muted); }
+    .section-head p { max-width: 720px; margin: 8px 0 0; font-size: 12px; line-height: 1.65; }
+    .legend { display: flex; flex-wrap: wrap; gap: 7px; justify-content: flex-end; }
+
+    .architecture { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .lane { min-width: 0; display: grid; grid-template-columns: 160px minmax(0, 1fr); border: 1px solid var(--line); border-radius: 15px; overflow: hidden; background: rgba(0,0,0,.16); }
+    .lane-label { padding: 18px; border-right: 1px solid var(--line); background: rgba(255,255,255,.025); }
+    .lane-label small { display: block; color: var(--dim); font: 800 8px/1.3 Consolas, monospace; text-transform: uppercase; letter-spacing: .1em; }
+    .lane-label strong { display: block; margin-top: 7px; font-size: 13px; }
+    .flow { display: flex; align-items: stretch; gap: 28px; padding: 15px; overflow: auto; }
+    .node { position: relative; min-width: 172px; flex: 1 0 172px; padding: 14px; border: 1px solid var(--line-strong); border-radius: 12px; background: linear-gradient(145deg, rgba(16,33,49,.92), rgba(7,16,25,.95)); }
+    .node::after { content: "→"; position: absolute; top: 50%; right: -22px; color: var(--dim); transform: translateY(-50%); font: 900 18px/1 Consolas, monospace; }
+    .node:last-child::after { display: none; }
+    .node small { color: var(--dim); font: 800 8px/1.3 Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; }
+    .node strong { display: block; margin-top: 7px; font-size: 13px; line-height: 1.35; }
+    .node p { margin: 7px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+    .node.current { border-color: rgba(68,224,163,.36); box-shadow: inset 3px 0 0 var(--green); }
+    .node.active { border-color: rgba(73,199,255,.38); box-shadow: inset 3px 0 0 var(--cyan); }
+    .node.future { border-color: rgba(255,190,85,.34); box-shadow: inset 3px 0 0 var(--amber); }
+    .node.risk { border-color: rgba(255,120,134,.34); box-shadow: inset 3px 0 0 var(--red); }
+    .branch-flow { display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 10px; padding: 15px; }
+    .branch-flow .node { min-width: 0; }
+    .branch-flow .node::after { display: none; }
+    .callout { margin-top: 14px; padding: 16px 18px; border: 1px solid rgba(68,224,163,.3); border-radius: 13px; background: rgba(68,224,163,.055); color: #cceede; font-size: 12px; line-height: 1.7; }
+    .callout strong { color: var(--green); }
+
+    .target-grid { display: grid; grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr); gap: 14px; align-items: stretch; }
+    .region { padding: 18px; border: 1px solid var(--line); border-radius: 15px; background: rgba(255,255,255,.018); }
+    .region-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 13px; border-bottom: 1px solid var(--line); }
+    .region-head strong { font-size: 16px; }
+    .stack { display: grid; gap: 8px; margin-top: 13px; }
+    .stack-row { padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(0,0,0,.18); }
+    .stack-row b { display: block; font-size: 12px; }
+    .stack-row span { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .sync { display: grid; place-items: center; color: var(--amber); font: 900 22px/1 Consolas, monospace; text-align: center; }
+    .sync small { display: block; margin-top: 7px; color: var(--muted); font: 800 7px/1.4 Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; }
+    .shared { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; margin-top: 14px; }
+    .shared .node { min-width: 0; }
+    .shared .node::after { display: none; }
+
+    .roadmap { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; counter-reset: phase; }
+    .phase { position: relative; min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.02); }
+    .phase::before { counter-increment: phase; content: "0" counter(phase); display: inline-grid; width: 30px; height: 30px; place-items: center; margin-bottom: 13px; border: 1px solid currentColor; border-radius: 8px; font: 900 9px/1 Consolas, monospace; }
+    .phase h3 { font-size: 14px; }
+    .phase p { color: var(--muted); font-size: 10px; line-height: 1.6; }
+    .phase ul { margin: 12px 0 0; padding-left: 17px; }
+    .phase li { margin: 7px 0; color: #b6c1cd; font-size: 10px; line-height: 1.5; }
+
+    .risk-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
+    .risk-card { padding: 16px; border: 1px solid rgba(255,120,134,.24); border-radius: 12px; background: rgba(255,120,134,.04); }
+    .risk-card b { display: block; color: var(--red); font: 900 9px/1.3 Consolas, monospace; letter-spacing: .06em; text-transform: uppercase; }
+    .risk-card p { margin: 9px 0 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
+
+    .definition { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; }
+    .definition > div { padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: rgba(255,255,255,.02); }
+    .definition h3 { margin-bottom: 10px; }
+    .definition p, .definition li { color: var(--muted); font-size: 11px; line-height: 1.7; }
+    .definition ul { margin: 8px 0 0; padding-left: 18px; }
+    .not-truth { text-decoration: line-through; color: var(--dim); }
+    footer { padding: 26px 0 8px; color: var(--dim); font: 9px/1.7 Consolas, monospace; text-align: center; }
+
+    @media (max-width: 1120px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .metrics, .shared, .risk-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .roadmap { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 820px) {
+      .shell { width: min(100% - 18px, 1480px); }
+      .topbar { position: static; }
+      .topbar-inner { align-items: flex-start; flex-direction: column; padding: 12px 0; }
+      nav { width: 100%; }
+      .metrics, .shared, .risk-grid, .roadmap, .definition { grid-template-columns: 1fr; }
+      .section-head { flex-direction: column; }
+      .legend { justify-content: flex-start; }
+      .lane { grid-template-columns: 1fr; }
+      .lane-label { border-right: 0; border-bottom: 1px solid var(--line); }
+      .flow { flex-direction: column; gap: 9px; }
+      .node { min-width: 0; flex-basis: auto; }
+      .node::after { display: none; }
+      .branch-flow { grid-template-columns: 1fr; }
+      .target-grid { grid-template-columns: 1fr; }
+      .sync { min-height: 58px; }
+      .sync span { transform: rotate(90deg); }
+      h1 { font-size: clamp(36px, 12vw, 58px); }
+    }
+    @media print {
+      :root { color-scheme: light; --ink: #111820; --muted: #485867; --dim: #647585; --bg: white; --panel: white; --panel-2: #f5f8fa; --line: #ccd6de; --line-strong: #aebbc5; }
+      body { background: white; }
+      body::before { display: none; }
+      .topbar { position: static; background: white; }
+      nav { display: none; }
+      .hero, .section { box-shadow: none; break-inside: avoid; }
+      .node, .stack-row, .phase, .risk-card, .definition > div { background: white; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div class="brand">
+        <div class="logo">GIQ</div>
+        <div><strong>GreyhoundIQ Production Architecture</strong><small>Final plan · 21 July 2026</small></div>
+      </div>
+      <nav aria-label="Plan sections">
+        <a href="#launch">Launch now</a>
+        <a href="#target">Scale target</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="#risks">Risks</a>
+        <a href="#truth">Data truth</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">Selected delivery path · one region first</div>
+          <h1>Launch Sydney now. <span>Scale when customers arrive.</span></h1>
+          <p class="lede">The immediate production plan uses the proven Sydney Cloud Run stack and Stage11 R2 as the single source of application truth. It avoids a second database migration, keeps the existing self-hosted Realtime support service for launch, and promotes an immutable candidate only after migration, health and feed checks pass. Melbourne, Cloud Armor, the replacement realtime plane and full failover capacity become the next funded architecture phase.</p>
+        </div>
+        <div class="decision" aria-label="Architecture decisions">
+          <div class="decision-row"><span>Launch region</span><span class="pill launching">Sydney</span></div>
+          <div class="decision-row"><span>Application database</span><span class="pill fact">Stage11 R2</span></div>
+          <div class="decision-row"><span>Commercial footing</span><span class="pill deferred">Free-trial credits</span></div>
+          <div class="decision-row"><span>Edge protection</span><span class="pill blocked">Quota 0</span></div>
+        </div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><small>Application truth</small><strong>1 database</strong></div>
+        <div class="metric"><small>Initial region</small><strong>Sydney</strong></div>
+        <div class="metric"><small>Release method</small><strong>No-traffic candidate</strong></div>
+        <div class="metric"><small>Next product gate</small><strong>UI QA sweep</strong></div>
+        <div class="metric"><small>Scale trigger</small><strong>Paying customers</strong></div>
+      </div>
+    </section>
+
+    <section class="section" id="launch">
+      <div class="section-head">
+        <div class="section-title"><div class="number">01</div><div><h2>Launch architecture — Sydney</h2><p>This is the practical, one-region production shape being completed now. Green means confirmed/current, blue means the active launch path, and amber means a retained interim dependency.</p></div></div>
+        <div class="legend" aria-label="Status legend">
+          <span class="pill fact">Current fact</span>
+          <span class="pill launching">Launching</span>
+          <span class="pill deferred">Interim / deferred</span>
+          <span class="pill blocked">Blocked</span>
+          <span class="pill unverified">Reconfirm</span>
+        </div>
+      </div>
+
+      <div class="architecture" aria-label="Sydney launch architecture">
+        <div class="lane">
+          <div class="lane-label"><small>Public path</small><strong>Customer request</strong></div>
+          <div class="flow">
+            <article class="node current"><small>Public</small><strong>greyhoundsiq.com.au</strong><p>Browser and mobile web traffic.</p></article>
+            <article class="node risk"><small>Current limitation</small><strong>Direct regional origin</strong><p>Cloud Armor cannot attach until the project quota is granted.</p></article>
+            <article class="node active"><small>Compute · Sydney</small><strong>Cloud Run web</strong><p>Immutable revision, tagged candidate, health checks, then traffic promotion.</p></article>
+          </div>
+        </div>
+
+        <div class="lane">
+          <div class="lane-label"><small>Data plane</small><strong>One source of truth</strong></div>
+          <div class="flow">
+            <article class="node active"><small>Private connection</small><strong>Runtime database role</strong><p>Application access is pinned to the approved production secret and least-privilege path.</p></article>
+            <article class="node current"><small>AlloyDB · Sydney</small><strong>giq_production_stage11_20260718_r2</strong><p>The sole application database. It already contains the Stage11 R1 information.</p></article>
+            <article class="node current"><small>Protection</small><strong>Continuous backup</strong><p>Point-in-time recovery and recent ready backups retained.</p></article>
+          </div>
+        </div>
+
+        <div class="lane">
+          <div class="lane-label"><small>Application realtime</small><strong>Interim support plane</strong></div>
+          <div class="flow">
+            <article class="node active"><small>Cloud Run · Sydney</small><strong>Self-hosted Supabase Realtime</strong><p>Realtime gateway plus PostgREST used for current messaging and presence.</p></article>
+            <article class="node future"><small>Support database</small><strong>giq_realtime_stage11</strong><p>Small operational database. It does not duplicate GreyhoundIQ business truth.</p></article>
+            <article class="node future"><small>Replacement phase</small><strong>Outbox + Pub/Sub + WebSockets</strong><p>Introduced after launch and proven before the interim service is retired.</p></article>
+          </div>
+        </div>
+
+        <div class="lane">
+          <div class="lane-label"><small>Media plane</small><strong>Voice and video</strong></div>
+          <div class="flow">
+            <article class="node unverified"><small>Independent service</small><strong>LiveKit</strong><p>Separate voice/video/SFU path. It is not supplied by Supabase Realtime.</p></article>
+            <article class="node unverified"><small>Media routing</small><strong>TLS + ICE + TURN</strong><p>Current launch readiness is to be reconfirmed before media is treated as production-critical.</p></article>
+          </div>
+        </div>
+
+        <div class="lane">
+          <div class="lane-label"><small>Managed integrations</small><strong>External systems</strong></div>
+          <div class="branch-flow">
+            <article class="node current"><small>Identity</small><strong>WorkOS</strong><p>Authentication and session boundary.</p></article>
+            <article class="node current"><small>Payments</small><strong>Stripe</strong><p>Pricing, webhook and live secret path configured outside source control.</p></article>
+            <article class="node current"><small>Objects and ingestion</small><strong>Cloud Storage + scanner + providers</strong><p>Media/object path and governed Australian racing feeds.</p></article>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout"><strong>Launch rule:</strong> do not migrate from the old database again. Apply only the reviewed forward RLS patch to Stage11 R2, prove migration history is clean, deploy a no-traffic Sydney candidate, smoke it, then promote. Remove the obsolete rehearsal database only after the promoted service passes production checks.</div>
+    </section>
+
+    <section class="section" id="target">
+      <div class="section-head">
+        <div class="section-title"><div class="number">02</div><div><h2>Customer-funded scale target</h2><p>The final Australian resilience architecture retains one application truth while adding a defensive edge, a second application cell and independent regional realtime/media capacity.</p></div></div>
+        <span class="pill deferred">Selected · not yet deployed</span>
+      </div>
+
+      <div class="flow" style="margin-bottom:14px;border:1px solid var(--line);border-radius:15px">
+        <article class="node future"><small>Global entry</small><strong>External Application Load Balancer</strong><p>Single public routing boundary.</p></article>
+        <article class="node future"><small>Defensive edge</small><strong>Cloud Armor + WAF + rate limits</strong><p>AU policy, managed rules and abuse controls.</p></article>
+        <article class="node future"><small>Delivery</small><strong>Cloud CDN + origin lock</strong><p>Safe public caching and no direct origin bypass.</p></article>
+        <article class="node future"><small>Contract boundary</small><strong>ESPv2 API gateway</strong><p>Auth, quota, payload and route enforcement.</p></article>
+      </div>
+
+      <div class="target-grid" aria-label="Sydney and Melbourne target cells">
+        <article class="region">
+          <div class="region-head"><strong>Sydney cell</strong><span class="pill fact">Primary</span></div>
+          <div class="stack">
+            <div class="stack-row"><b>Cloud Run web + workers</b><span>Stateless application revision and isolated asynchronous work.</span></div>
+            <div class="stack-row"><b>Application WebSocket gateway</b><span>Cursor-based replay; no business truth held only in memory.</span></div>
+            <div class="stack-row"><b>Regional application Redis</b><span>Ephemeral fan-out and presence, separate from the LiveKit Redis plane.</span></div>
+            <div class="stack-row"><b>AlloyDB primary writer</b><span>Stage11 R2 lineage continues as the single authoritative application store.</span></div>
+            <div class="stack-row"><b>Dedicated LiveKit cell + HA Redis</b><span>Independent SFU, room-home assignment, TURN and N+1 capacity.</span></div>
+          </div>
+        </article>
+
+        <div class="sync" aria-label="Controlled cross-region replication"><div><span>⇄</span><small>Measured replication<br>and failover</small></div></div>
+
+        <article class="region">
+          <div class="region-head"><strong>Melbourne cell</strong><span class="pill deferred">Recovery / scale</span></div>
+          <div class="stack">
+            <div class="stack-row"><b>Equivalent Cloud Run revision</b><span>Traffic-ready only after parity, health and regional failure tests.</span></div>
+            <div class="stack-row"><b>Application WebSocket gateway</b><span>Regional subscribers replay durable cursors after reconnect.</span></div>
+            <div class="stack-row"><b>Regional application Redis</b><span>Independent failure boundary; never the durable event store.</span></div>
+            <div class="stack-row"><b>AlloyDB cross-region recovery</b><span>Operator-controlled promotion with measured RTO/RPO and writer fencing.</span></div>
+            <div class="stack-row"><b>Dedicated LiveKit cell + HA Redis</b><span>New rooms route by home region; active calls do not migrate invisibly.</span></div>
+          </div>
+        </article>
+      </div>
+
+      <div class="shared">
+        <article class="node future"><small>Durable events</small><strong>Transactional outbox</strong><p>Committed with application writes.</p></article>
+        <article class="node future"><small>Event transport</small><strong>AU Pub/Sub</strong><p>Regional endpoints/topology selected and tested.</p></article>
+        <article class="node future"><small>Objects</small><strong>AU dual-region Storage</strong><p>Replication mode and recovery evidence approved.</p></article>
+        <article class="node future"><small>Secrets</small><strong>Secret Manager</strong><p>Versioned runtime material with explicit replication semantics.</p></article>
+        <article class="node future"><small>Operations</small><strong>Observability + SLOs</strong><p>Traces, saturation, queue age, cost and error-budget burn.</p></article>
+      </div>
+    </section>
+
+    <section class="section" id="roadmap">
+      <div class="section-head">
+        <div class="section-title"><div class="number">03</div><div><h2>Delivery sequence</h2><p>Each phase has a concrete exit. Customer revenue is the commercial trigger for the resilience expansion, not a substitute for launch safety.</p></div></div>
+      </div>
+      <div class="roadmap">
+        <article class="phase launching"><h3>Finish the data gate</h3><p>Current production work.</p><ul><li>Reconcile already-applied migration history</li><li>Apply the reviewed RLS policy patch</li><li>Prove Stage11 R2 migration status is clean</li></ul></article>
+        <article class="phase launching"><h3>Promote Sydney</h3><p>Release without exposing an unproven revision.</p><ul><li>Deploy immutable no-traffic candidate</li><li>Smoke health, readiness, races and feed</li><li>Promote traffic and inspect revision logs</li></ul></article>
+        <article class="phase fact"><h3>Product QA</h3><p>One deliberate user-interface sweep.</p><ul><li>Core navigation and responsive layouts</li><li>Identity, pricing and checkout journeys</li><li>Feed, race, dog and messaging surfaces</li></ul></article>
+        <article class="phase deferred"><h3>Funded resilience</h3><p>Triggered by customer traction.</p><ul><li>Set budgets, alerts and hard cost ceilings</li><li>Resolve Cloud Armor quota and lock origin</li><li>Add Melbourne, durable realtime and DR drills</li></ul></article>
+      </div>
+    </section>
+
+    <section class="section" id="risks">
+      <div class="section-head">
+        <div class="section-title"><div class="number">04</div><div><h2>Known residual risk</h2><p>These are accepted launch constraints, not hidden claims of full dual-region readiness.</p></div></div>
+      </div>
+      <div class="risk-grid">
+        <article class="risk-card"><b>Single region</b><p>A Sydney regional outage can interrupt the service until the Melbourne cell and failover path are proven.</p></article>
+        <article class="risk-card"><b>Edge quota</b><p>The project Cloud Armor security-policy quota is currently zero; origin-grade WAF protection is blocked on Google approval.</p></article>
+        <article class="risk-card"><b>Credit continuity</b><p>Free-trial credits are the current commercial footing. Billing continuity and cost alerts must be established before the trial boundary.</p></article>
+        <article class="risk-card"><b>Interim realtime</b><p>The support database and self-hosted Supabase Realtime remain until the outbox, Pub/Sub and WebSocket replacement is live and verified.</p></article>
+        <article class="risk-card"><b>Scale evidence</b><p>Dual-region load, failover, storage recovery, LiveKit N+1 and full disaster-recovery gates remain unverified.</p></article>
+      </div>
+    </section>
+
+    <section class="section" id="truth">
+      <div class="section-head">
+        <div class="section-title"><div class="number">05</div><div><h2>What “one database” means</h2><p>One source of business truth does not mean deleting infrastructure-owned system databases or an interim support store before its service is replaced.</p></div></div>
+      </div>
+      <div class="definition">
+        <div>
+          <h3 class="fact">Authoritative application truth</h3>
+          <p><code>giq_production_stage11_20260718_r2</code> is the only GreyhoundIQ application database. Accounts, profiles, racing data, feed state and other business records live here. No second application database is populated or kept as a competing source.</p>
+        </div>
+        <div>
+          <h3>Not competing business databases</h3>
+          <ul>
+            <li>AlloyDB/PostgreSQL system databases are platform-owned and retained.</li>
+            <li><code>giq_realtime_stage11</code> is an interim operational support store.</li>
+            <li>The obsolete rehearsal restore database is removed only after launch verification.</li>
+            <li class="not-truth">Stage11 R1 migration or a new legacy database copy.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <footer>GreyhoundIQ · AI Kick Start · Selected interim launch plan aligned to the authoritative Australian production architecture · No credentials embedded</footer>
+  </main>
+</body>
+</html>

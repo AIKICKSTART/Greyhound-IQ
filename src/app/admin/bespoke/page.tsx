@@ -2,7 +2,7 @@ import { requireModeratorProfile } from "@/lib/auth";
 import { listCustomDesignRequests, BESPOKE_STATUSES } from "@/lib/bespoke-service";
 import { updateBespokeRequestAction } from "@/app/admin/mutations";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
-import { SubmitButton } from "@/components/submit-button";
+import { AdminSubmitButton } from "@/app/admin/admin-submit-button";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -44,7 +44,7 @@ export default async function BespokeAdmin() {
                   Buyer profile {r.buyerProfileId} · {r.createdAt.toISOString().slice(0, 10)}
                 </div>
               </div>
-              <select name="status" defaultValue={r.status} className="max-w-[180px]">
+              <select name="status" aria-label="Bespoke request status" defaultValue={r.status} className="giq-form-control min-h-11 max-w-[180px] px-3 py-2 text-[13px]">
                 {BESPOKE_STATUSES.map((s) => (
                   <option key={s} value={s}>
                     {s}
@@ -54,15 +54,18 @@ export default async function BespokeAdmin() {
             </div>
             <textarea
               name="notes"
+              aria-label="Fulfilment notes"
               defaultValue={r.notes ?? ""}
               placeholder="Fulfilment notes…"
               rows={2}
               maxLength={2000}
               className={INPUT}
             />
-            <SubmitButton className="giq-button giq-button-glass min-h-9 px-4 text-[12px]">
-              Update
-            </SubmitButton>
+            <AdminSubmitButton
+              label="Update"
+              pendingLabel="Updating…"
+              className="giq-button giq-button-glass min-h-11 px-4 text-[12px]"
+            />
           </form>
         ))}
       </section>

@@ -1,0 +1,765 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "rls-access-matrix",
+  "generatedAt": "2026-07-18T13:02:41.477Z",
+  "safety": {
+    "scope": "literal-loopback-disposable-database",
+    "target": {
+      "database": "greyhoundiq",
+      "host": "127.0.0.1",
+      "port": 55734
+    },
+    "productionContacted": false,
+    "mutation": "negative privilege probes and synthetic rows inside forced-rollback transactions",
+    "persistedSensitiveValues": false
+  },
+  "sourceBinding": {
+    "dbContextSha256": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
+    "billingPageSha256": "75dc4b0a10b5a1a0b65b2fad0666cce0df4d93aead1643f743546360b23206fb",
+    "sensitiveAdminPolicyMigrationSha256": "38ed8c2b14183b2b55211b137cbc09c800a490861317148513571a68a511a918",
+    "migrationsSha256": "0726fdfe15d9e1fc82868ac7e8ac0d138430a9d7454401f443c4330d0787b21d",
+    "prismaSchemaSha256": "9395ca8a01f7e640e8c26f23f6d13e9d4ad0d3066cb92a143a06ca0176888873",
+    "verifierSha256": "e4f68b28f81aa28924898744195a24e1cf721c392a5fe8c9a6b1c46c01bc5f1a"
+  },
+  "runtimeIdentity": {
+    "currentRole": "greyhoundiq_runtime",
+    "sessionRole": "greyhoundiq_runtime",
+    "superuser": false,
+    "bypassRls": false,
+    "createRole": false,
+    "createDatabase": false,
+    "replication": false,
+    "inherit": true,
+    "canLogin": true,
+    "connectionLimit": 40
+  },
+  "sourceDefinedApplicationRoles": [
+    "greyhoundiq_runtime"
+  ],
+  "roleSeparation": {
+    "effectivePrivileges": {
+      "databaseConnect": true,
+      "databaseCreate": false,
+      "databaseTemporary": false,
+      "publicSchemaUsage": true,
+      "publicSchemaCreate": false,
+      "schemaCreateCount": 0
+    },
+    "ownership": {
+      "databaseCount": 0,
+      "relationCount": 0,
+      "routineCount": 0,
+      "schemaCount": 0
+    },
+    "memberships": {
+      "membershipCount": 0,
+      "adminOptionCount": 0
+    },
+    "directGrants": {
+      "applicationDmlTableCount": 114,
+      "projectionReadCount": 6,
+      "sequenceUsageCount": 1,
+      "routineCount": 45,
+      "securityDefinerRoutineCount": 27,
+      "grantableCount": 0
+    },
+    "systemCatalog": {
+      "directGrantCount": 0,
+      "sensitiveAuthCatalogSelect": false
+    },
+    "negativeControls": {
+      "functionCreateDenied": true,
+      "policyDisableDenied": true,
+      "roleAlterDenied": true,
+      "roleCreateDenied": true,
+      "schemaCreateDenied": true,
+      "sensitiveAuthCatalogReadDenied": true
+    }
+  },
+  "catalog": {
+    "applicationModelCount": 114,
+    "forceRlsCount": 114,
+    "rlsEnabledCount": 114
+  },
+  "invoiceOwnership": {
+    "policy": {
+      "command": "SELECT",
+      "policyName": "giq_invoice_read"
+    },
+    "cases": {
+      "anonymous": {
+        "invoiceA": 0,
+        "invoiceB": 0
+      },
+      "ownerA": {
+        "invoiceA": 1,
+        "invoiceB": 0
+      },
+      "ownerB": {
+        "invoiceA": 0,
+        "invoiceB": 1
+      },
+      "privilegedAdmin": {
+        "invoiceA": 1,
+        "invoiceB": 1
+      },
+      "privilegedModerator": {
+        "invoiceA": 1,
+        "invoiceB": 0
+      },
+      "systemWorker": {
+        "invoiceA": 1,
+        "invoiceB": 1
+      }
+    },
+    "rollback": {
+      "invoiceA": 0,
+      "invoiceB": 0,
+      "verified": true
+    }
+  },
+  "sensitiveAuthorization": {
+    "policies": [
+      {
+        "command": "SELECT",
+        "policyName": "giq_billing_customer_read",
+        "tableName": "BillingCustomer"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_billing_customer_write",
+        "tableName": "BillingCustomer"
+      },
+      {
+        "command": "SELECT",
+        "policyName": "giq_billing_event_read",
+        "tableName": "BillingEvent"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_billing_event_write",
+        "tableName": "BillingEvent"
+      },
+      {
+        "command": "SELECT",
+        "policyName": "giq_credit_note_read",
+        "tableName": "CreditNoteRecord"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_credit_note_write",
+        "tableName": "CreditNoteRecord"
+      },
+      {
+        "command": "SELECT",
+        "policyName": "giq_entitlement_snapshot_read",
+        "tableName": "EntitlementSnapshot"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_entitlement_snapshot_write",
+        "tableName": "EntitlementSnapshot"
+      },
+      {
+        "command": "SELECT",
+        "policyName": "giq_invoice_read",
+        "tableName": "InvoiceRecord"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_invoice_write",
+        "tableName": "InvoiceRecord"
+      },
+      {
+        "command": "DELETE",
+        "policyName": "giq_media_delete",
+        "tableName": "MediaAsset"
+      },
+      {
+        "command": "SELECT",
+        "policyName": "giq_media_select",
+        "tableName": "MediaAsset"
+      },
+      {
+        "command": "UPDATE",
+        "policyName": "giq_media_update",
+        "tableName": "MediaAsset"
+      },
+      {
+        "command": "SELECT",
+        "policyName": "giq_payment_read",
+        "tableName": "PaymentRecord"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_payment_write",
+        "tableName": "PaymentRecord"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_plan_entitlement_write",
+        "tableName": "PlanEntitlement"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_plan_write",
+        "tableName": "Plan"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_price_catalog_write",
+        "tableName": "PriceCatalog"
+      },
+      {
+        "command": "UPDATE",
+        "policyName": "giq_profile_update",
+        "tableName": "Profile"
+      },
+      {
+        "command": "SELECT",
+        "policyName": "giq_refund_read",
+        "tableName": "RefundRecord"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_refund_write",
+        "tableName": "RefundRecord"
+      },
+      {
+        "command": "SELECT",
+        "policyName": "giq_subscription_read",
+        "tableName": "Subscription"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_subscription_write",
+        "tableName": "Subscription"
+      },
+      {
+        "command": "SELECT",
+        "policyName": "giq_usage_aggregate_read",
+        "tableName": "UsageAggregate"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_usage_aggregate_write",
+        "tableName": "UsageAggregate"
+      },
+      {
+        "command": "SELECT",
+        "policyName": "giq_usage_event_read",
+        "tableName": "UsageEvent"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_usage_event_write",
+        "tableName": "UsageEvent"
+      },
+      {
+        "command": "SELECT",
+        "policyName": "giq_usage_outbox_read",
+        "tableName": "UsageOutbox"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_usage_outbox_write",
+        "tableName": "UsageOutbox"
+      },
+      {
+        "command": "SELECT",
+        "policyName": "giq_user_select",
+        "tableName": "User"
+      },
+      {
+        "command": "UPDATE",
+        "policyName": "giq_user_update",
+        "tableName": "User"
+      },
+      {
+        "command": "ALL",
+        "policyName": "giq_webhook_event_system",
+        "tableName": "WebhookEvent"
+      }
+    ],
+    "moderatorPredicateAbsent": true,
+    "cases": {
+      "anonymous": {
+        "billingCustomers": {
+          "a": 0,
+          "b": 0
+        },
+        "billingEvents": {
+          "a": 0,
+          "b": 0
+        },
+        "creditNotes": {
+          "a": 0,
+          "b": 0
+        },
+        "entitlementSnapshots": {
+          "a": 0,
+          "b": 0
+        },
+        "invoices": {
+          "a": 0,
+          "b": 0
+        },
+        "payments": {
+          "a": 0,
+          "b": 0
+        },
+        "privateMedia": {
+          "a": 0,
+          "b": 0
+        },
+        "refunds": {
+          "a": 0,
+          "b": 0
+        },
+        "subscriptions": {
+          "a": 0,
+          "b": 0
+        },
+        "usageAggregates": {
+          "a": 0,
+          "b": 0
+        },
+        "usageEvents": {
+          "a": 0,
+          "b": 0
+        },
+        "usageOutbox": {
+          "a": 0,
+          "b": 0
+        },
+        "users": {
+          "a": 0,
+          "b": 0
+        },
+        "webhooks": {
+          "a": 0,
+          "b": 0
+        }
+      },
+      "ownerA": {
+        "billingCustomers": {
+          "a": 1,
+          "b": 0
+        },
+        "billingEvents": {
+          "a": 1,
+          "b": 0
+        },
+        "creditNotes": {
+          "a": 1,
+          "b": 0
+        },
+        "entitlementSnapshots": {
+          "a": 1,
+          "b": 0
+        },
+        "invoices": {
+          "a": 1,
+          "b": 0
+        },
+        "payments": {
+          "a": 1,
+          "b": 0
+        },
+        "privateMedia": {
+          "a": 1,
+          "b": 0
+        },
+        "refunds": {
+          "a": 1,
+          "b": 0
+        },
+        "subscriptions": {
+          "a": 1,
+          "b": 0
+        },
+        "usageAggregates": {
+          "a": 1,
+          "b": 0
+        },
+        "usageEvents": {
+          "a": 1,
+          "b": 0
+        },
+        "usageOutbox": {
+          "a": 1,
+          "b": 0
+        },
+        "users": {
+          "a": 1,
+          "b": 0
+        },
+        "webhooks": {
+          "a": 0,
+          "b": 0
+        }
+      },
+      "ownerB": {
+        "billingCustomers": {
+          "a": 0,
+          "b": 1
+        },
+        "billingEvents": {
+          "a": 0,
+          "b": 1
+        },
+        "creditNotes": {
+          "a": 0,
+          "b": 1
+        },
+        "entitlementSnapshots": {
+          "a": 0,
+          "b": 1
+        },
+        "invoices": {
+          "a": 0,
+          "b": 1
+        },
+        "payments": {
+          "a": 0,
+          "b": 1
+        },
+        "privateMedia": {
+          "a": 0,
+          "b": 1
+        },
+        "refunds": {
+          "a": 0,
+          "b": 1
+        },
+        "subscriptions": {
+          "a": 0,
+          "b": 1
+        },
+        "usageAggregates": {
+          "a": 0,
+          "b": 1
+        },
+        "usageEvents": {
+          "a": 0,
+          "b": 1
+        },
+        "usageOutbox": {
+          "a": 0,
+          "b": 1
+        },
+        "users": {
+          "a": 0,
+          "b": 1
+        },
+        "webhooks": {
+          "a": 0,
+          "b": 0
+        }
+      },
+      "privilegedAdmin": {
+        "billingCustomers": {
+          "a": 1,
+          "b": 1
+        },
+        "billingEvents": {
+          "a": 1,
+          "b": 1
+        },
+        "creditNotes": {
+          "a": 1,
+          "b": 1
+        },
+        "entitlementSnapshots": {
+          "a": 1,
+          "b": 1
+        },
+        "invoices": {
+          "a": 1,
+          "b": 1
+        },
+        "payments": {
+          "a": 1,
+          "b": 1
+        },
+        "privateMedia": {
+          "a": 1,
+          "b": 1
+        },
+        "refunds": {
+          "a": 1,
+          "b": 1
+        },
+        "subscriptions": {
+          "a": 1,
+          "b": 1
+        },
+        "usageAggregates": {
+          "a": 1,
+          "b": 1
+        },
+        "usageEvents": {
+          "a": 1,
+          "b": 1
+        },
+        "usageOutbox": {
+          "a": 1,
+          "b": 1
+        },
+        "users": {
+          "a": 1,
+          "b": 1
+        },
+        "webhooks": {
+          "a": 1,
+          "b": 1
+        }
+      },
+      "privilegedModerator": {
+        "billingCustomers": {
+          "a": 1,
+          "b": 0
+        },
+        "billingEvents": {
+          "a": 1,
+          "b": 0
+        },
+        "creditNotes": {
+          "a": 1,
+          "b": 0
+        },
+        "entitlementSnapshots": {
+          "a": 1,
+          "b": 0
+        },
+        "invoices": {
+          "a": 1,
+          "b": 0
+        },
+        "payments": {
+          "a": 1,
+          "b": 0
+        },
+        "privateMedia": {
+          "a": 1,
+          "b": 0
+        },
+        "refunds": {
+          "a": 1,
+          "b": 0
+        },
+        "subscriptions": {
+          "a": 1,
+          "b": 0
+        },
+        "usageAggregates": {
+          "a": 1,
+          "b": 0
+        },
+        "usageEvents": {
+          "a": 1,
+          "b": 0
+        },
+        "usageOutbox": {
+          "a": 1,
+          "b": 0
+        },
+        "users": {
+          "a": 1,
+          "b": 0
+        },
+        "webhooks": {
+          "a": 0,
+          "b": 0
+        }
+      },
+      "systemWorker": {
+        "billingCustomers": {
+          "a": 1,
+          "b": 1
+        },
+        "billingEvents": {
+          "a": 1,
+          "b": 1
+        },
+        "creditNotes": {
+          "a": 1,
+          "b": 1
+        },
+        "entitlementSnapshots": {
+          "a": 1,
+          "b": 1
+        },
+        "invoices": {
+          "a": 1,
+          "b": 1
+        },
+        "payments": {
+          "a": 1,
+          "b": 1
+        },
+        "privateMedia": {
+          "a": 1,
+          "b": 1
+        },
+        "refunds": {
+          "a": 1,
+          "b": 1
+        },
+        "subscriptions": {
+          "a": 1,
+          "b": 1
+        },
+        "usageAggregates": {
+          "a": 1,
+          "b": 1
+        },
+        "usageEvents": {
+          "a": 1,
+          "b": 1
+        },
+        "usageOutbox": {
+          "a": 1,
+          "b": 1
+        },
+        "users": {
+          "a": 1,
+          "b": 1
+        },
+        "webhooks": {
+          "a": 1,
+          "b": 1
+        }
+      }
+    },
+    "mutations": {
+      "privilegedAdmin": {
+        "invoiceB": 1,
+        "privateMediaB": 1,
+        "profileB": 1,
+        "userB": 1,
+        "webhookB": 1
+      },
+      "privilegedModerator": {
+        "invoiceB": 0,
+        "privateMediaB": 0,
+        "profileB": 0,
+        "userB": 0,
+        "webhookB": 0
+      }
+    },
+    "rollback": {
+      "billingCustomers": {
+        "a": 0,
+        "b": 0
+      },
+      "billingEvents": {
+        "a": 0,
+        "b": 0
+      },
+      "creditNotes": {
+        "a": 0,
+        "b": 0
+      },
+      "entitlementSnapshots": {
+        "a": 0,
+        "b": 0
+      },
+      "invoices": {
+        "a": 0,
+        "b": 0
+      },
+      "payments": {
+        "a": 0,
+        "b": 0
+      },
+      "privateMedia": {
+        "a": 0,
+        "b": 0
+      },
+      "refunds": {
+        "a": 0,
+        "b": 0
+      },
+      "subscriptions": {
+        "a": 0,
+        "b": 0
+      },
+      "usageAggregates": {
+        "a": 0,
+        "b": 0
+      },
+      "usageEvents": {
+        "a": 0,
+        "b": 0
+      },
+      "usageOutbox": {
+        "a": 0,
+        "b": 0
+      },
+      "users": {
+        "a": 0,
+        "b": 0
+      },
+      "webhooks": {
+        "a": 0,
+        "b": 0
+      },
+      "verified": true
+    }
+  },
+  "cases": {
+    "anonymous": {
+      "membershipA": 0,
+      "membershipB": 0,
+      "organizationA": 0,
+      "organizationB": 0,
+      "signupOutbox": 0
+    },
+    "ownerA": {
+      "membershipA": 1,
+      "membershipB": 0,
+      "organizationA": 1,
+      "organizationB": 0,
+      "signupOutbox": 0
+    },
+    "ownerB": {
+      "membershipA": 0,
+      "membershipB": 1,
+      "organizationA": 0,
+      "organizationB": 1,
+      "signupOutbox": 0
+    },
+    "privilegedAdmin": {
+      "membershipA": 1,
+      "membershipB": 1,
+      "organizationA": 1,
+      "organizationB": 1,
+      "signupOutbox": 0
+    },
+    "privilegedModerator": {
+      "membershipA": 1,
+      "membershipB": 1,
+      "organizationA": 1,
+      "organizationB": 1,
+      "signupOutbox": 0
+    },
+    "systemWorker": {
+      "membershipA": 1,
+      "membershipB": 1,
+      "organizationA": 1,
+      "organizationB": 1,
+      "signupOutbox": 1
+    }
+  },
+  "rollback": {
+    "membershipA": 0,
+    "membershipB": 0,
+    "organizationA": 0,
+    "organizationB": 0,
+    "signupOutbox": 0,
+    "verified": true
+  },
+  "poolContextReset": true,
+  "verdict": "verified"
+}

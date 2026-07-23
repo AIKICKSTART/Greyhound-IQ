@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { conversationRealtimeChannel } from "./realtime-service";
+import {
+  conversationRealtimeChannel,
+  isPrivateRealtimeChannel,
+} from "./realtime-service";
+
+assert.equal(isPrivateRealtimeChannel("feed:public"), false);
+assert.equal(isPrivateRealtimeChannel("conversation:opaque"), true);
+assert.equal(isPrivateRealtimeChannel("profile:opaque"), true);
+assert.equal(isPrivateRealtimeChannel("presence:opaque"), true);
 
 // Save and restore env — mirrors scripts/check-internal-auth.ts pattern.
 const prevSecret = process.env.REALTIME_CHANNEL_SECRET;

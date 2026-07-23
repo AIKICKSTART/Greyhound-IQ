@@ -1,0 +1,484 @@
+{
+  "schemaVersion": 1,
+  "auditId": "production-public-link-audit-2026-07-13",
+  "generatedAt": "2026-07-13T15:38:10.7985155+10:00",
+  "status": "partial",
+  "completionApproved": false,
+  "owner": "Product engineering",
+  "scope": {
+    "mode": "read-only",
+    "canonicalTarget": "https://www.greyhoundsiq.com.au",
+    "hostsChecked": [
+      "http://greyhoundsiq.com.au",
+      "http://www.greyhoundsiq.com.au",
+      "https://greyhoundsiq.com.au",
+      "https://www.greyhoundsiq.com.au"
+    ],
+    "routePatternsObserved": 26,
+    "sourcePagesCrawled": 26,
+    "authenticatedExperiencesExercised": false,
+    "mutationsAttempted": false,
+    "privateDataAccessed": false,
+    "excluded": [
+      {
+        "id": "EXCL-AUTHENTICATED",
+        "surface": "Authenticated, paid, moderator and administrator journeys",
+        "reason": "The production crawl used no privileged identities and did not attempt to bypass authentication.",
+        "owner": "Product engineering",
+        "acceptanceEvidenceNeeded": "Least-privilege staging identities and route/action E2E evidence for every supported role and tier."
+      },
+      {
+        "id": "EXCL-MUTATIONS",
+        "surface": "Form submissions, billing, uploads and destructive actions",
+        "reason": "The audit was intentionally read-only and did not mutate production systems.",
+        "owner": "Product engineering",
+        "acceptanceEvidenceNeeded": "Staging integration tests and safely isolated Design Lab simulations linked to action and form contracts."
+      },
+      {
+        "id": "EXCL-PRIVATE-DATA",
+        "surface": "Private records and permission-denied payload behavior",
+        "reason": "No private production data was requested or inspected.",
+        "owner": "Product engineering",
+        "acceptanceEvidenceNeeded": "Negative API and React Server Component payload tests for signed-out, blocked, private and wrong-role requests."
+      },
+      {
+        "id": "EXCL-ENDPOINT-SEMANTICS",
+        "surface": "Server handling of observed form actions and query parameters",
+        "reason": "DOM inspection identifies visible fields and destinations but does not prove endpoint validation, authorization or persistence.",
+        "owner": "Product engineering",
+        "acceptanceEvidenceNeeded": "Handler-level tests for allowlists, authorization, validation, idempotency and safe recovery."
+      }
+    ]
+  },
+  "methodology": {
+    "browser": "Rendered public routes were inspected in a browser at representative desktop, tablet and phone widths. Links, forms and visible states were observed without submission.",
+    "http": "Discovered internal destinations were checked with read-only HEAD or GET requests. Redirect and status behavior was recorded separately for host variants, aliases and selected system routes.",
+    "discoverySources": [
+      "Rendered navigation, footer, cards and detail links",
+      "robots.txt and sitemap.xml",
+      "Representative dynamic race, dog, track, marketplace, group and thread pages",
+      "Local route and screen registry for parity comparison"
+    ],
+    "formsSubmitted": false,
+    "mutationsAttempted": false,
+    "privateDataAccessed": false,
+    "caveats": [
+      "A successful HTTP response proves reachability, not correct content, authorization or action behavior.",
+      "Observed query parameters are not asserted to be accepted or safely validated by server handlers.",
+      "Observed form action URLs are not asserted to have been invoked or verified.",
+      "Authenticated, paid and privileged experiences require staging evidence.",
+      "The crawl is a dated snapshot and is not a substitute for continuous link monitoring."
+    ]
+  },
+  "summary": {
+    "routePatterns": 26,
+    "sourcePages": 26,
+    "internalEdges": 2448,
+    "uniqueInternalDestinations": 1026,
+    "bulkStatusCounts": {
+      "200": 1026
+    },
+    "bulkFailures": 0,
+    "sitemapUrls": 65,
+    "sitemapStaticUrls": 15,
+    "sitemapTrackDetailUrls": 50,
+    "allObservedInternalLinkTargets": "_self"
+  },
+  "hostChecks": [
+    {
+      "request": "http://greyhoundsiq.com.au/",
+      "initialStatus": 308,
+      "location": "https://greyhoundsiq.com.au:8080/",
+      "finalStatus": "timeout",
+      "classification": "gap",
+      "gapId": "PROD-HOST-01"
+    },
+    {
+      "request": "http://www.greyhoundsiq.com.au/",
+      "initialStatus": 308,
+      "location": "https://www.greyhoundsiq.com.au:8080/",
+      "finalStatus": "timeout",
+      "classification": "gap",
+      "gapId": "PROD-HOST-01"
+    },
+    {
+      "request": "https://greyhoundsiq.com.au/",
+      "initialStatus": 200,
+      "finalStatus": 200,
+      "classification": "gap",
+      "reason": "The apex host does not redirect to one canonical HTTPS host.",
+      "gapId": "PROD-SEO-01"
+    },
+    {
+      "request": "https://www.greyhoundsiq.com.au/",
+      "initialStatus": 200,
+      "finalStatus": 200,
+      "classification": "observed"
+    }
+  ],
+  "canonicalMetadata": {
+    "corePagesTested": 18,
+    "corePagesWithCanonical": 3,
+    "observedCanonicalRoutes": [
+      "/",
+      "/pricing",
+      "/dogs"
+    ],
+    "canonicalHostObserved": "https://greyhoundsiq.com.au",
+    "sitemapHostObserved": "https://greyhoundsiq.com.au",
+    "robotsHostObserved": "https://greyhoundsiq.com.au",
+    "dynamicRaceAndTrackCanonicalsObserved": true,
+    "classification": "gap",
+    "gapId": "PROD-SEO-01"
+  },
+  "routePatterns": [
+    { "routePattern": "/", "status": 200, "authentication": "public", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/about", "status": 200, "authentication": "public", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/agents", "status": 200, "authentication": "public-observed", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/breeding", "status": 200, "authentication": "public", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/contact", "status": 200, "authentication": "public", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/discover", "status": 200, "authentication": "public-observed", "dynamicParameters": [], "queryParameters": ["q"], "localRegistered": true },
+    { "routePattern": "/dogs", "status": 200, "authentication": "public", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/dogs/[id]", "status": 200, "authentication": "public", "dynamicParameters": ["id"], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/feed", "status": 200, "authentication": "public-shell-observed", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/groups", "status": 200, "authentication": "public-observed", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/groups/[slug]", "status": 200, "authentication": "public-observed", "dynamicParameters": ["slug"], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/groups/threads/[id]", "status": 200, "authentication": "public-observed", "dynamicParameters": ["id"], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/marketplace", "status": 200, "authentication": "public", "dynamicParameters": [], "queryParameters": ["q", "category"], "localRegistered": true },
+    { "routePattern": "/marketplace/[id]", "status": 200, "authentication": "public", "dynamicParameters": ["id"], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/marketplace/new", "status": 200, "authentication": "required-ui-gate", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/pricing", "status": 200, "authentication": "public", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/privacy", "status": 200, "authentication": "public", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/pulse", "status": 200, "authentication": "required-ui-gate", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/races", "status": 200, "authentication": "public", "dynamicParameters": [], "queryParameters": ["q", "date", "state", "status", "sort"], "localRegistered": true },
+    { "routePattern": "/races/[id]", "status": 200, "authentication": "public", "dynamicParameters": ["id"], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/results", "status": 200, "authentication": "public", "dynamicParameters": [], "queryParameters": ["sort", "date", "trackId"], "localRegistered": true },
+    { "routePattern": "/sign-in", "status": "redirect", "authentication": "public-entry", "dynamicParameters": [], "queryParameters": ["plan", "returnTo"], "localRegistered": true },
+    { "routePattern": "/statistics", "status": 200, "authentication": "public", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/terms", "status": 200, "authentication": "public", "dynamicParameters": [], "queryParameters": [], "localRegistered": true },
+    { "routePattern": "/tracks", "status": 200, "authentication": "public", "dynamicParameters": [], "queryParameters": ["state"], "localRegistered": true },
+    { "routePattern": "/tracks/[id]", "status": 200, "authentication": "public", "dynamicParameters": ["id"], "queryParameters": [], "localRegistered": true }
+  ],
+  "edgeCountsByDynamicPattern": {
+    "/races/[id]": 1498,
+    "/dogs/[id]": 407,
+    "/tracks/[id]": 169
+  },
+  "sourceComponentMappings": [
+    {
+      "sourceComponent": "SiteHeader and MobileNavigationMenu",
+      "localPath": "src/components/site-header.tsx",
+      "observedLabels": ["Races", "Results", "Statistics", "Dogs", "Tracks", "Breeding", "Community", "Marketplace", "Pricing"]
+    },
+    {
+      "sourceComponent": "SiteFooter",
+      "localPath": "src/components/site-footer.tsx",
+      "observedLabels": ["Races", "Marketplace", "Pulse", "Privacy", "Terms"]
+    },
+    {
+      "sourceComponent": "MeetingCard",
+      "localPath": "src/components/meeting-card.tsx",
+      "observedDestinations": ["/races/[id]", "/dogs/[id]", "/tracks/[id]"]
+    },
+    {
+      "sourceComponent": "Marketplace route surface",
+      "localPath": "src/app/listings/page.tsx",
+      "observedDestinations": ["/marketplace", "/marketplace/[id]", "/marketplace/new"]
+    },
+    {
+      "sourceComponent": "Pulse route surface",
+      "localPath": "src/app/messages/page.tsx",
+      "observedDestinations": ["/pulse", "/pulse/[id]", "/pulse/friends"]
+    }
+  ],
+  "aliases": [
+    { "sourcePattern": "/forum", "status": 308, "destinationPattern": "/groups" },
+    { "sourcePattern": "/forum/[slug]", "status": 308, "destinationPattern": "/groups/[slug]" },
+    { "sourcePattern": "/forum/threads/[id]", "status": 308, "destinationPattern": "/groups/threads/[id]" },
+    { "sourcePattern": "/messages", "status": 308, "destinationPattern": "/pulse" },
+    { "sourcePattern": "/messages/[id]", "status": 308, "destinationPattern": "/pulse/[id]" },
+    { "sourcePattern": "/messages/friends", "status": 308, "destinationPattern": "/pulse/friends" },
+    { "sourcePattern": "/listings", "status": 308, "destinationPattern": "/marketplace" },
+    { "sourcePattern": "/listings/[id]", "status": 308, "destinationPattern": "/marketplace/[id]" },
+    { "sourcePattern": "/listings/new", "status": 308, "destinationPattern": "/marketplace/new" }
+  ],
+  "forms": [
+    {
+      "id": "public-global-search",
+      "route": "global",
+      "method": "GET",
+      "destination": "/races",
+      "fields": [
+        { "name": "q", "type": "search", "labelObserved": true },
+        { "name": "sort", "type": "hidden", "observedValue": "relevance" }
+      ],
+      "submissionStatus": "not-submitted",
+      "endpointVerified": false
+    },
+    {
+      "id": "race-search-filter",
+      "route": "/races",
+      "method": "GET",
+      "destination": "/races",
+      "fields": [
+        { "name": "q", "type": "search" },
+        { "name": "date", "type": "date" },
+        { "name": "state", "type": "select", "observedOptions": ["NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"] },
+        { "name": "status", "type": "select", "observedOptions": ["upcoming", "live", "resulted", "replay"] },
+        { "name": "sort", "type": "select", "observedOptions": ["race-time", "relevance"] }
+      ],
+      "submissionStatus": "not-submitted",
+      "endpointVerified": false
+    },
+    {
+      "id": "results-filter",
+      "route": "/results",
+      "method": "GET",
+      "destination": "/results",
+      "fields": [
+        { "name": "sort", "type": "select" },
+        { "name": "date", "type": "date" },
+        { "name": "trackId", "type": "select" }
+      ],
+      "submissionStatus": "not-submitted",
+      "endpointVerified": false
+    },
+    {
+      "id": "track-filter",
+      "route": "/tracks",
+      "method": "GET",
+      "destination": "/tracks",
+      "fields": [
+        { "name": "state", "type": "select" }
+      ],
+      "submissionStatus": "not-submitted",
+      "endpointVerified": false
+    },
+    {
+      "id": "discover-search",
+      "route": "/discover",
+      "method": "GET",
+      "destination": "/discover",
+      "fields": [
+        { "name": "q", "type": "search", "observedHelp": "Enter at least 2 characters" }
+      ],
+      "submissionStatus": "not-submitted",
+      "endpointVerified": false
+    },
+    {
+      "id": "marketplace-filter",
+      "route": "/marketplace",
+      "method": "GET",
+      "destination": "/marketplace",
+      "fields": [
+        { "name": "q", "type": "search" },
+        { "name": "category", "type": "select" }
+      ],
+      "submissionStatus": "not-submitted",
+      "endpointVerified": false
+    },
+    {
+      "id": "pricing-checkout",
+      "route": "/pricing",
+      "method": "POST",
+      "destination": "/api/billing/checkout",
+      "fields": [
+        { "name": "plan", "type": "hidden" },
+        { "name": "interval", "type": "hidden" }
+      ],
+      "submissionStatus": "not-submitted",
+      "endpointVerified": false,
+      "trustBoundary": "Observed DOM values are not payment proof and do not demonstrate server-side price or entitlement validation."
+    }
+  ],
+  "actionsObserved": [
+    { "route": "/races", "labels": ["Search", "Go", "Apply", "Open meeting", "Open race", "Open dog", "Open track"], "resultVerified": "navigation-only-subset" },
+    { "route": "/marketplace", "labels": ["Show results", "Open listing", "Create listing"], "resultVerified": "navigation-only-subset" },
+    { "route": "/pricing", "labels": ["Go Pro", "Pay yearly"], "resultVerified": false },
+    { "route": "/agents", "labels": ["Race Analyst preview", "Breeding Advisor preview", "Form Reader preview"], "resultVerified": false },
+    { "route": "global", "labels": ["Accept cookies", "Decline cookies"], "resultVerified": false },
+    { "route": "/contact", "labels": ["Sign in to create support request"], "resultVerified": "sign-in-gate-observed" }
+  ],
+  "systemAndDataStates": [
+    {
+      "state": "standard-404",
+      "httpStatus": 404,
+      "indexing": "noindex",
+      "recoveryActions": ["Back home", "Search dogs"],
+      "internalDetailsExposed": false,
+      "classification": "observed"
+    },
+    {
+      "state": "invalid-race-dog-track",
+      "httpStatus": 404,
+      "indexing": "noindex",
+      "classification": "observed"
+    },
+    {
+      "state": "invalid-marketplace-record",
+      "httpStatus": 200,
+      "indexing": "index-follow",
+      "classification": "gap",
+      "gapId": "PROD-STATE-01"
+    },
+    {
+      "state": "invalid-group-or-thread",
+      "httpStatus": 200,
+      "indexing": "noindex",
+      "classification": "gap",
+      "gapId": "PROD-STATE-01"
+    },
+    {
+      "state": "authentication-callback-failure",
+      "route": "/callback?error=access_denied",
+      "httpStatus": 500,
+      "contentType": "application/json",
+      "safeGenericMessage": true,
+      "htmlRecoveryUi": false,
+      "classification": "gap",
+      "gapId": "PROD-AUTH-01"
+    },
+    {
+      "state": "responsible-use-route",
+      "route": "/responsible-use",
+      "httpStatus": 404,
+      "indexing": "noindex",
+      "classification": "gap",
+      "gapId": "PROD-ROUTE-01"
+    },
+    {
+      "state": "signed-out-account",
+      "route": "/account",
+      "httpStatus": 200,
+      "indexing": "index-follow",
+      "result": "signed-out account prompt",
+      "classification": "observed-not-security-proof"
+    },
+    {
+      "state": "signed-out-admin",
+      "route": "/admin",
+      "httpStatus": 200,
+      "indexing": "index-follow",
+      "result": "loading shell followed by client authentication redirect",
+      "classification": "observed-not-security-proof"
+    },
+    {
+      "state": "design-lab-production-gate",
+      "route": "/design-lab",
+      "httpStatus": 404,
+      "indexing": "noindex",
+      "classification": "observed-expected-gate"
+    }
+  ],
+  "responsiveObservations": {
+    "widthsInspected": [390, 820, 1024, 1280],
+    "compactNavigationWidths": [390, 820, 1024],
+    "fullHeaderWidths": [1280],
+    "noPageLevelHorizontalOverflowObservedAt390On": [
+      "/",
+      "/pricing",
+      "/results",
+      "/statistics",
+      "/groups",
+      "/marketplace",
+      "/races",
+      "/tracks",
+      "/races/[id]",
+      "/tracks/[id]"
+    ],
+    "containedWideRegionsObserved": true,
+    "gaps": [
+      {
+        "gapId": "PROD-NAV-01",
+        "observation": "The compact global menu omits About, Contact, Privacy and Terms; the compact footer exposes Privacy and Terms but not About or Contact."
+      },
+      {
+        "gapId": "PROD-NAV-01",
+        "observation": "An open compact menu remained visible after resizing from 390px to desktop width until reload."
+      }
+    ],
+    "notExhaustivelyTestedWidths": [320, 360, 375, 430, 768, 1440, 1920]
+  },
+  "defects": [
+    {
+      "gapId": "PROD-HOST-01",
+      "status": "gap",
+      "owner": "Product engineering",
+      "reason": "Both HTTP hosts redirect to an unreachable HTTPS port 8080 destination.",
+      "acceptanceEvidenceNeeded": "Automated four-host redirect test proving one reachable canonical HTTPS destination with no nonstandard port."
+    },
+    {
+      "gapId": "PROD-SEO-01",
+      "status": "gap",
+      "owner": "Product engineering",
+      "reason": "Both HTTPS hosts return 200 and only 3 of 18 tested core pages exposed canonical metadata.",
+      "acceptanceEvidenceNeeded": "Canonical-host redirect and metadata tests across every public route pattern."
+    },
+    {
+      "gapId": "PROD-AUTH-01",
+      "status": "gap",
+      "owner": "Product engineering",
+      "reason": "Authentication callback failures return JSON 500 without an HTML recovery path; the observed provider host is staging-named.",
+      "acceptanceEvidenceNeeded": "Approved production identity configuration and browser evidence for success, cancellation, expiry, provider failure, safe retry and validated internal return."
+    },
+    {
+      "gapId": "PROD-ROUTE-01",
+      "status": "gap",
+      "owner": "Product engineering",
+      "reason": "The required /responsible-use route is absent; only /terms#responsible-use is linked.",
+      "acceptanceEvidenceNeeded": "A registered route with Design Lab fixture and tests, or an explicit canonical exclusion with link tests."
+    },
+    {
+      "gapId": "PROD-STATE-01",
+      "status": "gap",
+      "owner": "Product engineering",
+      "reason": "Missing marketplace, group and thread records render not-found UI with HTTP 200; the marketplace case remains indexable.",
+      "acceptanceEvidenceNeeded": "HTTP 404 and noindex route tests for every missing dynamic record family."
+    },
+    {
+      "gapId": "PROD-NAV-01",
+      "status": "gap",
+      "owner": "Product engineering",
+      "reason": "Compact navigation does not expose all company destinations and its open state survives a desktop resize.",
+      "acceptanceEvidenceNeeded": "Phone, tablet, orientation and resize tests proving complete required navigation and reset drawer state."
+    },
+    {
+      "gapId": "PROD-CONTENT-01",
+      "status": "gap",
+      "owner": "Product engineering",
+      "reason": "Pricing exposes a disabled Coming soon control and breeding exposes Phase 2 and Shipping in 6-8 weeks copy without a completed destination.",
+      "acceptanceEvidenceNeeded": "An implemented result or an approved exclusion with truthful non-interactive copy and release ownership."
+    }
+  ],
+  "securityTraceCrossReferences": [
+    { "traceId": "AUTH-01", "status": "partial-blocked", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false },
+    { "traceId": "FRIEND-01", "status": "partial", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false },
+    { "traceId": "CHAT-01", "status": "partial", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false },
+    { "traceId": "CALL-01", "status": "partial-blocked", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false },
+    { "traceId": "MEDIA-01", "status": "partial-blocked", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false },
+    { "traceId": "MK-03", "status": "partial", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false },
+    { "traceId": "MK-06", "status": "pending", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false },
+    { "traceId": "FEED-01", "status": "pending", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false },
+    { "traceId": "BILL-01", "status": "pending", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false },
+    { "traceId": "BILL-02", "status": "pending", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false },
+    { "traceId": "OPS-01", "status": "pending-blocked", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false },
+    { "traceId": "OPS-02", "status": "pending-blocked", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false },
+    { "traceId": "CLOUD-01", "status": "partial", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false },
+    { "traceId": "REL-01", "status": "partial", "source": "output/orchestration/full-task-status-20260712.md", "closedByThisAudit": false }
+  ],
+  "evidenceFiles": [
+    "docs/product/route-inventory.md",
+    "docs/product/user-story-matrix.md",
+    "docs/product/action-inventory.md",
+    "docs/product/form-field-registry.md",
+    "docs/product/permissions-matrix.md",
+    "docs/product/state-matrix.md",
+    "docs/product/onboarding-map.md",
+    "docs/product/design-lab-coverage.md",
+    "docs/product/production-parity.md",
+    "docs/product/final-audit-report.md",
+    "src/components/demo-experience-registry.ts",
+    "output/demo-route-audit/latest.json",
+    "output/orchestration/full-task-status-20260712.md"
+  ]
+}

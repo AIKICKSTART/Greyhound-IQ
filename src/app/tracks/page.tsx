@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CalendarDays, Clock, MapPin, PlayCircle } from "lucide-react";
+import { AutoSubmitSelect } from "@/components/auto-submit-select";
+import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
 import {
   WebsiteMetric,
   WebsitePageHeader,
@@ -13,6 +15,7 @@ import {
   formatRaceTime,
 } from "@/lib/race-time";
 import { siteAssetUrl } from "@/lib/storage-paths";
+import { trackMediaPathForName } from "@/lib/track-media";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -48,10 +51,11 @@ type DisplayTrack = {
   races: DisplayRace[];
   liveRace: DisplayRace | null;
   nextRace: DisplayRace | null;
+  mediaPath: string | null;
 };
 
 const TRACK_BANNER = siteAssetUrl("/images/wentworth-track-banner-landscape.webp");
-const TRACK_STATES = ["NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"] as const;
+const TRACK_STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"] as const;
 
 export default async function TracksPage({ searchParams }: TracksPageProps) {
   const params = await searchParams;
@@ -61,6 +65,8 @@ export default async function TracksPage({ searchParams }: TracksPageProps) {
     .filter((track) => !selectedState || track.state === selectedState)
     .map((track) => toDisplayTrack(track, new Date()));
   const featuredTrack =
+    displayTracks.find((track) => track.mediaPath && track.races.length > 0) ??
+    displayTracks.find((track) => track.mediaPath) ??
     displayTracks.find((track) => track.races.length > 0) ??
     displayTracks[0] ??
     null;
@@ -74,7 +80,7 @@ export default async function TracksPage({ searchParams }: TracksPageProps) {
         subtitle="Track bias, box statistics, records and current meetings from the GreyhoundIQ database."
       >
         <form action="/tracks" className="flex flex-wrap gap-2">
-          <select
+          <AutoSubmitSelect
             aria-label="Filter tracks by state"
             className="giq-form-control min-h-11 min-w-[140px]"
             name="state"
@@ -86,18 +92,26 @@ export default async function TracksPage({ searchParams }: TracksPageProps) {
                 {state}
               </option>
             ))}
-          </select>
+          </AutoSubmitSelect>
           <button className="giq-button giq-button-carbon min-h-11 px-4 text-[13px] font-semibold">
             Filter
           </button>
         </form>
       </WebsitePageHeader>
 
+      <div className="mx-auto mt-6 max-w-[70rem] px-6">
+        <RacingDataDisclosure />
+      </div>
+
       {featuredTrack && (
         <WebsiteSection>
           <article className="giq-track-feature-card giq-card relative min-h-[260px] overflow-hidden rounded-[14px] border border-[hsl(var(--metal-silver)/0.18)] p-0">
             <Image
-              src={TRACK_BANNER}
+              src={
+                featuredTrack.mediaPath
+                  ? siteAssetUrl(featuredTrack.mediaPath)
+                  : TRACK_BANNER
+              }
               alt=""
               fill
               className="absolute inset-0 object-cover opacity-[0.55]"
@@ -202,6 +216,25 @@ function TrackVenueCard({ track }: { track: DisplayTrack }) {
 
   return (
     <div className="giq-carbon-surface giq-meeting-card group">
+      {track.mediaPath ? (
+        <Link
+          href={`/tracks/${track.id}`}
+          aria-label={`Open ${track.name} track guide`}
+          className="relative mb-4 block aspect-[5/3] overflow-hidden rounded-[10px] border border-white/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[hsl(var(--primary-light))]"
+        >
+          <Image
+            src={siteAssetUrl(track.mediaPath)}
+            alt=""
+            fill
+            className="object-cover object-center transition-transform duration-300 group-hover:scale-[1.02]"
+            sizes="(min-width: 1120px) 350px, (min-width: 720px) 45vw, calc(100vw - 48px)"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 bg-[linear-gradient(180deg,transparent_45%,hsl(var(--background)/0.64)_100%)]"
+          />
+        </Link>
+      ) : null}
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <Link href={`/tracks/${track.id}`}>
@@ -309,6 +342,7 @@ function toDisplayTrack(
     })),
     liveRace,
     nextRace,
+    mediaPath: trackMediaPathForName(track.name),
   };
 }
 

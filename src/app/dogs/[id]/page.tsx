@@ -1,14 +1,33 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, Ban, Clock, Lock, ShieldCheck } from "lucide-react";
+import type { ReactNode } from "react";
+import {
+  BadgeCheck,
+  Ban,
+  ChevronRight,
+  Clock,
+  Lock,
+  Play,
+  ShieldCheck,
+} from "lucide-react";
 import { claimDogOwnership } from "@/app/actions";
 import { FinishBadge } from "@/components/finish-badge";
+import { PageTitle } from "@/components/page-title";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser } from "@/lib/auth";
+import { resolveDemoProviderRouteId } from "@/lib/demo-route-samples";
 import { JsonLd, breadcrumbSchema } from "@/components/json-ld";
-import { getDogById, getDogPrizeMoney, getMyDogOwnership } from "@/lib/queries";
+import { getDogById, getMyDogOwnership } from "@/lib/queries";
 import { getDogPedigree } from "@/lib/pedigree";
 import { PedigreeChart } from "@/components/pedigree-chart";
+import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
+import { getBoxColourStyle } from "@/lib/box-colours";
+import {
+  formatDogPrizeMoney,
+  formatDogWinRate,
+} from "@/lib/dog-statistic-presentation";
+import { absoluteTheDogsUrl } from "@/lib/live/thedogs-replay";
+import { isTheDogsLicensedUseApproved } from "@/lib/live/thedogs-access";
 
 export const dynamic = "force-dynamic";
 
@@ -17,12 +36,14 @@ export async function generateMetadata({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: routeId } = await params;
+  const id = await resolveDemoProviderRouteId("dog", routeId);
   const dog = await getDogById(id);
-  if (!dog) return {
-    title: "Dog not found — GreyhoundIQ",
-    description: "Greyhound profile not found in the national database.",
-  };
+  if (!dog)
+    return {
+      title: "Dog not found — GreyhoundIQ",
+      description: "Greyhound profile not found in the national database.",
+    };
   const description = `Full career form, recent starts, pedigree, and trainer info for ${dog.name}.`;
   return {
     title: `${dog.name} — Greyhound Form & Pedigree | GreyhoundIQ`,
@@ -42,17 +63,17 @@ export default async function DogProfilePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const [dog, user, prize, pedigree] = await Promise.all([
+  const { id: routeId } = await params;
+  const id = await resolveDemoProviderRouteId("dog", routeId);
+  const [dog, user, pedigree] = await Promise.all([
     getDogById(id),
     getCurrentUser(),
-    getDogPrizeMoney(id),
     getDogPedigree(id),
   ]);
   if (!dog) notFound();
 
   const approvedOwnership = dog.ownership.filter(
-    (entry) => entry.status === "approved"
+    (entry) => entry.status === "approved",
   );
   // getDogById runs without request context, so RLS hides the claimant's own
   // pending/rejected row from dog.ownership. Fetch it under the user's context.
@@ -65,35 +86,17 @@ export default async function DogProfilePage({
             profileRole: user.role,
             tier: user.tier,
           },
-          dog.id
+          dog.id,
         )
       : null;
   const claimAction = claimDogOwnership.bind(null, dog.id);
 
-  const wins = dog.formEntries.filter((e) => e.finish === 1).length;
-  const total = dog.formEntries.length;
-  const winPct = total > 0 ? ((wins / total) * 100).toFixed(1) : "0";
-  const placings = dog.formEntries.filter(
-    (e) => e.finish && e.finish <= 3
-  ).length;
+  const wins = dog.careerStats.wins;
+  const total = dog.careerStats.starts;
+  const winRate = formatDogWinRate({ wins, starts: total });
+  const placings = dog.careerStats.placings;
 
-  const allTimes = dog.formEntries.filter((e) => e.time).map((e) => e.time!);
-  const bestTime = allTimes.length > 0 ? Math.min(...allTimes) : null;
-
-  // Per-race prize money only exists on Runner/Result rows (recent live races);
-  // historical formEntries carry none. A runner with no Result hasn't finished,
-  // so it's an upcoming start (show the race's prize pool); finished starts show
-  // prizeMoneyWon.
-  const finishedStarts = dog.runners.filter((r) => r.result);
-  const upcomingStarts = dog.runners.filter((r) => !r.result);
-  // Career total: Dog.prizeMoney is the authoritative figure from the profile
-  // backfill (covers full career). prize.careerWon only sums our live Result
-  // rows (a recent subset), so take the larger of the two.
-  const careerWinnings = Math.max(dog.prizeMoney ?? 0, prize.careerWon);
-  const hasPrizeData =
-    careerWinnings > 0 ||
-    finishedStarts.some((r) => r.result?.prizeMoneyWon != null) ||
-    upcomingStarts.some((r) => r.race.prizeMoney != null);
+  const recentForm = buildRecentForm(dog);
 
   const dogSchema = {
     "@context": "https://schema.org",
@@ -110,7 +113,7 @@ export default async function DogProfilePage({
   };
 
   return (
-    <div className="giq-dog-detail-page mx-auto max-w-4xl px-6 py-10">
+    <div className="giq-dog-detail-page mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
       <JsonLd
         data={[
           breadcrumbSchema([
@@ -121,16 +124,11 @@ export default async function DogProfilePage({
           dogSchema,
         ]}
       />
+      <RacingDataDisclosure className="mb-8" />
       {/* Header */}
       <div className="mb-8">
-        <h1
-          className="text-4xl font-semibold text-[hsl(var(--foreground))] tracking-[-0.03em]"
-        >
-          {dog.name}
-        </h1>
-        <div
-          className="flex flex-wrap gap-3 mt-2 text-[13px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]"
-        >
+        <PageTitle>{dog.name}</PageTitle>
+        <div className="flex flex-wrap gap-3 mt-2 text-[13px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
           {dog.sex && <span>{dog.sex === "M" ? "Dog" : "Bitch"}</span>}
           {dog.colour && <span>· {dog.colour}</span>}
           {dog.trainer && <span>· Trained by {dog.trainer.name}</span>}
@@ -140,7 +138,9 @@ export default async function DogProfilePage({
           {/* Internal source identifiers (e.g. "thedogs:443230") must never be
               shown; only surface a genuine ear brand if one exists. */}
           {dog.earBrand && !dog.earBrand.includes(":") && (
-            <span className="font-mono text-[hsl(var(--primary-bright))]">· {dog.earBrand}</span>
+            <span className="font-mono text-[hsl(var(--primary-bright))]">
+              · {dog.earBrand}
+            </span>
           )}
         </div>
       </div>
@@ -148,13 +148,31 @@ export default async function DogProfilePage({
       {/* Stats */}
       <div className="giq-dog-stat-grid grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         {[
-          { label: "Starts", value: total, color: "text-[hsl(var(--foreground))]" },
-          { label: `Wins (${winPct}%)`, value: wins, color: "text-[hsl(var(--primary-bright))]" },
-          { label: "Placings", value: placings, color: "text-[hsl(var(--foreground))]" },
-          { label: "Best Time", value: bestTime ? `${bestTime.toFixed(2)}s` : "—", color: "text-[hsl(var(--secondary))]" },
+          {
+            label: "Starts",
+            value: total,
+            color: "text-[hsl(var(--foreground))]",
+          },
+          {
+            label: `Wins (${winRate.text})`,
+            value: wins,
+            color: "text-[hsl(var(--primary-bright))]",
+          },
+          {
+            label: "Placings",
+            value: placings,
+            color: "text-[hsl(var(--foreground))]",
+          },
+          {
+            label: "Prize Money",
+            value: formatDogPrizeMoney(dog.prizeMoney).text,
+            color: "text-[hsl(var(--secondary))]",
+          },
         ].map((stat) => (
           <div key={stat.label} className="giq-metric-card text-center">
-            <div className={`text-3xl font-semibold tracking-[-0.02em] ${stat.color}`}>
+            <div
+              className={`text-3xl font-semibold tracking-[-0.02em] ${stat.color}`}
+            >
               {stat.value}
             </div>
             <div className="text-[12px] text-[hsl(var(--subtle-foreground))] mt-1 tracking-[-0.013em]">
@@ -187,7 +205,9 @@ export default async function DogProfilePage({
                     </p>
                     <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
                       {formatRole(entry.role)}
-                      {entry.profile.kennelName ? ` · ${entry.profile.kennelName}` : ""}
+                      {entry.profile.kennelName
+                        ? ` · ${entry.profile.kennelName}`
+                        : ""}
                       {entry.profile.state ? ` · ${entry.profile.state}` : ""}
                     </p>
                   </div>
@@ -209,7 +229,8 @@ export default async function DogProfilePage({
                     Claim pending review
                   </p>
                   <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
-                    {formatRole(currentOwnership.role)} claim submitted for review.
+                    {formatRole(currentOwnership.role)} claim submitted for
+                    review.
                   </p>
                 </div>
                 <OwnershipBadge status="pending" />
@@ -245,10 +266,7 @@ export default async function DogProfilePage({
                         ? `Your ${formatRole(currentOwnership.role)} claim was not approved.`
                         : `Your ${formatRole(currentOwnership.role)} claim is awaiting moderator review.`}
                   </p>
-                  <Link
-                    href="/account"
-                    className="giq-outline-action mt-4"
-                  >
+                  <Link href="/account" className="giq-outline-action mt-4">
                     Manage profile
                   </Link>
                 </div>
@@ -315,13 +333,17 @@ export default async function DogProfilePage({
             </h3>
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <p className="text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))] mb-1">Sire</p>
+                <p className="text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))] mb-1">
+                  Sire
+                </p>
                 <p className="text-[14px] font-medium text-[hsl(var(--foreground))]">
                   {dog.sire?.name ?? "Unknown"}
                 </p>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))] mb-1">Dam</p>
+                <p className="text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))] mb-1">
+                  Dam
+                </p>
                 <p className="text-[14px] font-medium text-[hsl(var(--foreground))]">
                   {dog.dam?.name ?? "Unknown"}
                 </p>
@@ -331,191 +353,158 @@ export default async function DogProfilePage({
         )
       )}
 
-      {/* Prize money */}
-      {hasPrizeData && (
-        <section className="giq-panel mb-6 p-6">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))]">
-              Prize Money
-            </h2>
-            <div className="text-right">
-              <div className="text-2xl font-semibold tabular-nums tracking-[-0.02em] text-[hsl(var(--secondary))]">
-                {formatPrize(careerWinnings)}
-              </div>
-              <div className="text-[12px] text-[hsl(var(--subtle-foreground))] tracking-[-0.013em]">
-                Career winnings
-              </div>
-            </div>
-          </div>
-
-          {prize.byPosition.length > 0 && (
-            <div className="giq-dog-stat-grid grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {prize.byPosition.map((row) => (
-                <div key={row.position} className="giq-subpanel p-4">
-                  <div className="text-[11px] uppercase tracking-wider text-[hsl(var(--subtle-foreground))]">
-                    {ordinal(row.position)} ({row.count})
-                  </div>
-                  <div className="mt-1 text-[15px] font-semibold tabular-nums text-[hsl(var(--foreground))]">
-                    {formatPrize(row.won)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {finishedStarts.some((r) => r.result?.prizeMoneyWon != null) && (
-            <div className="mt-5">
-              <h3 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-[hsl(var(--subtle-foreground))]">
-                Recent results
-              </h3>
-              <div className="space-y-2">
-                {finishedStarts
-                  .filter((r) => r.result?.prizeMoneyWon != null)
-                  .map((r) => (
-                    <div
-                      key={r.id}
-                      className="giq-subpanel flex items-center justify-between gap-3 p-3"
-                    >
-                      <div className="text-[13px] text-[hsl(var(--foreground))]">
-                        {r.race.meeting.track?.name ?? "Unknown track"}
-                        <span className="ml-2 text-[12px] text-[hsl(var(--subtle-foreground))]">
-                          {r.race.raceTime.toLocaleDateString("en-AU", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "2-digit",
-                          })}
-                          {r.result?.finishingPosition != null
-                            ? ` · Finish ${r.result.finishingPosition}`
-                            : ""}
-                        </span>
-                      </div>
-                      <div className="text-[13px] font-semibold tabular-nums text-[hsl(var(--secondary))]">
-                        {formatPrize(r.result!.prizeMoneyWon!)}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {upcomingStarts.some((r) => r.race.prizeMoney != null) && (
-            <div className="mt-5">
-              <h3 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-[hsl(var(--subtle-foreground))]">
-                Upcoming
-              </h3>
-              <div className="space-y-2">
-                {upcomingStarts
-                  .filter((r) => r.race.prizeMoney != null)
-                  .map((r) => (
-                    <div
-                      key={r.id}
-                      className="giq-subpanel flex items-center justify-between gap-3 p-3"
-                    >
-                      <div className="text-[13px] text-[hsl(var(--foreground))]">
-                        {r.race.meeting.track?.name ?? "Unknown track"}
-                        <span className="ml-2 text-[12px] text-[hsl(var(--subtle-foreground))]">
-                          {r.race.raceTime.toLocaleDateString("en-AU", {
-                            day: "2-digit",
-                            month: "short",
-                          })}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-[13px] font-semibold tabular-nums text-[hsl(var(--secondary))]">
-                          {formatPrize(r.race.prizeMoney!)}
-                        </div>
-                        <div className="text-[11px] text-[hsl(var(--subtle-foreground))]">
-                          Prize pool
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Form table */}
-      <div className="giq-table-shell">
-        <div className="border-b border-white/[0.06] p-5">
-          <h3
-            className="text-[15px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.02em]"
-          >
+      {/* Form table — collapsible disclosure (DOG-DETAIL.ACTION.FORM.EXPAND) */}
+      <details open className="giq-table-shell group">
+        <summary className="flex cursor-pointer list-none items-center justify-between border-b border-white/[0.06] p-5 [&::-webkit-details-marker]:hidden">
+          <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.02em]">
             Recent Form
           </h3>
-        </div>
-        <div className="grid gap-3 p-3 sm:hidden">
-          {dog.formEntries.slice(0, 20).map((entry, i) => (
-            <article key={i} className="giq-subpanel p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
-                    {entry.track?.name ?? "Unknown track"}
-                  </p>
-                  <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
-                    {entry.date.toLocaleDateString("en-AU", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "2-digit",
-                    })}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-[13px] font-semibold text-[hsl(var(--primary-bright))]">
-                    {entry.time ? `${entry.time.toFixed(2)}s` : "-"}
-                  </p>
-                  <p className="mt-1 text-[12px] text-[hsl(var(--subtle-foreground))]">
-                    {entry.distance ? `${entry.distance}m` : "-"}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-[12px] text-[hsl(var(--muted-foreground))]">
-                <span>Box {entry.boxNumber ?? "-"}</span>
-                <span className="flex items-center justify-end gap-1.5">
-                  Finish <FinishBadge finish={entry.finish} />
+          <ChevronRight
+            className="h-4 w-4 text-[hsl(var(--subtle-foreground))] transition-transform group-open:rotate-90"
+            aria-hidden="true"
+          />
+        </summary>
+        <div className="divide-y divide-white/[0.06] lg:hidden">
+          {recentForm.map((entry) => (
+            <div
+              key={entry.id}
+              className="giq-recent-form-row-interactive relative grid min-h-[68px] grid-cols-[minmax(60px,1fr)_32px_44px_48px_44px] items-center gap-1 px-2 py-2 min-[390px]:grid-cols-[minmax(72px,1fr)_36px_52px_58px_76px] min-[390px]:gap-1.5 min-[390px]:px-4"
+            >
+              {entry.raceHref && (
+                <Link
+                  href={entry.raceHref}
+                  className="giq-recent-form-row-hit-area absolute inset-0"
+                  aria-label={`View full race at ${entry.trackName} on ${formatFormDate(entry.date)}`}
+                />
+              )}
+              <span className="min-w-0">
+                <span className="block text-[12px] tabular-nums text-[hsl(var(--muted-foreground))]">
+                  {formatFormDate(entry.date)}
                 </span>
-              </div>
-            </article>
+                <span className="mt-1 block truncate text-[14px] font-semibold text-[hsl(var(--foreground))]">
+                  {entry.trackName}
+                </span>
+              </span>
+              <FormSummaryValue label="Box">
+                <BoxPlate boxNumber={entry.boxNumber} />
+              </FormSummaryValue>
+              <FormSummaryValue label="Finish">
+                <FinishBadge finish={entry.finish} />
+              </FormSummaryValue>
+              <FormSummaryValue label="Time">
+                <span className="font-mono text-[13px] font-semibold text-[hsl(var(--primary-bright))]">
+                  {formatSeconds(entry.time)}
+                </span>
+              </FormSummaryValue>
+              <RaceActions
+                raceHref={entry.raceHref}
+                replayHref={entry.replayHref}
+                compact
+              />
+            </div>
           ))}
         </div>
-        <div className="hidden overflow-x-auto sm:block">
-          <table className="w-full">
+        <div className="hidden lg:block">
+          <table className="w-full table-fixed">
+            <colgroup>
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "6%" }} />
+              <col style={{ width: "5%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "6%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "12%" }} />
+            </colgroup>
             <thead>
               <tr className="giq-table-head">
-                <th className="text-left p-3 tracking-[0.04em]">Date</th>
-                <th className="text-left p-3 tracking-[0.04em]">Track</th>
-                <th className="text-center p-3 tracking-[0.04em]">Dist</th>
-                <th className="text-center p-3 tracking-[0.04em]">Box</th>
-                <th className="text-center p-3 tracking-[0.04em]">Finish</th>
-                <th className="text-center p-3 tracking-[0.04em]">Time</th>
+                {[
+                  "Date",
+                  "Track",
+                  "Dist",
+                  "Box",
+                  "Finish",
+                  "Time",
+                  "Grade",
+                  "Wgt",
+                  "1st Sec",
+                  "Mgn",
+                  "Winner / 2nd",
+                  "Race",
+                ].map((label, index) => (
+                  <th
+                    key={label}
+                    className={`${index < 2 || index === 10 ? "text-left" : "text-center"} px-2 py-4 tracking-[0.04em]`}
+                  >
+                    {label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {dog.formEntries.slice(0, 20).map((entry, i) => (
-                <tr key={i} className="giq-table-row">
-                  <td className="p-3 text-[13px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
-                    {entry.date.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "2-digit" })}
+              {recentForm.map((entry) => (
+                <tr
+                  key={entry.id}
+                  className="giq-table-row giq-recent-form-row-interactive relative h-[56px]"
+                >
+                  <td className="px-2 py-3 text-[12px] tabular-nums text-[hsl(var(--muted-foreground))]">
+                    {entry.raceHref && (
+                      <Link
+                        href={entry.raceHref}
+                        className="giq-recent-form-row-hit-area absolute inset-0"
+                        aria-label={`View full race at ${entry.trackName} on ${formatFormDate(entry.date)}`}
+                        tabIndex={-1}
+                      />
+                    )}
+                    {formatFormDate(entry.date)}
                   </td>
-                  <td className="p-3 text-[13px] text-[hsl(var(--foreground))] font-medium tracking-[-0.013em]">
-                    {entry.track?.name ?? "—"}
+                  <td className="truncate px-2 py-3 text-[13px] font-medium text-[hsl(var(--foreground))]">
+                    {entry.trackName}
                   </td>
-                  <td className="p-3 text-[13px] text-center text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
-                    {entry.distance ? `${entry.distance}m` : "—"}
+                  <td className="px-2 py-3 text-center text-[12px] text-[hsl(var(--muted-foreground))]">
+                    {formatDistance(entry.distance)}
                   </td>
-                  <td className="p-3 text-[13px] text-center text-[hsl(var(--muted-foreground))]">{entry.boxNumber ?? "—"}</td>
-                  <td className="p-3 text-center">
+                  <td className="px-2 py-3 text-center">
+                    <BoxPlate boxNumber={entry.boxNumber} />
+                  </td>
+                  <td className="px-2 py-3 text-center">
                     <FinishBadge finish={entry.finish} />
                   </td>
-                  <td className="p-3 text-[13px] text-center text-[hsl(var(--primary-bright))] font-mono">
-                    {entry.time ? `${entry.time.toFixed(2)}s` : "—"}
+                  <td className="px-2 py-3 text-center font-mono text-[12px] text-[hsl(var(--primary-bright))]">
+                    {formatSeconds(entry.time)}
+                  </td>
+                  <td className="truncate px-2 py-3 text-center text-[12px] text-[hsl(var(--muted-foreground))]">
+                    {entry.grade ?? "—"}
+                  </td>
+                  <td className="px-2 py-3 text-center text-[12px] text-[hsl(var(--muted-foreground))]">
+                    {formatWeight(entry.weight)}
+                  </td>
+                  <td className="px-2 py-3 text-center text-[12px] tabular-nums text-[hsl(var(--muted-foreground))]">
+                    {formatNumber(entry.firstSectional)}
+                  </td>
+                  <td className="px-2 py-3 text-center text-[12px] tabular-nums text-[hsl(var(--muted-foreground))]">
+                    {formatNumber(entry.margin)}
+                  </td>
+                  <td className="truncate px-2 py-3 text-[12px] text-[hsl(var(--muted-foreground))]">
+                    {entry.winnerDogName ?? "—"}
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    <RaceActions
+                      raceHref={entry.raceHref}
+                      replayHref={entry.replayHref}
+                      compact
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </details>
     </div>
   );
 }
@@ -545,23 +534,257 @@ function OwnershipBadge({ status }: { status: string }) {
   );
 }
 
-function formatPrize(value: number) {
-  return new Intl.NumberFormat("en-AU", {
-    style: "currency",
-    currency: "AUD",
-    maximumFractionDigits: 0,
-  }).format(value);
+type DogDetail = NonNullable<Awaited<ReturnType<typeof getDogById>>>;
+
+type RecentFormRow = {
+  id: string;
+  date: Date;
+  trackName: string;
+  distance: number | null;
+  boxNumber: number | null;
+  finish: number | null;
+  time: number | null;
+  grade: string | null;
+  weight: number | null;
+  firstSectional: number | null;
+  margin: number | null;
+  winnerDogName: string | null;
+  raceHref: string | null;
+  replayHref: string | null;
+};
+
+function buildRecentForm(dog: DogDetail): RecentFormRow[] {
+  if (dog.profileForms.length > 0) {
+    return dog.profileForms.map((entry) => {
+      const formEntry = dog.formEntries.find(
+        (candidate) =>
+          sameRaceDay(candidate.date, entry.date) &&
+          (!entry.distance || candidate.distance === entry.distance) &&
+          (!entry.boxNumber || candidate.boxNumber === entry.boxNumber),
+      );
+      const runner = findMatchingRunner(
+        dog,
+        entry.date,
+        formEntry?.raceId ?? null,
+        entry.distance,
+      );
+      const raceId = runner?.race.id ?? formEntry?.raceId ?? null;
+
+      return {
+        id: entry.id,
+        date: entry.date,
+        trackName:
+          entry.trackName ??
+          runner?.race.meeting.track?.name ??
+          formEntry?.track?.name ??
+          entry.trackCode ??
+          "—",
+        distance:
+          entry.distance ??
+          runner?.race.distance ??
+          formEntry?.distance ??
+          null,
+        boxNumber:
+          entry.boxNumber ?? runner?.boxNumber ?? formEntry?.boxNumber ?? null,
+        finish:
+          entry.finishingPosition ??
+          runner?.result?.finishingPosition ??
+          formEntry?.finish ??
+          null,
+        time:
+          entry.runningTime ??
+          runner?.result?.runningTime ??
+          formEntry?.time ??
+          null,
+        grade: entry.grade ?? runner?.race.grade ?? formEntry?.grade ?? null,
+        weight: entry.weight ?? runner?.weight ?? formEntry?.weight ?? null,
+        firstSectional:
+          entry.firstSectional ?? runner?.result?.splitTime ?? null,
+        margin: entry.margin ?? runner?.result?.margin ?? null,
+        winnerDogName: entry.winnerDogName,
+        raceHref: raceId ? `/races/${raceId}` : null,
+        replayHref:
+          (runner?.race.replayUrl ? `/races/${runner.race.id}` : null) ??
+          profileReplayHref(entry),
+      };
+    });
+  }
+
+  return dog.formEntries.slice(0, 20).map((entry) => {
+    const runner = findMatchingRunner(
+      dog,
+      entry.date,
+      entry.raceId,
+      entry.distance,
+    );
+    return {
+      id: entry.id,
+      date: entry.date,
+      trackName: runner?.race.meeting.track?.name ?? entry.track?.name ?? "—",
+      distance: entry.distance ?? runner?.race.distance ?? null,
+      boxNumber: entry.boxNumber ?? runner?.boxNumber ?? null,
+      finish: entry.finish ?? runner?.result?.finishingPosition ?? null,
+      time: entry.time ?? runner?.result?.runningTime ?? null,
+      grade: entry.grade ?? runner?.race.grade ?? null,
+      weight: entry.weight ?? runner?.weight ?? null,
+      firstSectional: runner?.result?.splitTime ?? null,
+      margin: runner?.result?.margin ?? null,
+      winnerDogName: null,
+      raceHref: entry.raceId ? `/races/${entry.raceId}` : null,
+      replayHref: runner?.race.replayUrl ? `/races/${runner.race.id}` : null,
+    };
+  });
 }
 
-function ordinal(position: number) {
-  if (position === 1) return "Wins";
-  if (position === 2) return "2nds";
-  if (position === 3) return "3rds";
-  return `${position}th`;
+function findMatchingRunner(
+  dog: DogDetail,
+  date: Date,
+  raceId: string | null,
+  distance: number | null,
+) {
+  return dog.runners.find(
+    (runner) =>
+      (raceId != null && runner.race.id === raceId) ||
+      (sameRaceDay(runner.race.raceTime, date) &&
+        (distance == null || runner.race.distance === distance)),
+  );
 }
 
-// Gold/Silver/Bronze trophy for podium finishes; plain number otherwise.
-// Mirrors the result badges used in RunnerRow across the site.
+function profileReplayHref(entry: DogDetail["profileForms"][number]) {
+  if (
+    !isTheDogsLicensedUseApproved() ||
+    !entry.hasVideo ||
+    entry.sourceProvider.toLowerCase() !== "thedogs"
+  )
+    return null;
+  try {
+    return absoluteTheDogsUrl(entry.raceUrl);
+  } catch {
+    return null;
+  }
+}
+
+const raceDayFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Australia/Sydney",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function sameRaceDay(left: Date, right: Date) {
+  return raceDayFormatter.format(left) === raceDayFormatter.format(right);
+}
+
+function formatFormDate(value: Date) {
+  return value.toLocaleDateString("en-AU", {
+    timeZone: "Australia/Sydney",
+    day: "2-digit",
+    month: "short",
+    year: "2-digit",
+  });
+}
+
+function formatSeconds(value: number | null) {
+  return value == null ? "—" : `${value.toFixed(2)}s`;
+}
+
+function formatDistance(value: number | null) {
+  return value == null ? "—" : `${value}m`;
+}
+
+function formatWeight(value: number | null) {
+  return value == null ? "—" : `${value.toFixed(1)}kg`;
+}
+
+function formatNumber(value: number | null) {
+  return value == null ? "—" : value.toFixed(2);
+}
+
+function FormSummaryValue({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <span className="grid min-w-0 justify-items-center gap-1">
+      <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--subtle-foreground))]">
+        {label}
+      </span>
+      {children}
+    </span>
+  );
+}
+
+function BoxPlate({ boxNumber }: { boxNumber: number | null }) {
+  return boxNumber == null ? (
+    <span className="text-[13px] text-[hsl(var(--muted-foreground))]">—</span>
+  ) : (
+    <span className="giq-box-plate" style={getBoxColourStyle(boxNumber)}>
+      {boxNumber}
+    </span>
+  );
+}
+
+function RaceActions({
+  raceHref,
+  replayHref,
+  compact = false,
+}: {
+  raceHref: string | null;
+  replayHref: string | null;
+  compact?: boolean;
+}) {
+  if (!raceHref) return <ReplayLink href={replayHref} compact={compact} />;
+  return (
+    <Link
+      href={raceHref}
+      aria-label="View race"
+      className="giq-recent-form-row-actions inline-flex min-h-11 min-w-11 items-center justify-center gap-0.5 rounded-md px-1 text-[10px] font-bold text-[hsl(var(--primary-bright))] hover:bg-[hsl(var(--primary)/0.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-bright))] min-[390px]:px-1.5"
+    >
+      <span className={compact ? "hidden min-[390px]:inline" : undefined}>
+        View race
+      </span>
+      <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+    </Link>
+  );
+}
+
+function ReplayLink({
+  href,
+  compact = false,
+}: {
+  href: string | null;
+  compact?: boolean;
+}) {
+  const size = compact ? "h-8 w-8" : "h-14 w-14";
+  if (!href) {
+    return (
+      <span
+        className={`inline-grid ${size} place-items-center rounded-full text-[hsl(var(--subtle-foreground))]`}
+        aria-label="Race replay unavailable"
+      >
+        —
+      </span>
+    );
+  }
+  const external = href.startsWith("http");
+  return (
+    <a
+      href={href}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noreferrer" : undefined}
+      aria-label="Play race replay"
+      className={`inline-grid ${size} place-items-center rounded-full border border-[hsl(var(--primary-bright)/0.75)] text-[hsl(var(--primary-bright))] transition-colors hover:bg-[hsl(var(--primary)/0.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-bright))]`}
+    >
+      <Play
+        className={compact ? "h-4 w-4 fill-current" : "h-6 w-6 fill-current"}
+        aria-hidden="true"
+      />
+    </a>
+  );
+}
 
 function formatRole(role: string) {
   return role

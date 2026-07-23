@@ -1,43 +1,47 @@
 import Link from "next/link";
-import { CheckCircle2, Clock, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  CheckCircle2,
+  CircleX,
+  Clock,
+  ShieldCheck,
+  Sparkles,
+  Square,
+} from "lucide-react";
 import { createAgentRun } from "@/app/actions";
 import { PageHero } from "@/components/page-hero";
 import { AgentDemoConsole } from "@/components/agent-demo-console";
+import { AgentRunCancelButton } from "@/components/agent-run-cancel-button";
+import {
+  getAgentRunPresentation,
+  type AgentRunPresentationState,
+} from "@/components/agent-run-lifecycle";
 import { ProGate } from "@/components/pro-gate";
 import { SubmitButton } from "@/components/submit-button";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, hasTier } from "@/lib/auth";
+import {
+  AGENT_OUTPUT_DISCLAIMER,
+  AGENT_PRODUCT_CATALOGUE,
+  agentTierLabel,
+} from "@/lib/agent-product-catalogue";
 import { getAgentRuns } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
+// Match the app-wide status-pill semantics (see OwnershipBadge / account
+// StatusBadge): purple = done, red = error, gold = awaiting attention.
+const AGENT_RUN_PILL_VARIANT: Record<AgentRunPresentationState, string> = {
+  completed: "giq-status-pill-purple",
+  failed: "giq-status-pill-red",
+  pending: "giq-status-pill-gold",
+  running: "giq-status-pill-gold",
+  interrupted: "",
+};
+
 export const metadata = {
   title: "AI Agents - GreyhoundIQ",
   description:
-    "GreyhoundIQ agent console for race analysis, breeding advice, form reading, moderation, and memory-backed workflows.",
+    "GreyhoundIQ agent console for race analysis, breeding advice, form reading, and memory-backed workflows.",
 };
-
-const AGENT_CARDS = [
-  {
-    name: "Race Analyst",
-    tier: "Pro+",
-    body: "Ranks runners with probabilities, confidence, track bias, trainer signals, and form citations.",
-  },
-  {
-    name: "Breeding Advisor",
-    tier: "Pro",
-    body: "Checks sire and dam pairings, COI, genetic risk flags, projected litter profile, and earnings index.",
-  },
-  {
-    name: "Form Reader",
-    tier: "Free",
-    body: "Turns recent starts into a concise explanation of improving, declining, or track-specific form.",
-  },
-  {
-    name: "Moderator",
-    tier: "Admin",
-    body: "Scans posts, Pulse messages, and marketplace items for spam, abuse, and risk before escalation.",
-  },
-];
 
 export default async function AgentsPage() {
   const user = await getCurrentUser();
@@ -57,7 +61,7 @@ export default async function AgentsPage() {
   return (
     <div>
       <PageHero
-        image="/images/wentworth-gate-hero.webp"
+        image="/images/feature-ai-predictions-blue.webp"
         title={
           <>
             AI agents for
@@ -65,7 +69,7 @@ export default async function AgentsPage() {
             <span className="gradient-text">racing decisions.</span>
           </>
         }
-        subtitle="Race analysis, breeding advice, form reading, moderation, and memory-backed workflows tied to the GreyhoundIQ data spine."
+        subtitle="Race analysis, breeding advice, and form reading with explicit data limits, tier checks, and memory-backed run history."
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
@@ -99,9 +103,9 @@ export default async function AgentsPage() {
             <Sparkles className="h-5 w-5 text-[hsl(var(--secondary))]" />
           </div>
           <div className="grid gap-3">
-            {AGENT_CARDS.map((agent) => (
+            {AGENT_PRODUCT_CATALOGUE.map((agent) => (
               <article
-                key={agent.name}
+                key={agent.type}
                 className="giq-panel giq-panel-hover p-5"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -110,11 +114,15 @@ export default async function AgentsPage() {
                       {agent.name}
                     </h3>
                     <p className="mt-2 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-                      {agent.body}
+                      {agent.capability}
+                    </p>
+                    <p className="mt-2 text-[12px] leading-relaxed text-[hsl(var(--subtle-foreground))]">
+                      <span className="font-semibold">Current limit:</span>{" "}
+                      {agent.limitation}
                     </p>
                   </div>
                   <span className="giq-badge giq-badge-neutral">
-                    {agent.tier}
+                    {agentTierLabel(agent.minimumTier)}
                   </span>
                 </div>
               </article>
@@ -124,7 +132,23 @@ export default async function AgentsPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-16">
-        <ProGate minTier="pro_plus" feature="Live agent execution">
+        <div className="giq-subpanel mb-6 p-5">
+          <h2 className="text-[15px] font-semibold text-[hsl(var(--foreground))]">
+            What a run stores and what it cannot change
+          </h2>
+          <p className="mt-2 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+            A run stores your prompt and output, conversation context, usage and
+            audit records, and user-owned memory. A follow-up may be recorded as
+            pending, but it is never executed automatically.
+          </p>
+          <p className="mt-2 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+            Agent output does not publish content, edit racing records, change
+            billing or account settings, or perform administrative actions.
+            {" "}{AGENT_OUTPUT_DISCLAIMER}
+          </p>
+        </div>
+
+        <ProGate minTier="pro" feature="Live agent execution">
           <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
             <form
               action={createAgentRun}
@@ -138,6 +162,10 @@ export default async function AgentsPage() {
                   Creates a stored AgentRun, loads relevant memory, writes a new
                   memory entry, and validates the structured output.
                 </p>
+                <p className="mt-2 text-[12px] leading-relaxed text-[hsl(var(--subtle-foreground))]">
+                  Race Analyst and Form Reader require Pro. Breeding Advisor
+                  requires Pro+.
+                </p>
               </div>
               <div className="space-y-4">
                 <label className="block">
@@ -149,9 +177,22 @@ export default async function AgentsPage() {
                     className="giq-form-control mt-2 px-3 py-2"
                     defaultValue="race_analyst"
                   >
-                    <option value="race_analyst">Race Analyst</option>
-                    <option value="breeding_advisor">Breeding Advisor</option>
-                    <option value="form_reader">Form Reader</option>
+                    {AGENT_PRODUCT_CATALOGUE.map((agent) => {
+                      const unavailable = Boolean(
+                        user && !hasTier(user.tier, agent.minimumTier)
+                      );
+
+                      return (
+                        <option
+                          key={agent.type}
+                          value={agent.type}
+                          disabled={unavailable}
+                        >
+                          {agent.name} · {agentTierLabel(agent.minimumTier)}
+                          {unavailable ? " — upgrade required" : ""}
+                        </option>
+                      );
+                    })}
                   </select>
                 </label>
                 <label className="block">
@@ -199,32 +240,36 @@ export default async function AgentsPage() {
                       <th className="p-3 text-right">Tokens</th>
                       <th className="p-3 text-right">Duration</th>
                       <th className="p-3 text-right">Created</th>
+                      <th className="p-3 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {runs.map((run) => (
-                      <tr
-                        key={run.id}
-                        className="giq-table-row"
-                      >
+                    {runs.map((run) => {
+                      const presentation = getAgentRunPresentation(run.status);
+                      const StatusIcon =
+                        presentation.state === "completed"
+                          ? CheckCircle2
+                          : presentation.state === "failed"
+                            ? CircleX
+                            : presentation.state === "interrupted"
+                              ? Square
+                              : Clock;
+
+                      return (
+                        <tr key={run.id} className="giq-table-row">
                         <td className="p-3 text-[13px] font-medium text-[hsl(var(--foreground))]">
                           {run.agentType.replace(/_/g, " ")}
                         </td>
                         <td className="p-3">
                           <span
-                            className={`giq-status-pill ${
-                              run.status === "completed"
-                                ? "giq-status-pill-purple"
-                                : ""
-                            }`}
+                            data-agent-run-state={presentation.state}
+                            title={presentation.guidance}
+                            className={`giq-status-pill ${AGENT_RUN_PILL_VARIANT[presentation.state]}`}
                           >
-                            {run.status === "completed" ? (
-                              <CheckCircle2 className="h-3 w-3" />
-                            ) : (
-                              <Clock className="h-3 w-3" />
-                            )}
-                            {run.status}
+                            <StatusIcon className="h-3 w-3" aria-hidden="true" />
+                            {presentation.label}
                           </span>
+                          <span className="sr-only">{presentation.guidance}</span>
                         </td>
                         <td className="p-3 text-right font-mono text-[12px] text-[hsl(var(--muted-foreground))]">
                           {(run.promptTokens ?? 0) + (run.completionTokens ?? 0)}
@@ -235,8 +280,12 @@ export default async function AgentsPage() {
                         <td className="p-3 text-right text-[12px] text-[hsl(var(--subtle-foreground))]">
                           {run.createdAt.toLocaleDateString("en-AU")}
                         </td>
+                        <td className="p-3 text-right">
+                          <AgentRunCancelButton runId={run.id} status={run.status} />
+                        </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

@@ -1,3 +1,6 @@
+import { z } from "zod";
+
+import { readBoundedTextResponse } from "../remote-response";
 import type { LiveDataProvider, LiveMeeting, LiveRace, LiveRunner } from "./provider";
 
 /**
@@ -8,6 +11,12 @@ const TOPAZ_BASE = process.env.TOPAZ_API_BASE ?? "https://topaz.grv.org.au/api";
 const TOPAZ_AUTHORITY = process.env.TOPAZ_OWNING_AUTHORITY_CODE ?? "VIC";
 const TOPAZ_TIME_ZONE = process.env.TOPAZ_TIME_ZONE ?? "Australia/Sydney";
 const MAX_RETRIES = 5;
+const TOPAZ_RESPONSE_MAX_BYTES = 5 * 1024 * 1024;
+const TOPAZ_REQUEST_TIMEOUT_MS = 15_000;
+const TOPAZ_JSON_POLICY = {
+  maxBytes: TOPAZ_RESPONSE_MAX_BYTES,
+  allowedContentTypes: ["application/json", "+json"],
+} as const;
 
 type FetchLike = typeof fetch;
 
@@ -45,16 +54,20 @@ interface TopazRace {
 }
 
 interface TopazRun {
-  dogName?: string | null;
-  name?: string | null;
+  runId?: number | null;
+  dogId: number;
+  dogName: string;
+  sireId?: number | null;
+  sireName?: string | null;
+  damId?: number | null;
+  damName?: string | null;
+  dateWhelped?: string | null;
   boxNumber?: number | null;
   rugNumber?: number | null;
   trainer?: string | null;
   trainerName?: string | null;
   weightInKg?: number | null;
   weight?: number | null;
-  startingPrice?: number | null;
-  startPrice?: number | null;
   scratched?: boolean | null;
   scratchIsScratched?: boolean | null;
   isLateScratching?: boolean | null;
@@ -85,6 +98,106 @@ interface TopazRecentResult {
   runs: TopazRun[];
 }
 
+const identifierSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+const shortTextSchema = z.string().trim().min(1).max(200);
+const optionalShortTextSchema = shortTextSchema.nullish();
+const timestampSchema = z
+  .string()
+  .trim()
+  .min(8)
+  .max(64)
+  .refine((value) => Number.isFinite(Date.parse(value)), "invalid timestamp");
+const optionalTimestampSchema = timestampSchema.nullish();
+const moneySchema = z.number().finite().min(0).max(100_000_000).nullish();
+
+const topazRunSchema: z.ZodType<TopazRun> = z
+  .object({
+    runId: identifierSchema.nullish(),
+    dogId: identifierSchema,
+    dogName: shortTextSchema,
+    sireId: identifierSchema.nullish(),
+    sireName: optionalShortTextSchema,
+    damId: identifierSchema.nullish(),
+    damName: optionalShortTextSchema,
+    dateWhelped: optionalTimestampSchema,
+    boxNumber: z.number().int().min(0).max(20).nullish(),
+    rugNumber: z.number().int().min(0).max(20).nullish(),
+    trainer: optionalShortTextSchema,
+    trainerName: optionalShortTextSchema,
+    weightInKg: z.number().finite().min(0).max(100).nullish(),
+    weight: z.number().finite().min(0).max(100).nullish(),
+    scratched: z.boolean().nullish(),
+    scratchIsScratched: z.boolean().nullish(),
+    isLateScratching: z.boolean().nullish(),
+    sex: z.string().trim().min(1).max(32).nullish(),
+    colourCode: z.string().trim().min(1).max(32).nullish(),
+    place: z.number().int().min(0).max(32).nullish(),
+    resultTime: z.number().finite().min(0).max(1_000).nullish(),
+    resultMargin: z.number().finite().min(0).max(1_000).nullish(),
+  })
+  .refine((run) => isRealDogName(run.dogName), "real dog name required");
+
+const topazRaceSchema: z.ZodType<TopazRace> = z
+  .object({
+    raceId: identifierSchema.optional(),
+    raceNumber: z.number().int().min(1).max(64),
+    name: optionalShortTextSchema,
+    raceStart: optionalTimestampSchema,
+    raceTimeDateUTC: optionalTimestampSchema,
+    raceTime: optionalTimestampSchema,
+    distance: z.number().int().min(1).max(5_000),
+    raceType: optionalShortTextSchema,
+    raceTypeName: optionalShortTextSchema,
+    raceTypeCode: optionalShortTextSchema,
+    prizeMoneyTotal: moneySchema,
+    prizeMoney1: moneySchema,
+    prizeMoney2: moneySchema,
+    prizeMoney3: moneySchema,
+    prizeMoney4: moneySchema,
+    prizeMoney5: moneySchema,
+    prizeMoney6: moneySchema,
+    prizeMoney7: moneySchema,
+    prizeMoney8: moneySchema,
+    runs: z.array(topazRunSchema).max(32).optional(),
+  })
+  .refine(
+    (race) => Boolean(race.raceStart ?? race.raceTimeDateUTC ?? race.raceTime),
+    "race timestamp required",
+  );
+
+const topazMeetingSchema: z.ZodType<TopazMeeting> = z.object({
+  meetingId: identifierSchema,
+  trackName: shortTextSchema,
+  meetingDate: timestampSchema,
+  meetingType: optionalShortTextSchema,
+  meetingCategory: optionalShortTextSchema,
+  owningAuthorityCode: z.string().trim().min(1).max(16).nullish(),
+  races: z.array(topazRaceSchema).max(64).optional(),
+});
+
+const topazMeetingListSchema = z.array(topazMeetingSchema).max(512);
+const topazMeetingDetailSchema: z.ZodType<TopazMeeting> = topazMeetingSchema;
+const topazRecentResultSchema: z.ZodType<TopazRecentResult> = z.object({
+  raceId: identifierSchema,
+  trackName: shortTextSchema,
+  raceName: optionalShortTextSchema,
+  raceTypeName: optionalShortTextSchema,
+  raceTypeCode: optionalShortTextSchema,
+  raceNumber: z.number().int().min(1).max(64),
+  distance: z.number().int().min(1).max(5_000),
+  raceStart: timestampSchema,
+  prizeMoney1st: moneySchema,
+  prizeMoney2nd: moneySchema,
+  prizeMoney3rd: moneySchema,
+  prizeMoney4th: moneySchema,
+  prizeMoney5th: moneySchema,
+  prizeMoney6th: moneySchema,
+  prizeMoney7th: moneySchema,
+  prizeMoney8th: moneySchema,
+  runs: z.array(topazRunSchema).max(32),
+});
+const topazRecentResultListSchema = z.array(topazRecentResultSchema).max(5_000);
+
 export class TopazProvider implements LiveDataProvider {
   readonly name = "topaz";
 
@@ -96,17 +209,22 @@ export class TopazProvider implements LiveDataProvider {
   async fetchUpcomingMeetings(days: number): Promise<LiveMeeting[]> {
     const from = formatDate(new Date());
     const to = formatDate(addDays(new Date(), days));
-    const meetings = await this.get<TopazMeeting[]>("/meeting", {
-      from,
-      to,
-      owningauthoritycode: TOPAZ_AUTHORITY,
-    });
+    const meetings = await this.get(
+      "/meeting",
+      {
+        from,
+        to,
+        owningauthoritycode: TOPAZ_AUTHORITY,
+      },
+      topazMeetingListSchema,
+    );
 
     return Promise.all(
       ensureArray(meetings).map(async (meeting) => {
-        const detail = await this.get<TopazMeeting>(
+        const detail = await this.get(
           `/meeting/${meeting.meetingId}`,
-          { format: "full" }
+          { format: "full" },
+          topazMeetingDetailSchema,
         );
         return mapMeeting(detail);
       })
@@ -115,7 +233,11 @@ export class TopazProvider implements LiveDataProvider {
 
   async fetchResults(days: number): Promise<LiveMeeting[]> {
     const since = addDays(new Date(), -Math.max(days, 1));
-    const recent = await this.get<TopazRecentResult[]>("/raceresult/recent", {});
+    const recent = await this.get(
+      "/raceresult/recent",
+      {},
+      topazRecentResultListSchema,
+    );
     return groupRecentResults(
       ensureArray(recent).filter((race) => new Date(race.raceStart) >= since)
     );
@@ -124,30 +246,57 @@ export class TopazProvider implements LiveDataProvider {
   private async get<T>(
     path: string,
     params: Record<string, string>,
-    attempt = 0
+    schema: z.ZodType<T>,
+    attempt = 0,
   ): Promise<T> {
     const url = new URL(path, TOPAZ_BASE);
     for (const [key, value] of Object.entries(params)) {
       url.searchParams.set(key, value);
     }
 
-    const response = await this.fetchImpl(url, {
-      headers: { "X-API-Key": this.apiKey },
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(new Error("topaz.request_timeout")),
+      TOPAZ_REQUEST_TIMEOUT_MS,
+    );
+    let response: Response;
+    try {
+      response = await this.fetchImpl(url, {
+        headers: { "X-API-Key": this.apiKey },
+        signal: controller.signal,
+      });
+    } catch {
+      throw new Error(
+        controller.signal.aborted
+          ? "topaz.request_timeout"
+          : "topaz.request_failed",
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (response.status === 429 && attempt < MAX_RETRIES) {
       await sleep(retryDelayMs(response, attempt));
-      return this.get<T>(path, params, attempt + 1);
+      return this.get(path, params, schema, attempt + 1);
     }
     if (response.status >= 500 && attempt < MAX_RETRIES) {
       await sleep(retryDelayMs(response, attempt));
-      return this.get<T>(path, params, attempt + 1);
+      return this.get(path, params, schema, attempt + 1);
     }
     if (!response.ok) {
-      throw new Error(`[topaz] ${response.status} ${response.statusText} for ${path}`);
+      throw new Error(`topaz.request_failed:${response.status}`);
     }
 
-    return response.json() as Promise<T>;
+    const body = await readBoundedTextResponse(response, TOPAZ_JSON_POLICY);
+    let payload: unknown;
+    try {
+      payload = JSON.parse(body);
+    } catch {
+      throw new Error("topaz.response_invalid_json");
+    }
+    const parsed = schema.safeParse(payload);
+    if (!parsed.success) throw new Error("topaz.response_invalid");
+    return parsed.data;
   }
 }
 
@@ -181,22 +330,46 @@ export function mapRace(race: TopazRace): LiveRace {
 
 export function mapRun(run: TopazRun): LiveRunner {
   return {
+    sourceId: run.runId != null ? String(run.runId) : undefined,
+    sourceProvider: "topaz",
     boxNumber: Math.trunc(numberOr(run.boxNumber ?? run.rugNumber, 0)),
     dog: {
-      name: run.dogName ?? run.name ?? "Unknown runner",
+      sourceProvider: "topaz",
+      sourceId: String(run.dogId),
+      name: run.dogName.trim(),
       sex: run.sex ?? undefined,
       colour: run.colourCode ?? undefined,
+      whelpDate: run.dateWhelped ?? undefined,
+      sire: parentEvidence(run.sireId, run.sireName),
+      dam: parentEvidence(run.damId, run.damName),
     },
     trainerName: run.trainerName ?? run.trainer ?? undefined,
     weight: numberOrNull(run.weightInKg ?? run.weight) ?? undefined,
-    startingPrice:
-      numberOrNull(run.startingPrice ?? run.startPrice) ?? undefined,
     scratched:
       run.scratched ?? run.scratchIsScratched ?? run.isLateScratching ?? false,
     finishingPosition: numberOrNull(run.place) ?? undefined,
     runningTime: numberOrNull(run.resultTime) ?? undefined,
     margin: numberOrNull(run.resultMargin) ?? undefined,
   };
+}
+
+function parentEvidence(id?: number | null, name?: string | null) {
+  if (id == null && !isRealDogName(name)) return undefined;
+  return {
+    sourceProvider: id == null ? undefined : "topaz",
+    sourceId: id == null ? undefined : String(id),
+    name: isRealDogName(name) ? name?.trim() : undefined,
+  };
+}
+
+function isRealDogName(value?: string | null): value is string {
+  const name = value?.trim();
+  return Boolean(
+    name &&
+      !/^(?:unknown(?:\s+(?:dog|runner))?|unnamed|tba|tbd|n\/?a|vacant(?:\s+box)?|no\s+reserve|runner\s+\d+|dog\s+\d+|-)$/i.test(
+        name,
+      ),
+  );
 }
 
 function groupRecentResults(races: TopazRecentResult[]): LiveMeeting[] {

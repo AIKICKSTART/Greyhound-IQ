@@ -1,14 +1,25 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 
 import { jsonError } from "@/lib/api-errors";
+import { billingCheckoutRequestSchema } from "@/lib/billing/checkout-validation";
+import { readBoundedJsonOrFormRequest } from "@/lib/json-request";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import {
   getStripeCheckoutEnv,
   type StripeCheckoutEnv,
 } from "@/lib/billing/stripe-env";
+import {
+  buildBillingFailureUrl,
+  buildBillingRateLimitUrl,
+} from "@/lib/billing/billing-return-recovery";
 import { createStripeCheckoutSession } from "@/lib/billing/stripe-service";
+import { logRequestError } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
+import {
+  prefersHtmlFormNavigation,
+  prefersHtmlRateLimitRecovery,
+} from "@/lib/rate-limit-recovery";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,14 +27,13 @@ export const runtime = "nodejs";
 const CHECKOUT_RATE_LIMIT = 10;
 const CHECKOUT_RATE_LIMIT_WINDOW_MS = 60_000;
 
-const checkoutRequestSchema = z.object({
-  interval: z.enum(["monthly", "yearly"]).default("monthly"),
-  plan: z.literal("pro"),
-});
+const checkoutRequestSchema = billingCheckoutRequestSchema;
 
 export async function POST(request: Request) {
   try {
-    const parsed = checkoutRequestSchema.parse(await readRequestInput(request));
+    const parsed = checkoutRequestSchema.parse(
+      await readBoundedJsonOrFormRequest(request),
+    );
     const env = getStripeCheckoutEnv();
     assertTrustedOrigin(request, env);
 
@@ -32,8 +42,16 @@ export async function POST(request: Request) {
       current = await requireCurrentUserProfile();
     } catch (err) {
       if (err instanceof Error && err.message === "auth.unauthorized") {
+        const returnTo = new URL("/account", env.appUrl);
+        returnTo.searchParams.set("plan", parsed.plan);
+        returnTo.searchParams.set("interval", parsed.interval);
+        returnTo.searchParams.set("checkout", "continue");
+
         const signInUrl = new URL("/sign-in", env.appUrl);
-        signInUrl.searchParams.set("plan", parsed.plan);
+        signInUrl.searchParams.set(
+          "returnTo",
+          `${returnTo.pathname}${returnTo.search}`
+        );
         return NextResponse.redirect(signInUrl, 303);
       }
       throw err;
@@ -46,37 +64,54 @@ export async function POST(request: Request) {
       { failClosed: true }
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      if (prefersHtmlRateLimitRecovery(request)) {
+        return NextResponse.redirect(
+          buildBillingRateLimitUrl({
+            appUrl: env.appUrl,
+            interval: parsed.interval,
+            surface: "subscription",
+          }),
+          303,
+        );
+      }
+      return rateLimitExceededResponse(
+        rateLimit,
+        CHECKOUT_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 
-    const session = await createStripeCheckoutSession({
-      current,
-      env,
-      interval: parsed.interval,
-      plan: parsed.plan,
-    });
-    if (!session.url) throw new Error("billing.stripe_checkout_missing_url");
+    try {
+      const session = await createStripeCheckoutSession({
+        current,
+        env,
+        interval: parsed.interval,
+        plan: parsed.plan,
+      });
+      if (!session.url) throw new Error("billing.stripe_checkout_missing_url");
 
-    return NextResponse.redirect(session.url, 303);
+      return NextResponse.redirect(session.url, 303);
+    } catch (err) {
+      await logRequestError(
+        "billing.checkout_start_failed",
+        { surface: "subscription" },
+        err,
+      );
+      if (prefersHtmlFormNavigation(request)) {
+        return NextResponse.redirect(
+          buildBillingFailureUrl({
+            appUrl: env.appUrl,
+            interval: parsed.interval,
+            surface: "subscription",
+          }),
+          303,
+        );
+      }
+      throw err;
+    }
   } catch (err) {
     return jsonError(err, "Could not start checkout");
   }
-}
-
-async function readRequestInput(request: Request) {
-  const contentType = request.headers.get("content-type") ?? "";
-  if (contentType.includes("application/json")) return request.json();
-
-  const formData = await request.formData();
-  return Object.fromEntries(formData);
 }
 
 function assertTrustedOrigin(request: Request, env: StripeCheckoutEnv) {

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Lock, MessageSquare, Reply } from "lucide-react";
 import { replyToForumThread } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { PageTitle } from "@/components/page-title";
 import { getCurrentUser } from "@/lib/auth";
 import { getForumThreadById } from "@/lib/queries";
 
@@ -59,9 +60,9 @@ export default async function ForumThreadPage({
           <span>-</span>
           <span>{thread.views} views</span>
         </div>
-        <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
+        <PageTitle size="compact">
           {thread.title}
-        </h1>
+        </PageTitle>
       </header>
 
       <div className="space-y-3">
@@ -110,6 +111,7 @@ export default async function ForumThreadPage({
           <form action={replyAction} className="space-y-4">
             <textarea
               name="body"
+              aria-label="Reply"
               required
               minLength={20}
               maxLength={20000}

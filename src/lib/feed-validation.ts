@@ -4,12 +4,60 @@ import { cleanText } from "@/lib/content";
 export const feedPostWriteSchema = z.object({
   topicId: z.string().trim().min(1).max(120).optional().nullable(),
   body: z.string().trim().min(2).max(5000).transform(cleanText),
-  mediaIds: z.array(z.string().trim().min(1)).max(4).optional().default([]),
+  mediaIds: z.array(z.string().trim().min(1)).max(10).optional().default([]),
+  // Owned CustomPage id to post as; ownership re-verified server-side.
+  pageId: z.string().trim().min(1).max(120).optional().nullable(),
+  visibility: z
+    .enum(["public", "members", "connections", "only_me"])
+    .optional(),
 });
 
 export const feedCommentWriteSchema = z.object({
   body: z.string().trim().min(2).max(2000).transform(cleanText),
   parentCommentId: z.string().trim().min(1).max(120).optional().nullable(),
+  actorId: z.string().trim().min(1).max(120).optional().nullable(),
+});
+
+export const feedCommentEditSchema = z.object({
+  body: z.string().trim().min(2).max(2000).transform(cleanText),
+});
+
+export const feedActorSelectionSchema = z.object({
+  actorId: z.string().trim().min(1).max(120).optional().nullable(),
+});
+
+export const feedRacingDaySchema = z.object({
+  trackIds: z
+    .array(z.string().trim().min(1).max(120))
+    .max(100)
+    .transform((ids) => [...new Set(ids)]),
+});
+
+export const feedReactionWriteSchema = z.object({
+  reactionType: z
+    .enum(["like", "love", "celebrate", "insightful", "support"])
+    .default("like"),
+  actorId: z.string().trim().min(1).max(120).optional().nullable(),
+});
+
+export const feedPostEditSchema = z.object({
+  body: z.string().trim().min(2).max(5000).transform(cleanText),
+  visibility: z.enum(["public", "members", "connections", "only_me"]),
+});
+
+export const feedShareWriteSchema = z.object({
+  body: z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .nullable()
+    .transform((value) => {
+      const cleaned = cleanText(value ?? "");
+      return cleaned.length > 0 ? cleaned : null;
+    }),
+  visibility: z.enum(["public", "members", "connections", "only_me"]),
+  actorId: z.string().trim().min(1).max(120).optional().nullable(),
 });
 
 export const feedReportSchema = z.object({

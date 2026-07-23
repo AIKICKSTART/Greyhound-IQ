@@ -2,6 +2,8 @@ import "./load-env";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
+process.env.REALTIME_BROADCAST_DISABLED ??= "true";
+
 import { syncAuthUser } from "../src/lib/auth-sync";
 import { prisma } from "../src/lib/db";
 import {
@@ -16,6 +18,8 @@ import {
 } from "../src/lib/call-service";
 import { getMediaForCurrentUser } from "../src/lib/media-service";
 import { checkRateLimit } from "../src/lib/rate-limit";
+import { getSocialActorProfileByHandle } from "../src/lib/social-actor-service";
+import { withDbRequestContext, withDbSystemContext } from "../src/lib/db-context";
 import { PRIVATE_USER_MEDIA_BUCKET } from "../src/lib/storage-paths";
 import type { CurrentUserProfile } from "../src/lib/auth";
 
@@ -38,6 +42,7 @@ async function main() {
   process.env.LIVEKIT_URL = "wss://livekit.comms-sec.example.test";
   process.env.LIVEKIT_API_KEY = "comms-sec-key";
   process.env.LIVEKIT_API_SECRET = "comms-sec-secret";
+  process.env.ACTOR_CONVERSATION_MULTIPLEX_ENABLED = "true";
 
   const trackedUserIds: string[] = [];
   const trackedProfileIds: string[] = [];
@@ -61,6 +66,45 @@ async function main() {
       trackedProfileIds.push(u.profileId);
     }
 
+    // Two-way blocks hide the actor and all contact fields, including when the
+    // actor owner initiated the block.
+    const aActor = await prisma.socialActor.findUniqueOrThrow({
+      where: { profileId: a.profileId },
+      select: { id: true, handle: true },
+    });
+    await assert.rejects(() =>
+      withDbRequestContext(a, (tx) =>
+        tx.socialActor.update({
+          where: { id: aActor.id },
+          data: { ownerProfileId: b.profileId },
+        }),
+      ),
+    );
+    console.log("PASS: actor identity cannot be rebound to another profile");
+    await withDbSystemContext(async (tx) => {
+      await tx.socialActor.update({
+        where: { id: aActor.id },
+        data: { contactVisibility: "public" },
+      });
+      await tx.profile.update({
+        where: { id: a.profileId },
+        data: { phone: "0400000000", website: "https://private.example.invalid" },
+      });
+    });
+    const profileBlock = await prisma.userBlock.create({
+      data: {
+        blockerProfileId: a.profileId,
+        blockedProfileId: b.profileId,
+      },
+    });
+    assert.equal(
+      await getSocialActorProfileByHandle(aActor.handle, b),
+      null,
+      "blocked viewer must not receive actor/contact data",
+    );
+    await prisma.userBlock.delete({ where: { id: profileBlock.id } });
+    console.log("PASS: two-way block hides profile and contact data");
+
     // Create A-B conversation
     const abConv = await startOrGetConversation(a, b.profileId);
     trackedConvIds.push(abConv.id);
@@ -68,6 +112,229 @@ async function main() {
     // Create A-D conversation BEFORE banning D so startOrGetConversation can proceed
     const adConv = await startOrGetConversation(a, d.profileId);
     trackedConvIds.push(adConv.id);
+
+    // A downgraded owner may keep replying in an existing page conversation,
+    // but the page identity may only start the conversation while Pro.
+    const page = await prisma.customPage.create({
+      data: {
+        ownerProfileId: c.profileId,
+        pageType: "business",
+        handle: `page-${marker.replaceAll("_", "-")}`,
+        title: "Security Page",
+        published: true,
+        moderationStatus: "approved",
+      },
+    });
+    const pageActor = await prisma.socialActor.create({
+      data: {
+        kind: "page",
+        pageId: page.id,
+        ownerProfileId: c.profileId,
+        handle: page.handle,
+        displayName: page.title,
+        profileVisibility: "public",
+        contactVisibility: "only_me",
+        published: true,
+      },
+    });
+    const pageConversation = await startOrGetConversation(c, b.profileId, {
+      senderActorId: pageActor.id,
+    });
+    trackedConvIds.push(pageConversation.id);
+    const personalConversation = await startOrGetConversation(c, b.profileId);
+    trackedConvIds.push(personalConversation.id);
+    assert.notEqual(
+      personalConversation.id,
+      pageConversation.id,
+      "personal and page inboxes must use distinct actor-scoped threads",
+    );
+    const pageReply = await sendConversationMessage(
+      { ...c, tier: "free" as const },
+      pageConversation.id,
+      { body: "existing page inbox reply", mediaIds: [] },
+    );
+    assert.equal(pageReply.senderActorId, pageActor.id);
+    const personalReply = await sendConversationMessage(
+      c,
+      personalConversation.id,
+      { body: "personal inbox reply", mediaIds: [] },
+    );
+    assert.notEqual(personalReply.senderActorId, pageActor.id);
+    console.log(
+      "PASS: actor-scoped personal/page inboxes stay distinct and downgraded page owner can reply",
+    );
+
+    const directRoom = await createCallRoomAsRuntime(
+      a,
+      abConv.id,
+      `${marker}-valid`,
+    );
+    trackedCallRoomIds.push(directRoom.id);
+    await assert.rejects(() =>
+      withDbRequestContext({ ...b, tier: "free" as const }, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.create({
+          data: {
+            callRoomId: directRoom.id,
+            fromProfileId: b.profileId,
+            toProfileId: a.profileId,
+            status: "pending",
+            expiresAt: new Date(Date.now() + 60_000),
+          },
+        });
+      }),
+      "Free callee cannot create a reverse invite",
+    );
+    const directInvite = await withDbRequestContext(a, async (tx) => {
+      await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+      return tx.callInvite.create({
+        data: {
+          callRoomId: directRoom.id,
+          fromProfileId: a.profileId,
+          toProfileId: b.profileId,
+          status: "pending",
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      });
+    });
+    const acceptedInvite = await withDbRequestContext(
+      { ...b, tier: "free" as const },
+      async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.update({
+          where: { id: directInvite.id },
+          data: { status: "accepted" },
+        });
+      },
+    );
+    assert.equal(acceptedInvite.status, "accepted");
+    await assert.rejects(() =>
+      withDbRequestContext(a, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.update({
+          where: { id: directInvite.id },
+          data: { status: "declined" },
+        });
+      }),
+      "invite sender cannot forge a response",
+    );
+    await assert.rejects(() =>
+      withDbRequestContext({ ...b, tier: "free" as const }, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.update({
+          where: { id: directInvite.id },
+          data: { status: "pending" },
+        });
+      }),
+      "callee cannot reset an accepted invite to pending",
+    );
+    await assert.rejects(() =>
+      withDbRequestContext({ ...b, tier: "free" as const }, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.update({
+          where: { id: directInvite.id },
+          data: { expiresAt: new Date(Date.now() + 120_000) },
+        });
+      }),
+      "callee cannot rewrite invite expiry",
+    );
+    await assert.rejects(() =>
+      withDbRequestContext({ ...b, tier: "free" as const }, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.update({
+          where: { id: directInvite.id },
+          data: {
+            fromProfileId: b.profileId,
+            toProfileId: a.profileId,
+          },
+        });
+      }),
+      "callee cannot rewrite invite identities",
+    );
+    await assert.rejects(() =>
+      withDbRequestContext(a, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callParticipant.create({
+          data: { callRoomId: directRoom.id, profileId: c.profileId },
+        });
+      }),
+    );
+    await assert.rejects(() =>
+      withDbRequestContext(a, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callPermission.create({
+          data: {
+            callRoomId: directRoom.id,
+            profileId: c.profileId,
+            canJoin: true,
+            canInvite: false,
+          },
+        });
+      }),
+    );
+    await assert.rejects(() =>
+      withDbRequestContext(a, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callInvite.create({
+          data: {
+            callRoomId: directRoom.id,
+            fromProfileId: a.profileId,
+            toProfileId: c.profileId,
+            status: "pending",
+            expiresAt: new Date(Date.now() + 60_000),
+          },
+        });
+      }),
+    );
+    await assert.rejects(() =>
+      withDbRequestContext(c, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callEvent.create({
+          data: {
+            callRoomId: directRoom.id,
+            profileId: c.profileId,
+            eventType: "joined",
+          },
+        });
+      }),
+    );
+    await assert.rejects(() =>
+      withDbRequestContext(c, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.callReport.create({
+          data: {
+            callRoomId: directRoom.id,
+            reporterProfileId: c.profileId,
+            reason: "not a participant",
+          },
+        });
+      }),
+    );
+    await withDbSystemContext((tx) =>
+      tx.callRoom.update({
+        where: { id: directRoom.id },
+        data: { status: "ended", endedAt: new Date() },
+      }),
+    );
+    await assert.rejects(() =>
+      createCallRoomAsRuntime(a, null, `${marker}-null`),
+    );
+    await assert.rejects(() =>
+      createCallRoomAsRuntime(a, personalConversation.id, `${marker}-foreign`),
+    );
+    await assert.rejects(() =>
+      createCallRoomAsRuntime(c, pageConversation.id, `${marker}-page`),
+    );
+    await assert.rejects(() =>
+      createCallRoomAsRuntime(
+        { ...a, tier: "free" as const },
+        abConv.id,
+        `${marker}-free`,
+      ),
+    );
+    console.log(
+      "PASS: runtime calls require Pro + owned personal conversation and exact participants",
+    );
 
     // Ban D
     await prisma.user.update({ where: { id: d.dbUserId }, data: { isBanned: true } });
@@ -126,10 +393,31 @@ async function main() {
       },
     });
     trackedMediaIds.push(fakeMedia.id);
-    await sendConversationMessage(a, abConv.id, {
+    const bActor = await prisma.socialActor.findUniqueOrThrow({
+      where: { profileId: b.profileId },
+      select: { id: true },
+    });
+    await assert.rejects(() =>
+      withDbRequestContext(b, async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+        return tx.actorGalleryMedia.create({
+          data: { actorId: bActor.id, mediaId: fakeMedia.id, position: 0 },
+        });
+      }),
+    );
+    console.log("PASS: actor gallery rejects cross-owner media");
+    const mediaMessage = await sendConversationMessage(a, abConv.id, {
       body: "media attach",
       mediaIds: [fakeMedia.id],
     });
+    const recipientThread = await getConversationForProfile(b, abConv.id);
+    assert.equal(
+      recipientThread.messages.find((message) => message.id === mediaMessage.id)
+        ?.media[0]?.media.id,
+      fakeMedia.id,
+      "message recipient can read the attached private media",
+    );
+    console.log("PASS: participant can read message media");
     await assert.rejects(
       () => getMediaForCurrentUser(c, fakeMedia.id),
       (err: Error) => err.message === "media.not_found",
@@ -167,7 +455,9 @@ async function main() {
     await checkRateLimit(windowKey, 2, 4000);
     const wr3 = await checkRateLimit(windowKey, 2, 4000);
     assert.equal(wr3.allowed, false, "3rd call exhausts limit");
-    const waitMs = wr1.resetAt - Date.now() + 150;
+    // Timers can resume slightly early under CI/Windows scheduling. Keep the
+    // assertion beyond the database window without extending product limits.
+    const waitMs = wr1.resetAt - Date.now() + 500;
     await new Promise((res) => setTimeout(res, Math.max(waitMs, 0)));
     const wr4 = await checkRateLimit(windowKey, 2, 4000);
     assert.equal(wr4.allowed, true, "allowed again after window reset");
@@ -241,6 +531,27 @@ async function createSecUser(
     profileRole: profile.role,
     verified: profile.verified,
   };
+}
+
+function createCallRoomAsRuntime(
+  current: SecUser,
+  conversationId: string | null,
+  roomName: string,
+) {
+  return withDbRequestContext(current, async (tx) => {
+    await tx.$executeRawUnsafe("SET LOCAL ROLE greyhoundiq_runtime");
+    return tx.callRoom.create({
+      data: {
+        conversationId,
+        createdByProfileId: current.profileId,
+        roomName,
+        status: "active",
+        callType: "video",
+        startsAt: new Date(),
+      },
+      select: { id: true },
+    });
+  });
 }
 
 async function sweepStale(currentMarker: string) {

@@ -2,6 +2,8 @@ import { Check, CreditCard, X, Zap, Crown, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
 import { JsonLd } from "@/components/json-ld";
+import { RateLimitRecoveryCard } from "@/components/rate-limit-recovery-card";
+import { BILLING_RATE_LIMIT_RECOVERY_SECONDS } from "@/lib/rate-limit-recovery";
 import { getPricingContent, type PricingPlanId } from "@/lib/site-content";
 
 export const dynamic = "force-dynamic";
@@ -97,13 +99,18 @@ const faqSchema = {
   })),
 };
 
-export default async function PricingPage() {
+type PricingPageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function PricingPage({ searchParams }: PricingPageProps) {
   const { plans, yearlyNote } = await getPricingContent();
+  const query = await searchParams;
   return (
     <div>
       <JsonLd data={[softwareApplicationSchema, faqSchema]} />
       <PageHero
-        image="/images/wentworth-gate-hero.webp"
+        image="/images/feature-pricing-product.webp"
         badge="PRICING"
         badgeIcon={<CreditCard className="h-3 w-3 text-[hsl(var(--primary-bright))]" />}
         badgeColor="primary"
@@ -114,10 +121,11 @@ export default async function PricingPage() {
             <span className="gradient-text">pricing.</span>
           </>
         }
-        subtitle="AUD pricing — not GBP. Cheaper than greyhound-data.com's top tier with more features. No ads. No conversion fees."
+        subtitle="Straightforward AUD pricing for full racing form, marketplace tools, and breeding analytics. No ads. Cancel anytime."
       />
 
-      <section className="mx-auto max-w-6xl px-6 py-10">
+      <section id="plans" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-10">
+        <PricingOutcomeBanner query={query} />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {plans.map((plan) => {
             const Icon = PLAN_ICONS[plan.id];
@@ -249,6 +257,159 @@ export default async function PricingPage() {
       </section>
     </div>
   );
+}
+
+function PricingOutcomeBanner({
+  query,
+}: {
+  query: { [key: string]: string | string[] | undefined };
+}) {
+  const checkout = singleQueryValue(query.checkout);
+  const billing = singleQueryValue(query.billing);
+  const interval =
+    query.interval === "monthly" || query.interval === "yearly"
+      ? query.interval
+      : null;
+  const canRetry = query.plan === "pro" && interval;
+
+  if (checkout === "success") {
+    return (
+      <div
+        aria-live="polite"
+        className="mb-6 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.08] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          Returned from Stripe Checkout
+        </p>
+        <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+          We are verifying the signed Stripe webhook. Your tier only changes
+          after that trusted confirmation; review billing for the latest status.
+        </p>
+        <a href="/account/billing" className="giq-outline-action mt-3 w-fit">
+          Review billing
+        </a>
+      </div>
+    );
+  }
+
+  if (checkout === "failed") {
+    return (
+      <div
+        role="alert"
+        className="mb-6 rounded-xl border border-rose-400/30 bg-rose-400/[0.08] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          Secure checkout could not be opened
+        </p>
+        <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+          No payment was taken and your current plan is unchanged. You can
+          retry the same option now or choose another plan below.
+        </p>
+        {canRetry ? (
+          <div className="mt-3 max-w-xs">
+            <CheckoutButton
+              interval={interval}
+              plan="pro"
+              primary={false}
+              tone="carbon"
+            >
+              {`Retry Pro ${interval}`}
+            </CheckoutButton>
+          </div>
+        ) : (
+          <a href="#plans" className="giq-outline-action mt-3 w-fit">
+            Choose a plan
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  if (checkout === "rate-limited") {
+    return (
+      <div className="mb-6">
+        <RateLimitRecoveryCard
+          title="Checkout paused briefly"
+          detail="We limited repeated checkout attempts to protect your account and payment flow. No payment was taken and your current plan is unchanged."
+          retryAfterSeconds={BILLING_RATE_LIMIT_RECOVERY_SECONDS}
+          action={
+            canRetry ? (
+              <div className="max-w-xs">
+                <CheckoutButton
+                  interval={interval}
+                  plan="pro"
+                  primary={false}
+                  tone="carbon"
+                >
+                  {`Retry Pro ${interval}`}
+                </CheckoutButton>
+              </div>
+            ) : (
+              <a href="#plans" className="giq-outline-action w-fit">
+                Choose a plan
+              </a>
+            )
+          }
+        />
+      </div>
+    );
+  }
+
+  if (checkout === "cancelled") {
+    return (
+      <div
+        aria-live="polite"
+        className="mb-6 rounded-xl border border-amber-300/30 bg-amber-300/[0.08] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          Checkout cancelled — no plan change was made
+        </p>
+        <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+          Your current tier is unchanged. You can safely retry the same billing
+          option or choose another plan below.
+        </p>
+        {canRetry ? (
+          <div className="mt-3 max-w-xs">
+            <CheckoutButton
+              interval={interval}
+              plan="pro"
+              primary={false}
+              tone="carbon"
+            >
+              {`Retry Pro ${interval}`}
+            </CheckoutButton>
+          </div>
+        ) : (
+          <a href="#plans" className="giq-outline-action mt-3 w-fit">
+            Choose a plan
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  if (billing === "not_started") {
+    return (
+      <div
+        aria-live="polite"
+        className="mb-6 rounded-xl border border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.08)] p-4"
+      >
+        <p className="text-[14px] font-semibold text-[hsl(var(--foreground))]">
+          No Stripe billing profile yet
+        </p>
+        <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+          Nothing needs managing until you start a paid plan. Choose monthly or
+          yearly Pro below to open secure Stripe Checkout.
+        </p>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function singleQueryValue(value: string | string[] | undefined) {
+  return typeof value === "string" ? value : undefined;
 }
 
 function CheckoutButton({

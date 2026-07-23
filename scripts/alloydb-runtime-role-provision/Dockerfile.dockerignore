@@ -1,0 +1,6 @@
+**
+!scripts/
+!scripts/alloydb-runtime-role-provision/
+!scripts/alloydb-runtime-role-provision/Dockerfile
+!scripts/alloydb-runtime-role-provision/Dockerfile.dockerignore
+!scripts/alloydb-runtime-role-provision/provision.sh

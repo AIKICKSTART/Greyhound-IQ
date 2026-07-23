@@ -1,4 +1,4 @@
-import { PUBLIC_USER_MEDIA_BUCKET } from "@/lib/storage-paths";
+import { PRIVATE_USER_MEDIA_BUCKET } from "@/lib/storage-paths";
 
 const MAX_LISTING_IMAGES = 10;
 const MAX_LISTING_VIDEOS = 1;
@@ -36,8 +36,8 @@ export function assertListingMediaPolicy(media: ListingMediaPolicyInput[]) {
   if (imageCount + videoCount !== media.length) {
     throw new Error("listing.media_unsupported");
   }
-  if (media.some((item) => item.storageBucket !== PUBLIC_USER_MEDIA_BUCKET)) {
-    throw new Error("listing.media_must_be_public");
+  if (media.some((item) => item.storageBucket !== PRIVATE_USER_MEDIA_BUCKET)) {
+    throw new Error("listing.media_must_be_private");
   }
   if (imageCount > MAX_LISTING_IMAGES) {
     throw new Error("listing.too_many_images");

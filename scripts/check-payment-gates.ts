@@ -73,21 +73,37 @@ async function main() {
     assert.ok(enquiry.conversationId);
     console.log("PASS: Pro can enquire/message seller");
 
-    await assert.rejects(
-      () => startOrGetConversation(free, seller.profileId),
-      /payment\.required/
-    );
-    console.log("PASS: Free cannot start direct chat");
-
-    const conversation = await startOrGetConversation(pro, seller.profileId);
+    const conversation = await startOrGetConversation(free, seller.profileId);
     assert.ok(conversation.id);
-    console.log("PASS: Pro can start direct chat");
+    console.log("PASS: Free can start personal direct chat");
 
+    const freeFeedPost = await createFeedPostForCurrentUser(free, {
+      body: `${marker} free feed post`,
+    });
+    assert.ok(freeFeedPost.id);
+    await createFeedCommentForCurrentUser(free, freeFeedPost.id, {
+      body: `${marker} free feed comment`,
+    });
+    assert.equal(
+      (await toggleFeedPostReactionForCurrentUser(free, freeFeedPost.id)).liked,
+      true
+    );
+    assert.equal(
+      (await toggleFeedPostReactionForCurrentUser(free, freeFeedPost.id)).liked,
+      false
+    );
+    console.log("PASS: Free can post/comment/react personally in community feed");
+
+    const freePage = await createOwnedPage(free, "free");
     await assert.rejects(
-      () => createFeedPostForCurrentUser(free, { body: `${marker} free blocked post` }),
+      () =>
+        createFeedPostForCurrentUser(free, {
+          body: `${marker} free page blocked post`,
+          pageId: freePage.id,
+        }),
       /payment\.required/
     );
-    console.log("PASS: Free cannot post community feed");
+    console.log("PASS: Free cannot publish as a managed page");
 
     const feedPost = await createFeedPostForCurrentUser(pro, {
       body: `${marker} pro feed post`,
@@ -99,18 +115,24 @@ async function main() {
     await toggleFeedPostReactionForCurrentUser(seller, feedPost.id);
     console.log("PASS: Pro can post/comment/react in community feed");
 
+    const proPage = await createOwnedPage(pro, "pro");
+    const pagePost = await createFeedPostForCurrentUser(pro, {
+      body: `${marker} pro page feed post`,
+      pageId: proPage.id,
+    });
+    assert.equal(pagePost.authorPageId, proPage.id);
     await assert.rejects(
-      () => createFeedCommentForCurrentUser(free, feedPost.id, { body: `${marker} nope` }),
-      /payment\.required/
+      () =>
+        createFeedPostForCurrentUser(pro, {
+          body: `${marker} wrong owner page post`,
+          pageId: freePage.id,
+        }),
+      /feed\.page_not_owned/
     );
-    await assert.rejects(
-      () => toggleFeedPostReactionForCurrentUser(free, feedPost.id),
-      /payment\.required/
-    );
-    console.log("PASS: Free cannot comment/react in community feed");
+    console.log("PASS: Pro can publish only as an owned managed page");
 
     if (runDirectDbChecks) {
-      await assertDirectDbGuards(free, pro);
+      await assertDirectDbGuards(free, pro, freePage.id, proPage.id);
     } else {
       console.log("SKIP: direct DB RLS trigger checks (set CHECK_RLS_DB=true)");
     }
@@ -215,6 +237,19 @@ async function createPublicListing(current: CurrentUserProfile) {
   );
 }
 
+async function createOwnedPage(current: CurrentUserProfile, label: string) {
+  return withDbSystemContext((tx) =>
+    tx.customPage.create({
+      data: {
+        ownerProfileId: current.profileId,
+        pageType: "punter",
+        handle: `${marker}-${label}-page`,
+        title: `${marker} ${label} page`,
+      },
+    })
+  );
+}
+
 async function assertRaceDataReadable() {
   await Promise.all([
     prisma.dog.findMany({ take: 1, select: { id: true } }),
@@ -225,7 +260,9 @@ async function assertRaceDataReadable() {
 
 async function assertDirectDbGuards(
   free: CurrentUserProfile,
-  pro: CurrentUserProfile
+  pro: CurrentUserProfile,
+  freePageId: string,
+  proPageId: string
 ) {
   await assert.rejects(
     () =>
@@ -275,7 +312,56 @@ async function assertDirectDbGuards(
       data: { kennelName: `${marker} kennel` },
     })
   );
-  console.log("PASS: direct DB paid-write guards reject Free and allow Pro");
+
+  const freeFeedPost = await withDbRequestContext(free, (tx) =>
+    tx.feedPost.create({
+      data: {
+        authorProfileId: free.profileId,
+        body: `${marker} direct free personal feed post`,
+      },
+    })
+  );
+  assert.ok(freeFeedPost.id);
+
+  await assert.rejects(
+    () =>
+      withDbRequestContext(free, (tx) =>
+        tx.feedPost.create({
+          data: {
+            authorProfileId: free.profileId,
+            authorPageId: freePageId,
+            body: `${marker} direct free page feed post`,
+          },
+        })
+      ),
+    /payment\.required/
+  );
+
+  const proPagePost = await withDbRequestContext(pro, (tx) =>
+    tx.feedPost.create({
+      data: {
+        authorProfileId: pro.profileId,
+        authorPageId: proPageId,
+        body: `${marker} direct pro page feed post`,
+      },
+    })
+  );
+  assert.equal(proPagePost.authorPageId, proPageId);
+
+  await assert.rejects(
+    () =>
+      withDbRequestContext(pro, (tx) =>
+        tx.feedPost.create({
+          data: {
+            authorProfileId: pro.profileId,
+            authorPageId: freePageId,
+            body: `${marker} direct wrong-owner page feed post`,
+          },
+        })
+      ),
+    /feed\.page_not_owned/
+  );
+  console.log("PASS: direct DB feed guards allow personal Free writes and protect pages");
 }
 
 async function cleanup(users: CurrentUserProfile[]) {

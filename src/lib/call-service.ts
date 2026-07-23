@@ -16,7 +16,7 @@ import {
   withDbSystemContext,
   type DbContextUser,
 } from "@/lib/db-context";
-import { assertPaidFeatureAccess } from "@/lib/tier-access";
+import { assertCallInitiationAccess } from "@/lib/tier-access";
 import { deleteLiveKitRoom, liveKitConfig } from "@/lib/livekit-admin";
 import { createInAppNotification } from "@/lib/notification-service";
 import {
@@ -24,24 +24,23 @@ import {
   broadcastProfileRealtimeEvent,
 } from "@/lib/realtime-service";
 
+const CALL_MAINTENANCE_LIMIT = 100;
+
 export async function getActiveCallRoomForConversation(
   current: DbContextUser,
-  conversationId: string
+  conversationId: string,
 ) {
-  const conversation = await getConversationForProfile(
-    current,
-    conversationId
-  );
+  const conversation = await getConversationForProfile(current, conversationId);
   if (conversation.blockedById) return null;
 
   const otherProfileId = otherConversationProfileId(
     conversation,
-    current.profileId
+    current.profileId,
   );
   await assertProfilesCanInteract(
     current.profileId,
     otherProfileId,
-    "call.blocked"
+    "call.blocked",
   );
 
   return findActiveCallRoom(conversation.id, current);
@@ -51,23 +50,51 @@ export async function getActiveCallRoomForConversation(
 // Callers must have already authorized access to the conversation.
 export function getPendingCallInviteForConversation(
   current: DbContextUser,
-  conversationId: string
+  conversationId: string,
 ) {
-  return withDbRequestContext(current, (tx) => tx.callInvite.findFirst({
-    where: {
-      status: "pending",
-      callRoom: { conversationId, status: "active" },
-    },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      callRoomId: true,
-      toProfileId: true,
-      expiresAt: true,
-      fromProfile: { select: { displayName: true } },
-      callRoom: { select: { callType: true } },
-    },
-  }));
+  return withDbRequestContext(current, (tx) =>
+    tx.callInvite.findFirst({
+      where: {
+        status: "pending",
+        expiresAt: { gt: new Date() },
+        callRoom: { conversationId, status: "active" },
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        callRoomId: true,
+        toProfileId: true,
+        expiresAt: true,
+        fromProfile: { select: { displayName: true } },
+        callRoom: { select: { callType: true } },
+      },
+    }),
+  );
+}
+
+// Read-only: pending invites ringing THIS profile across all conversations —
+// powers the hub incoming-call card. RLS scopes rows; the where clause keeps
+// intent explicit and drops expired invites.
+export function listPendingCallInvitesForProfile(current: DbContextUser) {
+  return withDbRequestContext(current, (tx) =>
+    tx.callInvite.findMany({
+      where: {
+        status: "pending",
+        toProfileId: current.profileId,
+        expiresAt: { gt: new Date() },
+        callRoom: { status: "active" },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      select: {
+        id: true,
+        callRoomId: true,
+        expiresAt: true,
+        fromProfile: { select: { id: true, displayName: true } },
+        callRoom: { select: { callType: true, conversationId: true } },
+      },
+    }),
+  );
 }
 
 // Read-only: recent terminal call events for the conversation thread log.
@@ -75,35 +102,42 @@ export function getPendingCallInviteForConversation(
 export function getRecentCallLogForConversation(
   current: DbContextUser,
   conversationId: string,
-  limit = 10
+  limit = 10,
 ) {
-  return withDbRequestContext(current, (tx) => tx.callEvent.findMany({
-    where: {
-      eventType: { in: ["room_ended", "room_expired", "invite_missed"] },
-      callRoom: { conversationId },
-    },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    select: {
-      id: true,
-      eventType: true,
-      createdAt: true,
-      callRoom: { select: { callType: true, createdAt: true, endedAt: true } },
-    },
-  }));
+  return withDbRequestContext(current, (tx) =>
+    tx.callEvent.findMany({
+      where: {
+        eventType: { in: ["room_ended", "room_expired", "invite_missed"] },
+        callRoom: { conversationId },
+      },
+      orderBy: { createdAt: "desc" },
+      take: Math.min(Math.max(1, Math.trunc(limit)), 50),
+      select: {
+        id: true,
+        eventType: true,
+        createdAt: true,
+        callRoom: {
+          select: { callType: true, createdAt: true, endedAt: true },
+        },
+      },
+    }),
+  );
 }
 
 export async function createCallRoomForConversation(
   current: CurrentUserProfile,
   conversationId: string,
-  callType: "voice" | "video" = "video"
+  callType: "voice" | "video" = "video",
 ) {
-  assertPaidFeatureAccess(current);
-  const conversation = await getConversationForProfile(
-    current,
-    conversationId
-  );
+  assertCallInitiationAccess(current);
+  const conversation = await getConversationForProfile(current, conversationId);
   if (conversation.blockedById) throw new Error("call.blocked");
+  if (
+    conversation.participantAActor?.kind === "page" ||
+    conversation.participantBActor?.kind === "page"
+  ) {
+    throw new Error("call.page_actor_forbidden");
+  }
 
   const otherProfileId =
     conversation.participantAId === current.profileId
@@ -112,7 +146,7 @@ export async function createCallRoomForConversation(
   await assertProfilesCanInteract(
     current.profileId,
     otherProfileId,
-    "call.blocked"
+    "call.blocked",
   );
 
   const existingRoom = await findActiveCallRoom(conversation.id, current);
@@ -171,9 +205,13 @@ export async function createCallRoomForConversation(
     targetId: room.id,
     metadata: { conversationId: conversation.id, inviteExpiresAt },
   });
-  await broadcastConversationRealtimeEvent(conversation.id, "call_room_created", {
-    roomId: room.id,
-  });
+  await broadcastConversationRealtimeEvent(
+    conversation.id,
+    "call_room_created",
+    {
+      roomId: room.id,
+    },
+  );
   await broadcastProfileRealtimeEvent(otherProfileId, "call_invite_created", {
     conversationId: conversation.id,
     roomId: room.id,
@@ -184,18 +222,35 @@ export async function createCallRoomForConversation(
 
 export async function createCallTokenForCurrentUser(
   current: CurrentUserProfile,
-  roomId: string
+  roomId: string,
 ) {
-  assertPaidFeatureAccess(current);
+  // Deliberately NOT tier-gated: free/pro members may JOIN calls a Pro+ member
+  // started. callRoomJoinWhere only matches rooms holding an explicit
+  // CallPermission.canJoin row for this profile, and only a Pro+ initiator
+  // (createCallRoomForConversation, still assertCallInitiationAccess-gated) can
+  // create those rows. Block + room-TTL checks below still apply.
   const config = liveKitConfig();
-  const room = await withDbRequestContext(current, (tx) => tx.callRoom.findFirst({
-    where: callRoomJoinWhere(roomId, current.profileId),
-    include: {
-      conversation: true,
-    },
-  }));
+  const room = await withDbRequestContext(current, (tx) =>
+    tx.callRoom.findFirst({
+      where: callRoomJoinWhere(roomId, current.profileId),
+      include: {
+        conversation: {
+          include: {
+            participantAActor: { select: { kind: true } },
+            participantBActor: { select: { kind: true } },
+          },
+        },
+      },
+    }),
+  );
   if (!room) throw new Error("call.room_not_found");
   if (room.conversation?.blockedById) throw new Error("call.blocked");
+  if (
+    room.conversation?.participantAActor?.kind === "page" ||
+    room.conversation?.participantBActor?.kind === "page"
+  ) {
+    throw new Error("call.page_actor_forbidden");
+  }
   if (room.conversation) {
     const otherProfileId =
       room.conversation.participantAId === current.profileId
@@ -204,21 +259,24 @@ export async function createCallTokenForCurrentUser(
     await assertProfilesCanInteract(
       current.profileId,
       otherProfileId,
-      "call.blocked"
+      "call.blocked",
     );
   }
 
-  const signed = createLiveKitCallToken(current, room.roomName, config);
+  const signed = await createLiveKitCallToken(
+    current,
+    room.roomName,
+    room.callType === "voice" ? "voice" : "video",
+    config,
+  );
   const issuedAt = new Date();
 
   await withDbRequestContext(current, async (tx) => {
     await tx.callParticipant.updateMany({
       where: { callRoomId: room.id, profileId: current.profileId },
-      data: {
-        joinedAt: issuedAt,
-        lastTokenIssuedAt: issuedAt,
-        leftAt: null,
-      },
+      // A signed token is only permission to attempt a connection. The
+      // LiveKit participant_joined webhook owns joinedAt/leftAt lifecycle.
+      data: { lastTokenIssuedAt: issuedAt },
     });
     // Joining directly via token counts as accepting a pending invite.
     await tx.callInvite.updateMany({
@@ -245,7 +303,9 @@ export async function createCallTokenForCurrentUser(
     action: "call.token.issue",
     targetType: "call_room",
     targetId: room.id,
-    metadata: { expiresAt: new Date(signed.expiresAtSeconds * 1000).toISOString() },
+    metadata: {
+      expiresAt: new Date(signed.expiresAtSeconds * 1000).toISOString(),
+    },
   });
 
   return {
@@ -259,19 +319,21 @@ export async function createCallTokenForCurrentUser(
 
 export async function endCallRoomForCurrentUser(
   current: CurrentUserProfile,
-  roomId: string
+  roomId: string,
 ) {
-  const room = await withDbRequestContext(current, (tx) => tx.callRoom.findFirst({
-    where: {
-      id: roomId,
-      permissions: {
-        some: {
-          profileId: current.profileId,
-          canJoin: true,
+  const room = await withDbRequestContext(current, (tx) =>
+    tx.callRoom.findFirst({
+      where: {
+        id: roomId,
+        permissions: {
+          some: {
+            profileId: current.profileId,
+            canJoin: true,
+          },
         },
       },
-    },
-  }));
+    }),
+  );
   if (!room) throw new Error("call.room_not_found");
   if (room.status !== "active") return room;
 
@@ -298,19 +360,21 @@ export async function endCallRoomForCurrentUser(
 export async function respondToCallInviteForCurrentUser(
   current: CurrentUserProfile,
   roomId: string,
-  action: "accept" | "decline"
+  action: "accept" | "decline",
 ) {
-  const invite = await withDbRequestContext(current, (tx) => tx.callInvite.findFirst({
-    where: {
-      callRoomId: roomId,
-      toProfileId: current.profileId,
-      status: "pending",
-      expiresAt: { gt: new Date() },
-      callRoom: { status: "active" },
-    },
-    include: { callRoom: true },
-    orderBy: { createdAt: "desc" },
-  }));
+  const invite = await withDbRequestContext(current, (tx) =>
+    tx.callInvite.findFirst({
+      where: {
+        callRoomId: roomId,
+        toProfileId: current.profileId,
+        status: "pending",
+        expiresAt: { gt: new Date() },
+        callRoom: { status: "active" },
+      },
+      include: { callRoom: true },
+      orderBy: { createdAt: "desc" },
+    }),
+  );
   if (!invite) throw new Error("call.invite_not_found");
 
   const status = action === "accept" ? "accepted" : "declined";
@@ -358,7 +422,7 @@ export async function handleLiveKitWebhookEvent(event: WebhookEvent) {
   if (!roomName?.startsWith("ghiq-")) return;
 
   const room = await withDbSystemContext((tx) =>
-    tx.callRoom.findUnique({ where: { roomName } })
+    tx.callRoom.findUnique({ where: { roomName } }),
   );
   if (!room) return;
 
@@ -381,9 +445,20 @@ export async function handleLiveKitWebhookEvent(event: WebhookEvent) {
       // webhook deliveries idempotent.
       const updated = await tx.callParticipant.updateMany({
         where: joined
-          ? { callRoomId: room.id, profileId, joinedAt: null }
-          : { callRoomId: room.id, profileId, leftAt: null },
-        data: joined ? { joinedAt: new Date() } : { leftAt: new Date() },
+          ? {
+              callRoomId: room.id,
+              profileId,
+              OR: [{ joinedAt: null }, { leftAt: { not: null } }],
+            }
+          : {
+              callRoomId: room.id,
+              profileId,
+              joinedAt: { not: null },
+              leftAt: null,
+            },
+        data: joined
+          ? { joinedAt: new Date(), leftAt: null }
+          : { leftAt: new Date() },
       });
       if (updated.count === 0) return;
       await tx.callEvent.create({
@@ -406,7 +481,9 @@ export async function runCallMaintenance() {
         status: "active",
         createdAt: { lt: new Date(now.getTime() - CALL_ROOM_JOIN_TTL_MS) },
       },
-    })
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: CALL_MAINTENANCE_LIMIT,
+    }),
   );
   for (const room of staleRooms) {
     await endCallRoom(room, { eventType: "room_expired" });
@@ -420,7 +497,9 @@ export async function runCallMaintenance() {
         callRoom: true,
         toProfile: { select: { userId: true } },
       },
-    })
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: CALL_MAINTENANCE_LIMIT,
+    }),
   );
   for (const invite of expiredInvites) {
     await withDbSystemContext(async (tx) => {
@@ -451,12 +530,15 @@ export async function runCallMaintenance() {
       await broadcastConversationRealtimeEvent(
         invite.callRoom.conversationId,
         "conversation_updated",
-        { action: "call_invite_missed", roomId: invite.callRoomId }
+        { action: "call_invite_missed", roomId: invite.callRoomId },
       );
     }
   }
 
-  return { endedStale: staleRooms.length, missedInvites: expiredInvites.length };
+  return {
+    endedStale: staleRooms.length,
+    missedInvites: expiredInvites.length,
+  };
 }
 
 // Shared DB end path: marks the room ended, closes participant rows, records
@@ -468,7 +550,7 @@ async function endCallRoom(
     profileId?: string;
     metadata?: Record<string, unknown>;
     leftAtProfileId?: string;
-  }
+  },
 ) {
   const endedAt = new Date();
   const ended = await withDbSystemContext(async (tx) => {
@@ -503,7 +585,7 @@ async function endCallRoom(
     await broadcastConversationRealtimeEvent(
       ended.room.conversationId,
       "call_room_ended",
-      { roomId: ended.room.id }
+      { roomId: ended.room.id },
     );
   }
 
@@ -511,24 +593,48 @@ async function endCallRoom(
 }
 
 function findActiveCallRoom(conversationId: string, current: DbContextUser) {
-  return withDbRequestContext(current, (tx) => tx.callRoom.findFirst({
-    where: {
-      conversationId,
-      status: "active",
-      permissions: {
-        some: {
-          profileId: current.profileId,
-          canJoin: true,
+  const now = new Date();
+  return withDbRequestContext(current, (tx) =>
+    tx.callRoom.findFirst({
+      where: {
+        conversationId,
+        status: "active",
+        createdAt: {
+          gte: new Date(now.getTime() - CALL_ROOM_JOIN_TTL_MS),
+        },
+        OR: [
+          {
+            invites: {
+              some: {
+                status: "pending",
+                expiresAt: { gt: now },
+              },
+            },
+          },
+          {
+            participants: {
+              some: {
+                joinedAt: { not: null },
+                leftAt: null,
+              },
+            },
+          },
+        ],
+        permissions: {
+          some: {
+            profileId: current.profileId,
+            canJoin: true,
+          },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  }));
+      orderBy: { createdAt: "desc" },
+    }),
+  );
 }
 
 function otherConversationProfileId(
   conversation: { participantAId: string; participantBId: string },
-  profileId: string
+  profileId: string,
 ) {
   return conversation.participantAId === profileId
     ? conversation.participantBId

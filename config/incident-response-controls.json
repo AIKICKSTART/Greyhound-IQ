@@ -1,0 +1,396 @@
+{
+  "schemaVersion": 1,
+  "status": "provisional-unverified",
+  "ownerPolicyPath": "config/slo-alert-policy.json",
+  "evidence": {
+    "kind": "repository-policy-only",
+    "emergencyControlDeploymentVerified": false,
+    "pagingDeliveryTested": false,
+    "namedRosterVerified": false,
+    "exerciseCompleted": false
+  },
+  "first30Minutes": [
+    {
+      "id": "IR-00-05",
+      "startMinute": 0,
+      "endMinute": 5,
+      "actions": [
+        { "id": "confirm-user-impact", "ownerRole": "platform-sre-on-call", "action": "Confirm external user impact and affected critical journeys." },
+        { "id": "declare-severity", "ownerRole": "incident-commander", "action": "Declare a provisional severity from user impact and integrity risk." },
+        { "id": "freeze-changes", "ownerRole": "incident-commander", "action": "Freeze deployments, migrations and discretionary jobs." },
+        { "id": "assign-incident-roles", "ownerRole": "incident-commander", "action": "Assign incident commander, operations lead, communications lead and scribe." },
+        { "id": "open-channel-timeline", "ownerRole": "incident-commander", "action": "Open the incident channel and UTC event timeline." },
+        { "id": "classify-failure-domain", "ownerRole": "platform-sre-on-call", "action": "Classify edge, ingress, compute, database, cache, queue or dependency involvement." },
+        { "id": "check-security-indicators", "ownerRole": "platform-sre-on-call", "action": "Check for hostile traffic, credential abuse, privilege changes and evidence loss." }
+      ]
+    },
+    {
+      "id": "IR-05-15",
+      "startMinute": 5,
+      "endMinute": 15,
+      "actions": [
+        { "id": "apply-least-destructive-containment", "ownerRole": "platform-sre-on-call", "action": "Apply the least destructive available containment from a linked runbook." },
+        { "id": "differentiate-demand-from-abuse", "ownerRole": "platform-sre-on-call", "action": "Separate legitimate demand from hostile traffic before changing admission." },
+        { "id": "rollback-suspect-revision", "ownerRole": "platform-sre-on-call", "action": "Use the documented manual rollback only when a revision correlation and known-good target are established." },
+        { "id": "protect-database", "ownerRole": "platform-sre-on-call", "action": "Stop optional load and prevent uncontrolled scale or retries from exhausting the database." },
+        { "id": "contain-slow-dependency", "ownerRole": "service-owner-on-call", "action": "Fail fast or disable optional dependency work instead of accumulating concurrency." },
+        { "id": "engage-provider", "ownerRole": "incident-commander", "action": "Engage the affected cloud or service provider through an approved support route." },
+        { "id": "publish-first-status", "ownerRole": "incident-commander", "action": "Publish the first factual impact and next-checkpoint update." }
+      ]
+    },
+    {
+      "id": "IR-15-30",
+      "startMinute": 15,
+      "endMinute": 30,
+      "actions": [
+        { "id": "verify-containment-externally", "ownerRole": "platform-sre-on-call", "action": "Verify containment through external journeys and each affected region." },
+        { "id": "choose-service-mode", "ownerRole": "incident-commander", "action": "Choose normal, degraded, read-only or unavailable mode without claiming an unavailable switch exists." },
+        { "id": "validate-data-and-queues", "ownerRole": "service-owner-on-call", "action": "Validate write outcomes, replication state, queue age, retries and dead letters." },
+        { "id": "confirm-monitoring-and-paging", "ownerRole": "platform-sre-on-call", "action": "Confirm telemetry and page receipt; use a secondary route if either is unverified." },
+        { "id": "set-decision-checkpoint", "ownerRole": "incident-commander", "action": "Set the next decision time, authority and evidence required." },
+        { "id": "update-communications", "ownerRole": "incident-commander", "action": "Update responders and users with confirmed impact, containment and next checkpoint." }
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "read-only-mode",
+      "title": "Application read-only mode",
+      "implementationStatus": "unimplemented",
+      "deploymentStatus": "not-deployed",
+      "ownerRole": "platform-sre-on-call",
+      "fallbackOwnerRole": "incident-commander",
+      "activationMethod": "No safe repository switch exists; use route-specific containment until implemented.",
+      "rollbackMethod": "Not available; implementation and staging proof are required.",
+      "implementationEvidence": [],
+      "auditEventStatus": "unverified",
+      "testStatus": "unverified"
+    },
+    {
+      "id": "anonymous-restriction",
+      "title": "Anonymous traffic restriction",
+      "implementationStatus": "unimplemented",
+      "deploymentStatus": "not-deployed",
+      "ownerRole": "platform-sre-on-call",
+      "fallbackOwnerRole": "incident-commander",
+      "activationMethod": "No versioned edge restriction is defined in repository configuration.",
+      "rollbackMethod": "Not available; implement a reviewed, time-bounded policy first.",
+      "implementationEvidence": [],
+      "auditEventStatus": "unverified",
+      "testStatus": "unverified"
+    },
+    {
+      "id": "search-disable",
+      "title": "Search disablement",
+      "implementationStatus": "repository-implemented",
+      "deploymentStatus": "unverified",
+      "ownerRole": "service-owner-on-call",
+      "fallbackOwnerRole": "platform-sre-on-call",
+      "activationMethod": "Set SEARCH_DISABLED to true through the reviewed false-default deployment input; both repository deploy paths create a no-traffic candidate and require candidate smoke before exact revision promotion. Live environment protection and deployed behavior remain unverified.",
+      "rollbackMethod": "Set SEARCH_DISABLED to false through the same reviewed candidate workflow only after search capacity and dependency recovery pass in staging. Activation, restoration and audit delivery remain unexercised.",
+      "implementationEvidence": [
+        {
+          "path": "src/app/api/dogs/search/route.ts",
+          "needle": "isEmergencyControlActive(process.env.SEARCH_DISABLED)"
+        },
+        {
+          "path": "src/lib/emergency-controls.ts",
+          "needle": "value.trim().toLowerCase() !== \"false\""
+        }
+      ],
+      "auditEventStatus": "unverified",
+      "testStatus": "unverified"
+    },
+    {
+      "id": "report-disable",
+      "title": "Report generation disablement",
+      "implementationStatus": "unimplemented",
+      "deploymentStatus": "not-deployed",
+      "ownerRole": "service-owner-on-call",
+      "fallbackOwnerRole": "platform-sre-on-call",
+      "activationMethod": "No server-enforced report kill switch exists.",
+      "rollbackMethod": "Not available; implement fail-closed server enforcement first.",
+      "implementationEvidence": [],
+      "auditEventStatus": "unverified",
+      "testStatus": "unverified"
+    },
+    {
+      "id": "export-disable",
+      "title": "Data export disablement",
+      "implementationStatus": "repository-implemented",
+      "deploymentStatus": "unverified",
+      "ownerRole": "service-owner-on-call",
+      "fallbackOwnerRole": "platform-sre-on-call",
+      "activationMethod": "Set EXPORT_DISABLED to true through the reviewed false-default deployment input; both repository deploy paths create a no-traffic candidate and require candidate smoke before exact revision promotion. Live environment protection and deployed behavior remain unverified.",
+      "rollbackMethod": "Set EXPORT_DISABLED to false through the same reviewed candidate workflow only after database capacity and the bounded user-export journey pass in staging. Activation, restoration and audit delivery remain unexercised.",
+      "implementationEvidence": [
+        {
+          "path": "src/app/api/users/me/export/route.ts",
+          "needle": "isEmergencyControlActive(process.env.EXPORT_DISABLED)"
+        },
+        {
+          "path": "src/lib/emergency-controls.ts",
+          "needle": "value.trim().toLowerCase() !== \"false\""
+        }
+      ],
+      "auditEventStatus": "unverified",
+      "testStatus": "unverified"
+    },
+    {
+      "id": "upload-disable",
+      "title": "Upload intent disablement",
+      "implementationStatus": "repository-implemented",
+      "deploymentStatus": "unverified",
+      "ownerRole": "service-owner-on-call",
+      "fallbackOwnerRole": "platform-sre-on-call",
+      "activationMethod": "Set UPLOAD_DISABLED to true through the reviewed false-default deployment input; both repository deploy paths create a no-traffic candidate and require candidate smoke before exact revision promotion. Live environment protection and deployed behavior remain unverified.",
+      "rollbackMethod": "Set UPLOAD_DISABLED to false through the same reviewed candidate workflow only after scanner freshness, storage health and the controlled upload journey pass in staging. Activation, restoration and audit delivery remain unexercised.",
+      "implementationEvidence": [
+        {
+          "path": "src/app/api/media/sign-upload/route.ts",
+          "needle": "isEmergencyControlActive(process.env.UPLOAD_DISABLED)"
+        },
+        {
+          "path": "src/lib/emergency-controls.ts",
+          "needle": "value.trim().toLowerCase() !== \"false\""
+        }
+      ],
+      "auditEventStatus": "unverified",
+      "testStatus": "unverified"
+    },
+    {
+      "id": "ai-disable",
+      "title": "AI workload disablement",
+      "implementationStatus": "repository-implemented",
+      "deploymentStatus": "unverified",
+      "ownerRole": "service-owner-on-call",
+      "fallbackOwnerRole": "platform-sre-on-call",
+      "activationMethod": "Set AI_DISABLED to true through the reviewed false-default deployment input; both repository deploy paths create a no-traffic candidate and require candidate smoke before exact revision promotion. Live environment protection and deployed behavior remain unverified.",
+      "rollbackMethod": "Set AI_DISABLED to false through the same reviewed candidate workflow only after agent and image-generation staging journeys pass inside database, provider and cost budgets. Activation, restoration and audit delivery remain unexercised.",
+      "implementationEvidence": [
+        {
+          "path": "src/app/api/agents/[type]/run/route.ts",
+          "needle": "isEmergencyControlActive(process.env.AI_DISABLED)"
+        },
+        {
+          "path": "src/lib/agent-service.ts",
+          "needle": "isEmergencyControlActive(process.env.AI_DISABLED)"
+        },
+        {
+          "path": "src/lib/dog-card-service.ts",
+          "needle": "isEmergencyControlActive(process.env.AI_DISABLED)"
+        },
+        {
+          "path": "src/lib/emergency-controls.ts",
+          "needle": "value.trim().toLowerCase() !== \"false\""
+        }
+      ],
+      "auditEventStatus": "unverified",
+      "testStatus": "unverified"
+    },
+    {
+      "id": "queue-pause",
+      "title": "Queue producer and dispatch pause",
+      "implementationStatus": "unimplemented",
+      "deploymentStatus": "not-deployed",
+      "ownerRole": "platform-sre-on-call",
+      "fallbackOwnerRole": "incident-commander",
+      "activationMethod": "No per-job-class producer and dispatcher pause contract exists.",
+      "rollbackMethod": "Not available; implement controlled drain and scoped replay first.",
+      "implementationEvidence": [],
+      "auditEventStatus": "unverified",
+      "testStatus": "unverified"
+    },
+    {
+      "id": "database-write-protection",
+      "title": "Database write protection",
+      "implementationStatus": "unimplemented",
+      "deploymentStatus": "not-deployed",
+      "ownerRole": "platform-sre-on-call",
+      "fallbackOwnerRole": "incident-commander",
+      "activationMethod": "No application or database emergency write fence exists.",
+      "rollbackMethod": "Not available; dual-approved staged reopen must be implemented and tested.",
+      "implementationEvidence": [],
+      "auditEventStatus": "unverified",
+      "testStatus": "unverified"
+    },
+    {
+      "id": "revision-rollback",
+      "title": "Cloud Run revision rollback",
+      "implementationStatus": "unimplemented",
+      "deploymentStatus": "not-deployed",
+      "ownerRole": "platform-sre-on-call",
+      "fallbackOwnerRole": "incident-commander",
+      "activationMethod": "No approved production revision-rollback procedure exists for the selected Australia production architecture.",
+      "rollbackMethod": "Not available; immutable revision selection, approval, traffic restoration and validation must be implemented and exercised before launch.",
+      "implementationEvidence": [],
+      "auditEventStatus": "unverified",
+      "testStatus": "unverified"
+    },
+    {
+      "id": "regional-ejection",
+      "title": "Application region ejection",
+      "implementationStatus": "unimplemented",
+      "deploymentStatus": "not-deployed",
+      "ownerRole": "platform-sre-on-call",
+      "fallbackOwnerRole": "incident-commander",
+      "activationMethod": "The selected Sydney/Melbourne target is not deployed and no tested ejection control exists.",
+      "rollbackMethod": "Not available; health, capacity and progressive re-entry proof are required.",
+      "implementationEvidence": [],
+      "auditEventStatus": "unverified",
+      "testStatus": "unverified"
+    },
+    {
+      "id": "database-region-promotion",
+      "title": "Melbourne database promotion",
+      "implementationStatus": "unimplemented",
+      "deploymentStatus": "not-deployed",
+      "ownerRole": "platform-sre-on-call",
+      "fallbackOwnerRole": "incident-commander",
+      "activationMethod": "No AlloyDB secondary or rehearsed promotion procedure exists in deployed evidence.",
+      "rollbackMethod": "Not available; reconciliation and failback must be designed and exercised first.",
+      "implementationEvidence": [],
+      "auditEventStatus": "unverified",
+      "testStatus": "unverified"
+    },
+    {
+      "id": "realtime-broadcast-disable",
+      "title": "Realtime broadcast suppression",
+      "implementationStatus": "repository-implemented",
+      "deploymentStatus": "unverified",
+      "ownerRole": "service-owner-on-call",
+      "fallbackOwnerRole": "platform-sre-on-call",
+      "activationMethod": "Set REALTIME_BROADCAST_DISABLED to true through the reviewed false-default deployment input; both repository deploy paths create a no-traffic candidate and require candidate smoke before exact revision promotion. Live environment protection and deployed behavior remain unverified.",
+      "rollbackMethod": "Set REALTIME_BROADCAST_DISABLED to false through the same reviewed candidate workflow only after provider health and staging verification. Activation, restoration and audit delivery remain unexercised.",
+      "implementationEvidence": [
+        {
+          "path": "src/lib/realtime-service.ts",
+          "needle": "process.env.REALTIME_BROADCAST_DISABLED === \"true\""
+        }
+      ],
+      "auditEventStatus": "unverified",
+      "testStatus": "unverified"
+    }
+  ],
+  "runbooks": [
+    {
+      "id": "RB-IR-SUDDEN-LOAD-OR-L7",
+      "title": "Sudden load or Layer 7 abuse",
+      "docPath": "docs/architecture/incident-response-controls.md",
+      "heading": "RB-IR-SUDDEN-LOAD-OR-L7",
+      "ownerRole": "platform-sre-on-call",
+      "fallbackOwnerRole": "incident-commander",
+      "trigger": "Critical SLO burn, origin saturation, cache-bypass pattern or hostile request flood.",
+      "safeFirstAction": "Freeze changes, classify legitimate demand versus abuse, and stop optional work using only controls that actually exist.",
+      "prohibitedActions": ["Do not scale the origin without checking database and cost budgets.", "Do not block all shared-IP or provider traffic without validating legitimate cohorts."],
+      "recoveryValidation": ["Critical synthetic journeys and both burn windows recover.", "Origin, database and cost saturation return below approved limits."],
+      "evidencePreservation": ["Record WAF, cache, route, identity, region and revision summaries.", "Record every policy or traffic mutation with UTC time and approver."],
+      "controlIds": ["read-only-mode", "anonymous-restriction", "search-disable", "report-disable", "export-disable", "ai-disable"],
+      "testStatus": "unverified",
+      "pagingDeliveryStatus": "unverified",
+      "exerciseEvidence": []
+    },
+    {
+      "id": "RB-IR-DATABASE-INTEGRITY",
+      "title": "Database saturation or integrity uncertainty",
+      "docPath": "docs/architecture/incident-response-controls.md",
+      "heading": "RB-IR-DATABASE-INTEGRITY",
+      "ownerRole": "platform-sre-on-call",
+      "fallbackOwnerRole": "incident-commander",
+      "trigger": "Pool exhaustion, writer uncertainty, corruption signal, unsafe replica lag or failed database primary.",
+      "safeFirstAction": "Stop optional load and retries, freeze changes, and determine whether acknowledged writes have a known outcome.",
+      "prohibitedActions": ["Do not retry unknown commits or perform destructive rollback.", "Do not promote or reopen writes without an approved recovery point and dual control."],
+      "recoveryValidation": ["Data integrity checks and critical read/write journeys pass.", "Connection, lock, lag and transaction signals remain stable through staged reopen."],
+      "evidencePreservation": ["Capture timestamps, transaction/error classes, pool and replication state without query values.", "Preserve candidate revision, migration digest and recovery-point identifiers."],
+      "controlIds": ["read-only-mode", "database-write-protection", "database-region-promotion"],
+      "testStatus": "unverified",
+      "pagingDeliveryStatus": "unverified",
+      "exerciseEvidence": []
+    },
+    {
+      "id": "RB-IR-BAD-DEPLOYMENT",
+      "title": "Bad application deployment",
+      "docPath": "docs/architecture/incident-response-controls.md",
+      "heading": "RB-IR-BAD-DEPLOYMENT",
+      "ownerRole": "platform-sre-on-call",
+      "fallbackOwnerRole": "incident-commander",
+      "trigger": "Errors, latency or user failures correlate with the current revision or configuration change.",
+      "safeFirstAction": "Freeze changes, identify the immutable last-known-good revision, then use the approved manual rollback procedure.",
+      "prohibitedActions": ["Do not roll the database schema backward destructively.", "Do not choose a revision that has not passed the required candidate checks."],
+      "recoveryValidation": ["External smoke and critical journeys pass on the restored revision.", "Error and latency burn recover without data inconsistency."],
+      "evidencePreservation": ["Record image digest, revision, configuration digest and traffic percentages.", "Preserve deployment logs and the UTC rollback decision."],
+      "controlIds": ["revision-rollback"],
+      "testStatus": "unverified",
+      "pagingDeliveryStatus": "unverified",
+      "exerciseEvidence": []
+    },
+    {
+      "id": "RB-IR-QUEUE-BACKLOG",
+      "title": "Queue backlog or poison message",
+      "docPath": "docs/architecture/incident-response-controls.md",
+      "heading": "RB-IR-QUEUE-BACKLOG",
+      "ownerRole": "platform-sre-on-call",
+      "fallbackOwnerRole": "incident-commander",
+      "trigger": "Oldest critical job breaches its SLO, retries rise, dead letters appear or workers threaten a downstream budget.",
+      "safeFirstAction": "Reduce producer and worker pressure using available service-specific controls; quarantine poison messages without blind replay.",
+      "prohibitedActions": ["Do not scale workers past database or provider limits.", "Do not purge or replay messages without idempotency and scope evidence."],
+      "recoveryValidation": ["Arrival is below completion and oldest age trends down inside the SLO.", "Critical outcomes reconcile and dead letters are scoped."],
+      "evidencePreservation": ["Capture queue age, depth, arrival, completion, retry and dead-letter counts.", "Record message schema and safe identifiers, never sensitive payloads."],
+      "controlIds": ["queue-pause"],
+      "testStatus": "unverified",
+      "pagingDeliveryStatus": "unverified",
+      "exerciseEvidence": []
+    },
+    {
+      "id": "RB-IR-UPLOAD-PIPELINE",
+      "title": "Upload, scanner or storage incident",
+      "docPath": "docs/architecture/incident-response-controls.md",
+      "heading": "RB-IR-UPLOAD-PIPELINE",
+      "ownerRole": "service-owner-on-call",
+      "fallbackOwnerRole": "incident-commander",
+      "trigger": "Scanner unavailable or stale, storage errors, malicious content signal or uncontrolled upload cost.",
+      "safeFirstAction": "Preserve quarantine and stop attachment/finalisation; do not claim upload signing is disabled until the missing switch exists.",
+      "prohibitedActions": ["Do not make quarantined objects public or bypass scanning.", "Do not delete suspected malicious evidence before security review."],
+      "recoveryValidation": ["Scanner freshness, signed upload, quarantine and clean-download staging tests pass.", "Backlog drains within storage, scanner and database budgets."],
+      "evidencePreservation": ["Record object-safe identifiers, scan verdicts and definition age without signed URLs.", "Preserve quarantined evidence under approved retention controls."],
+      "controlIds": ["upload-disable"],
+      "testStatus": "unverified",
+      "pagingDeliveryStatus": "unverified",
+      "exerciseEvidence": []
+    },
+    {
+      "id": "RB-IR-REGIONAL-OUTAGE",
+      "title": "Sydney application or database outage",
+      "docPath": "docs/architecture/incident-response-controls.md",
+      "heading": "RB-IR-REGIONAL-OUTAGE",
+      "ownerRole": "platform-sre-on-call",
+      "fallbackOwnerRole": "incident-commander",
+      "trigger": "Independent probes confirm a Sydney regional failure or primary database loss.",
+      "safeFirstAction": "Freeze changes, verify Melbourne capacity and replication evidence, and remain degraded rather than improvising promotion.",
+      "prohibitedActions": ["Do not promote an unverified database secondary or create split brain.", "Do not shift traffic into a region without N-1 capacity and dependency checks."],
+      "recoveryValidation": ["Regional synthetic journeys, data recovery point and queue state are validated.", "Failback and reconciliation authority are recorded before normal writes resume."],
+      "evidencePreservation": ["Capture regional health, replication lag, recovery point and traffic state.", "Record every ejection, promotion and DNS or load-balancer decision."],
+      "controlIds": ["read-only-mode", "regional-ejection", "database-region-promotion"],
+      "testStatus": "unverified",
+      "pagingDeliveryStatus": "unverified",
+      "exerciseEvidence": []
+    },
+    {
+      "id": "RB-IR-REALTIME-SIDE-EFFECT",
+      "title": "Realtime provider or broadcast degradation",
+      "docPath": "docs/architecture/incident-response-controls.md",
+      "heading": "RB-IR-REALTIME-SIDE-EFFECT",
+      "ownerRole": "service-owner-on-call",
+      "fallbackOwnerRole": "platform-sre-on-call",
+      "trigger": "Realtime provider latency, error or fan-out threatens the critical application path.",
+      "safeFirstAction": "Confirm the critical path is independent, then prepare a reviewed revision that suppresses realtime broadcast.",
+      "prohibitedActions": ["Do not bypass authorization or expose private channel data.", "Do not hot-edit production outside the protected workflow."],
+      "recoveryValidation": ["Critical journeys remain healthy with broadcast suppressed.", "Staging proves authorized broadcast before restoration."],
+      "evidencePreservation": ["Record provider health, broadcast errors, revision and affected operation counts.", "Preserve safe correlation IDs without message content."],
+      "controlIds": ["realtime-broadcast-disable"],
+      "testStatus": "unverified",
+      "pagingDeliveryStatus": "unverified",
+      "exerciseEvidence": []
+    }
+  ]
+}

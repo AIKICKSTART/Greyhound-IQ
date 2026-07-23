@@ -5,7 +5,7 @@ import { getStripeCheckoutEnv } from "@/lib/billing/stripe-env";
 import { getStripeClient } from "@/lib/billing/stripe-client";
 import { updatePricingContentAction } from "@/app/admin/mutations";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
-import { SubmitButton } from "@/components/submit-button";
+import { AdminSubmitButton } from "@/app/admin/admin-submit-button";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -19,7 +19,7 @@ const LABEL = "block text-[12px] font-semibold text-[hsl(var(--muted-foreground)
 // Read-only: the real amount Stripe charges (from the configured price IDs). The
 // displayed /pricing number is independent, so warn admins if they diverge.
 async function getStripeAmounts(): Promise<
-  { monthly: number | null; yearly: number | null; error: string | null }
+  { monthly: number | null; yearly: number | null; unavailable: boolean }
 > {
   try {
     const env = getStripeCheckoutEnv();
@@ -31,10 +31,10 @@ async function getStripeAmounts(): Promise<
     return {
       monthly: m.unit_amount != null ? m.unit_amount / 100 : null,
       yearly: y.unit_amount != null ? y.unit_amount / 100 : null,
-      error: null,
+      unavailable: false,
     };
-  } catch (err) {
-    return { monthly: null, yearly: null, error: err instanceof Error ? err.message : "unknown" };
+  } catch {
+    return { monthly: null, yearly: null, unavailable: true };
   }
 }
 
@@ -60,9 +60,9 @@ export default async function SiteContentAdmin() {
         <h2 className="text-[13px] font-semibold text-[hsl(var(--foreground))]">
           Actual Stripe charge (Pro)
         </h2>
-        {stripe.error ? (
+        {stripe.unavailable ? (
           <p className="mt-2 text-[12px] text-[hsl(var(--muted-foreground))]">
-            Could not read Stripe prices: {stripe.error}
+            Could not read Stripe prices. Try again later.
           </p>
         ) : (
           <p className="mt-2 text-[13px] text-[hsl(var(--foreground))] tabular-nums">
@@ -91,30 +91,31 @@ export default async function SiteContentAdmin() {
             </legend>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className={LABEL}>Name</label>
-                <input name={`${plan.id}_name`} defaultValue={plan.name} className={INPUT} />
+                <label htmlFor={`${plan.id}-name`} className={LABEL}>Name</label>
+                <input id={`${plan.id}-name`} name={`${plan.id}_name`} defaultValue={plan.name} className={INPUT} />
               </div>
               <div>
-                <label className={LABEL}>CTA button</label>
-                <input name={`${plan.id}_cta`} defaultValue={plan.cta} className={INPUT} />
+                <label htmlFor={`${plan.id}-cta`} className={LABEL}>CTA button</label>
+                <input id={`${plan.id}-cta`} name={`${plan.id}_cta`} defaultValue={plan.cta} className={INPUT} />
               </div>
               <div>
-                <label className={LABEL}>Price (display, e.g. $20)</label>
-                <input name={`${plan.id}_price`} defaultValue={plan.price} className={INPUT} />
+                <label htmlFor={`${plan.id}-price`} className={LABEL}>Price (display, e.g. $20)</label>
+                <input id={`${plan.id}-price`} name={`${plan.id}_price`} defaultValue={plan.price} className={INPUT} />
               </div>
               <div>
-                <label className={LABEL}>Period (e.g. /month or $204/year)</label>
-                <input name={`${plan.id}_period`} defaultValue={plan.period} className={INPUT} />
+                <label htmlFor={`${plan.id}-period`} className={LABEL}>Period (e.g. /month or $204/year)</label>
+                <input id={`${plan.id}-period`} name={`${plan.id}_period`} defaultValue={plan.period} className={INPUT} />
               </div>
             </div>
             <div>
-              <label className={LABEL}>Description</label>
-              <input name={`${plan.id}_description`} defaultValue={plan.description} className={INPUT} />
+              <label htmlFor={`${plan.id}-description`} className={LABEL}>Description</label>
+              <input id={`${plan.id}-description`} name={`${plan.id}_description`} defaultValue={plan.description} className={INPUT} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className={LABEL}>Included features (one per line)</label>
+                <label htmlFor={`${plan.id}-features`} className={LABEL}>Included features (one per line)</label>
                 <textarea
+                  id={`${plan.id}-features`}
                   name={`${plan.id}_features`}
                   defaultValue={plan.features.join("\n")}
                   rows={8}
@@ -122,8 +123,9 @@ export default async function SiteContentAdmin() {
                 />
               </div>
               <div>
-                <label className={LABEL}>Not included (one per line)</label>
+                <label htmlFor={`${plan.id}-not-included`} className={LABEL}>Not included (one per line)</label>
                 <textarea
+                  id={`${plan.id}-not-included`}
                   name={`${plan.id}_notIncluded`}
                   defaultValue={plan.notIncluded.join("\n")}
                   rows={8}
@@ -139,13 +141,16 @@ export default async function SiteContentAdmin() {
         ))}
 
         <div>
-          <label className={LABEL}>Yearly note (below the plans)</label>
-          <input name="yearlyNote" defaultValue={yearlyNote} className={INPUT} />
+          <label htmlFor="yearly-note" className={LABEL}>Yearly note (below the plans)</label>
+          <input id="yearly-note" name="yearlyNote" defaultValue={yearlyNote} className={INPUT} />
         </div>
 
-        <SubmitButton className="giq-button giq-button-primary px-5 text-[13px] font-semibold">
-          Save pricing
-        </SubmitButton>
+        <AdminSubmitButton
+          label="Save pricing"
+          pendingLabel="Saving pricing…"
+          confirmMessage="Save this public pricing content?"
+          className="giq-button giq-button-primary min-h-11 px-5 text-[13px] font-semibold"
+        />
       </form>
     </main>
   );

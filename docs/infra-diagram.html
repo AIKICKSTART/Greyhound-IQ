@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GreyhoundIQ — Architecture &amp; Cleanup Plan</title>
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#0c0a12; --panel:#16121f; --panel2:#1e1829; --line:#2c2540;
+    --ink:#eceaf3; --muted:#9b93af; --faint:#6f6883;
+    --purple:#b06bf5; --gold:#f1bd4f;
+    --live:#3ddc97; --warn:#f7b955; --block:#f76d6d;
+    --live-bg:rgba(61,220,151,.13); --warn-bg:rgba(247,185,85,.13); --block-bg:rgba(247,109,109,.14);
+    --keep:#3ddc97; --drop:#f76d6d;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --sh:0 20px 48px -26px rgba(0,0,0,.85);
+    --wire:#3a3450;
+  }
+  :root[data-theme="light"]{
+    --bg:#f4f2f8; --panel:#ffffff; --panel2:#f6f4fb; --line:#e4dff1;
+    --ink:#1a1526; --muted:#5f5872; --faint:#8b83a0;
+    --purple:#7c3aed; --gold:#b7860f;
+    --live:#12a566; --warn:#b7791f; --block:#d64545;
+    --live-bg:rgba(18,165,102,.12); --warn-bg:rgba(183,121,31,.12); --block-bg:rgba(214,69,69,.10);
+    --keep:#12a566; --drop:#d64545; --wire:#d9d2ec; --sh:0 16px 40px -26px rgba(70,45,110,.4);
+  }
+  @media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+    --bg:#f4f2f8; --panel:#ffffff; --panel2:#f6f4fb; --line:#e4dff1;
+    --ink:#1a1526; --muted:#5f5872; --faint:#8b83a0; --purple:#7c3aed; --gold:#b7860f;
+    --live:#12a566; --warn:#b7791f; --block:#d64545;
+    --live-bg:rgba(18,165,102,.12); --warn-bg:rgba(183,121,31,.12); --block-bg:rgba(214,69,69,.10);
+    --keep:#12a566; --drop:#d64545; --wire:#d9d2ec;
+  }}
+  *{box-sizing:border-box}
+  .wrap{font-family:var(--sans);color:var(--ink);min-height:100vh;line-height:1.5;padding:clamp(16px,3.5vw,40px);
+    background:radial-gradient(1100px 460px at 12% -12%,rgba(124,58,237,.16),transparent 60%),
+      radial-gradient(760px 360px at 100% 4%,rgba(241,189,79,.07),transparent 55%),var(--bg);
+    -webkit-font-smoothing:antialiased}
+  .shell{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:clamp(18px,3vw,28px)}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--purple)}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  header.top{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--line);padding-bottom:18px}
+  header.top h1{font-size:clamp(23px,3.6vw,34px);font-weight:800;letter-spacing:-.02em;margin:.3rem 0 0;line-height:1.05;text-wrap:balance}
+  header.top h1 b{color:var(--purple)} header.top h1 i{font-style:normal;color:var(--gold)}
+  header.top .sub{color:var(--muted);font-size:13px;margin:.45rem 0 0;max-width:56ch}
+  .chip{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;padding:7px 13px;border-radius:999px;background:var(--warn-bg);color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 32%,transparent)}
+  .dot{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 0 4px color-mix(in srgb,currentColor 20%,transparent)}
+
+  .legend{display:flex;flex-wrap:wrap;gap:7px 16px;font-size:12px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+
+  section h2{font-size:17px;font-weight:800;letter-spacing:-.01em;margin:0 0 3px}
+  section .lead{font-size:12.5px;color:var(--muted);margin:0 0 14px}
+
+  /* icon system */
+  .ic{width:20px;height:20px;flex:none;stroke:currentColor;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .ic.lg{width:26px;height:26px}
+
+  /* topology */
+  .topo{display:flex;flex-direction:column;gap:0;align-items:center}
+  .trow{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;width:100%}
+  .wire{width:2px;height:26px;background:linear-gradient(var(--wire),transparent);position:relative}
+  .wire::after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--wire)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh);padding:13px 15px;
+    display:flex;gap:12px;align-items:flex-start;position:relative;overflow:hidden;min-width:230px;flex:1 1 240px;max-width:340px}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--edge,var(--purple))}
+  .card.live{--edge:var(--live)} .card.warn{--edge:var(--warn)} .card.block{--edge:var(--block)} .card.core{--edge:var(--purple)}
+  .card .iconwrap{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;flex:none;color:var(--edge,var(--purple));
+    background:color-mix(in srgb,var(--edge,var(--purple)) 13%,transparent)}
+  .card .k{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .card .kt{display:flex;align-items:center;gap:8px;justify-content:space-between}
+  .card .nm{font-size:13.5px;font-weight:700;letter-spacing:-.01em}
+  .card .vv{font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-word}
+  .card .dd{font-size:11.5px;color:var(--faint);line-height:1.4}
+  .pill{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:3px 7px;border-radius:999px;white-space:nowrap}
+  .pill.live{background:var(--live-bg);color:var(--live)} .pill.warn{background:var(--warn-bg);color:var(--warn)}
+  .pill.block{background:var(--block-bg);color:var(--block)} .pill.core{background:rgba(176,107,245,.15);color:var(--purple)}
+  .wide{max-width:720px;flex-basis:100%}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:12px;width:100%}
+  .db-pair{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;width:100%}
+
+  /* security ribbon */
+  .sec{display:flex;flex-wrap:wrap;gap:8px;padding:13px 15px;border:1px dashed color-mix(in srgb,var(--live) 40%,var(--line));border-radius:14px;background:var(--panel);align-items:center}
+  .sec .lab{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--live);display:flex;align-items:center;gap:7px;margin-right:6px}
+  .sec .b{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink);background:var(--panel2);border:1px solid var(--line);padding:5px 10px;border-radius:8px}
+  .sec .b svg{width:14px;height:14px;stroke:var(--live);stroke-width:1.8;fill:none}
+  .sec .b.q{color:var(--muted)} .sec .b.q svg{stroke:var(--warn)}
+
+  /* cleanup columns */
+  .clean{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .col{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);overflow:hidden}
+  .col > .ch{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
+  .col.keep > .ch{background:var(--live-bg)} .col.drop > .ch{background:var(--block-bg)}
+  .col .ch .t{font-size:13.5px;font-weight:800;letter-spacing:-.01em}
+  .col.keep .ch{color:var(--keep)} .col.drop .ch{color:var(--drop)}
+  .col ul{list-style:none;margin:0;padding:8px 8px 12px;display:flex;flex-direction:column;gap:2px}
+  .col li{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:9px}
+  .col li:hover{background:var(--panel2)}
+  .col li .li-ic{width:30px;height:30px;border-radius:8px;flex:none;display:grid;place-items:center;color:var(--edge);background:color-mix(in srgb,var(--edge) 12%,transparent)}
+  .col.keep li{--edge:var(--keep)} .col.drop li{--edge:var(--drop)}
+  .col li .li-b{min-width:0}
+  .col li .li-n{font-size:12.5px;font-weight:700} .col li .li-n code{font-family:var(--mono);font-size:11px;color:var(--purple);background:var(--panel2);border:1px solid var(--line);padding:0 4px;border-radius:4px}
+  .col li .li-d{font-size:11px;color:var(--muted);line-height:1.35;margin-top:1px}
+  .col li .li-d .verify{color:var(--warn);font-weight:700}
+
+  footer.foot{border-top:1px solid var(--line);padding-top:15px;color:var(--faint);font-size:11.5px;display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:space-between}
+  @media (max-width:720px){ .clean{grid-template-columns:1fr} }
+</style>
+</head>
+<body style="margin:0">
+
+<!-- icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-run" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9l3 3-3 3M13 15h4"/></symbol>
+  <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7" ry="2.6"/><path d="M5 5.5v13c0 1.5 3.1 2.6 7 2.6s7-1.1 7-2.6v-13"/><path d="M5 12c0 1.5 3.1 2.6 7 2.6s7-1.1 7-2.6"/></symbol>
+  <symbol id="i-bucket" viewBox="0 0 24 24"><path d="M5 7h14l-1.4 12.2a1.5 1.5 0 0 1-1.5 1.3H7.9a1.5 1.5 0 0 1-1.5-1.3L5 7Z"/><path d="M4 7h16M9 4h6"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="8" r="4"/><path d="M11 11l7 7M16 16l2-2M14 18l2-2"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M6 3l3 1 1 4-2 1a11 11 0 0 0 5 5l1-2 4 1 1 3a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2Z"/></symbol>
+  <symbol id="i-auth" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 13h5l-1 8 8-11h-5l1-7Z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M4 12h16"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></symbol>
+  <symbol id="i-git" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><circle cx="17" cy="9" r="2.4"/><path d="M6 8.4v7.2M8.2 7.2A6 6 0 0 1 14.6 9"/></symbol>
+</svg>
+
+<div class="wrap"><div class="shell">
+
+  <header class="top">
+    <div>
+      <span class="eyebrow">Production topology · GCP Sydney · clever-bee-502514-m4</span>
+      <h1><b>Greyhound</b><i>IQ</i> — pristine core &amp; cleanup plan</h1>
+      <p class="sub">The one core service you keep running, the security around it, the Melbourne failover — and every leftover from the old builds to delete so nothing but R2 burns compute.</p>
+    </div>
+    <span class="chip"><span class="dot"></span>Core live · trim the old build</span>
+  </header>
+
+  <div class="legend">
+    <span style="color:var(--live)"><span class="dot"></span>Keep — core &amp; live</span>
+    <span style="color:var(--warn)"><span class="dot"></span>Keep, needs config</span>
+    <span style="color:var(--block)"><span class="dot"></span>Delete / fix</span>
+    <span style="color:var(--purple)"><span class="dot"></span>Serving path</span>
+  </div>
+
+  <!-- TOPOLOGY -->
+  <section>
+    <h2>The core architecture</h2>
+    <p class="lead">Request flows top → bottom through security into the single Cloud Run service, which fans out to the backing services.</p>
+    <div class="topo">
+
+      <div class="trow">
+        <div class="card core wide" style="max-width:420px">
+          <div class="iconwrap"><svg class="ic lg"><use href="#i-user"/></svg></div>
+          <div class="k"><div class="kt"><span class="nm">Members</span><span class="pill core">Live</span></div>
+            <span class="vv">greyhoundsiq.com.au — web, desktop + mobile</span></div>
+        </div>
+      </div>
+      <div class="wire"></div>
+
+      <div class="trow">
+        <div class="card live wide" style="max-width:520px">
+          <div class="iconwrap"><svg class="ic lg"><use href="#i-shield"/></svg></div>
+          <div class="k"><div class="kt"><span class="nm">Edge — Load Balancer <span class="mono" style="font-weight:400;color:var(--faint)">giq-web-backend</span></span><span class="pill block">No WAF</span></div>
+            <span class="vv">HTTPS/HSTS ✓ · Google baseline DDoS ✓ · Cloud Armor policy: none</span>
+            <span class="dd">Add a Cloud Armor policy (L7 WAF + rate-limit rules) before launch — none is attached today.</span></div>
+        </div>
+      </div>
+      <div class="wire"></div>
+
+      <div class="trow">
+        <div class="card core wide" style="max-width:560px">
+          <div class="iconwrap"><svg class="ic lg"><use href="#i-run"/></svg></div>
+          <div class="k"><div class="kt"><span class="nm">Cloud Run — greyhoundiq-web-staging</span><span class="pill core">Core · Live</span></div>
+            <span class="vv mono">rev 00041-s42 · 100% traffic · australia-southeast1</span>
+            <span class="dd">The one Next.js service that serves everything. VPC-connected to the private database.</span></div>
+        </div>
+      </div>
+      <div class="wire"></div>
+
+      <div class="trow"><span class="eyebrow" style="width:100%;text-align:center;color:var(--faint)">Backing services</span></div>
+      <div class="trow" style="margin-top:8px">
+        <div class="db-pair">
+          <div class="card live"><div class="iconwrap"><svg class="ic"><use href="#i-db"/></svg></div>
+            <div class="k"><div class="kt"><span class="nm">AlloyDB R2 — Sydney primary</span><span class="pill live">Live</span></div>
+              <span class="vv">giq_production_stage11_20260718_r2 · 10.240.116.2</span>
+              <span class="dd">The single serving DB. Row-level security per user.</span></div></div>
+          <div class="card live"><div class="iconwrap"><svg class="ic"><use href="#i-db"/></svg></div>
+            <div class="k"><div class="kt"><span class="nm">AlloyDB — Melbourne replica</span><span class="pill live">HA</span></div>
+              <span class="vv">read replica · 10.240.100.2</span>
+              <span class="dd">Cross-region failover / read scaling. Keep.</span></div></div>
+        </div>
+      </div>
+
+      <div class="trow" style="margin-top:12px">
+        <div class="grid">
+          <div class="card live"><div class="iconwrap"><svg class="ic"><use href="#i-bucket"/></svg></div>
+            <div class="k"><div class="kt"><span class="nm">GCS storage</span><span class="pill live">Live</span></div>
+              <span class="vv">private / public user-media · site-assets</span>
+              <span class="dd">All uploads, signed + scanned.</span></div></div>
+          <div class="card live"><div class="iconwrap"><svg class="ic"><use href="#i-scan"/></svg></div>
+            <div class="k"><div class="kt"><span class="nm">Media scanner</span><span class="pill live">Live</span></div>
+              <span class="vv">ClamAV · Cloud Run</span>
+              <span class="dd">Scans every upload before serving.</span></div></div>
+          <div class="card live"><div class="iconwrap"><svg class="ic"><use href="#i-auth"/></svg></div>
+            <div class="k"><div class="kt"><span class="nm">WorkOS AuthKit</span><span class="pill live">Live</span></div>
+              <span class="vv">sign-in · sessions</span>
+              <span class="dd">Hosted auth.</span></div></div>
+          <div class="card live"><div class="iconwrap"><svg class="ic"><use href="#i-phone"/></svg></div>
+            <div class="k"><div class="kt"><span class="nm">LiveKit</span><span class="pill live">Live</span></div>
+              <span class="vv">wss://livekit.greyhoundsiq.com.au</span>
+              <span class="dd">Voice / video for Pulse.</span></div></div>
+          <div class="card warn"><div class="iconwrap"><svg class="ic"><use href="#i-bolt"/></svg></div>
+            <div class="k"><div class="kt"><span class="nm">Supabase Realtime</span><span class="pill warn">Config</span></div>
+              <span class="vv">self-hosted · service key missing</span>
+              <span class="dd">Only Supabase use left. Add key → live updates.</span></div></div>
+          <div class="card block"><div class="iconwrap"><svg class="ic"><use href="#i-card"/></svg></div>
+            <div class="k"><div class="kt"><span class="nm">Stripe billing</span><span class="pill block">Fix</span></div>
+              <span class="vv">price IDs / keys not set</span>
+              <span class="dd">Checkout down until secrets added.</span></div></div>
+          <div class="card live"><div class="iconwrap"><svg class="ic"><use href="#i-key"/></svg></div>
+            <div class="k"><div class="kt"><span class="nm">Secret Manager</span><span class="pill live">Live</span></div>
+              <span class="vv">greyhoundiq-staging-*</span>
+              <span class="dd">DB, LiveKit, WorkOS keys. Add Stripe + Supabase.</span></div></div>
+          <div class="card live"><div class="iconwrap"><svg class="ic"><use href="#i-clock"/></svg></div>
+            <div class="k"><div class="kt"><span class="nm">Cloud Scheduler</span><span class="pill live">Live</span></div>
+              <span class="vv">live-sync-upcoming · live-sync-results · aggregates</span>
+              <span class="dd">Keep only the recurring feed/data crons.</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECURITY -->
+  <section>
+    <div class="sec">
+      <span class="lab"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--live);fill:none;stroke-width:1.8"><use href="#i-shield"/></svg>Security posture</span>
+      <span class="b"><svg><use href="#i-check"/></svg>Row-level security (per-user DB)</span>
+      <span class="b"><svg><use href="#i-check"/></svg>HTTPS + HSTS</span>
+      <span class="b"><svg><use href="#i-check"/></svg>CSP + nonce</span>
+      <span class="b"><svg><use href="#i-check"/></svg>Signed / proxied media URLs</span>
+      <span class="b"><svg><use href="#i-check"/></svg>Private VPC database</span>
+      <span class="b"><svg><use href="#i-check"/></svg>Rate limits + kill-switches</span>
+      <span class="b" style="color:var(--block);border-color:color-mix(in srgb,var(--block) 40%,transparent)"><svg style="stroke:var(--block)"><use href="#i-shield"/></svg>Cloud Armor WAF/DDoS — NOT set up, add before launch</span>
+    </div>
+  </section>
+
+  <!-- CLEANUP -->
+  <section>
+    <h2>Cleanup — keep the pristine core, delete the old build</h2>
+    <p class="lead">Everything on the right is leftover compute or data from the migration/restore work. None of it serves traffic; removing it stops wasted spend and shrinks the attack surface. <span style="color:var(--warn)">Items marked “verify” need a <span class="mono">gcloud auth login</span> to enumerate exactly.</span></p>
+    <div class="clean">
+
+      <div class="col keep">
+        <div class="ch"><svg class="ic" style="stroke:var(--keep)"><use href="#i-check"/></svg><span class="t">Keep — the running core</span></div>
+        <ul>
+          <li><span class="li-ic"><svg class="ic"><use href="#i-run"/></svg></span><div class="li-b"><div class="li-n">Cloud Run <code>greyhoundiq-web-staging</code></div><div class="li-d">The one serving service + its latest revision (keep 1–2 for rollback).</div></div></li>
+          <li><span class="li-ic"><svg class="ic"><use href="#i-db"/></svg></span><div class="li-b"><div class="li-n">AlloyDB R2 primary + Melbourne replica</div><div class="li-d">Only <code>…stage11_20260718_r2</code>. Keep the Mel replica for HA.</div></div></li>
+          <li><span class="li-ic"><svg class="ic"><use href="#i-bucket"/></svg></span><div class="li-b"><div class="li-n">GCS media buckets + scanner</div><div class="li-d">Private/public user-media, site-assets, ClamAV.</div></div></li>
+          <li><span class="li-ic"><svg class="ic"><use href="#i-clock"/></svg></span><div class="li-b"><div class="li-n">Recurring crons only</div><div class="li-d"><code>live-sync-*</code>, aggregate-refresh, and <code>giq-prisma-migrate-deploy</code> (repointed to R2).</div></div></li>
+          <li><span class="li-ic"><svg class="ic"><use href="#i-shield"/></svg></span><div class="li-b"><div class="li-n">Edge security</div><div class="li-d">LB, Cloud Armor, WorkOS, Secret Manager, VPC connector.</div></div></li>
+        </ul>
+      </div>
+
+      <div class="col drop">
+        <div class="ch"><svg class="ic" style="stroke:var(--drop)"><use href="#i-trash"/></svg><span class="t">Delete — old builds &amp; unused data</span></div>
+        <ul>
+          <li><span class="li-ic"><svg class="ic"><use href="#i-db"/></svg></span><div class="li-b"><div class="li-n">Rehearsal / R1 databases</div><div class="li-d"><code>giq_rehearsal_restore_v8</code>, any <code>…r1</code> / older stage11 restores. <span class="verify">verify list, then DROP</span> — R2 is the only one you need.</div></div></li>
+          <li><span class="li-ic"><svg class="ic"><use href="#i-run"/></svg></span><div class="li-b"><div class="li-n">17 inactive Cloud Run revisions</div><div class="li-d">Everything except <code>00041</code> (serving). Keep 1–2 for rollback, delete the rest incl. the tagged experiments.</div></div></li>
+          <li><span class="li-ic"><svg class="ic"><use href="#i-clock"/></svg></span><div class="li-b"><div class="li-n">14 one-off jobs</div><div class="li-d"><code>full-history-restore/merge</code>, <code>candidate-local-export</code>, <code>db-history-audit</code>, <code>db-size-check</code>, <code>production-db-audit</code>, <code>galtd-pedigree-load</code>, <code>analyze-r2</code>, <code>replay-coverage-r2</code>, <code>rehearsal-db-copy</code>, replay-backfills. Keep <code>live-sync-*</code> + migrate jobs.</div></div></li>
+          <li><span class="li-ic"><svg class="ic"><use href="#i-key"/></svg></span><div class="li-b"><div class="li-n">Stale secrets + stuck job ref</div><div class="li-d"><code>greyhoundiq-staging-DATABASE_URL</code> (rehearsal), <code>giq-rehearsal-source-db-url</code>, <code>giq-replay-backfill-DATABASE_URL</code>; clear the broken <code>ADMIN_DATABASE_PASSWORD</code> ref on the migrate job.</div></div></li>
+          <li><span class="li-ic"><svg class="ic"><use href="#i-bucket"/></svg></span><div class="li-b"><div class="li-n">Old build images</div><div class="li-d">4 <code>greyhoundiq-migrate:migratefix*</code> + trim 31 <code>greyhoundiq-web</code> digests to the recent few.</div></div></li>
+          <li><span class="li-ic"><svg class="ic"><use href="#i-git"/></svg></span><div class="li-b"><div class="li-n">180 uncommitted local changes</div><div class="li-d">Commit this session's fixes; drop the temporary <code>migrate.sh</code> repoint hack.</div></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span class="mono">clever-bee-502514-m4 · australia-southeast1 · verified 20 Jul 2026</span>
+    <span>Next: re-auth <span class="mono">gcloud auth login</span> so I can enumerate + delete the exact old DBs, revisions &amp; jobs.</span>
+  </footer>
+
+</div></div>
+</body>
+</html>

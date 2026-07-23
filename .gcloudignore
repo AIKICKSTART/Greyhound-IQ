@@ -6,8 +6,20 @@
 .next-dev-logs
 .backfill
 .remember
+native-postgres16
+prediction-engine
 node_modules
 output
+!output/
+output/*
+!output/demo-route-audit/
+output/demo-route-audit/*
+!output/demo-route-audit/latest.json
+!output/database-audit/
+output/database-audit/*
+!output/database-audit/account-deletion-finalize.json
+!output/database-audit/live-provider-ingest.json
+!output/database-audit/user-export-read.json
 coverage
 playwright-report
 test-results
@@ -18,6 +30,7 @@ external
 !.env.example
 
 *.log
+Thumbs.db
 npm-debug.log*
 tsconfig.tsbuildinfo
 docs/**/*.html

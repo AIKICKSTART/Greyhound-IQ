@@ -1,0 +1,1693 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "account-deletion-finalize-disposable-proof",
+  "generatedAt": "2026-07-23T10:21:54.867Z",
+  "safety": {
+    "scope": "literal-loopback-disposable-replay-only",
+    "host": "127.0.0.1",
+    "port": 55734,
+    "productionOrProviderSystemsContacted": false,
+    "storageBatchHandler": "injected-provider-free-completion",
+    "fixtureOwner": "account-deletion-finalize-dedicated-proof",
+    "broadCleanupUsed": false
+  },
+  "runtimeIdentity": {
+    "role": "greyhoundiq_runtime",
+    "sessionRole": "greyhoundiq_runtime",
+    "database": "greyhoundiq",
+    "schema": "public",
+    "canLogin": true,
+    "superuser": false,
+    "bypassRls": false
+  },
+  "sourceBinding": {
+    "files": {
+      "prisma/schema.prisma": "c8847698e08907d29859a0e6be2142a7946b3d9cb998bfe4f5d343c383dfc3b8",
+      "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d",
+      "prisma/migrations/20260715053000_add_account_deletion_pending_index/migration.sql": "a6052fc820a613128afec7457724c4fb0f0311ea07b2d9cdd8fdf87b6eb4ad11",
+      "scripts/check-account-deletion-finalize-postgres.ts": "2b1e3e2cbcc8835e4390644014bef3a0958325b67640993fdfd0eb43b3a09a59",
+      "scripts/check-account-deletion-finalize-postgres.test.ts": "bd45206efa1f70a4842951e106c1b9bd4ea10ad339ab3389c6514aeab55da1ba",
+      "security/database-operations.ts": "93b1bf1fc55484835f0918339cb91a00231ff9579600b2a2d2a0aedae012d12c",
+      "src/lib/account-deletion.test.ts": "9373cd3f633f59ac439c780f4ab086a6d177df56bf070a04063a050fe559fd0a",
+      "src/lib/account-service.ts": "2a10581b11cc1426006fe40c6083d3e412fc7bb97f084d0ab67de3f8a6ff165f",
+      "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
+      "src/lib/db.ts": "b11f3357d3daea521e825d8483b4bb8050c8c7d059e2aa311f1788b1b09d9035"
+    },
+    "combinedSha256": "502eff9b26bec48da977b095af7d10a8fcf2ddb06cc3d6a9f19412fed29d7afc"
+  },
+  "proof": {
+    "queryId": "DB.ACCOUNT.DELETION.FINALIZE.TRANSACTION",
+    "sourceFile": "src/lib/account-service.ts",
+    "sourceSymbol": "runAccountDeletionMaintenance",
+    "contentBatchLimit": 100,
+    "expectedMaximumRows": 20100,
+    "partialPass": {
+      "finalizedCount": 0,
+      "messagesScrubbed": 100,
+      "postsScrubbed": 1,
+      "threadsScrubbed": 1,
+      "listingsArchived": 1,
+      "mediaTombstoned": 1,
+      "storageDeletionJobsQueued": 0,
+      "memoriesDeleted": 1,
+      "contextsDeleted": 1,
+      "agentRunsScrubbed": 1,
+      "unsanitizedMessagesRemaining": 1,
+      "batchAuditRows": 1,
+      "storageCalls": 0
+    },
+    "finalPass": {
+      "finalizedCount": 1,
+      "messagesScrubbed": 1,
+      "postsScrubbed": 0,
+      "threadsScrubbed": 0,
+      "listingsArchived": 0,
+      "mediaTombstoned": 0,
+      "storageDeletionJobsQueued": 2,
+      "storageDeletionJobsCompleted": 2,
+      "storageObjectsDeleted": 0,
+      "remoteProviderReferencesRetained": 3,
+      "memoriesDeleted": 0,
+      "contextsDeleted": 0,
+      "agentRunsScrubbed": 0,
+      "storageCalls": 2
+    },
+    "idempotentPass": {
+      "finalizedCount": 0,
+      "messagesScrubbed": 0,
+      "storageDeletionJobsQueued": 0,
+      "storageCalls": 2
+    },
+    "dataOutcome": {
+      "targetMessagesScrubbed": 101,
+      "counterpartyAuthoredMessagePreserved": true,
+      "profileAnonymized": true,
+      "listingArchived": true,
+      "mediaTombstoned": true,
+      "memoryTombstoned": true,
+      "contextDeleted": true,
+      "agentRunScrubbed": true,
+      "userAnonymized": true,
+      "remoteProviderReferencesRetained": true,
+      "storageJobsCompleted": 2,
+      "auditRows": 5
+    },
+    "rollback": {
+      "forcedUniqueEmailConflict": true,
+      "authoredMessageUnchanged": true,
+      "profileUnchanged": true,
+      "userStillPending": true,
+      "deletionJobsCreated": 0,
+      "finalizationAuditsCreated": 0
+    },
+    "cases": {
+      "candidateLock": "due-user-revalidated-under-for-update-before-each-batch-transaction",
+      "boundedProgress": "one-hundred-one-authored-messages-required-two-maintenance-passes",
+      "finalizationGate": "user-jobs-and-final-audit-written-only-after-all-batches-drained",
+      "senderOnlyMessageScrub": "recipient-copy-authored-by-counterparty-remained-unchanged",
+      "providerIsolation": "two-storage-jobs-completed-by-injected-zero-object-handler",
+      "rollback": "late-user-email-conflict-rolled-back-earlier-message-and-profile-writes",
+      "repeat": "third-pass-returned-zero-without-duplicate-jobs-or-audits"
+    },
+    "statementCount": 17,
+    "statements": [
+      {
+        "variant": "finalize-01",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"public\".\"AuditLog\" (\"actorId\",\"actorType\",\"action\",\"targetType\",\"targetId\",\"ip\",\"userAgent\",\"metadata\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+          "sha256": "af86b600f17132e8e0583e874666a19417651fd04f2e4d900550163c46a1ecfa",
+          "parameterCount": 9,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "AuditLog",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 0,
+            "totalCost": 0.02,
+            "children": [
+              {
+                "nodeType": "Result",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 0.02,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "d83890cecbd67cf96150c668166f7107887c83137dfe0ce6642b6642e94b1d95"
+        }
+      },
+      {
+        "variant": "finalize-02",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"public\".\"AuditLog\" (\"actorType\",\"action\",\"targetType\",\"targetId\",\"metadata\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6) RETURNING \"public\".\"AuditLog\".\"id\", \"public\".\"AuditLog\".\"actorId\", \"public\".\"AuditLog\".\"actorType\", \"public\".\"AuditLog\".\"action\", \"public\".\"AuditLog\".\"targetType\", \"public\".\"AuditLog\".\"targetId\", \"public\".\"AuditLog\".\"ip\", \"public\".\"AuditLog\".\"userAgent\", \"public\".\"AuditLog\".\"metadata\", \"public\".\"AuditLog\".\"createdAt\"",
+          "sha256": "528459e55600eb3adca56b5b504aa53cfbc2a1753938fa687f4effe80ffb2db1",
+          "parameterCount": 6,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "AuditLog",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 0.02,
+            "children": [
+              {
+                "nodeType": "Result",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 0.02,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "9a2e3aa5f922c3e0872f6387dd861c2f80e70dcb4ea8c23ab9a4f61296a72ff4"
+        }
+      },
+      {
+        "variant": "finalize-03",
+        "observedSql": {
+          "statementType": "INSERT",
+          "normalizedSql": "INSERT INTO \"public\".\"DeletionJob\" (\"id\",\"targetType\",\"targetUserId\",\"storageBucket\",\"storagePath\",\"status\",\"scheduledFor\",\"createdAt\",\"updatedAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9), ($10,$11,$12,$13,$14,$15,$16,$17,$18)",
+          "sha256": "e2a552f744d6b22eb8656a728979596b4a1f569be39cfb89040448a6fb70988b",
+          "parameterCount": 18,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "DeletionJob",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 0,
+            "totalCost": 0.03,
+            "children": [
+              {
+                "nodeType": "Values Scan",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 2,
+                "totalCost": 0.03,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "634fa76d16e33a03747cd2f478b48610c496b89db07b954bec5eb396c793b9de"
+        }
+      },
+      {
+        "variant": "finalize-04",
+        "observedSql": {
+          "statementType": "SELECT-FOR-UPDATE",
+          "normalizedSql": "SELECT u.id, u.\"stripeCustomerId\", u.\"stripeSubscriptionId\", u.\"workosUserId\", u.\"deletionRequestedAt\" FROM \"User\" AS u WHERE u.id = $1 AND u.\"isBanned\" = true AND u.\"deletionRequestedAt\" <= $2 FOR UPDATE",
+          "sha256": "2155443b4b7ea54d8d7c2d9cbee980672d0c24b0edbb6ed03a79330d97281076",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "LockRows",
+            "relationName": null,
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 8.44,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "User",
+                "indexName": "User_pkey",
+                "joinType": null,
+                "scanDirection": "Forward",
+                "estimatedRows": 1,
+                "totalCost": 8.43,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "f940757bea3b0bd4be10d272c4ad0068aa8186ab8658a04202616bc3b5a42933"
+        }
+      },
+      {
+        "variant": "finalize-05",
+        "observedSql": {
+          "statementType": "UPDATE",
+          "normalizedSql": "UPDATE \"public\".\"DeletionJob\" SET \"status\" = $1, \"completedAt\" = $2, \"updatedAt\" = $3 WHERE (\"public\".\"DeletionJob\".\"id\" = $4 AND 1=1) RETURNING \"public\".\"DeletionJob\".\"id\", \"public\".\"DeletionJob\".\"policyId\", \"public\".\"DeletionJob\".\"targetType\", \"public\".\"DeletionJob\".\"targetUserId\", \"public\".\"DeletionJob\".\"storageBucket\", \"public\".\"DeletionJob\".\"storagePath\", \"public\".\"DeletionJob\".\"status\", \"public\".\"DeletionJob\".\"scheduledFor\", \"public\".\"DeletionJob\".\"completedAt\", \"public\".\"DeletionJob\".\"requestedByUserId\", \"public\".\"DeletionJob\".\"createdAt\", \"public\".\"DeletionJob\".\"updatedAt\"",
+          "sha256": "465c225bcf2beee0ae07e9d13f2fb270de02b26abde1fce973c4428d6698e9f8",
+          "parameterCount": 4,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "DeletionJob",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 8.25,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "DeletionJob",
+                "indexName": "DeletionJob_pkey",
+                "joinType": null,
+                "scanDirection": "Forward",
+                "estimatedRows": 1,
+                "totalCost": 8.25,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "727ca2d8745437a2699f130c536f763f2962c877aebf61df54b2db0edba18a4c"
+        }
+      },
+      {
+        "variant": "finalize-06",
+        "observedSql": {
+          "statementType": "UPDATE",
+          "normalizedSql": "UPDATE \"public\".\"DeletionJob\" SET \"status\" = $1, \"updatedAt\" = $2 WHERE (\"public\".\"DeletionJob\".\"id\" = $3 AND (\"public\".\"DeletionJob\".\"status\" = $4 OR (\"public\".\"DeletionJob\".\"status\" = $5 AND \"public\".\"DeletionJob\".\"updatedAt\" <= $6)))",
+          "sha256": "09d91c3fdc148a520415cd6d3019c227e17fd1054ec893f5382d9b1502c1dd27",
+          "parameterCount": 6,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "DeletionJob",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 0,
+            "totalCost": 8.25,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "DeletionJob",
+                "indexName": "DeletionJob_pkey",
+                "joinType": null,
+                "scanDirection": "Forward",
+                "estimatedRows": 1,
+                "totalCost": 8.25,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "f9a397e2c0c03a8aa8364c29578575f4a9aa36d0d1d214972cd2abc1582d528e"
+        }
+      },
+      {
+        "variant": "finalize-07",
+        "observedSql": {
+          "statementType": "UPDATE",
+          "normalizedSql": "UPDATE \"public\".\"Profile\" SET \"displayName\" = $1, \"bio\" = $2, \"avatarUrl\" = $3, \"state\" = $4, \"kennelName\" = $5, \"kennelPrefix\" = $6, \"role\" = $7, \"verified\" = $8, \"website\" = $9, \"phone\" = $10, \"updatedAt\" = $11 WHERE (\"public\".\"Profile\".\"id\" = $12 AND 1=1) RETURNING \"public\".\"Profile\".\"id\", \"public\".\"Profile\".\"userId\", \"public\".\"Profile\".\"displayName\", \"public\".\"Profile\".\"bio\", \"public\".\"Profile\".\"avatarUrl\", \"public\".\"Profile\".\"state\", \"public\".\"Profile\".\"kennelName\", \"public\".\"Profile\".\"kennelPrefix\", \"public\".\"Profile\".\"role\", \"public\".\"Profile\".\"verified\", \"public\".\"Profile\".\"isFounder\", \"public\".\"Profile\".\"racingDayTrackIds\", \"public\".\"Profile\".\"messengerLayout\", \"public\".\"Profile\".\"website\", \"public\".\"Profile\".\"phone\", \"public\".\"Profile\".\"createdAt\", \"public\".\"Profile\".\"updatedAt\"",
+          "sha256": "0a5761f7265f16377c290ab668ba5bd16a7e0e1bbd7fa16e5ab4a8420e8af0c3",
+          "parameterCount": 12,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "Profile",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 8.43,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "Profile",
+                "indexName": "Profile_pkey",
+                "joinType": null,
+                "scanDirection": "Forward",
+                "estimatedRows": 1,
+                "totalCost": 8.43,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "7ce7a5f32fd982d03e3e087125d5aebc3f4b969644292961e990705c2b5364b5"
+        }
+      },
+      {
+        "variant": "finalize-08",
+        "observedSql": {
+          "statementType": "UPDATE",
+          "normalizedSql": "UPDATE \"public\".\"SocialActor\" SET \"handle\" = $1, \"displayName\" = $2, \"avatarUrl\" = $3, \"coverUrl\" = $4, \"profileVisibility\" = $5, \"contactVisibility\" = $6, \"published\" = $7, \"updatedAt\" = $8 WHERE \"public\".\"SocialActor\".\"profileId\" = $9",
+          "sha256": "b085190d9c14cd2f80b2ce33eae51a53c4bd5ca07e3c7e823011671a81913254",
+          "parameterCount": 9,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "SocialActor",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 0,
+            "totalCost": 9.02,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "SocialActor",
+                "indexName": "SocialActor_profileId_key",
+                "joinType": null,
+                "scanDirection": "Forward",
+                "estimatedRows": 1,
+                "totalCost": 9.02,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "950d04b2586f75a304ac16a08d2037192a2091f3c12a431a728804ef48262928"
+        }
+      },
+      {
+        "variant": "finalize-09",
+        "observedSql": {
+          "statementType": "UPDATE",
+          "normalizedSql": "UPDATE \"public\".\"User\" SET \"email\" = $1, \"name\" = $2, \"subscriptionTier\" = $3, \"isBanned\" = $4, \"deletionRequestedAt\" = $5, \"updatedAt\" = $6 WHERE (\"public\".\"User\".\"id\" = $7 AND 1=1) RETURNING \"public\".\"User\".\"id\", \"public\".\"User\".\"email\", \"public\".\"User\".\"name\", \"public\".\"User\".\"subscriptionTier\", \"public\".\"User\".\"stripeCustomerId\", \"public\".\"User\".\"stripeSubscriptionId\", \"public\".\"User\".\"isBanned\", \"public\".\"User\".\"deletionRequestedAt\", \"public\".\"User\".\"createdAt\", \"public\".\"User\".\"updatedAt\", \"public\".\"User\".\"workosUserId\"",
+          "sha256": "dc983ddab46d8145ec28f56539a56e13a69ef0024229da08de6a18823ce2d4c5",
+          "parameterCount": 7,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "User",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 8.43,
+            "children": [
+              {
+                "nodeType": "Index Scan",
+                "relationName": "User",
+                "indexName": "User_pkey",
+                "joinType": null,
+                "scanDirection": "Forward",
+                "estimatedRows": 1,
+                "totalCost": 8.43,
+                "children": []
+              }
+            ]
+          },
+          "planSha256": "b2b014538c6c6c12749e480a79907a60cedbd1ea111c8122786ba34ad90ca608"
+        }
+      },
+      {
+        "variant": "finalize-10",
+        "observedSql": {
+          "statementType": "WITH-DML",
+          "normalizedSql": "WITH targets AS ( SELECT a.id FROM \"AgentRun\" AS a WHERE a.\"userId\" = $1 ORDER BY a.id ASC LIMIT $2 FOR UPDATE SKIP LOCKED ) UPDATE \"AgentRun\" AS target SET \"userId\" = NULL, \"inputJson\" = '{}', \"outputJson\" = NULL, \"toolInvocations\" = NULL, \"createdMemoryIds\" = NULL, error = NULL FROM targets WHERE target.id = targets.id RETURNING target.id",
+          "sha256": "a91a32336ddf192559c57c26db8268d6049ff42ca48e975340007e2464296da9",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "AgentRun",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 24.61,
+            "children": [
+              {
+                "nodeType": "Limit",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 8.26,
+                "children": [
+                  {
+                    "nodeType": "LockRows",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 8.26,
+                    "children": [
+                      {
+                        "nodeType": "Sort",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "scanDirection": null,
+                        "estimatedRows": 1,
+                        "totalCost": 8.25,
+                        "children": [
+                          {
+                            "nodeType": "Index Scan",
+                            "relationName": "AgentRun",
+                            "indexName": "AgentRun_userId_idx",
+                            "joinType": null,
+                            "scanDirection": "Forward",
+                            "estimatedRows": 1,
+                            "totalCost": 8.24,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "nodeType": "Nested Loop",
+                "relationName": null,
+                "indexName": null,
+                "joinType": "Inner",
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 16.35,
+                "children": [
+                  {
+                    "nodeType": "CTE Scan",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 0.02,
+                    "children": []
+                  },
+                  {
+                    "nodeType": "Index Scan",
+                    "relationName": "AgentRun",
+                    "indexName": "AgentRun_pkey",
+                    "joinType": null,
+                    "scanDirection": "Forward",
+                    "estimatedRows": 1,
+                    "totalCost": 8.24,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "a64f9e2011a4fc59a18fb9c5dacc91bd62a5fe42d63f2d3fc5f66fcaca43324d"
+        }
+      },
+      {
+        "variant": "finalize-11",
+        "observedSql": {
+          "statementType": "WITH-DML",
+          "normalizedSql": "WITH targets AS ( SELECT c.id FROM \"ConversationContext\" AS c WHERE c.\"userId\" = $1 ORDER BY c.id ASC LIMIT $2 FOR UPDATE SKIP LOCKED ) DELETE FROM \"ConversationContext\" AS target USING targets WHERE target.id = targets.id RETURNING target.id",
+          "sha256": "5d5be80c2751d5144b5d7e38389210ca89004c1085c491e68c9258bbcfde469b",
+          "parameterCount": 2,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "ConversationContext",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 26.03,
+            "children": [
+              {
+                "nodeType": "Limit",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 9.68,
+                "children": [
+                  {
+                    "nodeType": "LockRows",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 9.68,
+                    "children": [
+                      {
+                        "nodeType": "Sort",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "scanDirection": null,
+                        "estimatedRows": 1,
+                        "totalCost": 9.67,
+                        "children": [
+                          {
+                            "nodeType": "Bitmap Heap Scan",
+                            "relationName": "ConversationContext",
+                            "indexName": null,
+                            "joinType": null,
+                            "scanDirection": null,
+                            "estimatedRows": 1,
+                            "totalCost": 9.65,
+                            "children": [
+                              {
+                                "nodeType": "Bitmap Index Scan",
+                                "relationName": null,
+                                "indexName": "ConversationContext_userId_agentType_key",
+                                "joinType": null,
+                                "scanDirection": null,
+                                "estimatedRows": 2,
+                                "totalCost": 4.16,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "nodeType": "Nested Loop",
+                "relationName": null,
+                "indexName": null,
+                "joinType": "Inner",
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 16.35,
+                "children": [
+                  {
+                    "nodeType": "CTE Scan",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 0.02,
+                    "children": []
+                  },
+                  {
+                    "nodeType": "Index Scan",
+                    "relationName": "ConversationContext",
+                    "indexName": "ConversationContext_pkey",
+                    "joinType": null,
+                    "scanDirection": "Forward",
+                    "estimatedRows": 1,
+                    "totalCost": 8.24,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "febd9489d5ac6007b009df516a6cfc112fe6d9e094f6e600dc02db1d48d01b14"
+        }
+      },
+      {
+        "variant": "finalize-12",
+        "observedSql": {
+          "statementType": "WITH-DML",
+          "normalizedSql": "WITH targets AS ( SELECT l.id FROM \"Listing\" AS l WHERE l.\"profileId\" = $1 AND ( l.title IS DISTINCT FROM $2 OR l.description IS DISTINCT FROM $3 OR l.price IS NOT NULL OR l.state IS NOT NULL OR l.\"dogId\" IS NOT NULL OR l.\"imageUrl\" IS NOT NULL OR l.status IS DISTINCT FROM 'archived' OR l.\"archivedAt\" IS NULL ) ORDER BY l.id ASC LIMIT $4 FOR UPDATE SKIP LOCKED ) UPDATE \"Listing\" AS target SET title = $5, description = $6, price = NULL, state = NULL, \"dogId\" = NULL, \"imageUrl\" = NULL, status = 'archived', \"archivedAt\" = $7, \"updatedAt\" = $8 FROM targets WHERE target.id = targets.id RETURNING target.id",
+          "sha256": "f0462a7fe2db145e82f19340291a5b031ef2d9a21dc3527a09ac83ededf5e6be",
+          "parameterCount": 8,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "Listing",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 24.7,
+            "children": [
+              {
+                "nodeType": "Limit",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 8.26,
+                "children": [
+                  {
+                    "nodeType": "LockRows",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 8.26,
+                    "children": [
+                      {
+                        "nodeType": "Sort",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "scanDirection": null,
+                        "estimatedRows": 1,
+                        "totalCost": 8.25,
+                        "children": [
+                          {
+                            "nodeType": "Index Scan",
+                            "relationName": "Listing",
+                            "indexName": "Listing_profileId_status_idx",
+                            "joinType": null,
+                            "scanDirection": "Forward",
+                            "estimatedRows": 1,
+                            "totalCost": 8.24,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "nodeType": "Nested Loop",
+                "relationName": null,
+                "indexName": null,
+                "joinType": "Inner",
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 16.44,
+                "children": [
+                  {
+                    "nodeType": "Seq Scan",
+                    "relationName": "Listing",
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 16.4,
+                    "children": []
+                  },
+                  {
+                    "nodeType": "CTE Scan",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 0.02,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "019b150df6503d1488b0a14ff7d689b31a61395fa380ebc136bad7622c983673"
+        }
+      },
+      {
+        "variant": "finalize-13",
+        "observedSql": {
+          "statementType": "WITH-DML",
+          "normalizedSql": "WITH targets AS ( SELECT m.id FROM \"MediaAsset\" AS m WHERE m.\"uploaderId\" = $1 AND m.\"deletedAt\" IS NULL ORDER BY m.id ASC LIMIT $2 FOR UPDATE SKIP LOCKED ) UPDATE \"MediaAsset\" AS target SET \"originalName\" = NULL, sha256 = NULL, \"deletedAt\" = $3, \"updatedAt\" = $4 FROM targets WHERE target.id = targets.id RETURNING target.id",
+          "sha256": "1cf1c52dbeb61646b473e1bf64a75e4ec5d1bd707248f2e6afe032f7be7a6e64",
+          "parameterCount": 4,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "MediaAsset",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 121.3,
+            "children": [
+              {
+                "nodeType": "Limit",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 58.13,
+                "children": [
+                  {
+                    "nodeType": "LockRows",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 58.13,
+                    "children": [
+                      {
+                        "nodeType": "Sort",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "scanDirection": null,
+                        "estimatedRows": 1,
+                        "totalCost": 58.12,
+                        "children": [
+                          {
+                            "nodeType": "Index Scan",
+                            "relationName": "MediaAsset",
+                            "indexName": "MediaAsset_uploaderId_sha256_idx",
+                            "joinType": null,
+                            "scanDirection": "Forward",
+                            "estimatedRows": 1,
+                            "totalCost": 58.1,
+                            "children": [
+                              {
+                                "nodeType": "Nested Loop",
+                                "relationName": null,
+                                "indexName": null,
+                                "joinType": "Inner",
+                                "scanDirection": null,
+                                "estimatedRows": 1,
+                                "totalCost": 49.42,
+                                "children": [
+                                  {
+                                    "nodeType": "Bitmap Heap Scan",
+                                    "relationName": "Message",
+                                    "indexName": null,
+                                    "joinType": null,
+                                    "scanDirection": null,
+                                    "estimatedRows": 1,
+                                    "totalCost": 12.62,
+                                    "children": [
+                                      {
+                                        "nodeType": "BitmapOr",
+                                        "relationName": null,
+                                        "indexName": null,
+                                        "joinType": null,
+                                        "scanDirection": null,
+                                        "estimatedRows": 1,
+                                        "totalCost": 8.32,
+                                        "children": [
+                                          {
+                                            "nodeType": "Bitmap Index Scan",
+                                            "relationName": null,
+                                            "indexName": "Message_senderId_idx",
+                                            "joinType": null,
+                                            "scanDirection": null,
+                                            "estimatedRows": 1,
+                                            "totalCost": 4.16,
+                                            "children": []
+                                          },
+                                          {
+                                            "nodeType": "Bitmap Index Scan",
+                                            "relationName": null,
+                                            "indexName": "Message_recipientId_idx",
+                                            "joinType": null,
+                                            "scanDirection": null,
+                                            "estimatedRows": 1,
+                                            "totalCost": 4.16,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "nodeType": "Index Only Scan",
+                                    "relationName": "MessageMedia",
+                                    "indexName": "MessageMedia_pkey",
+                                    "joinType": null,
+                                    "scanDirection": "Forward",
+                                    "estimatedRows": 1,
+                                    "totalCost": 24.59,
+                                    "children": [
+                                      {
+                                        "nodeType": "Bitmap Heap Scan",
+                                        "relationName": "Message",
+                                        "indexName": null,
+                                        "joinType": null,
+                                        "scanDirection": null,
+                                        "estimatedRows": 1,
+                                        "totalCost": 12.37,
+                                        "children": [
+                                          {
+                                            "nodeType": "BitmapOr",
+                                            "relationName": null,
+                                            "indexName": null,
+                                            "joinType": null,
+                                            "scanDirection": null,
+                                            "estimatedRows": 1,
+                                            "totalCost": 8.32,
+                                            "children": [
+                                              {
+                                                "nodeType": "Bitmap Index Scan",
+                                                "relationName": null,
+                                                "indexName": "Message_senderId_idx",
+                                                "joinType": null,
+                                                "scanDirection": null,
+                                                "estimatedRows": 1,
+                                                "totalCost": 4.16,
+                                                "children": []
+                                              },
+                                              {
+                                                "nodeType": "Bitmap Index Scan",
+                                                "relationName": null,
+                                                "indexName": "Message_recipientId_idx",
+                                                "joinType": null,
+                                                "scanDirection": null,
+                                                "estimatedRows": 1,
+                                                "totalCost": 4.16,
+                                                "children": []
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "nodeType": "Index Scan",
+                                        "relationName": "Message",
+                                        "indexName": "Message_pkey",
+                                        "joinType": null,
+                                        "scanDirection": "Forward",
+                                        "estimatedRows": 1,
+                                        "totalCost": 8.19,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "nodeType": "Nested Loop",
+                "relationName": null,
+                "indexName": null,
+                "joinType": "Inner",
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 63.17,
+                "children": [
+                  {
+                    "nodeType": "CTE Scan",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 0.02,
+                    "children": []
+                  },
+                  {
+                    "nodeType": "Index Scan",
+                    "relationName": "MediaAsset",
+                    "indexName": "MediaAsset_pkey",
+                    "joinType": null,
+                    "scanDirection": "Forward",
+                    "estimatedRows": 1,
+                    "totalCost": 58.1,
+                    "children": [
+                      {
+                        "nodeType": "Nested Loop",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": "Inner",
+                        "scanDirection": null,
+                        "estimatedRows": 1,
+                        "totalCost": 49.42,
+                        "children": [
+                          {
+                            "nodeType": "Bitmap Heap Scan",
+                            "relationName": "Message",
+                            "indexName": null,
+                            "joinType": null,
+                            "scanDirection": null,
+                            "estimatedRows": 1,
+                            "totalCost": 12.62,
+                            "children": [
+                              {
+                                "nodeType": "BitmapOr",
+                                "relationName": null,
+                                "indexName": null,
+                                "joinType": null,
+                                "scanDirection": null,
+                                "estimatedRows": 1,
+                                "totalCost": 8.32,
+                                "children": [
+                                  {
+                                    "nodeType": "Bitmap Index Scan",
+                                    "relationName": null,
+                                    "indexName": "Message_senderId_idx",
+                                    "joinType": null,
+                                    "scanDirection": null,
+                                    "estimatedRows": 1,
+                                    "totalCost": 4.16,
+                                    "children": []
+                                  },
+                                  {
+                                    "nodeType": "Bitmap Index Scan",
+                                    "relationName": null,
+                                    "indexName": "Message_recipientId_idx",
+                                    "joinType": null,
+                                    "scanDirection": null,
+                                    "estimatedRows": 1,
+                                    "totalCost": 4.16,
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "nodeType": "Index Only Scan",
+                            "relationName": "MessageMedia",
+                            "indexName": "MessageMedia_pkey",
+                            "joinType": null,
+                            "scanDirection": "Forward",
+                            "estimatedRows": 1,
+                            "totalCost": 24.59,
+                            "children": [
+                              {
+                                "nodeType": "Bitmap Heap Scan",
+                                "relationName": "Message",
+                                "indexName": null,
+                                "joinType": null,
+                                "scanDirection": null,
+                                "estimatedRows": 1,
+                                "totalCost": 12.37,
+                                "children": [
+                                  {
+                                    "nodeType": "BitmapOr",
+                                    "relationName": null,
+                                    "indexName": null,
+                                    "joinType": null,
+                                    "scanDirection": null,
+                                    "estimatedRows": 1,
+                                    "totalCost": 8.32,
+                                    "children": [
+                                      {
+                                        "nodeType": "Bitmap Index Scan",
+                                        "relationName": null,
+                                        "indexName": "Message_senderId_idx",
+                                        "joinType": null,
+                                        "scanDirection": null,
+                                        "estimatedRows": 1,
+                                        "totalCost": 4.16,
+                                        "children": []
+                                      },
+                                      {
+                                        "nodeType": "Bitmap Index Scan",
+                                        "relationName": null,
+                                        "indexName": "Message_recipientId_idx",
+                                        "joinType": null,
+                                        "scanDirection": null,
+                                        "estimatedRows": 1,
+                                        "totalCost": 4.16,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "nodeType": "Index Scan",
+                                "relationName": "Message",
+                                "indexName": "Message_pkey",
+                                "joinType": null,
+                                "scanDirection": "Forward",
+                                "estimatedRows": 1,
+                                "totalCost": 8.19,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "nodeType": "Nested Loop",
+                "relationName": null,
+                "indexName": null,
+                "joinType": "Inner",
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 49.42,
+                "children": [
+                  {
+                    "nodeType": "Bitmap Heap Scan",
+                    "relationName": "Message",
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 12.62,
+                    "children": [
+                      {
+                        "nodeType": "BitmapOr",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "scanDirection": null,
+                        "estimatedRows": 1,
+                        "totalCost": 8.32,
+                        "children": [
+                          {
+                            "nodeType": "Bitmap Index Scan",
+                            "relationName": null,
+                            "indexName": "Message_senderId_idx",
+                            "joinType": null,
+                            "scanDirection": null,
+                            "estimatedRows": 1,
+                            "totalCost": 4.16,
+                            "children": []
+                          },
+                          {
+                            "nodeType": "Bitmap Index Scan",
+                            "relationName": null,
+                            "indexName": "Message_recipientId_idx",
+                            "joinType": null,
+                            "scanDirection": null,
+                            "estimatedRows": 1,
+                            "totalCost": 4.16,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "nodeType": "Index Only Scan",
+                    "relationName": "MessageMedia",
+                    "indexName": "MessageMedia_pkey",
+                    "joinType": null,
+                    "scanDirection": "Forward",
+                    "estimatedRows": 1,
+                    "totalCost": 24.59,
+                    "children": [
+                      {
+                        "nodeType": "Bitmap Heap Scan",
+                        "relationName": "Message",
+                        "indexName": null,
+                        "joinType": null,
+                        "scanDirection": null,
+                        "estimatedRows": 1,
+                        "totalCost": 12.37,
+                        "children": [
+                          {
+                            "nodeType": "BitmapOr",
+                            "relationName": null,
+                            "indexName": null,
+                            "joinType": null,
+                            "scanDirection": null,
+                            "estimatedRows": 1,
+                            "totalCost": 8.32,
+                            "children": [
+                              {
+                                "nodeType": "Bitmap Index Scan",
+                                "relationName": null,
+                                "indexName": "Message_senderId_idx",
+                                "joinType": null,
+                                "scanDirection": null,
+                                "estimatedRows": 1,
+                                "totalCost": 4.16,
+                                "children": []
+                              },
+                              {
+                                "nodeType": "Bitmap Index Scan",
+                                "relationName": null,
+                                "indexName": "Message_recipientId_idx",
+                                "joinType": null,
+                                "scanDirection": null,
+                                "estimatedRows": 1,
+                                "totalCost": 4.16,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "nodeType": "Index Scan",
+                        "relationName": "Message",
+                        "indexName": "Message_pkey",
+                        "joinType": null,
+                        "scanDirection": "Forward",
+                        "estimatedRows": 1,
+                        "totalCost": 8.19,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "f6d431ab6dbc340a461a8323a63647b7d7f7dbf3a72c75de79f2c24755a88692"
+        }
+      },
+      {
+        "variant": "finalize-14",
+        "observedSql": {
+          "statementType": "WITH-DML",
+          "normalizedSql": "WITH targets AS ( SELECT m.id FROM \"MemoryEntry\" AS m WHERE m.\"userId\" = $1 AND m.\"deletedAt\" IS NULL ORDER BY m.id ASC LIMIT $2 FOR UPDATE SKIP LOCKED ) UPDATE \"MemoryEntry\" AS target SET content = $3, \"sourceRef\" = NULL, importance = 0.1, \"deletedAt\" = $4, \"updatedAt\" = $5 FROM targets WHERE target.id = targets.id RETURNING target.id",
+          "sha256": "7313dd17ca0a19df628174b9f98ee330e552d93b5eb2063c7fd4979983e365b0",
+          "parameterCount": 5,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "MemoryEntry",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 24.67,
+            "children": [
+              {
+                "nodeType": "Limit",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 8.28,
+                "children": [
+                  {
+                    "nodeType": "LockRows",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 8.28,
+                    "children": [
+                      {
+                        "nodeType": "Sort",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "scanDirection": null,
+                        "estimatedRows": 1,
+                        "totalCost": 8.27,
+                        "children": [
+                          {
+                            "nodeType": "Index Scan",
+                            "relationName": "MemoryEntry",
+                            "indexName": "MemoryEntry_userId_lastAccessedAt_idx",
+                            "joinType": null,
+                            "scanDirection": "Forward",
+                            "estimatedRows": 1,
+                            "totalCost": 8.26,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "nodeType": "Nested Loop",
+                "relationName": null,
+                "indexName": null,
+                "joinType": "Inner",
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 16.39,
+                "children": [
+                  {
+                    "nodeType": "CTE Scan",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 0.02,
+                    "children": []
+                  },
+                  {
+                    "nodeType": "Index Scan",
+                    "relationName": "MemoryEntry",
+                    "indexName": "MemoryEntry_pkey",
+                    "joinType": null,
+                    "scanDirection": "Forward",
+                    "estimatedRows": 1,
+                    "totalCost": 8.26,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "327753abc80bc94d6a3fe454c1a257e645fc9e256181db9ba2b33ffd0ef6f651"
+        }
+      },
+      {
+        "variant": "finalize-15",
+        "observedSql": {
+          "statementType": "WITH-DML",
+          "normalizedSql": "WITH targets AS ( SELECT m.id FROM \"Message\" AS m WHERE m.\"senderId\" = $1 AND ( m.body IS DISTINCT FROM $2 OR m.\"mediaIdsJson\" IS NOT NULL OR m.\"deletedBySenderAt\" IS NULL ) ORDER BY m.id ASC LIMIT $3 FOR UPDATE SKIP LOCKED ) UPDATE \"Message\" AS target SET body = $4, \"mediaIdsJson\" = NULL, \"deletedBySenderAt\" = $5 FROM targets WHERE target.id = targets.id RETURNING target.id",
+          "sha256": "ff9b73b709afba0d79296803a73cd24c419c925e2a7e88ed1ac4210d5d4fedc2",
+          "parameterCount": 5,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "Message",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 19.66,
+            "children": [
+              {
+                "nodeType": "Limit",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 8.22,
+                "children": [
+                  {
+                    "nodeType": "LockRows",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 8.22,
+                    "children": [
+                      {
+                        "nodeType": "Sort",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "scanDirection": null,
+                        "estimatedRows": 1,
+                        "totalCost": 8.21,
+                        "children": [
+                          {
+                            "nodeType": "Index Scan",
+                            "relationName": "Message",
+                            "indexName": "Message_senderId_idx",
+                            "joinType": null,
+                            "scanDirection": "Forward",
+                            "estimatedRows": 1,
+                            "totalCost": 8.2,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "nodeType": "Nested Loop",
+                "relationName": null,
+                "indexName": null,
+                "joinType": "Inner",
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 11.44,
+                "children": [
+                  {
+                    "nodeType": "CTE Scan",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 0.02,
+                    "children": []
+                  },
+                  {
+                    "nodeType": "Index Scan",
+                    "relationName": "Message",
+                    "indexName": "Message_pkey",
+                    "joinType": null,
+                    "scanDirection": "Forward",
+                    "estimatedRows": 1,
+                    "totalCost": 8.19,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "52ea38a55f10fc3fe3bc5437c57e4f5fce190a467bf847f71e4761ca53999d85"
+        }
+      },
+      {
+        "variant": "finalize-16",
+        "observedSql": {
+          "statementType": "WITH-DML",
+          "normalizedSql": "WITH targets AS ( SELECT p.id FROM \"Post\" AS p WHERE p.\"authorId\" = $1 AND p.body IS DISTINCT FROM $2 ORDER BY p.id ASC LIMIT $3 FOR UPDATE SKIP LOCKED ) UPDATE \"Post\" AS target SET body = $4, \"editedAt\" = $5 FROM targets WHERE target.id = targets.id RETURNING target.id",
+          "sha256": "7b76d8fc664716999f8f05652a9706f52c06e8292515b7792cd20951a3a31244",
+          "parameterCount": 5,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "Post",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 19.85,
+            "children": [
+              {
+                "nodeType": "Limit",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 9.61,
+                "children": [
+                  {
+                    "nodeType": "LockRows",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 9.61,
+                    "children": [
+                      {
+                        "nodeType": "Sort",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "scanDirection": null,
+                        "estimatedRows": 1,
+                        "totalCost": 9.6,
+                        "children": [
+                          {
+                            "nodeType": "Bitmap Heap Scan",
+                            "relationName": "Post",
+                            "indexName": null,
+                            "joinType": null,
+                            "scanDirection": null,
+                            "estimatedRows": 1,
+                            "totalCost": 9.58,
+                            "children": [
+                              {
+                                "nodeType": "Bitmap Index Scan",
+                                "relationName": null,
+                                "indexName": "Post_authorId_createdAt_idx",
+                                "joinType": null,
+                                "scanDirection": null,
+                                "estimatedRows": 2,
+                                "totalCost": 4.16,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "nodeType": "Nested Loop",
+                "relationName": null,
+                "indexName": null,
+                "joinType": "Inner",
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 10.24,
+                "children": [
+                  {
+                    "nodeType": "CTE Scan",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 0.02,
+                    "children": []
+                  },
+                  {
+                    "nodeType": "Index Scan",
+                    "relationName": "Post",
+                    "indexName": "Post_pkey",
+                    "joinType": null,
+                    "scanDirection": "Forward",
+                    "estimatedRows": 1,
+                    "totalCost": 8.2,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "e87ea8e74dfc65c44a7bc0c2dad0e54b36aeb473eaa111fe0073bd8d8d78953c"
+        }
+      },
+      {
+        "variant": "finalize-17",
+        "observedSql": {
+          "statementType": "WITH-DML",
+          "normalizedSql": "WITH targets AS ( SELECT t.id FROM \"Thread\" AS t WHERE t.\"authorId\" = $1 AND ( t.title IS DISTINCT FROM $2 OR t.locked = false ) ORDER BY t.id ASC LIMIT $3 FOR UPDATE SKIP LOCKED ) UPDATE \"Thread\" AS target SET title = $4, locked = true, \"updatedAt\" = $5 FROM targets WHERE target.id = targets.id RETURNING target.id",
+          "sha256": "ef9c7ee9c24c62af4f396dfdd41e629cc96310fc1aec8e8c2d691e1ff81704f2",
+          "parameterCount": 5,
+          "persistedParameterValues": false
+        },
+        "explain": {
+          "format": "postgresql-json-cost-plan",
+          "analyze": false,
+          "buffers": false,
+          "statementTimeoutMilliseconds": 5000,
+          "sanitized": true,
+          "plan": {
+            "nodeType": "ModifyTable",
+            "relationName": "Thread",
+            "indexName": null,
+            "joinType": null,
+            "scanDirection": null,
+            "estimatedRows": 1,
+            "totalCost": 19.85,
+            "children": [
+              {
+                "nodeType": "Limit",
+                "relationName": null,
+                "indexName": null,
+                "joinType": null,
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 9.61,
+                "children": [
+                  {
+                    "nodeType": "LockRows",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 9.61,
+                    "children": [
+                      {
+                        "nodeType": "Sort",
+                        "relationName": null,
+                        "indexName": null,
+                        "joinType": null,
+                        "scanDirection": null,
+                        "estimatedRows": 1,
+                        "totalCost": 9.6,
+                        "children": [
+                          {
+                            "nodeType": "Bitmap Heap Scan",
+                            "relationName": "Thread",
+                            "indexName": null,
+                            "joinType": null,
+                            "scanDirection": null,
+                            "estimatedRows": 1,
+                            "totalCost": 9.58,
+                            "children": [
+                              {
+                                "nodeType": "Bitmap Index Scan",
+                                "relationName": null,
+                                "indexName": "Thread_authorId_createdAt_idx",
+                                "joinType": null,
+                                "scanDirection": null,
+                                "estimatedRows": 2,
+                                "totalCost": 4.16,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "nodeType": "Nested Loop",
+                "relationName": null,
+                "indexName": null,
+                "joinType": "Inner",
+                "scanDirection": null,
+                "estimatedRows": 1,
+                "totalCost": 10.24,
+                "children": [
+                  {
+                    "nodeType": "CTE Scan",
+                    "relationName": null,
+                    "indexName": null,
+                    "joinType": null,
+                    "scanDirection": null,
+                    "estimatedRows": 1,
+                    "totalCost": 0.02,
+                    "children": []
+                  },
+                  {
+                    "nodeType": "Index Scan",
+                    "relationName": "Thread",
+                    "indexName": "Thread_pkey",
+                    "joinType": null,
+                    "scanDirection": "Forward",
+                    "estimatedRows": 1,
+                    "totalCost": 8.2,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "planSha256": "4b238488e0a79e01dfb3e93d91fe430ec451f448d0be05e6ea71e10b8d971868"
+        }
+      }
+    ],
+    "status": "verified"
+  },
+  "cleanup": {
+    "auditRowsDeleted": 5,
+    "deletionJobRowsDeleted": 2,
+    "messageRowsDeleted": 103,
+    "postRowsDeleted": 1,
+    "listingRowsDeleted": 1,
+    "threadRowsDeleted": 1,
+    "categoryRowsDeleted": 1,
+    "socialActorRowsDeleted": 1,
+    "mediaRowsDeleted": 1,
+    "memoryRowsDeleted": 1,
+    "contextRowsDeleted": 0,
+    "agentRunRowsDeleted": 1,
+    "profileRowsDeleted": 3,
+    "userRowsDeleted": 4,
+    "remainingRows": 0
+  },
+  "verdict": "verified"
+}

@@ -2,7 +2,7 @@ import "server-only";
 
 import { buildDogWinNotification } from "@/lib/dog-win-message";
 import { withDbSystemContext } from "@/lib/db-context";
-import { logError } from "@/lib/logger";
+import { logExecutionError } from "@/lib/logger";
 import { hasTier } from "@/lib/tier-access";
 
 // Only look back a few days so the results cron (every 5 min) re-scans a bounded
@@ -117,6 +117,9 @@ export async function notifyDogWinnersFromRecentResults(
             },
           });
           created += 1;
+          if (created >= WIN_NOTIFY_BATCH) {
+            return { scanned: wins.length, created };
+          }
         }
       }
 
@@ -124,7 +127,7 @@ export async function notifyDogWinnersFromRecentResults(
     });
   } catch (err) {
     // Never break the results sync over a notification failure.
-    logError("dog_win_notify.failed", {}, err);
+    await logExecutionError("dog_win_notify.failed", {}, err);
     return { scanned: 0, created: 0 };
   }
 }

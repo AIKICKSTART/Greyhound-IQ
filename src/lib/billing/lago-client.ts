@@ -1,6 +1,13 @@
 import "server-only";
 
 import { getLagoEnv } from "@/lib/billing/lago-env";
+import { readBoundedTextResponse } from "@/lib/remote-response";
+
+const LAGO_REQUEST_TIMEOUT_MS = 10_000;
+const LAGO_RESPONSE_POLICY = {
+  maxBytes: 512 * 1024,
+  allowedContentTypes: ["application/json"],
+} as const;
 
 type LagoUsageEventPropertyValue = string | number | boolean | null;
 
@@ -30,13 +37,15 @@ export async function sendLagoUsageEvent(
     },
     body: JSON.stringify({ event }),
     cache: "no-store",
+    redirect: "manual",
+    signal: AbortSignal.timeout(LAGO_REQUEST_TIMEOUT_MS),
   });
 
   if (!response.ok) {
     throw new Error(`billing.lago_usage_event_failed:${response.status}`);
   }
 
-  return response.json();
+  return JSON.parse(await readBoundedTextResponse(response, LAGO_RESPONSE_POLICY)) as unknown;
 }
 
 function lagoEventsUrl(apiUrl: string) {

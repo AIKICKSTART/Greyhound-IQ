@@ -46,7 +46,7 @@
 |--------|------|------|-------------|
 | GET | `/api/users/me` | session | Returns `User` + `Profile` |
 | PATCH | `/api/users/me` | session | Update profile fields |
-| GET | `/api/users/me/export` | session | Request data export (APP 12) |
+| POST | `/api/users/me/export` | session | Request data export (APP 12) |
 | POST | `/api/users/me/delete` | session | Trigger account deletion |
 | GET | `/api/users/:handle` | public | Public profile (respects `showEmail`) |
 | GET | `/api/users/:handle/dogs` | public | Owned dogs (respects `showOwnedDogs`) |
@@ -67,15 +67,19 @@
 
 ---
 
-## Media (Supabase Storage proxies)
+## Media (provider-neutral object storage)
 
-All media flows through Supabase Storage. Clients upload directly to signed URLs; server tracks `MediaAsset` rows.
+Production media uses private Australian Google Cloud Storage buckets through
+the application `ObjectStoragePort`. Supabase Storage remains a local/staging
+compatibility adapter. Clients upload directly to provider-signed URLs using
+only the returned `uploadHeaders`; the server tracks provider-neutral logical
+bucket/key coordinates in `MediaAsset` rows and authorizes every delivery.
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/api/media/sign-upload` | session | Request signed upload URL (valid 10 min) |
+| POST | `/api/media/sign-upload` | session | Request signed upload URL (valid 2 hours) |
 | POST | `/api/media/:id/finalize` | session | Mark upload complete; triggers ClamAV scan |
-| GET | `/api/media/:id/url` | varies | Get signed read URL (1h expiry, RLS-checked) |
+| GET | `/api/media/:id/url` | varies | Get signed read URL (15-minute expiry, authorization-checked) |
 | DELETE | `/api/media/:id` | uploader | Soft-delete media |
 | GET | `/api/media/:id` | uploader | Get media metadata |
 
@@ -92,15 +96,17 @@ All media flows through Supabase Storage. Clients upload directly to signed URLs
 ```json
 {
   "mediaId": "abc123",
-  "uploadUrl": "https://...supabase.co/storage/v1/object/upload/sign/...",
-  "storagePath": "messages/abc123/photo.jpg",
+  "uploadUrl": "https://storage.googleapis.com/approved-private-bucket/...",
+  "uploadHeaders": { "content-type": "image/jpeg" },
+  "bucket": "private-user-media",
+  "objectPath": "users/user_123/quarantine/messages/abc123/photo.jpg",
   "expiresAt": "2026-06-29T13:00:00Z"
 }
 ```
 
 **Constraints:**
-- MIME types: `image/jpeg | image/png | image/webp | video/mp4 | video/webm | audio/mp4 | audio/webm | audio/ogg`
-- Max sizes: image 10MB, video 200MB, audio 5MB (or 5min duration)
+- MIME types: JPEG, PNG, WebP, AVIF, MP4, WebM, QuickTime, supported audio, and private PDF uploads
+- Max sizes: image 10 MiB, video 200 MiB, audio 5 MiB, PDF 25 MiB
 - Quota per tier: 1GB / 10GB / 100GB
 - Server-side: EXIF stripped, SHA-256 content-addressed, virus scan before `MediaAsset.scanStatus = clean`
 

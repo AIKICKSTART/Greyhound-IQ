@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageTitle } from "@/components/page-title";
 
 export const metadata = {
   title: "Terms of Service — GreyhoundIQ",
@@ -8,9 +9,9 @@ export const metadata = {
 export default function TermsPage() {
   return (
     <div className="giq-legal-page mx-auto max-w-3xl px-6 py-16">
-      <h1 className="text-3xl text-[hsl(var(--foreground))] mb-2 tracking-[-0.03em]">
+      <PageTitle className="mb-2">
         Terms of Service
-      </h1>
+      </PageTitle>
       <p className="text-[13px] text-[hsl(var(--subtle-foreground))] mb-8 tracking-[-0.013em]">
         Last updated: 3 July 2026
       </p>

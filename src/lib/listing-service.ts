@@ -22,13 +22,19 @@ import {
   notificationBodySnippet,
 } from "@/lib/notification-service";
 import { findBannedPhraseMatch } from "@/lib/moderation-service";
+import {
+  sellerListingStatuses,
+  type SellerListingView,
+} from "@/lib/seller-listing-view";
 
 const LISTING_DURATION_DAYS = 90;
 const SOLD_SEARCH_DAYS = 30;
 const LISTING_STATUS_ACTIVE = "active";
+const LISTING_STATUS_DRAFT = "draft";
 const LISTING_STATUS_PENDING_REVIEW = "pending_review";
 const LISTING_STATUS_REJECTED = "rejected";
 const LISTING_STATUS_REMOVED = "removed";
+const LISTING_STATUS_ARCHIVED = "archived";
 const LISTING_MODERATION_APPROVED = "approved";
 // Owner transitions must not escape moderation states (rejected/removed) or
 // rewrite terminal ones (sold/archived).
@@ -37,6 +43,14 @@ const WITHDRAW_ALLOWED_FROM_STATUSES = [
   LISTING_STATUS_ACTIVE,
   LISTING_STATUS_PENDING_REVIEW,
   "expired",
+];
+const ARCHIVE_ALLOWED_FROM_STATUSES = [
+  LISTING_STATUS_DRAFT,
+  LISTING_STATUS_PENDING_REVIEW,
+  LISTING_STATUS_ACTIVE,
+  "expired",
+  "sold",
+  "withdrawn",
 ];
 
 export interface ListingMaintenanceResult {
@@ -67,6 +81,7 @@ export interface ListingWriteInput {
   legalAcknowledged?: boolean;
   mediaIds?: string[];
   attributes?: ListingAttributeInput[];
+  submissionIntent?: "draft" | "review";
 }
 
 // Dog-centric listing types are subject to the registered-dog + approved-owner
@@ -108,6 +123,10 @@ export async function createListingForCurrentUser(
   const moderationReason = phraseMatch
     ? `Keyword flag: ${phraseMatch.reason ?? phraseMatch.phrase}`
     : null;
+  const isDraft = input.submissionIntent === "draft";
+  const nextStatus = isDraft
+    ? LISTING_STATUS_DRAFT
+    : LISTING_STATUS_PENDING_REVIEW;
 
   const listing = await withDbRequestContext(current, async (tx) => {
     const created = await tx.listing.create({
@@ -129,8 +148,8 @@ export async function createListingForCurrentUser(
         itemModel: input.itemModel || null,
         price: input.price ?? null,
         currency: "AUD",
-        status: LISTING_STATUS_PENDING_REVIEW,
-        moderationStatus: LISTING_STATUS_PENDING_REVIEW,
+        status: nextStatus,
+        moderationStatus: nextStatus,
         moderationReason,
         welfareAcknowledgedAt: input.welfareAcknowledged ? now : null,
         legalAcknowledgedAt: input.legalAcknowledged ? now : null,
@@ -142,9 +161,11 @@ export async function createListingForCurrentUser(
     await tx.listingStatusHistory.create({
       data: {
         listingId: created.id,
-        toStatus: LISTING_STATUS_PENDING_REVIEW,
+        toStatus: nextStatus,
         actorProfileId: current.profileId,
-        reason: moderationReason ?? "Listing submitted for moderator review",
+        reason: isDraft
+          ? "Owner saved listing as draft"
+          : moderationReason ?? "Listing submitted for moderator review",
       },
     });
     await upsertListingLocation(tx, created.id, input);
@@ -160,7 +181,11 @@ export async function createListingForCurrentUser(
     return created;
   });
 
-  await auditListing(current, "listing.create", listing.id);
+  await auditListing(
+    current,
+    isDraft ? "listing.draft.create" : "listing.create",
+    listing.id,
+  );
   return listing;
 }
 
@@ -173,6 +198,23 @@ export async function updateListingForCurrentUser(
   const existing = await getOwnedListing(current, listingId);
   const dogId = input.dogId === undefined ? existing.dogId : input.dogId || null;
   if (dogId) await assertDogExists(dogId);
+  const nextType = input.type ?? existing.type;
+  const sireDogId =
+    input.sireDogId === undefined
+      ? existing.sireDogId
+      : input.sireDogId || null;
+  const damDogId =
+    input.damDogId === undefined ? existing.damDogId : input.damDogId || null;
+  if (isDogListingType(nextType)) {
+    await assertDogListingAllowed(current, {
+      type: nextType,
+      title: input.title ?? existing.title,
+      description: input.description ?? existing.description,
+      dogId,
+      sireDogId,
+      damDogId,
+    });
+  }
   if (input.categoryId) await assertCategoryExists(input.categoryId);
   if (input.mediaIds) {
     await assertListingMediaAttachable(current, input.mediaIds);
@@ -202,8 +244,8 @@ export async function updateListingForCurrentUser(
           input.categoryId === undefined
             ? existing.categoryId
             : input.categoryId || null,
-        type: input.type ?? existing.type,
-        listingType: input.type ?? existing.listingType ?? existing.type,
+        type: nextType,
+        listingType: nextType,
         title: input.title ?? existing.title,
         description: input.description ?? existing.description,
         state: input.state === undefined ? existing.state : input.state || null,
@@ -217,6 +259,16 @@ export async function updateListingForCurrentUser(
             ? existing.contactPreference
             : input.contactPreference || "message",
         dogId,
+        sireDogId,
+        damDogId,
+        itemBrand:
+          input.itemBrand === undefined
+            ? existing.itemBrand
+            : input.itemBrand || null,
+        itemModel:
+          input.itemModel === undefined
+            ? existing.itemModel
+            : input.itemModel || null,
         price: input.price === undefined ? existing.price : input.price ?? null,
         status: nextStatus,
         moderationStatus:
@@ -256,8 +308,9 @@ export async function updateListingForCurrentUser(
     }
     const searchAttributes =
       input.attributes === undefined
-        ? await tx.listingAttribute.findMany({
+          ? await tx.listingAttribute.findMany({
             where: { listingId: existing.id },
+            take: 100,
             select: { key: true, value: true },
           })
         : input.attributes;
@@ -285,6 +338,7 @@ export async function getMarketplaceCategoriesForModerator() {
   return withDbSystemContext((tx) =>
     tx.marketplaceCategory.findMany({
       orderBy: [{ active: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
+      take: 100,
       include: {
         _count: {
           select: { listings: true },
@@ -460,6 +514,83 @@ export async function withdrawListingForCurrentUser(
   return listing;
 }
 
+export async function submitDraftListingForCurrentUser(
+  current: CurrentUserProfile,
+  listingId: string,
+) {
+  const existing = await getOwnedListing(current, listingId);
+  if (existing.status !== LISTING_STATUS_DRAFT) {
+    throw new Error("listing.invalid_status_transition");
+  }
+  if (!existing.welfareAcknowledgedAt || !existing.legalAcknowledgedAt) {
+    throw new Error("listing.acknowledgement_required");
+  }
+
+  const listing = await withDbRequestContext(current, async (tx) => {
+    const updated = await tx.listing.update({
+      where: { id: existing.id, status: LISTING_STATUS_DRAFT },
+      data: {
+        status: LISTING_STATUS_PENDING_REVIEW,
+        moderationStatus: LISTING_STATUS_PENDING_REVIEW,
+        reviewedById: null,
+        reviewedAt: null,
+        expiresAt: null,
+        archivedAt: null,
+      },
+    });
+    await tx.listingStatusHistory.create({
+      data: {
+        listingId: existing.id,
+        fromStatus: LISTING_STATUS_DRAFT,
+        toStatus: LISTING_STATUS_PENDING_REVIEW,
+        actorProfileId: current.profileId,
+        reason: "Owner submitted draft for moderator review",
+      },
+    });
+    return updated;
+  });
+
+  await auditListing(current, "listing.draft.submit", listing.id);
+  return listing;
+}
+
+export async function archiveListingForCurrentUser(
+  current: CurrentUserProfile,
+  listingId: string,
+) {
+  const existing = await getOwnedListing(current, listingId);
+  if (!ARCHIVE_ALLOWED_FROM_STATUSES.includes(existing.status)) {
+    throw new Error("listing.invalid_status_transition");
+  }
+
+  const archivedAt = new Date();
+  const listing = await withDbRequestContext(current, async (tx) => {
+    const updated = await tx.listing.update({
+      where: {
+        id: existing.id,
+        status: { in: ARCHIVE_ALLOWED_FROM_STATUSES },
+      },
+      data: {
+        status: LISTING_STATUS_ARCHIVED,
+        archivedAt,
+      },
+    });
+    await tx.listingStatusHistory.create({
+      data: {
+        listingId: existing.id,
+        fromStatus: existing.status,
+        toStatus: LISTING_STATUS_ARCHIVED,
+        actorProfileId: current.profileId,
+        reason: "Owner archived listing",
+      },
+    });
+    return updated;
+  });
+
+  await auditListing(current, "listing.archive", listing.id);
+  return listing;
+}
+
 export async function approveListingForModerator(
   current: CurrentUserProfile,
   listingId: string
@@ -616,6 +747,54 @@ export async function getListingForViewerById(
   return listing;
 }
 
+export async function getOwnedListingForCurrentUser(
+  current: CurrentUserProfile,
+  listingId: string,
+) {
+  const listing = await withDbRequestContext(current, (tx) =>
+    tx.listing.findFirst({
+      where: { id: listingId, profileId: current.profileId },
+      include: listingInclude(),
+    }),
+  );
+  if (!listing) throw new Error("listing.not_found");
+  return listing;
+}
+
+export async function getSellerListingsForCurrentUser(
+  current: CurrentUserProfile,
+  view: SellerListingView = "all",
+) {
+  const statuses = sellerListingStatuses(view);
+  return withDbRequestContext(current, (tx) =>
+    tx.listing.findMany({
+      where: {
+        profileId: current.profileId,
+        ...(statuses ? { status: { in: [...statuses] } } : {}),
+      },
+      orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+      take: 100,
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        description: true,
+        status: true,
+        moderationStatus: true,
+        price: true,
+        currency: true,
+        state: true,
+        createdAt: true,
+        updatedAt: true,
+        expiresAt: true,
+        soldAt: true,
+        archivedAt: true,
+        category: { select: { name: true } },
+      },
+    }),
+  );
+}
+
 export async function createListingEnquiryForCurrentUser(
   current: CurrentUserProfile,
   listingId: string,
@@ -729,6 +908,7 @@ export async function getSavedListingIdsForProfile(
   const rows = await withDbSystemContext((tx) =>
     tx.savedListing.findMany({
       where: { profileId, listingId: { in: listingIds } },
+      take: 5_000,
       select: { listingId: true },
     })
   );
@@ -751,6 +931,7 @@ export async function getSavedListingsForCurrentUser(
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 100,
       include: { listing: { include: listingInclude() } },
     })
   );
@@ -846,13 +1027,20 @@ export function listingInclude() {
         kennelName: true,
         state: true,
         verified: true,
+        socialActor: {
+          select: {
+            handle: true,
+            published: true,
+          },
+        },
       },
     },
     category: true,
     location: true,
-    attributes: { orderBy: { key: "asc" } },
+    attributes: { orderBy: { key: "asc" }, take: 100 },
     media: {
       orderBy: { position: "asc" },
+      take: 20,
       include: { media: true },
     },
     dog: {
@@ -930,7 +1118,9 @@ async function assertDogListingAllowed(
     return;
   }
 
-  // Non-pup dog listings: the dog itself must be registered + owned.
+  if (input.type === "stud_service" && !input.dogId) return;
+
+  // Linked studs and other non-pup dog listings must be registered + owned.
   if (!input.dogId) throw new Error("listing.dog_required");
   if (requireRegistered && !(await registered(input.dogId))) {
     throw new Error("listing.dog_not_registered");

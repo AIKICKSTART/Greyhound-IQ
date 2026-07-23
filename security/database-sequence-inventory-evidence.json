@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "database-sequence-inventory",
+  "generatedAt": "2026-07-18T23:03:02.0628282+10:00",
+  "safety": {
+    "scope": "literal-loopback-disposable-replay-read-only",
+    "host": "127.0.0.1",
+    "port": 55734,
+    "database": "greyhoundiq",
+    "readOnlySession": true,
+    "productionOrProviderSystemsContacted": false
+  },
+  "sourceBinding": {
+    "prismaSchemaSha256": "9395ca8a01f7e640e8c26f23f6d13e9d4ad0d3066cb92a143a06ca0176888873",
+    "migrationsSha256": "0726fdfe15d9e1fc82868ac7e8ac0d138430a9d7454401f443c4330d0787b21d",
+    "migrationCount": 101,
+    "baselineMigrationSha256": "1c3bf7960da1a93de65bac113d53524392fd10c48e0bb519f07b21ca38dfb759"
+  },
+  "runtimeIdentity": {
+    "role": "greyhoundiq_runtime"
+  },
+  "sequences": [
+    {
+      "schema": "public",
+      "name": "AuditLog_id_seq",
+      "dataType": "bigint",
+      "sourceModel": "AuditLog",
+      "sourceField": "id",
+      "sourceDeclaration": "BIGSERIAL"
+    }
+  ],
+  "verdict": "verified"
+}

@@ -1,4 +1,5 @@
 import type { Tier } from "@/lib/tier-access";
+import type { MessengerLayout } from "@/lib/messenger-layout";
 
 export interface CurrentUser {
   id: string;
@@ -10,6 +11,7 @@ export interface CurrentUser {
   name: string;
   tier: Tier;
   role: string | null;
+  messengerLayout?: MessengerLayout;
   isBanned: boolean;
   deletionRequestedAt: Date | null;
 }

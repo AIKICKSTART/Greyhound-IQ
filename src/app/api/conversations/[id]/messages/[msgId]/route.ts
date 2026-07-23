@@ -3,6 +3,7 @@ import { requireCurrentUserProfile } from "@/lib/auth";
 import { jsonError } from "@/lib/api-errors";
 import { softDeleteConversationMessage } from "@/lib/conversation-service";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { rateLimitExceededResponse } from "@/lib/rate-limit-response";
 
 const MESSAGE_DELETE_RATE_LIMIT = 5;
 const MESSAGE_DELETE_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -22,14 +23,10 @@ export async function DELETE(
       MESSAGE_DELETE_RATE_LIMIT_WINDOW_MS
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "rate_limit.exceeded",
-            message: "Too many requests",
-          },
-        },
-        { status: 429 }
+      return rateLimitExceededResponse(
+        rateLimit,
+        MESSAGE_DELETE_RATE_LIMIT,
+        { code: "rate_limit.exceeded", message: "Too many requests" }
       );
     }
 

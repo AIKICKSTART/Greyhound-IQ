@@ -1,0 +1,296 @@
+import {
+  COMMON_DATA_FEED_UNKNOWNS,
+  LIVE_FAILURES,
+  defineDataFeed,
+  defineLiveDataFeed,
+  type DesignLabDataFeed,
+} from "./design-lab-data-feed-contract";
+import {
+  DESIGN_LAB_PEDIGREE_DATA_FEEDS,
+  DESIGN_LAB_REPLAY_DATA_FEEDS,
+} from "./design-lab-data-feed-operations";
+
+export type {
+  DataFeedFailureReason,
+  DataFeedRuntimeSnapshot,
+  DataFeedVerificationStatus,
+  DesignLabDataFeed,
+} from "./design-lab-data-feed-contract";
+export {
+  DESIGN_LAB_DATA_FEED_DISCOVERY_GAPS,
+  DESIGN_LAB_DATA_FEED_GATES,
+} from "./design-lab-data-feed-operations";
+export type { DesignLabDataFeedGate } from "./design-lab-data-feed-operations";
+
+export const DESIGN_LAB_DATA_FEEDS = [
+  defineLiveDataFeed({
+    id: "DATA.FEED.RACING.THEDOGS",
+    providerKey: "thedogs",
+    provider: "The Dogs",
+    source: "The Dogs public Australian racecard and result pages.",
+    sourceAuth: "Public source; internal trigger remains authenticated.",
+    secretReferenceLabels: ["INTERNAL_API_SECRET", "CRON_SECRET"],
+    sourceVersion: "Unversioned HTML; source schema/version is unknown.",
+    providerFacts: [
+      "Enabled by default and used as the all-Australia baseline.",
+      "Meeting and result fetches are bounded by timeout, meeting count and concurrency.",
+      "Source conflict rank is 40, above Topaz, Watchdog and FastTrack prototype.",
+    ],
+    retries: "No request retry; individual meeting/race parse failures are logged and skipped.",
+    reconciliation: "Batched upsert and source rank 40; completeness and drift SLO are not defined.",
+    sourceEvidence: [
+      "src/lib/live/thedogs.ts",
+      "src/lib/live/provider.ts",
+      "src/lib/live/sync.ts",
+      "scripts/gcp-scheduler-sync.sh",
+    ],
+  }),
+  defineLiveDataFeed({
+    id: "DATA.FEED.RACING.TOPAZ",
+    providerKey: "topaz",
+    provider: "GRV Topaz",
+    source: "GRV official Topaz meeting and recent-result API for the configured authority.",
+    sourceAuth: "API key.",
+    secretReferenceLabels: ["TOPAZ_API_KEY", "INTERNAL_API_SECRET", "CRON_SECRET"],
+    sourceVersion: "API paths are implemented but an OpenAPI version is not pinned in this repo.",
+    providerFacts: [
+      "Provider is active only when the Topaz API-key label resolves at runtime.",
+      "429 and 5xx responses retry up to five times with Retry-After or bounded exponential delay.",
+      "Source conflict rank is 30.",
+    ],
+    retries: "Up to five retries for 429/5xx; no explicit request timeout is present.",
+    reconciliation: "Batched upsert and source rank 30; licence, completeness and drift evidence are absent.",
+    sourceEvidence: ["src/lib/live/topaz.ts", "src/lib/live/provider.ts", "src/lib/live/sync.ts"],
+  }),
+  defineLiveDataFeed({
+    id: "DATA.FEED.RACING.WATCHDOG",
+    providerKey: "watchdog",
+    provider: "GRV Watchdog",
+    source: "Watchdog public Victorian racecard, result, tip and replay-ID JSON endpoints.",
+    sourceAuth: "Public source; internal trigger remains authenticated.",
+    secretReferenceLabels: ["INTERNAL_API_SECRET", "CRON_SECRET"],
+    sourceVersion: "Unversioned public JSON; source schema/version is unknown.",
+    providerFacts: [
+      "Enabled by default and enriches Victorian data.",
+      "Requests have a source-configurable timeout and bounded meeting concurrency.",
+      "Source conflict rank is 20.",
+    ],
+    retries: "No request retry; individual meeting failures are logged and skipped.",
+    reconciliation: "Batched upsert and source rank 20; field-level drift reconciliation is absent.",
+    sourceEvidence: ["src/lib/live/watchdog.ts", "src/lib/live/provider.ts", "src/lib/live/sync.ts"],
+  }),
+  defineLiveDataFeed({
+    id: "DATA.FEED.RACING.FASTTRACK_PROTOTYPE",
+    providerKey: "fasttrack-prototype",
+    provider: "FastTrack prototype",
+    source: "Small bounded set of public FastTrack HTML pages.",
+    sourceAuth: "Public source; internal trigger remains authenticated.",
+    secretReferenceLabels: ["INTERNAL_API_SECRET", "CRON_SECRET"],
+    sourceVersion: "Unversioned HTML prototype; not a production contract.",
+    providerFacts: [
+      "Code labels this provider as prototype/demo only and prefers Topaz for production.",
+      "It is selected only when no primary provider is active.",
+      "Source conflict rank is 10.",
+    ],
+    retries: "No timeout or retry is implemented in the prototype reader.",
+    reconciliation: "Batched upsert and source rank 10; this path must not become a silent production fallback.",
+    sourceEvidence: ["src/lib/live/fasttrack.ts", "src/lib/live/provider.ts", "src/lib/live/sync.ts"],
+  }),
+  defineDataFeed({
+    id: "DATA.FEED.PROFILE.THEDOGS_RUNTIME",
+    providerKey: "thedogs-profile-runtime",
+    provider: "The Dogs dog profiles",
+    source: "The Dogs public dog profile and full-form pages.",
+    transport: "Authenticated internal dog-profile route runs a sequential public-page fetch batch.",
+    jobPaths: ["src/app/api/internal/dog-profile-sync/route.ts", "src/lib/live/dog-profile-sync.ts"],
+    owner: { accountableRole: "Racing Data Platform", assignment: "proposed-not-confirmed" },
+    auth: {
+      sourceAuth: "Public source; internal trigger remains authenticated.",
+      secretReferenceLabels: ["INTERNAL_API_SECRET", "CRON_SECRET"],
+    },
+    dataClasses: ["dog profile", "pedigree", "trainer", "owner name", "historical form"],
+    lineage: [
+      "The Dogs profile HTML and full-form fragment.",
+      "TheDogsDogProfile parser -> Dog, DogProfileForm, Trainer and parent Dog rows.",
+    ],
+    schemaContract: {
+      canonicalContract: "TheDogsDogProfile TypeScript parser contract.",
+      sourceVersion: "Unversioned HTML; source schema/version is unknown.",
+      validationState: "source-implemented-runtime-not-verified",
+    },
+    cadence: {
+      sourceDeclaredTrigger: "Deployment source declares every 2 minutes.",
+      intervalMinutes: [2],
+      refreshSlaMinutes: null,
+      deploymentState: "unknown",
+    },
+    freshness: {
+      signal: "Dog.lastProfileSyncedAt plus attempted/synced/failed batch counts.",
+      degradedAfterMinutes: null,
+      downAfterMinutes: null,
+      thresholdState: "operator-unknown",
+    },
+    dependencies: ["internal-route authentication", "The Dogs pages", "PostgreSQL"],
+    downstreamJourneys: ["dog profile", "form guide", "breeding", "marketplace dog context"],
+    failureReasons: LIVE_FAILURES,
+    reliability: {
+      retries: "A failed dog is isolated; an unsynced dog remains eligible for a later batch.",
+      backfill: "Raw profile archive and normalized import scripts exist for controlled replay.",
+      reconciliation: "Forms are replaced per dog/provider; identity and completeness reconciliation remain unproven.",
+    },
+    operations: {
+      alert: "not-implemented",
+      runbook: "not-implemented",
+      sourceEvidence: [
+        "src/lib/live/thedogs-profile.ts",
+        "src/lib/live/dog-profile-sync.ts",
+        "scripts/gcp-cloud-run-deploy.ps1",
+      ],
+      runtimeEvidence: [],
+    },
+    governance: {
+      pii: "Public owner and trainer names require approved personal-data handling and retention.",
+      licensing: "Production reuse permission is not evidenced in the repository.",
+      dataResidency: "Persisted environment and backup residency are unverified.",
+    },
+    verifiedCodeFacts: [
+      "Default batch is 15, maximum 50, sequential with a 500 ms pause.",
+      "The deployment script declares a two-minute job, but deployment proof is absent.",
+    ],
+    unknownOperatorMetadata: COMMON_DATA_FEED_UNKNOWNS,
+  }),
+  defineDataFeed({
+    id: "DATA.FEED.ARCHIVE.THEDOGS_RACE_DAY",
+    providerKey: "thedogs-race-day-archive",
+    provider: "The Dogs historical race archive",
+    source: "The Dogs public date-addressed racing archive.",
+    transport: "Operator/supervisor fetches raw files, archives per date, then replays normalized rows.",
+    jobPaths: [
+      "scripts/backfill-thedogs-history.ts",
+      "scripts/import-thedogs-race-day-archive.ts",
+      "scripts/import-thedogs-raw-history.ts",
+    ],
+    owner: { accountableRole: "Racing Data Steward", assignment: "proposed-not-confirmed" },
+    auth: { sourceAuth: "Public source and database credential.", secretReferenceLabels: ["DATABASE_URL"] },
+    dataClasses: ["historical meetings", "races", "runners", "results", "raw race-day archive"],
+    lineage: [
+      "Date-addressed The Dogs pages -> sanitized local raw JSON.",
+      "RaceDayArchive plus normalized Track, Meeting, Race, Runner, Dog, Trainer and Result rows.",
+    ],
+    schemaContract: {
+      canonicalContract: "LiveMeeting archive shape and RaceDayArchive.rawJson.",
+      sourceVersion: "No archive schema version field is present.",
+      validationState: "source-implemented-runtime-not-verified",
+    },
+    cadence: {
+      sourceDeclaredTrigger: "Operator-triggered resumable backfill only.",
+      intervalMinutes: [],
+      refreshSlaMinutes: null,
+      deploymentState: "unknown",
+    },
+    freshness: {
+      signal: "RaceDayArchive.fetchedAt, coverage reports and import progress ledger.",
+      degradedAfterMinutes: null,
+      downAfterMinutes: null,
+      thresholdState: "operator-unknown",
+    },
+    dependencies: ["operator workstation", "local archive files", "PostgreSQL", "The Dogs pages"],
+    downstreamJourneys: ["historical results", "statistics", "form", "restore and migration rehearsal"],
+    failureReasons: LIVE_FAILURES,
+    reliability: {
+      retries: "Scripts expose bounded retries, resume ledgers and database-unavailable handling.",
+      backfill: "This feed is the historical backfill and replay path.",
+      reconciliation: "Coverage audits exist; approved completeness thresholds and exception ownership do not.",
+    },
+    operations: {
+      alert: "not-implemented",
+      runbook: "not-implemented",
+      sourceEvidence: [
+        "scripts/status-thedogs-harvest.ts",
+        "scripts/audit-thedogs-raw-archive.ts",
+        "prisma/schema.prisma",
+      ],
+      runtimeEvidence: [],
+    },
+    governance: {
+      pii: "Racing payloads may contain public trainer/owner names.",
+      licensing: "Archive harvesting and reuse approval are not evidenced.",
+      dataResidency: "Local archive, database and backup locations require an approved AU-only policy.",
+    },
+    verifiedCodeFacts: [
+      "Fetch, raw archive and normalized replay are separate resumable stages.",
+      "Private Design Lab fixtures are required to leave provider rows unchanged.",
+    ],
+    unknownOperatorMetadata: COMMON_DATA_FEED_UNKNOWNS,
+  }),
+  defineDataFeed({
+    id: "DATA.FEED.ARCHIVE.THEDOGS_DOG_PROFILE",
+    providerKey: "thedogs-dog-profile-archive",
+    provider: "The Dogs dog-profile archive",
+    source: "The Dogs public dog profile and full-form pages selected from harvested race history.",
+    transport: "Operator/supervisor archives sanitized profile files then imports archive and normalized rows.",
+    jobPaths: [
+      "scripts/backfill-thedogs-dog-profile-raw.ts",
+      "scripts/import-thedogs-dog-profile-raw.ts",
+      "scripts/supervise-thedogs-dog-profile-import.ts",
+    ],
+    owner: { accountableRole: "Racing Data Steward", assignment: "proposed-not-confirmed" },
+    auth: { sourceAuth: "Public source and database credential.", secretReferenceLabels: ["DATABASE_URL"] },
+    dataClasses: ["profile HTML", "dog profile", "pedigree", "owner name", "historical form"],
+    lineage: [
+      "Harvested race dogs -> sanitized profile archive files.",
+      "DogProfileArchive plus Dog, DogProfileForm, Trainer and pedigree relationships.",
+    ],
+    schemaContract: {
+      canonicalContract: "ArchivedProfileFile and parsed TheDogsDogProfile shapes.",
+      sourceVersion: "No archive schema version field is present.",
+      validationState: "source-implemented-runtime-not-verified",
+    },
+    cadence: {
+      sourceDeclaredTrigger: "Operator-triggered resumable batches only.",
+      intervalMinutes: [],
+      refreshSlaMinutes: null,
+      deploymentState: "unknown",
+    },
+    freshness: {
+      signal: "DogProfileArchive.fetchedAt, Dog.lastProfileSyncedAt and progress ledgers.",
+      degradedAfterMinutes: null,
+      downAfterMinutes: null,
+      thresholdState: "operator-unknown",
+    },
+    dependencies: ["operator workstation", "profile archive files", "PostgreSQL", "The Dogs pages"],
+    downstreamJourneys: ["dog profile", "form", "breeding", "historical analytics"],
+    failureReasons: LIVE_FAILURES,
+    reliability: {
+      retries: "Harvest and import scripts expose bounded retry, resume and continue/stop controls.",
+      backfill: "Raw archive can be replayed independently of the external source.",
+      reconciliation: "Richness audits exist; identity merge with other providers remains a separate unproven pass.",
+    },
+    operations: {
+      alert: "not-implemented",
+      runbook: "not-implemented",
+      sourceEvidence: [
+        "scripts/status-thedogs-harvest.ts",
+        "scripts/audit-thedogs-dog-profile-raw.ts",
+        "prisma/schema.prisma",
+      ],
+      runtimeEvidence: [],
+    },
+    governance: {
+      pii: "Owner and trainer names plus retained source HTML require approved handling and deletion rules.",
+      licensing: "Archive harvesting and reuse approval are not evidenced.",
+      dataResidency: "Local archive, database and backup locations require an approved AU-only policy.",
+    },
+    verifiedCodeFacts: [
+      "Raw fetch and database import are separate resumable stages.",
+      "Sanitizers are applied before archive/import persistence.",
+    ],
+    unknownOperatorMetadata: COMMON_DATA_FEED_UNKNOWNS,
+  }),
+] as const satisfies readonly DesignLabDataFeed[];
+
+export const DESIGN_LAB_ALL_DATA_FEEDS = [
+  ...DESIGN_LAB_DATA_FEEDS,
+  ...DESIGN_LAB_REPLAY_DATA_FEEDS,
+  ...DESIGN_LAB_PEDIGREE_DATA_FEEDS,
+] as const satisfies readonly DesignLabDataFeed[];

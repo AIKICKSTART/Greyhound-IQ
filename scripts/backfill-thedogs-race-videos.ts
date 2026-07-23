@@ -98,6 +98,11 @@ type ProgressRecord = {
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
+  // FORCE RLS on RaceVideo requires giq_is_system(); claim it for this session.
+  // Run with connection_limit=1 so the claim covers every query.
+  await prisma.$executeRawUnsafe(
+    "SELECT set_config('app.system', 'true', false)",
+  );
   const audit = await auditRaceVideos(options);
 
   if (options.auditOnly) {
@@ -393,7 +398,12 @@ async function upsertRaceVideo(
     lastSyncedAt: now,
   };
 
-  await prisma.$executeRaw`
+  // Claim system context in the same transaction as the write: the pool can
+  // recycle the idle connection during slow page fetches, dropping a
+  // session-level claim before FORCE RLS checks the insert.
+  await prisma.$transaction([
+    prisma.$executeRawUnsafe("SELECT set_config('app.system', 'true', true)"),
+    prisma.$executeRaw`
     INSERT INTO "RaceVideo" (
       "id",
       "raceId",
@@ -448,7 +458,8 @@ async function upsertRaceVideo(
       "fetchedAt" = EXCLUDED."fetchedAt",
       "lastSyncedAt" = EXCLUDED."lastSyncedAt",
       "updatedAt" = NOW()
-  `;
+  `,
+  ]);
 }
 
 async function queryTotalStats(options: Options) {

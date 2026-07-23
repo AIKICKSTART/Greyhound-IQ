@@ -45,4 +45,6 @@ Run this core before coding or reviewing code:
 - `prisma/AGENTS.md` - Prisma schema, migrations, and seed data contracts.
 - `scripts/AGENTS.md` - operational scripts, imports, audits, maintenance, and environment checks.
 - `docs/AGENTS.md` - product, architecture, deployment, and design documentation contracts.
+- `infra/terraform/AGENTS.md` - source-only Google Cloud Terraform staging baseline and safety contract.
+- `infra/terraform-production/AGENTS.md` - source-only Google Cloud Terraform production foundation and approval contract.
 - `public/AGENTS.md` - static asset and public file contracts.

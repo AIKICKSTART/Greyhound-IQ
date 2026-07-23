@@ -1,6 +1,6 @@
 # GreyhoundIQ
 
-> Australian greyhound racing intelligence platform. Real-time race cards, full career form, breeding analytics, and AI predictions for punters, breeders, trainers, and owners across all Australian states. Not a wagering service.
+> Australian greyhound racing intelligence platform. Real-time race cards, full career form, breeding analytics, and AI predictions for followers, breeders, trainers, and owners across all Australian states.
 
 GreyhoundIQ covers active greyhound racing venues across every Australian state and territory, with a national database of 200,000+ greyhounds and millions of historical race results. The platform provides real-time race cards, full career form with sectional times, multi-generation pedigrees, sire statistics, track-bias analysis, and machine-learning race predictions. Free tier gives full racing data access; Pro ($20 AUD/month or $204 AUD/year) adds marketplace listings, messaging, custom pages, and community tools.
 
@@ -18,9 +18,9 @@ GreyhoundIQ covers active greyhound racing venues across every Australian state 
 
 States covered: New South Wales, Victoria, Queensland, South Australia, Western Australia, Tasmania, Northern Territory, ACT.
 
-## Licensing and responsible use
+## Licensing and data use
 
-Race and results data is sourced from official Australian racing feeds. Analytics, predictions, and platform content are copyright GreyhoundIQ. GreyhoundIQ provides form and analytics only — no odds and no wagering. 18+ only.
+Race and results data is sourced from official Australian racing feeds. Analytics, predictions, and platform content are copyright GreyhoundIQ. Predictions are estimates and should be checked against official race data.
 
 ## Sitemap
 

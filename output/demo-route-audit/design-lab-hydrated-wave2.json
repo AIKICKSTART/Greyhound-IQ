@@ -1,0 +1,4120 @@
+{
+  "schemaVersion": 1,
+  "auditKind": "design-lab-hydrated-wave2",
+  "evidenceBoundary": "Isolated loopback full-access-read-only interaction evidence for the role, Feed-device and Marketplace review routes; not deployed-image identity or production approval.",
+  "generatedAt": "2026-07-16T22:54:13.860Z",
+  "baseUrl": "http://localhost:3000",
+  "browser": {
+    "product": "Chrome/150.0.7871.115",
+    "protocolVersion": "1.3"
+  },
+  "companionHttpAudit": {
+    "path": "output/demo-route-audit/design-lab-user-stories.json",
+    "auditKind": "design-lab-user-stories",
+    "sha256": "b464bf2b323fe540aa05e4423d48adea6c35866f5d7b4f4ed8855574a0fd93d6",
+    "sourceSha256": "11b51c609fe21770c7a1e3a2de7244af1c0d217e87c1387378bbf446c9521098",
+    "expectedScenarios": 13,
+    "passedScenarios": 13
+  },
+  "inventoryCoverage": [
+    {
+      "scenarioId": "DL.WAVE2.ROLE.DEFAULT",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.DEFAULT.BUSINESS-A1"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-DEFAULT"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.ACTION.ROLE.BUSINESS",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [
+        "DL.ACTION.ROLE.BUSINESS.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.SELECTION.BUSINESS-A1"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-BUSINESS-A1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.ACTION.ROLE.TRAINER",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [
+        "DL.ACTION.ROLE.TRAINER.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.SELECTION.TRAINER-A2"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-TRAINER-A2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.ACTION.ROLE.OWNER",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [
+        "DL.ACTION.ROLE.OWNER.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.SELECTION.OWNER-B1"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-OWNER-B1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.ACTION.ROLE.PUNTER",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [
+        "DL.ACTION.ROLE.PUNTER.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.SELECTION.PUNTER-B2"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-PUNTER-B2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.ACTION.VARIANT.A1",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [
+        "DL.ACTION.ROLE-VARIANT.A1.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.SELECTION.TRAINER-A1"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-TRAINER-A1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.ACTION.VARIANT.A2",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [
+        "DL.ACTION.ROLE-VARIANT.A2.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.SELECTION.OWNER-A2"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-OWNER-A2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.ACTION.VARIANT.B1",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [
+        "DL.ACTION.ROLE-VARIANT.B1.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.SELECTION.PUNTER-B1"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-PUNTER-B1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.ACTION.VARIANT.B2",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [
+        "DL.ACTION.ROLE-VARIANT.B2.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.SELECTION.BUSINESS-B2"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-BUSINESS-B2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.ACTION.VARIANT.C1",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [
+        "DL.ACTION.ROLE-VARIANT.C1.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.SELECTION.BUSINESS-C1"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-BUSINESS-C1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.ACTION.VARIANT.C2",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [
+        "DL.ACTION.ROLE-VARIANT.C2.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.SELECTION.BUSINESS-C2"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-BUSINESS-C2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.BUSINESS.A2",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.BUSINESS-A2"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-BUSINESS-A2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.BUSINESS.B1",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.BUSINESS-B1"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-BUSINESS-B1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.TRAINER.B1",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.TRAINER-B1"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-TRAINER-B1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.TRAINER.B2",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.TRAINER-B2"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-TRAINER-B2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.TRAINER.C1",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.TRAINER-C1"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-TRAINER-C1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.TRAINER.C2",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.TRAINER-C2"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-TRAINER-C2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.OWNER.A1",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.OWNER-A1"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-OWNER-A1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.OWNER.B2",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.OWNER-B2"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-OWNER-B2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.OWNER.C1",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.OWNER-C1"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-OWNER-C1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.OWNER.C2",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.OWNER-C2"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-OWNER-C2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.PUNTER.A1",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.PUNTER-A1"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-PUNTER-A1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.PUNTER.A2",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.PUNTER-A2"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-PUNTER-A2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.PUNTER.C1",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.PUNTER-C1"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-PUNTER-C1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FIXTURE.PUNTER.C2",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.PUNTER-C2"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-PUNTER-C2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.ROLE.FALLBACK",
+      "route": "/design-lab/role-blueprints",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.FALLBACK.UNSUPPORTED-SELECTION"
+      ],
+      "fixtureIds": [
+        "DL-ROLE-FALLBACK"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.DEFAULT",
+      "route": "/feed/device-preview",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.DEFAULT.MOBILE-A1-D1-SPONSORED-ON"
+      ],
+      "fixtureIds": [
+        "DL-FEED-DEFAULT"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.DEVICE.DESKTOP",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-DEVICE.DESKTOP.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.DEVICE-DESKTOP"
+      ],
+      "fixtureIds": [
+        "DL-FEED-DEVICE-DESKTOP"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.DEVICE.TABLET",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-DEVICE.TABLET.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.DEVICE-TABLET"
+      ],
+      "fixtureIds": [
+        "DL-FEED-DEVICE-TABLET"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.DEVICE.MOBILE",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-DEVICE.MOBILE.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.DEVICE-MOBILE"
+      ],
+      "fixtureIds": [
+        "DL-FEED-DEVICE-MOBILE"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.VARIANT.A1",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-VARIANT.A1.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.VARIANT-A1"
+      ],
+      "fixtureIds": [
+        "DL-FEED-VARIANT-A1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.VARIANT.A2",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-VARIANT.A2.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.VARIANT-A2"
+      ],
+      "fixtureIds": [
+        "DL-FEED-VARIANT-A2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.VARIANT.B1",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-VARIANT.B1.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.VARIANT-B1"
+      ],
+      "fixtureIds": [
+        "DL-FEED-VARIANT-B1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.VARIANT.B2",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-VARIANT.B2.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.VARIANT-B2"
+      ],
+      "fixtureIds": [
+        "DL-FEED-VARIANT-B2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.VARIANT.C1",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-VARIANT.C1.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.VARIANT-C1"
+      ],
+      "fixtureIds": [
+        "DL-FEED-VARIANT-C1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.VARIANT.C2",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-VARIANT.C2.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.VARIANT-C2"
+      ],
+      "fixtureIds": [
+        "DL-FEED-VARIANT-C2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.DOCK.D1",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-DOCK.D1.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.DOCK-D1"
+      ],
+      "fixtureIds": [
+        "DL-FEED-DOCK-D1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.DOCK.D2",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-DOCK.D2.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.DOCK-D2"
+      ],
+      "fixtureIds": [
+        "DL-FEED-DOCK-D2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.DOCK.D3",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-DOCK.D3.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.DOCK-D3"
+      ],
+      "fixtureIds": [
+        "DL-FEED-DOCK-D3"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.DOCK.D4",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-DOCK.D4.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.DOCK-D4"
+      ],
+      "fixtureIds": [
+        "DL-FEED-DOCK-D4"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.DOCK.D5",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-DOCK.D5.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.DOCK-D5"
+      ],
+      "fixtureIds": [
+        "DL-FEED-DOCK-D5"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.ACTION.DOCK.D6",
+      "route": "/feed/device-preview",
+      "actionIds": [
+        "DL.ACTION.FEED-DOCK.D6.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.DOCK-D6"
+      ],
+      "fixtureIds": [
+        "DL-FEED-DOCK-D6"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.SPONSORED.ON",
+      "route": "/feed/device-preview",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SPONSORED-ON"
+      ],
+      "fixtureIds": [
+        "DL-FEED-SPONSORED-ON"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.SPONSORED.OFF",
+      "route": "/feed/device-preview",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SPONSORED-OFF"
+      ],
+      "fixtureIds": [
+        "DL-FEED-SPONSORED-OFF"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.SUPPORTED",
+      "route": "/feed/device-preview",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.SELECTION.SUPPORTED"
+      ],
+      "fixtureIds": [
+        "DL-FEED-SUPPORTED"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.FEED.FALLBACK",
+      "route": "/feed/device-preview",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.FALLBACK.UNSUPPORTED-SELECTION"
+      ],
+      "fixtureIds": [
+        "DL-FEED-FALLBACK"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.MARKETPLACE.DEFAULT",
+      "route": "/marketplace/design-lab",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.DEFAULT.M1"
+      ],
+      "fixtureIds": [
+        "DL-MARKETPLACE-DEFAULT"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.M1",
+      "route": "/marketplace/design-lab",
+      "actionIds": [
+        "DL.ACTION.MARKETPLACE.M1.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.MARKETPLACE.M1"
+      ],
+      "fixtureIds": [
+        "DL-MARKETPLACE-M1"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.M2",
+      "route": "/marketplace/design-lab",
+      "actionIds": [
+        "DL.ACTION.MARKETPLACE.M2.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.MARKETPLACE.M2"
+      ],
+      "fixtureIds": [
+        "DL-MARKETPLACE-M2"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.M3",
+      "route": "/marketplace/design-lab",
+      "actionIds": [
+        "DL.ACTION.MARKETPLACE.M3.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.MARKETPLACE.M3"
+      ],
+      "fixtureIds": [
+        "DL-MARKETPLACE-M3"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.M4",
+      "route": "/marketplace/design-lab",
+      "actionIds": [
+        "DL.ACTION.MARKETPLACE.M4.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.MARKETPLACE.M4"
+      ],
+      "fixtureIds": [
+        "DL-MARKETPLACE-M4"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.M5",
+      "route": "/marketplace/design-lab",
+      "actionIds": [
+        "DL.ACTION.MARKETPLACE.M5.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.MARKETPLACE.M5"
+      ],
+      "fixtureIds": [
+        "DL-MARKETPLACE-M5"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.M6",
+      "route": "/marketplace/design-lab",
+      "actionIds": [
+        "DL.ACTION.MARKETPLACE.M6.SELECT"
+      ],
+      "stateIds": [
+        "DL.STATE.MARKETPLACE.M6"
+      ],
+      "fixtureIds": [
+        "DL-MARKETPLACE-M6"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.MARKETPLACE.FALLBACK",
+      "route": "/marketplace/design-lab",
+      "actionIds": [],
+      "stateIds": [
+        "DL.STATE.FALLBACK.UNSUPPORTED-TEMPLATE"
+      ],
+      "fixtureIds": [
+        "DL-MARKETPLACE-FALLBACK"
+      ]
+    },
+    {
+      "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.PROFILE",
+      "route": "/marketplace/design-lab",
+      "actionIds": [
+        "DL.ACTION.MARKETPLACE.PROFILE.OPEN"
+      ],
+      "stateIds": [],
+      "fixtureIds": []
+    }
+  ],
+  "testedCommitSha": "6586448476d5b5aa10cb194fe2c3ffa3db561ceb",
+  "sourceSha256": "193d43ba55680f56336a6751b52c81f8296fa13489d15cba05da7efee0b85754",
+  "sourceFileCount": 136,
+  "sourceFiles": [
+    "next.config.ts",
+    "scripts/audit-design-lab-hydrated-wave2.ts",
+    "scripts/audit-design-lab-user-stories.ts",
+    "scripts/design-lab-source-fingerprint.ts",
+    "scripts/staging-load-policy.ts",
+    "src/app/admin/admin-nav-data.ts",
+    "src/app/design-lab/role-blueprints/page.tsx",
+    "src/app/feed/device-preview/page.tsx",
+    "src/app/globals.css",
+    "src/app/layout.tsx",
+    "src/app/marketplace/design-lab/page.tsx",
+    "src/components/actor-media-image.tsx",
+    "src/components/admin-control-centre-frame-lab.tsx",
+    "src/components/agents-onboarding-tour-registry.ts",
+    "src/components/appearance-preview-state.ts",
+    "src/components/authentication-navigation-feedback.tsx",
+    "src/components/community-onboarding-tour-registry.ts",
+    "src/components/cookie-consent.tsx",
+    "src/components/demo-experience-registry.ts",
+    "src/components/demo-read-only-guard.tsx",
+    "src/components/demo-route-audit-evidence.ts",
+    "src/components/design-lab-onboarding-tour-registry.ts",
+    "src/components/design-lab-review-matrix.ts",
+    "src/components/design-lab-role-blueprint-preview.tsx",
+    "src/components/design-lab-role-blueprints.ts",
+    "src/components/design-lab-scenario-contract.ts",
+    "src/components/design-lab-workspace.ts",
+    "src/components/dock-skin-catalogue.ts",
+    "src/components/header-nav.tsx",
+    "src/components/home-route-content.tsx",
+    "src/components/hub/hub-conversation-dock.tsx",
+    "src/components/interactive-help-layout.ts",
+    "src/components/interactive-help-state.ts",
+    "src/components/interactive-help.tsx",
+    "src/components/json-ld.tsx",
+    "src/components/marketplace-card-gesture.ts",
+    "src/components/marketplace-dog-player-card.tsx",
+    "src/components/marketplace-onboarding-tour-registry.ts",
+    "src/components/marketplace-template-catalogue.tsx",
+    "src/components/marketplace-template-data.ts",
+    "src/components/marketplace-template-variants.ts",
+    "src/components/media-attachment-fields.tsx",
+    "src/components/member-header-shell.tsx",
+    "src/components/mobile-bottom-dock.tsx",
+    "src/components/mobile-menu-close-link.tsx",
+    "src/components/network-recovery-banner.tsx",
+    "src/components/onboarding-analytics-client.ts",
+    "src/components/onboarding-analytics.ts",
+    "src/components/onboarding-help-catalogue.ts",
+    "src/components/onboarding-persona.ts",
+    "src/components/onboarding-target-disclosure.ts",
+    "src/components/onboarding-tour-registry.ts",
+    "src/components/processed-video.tsx",
+    "src/components/prototype-variants.ts",
+    "src/components/public-onboarding-tour-registry.ts",
+    "src/components/racing-onboarding-tour-registry.ts",
+    "src/components/realtime-refresh.tsx",
+    "src/components/screen-contracts/design-lab-user-stories.ts",
+    "src/components/screen-contracts/production-screen-admin-access-state-evidence.ts",
+    "src/components/screen-contracts/production-screen-admin-core-interactions.ts",
+    "src/components/screen-contracts/production-screen-admin-moderation-interactions.ts",
+    "src/components/screen-contracts/production-screen-admin-operations-interactions.ts",
+    "src/components/screen-contracts/production-screen-commerce-interactions.ts",
+    "src/components/screen-contracts/production-screen-coverage.ts",
+    "src/components/screen-contracts/production-screen-member-access-state-evidence.ts",
+    "src/components/screen-contracts/production-screen-member-support-interactions.ts",
+    "src/components/screen-contracts/production-screen-messaging-access-state-evidence.ts",
+    "src/components/screen-contracts/production-screen-profile-messaging-interactions.ts",
+    "src/components/screen-contracts/production-screen-public-navigation-interactions.ts",
+    "src/components/screen-contracts/production-screen-public-racing-interactions.ts",
+    "src/components/screen-contracts/screen-contract-source-audit.ts",
+    "src/components/screen-contracts/screen-permission-evidence.ts",
+    "src/components/screen-contracts/screen-state-evidence.ts",
+    "src/components/screen-contracts/types.ts",
+    "src/components/site-footer.tsx",
+    "src/components/site-header.tsx",
+    "src/components/ui/button.tsx",
+    "src/components/ui/sheet.tsx",
+    "src/components/user-data-export-form.tsx",
+    "src/lib/account-service.ts",
+    "src/lib/account-validation.ts",
+    "src/lib/admin-access-contract.ts",
+    "src/lib/auth-redirect-contract.ts",
+    "src/lib/auth-roles.ts",
+    "src/lib/auth-sync.ts",
+    "src/lib/auth-types.ts",
+    "src/lib/auth.ts",
+    "src/lib/billing/billable-metrics.ts",
+    "src/lib/billing/entitlement-service.ts",
+    "src/lib/billing/entitlements.ts",
+    "src/lib/billing/usage-service.ts",
+    "src/lib/content.ts",
+    "src/lib/conversation-service.ts",
+    "src/lib/csp.ts",
+    "src/lib/database-url.ts",
+    "src/lib/db-context.ts",
+    "src/lib/db.ts",
+    "src/lib/demo-access.ts",
+    "src/lib/demo-profile-media.ts",
+    "src/lib/demo-route-sample-contract.ts",
+    "src/lib/demo-route-samples.ts",
+    "src/lib/design-lab-access-policy.ts",
+    "src/lib/design-lab-access.ts",
+    "src/lib/emergency-controls.ts",
+    "src/lib/gcs-object-storage-config.ts",
+    "src/lib/gcs-object-storage.ts",
+    "src/lib/live/replay-network.ts",
+    "src/lib/logger.ts",
+    "src/lib/maintenance-mode.ts",
+    "src/lib/media-service.ts",
+    "src/lib/media-sniff.ts",
+    "src/lib/media-validation.ts",
+    "src/lib/moderation-service.ts",
+    "src/lib/network-recovery-state.ts",
+    "src/lib/notification-service.ts",
+    "src/lib/notification-webhook-policy.ts",
+    "src/lib/notification-webhook.ts",
+    "src/lib/object-storage-provider.ts",
+    "src/lib/object-storage.ts",
+    "src/lib/public-network.ts",
+    "src/lib/realtime-service.ts",
+    "src/lib/request-id.ts",
+    "src/lib/request-security.ts",
+    "src/lib/signup-acceptance.ts",
+    "src/lib/social-actor-service.ts",
+    "src/lib/social-privacy.ts",
+    "src/lib/storage-paths.ts",
+    "src/lib/storage-url-policy.ts",
+    "src/lib/supabase-object-storage.ts",
+    "src/lib/supabase-storage.ts",
+    "src/lib/tier-access.ts",
+    "src/lib/ttl-cache.ts",
+    "src/lib/utils.ts",
+    "src/lib/workos-env.ts",
+    "src/lib/workos-redirect.ts",
+    "src/proxy.ts"
+  ],
+  "expectedScenarios": 55,
+  "passedScenarios": 55,
+  "results": [
+    {
+      "id": "DL.WAVE2.ROLE.DEFAULT",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "db7e6bda-7d83-441e-bb46-64b2c34ecdf9",
+      "demoMode": "full-access-read-only",
+      "durationMs": 685,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints",
+          "role": "business",
+          "variant": "A1",
+          "compositionFamily": "command",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=A1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=A1"
+          ],
+          "heading": "Business · Command Centre / Full Hero",
+          "priorityLabel": "Business priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.DEFAULT",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.DEFAULT.BUSINESS-A1"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-DEFAULT"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.ACTION.ROLE.BUSINESS",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=trainer&variant=A1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "d0e21b1b-2115-4769-b2a9-c03bc370daa9",
+      "demoMode": "full-access-read-only",
+      "durationMs": 915,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/design-lab/role-blueprints?role=trainer&variant=A1",
+            "role": "trainer",
+            "variant": "A1"
+          },
+          "clickedHref": "/design-lab/role-blueprints?role=business&variant=A1",
+          "to": {
+            "currentPath": "/design-lab/role-blueprints?role=business&variant=A1",
+            "role": "business",
+            "variant": "A1"
+          }
+        },
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=business&variant=A1",
+          "role": "business",
+          "variant": "A1",
+          "compositionFamily": "command",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=A1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=A1"
+          ],
+          "heading": "Business · Command Centre / Full Hero",
+          "priorityLabel": "Business priorities"
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.ACTION.ROLE.BUSINESS",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [
+          "DL.ACTION.ROLE.BUSINESS.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.SELECTION.BUSINESS-A1"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-BUSINESS-A1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.ACTION.ROLE.TRAINER",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=business&variant=A2",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "dc2d24fc-a939-415b-8eff-fa6aacffc13e",
+      "demoMode": "full-access-read-only",
+      "durationMs": 950,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/design-lab/role-blueprints?role=business&variant=A2",
+            "role": "business",
+            "variant": "A2"
+          },
+          "clickedHref": "/design-lab/role-blueprints?role=trainer&variant=A2",
+          "to": {
+            "currentPath": "/design-lab/role-blueprints?role=trainer&variant=A2",
+            "role": "trainer",
+            "variant": "A2"
+          }
+        },
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=trainer&variant=A2",
+          "role": "trainer",
+          "variant": "A2",
+          "compositionFamily": "command",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=trainer&variant=A2"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=trainer&variant=A2"
+          ],
+          "heading": "Trainer · Command Centre / Compact Hero",
+          "priorityLabel": "Trainer priorities"
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.ACTION.ROLE.TRAINER",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [
+          "DL.ACTION.ROLE.TRAINER.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.SELECTION.TRAINER-A2"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-TRAINER-A2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.ACTION.ROLE.OWNER",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=business&variant=B1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "fd5b2531-c598-41e4-9d40-8a93887a2e68",
+      "demoMode": "full-access-read-only",
+      "durationMs": 934,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/design-lab/role-blueprints?role=business&variant=B1",
+            "role": "business",
+            "variant": "B1"
+          },
+          "clickedHref": "/design-lab/role-blueprints?role=owner&variant=B1",
+          "to": {
+            "currentPath": "/design-lab/role-blueprints?role=owner&variant=B1",
+            "role": "owner",
+            "variant": "B1"
+          }
+        },
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=owner&variant=B1",
+          "role": "owner",
+          "variant": "B1",
+          "compositionFamily": "cockpit",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=owner&variant=B1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=owner&variant=B1"
+          ],
+          "heading": "Owner · Racing Cockpit / Split Planner",
+          "priorityLabel": "Owner priorities"
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.ACTION.ROLE.OWNER",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [
+          "DL.ACTION.ROLE.OWNER.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.SELECTION.OWNER-B1"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-OWNER-B1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.ACTION.ROLE.PUNTER",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=business&variant=B2",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "379b5072-230e-4949-9712-44acf34eab02",
+      "demoMode": "full-access-read-only",
+      "durationMs": 934,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/design-lab/role-blueprints?role=business&variant=B2",
+            "role": "business",
+            "variant": "B2"
+          },
+          "clickedHref": "/design-lab/role-blueprints?role=punter&variant=B2",
+          "to": {
+            "currentPath": "/design-lab/role-blueprints?role=punter&variant=B2",
+            "role": "punter",
+            "variant": "B2"
+          }
+        },
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=punter&variant=B2",
+          "role": "punter",
+          "variant": "B2",
+          "compositionFamily": "cockpit",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=punter&variant=B2"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=punter&variant=B2"
+          ],
+          "heading": "Punter · Racing Cockpit / Integrated Planner",
+          "priorityLabel": "Punter priorities"
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.ACTION.ROLE.PUNTER",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [
+          "DL.ACTION.ROLE.PUNTER.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.SELECTION.PUNTER-B2"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-PUNTER-B2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.ACTION.VARIANT.A1",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=trainer&variant=A2",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "e17a3f86-a98b-4bbc-a82c-1769f4269810",
+      "demoMode": "full-access-read-only",
+      "durationMs": 912,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/design-lab/role-blueprints?role=trainer&variant=A2",
+            "role": "trainer",
+            "variant": "A2"
+          },
+          "clickedHref": "/design-lab/role-blueprints?role=trainer&variant=A1",
+          "to": {
+            "currentPath": "/design-lab/role-blueprints?role=trainer&variant=A1",
+            "role": "trainer",
+            "variant": "A1"
+          }
+        },
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=trainer&variant=A1",
+          "role": "trainer",
+          "variant": "A1",
+          "compositionFamily": "command",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=trainer&variant=A1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=trainer&variant=A1"
+          ],
+          "heading": "Trainer · Command Centre / Full Hero",
+          "priorityLabel": "Trainer priorities"
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.ACTION.VARIANT.A1",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [
+          "DL.ACTION.ROLE-VARIANT.A1.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.SELECTION.TRAINER-A1"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-TRAINER-A1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.ACTION.VARIANT.A2",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=owner&variant=A1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "1a71e1c6-9ec0-4cee-9871-cfa9d323f5d7",
+      "demoMode": "full-access-read-only",
+      "durationMs": 892,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/design-lab/role-blueprints?role=owner&variant=A1",
+            "role": "owner",
+            "variant": "A1"
+          },
+          "clickedHref": "/design-lab/role-blueprints?role=owner&variant=A2",
+          "to": {
+            "currentPath": "/design-lab/role-blueprints?role=owner&variant=A2",
+            "role": "owner",
+            "variant": "A2"
+          }
+        },
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=owner&variant=A2",
+          "role": "owner",
+          "variant": "A2",
+          "compositionFamily": "command",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=owner&variant=A2"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=owner&variant=A2"
+          ],
+          "heading": "Owner · Command Centre / Compact Hero",
+          "priorityLabel": "Owner priorities"
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.ACTION.VARIANT.A2",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [
+          "DL.ACTION.ROLE-VARIANT.A2.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.SELECTION.OWNER-A2"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-OWNER-A2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.ACTION.VARIANT.B1",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=punter&variant=A1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "037e9be7-cddc-4abc-96f3-9020d55e15f0",
+      "demoMode": "full-access-read-only",
+      "durationMs": 932,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/design-lab/role-blueprints?role=punter&variant=A1",
+            "role": "punter",
+            "variant": "A1"
+          },
+          "clickedHref": "/design-lab/role-blueprints?role=punter&variant=B1",
+          "to": {
+            "currentPath": "/design-lab/role-blueprints?role=punter&variant=B1",
+            "role": "punter",
+            "variant": "B1"
+          }
+        },
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=punter&variant=B1",
+          "role": "punter",
+          "variant": "B1",
+          "compositionFamily": "cockpit",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=punter&variant=B1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=punter&variant=B1"
+          ],
+          "heading": "Punter · Racing Cockpit / Split Planner",
+          "priorityLabel": "Punter priorities"
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.ACTION.VARIANT.B1",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [
+          "DL.ACTION.ROLE-VARIANT.B1.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.SELECTION.PUNTER-B1"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-PUNTER-B1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.ACTION.VARIANT.B2",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=business&variant=A1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "5d35e967-6dd1-4a5f-9cc6-69a38488f231",
+      "demoMode": "full-access-read-only",
+      "durationMs": 896,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/design-lab/role-blueprints?role=business&variant=A1",
+            "role": "business",
+            "variant": "A1"
+          },
+          "clickedHref": "/design-lab/role-blueprints?role=business&variant=B2",
+          "to": {
+            "currentPath": "/design-lab/role-blueprints?role=business&variant=B2",
+            "role": "business",
+            "variant": "B2"
+          }
+        },
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=business&variant=B2",
+          "role": "business",
+          "variant": "B2",
+          "compositionFamily": "cockpit",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=B2"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=B2"
+          ],
+          "heading": "Business · Racing Cockpit / Integrated Planner",
+          "priorityLabel": "Business priorities"
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.ACTION.VARIANT.B2",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [
+          "DL.ACTION.ROLE-VARIANT.B2.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.SELECTION.BUSINESS-B2"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-BUSINESS-B2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.ACTION.VARIANT.C1",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=business&variant=A1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "7b7f9b7a-26f3-4d3e-9990-1ce84c543128",
+      "demoMode": "full-access-read-only",
+      "durationMs": 891,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/design-lab/role-blueprints?role=business&variant=A1",
+            "role": "business",
+            "variant": "A1"
+          },
+          "clickedHref": "/design-lab/role-blueprints?role=business&variant=C1",
+          "to": {
+            "currentPath": "/design-lab/role-blueprints?role=business&variant=C1",
+            "role": "business",
+            "variant": "C1"
+          }
+        },
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=business&variant=C1",
+          "role": "business",
+          "variant": "C1",
+          "compositionFamily": "social",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=C1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=C1"
+          ],
+          "heading": "Business · Social Data Hub / Expanded Feed",
+          "priorityLabel": "Business priorities"
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.ACTION.VARIANT.C1",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [
+          "DL.ACTION.ROLE-VARIANT.C1.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.SELECTION.BUSINESS-C1"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-BUSINESS-C1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.ACTION.VARIANT.C2",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=business&variant=A1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "0633c5a3-d479-4adf-a249-d223ad53730f",
+      "demoMode": "full-access-read-only",
+      "durationMs": 934,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/design-lab/role-blueprints?role=business&variant=A1",
+            "role": "business",
+            "variant": "A1"
+          },
+          "clickedHref": "/design-lab/role-blueprints?role=business&variant=C2",
+          "to": {
+            "currentPath": "/design-lab/role-blueprints?role=business&variant=C2",
+            "role": "business",
+            "variant": "C2"
+          }
+        },
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=business&variant=C2",
+          "role": "business",
+          "variant": "C2",
+          "compositionFamily": "social",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=C2"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=C2"
+          ],
+          "heading": "Business · Social Data Hub / Compact Feed",
+          "priorityLabel": "Business priorities"
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.ACTION.VARIANT.C2",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [
+          "DL.ACTION.ROLE-VARIANT.C2.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.SELECTION.BUSINESS-C2"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-BUSINESS-C2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.BUSINESS.A2",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=business&variant=A2",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "ca526aca-0fac-41aa-be0e-698581434e1b",
+      "demoMode": "full-access-read-only",
+      "durationMs": 595,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=business&variant=A2",
+          "role": "business",
+          "variant": "A2",
+          "compositionFamily": "command",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=A2"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=A2"
+          ],
+          "heading": "Business · Command Centre / Compact Hero",
+          "priorityLabel": "Business priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.BUSINESS.A2",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.BUSINESS-A2"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-BUSINESS-A2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.BUSINESS.B1",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=business&variant=B1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "17da77be-c05d-40ec-86e7-6a3603216288",
+      "demoMode": "full-access-read-only",
+      "durationMs": 591,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=business&variant=B1",
+          "role": "business",
+          "variant": "B1",
+          "compositionFamily": "cockpit",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=B1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=B1"
+          ],
+          "heading": "Business · Racing Cockpit / Split Planner",
+          "priorityLabel": "Business priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.BUSINESS.B1",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.BUSINESS-B1"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-BUSINESS-B1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.TRAINER.B1",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=trainer&variant=B1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "9d04661c-187c-4203-acc7-da43f0f8ff9b",
+      "demoMode": "full-access-read-only",
+      "durationMs": 605,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=trainer&variant=B1",
+          "role": "trainer",
+          "variant": "B1",
+          "compositionFamily": "cockpit",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=trainer&variant=B1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=trainer&variant=B1"
+          ],
+          "heading": "Trainer · Racing Cockpit / Split Planner",
+          "priorityLabel": "Trainer priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.TRAINER.B1",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.TRAINER-B1"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-TRAINER-B1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.TRAINER.B2",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=trainer&variant=B2",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "df1b61c7-f509-4baf-a110-2d68fe7c0e5e",
+      "demoMode": "full-access-read-only",
+      "durationMs": 572,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=trainer&variant=B2",
+          "role": "trainer",
+          "variant": "B2",
+          "compositionFamily": "cockpit",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=trainer&variant=B2"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=trainer&variant=B2"
+          ],
+          "heading": "Trainer · Racing Cockpit / Integrated Planner",
+          "priorityLabel": "Trainer priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.TRAINER.B2",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.TRAINER-B2"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-TRAINER-B2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.TRAINER.C1",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=trainer&variant=C1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "409b6480-b83b-4fa6-9156-eb226a7cc0b5",
+      "demoMode": "full-access-read-only",
+      "durationMs": 616,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=trainer&variant=C1",
+          "role": "trainer",
+          "variant": "C1",
+          "compositionFamily": "social",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=trainer&variant=C1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=trainer&variant=C1"
+          ],
+          "heading": "Trainer · Social Data Hub / Expanded Feed",
+          "priorityLabel": "Trainer priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.TRAINER.C1",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.TRAINER-C1"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-TRAINER-C1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.TRAINER.C2",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=trainer&variant=C2",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "4ceaf758-35f8-47b2-823f-a7a968760f81",
+      "demoMode": "full-access-read-only",
+      "durationMs": 585,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=trainer&variant=C2",
+          "role": "trainer",
+          "variant": "C2",
+          "compositionFamily": "social",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=trainer&variant=C2"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=trainer&variant=C2"
+          ],
+          "heading": "Trainer · Social Data Hub / Compact Feed",
+          "priorityLabel": "Trainer priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.TRAINER.C2",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.TRAINER-C2"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-TRAINER-C2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.OWNER.A1",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=owner&variant=A1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "bfec2c67-5138-4ee7-bb59-b80527c71eb3",
+      "demoMode": "full-access-read-only",
+      "durationMs": 632,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=owner&variant=A1",
+          "role": "owner",
+          "variant": "A1",
+          "compositionFamily": "command",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=owner&variant=A1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=owner&variant=A1"
+          ],
+          "heading": "Owner · Command Centre / Full Hero",
+          "priorityLabel": "Owner priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.OWNER.A1",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.OWNER-A1"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-OWNER-A1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.OWNER.B2",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=owner&variant=B2",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "371669b8-a23b-44fa-9617-998dbc69d763",
+      "demoMode": "full-access-read-only",
+      "durationMs": 608,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=owner&variant=B2",
+          "role": "owner",
+          "variant": "B2",
+          "compositionFamily": "cockpit",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=owner&variant=B2"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=owner&variant=B2"
+          ],
+          "heading": "Owner · Racing Cockpit / Integrated Planner",
+          "priorityLabel": "Owner priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.OWNER.B2",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.OWNER-B2"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-OWNER-B2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.OWNER.C1",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=owner&variant=C1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "6a5dd8f1-0b9c-47b0-bf7d-53150e7c0c99",
+      "demoMode": "full-access-read-only",
+      "durationMs": 617,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=owner&variant=C1",
+          "role": "owner",
+          "variant": "C1",
+          "compositionFamily": "social",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=owner&variant=C1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=owner&variant=C1"
+          ],
+          "heading": "Owner · Social Data Hub / Expanded Feed",
+          "priorityLabel": "Owner priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.OWNER.C1",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.OWNER-C1"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-OWNER-C1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.OWNER.C2",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=owner&variant=C2",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "f53bcd8e-1d4e-41f8-970c-e72821f8cd67",
+      "demoMode": "full-access-read-only",
+      "durationMs": 621,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=owner&variant=C2",
+          "role": "owner",
+          "variant": "C2",
+          "compositionFamily": "social",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=owner&variant=C2"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=owner&variant=C2"
+          ],
+          "heading": "Owner · Social Data Hub / Compact Feed",
+          "priorityLabel": "Owner priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.OWNER.C2",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.OWNER-C2"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-OWNER-C2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.PUNTER.A1",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=punter&variant=A1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "f96bb9f4-4312-42b7-b712-c02d6df886ed",
+      "demoMode": "full-access-read-only",
+      "durationMs": 601,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=punter&variant=A1",
+          "role": "punter",
+          "variant": "A1",
+          "compositionFamily": "command",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=punter&variant=A1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=punter&variant=A1"
+          ],
+          "heading": "Punter · Command Centre / Full Hero",
+          "priorityLabel": "Punter priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.PUNTER.A1",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.PUNTER-A1"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-PUNTER-A1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.PUNTER.A2",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=punter&variant=A2",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "8d186fd3-2ec7-4de7-8de2-a0dac8e8b9aa",
+      "demoMode": "full-access-read-only",
+      "durationMs": 634,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=punter&variant=A2",
+          "role": "punter",
+          "variant": "A2",
+          "compositionFamily": "command",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=punter&variant=A2"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=punter&variant=A2"
+          ],
+          "heading": "Punter · Command Centre / Compact Hero",
+          "priorityLabel": "Punter priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.PUNTER.A2",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.PUNTER-A2"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-PUNTER-A2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.PUNTER.C1",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=punter&variant=C1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "95c0bccb-9e39-4fbc-a38d-8310253824f3",
+      "demoMode": "full-access-read-only",
+      "durationMs": 577,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=punter&variant=C1",
+          "role": "punter",
+          "variant": "C1",
+          "compositionFamily": "social",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=punter&variant=C1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=punter&variant=C1"
+          ],
+          "heading": "Punter · Social Data Hub / Expanded Feed",
+          "priorityLabel": "Punter priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.PUNTER.C1",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.PUNTER-C1"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-PUNTER-C1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FIXTURE.PUNTER.C2",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=punter&variant=C2",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "b6998fc9-465e-4827-836f-c35511b1b923",
+      "demoMode": "full-access-read-only",
+      "durationMs": 586,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=punter&variant=C2",
+          "role": "punter",
+          "variant": "C2",
+          "compositionFamily": "social",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=punter&variant=C2"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=punter&variant=C2"
+          ],
+          "heading": "Punter · Social Data Hub / Compact Feed",
+          "priorityLabel": "Punter priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FIXTURE.PUNTER.C2",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.PUNTER-C2"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-PUNTER-C2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.ROLE.FALLBACK",
+      "route": "/design-lab/role-blueprints",
+      "requestPath": "/design-lab/role-blueprints?role=unsupported&variant=Z9",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "d7eaca5b-7ba1-40ef-bcc0-dc39089a6e14",
+      "demoMode": "full-access-read-only",
+      "durationMs": 612,
+      "observed": {
+        "view": {
+          "currentPath": "/design-lab/role-blueprints?role=unsupported&variant=Z9",
+          "role": "business",
+          "variant": "A1",
+          "compositionFamily": "command",
+          "currentRoleHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=A1"
+          ],
+          "currentVariantHrefs": [
+            "/design-lab/role-blueprints?role=business&variant=A1"
+          ],
+          "heading": "Business · Command Centre / Full Hero",
+          "priorityLabel": "Business priorities"
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.ROLE.FALLBACK",
+        "route": "/design-lab/role-blueprints",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.FALLBACK.UNSUPPORTED-SELECTION"
+        ],
+        "fixtureIds": [
+          "DL-ROLE-FALLBACK"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.DEFAULT",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "91cef7db-7e77-44c5-a923-0581ebe750e4",
+      "demoMode": "full-access-read-only",
+      "durationMs": 895,
+      "observed": {
+        "view": {
+          "currentPath": "/feed/device-preview",
+          "device": "mobile",
+          "variant": "A1",
+          "dock": "D1",
+          "sponsored": "on",
+          "frameId": "APP-A1-D1-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+          "shellReviewId": "A1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "reviewIds": [
+            "A1-MOBILE-SHELL",
+            "A1-MOBILE-HEADER",
+            "A1-MOBILE-RACE-NAV",
+            "A1-MOBILE-RACE-PLANNER",
+            "A1-MOBILE-PROFILE",
+            "A1-MOBILE-FEED-COMPOSER",
+            "A1-MOBILE-FEED",
+            "A1-MOBILE-MARKETPLACE",
+            "A1-MOBILE-CHAT",
+            "A1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+            "title": "iPhone 17 version A1 with D1 Carbon Rail dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.DEFAULT",
+        "route": "/feed/device-preview",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.DEFAULT.MOBILE-A1-D1-SPONSORED-ON"
+        ],
+        "fixtureIds": [
+          "DL-FEED-DEFAULT"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.DEVICE.DESKTOP",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=tablet&variant=A1&dock=D1&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "39aa3bdd-1a80-42e3-a1b2-d32ef4575e6a",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1198,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=tablet&variant=A1&dock=D1&sponsored=on",
+            "device": "tablet",
+            "variant": "A1",
+            "dock": "D1",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=desktop&variant=A1&dock=D1&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=desktop&variant=A1&dock=D1&sponsored=on",
+            "device": "desktop",
+            "variant": "A1",
+            "dock": "D1",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=desktop&variant=A1&dock=D1&sponsored=on",
+          "device": "desktop",
+          "variant": "A1",
+          "dock": "D1",
+          "sponsored": "on",
+          "frameId": "APP-A1-D1-DESKTOP",
+          "dimensions": "1440x1000",
+          "target": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+          "shellReviewId": "A1-DESKTOP-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=desktop&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=desktop&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=desktop&variant=A1&dock=D1&sponsored=on"
+          ],
+          "reviewIds": [
+            "A1-DESKTOP-SHELL",
+            "A1-DESKTOP-HEADER",
+            "A1-DESKTOP-RACE-NAV",
+            "A1-DESKTOP-RACE-PLANNER",
+            "A1-DESKTOP-PROFILE",
+            "A1-DESKTOP-FEED-COMPOSER",
+            "A1-DESKTOP-FEED",
+            "A1-DESKTOP-MARKETPLACE",
+            "A1-DESKTOP-CHAT",
+            "A1-DESKTOP-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+            "title": "Desktop version A1 with D1 Carbon Rail dock",
+            "width": "1440",
+            "height": "1000"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.DEVICE.DESKTOP",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-DEVICE.DESKTOP.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.DEVICE-DESKTOP"
+        ],
+        "fixtureIds": [
+          "DL-FEED-DEVICE-DESKTOP"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.DEVICE.TABLET",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "8445787d-d30e-4be8-b130-1c1c1ae1f8cb",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1033,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D1",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=tablet&variant=A1&dock=D1&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=tablet&variant=A1&dock=D1&sponsored=on",
+            "device": "tablet",
+            "variant": "A1",
+            "dock": "D1",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=tablet&variant=A1&dock=D1&sponsored=on",
+          "device": "tablet",
+          "variant": "A1",
+          "dock": "D1",
+          "sponsored": "on",
+          "frameId": "APP-A1-D1-TABLET",
+          "dimensions": "834x1210",
+          "target": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+          "shellReviewId": "A1-TABLET-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=tablet&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=tablet&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=tablet&variant=A1&dock=D1&sponsored=on"
+          ],
+          "reviewIds": [
+            "A1-TABLET-SHELL",
+            "A1-TABLET-HEADER",
+            "A1-TABLET-RACE-NAV",
+            "A1-TABLET-RACE-PLANNER",
+            "A1-TABLET-PROFILE",
+            "A1-TABLET-FEED-COMPOSER",
+            "A1-TABLET-FEED",
+            "A1-TABLET-MARKETPLACE",
+            "A1-TABLET-CHAT",
+            "A1-TABLET-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+            "title": "iPad Pro 11-inch version A1 with D1 Carbon Rail dock",
+            "width": "834",
+            "height": "1210"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.DEVICE.TABLET",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-DEVICE.TABLET.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.DEVICE-TABLET"
+        ],
+        "fixtureIds": [
+          "DL-FEED-DEVICE-TABLET"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.DEVICE.MOBILE",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=desktop&variant=A1&dock=D1&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "aa3af65d-206a-4c5d-9be2-53458caa68ac",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1093,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=desktop&variant=A1&dock=D1&sponsored=on",
+            "device": "desktop",
+            "variant": "A1",
+            "dock": "D1",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D1",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+          "device": "mobile",
+          "variant": "A1",
+          "dock": "D1",
+          "sponsored": "on",
+          "frameId": "APP-A1-D1-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+          "shellReviewId": "A1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "reviewIds": [
+            "A1-MOBILE-SHELL",
+            "A1-MOBILE-HEADER",
+            "A1-MOBILE-RACE-NAV",
+            "A1-MOBILE-RACE-PLANNER",
+            "A1-MOBILE-PROFILE",
+            "A1-MOBILE-FEED-COMPOSER",
+            "A1-MOBILE-FEED",
+            "A1-MOBILE-MARKETPLACE",
+            "A1-MOBILE-CHAT",
+            "A1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+            "title": "iPhone 17 version A1 with D1 Carbon Rail dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.DEVICE.MOBILE",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-DEVICE.MOBILE.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.DEVICE-MOBILE"
+        ],
+        "fixtureIds": [
+          "DL-FEED-DEVICE-MOBILE"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.VARIANT.A1",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=A2&dock=D1&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "c5662a7f-7b5d-49a6-99fd-982a8eecb938",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1073,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A2&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "A2",
+            "dock": "D1",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D1",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+          "device": "mobile",
+          "variant": "A1",
+          "dock": "D1",
+          "sponsored": "on",
+          "frameId": "APP-A1-D1-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+          "shellReviewId": "A1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "reviewIds": [
+            "A1-MOBILE-SHELL",
+            "A1-MOBILE-HEADER",
+            "A1-MOBILE-RACE-NAV",
+            "A1-MOBILE-RACE-PLANNER",
+            "A1-MOBILE-PROFILE",
+            "A1-MOBILE-FEED-COMPOSER",
+            "A1-MOBILE-FEED",
+            "A1-MOBILE-MARKETPLACE",
+            "A1-MOBILE-CHAT",
+            "A1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+            "title": "iPhone 17 version A1 with D1 Carbon Rail dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.VARIANT.A1",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-VARIANT.A1.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.VARIANT-A1"
+        ],
+        "fixtureIds": [
+          "DL-FEED-VARIANT-A1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.VARIANT.A2",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=B1&dock=D1&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "666c6018-2518-479c-b727-6937b6df61a3",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1296,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=B1&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "B1",
+            "dock": "D1",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=mobile&variant=A2&dock=D1&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A2&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "A2",
+            "dock": "D1",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=A2&dock=D1&sponsored=on",
+          "device": "mobile",
+          "variant": "A2",
+          "dock": "D1",
+          "sponsored": "on",
+          "frameId": "APP-A2-D1-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=A2&demo=1&dock=D1&sponsored=on",
+          "shellReviewId": "A2-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=A2&dock=D1&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=A2&dock=D1&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=A2&dock=D1&sponsored=on"
+          ],
+          "reviewIds": [
+            "A2-MOBILE-SHELL",
+            "A2-MOBILE-HEADER",
+            "A2-MOBILE-RACE-NAV",
+            "A2-MOBILE-RACE-PLANNER",
+            "A2-MOBILE-PROFILE",
+            "A2-MOBILE-FEED-COMPOSER",
+            "A2-MOBILE-FEED",
+            "A2-MOBILE-MARKETPLACE",
+            "A2-MOBILE-CHAT",
+            "A2-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A2&demo=1&dock=D1&sponsored=on",
+            "title": "iPhone 17 version A2 with D1 Carbon Rail dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.VARIANT.A2",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-VARIANT.A2.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.VARIANT-A2"
+        ],
+        "fixtureIds": [
+          "DL-FEED-VARIANT-A2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.VARIANT.B1",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=B2&dock=D1&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "7f2e6064-22db-405e-89ce-83b502644fd1",
+      "demoMode": "full-access-read-only",
+      "durationMs": 983,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=B2&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "B2",
+            "dock": "D1",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=mobile&variant=B1&dock=D1&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=B1&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "B1",
+            "dock": "D1",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=B1&dock=D1&sponsored=on",
+          "device": "mobile",
+          "variant": "B1",
+          "dock": "D1",
+          "sponsored": "on",
+          "frameId": "APP-B1-D1-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=B1&demo=1&dock=D1&sponsored=on",
+          "shellReviewId": "B1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=B1&dock=D1&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=B1&dock=D1&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=B1&dock=D1&sponsored=on"
+          ],
+          "reviewIds": [
+            "B1-MOBILE-SHELL",
+            "B1-MOBILE-HEADER",
+            "B1-MOBILE-RACE-NAV",
+            "B1-MOBILE-RACE-PLANNER",
+            "B1-MOBILE-PROFILE",
+            "B1-MOBILE-FEED-COMPOSER",
+            "B1-MOBILE-FEED",
+            "B1-MOBILE-MARKETPLACE",
+            "B1-MOBILE-CHAT",
+            "B1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=B1&demo=1&dock=D1&sponsored=on",
+            "title": "iPhone 17 version B1 with D1 Carbon Rail dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.VARIANT.B1",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-VARIANT.B1.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.VARIANT-B1"
+        ],
+        "fixtureIds": [
+          "DL-FEED-VARIANT-B1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.VARIANT.B2",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=C1&dock=D1&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "3d2d946f-d521-43cb-94b0-5742549a6721",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1109,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=C1&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "C1",
+            "dock": "D1",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=mobile&variant=B2&dock=D1&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=B2&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "B2",
+            "dock": "D1",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=B2&dock=D1&sponsored=on",
+          "device": "mobile",
+          "variant": "B2",
+          "dock": "D1",
+          "sponsored": "on",
+          "frameId": "APP-B2-D1-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=B2&demo=1&dock=D1&sponsored=on",
+          "shellReviewId": "B2-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=B2&dock=D1&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=B2&dock=D1&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=B2&dock=D1&sponsored=on"
+          ],
+          "reviewIds": [
+            "B2-MOBILE-SHELL",
+            "B2-MOBILE-HEADER",
+            "B2-MOBILE-RACE-NAV",
+            "B2-MOBILE-RACE-PLANNER",
+            "B2-MOBILE-PROFILE",
+            "B2-MOBILE-FEED-COMPOSER",
+            "B2-MOBILE-FEED",
+            "B2-MOBILE-MARKETPLACE",
+            "B2-MOBILE-CHAT",
+            "B2-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=B2&demo=1&dock=D1&sponsored=on",
+            "title": "iPhone 17 version B2 with D1 Carbon Rail dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.VARIANT.B2",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-VARIANT.B2.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.VARIANT-B2"
+        ],
+        "fixtureIds": [
+          "DL-FEED-VARIANT-B2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.VARIANT.C1",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=C2&dock=D1&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "b4eb3fc0-1b05-44b7-84c7-f18cd1b22a22",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1106,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=C2&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "C2",
+            "dock": "D1",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=mobile&variant=C1&dock=D1&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=C1&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "C1",
+            "dock": "D1",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=C1&dock=D1&sponsored=on",
+          "device": "mobile",
+          "variant": "C1",
+          "dock": "D1",
+          "sponsored": "on",
+          "frameId": "APP-C1-D1-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=C1&demo=1&dock=D1&sponsored=on",
+          "shellReviewId": "C1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=C1&dock=D1&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=C1&dock=D1&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=C1&dock=D1&sponsored=on"
+          ],
+          "reviewIds": [
+            "C1-MOBILE-SHELL",
+            "C1-MOBILE-HEADER",
+            "C1-MOBILE-RACE-NAV",
+            "C1-MOBILE-RACE-PLANNER",
+            "C1-MOBILE-PROFILE",
+            "C1-MOBILE-FEED-COMPOSER",
+            "C1-MOBILE-FEED",
+            "C1-MOBILE-MARKETPLACE",
+            "C1-MOBILE-CHAT",
+            "C1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=C1&demo=1&dock=D1&sponsored=on",
+            "title": "iPhone 17 version C1 with D1 Carbon Rail dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.VARIANT.C1",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-VARIANT.C1.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.VARIANT-C1"
+        ],
+        "fixtureIds": [
+          "DL-FEED-VARIANT-C1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.VARIANT.C2",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "19377ad5-2eed-49db-9cdb-310020221d42",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1112,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D1",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=mobile&variant=C2&dock=D1&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=C2&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "C2",
+            "dock": "D1",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=C2&dock=D1&sponsored=on",
+          "device": "mobile",
+          "variant": "C2",
+          "dock": "D1",
+          "sponsored": "on",
+          "frameId": "APP-C2-D1-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=C2&demo=1&dock=D1&sponsored=on",
+          "shellReviewId": "C2-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=C2&dock=D1&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=C2&dock=D1&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=C2&dock=D1&sponsored=on"
+          ],
+          "reviewIds": [
+            "C2-MOBILE-SHELL",
+            "C2-MOBILE-HEADER",
+            "C2-MOBILE-RACE-NAV",
+            "C2-MOBILE-RACE-PLANNER",
+            "C2-MOBILE-PROFILE",
+            "C2-MOBILE-FEED-COMPOSER",
+            "C2-MOBILE-FEED",
+            "C2-MOBILE-MARKETPLACE",
+            "C2-MOBILE-CHAT",
+            "C2-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=C2&demo=1&dock=D1&sponsored=on",
+            "title": "iPhone 17 version C2 with D1 Carbon Rail dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.VARIANT.C2",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-VARIANT.C2.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.VARIANT-C2"
+        ],
+        "fixtureIds": [
+          "DL-FEED-VARIANT-C2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.DOCK.D1",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D2&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "42091eb2-2433-4ba1-ab9e-83eb95c3fce1",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1113,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D2&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D2",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D1",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+          "device": "mobile",
+          "variant": "A1",
+          "dock": "D1",
+          "sponsored": "on",
+          "frameId": "APP-A1-D1-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+          "shellReviewId": "A1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "reviewIds": [
+            "A1-MOBILE-SHELL",
+            "A1-MOBILE-HEADER",
+            "A1-MOBILE-RACE-NAV",
+            "A1-MOBILE-RACE-PLANNER",
+            "A1-MOBILE-PROFILE",
+            "A1-MOBILE-FEED-COMPOSER",
+            "A1-MOBILE-FEED",
+            "A1-MOBILE-MARKETPLACE",
+            "A1-MOBILE-CHAT",
+            "A1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+            "title": "iPhone 17 version A1 with D1 Carbon Rail dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.DOCK.D1",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-DOCK.D1.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.DOCK-D1"
+        ],
+        "fixtureIds": [
+          "DL-FEED-DOCK-D1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.DOCK.D2",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D3&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "64bc40c3-d8ed-4d2c-bc82-52d9913aa2a8",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1126,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D3&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D3",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=mobile&variant=A1&dock=D2&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D2&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D2",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D2&sponsored=on",
+          "device": "mobile",
+          "variant": "A1",
+          "dock": "D2",
+          "sponsored": "on",
+          "frameId": "APP-A1-D2-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=A1&demo=1&dock=D2&sponsored=on",
+          "shellReviewId": "A1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D2&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D2&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D2&sponsored=on"
+          ],
+          "reviewIds": [
+            "A1-MOBILE-SHELL",
+            "A1-MOBILE-HEADER",
+            "A1-MOBILE-RACE-NAV",
+            "A1-MOBILE-RACE-PLANNER",
+            "A1-MOBILE-PROFILE",
+            "A1-MOBILE-FEED-COMPOSER",
+            "A1-MOBILE-FEED",
+            "A1-MOBILE-MARKETPLACE",
+            "A1-MOBILE-CHAT",
+            "A1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D2&sponsored=on",
+            "title": "iPhone 17 version A1 with D2 Gold Pulse dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.DOCK.D2",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-DOCK.D2.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.DOCK-D2"
+        ],
+        "fixtureIds": [
+          "DL-FEED-DOCK-D2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.DOCK.D3",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D4&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "8b1674a9-1041-45c2-8e20-a8358e9b452a",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1167,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D4&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D4",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=mobile&variant=A1&dock=D3&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D3&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D3",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D3&sponsored=on",
+          "device": "mobile",
+          "variant": "A1",
+          "dock": "D3",
+          "sponsored": "on",
+          "frameId": "APP-A1-D3-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=A1&demo=1&dock=D3&sponsored=on",
+          "shellReviewId": "A1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D3&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D3&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D3&sponsored=on"
+          ],
+          "reviewIds": [
+            "A1-MOBILE-SHELL",
+            "A1-MOBILE-HEADER",
+            "A1-MOBILE-RACE-NAV",
+            "A1-MOBILE-RACE-PLANNER",
+            "A1-MOBILE-PROFILE",
+            "A1-MOBILE-FEED-COMPOSER",
+            "A1-MOBILE-FEED",
+            "A1-MOBILE-MARKETPLACE",
+            "A1-MOBILE-CHAT",
+            "A1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D3&sponsored=on",
+            "title": "iPhone 17 version A1 with D3 Purple Glass dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.DOCK.D3",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-DOCK.D3.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.DOCK-D3"
+        ],
+        "fixtureIds": [
+          "DL-FEED-DOCK-D3"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.DOCK.D4",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D5&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "15fa6c9e-a8cf-4d4a-b6a3-f356910437fb",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1094,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D5&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D5",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=mobile&variant=A1&dock=D4&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D4&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D4",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D4&sponsored=on",
+          "device": "mobile",
+          "variant": "A1",
+          "dock": "D4",
+          "sponsored": "on",
+          "frameId": "APP-A1-D4-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=A1&demo=1&dock=D4&sponsored=on",
+          "shellReviewId": "A1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D4&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D4&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D4&sponsored=on"
+          ],
+          "reviewIds": [
+            "A1-MOBILE-SHELL",
+            "A1-MOBILE-HEADER",
+            "A1-MOBILE-RACE-NAV",
+            "A1-MOBILE-RACE-PLANNER",
+            "A1-MOBILE-PROFILE",
+            "A1-MOBILE-FEED-COMPOSER",
+            "A1-MOBILE-FEED",
+            "A1-MOBILE-MARKETPLACE",
+            "A1-MOBILE-CHAT",
+            "A1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D4&sponsored=on",
+            "title": "iPhone 17 version A1 with D4 Race Grid dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.DOCK.D4",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-DOCK.D4.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.DOCK-D4"
+        ],
+        "fixtureIds": [
+          "DL-FEED-DOCK-D4"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.DOCK.D5",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D6&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "25dbcee3-5c61-4a62-b9ab-b3c1c56527c3",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1096,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D6&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D6",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=mobile&variant=A1&dock=D5&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D5&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D5",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D5&sponsored=on",
+          "device": "mobile",
+          "variant": "A1",
+          "dock": "D5",
+          "sponsored": "on",
+          "frameId": "APP-A1-D5-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=A1&demo=1&dock=D5&sponsored=on",
+          "shellReviewId": "A1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D5&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D5&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D5&sponsored=on"
+          ],
+          "reviewIds": [
+            "A1-MOBILE-SHELL",
+            "A1-MOBILE-HEADER",
+            "A1-MOBILE-RACE-NAV",
+            "A1-MOBILE-RACE-PLANNER",
+            "A1-MOBILE-PROFILE",
+            "A1-MOBILE-FEED-COMPOSER",
+            "A1-MOBILE-FEED",
+            "A1-MOBILE-MARKETPLACE",
+            "A1-MOBILE-CHAT",
+            "A1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D5&sponsored=on",
+            "title": "iPhone 17 version A1 with D5 Minimal Chrome dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.DOCK.D5",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-DOCK.D5.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.DOCK-D5"
+        ],
+        "fixtureIds": [
+          "DL-FEED-DOCK-D5"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.ACTION.DOCK.D6",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "7ee91aae-e378-4afd-8c52-bc073ff1dfc7",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1111,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D1",
+            "sponsored": "on"
+          },
+          "clickedHref": "/feed/device-preview?device=mobile&variant=A1&dock=D6&sponsored=on",
+          "to": {
+            "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D6&sponsored=on",
+            "device": "mobile",
+            "variant": "A1",
+            "dock": "D6",
+            "sponsored": "on"
+          }
+        },
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D6&sponsored=on",
+          "device": "mobile",
+          "variant": "A1",
+          "dock": "D6",
+          "sponsored": "on",
+          "frameId": "APP-A1-D6-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=A1&demo=1&dock=D6&sponsored=on",
+          "shellReviewId": "A1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D6&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D6&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D6&sponsored=on"
+          ],
+          "reviewIds": [
+            "A1-MOBILE-SHELL",
+            "A1-MOBILE-HEADER",
+            "A1-MOBILE-RACE-NAV",
+            "A1-MOBILE-RACE-PLANNER",
+            "A1-MOBILE-PROFILE",
+            "A1-MOBILE-FEED-COMPOSER",
+            "A1-MOBILE-FEED",
+            "A1-MOBILE-MARKETPLACE",
+            "A1-MOBILE-CHAT",
+            "A1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D6&sponsored=on",
+            "title": "iPhone 17 version A1 with D6 Floating Pods dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.ACTION.DOCK.D6",
+        "route": "/feed/device-preview",
+        "actionIds": [
+          "DL.ACTION.FEED-DOCK.D6.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.DOCK-D6"
+        ],
+        "fixtureIds": [
+          "DL-FEED-DOCK-D6"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.SPONSORED.ON",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "b2527f3b-3ae4-4ac1-82bc-8340c60d5ae3",
+      "demoMode": "full-access-read-only",
+      "durationMs": 747,
+      "observed": {
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on",
+          "device": "mobile",
+          "variant": "A1",
+          "dock": "D1",
+          "sponsored": "on",
+          "frameId": "APP-A1-D1-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+          "shellReviewId": "A1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "reviewIds": [
+            "A1-MOBILE-SHELL",
+            "A1-MOBILE-HEADER",
+            "A1-MOBILE-RACE-NAV",
+            "A1-MOBILE-RACE-PLANNER",
+            "A1-MOBILE-PROFILE",
+            "A1-MOBILE-FEED-COMPOSER",
+            "A1-MOBILE-FEED",
+            "A1-MOBILE-MARKETPLACE",
+            "A1-MOBILE-CHAT",
+            "A1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+            "title": "iPhone 17 version A1 with D1 Carbon Rail dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.SPONSORED.ON",
+        "route": "/feed/device-preview",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SPONSORED-ON"
+        ],
+        "fixtureIds": [
+          "DL-FEED-SPONSORED-ON"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.SPONSORED.OFF",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=off",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "0be60861-5402-447c-b1cf-fe3a1efa9bec",
+      "demoMode": "full-access-read-only",
+      "durationMs": 771,
+      "observed": {
+        "view": {
+          "currentPath": "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=off",
+          "device": "mobile",
+          "variant": "A1",
+          "dock": "D1",
+          "sponsored": "off",
+          "frameId": "APP-A1-D1-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=A1&demo=1&dock=D1&sponsored=off",
+          "shellReviewId": "A1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=off"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=off"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=off"
+          ],
+          "reviewIds": [
+            "A1-MOBILE-SHELL",
+            "A1-MOBILE-HEADER",
+            "A1-MOBILE-RACE-NAV",
+            "A1-MOBILE-RACE-PLANNER",
+            "A1-MOBILE-PROFILE",
+            "A1-MOBILE-FEED-COMPOSER",
+            "A1-MOBILE-FEED",
+            "A1-MOBILE-MARKETPLACE",
+            "A1-MOBILE-CHAT",
+            "A1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D1&sponsored=off",
+            "title": "iPhone 17 version A1 with D1 Carbon Rail dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.SPONSORED.OFF",
+        "route": "/feed/device-preview",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SPONSORED-OFF"
+        ],
+        "fixtureIds": [
+          "DL-FEED-SPONSORED-OFF"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.SUPPORTED",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=tablet&variant=C2&dock=D6&sponsored=off",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "f323518e-59fd-4167-8fc2-8b1e0c248d08",
+      "demoMode": "full-access-read-only",
+      "durationMs": 766,
+      "observed": {
+        "view": {
+          "currentPath": "/feed/device-preview?device=tablet&variant=C2&dock=D6&sponsored=off",
+          "device": "tablet",
+          "variant": "C2",
+          "dock": "D6",
+          "sponsored": "off",
+          "frameId": "APP-C2-D6-TABLET",
+          "dimensions": "834x1210",
+          "target": "/feed?variant=C2&demo=1&dock=D6&sponsored=off",
+          "shellReviewId": "C2-TABLET-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=tablet&variant=C2&dock=D6&sponsored=off"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=tablet&variant=C2&dock=D6&sponsored=off"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=tablet&variant=C2&dock=D6&sponsored=off"
+          ],
+          "reviewIds": [
+            "C2-TABLET-SHELL",
+            "C2-TABLET-HEADER",
+            "C2-TABLET-RACE-NAV",
+            "C2-TABLET-RACE-PLANNER",
+            "C2-TABLET-PROFILE",
+            "C2-TABLET-FEED-COMPOSER",
+            "C2-TABLET-FEED",
+            "C2-TABLET-MARKETPLACE",
+            "C2-TABLET-CHAT",
+            "C2-TABLET-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=C2&demo=1&dock=D6&sponsored=off",
+            "title": "iPad Pro 11-inch version C2 with D6 Floating Pods dock",
+            "width": "834",
+            "height": "1210"
+          }
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.SUPPORTED",
+        "route": "/feed/device-preview",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.SELECTION.SUPPORTED"
+        ],
+        "fixtureIds": [
+          "DL-FEED-SUPPORTED"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.FEED.FALLBACK",
+      "route": "/feed/device-preview",
+      "requestPath": "/feed/device-preview?device=unsupported&variant=Z9&dock=D9&sponsored=unexpected",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "fed770a8-cff4-4193-9763-b7e80b0bd746",
+      "demoMode": "full-access-read-only",
+      "durationMs": 785,
+      "observed": {
+        "view": {
+          "currentPath": "/feed/device-preview?device=unsupported&variant=Z9&dock=D9&sponsored=unexpected",
+          "device": "mobile",
+          "variant": "A1",
+          "dock": "D1",
+          "sponsored": "on",
+          "frameId": "APP-A1-D1-MOBILE",
+          "dimensions": "402x874",
+          "target": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+          "shellReviewId": "A1-MOBILE-SHELL",
+          "currentDeviceHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentVariantHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "currentDockHrefs": [
+            "/feed/device-preview?device=mobile&variant=A1&dock=D1&sponsored=on"
+          ],
+          "reviewIds": [
+            "A1-MOBILE-SHELL",
+            "A1-MOBILE-HEADER",
+            "A1-MOBILE-RACE-NAV",
+            "A1-MOBILE-RACE-PLANNER",
+            "A1-MOBILE-PROFILE",
+            "A1-MOBILE-FEED-COMPOSER",
+            "A1-MOBILE-FEED",
+            "A1-MOBILE-MARKETPLACE",
+            "A1-MOBILE-CHAT",
+            "A1-MOBILE-DOCK"
+          ],
+          "iframe": {
+            "src": "/feed?variant=A1&demo=1&dock=D1&sponsored=on",
+            "title": "iPhone 17 version A1 with D1 Carbon Rail dock",
+            "width": "402",
+            "height": "874"
+          }
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.FEED.FALLBACK",
+        "route": "/feed/device-preview",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.FALLBACK.UNSUPPORTED-SELECTION"
+        ],
+        "fixtureIds": [
+          "DL-FEED-FALLBACK"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.MARKETPLACE.DEFAULT",
+      "route": "/marketplace/design-lab",
+      "requestPath": "/marketplace/design-lab",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "5f3636db-10f6-471c-99f0-7c0de3c8846f",
+      "demoMode": "full-access-read-only",
+      "durationMs": 635,
+      "observed": {
+        "view": {
+          "currentPath": "/marketplace/design-lab",
+          "template": "M1",
+          "layoutFamily": "editorial-grandstand",
+          "currentTemplateHrefs": [
+            "/marketplace/design-lab?template=M1"
+          ],
+          "summary": [
+            "M1",
+            "Grandstand Market",
+            "Editorial discovery"
+          ]
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.MARKETPLACE.DEFAULT",
+        "route": "/marketplace/design-lab",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.DEFAULT.M1"
+        ],
+        "fixtureIds": [
+          "DL-MARKETPLACE-DEFAULT"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.MARKETPLACE.ACTION.M1",
+      "route": "/marketplace/design-lab",
+      "requestPath": "/marketplace/design-lab?template=M2",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "c4459caf-3baa-4efd-b453-7b2212568224",
+      "demoMode": "full-access-read-only",
+      "durationMs": 913,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/marketplace/design-lab?template=M2",
+            "template": "M2"
+          },
+          "clickedHref": "/marketplace/design-lab?template=M1",
+          "to": {
+            "currentPath": "/marketplace/design-lab?template=M1",
+            "template": "M1"
+          }
+        },
+        "view": {
+          "currentPath": "/marketplace/design-lab?template=M1",
+          "template": "M1",
+          "layoutFamily": "editorial-grandstand",
+          "currentTemplateHrefs": [
+            "/marketplace/design-lab?template=M1"
+          ],
+          "summary": [
+            "M1",
+            "Grandstand Market",
+            "Editorial discovery"
+          ]
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.M1",
+        "route": "/marketplace/design-lab",
+        "actionIds": [
+          "DL.ACTION.MARKETPLACE.M1.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.MARKETPLACE.M1"
+        ],
+        "fixtureIds": [
+          "DL-MARKETPLACE-M1"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.MARKETPLACE.ACTION.M2",
+      "route": "/marketplace/design-lab",
+      "requestPath": "/marketplace/design-lab?template=M3",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "7b37b7c6-68c6-4ddc-98d0-48a82652b016",
+      "demoMode": "full-access-read-only",
+      "durationMs": 912,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/marketplace/design-lab?template=M3",
+            "template": "M3"
+          },
+          "clickedHref": "/marketplace/design-lab?template=M2",
+          "to": {
+            "currentPath": "/marketplace/design-lab?template=M2",
+            "template": "M2"
+          }
+        },
+        "view": {
+          "currentPath": "/marketplace/design-lab?template=M2",
+          "template": "M2",
+          "layoutFamily": "dense-exchange",
+          "currentTemplateHrefs": [
+            "/marketplace/design-lab?template=M2"
+          ],
+          "summary": [
+            "M2",
+            "Compact Exchange",
+            "Dense comparison"
+          ]
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.M2",
+        "route": "/marketplace/design-lab",
+        "actionIds": [
+          "DL.ACTION.MARKETPLACE.M2.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.MARKETPLACE.M2"
+        ],
+        "fixtureIds": [
+          "DL-MARKETPLACE-M2"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.MARKETPLACE.ACTION.M3",
+      "route": "/marketplace/design-lab",
+      "requestPath": "/marketplace/design-lab?template=M4",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "b60404a5-ce96-4920-bfb6-4e5052973ce9",
+      "demoMode": "full-access-read-only",
+      "durationMs": 941,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/marketplace/design-lab?template=M4",
+            "template": "M4"
+          },
+          "clickedHref": "/marketplace/design-lab?template=M3",
+          "to": {
+            "currentPath": "/marketplace/design-lab?template=M3",
+            "template": "M3"
+          }
+        },
+        "view": {
+          "currentPath": "/marketplace/design-lab?template=M3",
+          "template": "M3",
+          "layoutFamily": "command-centre",
+          "currentTemplateHrefs": [
+            "/marketplace/design-lab?template=M3"
+          ],
+          "summary": [
+            "M3",
+            "Market Control",
+            "Operations overview"
+          ]
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.M3",
+        "route": "/marketplace/design-lab",
+        "actionIds": [
+          "DL.ACTION.MARKETPLACE.M3.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.MARKETPLACE.M3"
+        ],
+        "fixtureIds": [
+          "DL-MARKETPLACE-M3"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.MARKETPLACE.ACTION.M4",
+      "route": "/marketplace/design-lab",
+      "requestPath": "/marketplace/design-lab?template=M5",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "0c80ffd2-a80f-4919-a26f-901dd1f4da07",
+      "demoMode": "full-access-read-only",
+      "durationMs": 908,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/marketplace/design-lab?template=M5",
+            "template": "M5"
+          },
+          "clickedHref": "/marketplace/design-lab?template=M4",
+          "to": {
+            "currentPath": "/marketplace/design-lab?template=M4",
+            "template": "M4"
+          }
+        },
+        "view": {
+          "currentPath": "/marketplace/design-lab?template=M4",
+          "template": "M4",
+          "layoutFamily": "seller-workbench",
+          "currentTemplateHrefs": [
+            "/marketplace/design-lab?template=M4"
+          ],
+          "summary": [
+            "M4",
+            "Seller Cockpit",
+            "Listing workflow"
+          ]
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.M4",
+        "route": "/marketplace/design-lab",
+        "actionIds": [
+          "DL.ACTION.MARKETPLACE.M4.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.MARKETPLACE.M4"
+        ],
+        "fixtureIds": [
+          "DL-MARKETPLACE-M4"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.MARKETPLACE.ACTION.M5",
+      "route": "/marketplace/design-lab",
+      "requestPath": "/marketplace/design-lab?template=M6",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "a51b75d2-4b54-4f48-8045-a4dbed0a3963",
+      "demoMode": "full-access-read-only",
+      "durationMs": 905,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/marketplace/design-lab?template=M6",
+            "template": "M6"
+          },
+          "clickedHref": "/marketplace/design-lab?template=M5",
+          "to": {
+            "currentPath": "/marketplace/design-lab?template=M5",
+            "template": "M5"
+          }
+        },
+        "view": {
+          "currentPath": "/marketplace/design-lab?template=M5",
+          "template": "M5",
+          "layoutFamily": "community-stream",
+          "currentTemplateHrefs": [
+            "/marketplace/design-lab?template=M5"
+          ],
+          "summary": [
+            "M5",
+            "Social Bazaar",
+            "Community discovery"
+          ]
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.M5",
+        "route": "/marketplace/design-lab",
+        "actionIds": [
+          "DL.ACTION.MARKETPLACE.M5.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.MARKETPLACE.M5"
+        ],
+        "fixtureIds": [
+          "DL-MARKETPLACE-M5"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.MARKETPLACE.ACTION.M6",
+      "route": "/marketplace/design-lab",
+      "requestPath": "/marketplace/design-lab?template=M1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "ed5275f6-3a3d-4d6b-b1b7-28ffb84fbaa6",
+      "demoMode": "full-access-read-only",
+      "durationMs": 927,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/marketplace/design-lab?template=M1",
+            "template": "M1"
+          },
+          "clickedHref": "/marketplace/design-lab?template=M6",
+          "to": {
+            "currentPath": "/marketplace/design-lab?template=M6",
+            "template": "M6"
+          }
+        },
+        "view": {
+          "currentPath": "/marketplace/design-lab?template=M6",
+          "template": "M6",
+          "layoutFamily": "comparison-matrix",
+          "currentTemplateHrefs": [
+            "/marketplace/design-lab?template=M6"
+          ],
+          "summary": [
+            "M6",
+            "Data Exchange",
+            "Record comparison"
+          ]
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.M6",
+        "route": "/marketplace/design-lab",
+        "actionIds": [
+          "DL.ACTION.MARKETPLACE.M6.SELECT"
+        ],
+        "stateIds": [
+          "DL.STATE.MARKETPLACE.M6"
+        ],
+        "fixtureIds": [
+          "DL-MARKETPLACE-M6"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.MARKETPLACE.FALLBACK",
+      "route": "/marketplace/design-lab",
+      "requestPath": "/marketplace/design-lab?template=unsupported",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "089521d7-2019-4788-9903-e6ef201833b6",
+      "demoMode": "full-access-read-only",
+      "durationMs": 630,
+      "observed": {
+        "view": {
+          "currentPath": "/marketplace/design-lab?template=unsupported",
+          "template": "M1",
+          "layoutFamily": "editorial-grandstand",
+          "currentTemplateHrefs": [
+            "/marketplace/design-lab?template=M1"
+          ],
+          "summary": [
+            "M1",
+            "Grandstand Market",
+            "Editorial discovery"
+          ]
+        }
+      },
+      "actionGetObserved": null,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.MARKETPLACE.FALLBACK",
+        "route": "/marketplace/design-lab",
+        "actionIds": [],
+        "stateIds": [
+          "DL.STATE.FALLBACK.UNSUPPORTED-TEMPLATE"
+        ],
+        "fixtureIds": [
+          "DL-MARKETPLACE-FALLBACK"
+        ]
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "DL.WAVE2.MARKETPLACE.ACTION.PROFILE",
+      "route": "/marketplace/design-lab",
+      "requestPath": "/marketplace/design-lab?template=M1",
+      "httpStatus": 200,
+      "requestIdPresent": true,
+      "requestId": "ecd944fd-1185-4c49-8c70-42d4f932c67a",
+      "demoMode": "full-access-read-only",
+      "durationMs": 1245,
+      "observed": {
+        "transition": {
+          "from": {
+            "currentPath": "/marketplace/design-lab?template=M1",
+            "template": "M1"
+          },
+          "clickedHref": "/dogs/demo-provider-dog",
+          "to": {
+            "currentPath": "/dogs/demo-provider-dog"
+          }
+        }
+      },
+      "actionGetObserved": true,
+      "mutatingRequests": [],
+      "runtimeExceptions": [],
+      "inventoryCoverage": {
+        "scenarioId": "DL.WAVE2.MARKETPLACE.ACTION.PROFILE",
+        "route": "/marketplace/design-lab",
+        "actionIds": [
+          "DL.ACTION.MARKETPLACE.PROFILE.OPEN"
+        ],
+        "stateIds": [],
+        "fixtureIds": []
+      },
+      "passed": true,
+      "failures": []
+    }
+  ]
+}

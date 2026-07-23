@@ -17,14 +17,27 @@ import {
   Timer,
 } from "lucide-react";
 import { getRaceExplorerData } from "@/lib/queries";
-import { getLiveFeedStatus } from "@/lib/live/status";
+import { AutoSubmitSelect } from "@/components/auto-submit-select";
+import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
+import { PageTitle } from "@/components/page-title";
+import {
+  buildRaceDetailHref,
+  normaliseRaceListContext,
+  type RaceListContext,
+} from "@/lib/race-navigation";
 import {
   formatRaceDateInput,
-  formatRaceDateTime,
   formatRaceDayLabel,
   formatRaceTime,
   formatShortRaceDayLabel,
+  orderRaceDates,
 } from "@/lib/race-time";
+import {
+  getRacePresentationStatus,
+  isRaceEligibleForNextToGo,
+  normaliseRaceSourceStatus,
+} from "@/lib/race-status";
+import { formatRaceMetric, formatRaceScheduleSummary } from "@/lib/race-metric";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +60,6 @@ type NextRaceItem = {
 };
 type RaceDateRailItem = { date: string; races: number | null };
 
-const countFormatter = new Intl.NumberFormat("en-AU");
 const statusOptions = [
   { value: "all", label: "All" },
   { value: "upcoming", label: "Upcoming" },
@@ -58,27 +70,35 @@ const statusOptions = [
 
 export default async function RacesPage({ searchParams }: RacesPageProps) {
   const params = await searchParams;
-  const [data, liveStatus] = await Promise.all([
-    getRaceExplorerData({
-      date: firstParam(params.date),
-      state: firstParam(params.state),
-      q: firstParam(params.q),
-      status: firstParam(params.status),
-      sort: firstParam(params.sort),
-    }),
-    getLiveFeedStatus(),
-  ]);
+  const data = await getRaceExplorerData({
+    date: firstParam(params.date),
+    state: firstParam(params.state),
+    q: firstParam(params.q),
+    status: firstParam(params.status),
+    sort: firstParam(params.sort),
+  });
   const summary = data.dateSummary;
   const selectedState = data.selectedState;
   const hasMeetings = data.meetings.length > 0;
   const now = new Date();
   const nextToGo = getNextToGo(data.meetings, now);
-  const dateRail = buildDateRail(data.recentRaceDates, data.selectedDate);
+  const dateRail = buildDateRail(
+    data.recentRaceDates,
+    data.selectedDate,
+    formatRaceDateInput(now),
+  );
   const activeDateForFilterLinks = data.isGlobalSearch
     ? null
     : data.dateInputValue
       ? data.selectedDate
       : null;
+  const listContext = normaliseRaceListContext({
+    date: data.isGlobalSearch ? null : data.selectedDate,
+    state: selectedState,
+    query: data.searchQuery,
+    status: data.selectedStatus,
+    sort: data.selectedSort,
+  });
 
   return (
     <div className="giq-races-page">
@@ -87,7 +107,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
           <div className="giq-race-commandbar">
             <div className="giq-race-command-copy">
               <p className="program-label">Race day explorer</p>
-              <h1 className="giq-race-command-title">
+              <PageTitle size="compact" className="giq-race-command-title">
                 Race control
                 <span>
                   {data.isGlobalSearch
@@ -95,7 +115,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                     : ` / ${formatRaceDayLabel(data.selectedDate)}`}
                   {selectedState ? ` / ${selectedState}` : ""}
                 </span>
-              </h1>
+              </PageTitle>
               <p className="giq-race-command-subtitle">
                 Find the next race, jump to a track, or search the full
                 historical archive from one race schedule.
@@ -117,9 +137,15 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
               {data.dateInputValue && (
                 <input type="hidden" name="date" value={data.dateInputValue} />
               )}
-              {selectedState && <input type="hidden" name="state" value={selectedState} />}
+              {selectedState && (
+                <input type="hidden" name="state" value={selectedState} />
+              )}
               {data.selectedStatus !== "all" && (
-                <input type="hidden" name="status" value={data.selectedStatus} />
+                <input
+                  type="hidden"
+                  name="status"
+                  value={data.selectedStatus}
+                />
               )}
               {data.selectedSort !== "time" && (
                 <input type="hidden" name="sort" value={data.selectedSort} />
@@ -138,7 +164,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                   selectedState,
                   data.searchQuery,
                   data.selectedStatus,
-                  data.selectedSort
+                  data.selectedSort,
                 )}
                 className={`giq-date-chip giq-date-chip-global ${
                   data.isGlobalSearch ? "giq-date-chip-active" : ""
@@ -151,7 +177,8 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
 
             <div className="giq-date-rail" aria-label="Race dates">
               {dateRail.map((item) => {
-                const active = !data.isGlobalSearch && item.date === data.selectedDate;
+                const active =
+                  !data.isGlobalSearch && item.date === data.selectedDate;
                 return (
                   <Link
                     key={item.date}
@@ -160,7 +187,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                       selectedState,
                       data.searchQuery,
                       data.selectedStatus,
-                      data.selectedSort
+                      data.selectedSort,
                     )}
                     className={`giq-date-chip ${active ? "giq-date-chip-active" : ""}`}
                   >
@@ -180,10 +207,18 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
             </div>
 
             <form action="/races" className="giq-date-jump">
-              {data.searchQuery && <input type="hidden" name="q" value={data.searchQuery} />}
-              {selectedState && <input type="hidden" name="state" value={selectedState} />}
+              {data.searchQuery && (
+                <input type="hidden" name="q" value={data.searchQuery} />
+              )}
+              {selectedState && (
+                <input type="hidden" name="state" value={selectedState} />
+              )}
               {data.selectedStatus !== "all" && (
-                <input type="hidden" name="status" value={data.selectedStatus} />
+                <input
+                  type="hidden"
+                  name="status"
+                  value={data.selectedStatus}
+                />
               )}
               {data.selectedSort !== "time" && (
                 <input type="hidden" name="sort" value={data.selectedSort} />
@@ -197,19 +232,19 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                   aria-label="Choose race date"
                 />
               </label>
-              <button type="submit">Go</button>
+              <button type="submit">Search</button>
             </form>
           </div>
 
           <div className="giq-filter-band">
-            <FilterGroup label="State">
+            <FilterGroup label="State" className="giq-filter-group-state">
               <FilterChip
                 href={dateLink(
                   activeDateForFilterLinks,
                   null,
                   data.searchQuery,
                   data.selectedStatus,
-                  data.selectedSort
+                  data.selectedSort,
                 )}
                 active={!selectedState}
               >
@@ -223,7 +258,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                     state,
                     data.searchQuery,
                     data.selectedStatus,
-                    data.selectedSort
+                    data.selectedSort,
                   )}
                   active={selectedState === state}
                 >
@@ -241,7 +276,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                     selectedState,
                     data.searchQuery,
                     option.value,
-                    data.selectedSort
+                    data.selectedSort,
                   )}
                   active={data.selectedStatus === option.value}
                 >
@@ -254,25 +289,39 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
               {data.dateInputValue && (
                 <input type="hidden" name="date" value={data.dateInputValue} />
               )}
-              {data.searchQuery && <input type="hidden" name="q" value={data.searchQuery} />}
-              {selectedState && <input type="hidden" name="state" value={selectedState} />}
+              {data.searchQuery && (
+                <input type="hidden" name="q" value={data.searchQuery} />
+              )}
+              {selectedState && (
+                <input type="hidden" name="state" value={selectedState} />
+              )}
               {data.selectedStatus !== "all" && (
-                <input type="hidden" name="status" value={data.selectedStatus} />
+                <input
+                  type="hidden"
+                  name="status"
+                  value={data.selectedStatus}
+                />
               )}
               <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
               <label>
                 <span className="sr-only">Sort races</span>
-                <select name="sort" defaultValue={data.selectedSort}>
+                <AutoSubmitSelect
+                  name="sort"
+                  aria-label="Sort races"
+                  defaultValue={data.selectedSort}
+                >
                   <option value="time">Race time</option>
                   <option value="relevance">Relevance</option>
-                </select>
+                </AutoSubmitSelect>
               </label>
-              <button type="submit">Apply</button>
+              <button type="submit">Search</button>
             </form>
           </div>
         </section>
 
-        <NextToGoStrip items={nextToGo} now={now} />
+        <RacingDataDisclosure />
+
+        <NextToGoStrip items={nextToGo} now={now} context={listContext} />
 
         <section className="giq-races-main-grid">
           <div className="giq-races-meeting-column">
@@ -290,14 +339,19 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
               <p>
                 {data.searchQuery
                   ? `Showing ${data.selectedSort === "relevance" ? "ranked" : "time-sorted"} matches for "${data.searchQuery}" across ${data.isGlobalSearch ? "all harvested race dates" : formatRaceDayLabel(data.selectedDate)}.`
-                  : `${summary.meetings} meetings / ${summary.races} races on this schedule.`}
+                  : formatRaceScheduleSummary(summary)}
               </p>
             </div>
 
             {hasMeetings ? (
               <div className="giq-race-meetings-list">
                 {data.meetings.map((meeting) => (
-                  <RaceMeetingPanel key={meeting.id} meeting={meeting} now={now} />
+                  <RaceMeetingPanel
+                    key={meeting.id}
+                    meeting={meeting}
+                    now={now}
+                    context={listContext}
+                  />
                 ))}
               </div>
             ) : (
@@ -312,8 +366,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
           </div>
 
           <aside className="giq-races-side-rail">
-            <LiveStatusPanel liveStatus={liveStatus} />
-            <UpcomingQueue items={nextToGo} now={now} />
+            <UpcomingQueue items={nextToGo} now={now} context={listContext} />
           </aside>
         </section>
 
@@ -325,14 +378,17 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                 <h2>Playable replays on this date</h2>
               </div>
               <span className="giq-badge giq-badge-neutral hidden sm:inline-flex">
-                {formatCount(data.replayRaces.length)} shown
+                {formatRaceMetric(data.replayRaces.length).text} shown
               </span>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {data.replayRaces.map((race) => (
                 <Link
                   key={race.id}
-                  href={`/races/${race.id}`}
+                  href={buildRaceDetailHref(race.id, {
+                    ...listContext,
+                    meetingId: race.meeting.id,
+                  })}
                   className="giq-panel giq-panel-hover group block p-4 hover:border-[hsl(var(--secondary)/0.34)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[hsl(var(--secondary-light))] active:translate-y-[1px]"
                   aria-label={`Open replay for race ${race.raceNumber} at ${race.meeting.track.name}`}
                 >
@@ -401,7 +457,15 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
   );
 }
 
-function NextToGoStrip({ items, now }: { items: NextRaceItem[]; now: Date }) {
+function NextToGoStrip({
+  items,
+  now,
+  context,
+}: {
+  items: NextRaceItem[];
+  now: Date;
+  context: RaceListContext;
+}) {
   return (
     <section className="giq-next-to-go-section">
       <div className="giq-races-section-heading">
@@ -409,17 +473,25 @@ function NextToGoStrip({ items, now }: { items: NextRaceItem[]; now: Date }) {
           <p className="program-label">Next to go</p>
           <h2>Upcoming race queue</h2>
         </div>
-        <p>{items.length > 0 ? "Live and upcoming races sorted by time." : "No live or upcoming races in this selection."}</p>
+        <p>
+          {items.length > 0
+            ? "Live and upcoming races sorted by time."
+            : "No live or upcoming races in this selection."}
+        </p>
       </div>
 
       {items.length > 0 ? (
         <div className="giq-next-to-go-grid">
           {items.slice(0, 5).map(({ meeting, race }) => {
-            const live = isRaceLive(race, now);
+            const status = explorerRaceStatus(race, now);
+            const live = status.key === "live";
             return (
               <Link
                 key={race.id}
-                href={`/races/${race.id}`}
+                href={buildRaceDetailHref(race.id, {
+                  ...context,
+                  meetingId: meeting.id,
+                })}
                 className={`giq-next-race-card ${live ? "giq-next-race-card-live" : ""}`}
                 aria-label={`Open ${meeting.track.name} race ${race.raceNumber} at ${formatRaceTime(race.raceTime)}`}
               >
@@ -428,7 +500,9 @@ function NextToGoStrip({ items, now }: { items: NextRaceItem[]; now: Date }) {
                   <small>{live ? "Now" : "To go"}</small>
                 </span>
                 <span className="giq-next-race-main">
-                  <strong>R{race.raceNumber} {meeting.track.name}</strong>
+                  <strong>
+                    R{race.raceNumber} {meeting.track.name}
+                  </strong>
                   <small>
                     {formatRaceTime(race.raceTime)} / {race.distance}m
                     {race.grade ? ` / ${race.grade}` : ""}
@@ -452,19 +526,36 @@ function NextToGoStrip({ items, now }: { items: NextRaceItem[]; now: Date }) {
 function RaceMeetingPanel({
   meeting,
   now,
+  context,
 }: {
   meeting: RaceExplorerMeeting;
   now: Date;
+  context: RaceListContext;
 }) {
   const track = meeting.track;
   const firstRace = meeting.races[0];
-  const featuredRace = meeting.races.find((race) => race.raceTime > now) ?? firstRace;
+  const nextRace = meeting.races.find((race) =>
+    isRaceEligibleForNextToGo({
+      resultStatus: race.resultStatus,
+      raceTime: race.raceTime,
+      now,
+    }),
+  );
+  const featuredRace =
+    nextRace ??
+    meeting.races.find((race) => {
+      const sourceStatus = normaliseRaceSourceStatus(race.resultStatus);
+      return sourceStatus !== "abandoned" && sourceStatus !== "postponed";
+    });
   const replayCount = meeting.races.filter(hasReplay).length;
   const status = meetingStatus(meeting, now);
   const distanceRange = meetingDistanceRange(meeting);
 
   return (
-    <article className="giq-race-meeting-panel">
+    <article
+      id={`meeting-${meeting.id}`}
+      className="giq-race-meeting-panel scroll-mt-24"
+    >
       <div className="giq-race-meeting-time" aria-hidden="true">
         <span>{firstRace ? formatRaceTime(firstRace.raceTime) : "--:--"}</span>
       </div>
@@ -491,23 +582,38 @@ function RaceMeetingPanel({
                 <PlayCircle className="h-3.5 w-3.5" aria-hidden="true" />
                 {replayCount} replays
               </span>
-              <span className={`giq-meeting-state giq-meeting-state-${status.tone}`}>
+              <span
+                className={`giq-meeting-state giq-meeting-state-${status.tone}`}
+              >
                 {status.label}
               </span>
             </div>
           </div>
 
-          {featuredRace && (
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Link
-              href={`/races/${featuredRace.id}`}
-              className="giq-meeting-open-action"
-              aria-label={`Open ${track.name} race ${featuredRace.raceNumber} at ${formatRaceTime(featuredRace.raceTime)}`}
+              href={`/meetings/${meeting.id}`}
+              className="giq-outline-action min-h-9 px-3 py-2 text-[11px] font-semibold"
+              aria-label={`Open ${track.name} meeting`}
             >
-              Open next
-              <span>R{featuredRace.raceNumber}</span>
+              Open meeting
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
-          )}
+            {featuredRace && (
+              <Link
+                href={buildRaceDetailHref(featuredRace.id, {
+                  ...context,
+                  meetingId: meeting.id,
+                })}
+                className="giq-meeting-open-action"
+                aria-label={`Open ${track.name} race ${featuredRace.raceNumber} at ${formatRaceTime(featuredRace.raceTime)}`}
+              >
+                {nextRace ? "Open next" : "Open race"}
+                <span>R{featuredRace.raceNumber}</span>
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            )}
+          </div>
         </div>
 
         <div className="giq-race-row-list">
@@ -518,6 +624,10 @@ function RaceMeetingPanel({
               trackName={track.name}
               state={track.state}
               now={now}
+              detailHref={buildRaceDetailHref(race.id, {
+                ...context,
+                meetingId: meeting.id,
+              })}
             />
           ))}
         </div>
@@ -531,28 +641,21 @@ function RaceRowLink({
   trackName,
   state,
   now,
+  detailHref,
 }: {
   race: RaceExplorerRace;
   trackName: string;
   state: string;
   now: Date;
+  detailHref: string;
 }) {
-  const live = isRaceLive(race, now);
-  const upcoming = race.raceTime > now;
-  const replayReady = hasReplay(race);
-  const statusLabel = live
-    ? "Live"
-    : upcoming
-      ? "Upcoming"
-      : replayReady
-        ? "Replay"
-        : "Resulted";
+  const status = explorerRaceStatus(race, now);
 
   return (
     <Link
-      href={`/races/${race.id}`}
-      className={`giq-race-row-card ${live ? "giq-race-row-live" : upcoming ? "giq-race-row-upcoming" : ""}`}
-      aria-label={`Open ${trackName}, ${state} race ${race.raceNumber} at ${formatRaceTime(race.raceTime)}`}
+      href={detailHref}
+      className={`giq-race-row-card giq-race-row-state-${status.key}`}
+      aria-label={`Open ${trackName}, ${state} race ${race.raceNumber} at ${formatRaceTime(race.raceTime)}. Status: ${status.label}`}
     >
       <span className="giq-race-row-number">R{race.raceNumber}</span>
       <span className="giq-race-row-main">
@@ -563,8 +666,11 @@ function RaceRowLink({
       </span>
       <span className="giq-race-row-meta">
         <span>{race._count.runners} runners</span>
-        <span className={replayReady ? "giq-race-row-replay" : ""}>
-          {replayReady ? "Replay" : statusLabel}
+        <span
+          className={`giq-race-row-status giq-race-row-status-${status.key}`}
+          data-race-status={status.key}
+        >
+          {status.label}
         </span>
       </span>
       <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -575,12 +681,14 @@ function RaceRowLink({
 function FilterGroup({
   label,
   children,
+  className = "",
 }: {
   label: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="giq-filter-group">
+    <div className={`giq-filter-group ${className}`.trim()}>
       <span>{label}</span>
       <div className="giq-filter-scroll">{children}</div>
     </div>
@@ -607,7 +715,15 @@ function FilterChip({
   );
 }
 
-function UpcomingQueue({ items, now }: { items: NextRaceItem[]; now: Date }) {
+function UpcomingQueue({
+  items,
+  now,
+  context,
+}: {
+  items: NextRaceItem[];
+  now: Date;
+  context: RaceListContext;
+}) {
   return (
     <section className="giq-panel giq-upcoming-queue">
       <div className="flex items-start justify-between gap-3">
@@ -621,12 +737,17 @@ function UpcomingQueue({ items, now }: { items: NextRaceItem[]; now: Date }) {
         {items.slice(0, 10).map(({ meeting, race }) => (
           <Link
             key={race.id}
-            href={`/races/${race.id}`}
+            href={buildRaceDetailHref(race.id, {
+              ...context,
+              meetingId: meeting.id,
+            })}
             className="giq-upcoming-queue-item"
             aria-label={`Open ${meeting.track.name} race ${race.raceNumber}`}
           >
             <span>{formatCountdown(race, now)}</span>
-            <strong>R{race.raceNumber} {meeting.track.name}</strong>
+            <strong>
+              R{race.raceNumber} {meeting.track.name}
+            </strong>
             <small>
               {formatRaceTime(race.raceTime)} / {race.distance}m
             </small>
@@ -643,62 +764,6 @@ function UpcomingQueue({ items, now }: { items: NextRaceItem[]; now: Date }) {
   );
 }
 
-function LiveStatusPanel({
-  liveStatus,
-}: {
-  liveStatus: Awaited<ReturnType<typeof getLiveFeedStatus>>;
-}) {
-  const configured = liveStatus.status === "configured";
-
-  return (
-    <aside className="giq-panel giq-live-status-panel p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="program-label">Live feed</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
-            {configured ? "Configured" : "Waiting for credentials"}
-          </h2>
-        </div>
-        <span
-          className={`grid h-11 w-11 place-items-center rounded-full border ${
-            configured
-              ? "border-[hsl(var(--primary-light)/0.34)] bg-[hsl(var(--primary)/0.16)] text-[hsl(var(--primary-light))]"
-              : "border-[hsl(var(--secondary)/0.34)] bg-[hsl(var(--secondary)/0.12)] text-[hsl(var(--secondary))]"
-          }`}
-        >
-          <Radio className="h-5 w-5" />
-        </span>
-      </div>
-
-      <div className="mt-5 grid gap-2">
-        <StatusRow label="Provider" value={liveStatus.activeProvider ?? "none"} />
-        <StatusRow
-          label="Sync cadence"
-          value={liveStatus.scheduler.primarySchedule}
-        />
-        <StatusRow
-          label="Upcoming races"
-          value={formatCount(liveStatus.data.upcomingRaces)}
-        />
-        <StatusRow
-          label="Latest race"
-          value={
-            liveStatus.data.latestRaceTime
-              ? formatRaceDateTime(new Date(liveStatus.data.latestRaceTime))
-              : "None"
-          }
-        />
-      </div>
-
-      {liveStatus.blockers.length > 0 && (
-        <div className="mt-4 rounded-lg border border-[hsl(var(--secondary)/0.18)] bg-[hsl(var(--secondary)/0.08)] p-3 text-[12px] text-[hsl(var(--secondary-light))]">
-          {liveStatus.blockers.join(", ")}
-        </div>
-      )}
-    </aside>
-  );
-}
-
 function MetricCard({
   label,
   value,
@@ -710,8 +775,10 @@ function MetricCard({
   icon: ReactNode;
   tone?: "primary" | "gold";
 }) {
+  const metric = formatRaceMetric(value);
+
   return (
-    <div className="giq-metric-card">
+    <div className="giq-metric-card" data-metric-state={metric.state}>
       <div
         className={`mb-4 inline-grid h-9 w-9 place-items-center rounded-lg border ${
           tone === "gold"
@@ -725,41 +792,43 @@ function MetricCard({
         {label}
       </p>
       <p className="mt-1 font-mono text-2xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
-        {formatCount(value)}
+        {metric.text}
       </p>
     </div>
   );
 }
 
-function StatusRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="giq-subpanel flex items-center justify-between gap-3 px-3 py-2">
-      <span className="text-[12px] text-[hsl(var(--subtle-foreground))]">{label}</span>
-      <span className="text-right text-[12px] font-semibold text-[hsl(var(--foreground))]">
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function getNextToGo(meetings: RaceExplorerMeeting[], now: Date): NextRaceItem[] {
+function getNextToGo(
+  meetings: RaceExplorerMeeting[],
+  now: Date,
+): NextRaceItem[] {
   return meetings
     .flatMap((meeting) => meeting.races.map((race) => ({ meeting, race })))
-    .filter(({ race }) => race.raceTime > now || isRaceLive(race, now))
+    .filter(({ race }) =>
+      isRaceEligibleForNextToGo({
+        resultStatus: race.resultStatus,
+        raceTime: race.raceTime,
+        now,
+      }),
+    )
     .sort((a, b) => a.race.raceTime.getTime() - b.race.raceTime.getTime());
 }
 
 function buildDateRail(
   recentRaceDates: { date: string; races: number }[],
-  selectedDate: string
+  selectedDate: string,
+  today: string,
 ): RaceDateRailItem[] {
-  const selected = recentRaceDates.find((item) => item.date === selectedDate) ?? {
+  const selected = recentRaceDates.find(
+    (item) => item.date === selectedDate,
+  ) ?? {
     date: selectedDate,
     races: null,
   };
-  const rail = [selected, ...recentRaceDates.filter((item) => item.date !== selectedDate)]
-    .slice(0, 10);
-  return rail;
+  return orderRaceDates(
+    [selected, ...recentRaceDates.filter((item) => item.date !== selectedDate)],
+    today,
+  ).slice(0, 10);
 }
 
 function dateChipLabel(date: string, now: Date) {
@@ -773,56 +842,79 @@ function dateChipLabel(date: string, now: Date) {
 function dateChipSubLabel(date: string, now: Date) {
   const today = formatRaceDateInput(now);
   const tomorrow = addInputDateDays(today, 1);
-  return date === today || date === tomorrow ? formatShortRaceDayLabel(date) : null;
+  return date === today || date === tomorrow
+    ? formatShortRaceDayLabel(date)
+    : null;
 }
 
 function addInputDateDays(date: string, days: number) {
   const [year, month, day] = date.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+  return new Date(Date.UTC(year, month - 1, day + days))
+    .toISOString()
+    .slice(0, 10);
 }
 
 function meetingDistanceRange(meeting: RaceExplorerMeeting) {
-  const distances = [...new Set(meeting.races.map((race) => race.distance))].sort(
-    (a, b) => a - b
-  );
+  const distances = [
+    ...new Set(meeting.races.map((race) => race.distance)),
+  ].sort((a, b) => a - b);
   if (distances.length === 0) return "No distances";
   if (distances.length === 1) return `${distances[0]}m`;
   return `${distances[0]}m - ${distances[distances.length - 1]}m`;
 }
 
 function meetingStatus(meeting: RaceExplorerMeeting, now: Date) {
-  if (meeting.races.some((race) => isRaceLive(race, now))) {
+  const statuses = meeting.races.map((race) => explorerRaceStatus(race, now));
+  if (statuses.length > 0 && statuses.every(({ key }) => key === "abandoned")) {
+    return { label: "Abandoned", tone: "abandoned" };
+  }
+  if (statuses.length > 0 && statuses.every(({ key }) => key === "postponed")) {
+    return { label: "Postponed", tone: "postponed" };
+  }
+  if (statuses.some(({ key }) => key === "live")) {
     return { label: "Live", tone: "live" };
   }
-  if (meeting.races.some((race) => race.raceTime > now)) {
+  if (statuses.some(({ key }) => key === "upcoming")) {
     return { label: "Upcoming", tone: "upcoming" };
   }
-  if (meeting.races.some(hasReplay)) {
+  if (statuses.some(({ key }) => key === "abandoned" || key === "postponed")) {
+    return { label: "Schedule changed", tone: "changed" };
+  }
+  if (statuses.some(({ key }) => key === "replay")) {
     return { label: "Replay ready", tone: "replay" };
   }
-  return { label: "Resulted", tone: "resulted" };
-}
-
-function isRaceLive(race: RaceExplorerRace, now: Date) {
-  return (
-    race.raceTime <= now &&
-    now.getTime() - race.raceTime.getTime() < 20 * 60 * 1000
-  );
+  if (statuses.length > 0 && statuses.every(({ key }) => key === "completed")) {
+    return { label: "Completed", tone: "completed" };
+  }
+  return { label: "Awaiting result", tone: "awaiting-result" };
 }
 
 function hasReplay(race: RaceExplorerRace) {
   return race.videos.some((video) => video.streamUrl);
 }
 
+function explorerRaceStatus(race: RaceExplorerRace, now: Date) {
+  return getRacePresentationStatus({
+    resultStatus: race.resultStatus,
+    raceTime: race.raceTime,
+    now,
+    hasResults: false,
+    hasReplay: hasReplay(race),
+  });
+}
+
 function formatCountdown(race: RaceExplorerRace, now: Date) {
-  if (isRaceLive(race, now)) return "Live";
+  const status = explorerRaceStatus(race, now);
+  if (status.key === "live") return "Live";
+  if (status.key !== "upcoming") return status.label;
   const diff = race.raceTime.getTime() - now.getTime();
   if (diff <= 0) return "Done";
   const minutes = Math.ceil(diff / 60_000);
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
   const remainder = minutes % 60;
-  if (hours < 24) return remainder > 0 ? `${hours}h ${remainder}m` : `${hours}h`;
+  if (hours < 24)
+    return remainder > 0 ? `${hours}h ${remainder}m` : `${hours}h`;
   return formatRaceTime(race.raceTime);
 }
 
@@ -836,7 +928,7 @@ function dateLink(
   state: string | null,
   q: string | null,
   status: string,
-  sort: string
+  sort: string,
 ) {
   const params = new URLSearchParams();
   if (date) params.set("date", date);
@@ -845,8 +937,4 @@ function dateLink(
   if (status !== "all") params.set("status", status);
   if (sort !== "time") params.set("sort", sort);
   return `/races?${params.toString()}`;
-}
-
-function formatCount(value: number | null | undefined) {
-  return countFormatter.format(value ?? 0);
 }

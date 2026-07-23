@@ -1,8 +1,21 @@
+import { fetchPublicInternetOrigin } from "@/lib/public-network";
+import { readBoundedTextResponse } from "@/lib/remote-response";
+import { isTheDogsLicensedUseApproved } from "./thedogs-access";
+
 const THEDOGS_BASE =
   process.env.THEDOGS_BASE_URL ?? "https://www.thedogs.com.au";
 const THEDOGS_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 const THEDOGS_FETCH_TIMEOUT_MS = 15_000;
+const THEDOGS_RESPONSE_MAX_BYTES = 2 * 1024 * 1024;
+const THEDOGS_HTML_POLICY = {
+  maxBytes: THEDOGS_RESPONSE_MAX_BYTES,
+  allowedContentTypes: ["text/html", "application/xhtml+xml"],
+} as const;
+const THEDOGS_JSON_POLICY = {
+  maxBytes: THEDOGS_RESPONSE_MAX_BYTES,
+  allowedContentTypes: ["application/json", "text/plain"],
+} as const;
 
 type VideoSourceResponse = {
   meta?: {
@@ -15,6 +28,8 @@ type VideoSourceResponse = {
     description?: string;
   };
 };
+
+type ReplayFetch = typeof fetchPublicInternetOrigin;
 
 export type ResolvedTheDogsReplay = {
   pageUrl: string;
@@ -32,19 +47,20 @@ export async function resolveTheDogsRaceReplay({
 }: {
   sourceId?: string | null;
   replayUrl?: string | null;
-}): Promise<ResolvedTheDogsReplay | null> {
+}, fetchImpl: ReplayFetch = fetchPublicInternetOrigin): Promise<ResolvedTheDogsReplay | null> {
+  if (!isTheDogsLicensedUseApproved()) return null;
   const providerReplayUrl =
     replayUrl ??
     (isReplayVideoSourceId(sourceId)
       ? `/videos/watch/races/${sourceId}/replay`
-      : await fetchReplayUrlFromRacePage(sourceId));
+      : await fetchReplayUrlFromRacePage(sourceId, fetchImpl));
   if (!providerReplayUrl) return null;
 
   const videoSourceId = extractVideoSourceId(providerReplayUrl);
   if (!videoSourceId) return null;
 
   const pageUrl = absoluteTheDogsUrl(providerReplayUrl);
-  const source = await fetchVideoSource(videoSourceId, pageUrl);
+  const source = await fetchVideoSource(videoSourceId, pageUrl, fetchImpl);
   // The stream src is an external CDN (cloudfront/skyracing), so it is not
   // host-pinned to thedogs; it is only returned for the browser to play under
   // CSP, never fetched server-side. Validate it is plain http(s).
@@ -67,7 +83,7 @@ export async function resolveTheDogsRaceReplay({
 export function absoluteTheDogsUrl(value: string) {
   const base = new URL(THEDOGS_BASE);
   const url = new URL(value, THEDOGS_BASE);
-  if (url.hostname !== base.hostname || (url.protocol !== "https:" && url.protocol !== "http:")) {
+  if (url.protocol !== "https:" || url.origin !== base.origin) {
     throw new Error("thedogs.url_host_not_allowed");
   }
   return url.toString();
@@ -83,12 +99,16 @@ function publicHttpUrl(value?: string | null) {
   }
 }
 
-async function fetchReplayUrlFromRacePage(sourceId?: string | null) {
-  if (!sourceId) return null;
+async function fetchReplayUrlFromRacePage(
+  sourceId: string | null | undefined,
+  fetchImpl: ReplayFetch,
+) {
+  if (!isTheDogsLicensedUseApproved() || !sourceId) return null;
 
   try {
-    const response = await fetch(absoluteTheDogsUrl(sourceId), {
+    const response = await fetchImpl(absoluteTheDogsUrl(sourceId), {
       cache: "no-store",
+      redirect: "manual",
       signal: AbortSignal.timeout(THEDOGS_FETCH_TIMEOUT_MS),
       headers: {
         accept: "application/json, text/javascript, */*; q=0.01",
@@ -96,8 +116,11 @@ async function fetchReplayUrlFromRacePage(sourceId?: string | null) {
         "user-agent": THEDOGS_USER_AGENT,
       },
     });
-    if (!response.ok) return null;
-    const html = await response.text();
+    if (!response.ok) {
+      await response.body?.cancel();
+      return null;
+    }
+    const html = await readBoundedTextResponse(response, THEDOGS_HTML_POLICY);
     return parseReplayUrl(html);
   } catch {
     return null;
@@ -106,13 +129,16 @@ async function fetchReplayUrlFromRacePage(sourceId?: string | null) {
 
 async function fetchVideoSource(
   videoSourceId: string,
-  pageUrl: string
+  pageUrl: string,
+  fetchImpl: ReplayFetch,
 ): Promise<VideoSourceResponse> {
+  if (!isTheDogsLicensedUseApproved()) return {};
   try {
-    const response = await fetch(
+    const response = await fetchImpl(
       absoluteTheDogsUrl(`/api/videos/player/source/race-replay/${videoSourceId}`),
       {
         cache: "no-store",
+        redirect: "manual",
         signal: AbortSignal.timeout(THEDOGS_FETCH_TIMEOUT_MS),
         headers: {
           accept: "application/json, text/plain, */*",
@@ -124,7 +150,9 @@ async function fetchVideoSource(
         },
       }
     );
-    const parsed = parseJson<VideoSourceResponse>(await response.text()) ?? {};
+    const parsed = parseJson<VideoSourceResponse>(
+      await readBoundedTextResponse(response, THEDOGS_JSON_POLICY),
+    ) ?? {};
     return {
       ...parsed,
       meta: {

@@ -139,9 +139,9 @@ for (const route of PRODUCTION_SCREEN_PUBLIC_NAVIGATION_INTERACTION_ROUTES) {
   const expected = EXPECTED_PUBLIC_NAVIGATION_INTERACTIONS[route];
   const ownedInteraction =
     PRODUCTION_SCREEN_PUBLIC_NAVIGATION_INTERACTION_CONTRACTS[route];
-  const interaction = Object.entries(PRODUCTION_SCREEN_INTERACTION_CONTRACTS).find(
-    ([candidateRoute]) => candidateRoute === route,
-  )?.[1];
+  const interaction = Object.entries(
+    PRODUCTION_SCREEN_INTERACTION_CONTRACTS,
+  ).find(([candidateRoute]) => candidateRoute === route)?.[1];
   const screen = SCREEN_CONTRACT_BY_ROUTE.get(route);
   assert.ok(screen, `${route}: missing production screen contract`);
   assert.equal(screen.productionEnabled, true);
@@ -201,9 +201,10 @@ assert.equal(actionInventoryCount, 20);
 
 const homeHeroSource = readFileSync("src/components/home-hero.tsx", "utf8");
 for (const assertion of [
-  'primaryHref = "#races"',
+  'primaryHref = "/sign-in?plan=free"',
   "href={primaryHref}",
-  'href="/pricing"',
+  'href="#pricing"',
+  "Start Free",
 ]) {
   assert.ok(
     homeHeroSource.includes(assertion),

@@ -3,6 +3,7 @@ import { Suspense, type ReactNode } from "react";
 import { forbidden, redirect } from "next/navigation";
 
 import { AdminOperationStatus } from "@/app/admin/admin-operation-status";
+import { AdminResponsiveSurface } from "@/app/admin/admin-responsive-surface";
 import { requireModeratorProfile } from "@/lib/auth";
 import { AdminNav } from "@/app/admin/admin-nav";
 import { isFullAccessDemo } from "@/lib/demo-access";
@@ -38,7 +39,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         <Suspense fallback={null}>
           <AdminOperationStatus />
         </Suspense>
-        <div data-onboarding-target="admin-page-content">{children}</div>
+        <AdminResponsiveSurface>{children}</AdminResponsiveSurface>
       </div>
     </div>
   );

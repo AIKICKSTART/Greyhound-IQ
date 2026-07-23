@@ -1,0 +1,70 @@
+.surface {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .surface {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .surface :global([class~="overflow-x-auto"]),
+  .surface :global([class~="overflow-x-scroll"]) {
+    overflow-x: visible !important;
+  }
+
+  .surface :global(table) {
+    min-width: 0 !important;
+    width: 100% !important;
+    table-layout: fixed;
+  }
+
+  .surface :global(thead) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .surface :global(tbody),
+  .surface :global(tr) {
+    display: block;
+  }
+
+  .surface :global(tr) {
+    margin-block: 0.75rem;
+    overflow: hidden;
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.75rem;
+  }
+
+  .surface :global(td),
+  .surface :global(th[scope="row"]) {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 42%) minmax(0, 1fr);
+    gap: 0.75rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .surface :global(td[data-admin-table-label])::before,
+  .surface :global(th[scope="row"][data-admin-table-label])::before {
+    content: attr(data-admin-table-label);
+    color: hsl(var(--muted-foreground));
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .surface :global(td :is(a, button, input, select, textarea)),
+  .surface :global(th[scope="row"] :is(a, button, input, select, textarea)) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

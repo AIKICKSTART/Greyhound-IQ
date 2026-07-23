@@ -5,7 +5,7 @@ import { getStripeCheckoutEnv } from "@/lib/billing/stripe-env";
 import { getStripeClient } from "@/lib/billing/stripe-client";
 import { updatePricingContentAction } from "@/app/admin/mutations";
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
-import { SubmitButton } from "@/components/submit-button";
+import { AdminSubmitButton } from "@/app/admin/admin-submit-button";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -145,9 +145,12 @@ export default async function SiteContentAdmin() {
           <input id="yearly-note" name="yearlyNote" defaultValue={yearlyNote} className={INPUT} />
         </div>
 
-        <SubmitButton className="giq-button giq-button-primary px-5 text-[13px] font-semibold">
-          Save pricing
-        </SubmitButton>
+        <AdminSubmitButton
+          label="Save pricing"
+          pendingLabel="Saving pricing…"
+          confirmMessage="Save this public pricing content?"
+          className="giq-button giq-button-primary min-h-11 px-5 text-[13px] font-semibold"
+        />
       </form>
     </main>
   );

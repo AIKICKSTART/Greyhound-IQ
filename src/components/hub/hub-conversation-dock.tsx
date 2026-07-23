@@ -4,19 +4,27 @@ import NextImage from "next/image";
 import Link from "next/link";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
+  Check,
+  ChevronLeft,
   ExternalLink,
   Loader2,
+  Maximize2,
   MessageSquare,
   Minus,
+  Minimize2,
   Paperclip,
   Phone,
   RotateCcw,
+  Search,
   Send,
   ShieldAlert,
+  Users,
+  Video,
   X,
 } from "lucide-react";
 import {
   FormEvent,
+  KeyboardEvent,
   useCallback,
   useEffect,
   useReducer,
@@ -24,6 +32,7 @@ import {
   useState,
 } from "react";
 
+import { respondToFriendRequestAction } from "@/app/actions";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
 import { ProcessedVideo } from "@/components/processed-video";
 import {
@@ -36,6 +45,7 @@ import {
   openWindowIds,
   type DockWindow,
 } from "@/components/hub/hub-chat-window-state";
+import type { MessengerLayout } from "@/lib/messenger-layout";
 
 export type HubDockConversation = {
   id: string;
@@ -47,6 +57,24 @@ export type HubDockConversation = {
   attachmentCount?: number;
   realtimeChannel: string | null;
   personToPerson: boolean;
+};
+
+export type HubDockFriend = {
+  friendshipId: string;
+  profileId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  conversationId: string | null;
+};
+
+export type HubDockFriendRequest = {
+  friendshipId: string;
+  direction: "incoming" | "outgoing";
+  profileId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  kennelName: string | null;
+  state: string | null;
 };
 
 type QuickMessage = {
@@ -85,24 +113,39 @@ const CHAT_TIME_FORMATTER = new Intl.DateTimeFormat("en-AU", {
 
 export function HubConversationDock({
   conversations,
+  friends = [],
+  requests = [],
   selfProfileId,
   canStartCall,
+  layout = "dual",
   mode = "list",
   externalLauncher = false,
 }: {
   conversations: HubDockConversation[];
+  friends?: HubDockFriend[];
+  requests?: HubDockFriendRequest[];
   selfProfileId: string;
   canStartCall: boolean;
+  layout?: MessengerLayout;
   mode?: "list" | "floating";
   externalLauncher?: boolean;
 }) {
   const [windows, dispatch] = useReducer(dockReducer, [] as DockWindow[]);
   const [launcherOpen, setLauncherOpen] = useState(false);
+  const [launcherTab, setLauncherTab] = useState<
+    "inbox" | "unread" | "friends" | "requests"
+  >("inbox");
+  const [searchQuery, setSearchQuery] = useState("");
+  const launcherButtonRef = useRef<HTMLButtonElement>(null);
 
-  const openConversation = useCallback((id: string) => {
-    dispatch({ type: "open", id });
-    setLauncherOpen(false);
-  }, []);
+  const openConversation = useCallback(
+    (id: string) => {
+      dispatch({ type: "open", id });
+      const isDesktop = !window.matchMedia("(max-width: 1023px)").matches;
+      setLauncherOpen(isDesktop && layout !== "compact");
+    },
+    [layout],
+  );
 
   useEffect(() => {
     if (mode !== "floating") return;
@@ -130,7 +173,7 @@ export function HubConversationDock({
                 window.dispatchEvent(
                   new CustomEvent(OPEN_CHAT_EVENT, {
                     detail: { id: conversation.id },
-                  })
+                  }),
                 )
               }
               className="giq-social-messenger-row hidden min-h-12 w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.04] lg:flex"
@@ -152,32 +195,73 @@ export function HubConversationDock({
 
   const unreadTotal = conversations.reduce(
     (total, conversation) => total + conversation.unread,
-    0
+    0,
   );
+  const normalizedQuery = searchQuery.trim().toLocaleLowerCase("en-AU");
+  const launcherConversations = conversations.filter((conversation) => {
+    if (launcherTab === "unread" && conversation.unread === 0) return false;
+    if (!normalizedQuery) return true;
+    return `${conversation.otherName} ${conversation.preview}`
+      .toLocaleLowerCase("en-AU")
+      .includes(normalizedQuery);
+  });
+  const incomingRequests = requests.filter(
+    (request) => request.direction === "incoming",
+  );
+  const outgoingRequests = requests.filter(
+    (request) => request.direction === "outgoing",
+  );
+  const openIds = openWindowIds(windows);
+  const visibleOpenIds = layout === "dual" ? openIds : openIds.slice(-1);
 
   return (
-    <div className={`fixed right-3 z-[60] flex items-end gap-3 sm:right-4 ${externalLauncher ? "bottom-[calc(92px+env(safe-area-inset-bottom))] lg:bottom-[96px]" : "bottom-4"}`}>
-      {openWindowIds(windows).map((id, index, ids) => {
+    <div
+      className={`giq-messenger-dock fixed right-3 z-[70] flex items-end gap-3 sm:right-4 ${
+        externalLauncher
+          ? "bottom-[calc(92px+env(safe-area-inset-bottom))] lg:bottom-[96px]"
+          : "bottom-4"
+      }`}
+      data-layout={layout}
+      data-launcher-open={launcherOpen ? "true" : "false"}
+      data-has-open-window={visibleOpenIds.length > 0 ? "true" : "false"}
+    >
+      {visibleOpenIds.map((id, index, ids) => {
         const conversation = conversations.find((item) => item.id === id);
         if (!conversation) return null;
         // Desktop docks multiple chat windows side by side; mobile has room for
         // one, so only the most-recently-opened stays expanded (the rest remain
         // reachable as minimised bubbles).
         return (
-          <div key={id} className={index < ids.length - 1 ? "hidden lg:block" : ""}>
+          <div
+            key={id}
+            className={`giq-messenger-window-slot pointer-events-auto ${
+              index < ids.length - 1 ? "hidden lg:block" : ""
+            }`}
+          >
             <QuickChatWindow
               conversation={conversation}
               selfProfileId={selfProfileId}
               canStartCall={canStartCall}
               onMinimize={() => dispatch({ type: "minimize", id })}
-              onClose={() => dispatch({ type: "close", id })}
+              onClose={() => {
+                dispatch({ type: "close", id });
+                if (window.matchMedia("(max-width: 1023px)").matches) {
+                  setLauncherOpen(true);
+                  window.requestAnimationFrame(() => {
+                    const conversationButton = document.getElementById(
+                      `pulse-conversation-${id}`,
+                    );
+                    (conversationButton ?? launcherButtonRef.current)?.focus();
+                  });
+                }
+              }}
             />
           </div>
         );
       })}
 
       {minimizedWindowIds(windows).length > 0 && (
-        <div className="flex flex-col-reverse items-center gap-2">
+        <div className="giq-messenger-minimized-rail pointer-events-auto flex flex-col-reverse items-center gap-2">
           {minimizedWindowIds(windows).map((id) => {
             const conversation = conversations.find((item) => item.id === id);
             if (!conversation) return null;
@@ -193,70 +277,307 @@ export function HubConversationDock({
         </div>
       )}
 
-      <div className="relative flex flex-col items-end">
-        {launcherOpen && (
-          <section
-            aria-label="Chat dock"
-            className={`absolute right-0 max-h-[min(520px,calc(100dvh-120px))] w-[min(320px,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] shadow-2xl backdrop-blur-xl ${externalLauncher ? "bottom-0" : "bottom-[calc(100%+0.75rem)]"}`}
+      <div
+        className="giq-messenger-launcher-slot pointer-events-auto relative flex flex-col items-end"
+        data-open={launcherOpen ? "true" : "false"}
+      >
+        <section
+          id="pulse-conversation-launcher"
+          aria-label="Pulse conversations"
+          aria-hidden={!launcherOpen}
+          inert={!launcherOpen}
+          data-open={launcherOpen ? "true" : "false"}
+          className={`giq-messenger-launcher absolute right-0 flex max-h-[min(610px,calc(100dvh-120px))] w-[min(350px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border border-white/[0.12] bg-[hsl(var(--surface-1))] shadow-2xl backdrop-blur-xl ${
+            externalLauncher ? "bottom-0" : "bottom-[calc(100%+0.75rem)]"
+          }`}
+        >
+          <header className="giq-messenger-launcher-header flex min-h-16 items-center gap-2 border-b border-white/[0.08] px-3">
+            <MessageSquare
+              className="h-4 w-4 text-[hsl(var(--primary-bright))]"
+              aria-hidden="true"
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[16px] font-semibold text-[hsl(var(--foreground))]">
+                Pulse
+              </span>
+              <span className="block text-[10px] text-[hsl(var(--subtle-foreground))]">
+                {unreadTotal} unread message{unreadTotal === 1 ? "" : "s"}
+              </span>
+            </span>
+            <Link
+              href="/pulse"
+              className="grid min-h-11 w-11 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05]"
+              aria-label="Open full Pulse inbox"
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setLauncherOpen(false)}
+              className="grid min-h-11 w-11 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05]"
+              aria-label="Close Pulse conversations"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </header>
+
+          <div className="p-3 pb-2">
+            <label className="giq-messenger-search flex min-h-11 items-center gap-2 rounded-xl border border-white/[0.1] bg-[hsl(var(--surface-2)/0.72)] px-3">
+              <Search
+                className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--subtle-foreground))]"
+                aria-hidden="true"
+              />
+              <span className="sr-only">Search conversations</span>
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search conversations"
+                className="min-w-0 flex-1 bg-transparent text-[12px] text-[hsl(var(--foreground))] outline-none placeholder:text-[hsl(var(--subtle-foreground))]"
+              />
+            </label>
+          </div>
+
+          <nav
+            aria-label="Pulse inbox filters"
+            className="flex items-center gap-1 px-3 pb-2"
           >
-            <header className="flex min-h-12 items-center gap-2 border-b border-white/[0.08] px-3">
-              <MessageSquare className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
-              <h2 className="flex-1 text-[13px] font-semibold text-[hsl(var(--foreground))]">
-                Chat
-              </h2>
-              <Link
-                href="/pulse"
-                className="grid min-h-11 w-11 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05]"
-                aria-label="Open full Chat inbox"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-              </Link>
-            </header>
-            <div className="max-h-[430px] overflow-y-auto p-2">
-              {conversations.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setLauncherTab("inbox")}
+              aria-pressed={launcherTab === "inbox"}
+              className="giq-messenger-filter min-h-9 rounded-full px-3 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]"
+            >
+              Inbox
+            </button>
+            <button
+              type="button"
+              onClick={() => setLauncherTab("unread")}
+              aria-pressed={launcherTab === "unread"}
+              className="giq-messenger-filter min-h-9 rounded-full px-3 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]"
+            >
+              Unread
+            </button>
+            <button
+              type="button"
+              onClick={() => setLauncherTab("friends")}
+              aria-pressed={launcherTab === "friends"}
+              className="giq-messenger-filter inline-flex min-h-9 items-center rounded-full px-3 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]"
+            >
+              Friends
+            </button>
+            <button
+              type="button"
+              onClick={() => setLauncherTab("requests")}
+              aria-pressed={launcherTab === "requests"}
+              className="giq-messenger-filter inline-flex min-h-9 items-center rounded-full px-3 text-[11px] font-semibold text-[hsl(var(--muted-foreground))]"
+            >
+              Requests
+              {incomingRequests.length > 0 ? (
+                <span className="ml-1 inline-flex min-w-4 items-center justify-center rounded-full bg-[hsl(var(--primary-bright))] px-1 text-[9px] leading-4 text-[hsl(var(--primary-foreground))]">
+                  {incomingRequests.length}
+                </span>
+              ) : null}
+            </button>
+          </nav>
+
+          <div className="giq-messenger-conversation-list min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+            {launcherTab === "friends" ? (
+              friends.length > 0 ? (
                 <ul className="space-y-1">
-                  {conversations.map((conversation) => (
-                    <li key={conversation.id}>
-                      <button
-                        type="button"
-                        onClick={() => openConversation(conversation.id)}
-                        className="giq-social-messenger-row flex min-h-12 w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.04]"
-                        aria-label={`Open quick chat with ${conversation.otherName}`}
-                      >
-                        <ConversationSummary conversation={conversation} />
-                      </button>
+                  {friends.map((friend) => (
+                    <li key={friend.friendshipId}>
+                      {friend.conversationId ? (
+                        <button
+                          id={`pulse-conversation-${friend.conversationId}`}
+                          type="button"
+                          onClick={() =>
+                            openConversation(friend.conversationId!)
+                          }
+                          className="giq-social-messenger-row flex min-h-[58px] w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/[0.04]"
+                        >
+                          <LauncherProfileSummary
+                            name={friend.displayName}
+                            avatarUrl={friend.avatarUrl}
+                            detail="Open conversation"
+                          />
+                        </button>
+                      ) : (
+                        <Link
+                          href="/pulse/friends"
+                          className="giq-social-messenger-row flex min-h-[58px] items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors hover:bg-white/[0.04]"
+                        >
+                          <LauncherProfileSummary
+                            name={friend.displayName}
+                            avatarUrl={friend.avatarUrl}
+                            detail="Start a conversation"
+                          />
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <div className="p-4 text-center">
-                  <p className="text-[13px] text-[hsl(var(--muted-foreground))]">
-                    No conversations yet.
-                  </p>
-                  <Link
-                    href="/discover"
-                    className="giq-button giq-button-primary mt-3 min-h-11 px-4 text-[12px]"
-                  >
-                    Find people
-                  </Link>
+                <LauncherEmptyState
+                  message="No friends yet."
+                  href="/pulse/friends"
+                  action="Find people"
+                />
+              )
+            ) : launcherTab === "requests" ? (
+              incomingRequests.length > 0 || outgoingRequests.length > 0 ? (
+                <div className="space-y-3">
+                  {incomingRequests.length > 0 ? (
+                    <ul className="space-y-1">
+                      {incomingRequests.map((request) => (
+                        <li
+                          key={request.friendshipId}
+                          className="flex min-h-[64px] items-center gap-2 rounded-xl px-2.5 py-2 hover:bg-white/[0.04]"
+                        >
+                          <LauncherProfileSummary
+                            name={request.displayName}
+                            avatarUrl={request.avatarUrl}
+                            detail={
+                              request.kennelName ??
+                              request.state ??
+                              "GreyhoundIQ member"
+                            }
+                          />
+                          <form action={respondToFriendRequestAction}>
+                            <input
+                              type="hidden"
+                              name="friendshipId"
+                              value={request.friendshipId}
+                            />
+                            <input
+                              type="hidden"
+                              name="response"
+                              value="accept"
+                            />
+                            <button
+                              type="submit"
+                              aria-label={`Accept friend request from ${request.displayName}`}
+                              className="giq-button giq-button-primary h-11 w-11 justify-center px-0"
+                            >
+                              <Check
+                                className="h-3.5 w-3.5"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          </form>
+                          <form action={respondToFriendRequestAction}>
+                            <input
+                              type="hidden"
+                              name="friendshipId"
+                              value={request.friendshipId}
+                            />
+                            <input
+                              type="hidden"
+                              name="response"
+                              value="decline"
+                            />
+                            <button
+                              type="submit"
+                              aria-label={`Decline friend request from ${request.displayName}`}
+                              className="giq-button giq-button-glass h-11 w-11 justify-center px-0"
+                            >
+                              <X className="h-3.5 w-3.5" aria-hidden="true" />
+                            </button>
+                          </form>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {outgoingRequests.length > 0 ? (
+                    <p className="px-2 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                      {outgoingRequests.length} sent request
+                      {outgoingRequests.length === 1 ? "" : "s"} awaiting a
+                      response.
+                    </p>
+                  ) : null}
                 </div>
-              )}
-            </div>
-          </section>
-        )}
+              ) : (
+                <LauncherEmptyState
+                  message="No pending friend requests."
+                  href="/pulse/friends#requests"
+                  action="View requests"
+                />
+              )
+            ) : launcherConversations.length > 0 ? (
+              <ul className="space-y-1">
+                {launcherConversations.map((conversation) => {
+                  const active = openIds.includes(conversation.id);
+                  return (
+                    <li key={conversation.id}>
+                      <button
+                        id={`pulse-conversation-${conversation.id}`}
+                        type="button"
+                        onClick={() => openConversation(conversation.id)}
+                        className="giq-social-messenger-row flex min-h-[64px] w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/[0.04]"
+                        aria-label={`Open quick chat with ${conversation.otherName}`}
+                        aria-pressed={active}
+                      >
+                        <ConversationSummary conversation={conversation} />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <div className="grid min-h-32 place-items-center p-4 text-center">
+                <div>
+                  <p className="text-[13px] text-[hsl(var(--muted-foreground))]">
+                    {conversations.length === 0
+                      ? "No conversations yet."
+                      : "No conversations match this view."}
+                  </p>
+                  {conversations.length === 0 && (
+                    <Link
+                      href="/pulse/friends"
+                      className="giq-button giq-button-primary mt-3 min-h-11 px-4 text-[12px]"
+                    >
+                      Find people
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <footer className="giq-messenger-launcher-footer flex min-h-14 gap-2 border-t border-white/[0.08] p-2">
+            <Link
+              href="/pulse/friends"
+              className="giq-button giq-button-primary min-h-11 flex-1 px-3 text-[11px] font-semibold"
+            >
+              <Users className="h-3.5 w-3.5" aria-hidden="true" />
+              Find friends
+            </Link>
+            <Link
+              href="/pulse/friends#requests"
+              className="giq-button giq-button-carbon min-h-11 flex-1 px-3 text-[11px] font-semibold"
+            >
+              Message requests
+            </Link>
+          </footer>
+        </section>
 
         {!externalLauncher && (
           <button
+            ref={launcherButtonRef}
             type="button"
             onClick={() => setLauncherOpen((current) => !current)}
             className="giq-button giq-button-carbon relative h-14 w-14 justify-center rounded-xl border-[hsl(var(--primary-bright)/0.5)] px-0 shadow-2xl focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)]"
             aria-label={launcherOpen ? "Close Chat dock" : "Open Chat dock"}
             aria-expanded={launcherOpen}
+            aria-controls="pulse-conversation-launcher"
           >
             {launcherOpen ? (
               <X className="h-5 w-5" aria-hidden="true" />
             ) : (
-              <MessageSquare className="h-5 w-5 text-[hsl(var(--primary-bright))]" aria-hidden="true" />
+              <MessageSquare
+                className="h-5 w-5 text-[hsl(var(--primary-bright))]"
+                aria-hidden="true"
+              />
             )}
             {unreadTotal > 0 && (
               <span className="absolute -right-1.5 -top-1.5 inline-flex min-w-6 items-center justify-center rounded-full bg-[hsl(var(--accent))] px-1.5 text-[10px] font-bold leading-6 text-black">
@@ -270,6 +591,69 @@ export function HubConversationDock({
   );
 }
 
+function LauncherProfileSummary({
+  name,
+  avatarUrl,
+  detail,
+}: {
+  name: string;
+  avatarUrl: string | null;
+  detail: string;
+}) {
+  return (
+    <>
+      <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/[0.1] bg-[hsl(var(--surface-2))] text-[12px] font-bold text-white/70">
+        {avatarUrl ? (
+          <NextImage
+            src={avatarUrl}
+            alt=""
+            fill
+            className="rounded-full object-cover"
+            sizes="36px"
+            unoptimized={avatarUrl.startsWith("/api/media/")}
+          />
+        ) : (
+          name.slice(0, 1).toUpperCase()
+        )}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-medium text-[hsl(var(--foreground))]">
+          {name}
+        </span>
+        <span className="block truncate text-[11px] text-[hsl(var(--subtle-foreground))]">
+          {detail}
+        </span>
+      </span>
+    </>
+  );
+}
+
+function LauncherEmptyState({
+  message,
+  href,
+  action,
+}: {
+  message: string;
+  href: string;
+  action: string;
+}) {
+  return (
+    <div className="grid min-h-32 place-items-center p-4 text-center">
+      <div>
+        <p className="text-[13px] text-[hsl(var(--muted-foreground))]">
+          {message}
+        </p>
+        <Link
+          href={href}
+          className="giq-button giq-button-primary mt-3 min-h-11 px-4 text-[12px]"
+        >
+          {action}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function ConversationSummary({
   conversation,
 }: {
@@ -277,7 +661,7 @@ function ConversationSummary({
 }) {
   const preview = conversationPreview(
     conversation.preview,
-    conversation.attachmentCount ?? 0
+    conversation.attachmentCount ?? 0,
   );
 
   return (
@@ -340,15 +724,36 @@ function QuickChatWindow({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [otherOnline, setOtherOnline] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const composerInputRef = useRef<HTMLTextAreaElement>(null);
+  const sendingRef = useRef(false);
+  const loadGenerationRef = useRef(0);
   const tracksPresence = conversation.personToPerson;
+  const hasPendingAttachments = messages.some((message) =>
+    message.media?.some(({ media }) => {
+      if (!media) return false;
+      return (
+        media.scanStatus === "pending" ||
+        media.processingStatus === "pending" ||
+        media.processingStatus === "scanning" ||
+        media.processingStatus === "processing"
+      );
+    }),
+  );
+
+  useEffect(() => {
+    composerInputRef.current?.focus();
+  }, []);
 
   const loadMessages = useCallback(async () => {
+    const requestGeneration = loadGenerationRef.current;
     const response = await fetch(
       `/api/conversations/${conversation.id}/messages?limit=20`,
-      { cache: "no-store", credentials: "same-origin" }
+      { cache: "no-store", credentials: "same-origin" },
     );
     if (!response.ok) throw new Error("Could not load chat");
     const payload = (await response.json()) as { items?: QuickMessage[] };
+    if (requestGeneration !== loadGenerationRef.current) return;
     setMessages(payload.items ?? []);
     setLoadError(null);
   }, [conversation.id]);
@@ -368,13 +773,30 @@ function QuickChatWindow({
   useEffect(() => {
     let cancelled = false;
     let channel: RealtimeChannel | null = null;
+    let fallbackRefreshTimer: number | null = null;
+    const stopFallbackRefresh = () => {
+      if (fallbackRefreshTimer === null) return;
+      window.clearInterval(fallbackRefreshTimer);
+      fallbackRefreshTimer = null;
+    };
+    const startFallbackRefresh = () => {
+      if (cancelled || fallbackRefreshTimer !== null) return;
+      fallbackRefreshTimer = window.setInterval(() => {
+        if (document.visibilityState === "visible" && !sendingRef.current) {
+          void loadMessages().catch(() => null);
+        }
+      }, 5_000);
+    };
     const initialLoadTimer = window.setTimeout(() => {
       if (!cancelled) void retryLoad();
     }, 0);
 
     const client = getBrowserRealtimeClient();
     const subscribe = async () => {
-      if (!client || !conversation.realtimeChannel) return;
+      if (!client || !conversation.realtimeChannel) {
+        startFallbackRefresh();
+        return;
+      }
       await ensureBrowserRealtimeAuthorization(client, [
         conversation.realtimeChannel,
       ]);
@@ -382,7 +804,14 @@ function QuickChatWindow({
       const ch = client
         .channel(conversation.realtimeChannel, { config: { private: true } })
         .on("broadcast", { event: "message_created" }, () => {
-          void loadMessages().catch(() => null);
+          if (!sendingRef.current) {
+            void loadMessages().catch(() => null);
+          }
+        })
+        .on("broadcast", { event: "conversation_updated" }, () => {
+          if (!sendingRef.current) {
+            void loadMessages().catch(() => null);
+          }
         });
       if (tracksPresence) {
         const applyPresence = () => {
@@ -390,29 +819,39 @@ function QuickChatWindow({
           setOtherOnline(
             Object.values(state)
               .flat()
-              .some((entry) => entry.profileId === conversation.otherProfileId)
+              .some((entry) => entry.profileId === conversation.otherProfileId),
           );
         };
         ch.on("presence", { event: "sync" }, applyPresence).on(
           "presence",
           { event: "leave" },
-          applyPresence
+          applyPresence,
         );
       }
       channel = ch.subscribe((status) => {
-        if (status === "SUBSCRIBED" && tracksPresence) {
-          void ch.track({
-            profileId: selfProfileId,
-            onlineAt: new Date().toISOString(),
-          });
+        if (status === "SUBSCRIBED") {
+          stopFallbackRefresh();
+          if (tracksPresence) {
+            void ch.track({
+              profileId: selfProfileId,
+              onlineAt: new Date().toISOString(),
+            });
+          }
+        } else if (
+          status === "TIMED_OUT" ||
+          status === "CHANNEL_ERROR" ||
+          status === "CLOSED"
+        ) {
+          startFallbackRefresh();
         }
       });
     };
-    void subscribe().catch(() => null);
+    void subscribe().catch(() => startFallbackRefresh());
 
     return () => {
       cancelled = true;
       window.clearTimeout(initialLoadTimer);
+      stopFallbackRefresh();
       if (client && channel) void client.removeChannel(channel);
     };
   }, [
@@ -423,6 +862,16 @@ function QuickChatWindow({
     selfProfileId,
     tracksPresence,
   ]);
+
+  useEffect(() => {
+    if (!hasPendingAttachments) return;
+    const pendingMediaRefreshTimer = window.setInterval(() => {
+      if (document.visibilityState === "visible" && !sendingRef.current) {
+        void loadMessages().catch(() => null);
+      }
+    }, 5_000);
+    return () => window.clearInterval(pendingMediaRefreshTimer);
+  }, [hasPendingAttachments, loadMessages]);
 
   useEffect(() => {
     if (loading || loadError) return;
@@ -436,11 +885,10 @@ function QuickChatWindow({
     const form = event.currentTarget;
     const formData = new FormData(form);
     const body = String(formData.get("body") ?? "").trim();
-    const mediaIds = formData
-      .getAll("mediaIds")
-      .map(String)
-      .filter(Boolean);
+    const mediaIds = formData.getAll("mediaIds").map(String).filter(Boolean);
     if (!body) return;
+    loadGenerationRef.current += 1;
+    sendingRef.current = true;
     const optimisticId = `pending-${crypto.randomUUID()}`;
     setMessages((current) => [
       ...current,
@@ -461,7 +909,7 @@ function QuickChatWindow({
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ body, mediaIds }),
-        }
+        },
       );
       if (!response.ok) throw new Error("Could not send message");
       form.reset();
@@ -469,19 +917,46 @@ function QuickChatWindow({
       await loadMessages();
     } catch (err) {
       setMessages((current) =>
-        current.filter((message) => message.id !== optimisticId)
+        current.filter((message) => message.id !== optimisticId),
       );
       setSendError(
-        err instanceof Error ? err.message : "Could not send message"
+        err instanceof Error ? err.message : "Could not send message",
       );
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   }
 
+  function sendOnEnter(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.ctrlKey ||
+      event.altKey ||
+      event.metaKey ||
+      event.nativeEvent.isComposing
+    ) {
+      return;
+    }
+    event.preventDefault();
+    if (!sending) event.currentTarget.form?.requestSubmit();
+  }
+
   return (
-    <section className="giq-social-quick-chat flex h-[min(440px,calc(100dvh-176px))] w-[min(320px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] shadow-2xl backdrop-blur-xl">
+    <section
+      className="giq-social-quick-chat flex h-[min(440px,calc(100dvh-176px))] w-[min(320px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] shadow-2xl backdrop-blur-xl"
+      data-expanded={expanded ? "true" : "false"}
+    >
       <header className="giq-social-quick-chat-header flex min-h-12 items-center gap-2 border-b border-white/[0.08] px-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="grid min-h-11 w-11 shrink-0 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05] lg:hidden"
+          aria-label="Back to Pulse conversations"
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+        </button>
         <span className="relative grid size-8 shrink-0 place-items-center">
           {conversation.otherAvatarUrl ? (
             <NextImage
@@ -490,7 +965,9 @@ function QuickChatWindow({
               width={32}
               height={32}
               className="size-8 rounded-full object-cover"
-              unoptimized={conversation.otherAvatarUrl.startsWith("/api/media/")}
+              unoptimized={conversation.otherAvatarUrl.startsWith(
+                "/api/media/",
+              )}
             />
           ) : (
             <MessageSquare className="h-4 w-4 text-[hsl(var(--primary-bright))]" />
@@ -503,9 +980,12 @@ function QuickChatWindow({
           )}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-semibold text-[hsl(var(--foreground))]">
+          <Link
+            href={`/pulse/${conversation.id}`}
+            className="block truncate text-[13px] font-semibold text-[hsl(var(--foreground))] hover:underline"
+          >
             {conversation.otherName}
-          </span>
+          </Link>
           {tracksPresence && (
             <span
               className={`block text-[11px] ${
@@ -518,17 +998,23 @@ function QuickChatWindow({
             </span>
           )}
         </span>
-        <Link
-          href={`/pulse/${conversation.id}`}
-          className="grid min-h-11 w-11 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05]"
-          aria-label={`Open full conversation with ${conversation.otherName}`}
+        <button
+          type="button"
+          onClick={() => setExpanded((current) => !current)}
+          className="hidden min-h-11 w-11 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05] lg:grid"
+          aria-label={`${expanded ? "Restore" : "Expand"} quick chat with ${conversation.otherName}`}
+          aria-pressed={expanded}
         >
-          <ExternalLink className="h-3.5 w-3.5" />
-        </Link>
+          {expanded ? (
+            <Minimize2 className="h-3.5 w-3.5" aria-hidden="true" />
+          ) : (
+            <Maximize2 className="h-3.5 w-3.5" aria-hidden="true" />
+          )}
+        </button>
         <button
           type="button"
           onClick={onMinimize}
-          className="grid min-h-11 w-11 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05]"
+          className="hidden min-h-11 w-11 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05] lg:grid"
           aria-label={`Minimise quick chat with ${conversation.otherName}`}
         >
           <Minus className="h-4 w-4" />
@@ -536,7 +1022,7 @@ function QuickChatWindow({
         <button
           type="button"
           onClick={onClose}
-          className="grid min-h-11 w-11 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05]"
+          className="hidden min-h-11 w-11 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05] lg:grid"
           aria-label={`Close quick chat with ${conversation.otherName}`}
         >
           <X className="h-4 w-4" />
@@ -582,7 +1068,9 @@ function QuickChatWindow({
                     : "mr-auto bg-white/[0.05] text-[hsl(var(--muted-foreground))]"
                 }`}
               >
-                <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                <p className="whitespace-pre-wrap break-words">
+                  {message.body}
+                </p>
                 <MessageAttachments attachments={message.media ?? []} />
                 <span className="mt-1 block text-[10px] opacity-70">
                   {message.pending ? (
@@ -599,20 +1087,27 @@ function QuickChatWindow({
         )}
       </div>
 
-      <form onSubmit={sendMessage} className="giq-social-quick-chat-composer border-t border-white/[0.08] p-2">
+      <form
+        onSubmit={sendMessage}
+        className="giq-social-quick-chat-composer border-t border-white/[0.08] p-2"
+      >
         <label className="sr-only" htmlFor={`quick-chat-${conversation.id}`}>
           Message {conversation.otherName}
         </label>
         <div className="flex items-end gap-2">
           <textarea
+            ref={composerInputRef}
             id={`quick-chat-${conversation.id}`}
             name="body"
             required
             maxLength={5000}
             rows={2}
             disabled={sending}
+            onKeyDown={sendOnEnter}
             aria-invalid={Boolean(sendError)}
-            aria-errormessage={sendError ? `quick-chat-${conversation.id}-error` : undefined}
+            aria-errormessage={
+              sendError ? `quick-chat-${conversation.id}-error` : undefined
+            }
             className="giq-form-control min-h-11 flex-1 resize-none px-2 py-2 text-[12px]"
             placeholder="Write a message"
           />
@@ -631,30 +1126,63 @@ function QuickChatWindow({
         </div>
         <div className="mt-2 flex items-start gap-2">
           {conversation.personToPerson && (
-            <Link
-              href={
-                canStartCall
-                  ? `/pulse/${encodeURIComponent(conversation.id)}?call=voice`
-                  : "/pricing"
-              }
-              aria-label={
-                canStartCall
-                  ? `Start voice call with ${conversation.otherName}`
-                  : "Voice calls are a Pro feature"
-              }
-              className={`giq-outline-action h-11 w-11 shrink-0 justify-center px-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)] ${
-                canStartCall ? "" : "opacity-60"
-              }`}
-            >
-              <Phone className="h-3.5 w-3.5" aria-hidden="true" />
-            </Link>
+            <>
+              <Link
+                href={
+                  canStartCall
+                    ? `/pulse/${encodeURIComponent(conversation.id)}?call=voice`
+                    : "/pricing"
+                }
+                aria-label={
+                  canStartCall
+                    ? `Start voice call with ${conversation.otherName}`
+                    : "Voice calls are a Pro feature"
+                }
+                title={
+                  canStartCall
+                    ? `Voice call ${conversation.otherName}`
+                    : "Voice calls are a Pro feature"
+                }
+                className={`giq-outline-action h-11 w-11 shrink-0 justify-center px-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)] ${
+                  canStartCall ? "" : "opacity-60"
+                }`}
+              >
+                <Phone className="h-4 w-4" aria-hidden="true" />
+              </Link>
+              <Link
+                href={
+                  canStartCall
+                    ? `/pulse/${encodeURIComponent(conversation.id)}?call=video`
+                    : "/pricing"
+                }
+                aria-label={
+                  canStartCall
+                    ? `Start video call with ${conversation.otherName}`
+                    : "Video calls are a Pro feature"
+                }
+                title={
+                  canStartCall
+                    ? `Video call ${conversation.otherName}`
+                    : "Video calls are a Pro feature"
+                }
+                className={`giq-outline-action h-11 w-11 shrink-0 justify-center px-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-light)/0.72)] ${
+                  canStartCall ? "" : "opacity-60"
+                }`}
+              >
+                <Video className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </>
           )}
           <div className="min-w-0 flex-1 max-h-44 overflow-y-auto overscroll-contain pr-1">
             <MediaAttachmentFields key={attachmentResetKey} compact />
           </div>
         </div>
         {sendError && (
-          <p id={`quick-chat-${conversation.id}-error`} role="alert" className="mt-1 text-[11px] text-red-200">
+          <p
+            id={`quick-chat-${conversation.id}-error`}
+            role="alert"
+            className="mt-1 text-[11px] text-red-200"
+          >
             {sendError}
           </p>
         )}
@@ -698,7 +1226,9 @@ function MinimizedChatBubble({
               fill
               className="rounded-full object-cover"
               sizes="48px"
-              unoptimized={conversation.otherAvatarUrl.startsWith("/api/media/")}
+              unoptimized={conversation.otherAvatarUrl.startsWith(
+                "/api/media/",
+              )}
             />
           ) : (
             conversation.otherName.slice(0, 1).toUpperCase()
@@ -745,7 +1275,9 @@ function MessageAttachment({
     return <AttachmentStatus label="Scanning attachment…" loading />;
   }
   if (media.scanStatus !== "clean") {
-    return <AttachmentStatus label="Attachment removed by safety scan" failed />;
+    return (
+      <AttachmentStatus label="Attachment removed by safety scan" failed />
+    );
   }
   if (media.processingStatus !== "ready") {
     return (
@@ -820,7 +1352,9 @@ function MessageAttachment({
       className="giq-outline-action min-h-11 max-w-full px-3 py-2 text-[11px]"
     >
       <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      <span className="truncate">{media.originalName ?? "Open attachment"}</span>
+      <span className="truncate">
+        {media.originalName ?? "Open attachment"}
+      </span>
     </a>
   );
 }
@@ -840,7 +1374,10 @@ function AttachmentStatus({
       className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.025] px-3 py-2 text-[11px] text-[hsl(var(--muted-foreground))]"
     >
       {loading ? (
-        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
+        <Loader2
+          className="h-3.5 w-3.5 shrink-0 animate-spin"
+          aria-hidden="true"
+        />
       ) : failed ? (
         <ShieldAlert className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       ) : (

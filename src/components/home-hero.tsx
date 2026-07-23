@@ -5,7 +5,7 @@ import { PageHero } from "@/components/page-hero";
 
 export function HomeHero({
   compact = false,
-  primaryHref = "#races",
+  primaryHref = "/sign-in?plan=free",
 }: {
   compact?: boolean;
   primaryHref?: string;
@@ -30,11 +30,11 @@ export function HomeHero({
           href={primaryHref}
           className="giq-liquid-purple-button group text-[14px] font-semibold tracking-[-0.013em]"
         >
-          View Today&apos;s Races
+          Start Free
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </Link>
         <Link
-          href="/pricing"
+          href="#pricing"
           className="giq-button giq-button-carbon px-6 text-[14px] font-semibold"
         >
           See Pricing

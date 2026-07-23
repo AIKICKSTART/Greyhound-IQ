@@ -31,7 +31,7 @@ for (const [name, source] of [
 
 assert.doesNotMatch(races, />\s*(Apply|Go)\s*</);
 assert.match(races, />\s*Search\s*</);
-assert.match(races, />\s*Filter\s*</);
+assert.doesNotMatch(races, />\s*Filter\s*</);
 assert.match(results, />\s*Filter\s*</);
 assert.match(tracks, />\s*Filter\s*</);
 assert.match(marketplace, />\s*Search\s*</);

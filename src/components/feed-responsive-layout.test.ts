@@ -14,5 +14,14 @@ assert.match(feedPage, /min\(300px, calc\(100vw - max\(1rem, env\(safe-area-inse
 assert.match(racingDayConfig, /min\(320px, calc\(100vw - max\(1rem, env\(safe-area-inset-left\)\)/);
 assert.doesNotMatch(feedPage, /w-\[300px\]/);
 assert.doesNotMatch(racingDayConfig, /w-\[320px\]/);
+assert.match(feedPage, /href="\/feed\?mode=public"/);
+assert.match(feedPage, /href="\/feed\?mode=friends"/);
+assert.doesNotMatch(feedPage, /mode=for-you|mode=latest/);
+assert.match(feedPage, /aria-label="Feed type"/);
+assert.match(feedPage, /aria-current=\{mode === "public" \? "page" : undefined\}/);
+assert.match(feedPage, /aria-current=\{mode === "friends" \? "page" : undefined\}/);
+assert.match(feedPage, /grid-cols-2.*overflow-hidden/);
+assert.match(feedPage, /Sign in to view your Friends feed/);
+assert.match(feedPage, /platform-wide community forum/);
 
 console.log("Feed responsive layout contract passed.");

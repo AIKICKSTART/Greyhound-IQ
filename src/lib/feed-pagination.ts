@@ -1,10 +1,11 @@
-export type FeedMode = "for-you" | "latest";
+export type FeedMode = "public" | "friends";
+export type FeedModeInput = FeedMode | "for-you" | "latest";
 
 export type FeedCursor = {
   version: 1;
   mode: FeedMode;
-  window: 0 | 1;
-  bucket: 0 | 1 | 2 | 3;
+  window: 0;
+  bucket: 0;
   createdAt: string;
   id: string;
 };
@@ -19,25 +20,29 @@ export type FeedRankCandidate = {
 
 const CURSOR_MAX_LENGTH = 512;
 
+export function canonicalFeedMode(
+  mode: FeedModeInput | null | undefined
+): FeedMode {
+  return mode === "friends" ? "friends" : "public";
+}
+
 export function feedRankBucket(
   candidate: Pick<
     FeedRankCandidate,
     "pinnedAt" | "connectedActor" | "followedTopic"
   >
 ): FeedCursor["bucket"] {
-  if (candidate.pinnedAt) return 0;
-  if (candidate.connectedActor) return 1;
-  if (candidate.followedTopic) return 2;
-  return 3;
+  void candidate;
+  return 0;
 }
 
 export function feedWindow(
   candidate: Pick<FeedRankCandidate, "createdAt" | "pinnedAt">,
   now = new Date()
 ): FeedCursor["window"] {
-  if (candidate.pinnedAt) return 0;
-  const cutoff = now.getTime() - 30 * 24 * 60 * 60 * 1000;
-  return candidate.createdAt.getTime() >= cutoff ? 0 : 1;
+  void candidate;
+  void now;
+  return 0;
 }
 
 export function compareFeedCandidates(
@@ -46,20 +51,10 @@ export function compareFeedCandidates(
   mode: FeedMode,
   now = new Date()
 ) {
-  if (mode === "for-you") {
-    const windowDifference = feedWindow(left, now) - feedWindow(right, now);
-    if (windowDifference !== 0) return windowDifference;
-    const bucketDifference = feedRankBucket(left) - feedRankBucket(right);
-    if (bucketDifference !== 0) return bucketDifference;
-  }
-  const leftTime =
-    mode === "for-you"
-      ? (left.pinnedAt ?? left.createdAt).getTime()
-      : left.createdAt.getTime();
-  const rightTime =
-    mode === "for-you"
-      ? (right.pinnedAt ?? right.createdAt).getTime()
-      : right.createdAt.getTime();
+  void mode;
+  void now;
+  const leftTime = left.createdAt.getTime();
+  const rightTime = right.createdAt.getTime();
   if (leftTime !== rightTime) return rightTime - leftTime;
   return right.id.localeCompare(left.id);
 }
@@ -72,12 +67,9 @@ export function cursorForCandidate(
   return {
     version: 1,
     mode,
-    window: mode === "for-you" ? feedWindow(candidate, now) : 0,
-    bucket: mode === "for-you" ? feedRankBucket(candidate) : 0,
-    createdAt:
-      mode === "for-you"
-        ? (candidate.pinnedAt ?? candidate.createdAt).toISOString()
-        : candidate.createdAt.toISOString(),
+    window: 0,
+    bucket: 0,
+    createdAt: candidate.createdAt.toISOString(),
     id: candidate.id,
   };
 }
@@ -99,8 +91,8 @@ export function decodeFeedCursor(
     if (
       parsed.version !== 1 ||
       parsed.mode !== expectedMode ||
-      (parsed.window !== 0 && parsed.window !== 1) ||
-      ![0, 1, 2, 3].includes(parsed.bucket as number) ||
+      parsed.window !== 0 ||
+      parsed.bucket !== 0 ||
       typeof parsed.createdAt !== "string" ||
       !Number.isFinite(Date.parse(parsed.createdAt)) ||
       typeof parsed.id !== "string" ||

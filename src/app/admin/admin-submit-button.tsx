@@ -11,6 +11,7 @@ export function AdminSubmitButton({
   disabled,
   onClick,
   type = "submit",
+  className,
   ...props
 }: Omit<ComponentProps<"button">, "children"> & {
   label: string;
@@ -23,6 +24,7 @@ export function AdminSubmitButton({
     <button
       {...props}
       type={type}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 ${className ?? ""}`}
       disabled={pending || disabled}
       aria-busy={pending}
       onClick={(event) => {

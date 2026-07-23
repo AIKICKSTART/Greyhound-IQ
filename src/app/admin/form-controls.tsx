@@ -207,6 +207,16 @@ export function AdminCreateUserForm({ path }: { path: string }) {
         <input type="checkbox" name="verified" className={CHECKBOX} /> Verified
       </label>
       <ReasonField placeholder="Reason for user create/update" />
+      <label className={`${CHECKBOX_LABEL} md:col-span-2`}>
+        <input
+          type="checkbox"
+          name="confirmation"
+          value="CONFIRM USER ACCESS"
+          required
+          className={CHECKBOX}
+        />
+        I confirm this audited action may create an account or change its access.
+      </label>
       <AdminSubmitButton
         label="Create or update user"
         pendingLabel="Saving user…"
@@ -281,6 +291,16 @@ export function AdminUserAccessForm({
         ) : null}
       </div>
       <ReasonField />
+      <label className={CHECKBOX_LABEL}>
+        <input
+          type="checkbox"
+          name="confirmation"
+          value="CONFIRM USER ACCESS"
+          required
+          className={CHECKBOX}
+        />
+        I confirm this audited action changes this account&apos;s access.
+      </label>
       <AdminSubmitButton
         label="Save access"
         pendingLabel="Saving access…"

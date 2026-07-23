@@ -84,20 +84,25 @@ export async function listFriendsForProfile(current: DbContextUser) {
       conversations.map((conversation) => [
         conversationKey(conversation),
         conversation.id,
-      ])
+      ]),
     );
 
-    const friends = pairs.map(({ friendship, friend, pair }): FriendListItem => ({
-      friendshipId: friendship.id,
-      profileId: friend.id,
-      displayName: friend.displayName,
-      avatarUrl: resolveDemoProfilePortrait(friend.displayName, friend.avatarUrl),
-      state: friend.state,
-      kennelName: friend.kennelName,
-      role: friend.role,
-      verified: friend.verified,
-      conversationId: conversationByPair.get(conversationKey(pair)) ?? null,
-    }));
+    const friends = pairs.map(
+      ({ friendship, friend, pair }): FriendListItem => ({
+        friendshipId: friendship.id,
+        profileId: friend.id,
+        displayName: friend.displayName,
+        avatarUrl: resolveDemoProfilePortrait(
+          friend.displayName,
+          friend.avatarUrl,
+        ),
+        state: friend.state,
+        kennelName: friend.kennelName,
+        role: friend.role,
+        verified: friend.verified,
+        conversationId: conversationByPair.get(conversationKey(pair)) ?? null,
+      }),
+    );
 
     if (
       !isFullAccessDemo() ||
@@ -153,7 +158,11 @@ export type FriendRequestItem = {
 
 export type FriendshipState =
   | { status: "none" }
-  | { status: "pending"; friendshipId: string; direction: "incoming" | "outgoing" }
+  | {
+      status: "pending";
+      friendshipId: string;
+      direction: "incoming" | "outgoing";
+    }
   | { status: "accepted"; friendshipId: string };
 
 // Same canonical ordering as conversations, mapped to Friendship columns.
@@ -172,9 +181,18 @@ const REQUEST_PROFILE_SELECT = {
   user: { select: { id: true, isBanned: true, deletionRequestedAt: true } },
 } as const;
 
+const REQUEST_LIST_PROFILE_SELECT = {
+  id: true,
+  displayName: true,
+  avatarUrl: true,
+  state: true,
+  kennelName: true,
+  verified: true,
+} as const;
+
 export async function sendFriendRequest(
   current: CurrentUserProfile,
-  otherProfileId: string
+  otherProfileId: string,
 ) {
   if (otherProfileId === current.profileId) {
     throw new Error("friend.cannot_add_self");
@@ -182,7 +200,7 @@ export async function sendFriendRequest(
   await assertProfilesCanInteract(
     current.profileId,
     otherProfileId,
-    "friend.blocked"
+    "friend.blocked",
   );
 
   const pair = friendshipPair(current.profileId, otherProfileId);
@@ -205,7 +223,7 @@ export async function sendFriendRequest(
         throw new Error(
           existing.status === "accepted"
             ? "friend.already_friends"
-            : "friend.request_exists"
+            : "friend.request_exists",
         );
       }
       const created = await tx.friendship.create({
@@ -216,7 +234,7 @@ export async function sendFriendRequest(
         },
       });
       return { friendship: created, recipientUserId: other.user.id };
-    }
+    },
   );
 
   await createAuditLog({
@@ -232,7 +250,7 @@ export async function sendFriendRequest(
     actorProfileId: current.profileId,
     type: "friend_request",
     title: `${current.displayName} sent you a friend request`,
-    href: "/feed",
+    href: "/pulse/friends#requests",
     targetType: "friendship",
     targetId: friendship.id,
   });
@@ -245,7 +263,7 @@ export async function sendFriendRequest(
 export async function respondToFriendRequest(
   current: CurrentUserProfile,
   friendshipId: string,
-  response: "accept" | "decline"
+  response: "accept" | "decline",
 ) {
   const { otherProfileId } = await withDbRequestContext(current, async (tx) => {
     const friendship = await tx.friendship.findFirst({
@@ -284,7 +302,9 @@ export async function respondToFriendRequest(
     actorId: current.dbUserId,
     actorType: "user",
     action:
-      response === "accept" ? "friend.request.accept" : "friend.request.decline",
+      response === "accept"
+        ? "friend.request.accept"
+        : "friend.request.decline",
     targetType: "friendship",
     targetId: friendshipId,
   });
@@ -292,7 +312,7 @@ export async function respondToFriendRequest(
     const otherUserId = await withDbRequestContext(current, (tx) =>
       tx.profile
         .findFirst({ where: { id: otherProfileId }, select: { userId: true } })
-        .then((profile) => profile?.userId ?? null)
+        .then((profile) => profile?.userId ?? null),
     );
     if (otherUserId) {
       await createInAppNotificationDeduped({
@@ -313,7 +333,7 @@ export async function respondToFriendRequest(
 
 export async function removeFriend(
   current: CurrentUserProfile,
-  friendshipId: string
+  friendshipId: string,
 ) {
   const { otherProfileId } = await withDbRequestContext(current, async (tx) => {
     const friendship = await tx.friendship.findFirst({
@@ -361,8 +381,8 @@ export async function listFriendRequestsForProfile(current: DbContextUser) {
       orderBy: { createdAt: "desc" },
       take: 100,
       include: {
-        profileA: { select: REQUEST_PROFILE_SELECT },
-        profileB: { select: REQUEST_PROFILE_SELECT },
+        profileA: { select: REQUEST_LIST_PROFILE_SELECT },
+        profileB: { select: REQUEST_LIST_PROFILE_SELECT },
       },
     });
 
@@ -379,7 +399,10 @@ export async function listFriendRequestsForProfile(current: DbContextUser) {
             : "incoming",
         profileId: other.id,
         displayName: other.displayName,
-        avatarUrl: resolveDemoProfilePortrait(other.displayName, other.avatarUrl),
+        avatarUrl: resolveDemoProfilePortrait(
+          other.displayName,
+          other.avatarUrl,
+        ),
         state: other.state,
         kennelName: other.kennelName,
         verified: other.verified,
@@ -391,7 +414,7 @@ export async function listFriendRequestsForProfile(current: DbContextUser) {
 
 export async function getFriendshipState(
   current: DbContextUser,
-  otherProfileId: string
+  otherProfileId: string,
 ): Promise<FriendshipState> {
   if (otherProfileId === current.profileId) return { status: "none" };
   const pair = friendshipPair(current.profileId, otherProfileId);
@@ -399,7 +422,7 @@ export async function getFriendshipState(
     tx.friendship.findUnique({
       where: { profileAId_profileBId: pair },
       select: { id: true, status: true, requestedByProfileId: true },
-    })
+    }),
   );
   if (!friendship) return { status: "none" };
   if (friendship.status === "accepted") {

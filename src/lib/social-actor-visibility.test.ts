@@ -19,6 +19,18 @@ const migration = readFileSync(
   ),
   "utf8"
 );
+const memberVisibilityMigration = readFileSync(
+  join(
+    __dirname,
+    "..",
+    "..",
+    "prisma",
+    "migrations",
+    "20260723160000_fix_member_actor_visibility",
+    "migration.sql",
+  ),
+  "utf8",
+);
 const proxy = readFileSync(join(__dirname, "..", "proxy.ts"), "utf8");
 const profileRoute = readFileSync(
   join(__dirname, "..", "app", "p", "[handle]", "page.tsx"),
@@ -33,6 +45,18 @@ assert.ok(
   migration.includes('account."isBanned" = false') &&
     migration.includes('account."deletionRequestedAt" IS NULL'),
   "The RLS visibility helper must hide inactive personal accounts"
+);
+assert.ok(
+  memberVisibilityMigration.includes(
+    "SECURITY DEFINER\nSET search_path = ''",
+  ) &&
+    memberVisibilityMigration.includes(
+      'OR public.giq_profile_account_active("profileId")',
+    ) &&
+    memberVisibilityMigration.includes(
+      "GRANT EXECUTE ON FUNCTION public.giq_profile_account_active(text) TO greyhoundiq_runtime",
+    ),
+  "Member actor visibility must bypass protected User-row reads without weakening account or block checks",
 );
 assert.ok(
   proxy.includes("prisma.socialActor.count") &&

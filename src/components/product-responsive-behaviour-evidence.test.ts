@@ -30,10 +30,16 @@ assert.deepEqual(
 for (const requirementId of PRODUCT_RESPONSIVE_BEHAVIOUR_REQUIREMENT_IDS) {
   const record = PRODUCT_RESPONSIVE_BEHAVIOUR_MASTER_EVIDENCE[requirementId];
   assert.equal(record.status, "tested", requirementId);
-  assert.ok(record.evidence.includes(PRODUCT_RESPONSIVE_BEHAVIOUR_EVIDENCE_FILE));
+  assert.ok(
+    record.evidence.includes(PRODUCT_RESPONSIVE_BEHAVIOUR_EVIDENCE_FILE),
+  );
   assert.ok(record.evidence.includes(PRODUCT_RESPONSIVE_BEHAVIOUR_TEST_FILE));
   for (const evidencePath of record.evidence) {
-    assert.equal(existsSync(resolve(repositoryRoot, evidencePath)), true, evidencePath);
+    assert.equal(
+      existsSync(resolve(repositoryRoot, evidencePath)),
+      true,
+      evidencePath,
+    );
   }
 }
 
@@ -46,7 +52,11 @@ const discover = source("src/app/discover/page.tsx");
 const listingMedia = source("src/components/listing-card-media-carousel.tsx");
 const video = source("src/components/processed-video.tsx");
 
-assert.match(globals, /overflow-x: clip;/, "the document shell must suppress horizontal overflow");
+assert.match(
+  globals,
+  /overflow-x: clip;/,
+  "the document shell must suppress horizontal overflow",
+);
 assert.match(
   globals,
   /\.giq-mobile-menu-sheet \{[\s\S]*width: min\(430px, calc\(100vw - 16px\)\)[\s\S]*max-width: calc\(100vw - 16px\);/,
@@ -54,7 +64,7 @@ assert.match(
 );
 assert.match(
   globals,
-  /\.giq-mobile-menu-scroll \{[\s\S]*max-height: calc\(100dvh - 16px[\s\S]*overflow-y: auto;/,
+  /\.giq-mobile-menu-scroll \{[\s\S]*max-height:\s*calc\([\s\S]*100dvh\s*-\s*16px[\s\S]*overflow-y:\s*auto;/,
   "the mobile menu must scroll within the viewport height",
 );
 assert.match(
@@ -64,7 +74,7 @@ assert.match(
 );
 assert.match(
   globals,
-  /\.giq-mobile-dock-sheet \{[\s\S]*max-height: calc\(100dvh - var\(--giq-mobile-dock-clearance\)[\s\S]*overflow-y: auto;/,
+  /\.giq-mobile-dock-sheet \{[\s\S]*max-height:\s*calc\([\s\S]*100dvh\s*-\s*var\(--giq-mobile-dock-clearance\)[\s\S]*overflow-y:\s*auto;/,
   "the dock sheet must remain scrollable above the fixed dock",
 );
 assert.match(
@@ -99,6 +109,11 @@ assert.match(
 );
 assert.match(
   globals,
+  /@media \(max-width: 920px\) \{[\s\S]*\.giq-filter-scroll \{[\s\S]*flex-wrap: wrap;[\s\S]*overflow-x: visible;/,
+  "race filter chips should wrap without sideways scrolling on tablet and mobile",
+);
+assert.match(
+  globals,
   /\.giq-filter-scroll \{[\s\S]*overflow-x: auto;/,
   "overflowing filter chips must remain reachable",
 );
@@ -112,9 +127,21 @@ assert.match(
   /<video[\s\S]*playsInline[\s\S]*w-full bg-black object-contain/,
   "video playback must preserve its media bounds on mobile",
 );
-assert.match(races, /type="search"/, "race lookup must request a search keyboard");
-assert.match(races, /type="date"/, "date selection must request a date keyboard");
-assert.match(discover, /enterKeyHint="search"/, "discovery search must expose its mobile submit intent");
+assert.match(
+  races,
+  /type="search"/,
+  "race lookup must request a search keyboard",
+);
+assert.match(
+  races,
+  /type="date"/,
+  "date selection must request a date keyboard",
+);
+assert.match(
+  discover,
+  /enterKeyHint="search"/,
+  "discovery search must expose its mobile submit intent",
+);
 assert.ok(
   [768, 820, 1024].every((width) =>
     new Set<number>(PRODUCT_RESPONSIVE_REQUIRED_WIDTHS).has(width),

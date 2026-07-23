@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { AdminSubmitButton } from "@/app/admin/admin-submit-button";
 import { StatusPill } from "@/components/admin/status-pill";
 import {
   approveListing,
@@ -123,9 +124,11 @@ export default async function AdminListingsPage() {
                 className="giq-form-control min-h-11 w-full px-3 py-2 text-[13px]"
               />
             </label>
-            <button className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px]">
-              Create category
-            </button>
+            <AdminSubmitButton
+              label="Create category"
+              pendingLabel="Creating…"
+              className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px]"
+            />
           </form>
           <div className="space-y-3">
             {categories.map((category) => (
@@ -156,12 +159,13 @@ export default async function AdminListingsPage() {
                   )}
                   className="mt-3"
                 >
-                  <button
+                  <AdminSubmitButton
+                    label={category.active ? "Deactivate" : "Activate"}
+                    pendingLabel="Updating…"
+                    confirmMessage={`${category.active ? "Deactivate" : "Activate"} this category?`}
                     data-purpose-id="ADMIN-LISTINGS.ACTION.CATEGORY.ACTIVE.SET ADMIN-LISTINGS.FORM.CATEGORY-ACTIVE"
                     className="giq-outline-action min-h-11 px-3 text-[12px]"
-                  >
-                    {category.active ? "Deactivate" : "Activate"}
-                  </button>
+                  />
                 </form>
               </div>
             ))}
@@ -260,12 +264,13 @@ function ListingActions({ listing }: { listing: ListingRow }) {
     return (
       <div className="flex min-w-[280px] flex-wrap gap-2">
         <form action={approveAction}>
-          <button
+          <AdminSubmitButton
+            label="Approve"
+            pendingLabel="Approving…"
+            confirmMessage="Approve this marketplace listing?"
             data-purpose-id="ADMIN-LISTINGS.ACTION.LISTING.APPROVE ADMIN-LISTINGS.FORM.APPROVE"
             className="giq-button giq-button-primary min-h-11 px-3 text-[12px]"
-          >
-            Approve
-          </button>
+          />
         </form>
         <form action={rejectAction} className="flex gap-2">
           <input
@@ -277,12 +282,13 @@ function ListingActions({ listing }: { listing: ListingRow }) {
             placeholder="Reason"
             className="giq-form-control min-h-11 w-36 px-2 py-1 text-[12px]"
           />
-          <button
+          <AdminSubmitButton
+            label="Reject"
+            pendingLabel="Rejecting…"
+            confirmMessage="Reject this marketplace listing?"
             data-purpose-id="ADMIN-LISTINGS.ACTION.LISTING.REJECT ADMIN-LISTINGS.FORM.REJECT"
             className="giq-button giq-button-glass min-h-11 px-3 text-[12px]"
-          >
-            Reject
-          </button>
+          />
         </form>
       </div>
     );
@@ -311,12 +317,13 @@ function ListingActions({ listing }: { listing: ListingRow }) {
             placeholder="Reason"
             className="giq-form-control min-h-11 w-36 px-2 py-1 text-[12px]"
           />
-          <button
+          <AdminSubmitButton
+            label="Remove"
+            pendingLabel="Removing…"
+            confirmMessage="Remove this marketplace listing?"
             data-purpose-id="ADMIN-LISTINGS.ACTION.LISTING.REMOVE ADMIN-LISTINGS.FORM.REMOVE"
             className="giq-button giq-button-glass min-h-11 px-3 text-[12px]"
-          >
-            Remove
-          </button>
+          />
         </div>
       </form>
     );

@@ -508,7 +508,9 @@ export function FeedInfiniteList({
       {posts.length === 0 && !loading && (
         <div className="giq-empty-state p-12 text-center">
           <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
-            No feed posts yet.
+            {mode === "public"
+              ? "No public posts yet."
+              : "No posts from you or your accepted friends yet."}
           </p>
         </div>
       )}

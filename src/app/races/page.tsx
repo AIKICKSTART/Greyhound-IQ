@@ -37,10 +37,7 @@ import {
   isRaceEligibleForNextToGo,
   normaliseRaceSourceStatus,
 } from "@/lib/race-status";
-import {
-  formatRaceMetric,
-  formatRaceScheduleSummary,
-} from "@/lib/race-metric";
+import { formatRaceMetric, formatRaceScheduleSummary } from "@/lib/race-metric";
 
 export const dynamic = "force-dynamic";
 
@@ -140,9 +137,15 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
               {data.dateInputValue && (
                 <input type="hidden" name="date" value={data.dateInputValue} />
               )}
-              {selectedState && <input type="hidden" name="state" value={selectedState} />}
+              {selectedState && (
+                <input type="hidden" name="state" value={selectedState} />
+              )}
               {data.selectedStatus !== "all" && (
-                <input type="hidden" name="status" value={data.selectedStatus} />
+                <input
+                  type="hidden"
+                  name="status"
+                  value={data.selectedStatus}
+                />
               )}
               {data.selectedSort !== "time" && (
                 <input type="hidden" name="sort" value={data.selectedSort} />
@@ -161,7 +164,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                   selectedState,
                   data.searchQuery,
                   data.selectedStatus,
-                  data.selectedSort
+                  data.selectedSort,
                 )}
                 className={`giq-date-chip giq-date-chip-global ${
                   data.isGlobalSearch ? "giq-date-chip-active" : ""
@@ -174,7 +177,8 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
 
             <div className="giq-date-rail" aria-label="Race dates">
               {dateRail.map((item) => {
-                const active = !data.isGlobalSearch && item.date === data.selectedDate;
+                const active =
+                  !data.isGlobalSearch && item.date === data.selectedDate;
                 return (
                   <Link
                     key={item.date}
@@ -183,7 +187,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                       selectedState,
                       data.searchQuery,
                       data.selectedStatus,
-                      data.selectedSort
+                      data.selectedSort,
                     )}
                     className={`giq-date-chip ${active ? "giq-date-chip-active" : ""}`}
                   >
@@ -203,10 +207,18 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
             </div>
 
             <form action="/races" className="giq-date-jump">
-              {data.searchQuery && <input type="hidden" name="q" value={data.searchQuery} />}
-              {selectedState && <input type="hidden" name="state" value={selectedState} />}
+              {data.searchQuery && (
+                <input type="hidden" name="q" value={data.searchQuery} />
+              )}
+              {selectedState && (
+                <input type="hidden" name="state" value={selectedState} />
+              )}
               {data.selectedStatus !== "all" && (
-                <input type="hidden" name="status" value={data.selectedStatus} />
+                <input
+                  type="hidden"
+                  name="status"
+                  value={data.selectedStatus}
+                />
               )}
               {data.selectedSort !== "time" && (
                 <input type="hidden" name="sort" value={data.selectedSort} />
@@ -220,7 +232,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                   aria-label="Choose race date"
                 />
               </label>
-              <button type="submit">Filter</button>
+              <button type="submit">Search</button>
             </form>
           </div>
 
@@ -232,7 +244,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                   null,
                   data.searchQuery,
                   data.selectedStatus,
-                  data.selectedSort
+                  data.selectedSort,
                 )}
                 active={!selectedState}
               >
@@ -246,7 +258,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                     state,
                     data.searchQuery,
                     data.selectedStatus,
-                    data.selectedSort
+                    data.selectedSort,
                   )}
                   active={selectedState === state}
                 >
@@ -264,7 +276,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                     selectedState,
                     data.searchQuery,
                     option.value,
-                    data.selectedSort
+                    data.selectedSort,
                   )}
                   active={data.selectedStatus === option.value}
                 >
@@ -277,10 +289,18 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
               {data.dateInputValue && (
                 <input type="hidden" name="date" value={data.dateInputValue} />
               )}
-              {data.searchQuery && <input type="hidden" name="q" value={data.searchQuery} />}
-              {selectedState && <input type="hidden" name="state" value={selectedState} />}
+              {data.searchQuery && (
+                <input type="hidden" name="q" value={data.searchQuery} />
+              )}
+              {selectedState && (
+                <input type="hidden" name="state" value={selectedState} />
+              )}
               {data.selectedStatus !== "all" && (
-                <input type="hidden" name="status" value={data.selectedStatus} />
+                <input
+                  type="hidden"
+                  name="status"
+                  value={data.selectedStatus}
+                />
               )}
               <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
               <label>
@@ -294,7 +314,7 @@ export default async function RacesPage({ searchParams }: RacesPageProps) {
                   <option value="relevance">Relevance</option>
                 </AutoSubmitSelect>
               </label>
-              <button type="submit">Filter</button>
+              <button type="submit">Search</button>
             </form>
           </div>
         </section>
@@ -453,7 +473,11 @@ function NextToGoStrip({
           <p className="program-label">Next to go</p>
           <h2>Upcoming race queue</h2>
         </div>
-        <p>{items.length > 0 ? "Live and upcoming races sorted by time." : "No live or upcoming races in this selection."}</p>
+        <p>
+          {items.length > 0
+            ? "Live and upcoming races sorted by time."
+            : "No live or upcoming races in this selection."}
+        </p>
       </div>
 
       {items.length > 0 ? (
@@ -476,7 +500,9 @@ function NextToGoStrip({
                   <small>{live ? "Now" : "To go"}</small>
                 </span>
                 <span className="giq-next-race-main">
-                  <strong>R{race.raceNumber} {meeting.track.name}</strong>
+                  <strong>
+                    R{race.raceNumber} {meeting.track.name}
+                  </strong>
                   <small>
                     {formatRaceTime(race.raceTime)} / {race.distance}m
                     {race.grade ? ` / ${race.grade}` : ""}
@@ -556,7 +582,9 @@ function RaceMeetingPanel({
                 <PlayCircle className="h-3.5 w-3.5" aria-hidden="true" />
                 {replayCount} replays
               </span>
-              <span className={`giq-meeting-state giq-meeting-state-${status.tone}`}>
+              <span
+                className={`giq-meeting-state giq-meeting-state-${status.tone}`}
+              >
                 {status.label}
               </span>
             </div>
@@ -717,7 +745,9 @@ function UpcomingQueue({
             aria-label={`Open ${meeting.track.name} race ${race.raceNumber}`}
           >
             <span>{formatCountdown(race, now)}</span>
-            <strong>R{race.raceNumber} {meeting.track.name}</strong>
+            <strong>
+              R{race.raceNumber} {meeting.track.name}
+            </strong>
             <small>
               {formatRaceTime(race.raceTime)} / {race.distance}m
             </small>
@@ -768,7 +798,10 @@ function MetricCard({
   );
 }
 
-function getNextToGo(meetings: RaceExplorerMeeting[], now: Date): NextRaceItem[] {
+function getNextToGo(
+  meetings: RaceExplorerMeeting[],
+  now: Date,
+): NextRaceItem[] {
   return meetings
     .flatMap((meeting) => meeting.races.map((race) => ({ meeting, race })))
     .filter(({ race }) =>
@@ -786,7 +819,9 @@ function buildDateRail(
   selectedDate: string,
   today: string,
 ): RaceDateRailItem[] {
-  const selected = recentRaceDates.find((item) => item.date === selectedDate) ?? {
+  const selected = recentRaceDates.find(
+    (item) => item.date === selectedDate,
+  ) ?? {
     date: selectedDate,
     races: null,
   };
@@ -807,18 +842,22 @@ function dateChipLabel(date: string, now: Date) {
 function dateChipSubLabel(date: string, now: Date) {
   const today = formatRaceDateInput(now);
   const tomorrow = addInputDateDays(today, 1);
-  return date === today || date === tomorrow ? formatShortRaceDayLabel(date) : null;
+  return date === today || date === tomorrow
+    ? formatShortRaceDayLabel(date)
+    : null;
 }
 
 function addInputDateDays(date: string, days: number) {
   const [year, month, day] = date.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+  return new Date(Date.UTC(year, month - 1, day + days))
+    .toISOString()
+    .slice(0, 10);
 }
 
 function meetingDistanceRange(meeting: RaceExplorerMeeting) {
-  const distances = [...new Set(meeting.races.map((race) => race.distance))].sort(
-    (a, b) => a - b
-  );
+  const distances = [
+    ...new Set(meeting.races.map((race) => race.distance)),
+  ].sort((a, b) => a - b);
   if (distances.length === 0) return "No distances";
   if (distances.length === 1) return `${distances[0]}m`;
   return `${distances[0]}m - ${distances[distances.length - 1]}m`;
@@ -838,9 +877,7 @@ function meetingStatus(meeting: RaceExplorerMeeting, now: Date) {
   if (statuses.some(({ key }) => key === "upcoming")) {
     return { label: "Upcoming", tone: "upcoming" };
   }
-  if (
-    statuses.some(({ key }) => key === "abandoned" || key === "postponed")
-  ) {
+  if (statuses.some(({ key }) => key === "abandoned" || key === "postponed")) {
     return { label: "Schedule changed", tone: "changed" };
   }
   if (statuses.some(({ key }) => key === "replay")) {
@@ -876,7 +913,8 @@ function formatCountdown(race: RaceExplorerRace, now: Date) {
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
   const remainder = minutes % 60;
-  if (hours < 24) return remainder > 0 ? `${hours}h ${remainder}m` : `${hours}h`;
+  if (hours < 24)
+    return remainder > 0 ? `${hours}h ${remainder}m` : `${hours}h`;
   return formatRaceTime(race.raceTime);
 }
 
@@ -890,7 +928,7 @@ function dateLink(
   state: string | null,
   q: string | null,
   status: string,
-  sort: string
+  sort: string,
 ) {
   const params = new URLSearchParams();
   if (date) params.set("date", date);

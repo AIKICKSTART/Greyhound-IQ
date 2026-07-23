@@ -49,13 +49,15 @@ assert.equal(
 );
 
 assert.deepEqual(feedPageQuerySchema.parse({}), {
-  mode: "for-you",
+  mode: "public",
   limit: 20,
 });
 assert.deepEqual(
-  feedPageQuerySchema.parse({ mode: "latest", cursor: "abc_DEF-123", limit: "50" }),
-  { mode: "latest", cursor: "abc_DEF-123", limit: 50 },
+  feedPageQuerySchema.parse({ mode: "friends", cursor: "abc_DEF-123", limit: "50" }),
+  { mode: "friends", cursor: "abc_DEF-123", limit: 50 },
 );
+assert.equal(feedPageQuerySchema.parse({ mode: "for-you" }).mode, "public");
+assert.equal(feedPageQuerySchema.parse({ mode: "latest" }).mode, "public");
 assert.equal(feedPageQuerySchema.safeParse({ limit: "51" }).success, false);
 assert.equal(feedPageQuerySchema.safeParse({ cursor: "=".repeat(20) }).success, false);
 

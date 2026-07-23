@@ -91,7 +91,9 @@ export default async function MessageThreadPage({
     q: rawQuery.q,
   });
   const before = parsedQuery.success ? parsedQuery.data.before : undefined;
-  const callIntent = parsedQuery.success ? (parsedQuery.data.call ?? null) : null;
+  const callIntent = parsedQuery.success
+    ? (parsedQuery.data.call ?? null)
+    : null;
   const messageQuery = parsedQuery.success ? parsedQuery.data.q : "";
 
   let conversation: Awaited<ReturnType<typeof getConversationForProfile>>;
@@ -99,7 +101,7 @@ export default async function MessageThreadPage({
     conversation = await getConversationForProfile(
       callContext,
       id,
-      before ? { before } : undefined
+      before ? { before } : undefined,
     );
   } catch {
     notFound();
@@ -127,20 +129,20 @@ export default async function MessageThreadPage({
     callLogResult,
     otherPresenceResult,
   ] = await Promise.allSettled([
-      conversation.blockedAt || isPageConversation
-        ? null
-        : getActiveCallRoomForConversation(callContext, conversation.id),
-      conversation.blockedAt || isPageConversation
-        ? null
-        : getPendingCallInviteForConversation(callContext, conversation.id),
-      getRecentCallLogForConversation(callContext, conversation.id),
-      withDbRequestContext(callContext, (tx) =>
-        tx.userPresence.findUnique({
-          where: { profileId: other.id },
-          select: { lastSeenAt: true },
-        })
-      ),
-    ] as const);
+    conversation.blockedAt || isPageConversation
+      ? null
+      : getActiveCallRoomForConversation(callContext, conversation.id),
+    conversation.blockedAt || isPageConversation
+      ? null
+      : getPendingCallInviteForConversation(callContext, conversation.id),
+    getRecentCallLogForConversation(callContext, conversation.id),
+    withDbRequestContext(callContext, (tx) =>
+      tx.userPresence.findUnique({
+        where: { profileId: other.id },
+        select: { lastSeenAt: true },
+      }),
+    ),
+  ] as const);
   const activeCallRoom =
     activeCallRoomResult.status === "fulfilled"
       ? activeCallRoomResult.value
@@ -163,6 +165,15 @@ export default async function MessageThreadPage({
   const realtimeChannel = conversationRealtimeChannel(conversation.id);
   const hasEarlierPage = conversation.messages.length === MESSAGE_PAGE_SIZE;
   const oldestMessageId = conversation.messages[0]?.id ?? null;
+  const hasPendingMessageMedia = conversation.messages.some((message) =>
+    message.media.some(
+      ({ media }) =>
+        media.scanStatus === "pending" ||
+        media.processingStatus === "pending" ||
+        media.processingStatus === "scanning" ||
+        media.processingStatus === "processing",
+    ),
+  );
   const threadItems = [
     ...conversation.messages.map((message) => ({
       kind: "message" as const,
@@ -181,7 +192,7 @@ export default async function MessageThreadPage({
           callContext,
           conversation.id,
           messageQuery,
-          { limit: 20 }
+          { limit: 20 },
         )
       : null;
   const callableIntent = isPageConversation ? null : callIntent;
@@ -267,33 +278,38 @@ export default async function MessageThreadPage({
                 {other.state ?? "Australia"}
               </p>
             </div>
-            {realtimeChannel && (
+            {(realtimeChannel || hasPendingMessageMedia) && (
               <RealtimeRefresh
-                channels={[
-                  {
-                    name: realtimeChannel,
-                    events: [
-                      "message_created",
-                      "conversation_updated",
-                      "call_room_created",
-                      "call_room_ended",
-                    ],
-                    presence: {
-                      selfProfileId: user.profileId,
-                      selfLabel,
-                      otherProfileId: other.id,
-                      otherLabel,
-                      offlineLabel: otherPresence
-                        ? lastSeenLabel(otherPresence.lastSeenAt)
-                        : undefined,
-                    },
-                    typing: {
-                      selfProfileId: user.profileId,
-                      otherProfileId: other.id,
-                      otherLabel,
-                    },
-                  },
-                ]}
+                pollIntervalMs={hasPendingMessageMedia ? 5_000 : undefined}
+                channels={
+                  realtimeChannel
+                    ? [
+                        {
+                          name: realtimeChannel,
+                          events: [
+                            "message_created",
+                            "conversation_updated",
+                            "call_room_created",
+                            "call_room_ended",
+                          ],
+                          presence: {
+                            selfProfileId: user.profileId,
+                            selfLabel,
+                            otherProfileId: other.id,
+                            otherLabel,
+                            offlineLabel: otherPresence
+                              ? lastSeenLabel(otherPresence.lastSeenAt)
+                              : undefined,
+                          },
+                          typing: {
+                            selfProfileId: user.profileId,
+                            otherProfileId: other.id,
+                            otherLabel,
+                          },
+                        },
+                      ]
+                    : []
+                }
               />
             )}
           </div>
@@ -341,8 +357,14 @@ export default async function MessageThreadPage({
         )}
       </header>
 
-      <section className="giq-social-thread-search giq-panel mb-6 p-5" aria-label="Search this conversation">
-        <form className="flex flex-wrap gap-2" action={`/pulse/${conversation.id}`}>
+      <section
+        className="giq-social-thread-search giq-panel mb-6 p-5"
+        aria-label="Search this conversation"
+      >
+        <form
+          className="flex flex-wrap gap-2"
+          action={`/pulse/${conversation.id}`}
+        >
           <label className="sr-only" htmlFor="message-search">
             Search messages in this conversation
           </label>
@@ -439,7 +461,10 @@ export default async function MessageThreadPage({
             threadItems.map((item) => {
               if (item.kind === "call") {
                 return (
-                  <CallLogLine key={`call-${item.entry.id}`} entry={item.entry} />
+                  <CallLogLine
+                    key={`call-${item.entry.id}`}
+                    entry={item.entry}
+                  />
                 );
               }
               const { message } = item;
@@ -447,26 +472,26 @@ export default async function MessageThreadPage({
               const deleteAction = deleteConversationMessage.bind(
                 null,
                 conversation.id,
-                message.id
+                message.id,
               );
               const reactionAction = toggleMessageReaction.bind(
                 null,
                 conversation.id,
-                message.id
+                message.id,
               );
               const reportAction = reportConversationMessage.bind(
                 null,
                 conversation.id,
-                message.id
+                message.id,
               );
               const reactedByMe = message.reactions.some(
-                (reaction) => reaction.profileId === user.profileId
+                (reaction) => reaction.profileId === user.profileId,
               );
               const readReceipt = message.readReceipts.find(
-                (receipt) => receipt.profileId === message.recipientId
+                (receipt) => receipt.profileId === message.recipientId,
               );
               const deliveryReceipt = message.deliveryReceipts.find(
-                (receipt) => receipt.profileId === message.recipientId
+                (receipt) => receipt.profileId === message.recipientId,
               );
               const readAt = readReceipt?.readAt ?? message.readAt;
 
@@ -485,8 +510,8 @@ export default async function MessageThreadPage({
                         ? selfActor?.kind === "page"
                           ? `You as ${selfLabel}`
                           : "You"
-                        : message.senderActor?.displayName ??
-                          message.sender.displayName}
+                        : (message.senderActor?.displayName ??
+                          message.sender.displayName)}
                     </span>
                     <span className="text-[11px] text-[hsl(var(--subtle-foreground))]">
                       {message.createdAt.toLocaleString("en-AU", {
@@ -527,11 +552,11 @@ export default async function MessageThreadPage({
                                 month: "short",
                                 hour: "2-digit",
                                 minute: "2-digit",
-                              }
+                              },
                             )}`
-                        : isMine
-                          ? "Sent"
-                          : ""}
+                          : isMine
+                            ? "Sent"
+                            : ""}
                     </span>
                     <div className="flex flex-wrap items-center gap-2">
                       <form action={reactionAction}>
@@ -576,7 +601,9 @@ export default async function MessageThreadPage({
                           >
                             <option value="spam">Spam</option>
                             <option value="harassment">Harassment</option>
-                            <option value="misinformation">Misinformation</option>
+                            <option value="misinformation">
+                              Misinformation
+                            </option>
                             <option value="illegal">Illegal</option>
                             <option value="other">Other</option>
                           </select>
@@ -631,8 +658,9 @@ function CallLogLine({
   const durationSeconds =
     entry.eventType !== "invite_missed" && entry.callRoom.endedAt
       ? Math.floor(
-          (entry.callRoom.endedAt.getTime() - entry.callRoom.createdAt.getTime()) /
-            1000
+          (entry.callRoom.endedAt.getTime() -
+            entry.callRoom.createdAt.getTime()) /
+            1000,
         )
       : null;
 
@@ -809,15 +837,9 @@ function AttachmentStatus({
           aria-hidden="true"
         />
       ) : failed ? (
-        <ShieldAlert
-          className="h-3.5 w-3.5 shrink-0"
-          aria-hidden="true"
-        />
+        <ShieldAlert className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       ) : (
-        <Paperclip
-          className="h-3.5 w-3.5 shrink-0"
-          aria-hidden="true"
-        />
+        <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       )}
       <span>{label}</span>
     </span>

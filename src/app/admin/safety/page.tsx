@@ -1,4 +1,5 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { AdminSubmitButton } from "@/app/admin/admin-submit-button";
 import { StatusPill } from "@/components/admin/status-pill";
 import {
   createBannedPhrase,
@@ -124,9 +125,11 @@ export default async function AdminSafetyPage() {
                 className="giq-form-control min-h-11 w-full px-3 py-2 text-[13px]"
               />
             </label>
-            <button className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px]">
-              Save phrase
-            </button>
+            <AdminSubmitButton
+              label="Save phrase"
+              pendingLabel="Saving…"
+              className="giq-button giq-button-primary min-h-11 w-full px-4 text-[13px]"
+            />
           </form>
         </section>
 
@@ -184,9 +187,12 @@ export default async function AdminSafetyPage() {
                     )}
                     className="mt-3"
                   >
-                    <button className="giq-outline-action min-h-11 px-3 text-[12px]">
-                      {phrase.active ? "Deactivate" : "Activate"}
-                    </button>
+                    <AdminSubmitButton
+                      label={phrase.active ? "Deactivate" : "Activate"}
+                      pendingLabel="Updating…"
+                      confirmMessage={`${phrase.active ? "Deactivate" : "Activate"} this content rule?`}
+                      className="giq-outline-action min-h-11 px-3 text-[12px]"
+                    />
                   </form>
                 </div>
               ))
@@ -274,9 +280,12 @@ export default async function AdminSafetyPage() {
                     <td className="px-4 py-3">
                       {flag.status === "open" ? (
                         <form action={resolveTrustSafetyFlag.bind(null, flag.id)}>
-                          <button className="giq-outline-action min-h-11 px-3 text-[12px]">
-                            Resolve
-                          </button>
+                          <AdminSubmitButton
+                            label="Resolve"
+                            pendingLabel="Resolving…"
+                            confirmMessage="Resolve this trust and safety flag?"
+                            className="giq-outline-action min-h-11 px-3 text-[12px]"
+                          />
                         </form>
                       ) : (
                         <span className="text-[12px] text-[hsl(var(--muted-foreground))]">

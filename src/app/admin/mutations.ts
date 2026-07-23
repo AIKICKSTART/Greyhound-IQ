@@ -103,6 +103,7 @@ const createUserSchema = z.object({
   tier: tierSchema.default("free"),
   role: roleSchema.default("member"),
   verified: z.boolean(),
+  confirmation: z.literal("CONFIRM USER ACCESS"),
   reason: reasonSchema,
   path: z.string().trim().optional(),
 });
@@ -114,6 +115,7 @@ const updateUserAccessSchema = z.object({
   verified: z.boolean(),
   banned: z.boolean(),
   cancelDeletion: z.boolean(),
+  confirmation: z.literal("CONFIRM USER ACCESS"),
   reason: reasonSchema,
   path: z.string().trim().optional(),
 });
@@ -257,6 +259,7 @@ export async function createAdminUserAction(formData: FormData) {
     tier: optionalField(formData, "tier") ?? "free",
     role: optionalField(formData, "role") ?? "member",
     verified: checkbox(formData, "verified"),
+    confirmation: field(formData, "confirmation"),
     reason: field(formData, "reason"),
     path: optionalField(formData, "path"),
   });
@@ -273,6 +276,7 @@ export async function updateAdminUserAccessAction(formData: FormData) {
     verified: checkbox(formData, "verified"),
     banned: checkbox(formData, "banned"),
     cancelDeletion: checkbox(formData, "cancelDeletion"),
+    confirmation: field(formData, "confirmation"),
     reason: field(formData, "reason"),
     path: optionalField(formData, "path"),
   });

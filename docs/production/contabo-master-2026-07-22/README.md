@@ -1,5 +1,7 @@
 # Contabo production master ledger
 
+> **Current QA status (2026-07-23):** the off-VPS release candidate builds cleanly and the fresh serial route audit passes 97/99 registered routes. Only two unseeded community-thread fixtures fail the route gate; the production safety and independent-review gates remain unresolved. No production database write, restart or deployment was performed. See [production-qa-evidence-2026-07-23.md](./production-qa-evidence-2026-07-23.md) for the exact results and blockers.
+
 The authoritative ledger is [task-ledger.json](./task-ledger.json). It begins with the 18 Priority Zero replay tasks, then global safety controls and A-K execution/deliverable tasks. A-K work that requires a proven historical/replay baseline is explicitly blocked by `P0-016`.
 
 No production mutation was run while creating this ledger. Supplied recovery and live-service observations remain attached to their tasks, but an observation does not advance a task while any declared prerequisite is unfinished. The generator therefore normalises such tasks to `BLOCKED` and records every adjustment in its validation output. The 15 required fields are structurally present on every task; incomplete tasks intentionally retain pending evidence, retest and completion values until their acceptance criteria actually pass.
@@ -67,3 +69,13 @@ The requested production behavior is now limited to exact canonical public-sourc
 ## Current VPS release evidence
 
 The app-only replay/photo-finish release, database invariants, provider playback checks, five-minute sync evidence and finalized 841,615-race base inventory are recorded in [replay-photo-release-evidence-2026-07-22.md](./replay-photo-release-evidence-2026-07-22.md). The zero-filled month/source provenance companion and remaining browser/mobile task matrix are not complete.
+
+## 2026-07-23 session status (public + blocked host)
+
+Live public observation (no host mutations): site online, `/api/health/ready` reports `database: ok`, breeding tallies and race cards render. Host-level A010–A011 exact `Runner`/`Result` counts and Docker/UFW audits remain **blocked** because SSH port 22 is unreachable from workstation IP `202.171.188.71` (likely fail2ban after key probes).
+
+Full write-up, screenshots, and read-only host gate script:
+
+- [evidence/2026-07-23-session/recovery-status-2026-07-23.md](./evidence/2026-07-23-session/recovery-status-2026-07-23.md)
+- [evidence/2026-07-23-session/readonly-host-gate.sh](./evidence/2026-07-23-session/readonly-host-gate.sh)
+- [evidence/2026-07-23-session/screenshots/](./evidence/2026-07-23-session/screenshots/)

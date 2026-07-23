@@ -13,6 +13,10 @@ import {
   DEMO_ADMIN_EMAIL,
   isFullAccessDemo,
 } from "@/lib/demo-access";
+import {
+  normalizeMessengerLayout,
+  type MessengerLayout,
+} from "@/lib/messenger-layout";
 
 // Subscription tiers, ordered. Pricing: Free / Pro ($12) / Pro+ ($29).
 export type Tier = "free" | "pro" | "pro_plus";
@@ -39,6 +43,7 @@ export interface CurrentUser {
   name: string;
   tier: Tier;
   role: string | null;
+  messengerLayout?: MessengerLayout;
   isBanned: boolean;
   deletionRequestedAt: Date | null;
 }
@@ -79,6 +84,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     name,
     tier: normalizeTier(dbUser?.subscriptionTier),
     role: dbUser?.profile?.role ?? null,
+    messengerLayout: normalizeMessengerLayout(dbUser?.profile?.messengerLayout),
     isBanned: dbUser?.isBanned ?? false,
     deletionRequestedAt: dbUser?.deletionRequestedAt ?? null,
   };
@@ -124,6 +130,7 @@ export async function requireCurrentUserProfile(): Promise<CurrentUserProfile> {
     deletionRequestedAt: dbUser.deletionRequestedAt,
     displayName: profile.displayName,
     profileRole: profile.role,
+    messengerLayout: normalizeMessengerLayout(profile.messengerLayout),
     verified: profile.verified,
   };
 }
@@ -142,6 +149,7 @@ async function getDemoCurrentUserProfile(): Promise<CurrentUserProfile> {
           select: {
             id: true,
             displayName: true,
+            messengerLayout: true,
             role: true,
             verified: true,
           },
@@ -176,6 +184,7 @@ async function getDemoCurrentUserProfile(): Promise<CurrentUserProfile> {
     deletionRequestedAt: null,
     displayName: DEMO_ADMIN_DISPLAY_NAME,
     profileRole: "admin",
+    messengerLayout: normalizeMessengerLayout(profile.messengerLayout),
     verified: true,
   };
 }

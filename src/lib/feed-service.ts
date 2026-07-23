@@ -19,6 +19,7 @@ import { findBannedPhraseMatch } from "@/lib/moderation-service";
 import { broadcastFeedRealtimeEvent } from "@/lib/realtime-service";
 import { PRIVATE_USER_MEDIA_BUCKET } from "@/lib/storage-paths";
 import {
+  canonicalFeedMode,
   decodeFeedCursor,
   encodeFeedCursor,
   type FeedCursor,
@@ -117,7 +118,7 @@ export async function getFeedPosts(limit = 30) {
 }
 
 export type FeedPageOptions = {
-  mode?: FeedMode;
+  mode?: FeedMode | "for-you" | "latest";
   actorId?: string | null;
   cursor?: string | null;
   limit?: number;
@@ -141,12 +142,13 @@ type RankedFeedRow = {
 };
 
 export async function getFeedPageForViewer({
-  mode = "for-you",
+  mode: requestedMode = "public",
   actorId,
   cursor,
   limit = 20,
   current = null,
 }: FeedPageOptions = {}) {
+  const mode = canonicalFeedMode(requestedMode);
   const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 50);
   const decodedCursor = decodeFeedCursor(cursor, mode);
   const read = async (db: Prisma.TransactionClient) => {
@@ -157,10 +159,10 @@ export async function getFeedPageForViewer({
       await db.$executeRaw`SELECT set_config('app.current_actor_id', ${actor.id}, true)`;
     }
     const affinity = actor
-      ? await getFeedAffinity(db, current!, actor.id, actor.kind, mode)
+      ? await getFeedAffinity(db, current!, actor.id, mode)
       : {
-          actorIds: [] as string[],
-          topicIds: [] as string[],
+          viewerProfileId: null,
+          friendProfileIds: [] as string[],
           mutedActorIds: [] as string[],
         };
     const ranked = await rankedFeedRows(
@@ -468,23 +470,10 @@ async function getFeedAffinity(
   db: Prisma.TransactionClient,
   current: CurrentUserProfile,
   actorId: string,
-  actorKind: string,
   mode: FeedMode
 ) {
-  const [follows, topics, friendships, mutes] = await Promise.all([
-    mode === "for-you" ? db.actorFollow.findMany({
-      where: { followerActorId: actorId },
-      orderBy: { followedActorId: "asc" },
-      take: 1_000,
-      select: { followedActorId: true },
-    }) : Promise.resolve([]),
-    mode === "for-you" ? db.actorTopicFollow.findMany({
-      where: { actorId },
-      orderBy: { topicId: "asc" },
-      take: 1_000,
-      select: { topicId: true },
-    }) : Promise.resolve([]),
-    mode === "for-you" && actorKind === "personal"
+  const [friendships, mutes] = await Promise.all([
+    mode === "friends"
       ? db.friendship.findMany({
           where: {
             status: "accepted",
@@ -510,22 +499,9 @@ async function getFeedAffinity(
       ? friendship.profileBId
       : friendship.profileAId
   );
-  const friendActors = friendProfileIds.length
-      ? await db.socialActor.findMany({
-        where: { profileId: { in: friendProfileIds } },
-        orderBy: { id: "asc" },
-        take: 1_000,
-        select: { id: true },
-      })
-    : [];
   return {
-    actorIds: [
-      ...new Set([
-        ...follows.map((follow) => follow.followedActorId),
-        ...friendActors.map((friend) => friend.id),
-      ]),
-    ],
-    topicIds: topics.map((topic) => topic.topicId),
+    viewerProfileId: current.profileId,
+    friendProfileIds,
     mutedActorIds: mutes.map((mute) => mute.mutedActorId),
   };
 }
@@ -536,44 +512,28 @@ async function rankedFeedRows(
   cursor: FeedCursor | null,
   limit: number,
   affinity: {
-    actorIds: string[];
-    topicIds: string[];
+    viewerProfileId: string | null;
+    friendProfileIds: string[];
     mutedActorIds: string[];
   }
 ) {
-  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const actorIds = sqlList(affinity.actorIds);
-  const topicIds = sqlList(affinity.topicIds);
+  const audienceProfileIds = affinity.viewerProfileId
+    ? sqlList([affinity.viewerProfileId, ...affinity.friendProfileIds])
+    : sqlList([]);
   const postMuteFilter = affinity.mutedActorIds.length
     ? Prisma.sql`AND (p."authorActorId" IS NULL OR p."authorActorId" NOT IN ${sqlList(affinity.mutedActorIds)})`
     : Prisma.empty;
   const shareMuteFilter = affinity.mutedActorIds.length
     ? Prisma.sql`AND s."actorId" NOT IN ${sqlList(affinity.mutedActorIds)}`
     : Prisma.empty;
-  const postRanks =
-    mode === "latest"
-      ? Prisma.sql`0::integer AS "window", 0::integer AS "bucket", p."createdAt" AS "sortAt"`
-      : Prisma.sql`
-          CASE WHEN p."pinnedAt" IS NOT NULL OR p."createdAt" >= ${cutoff}
-            THEN 0 ELSE 1 END::integer AS "window",
-          CASE
-            WHEN p."pinnedAt" IS NOT NULL THEN 0
-            WHEN p."authorActorId" IN ${actorIds} THEN 1
-            WHEN p."topicId" IN ${topicIds} THEN 2
-            ELSE 3
-          END::integer AS "bucket",
-          COALESCE(p."pinnedAt", p."createdAt") AS "sortAt"`;
-  const shareRanks =
-    mode === "latest"
-      ? Prisma.sql`0::integer AS "window", 0::integer AS "bucket", s."createdAt" AS "sortAt"`
-      : Prisma.sql`
-          CASE WHEN s."createdAt" >= ${cutoff} THEN 0 ELSE 1 END::integer AS "window",
-          CASE
-            WHEN s."actorId" IN ${actorIds} THEN 1
-            WHEN p."topicId" IN ${topicIds} THEN 2
-            ELSE 3
-          END::integer AS "bucket",
-          s."createdAt" AS "sortAt"`;
+  const postAudienceFilter =
+    mode === "public"
+      ? Prisma.sql`AND p.visibility = 'public'`
+      : Prisma.sql`AND p."authorProfileId" IN ${audienceProfileIds}`;
+  const shareAudienceFilter =
+    mode === "public"
+      ? Prisma.sql`AND p.visibility = 'public' AND s.visibility = 'public'`
+      : Prisma.sql`AND (p."authorProfileId" IN ${audienceProfileIds} OR s."accountableProfileId" IN ${audienceProfileIds})`;
   const afterCursor = cursor
     ? Prisma.sql`
         WHERE (
@@ -605,16 +565,11 @@ async function rankedFeedRows(
         NULL::text AS "shareActorHandle",
         NULL::text AS "shareActorDisplayName",
         NULL::text AS "shareActorAvatarUrl",
-        ${postRanks}
+        0::integer AS "window", 0::integer AS "bucket", p."createdAt" AS "sortAt"
       FROM "FeedPost" p
       WHERE p."deletedAt" IS NULL
-        AND (
-          p.status = 'active'
-          OR (
-            p."authorProfileId" = public.giq_current_profile_id()
-            AND p.status IN ('processing', 'failed')
-          )
-        )
+        AND p.status = 'active'
+        ${postAudienceFilter}
         ${postMuteFilter}
         AND NOT EXISTS (
           SELECT 1
@@ -639,12 +594,13 @@ async function rankedFeedRows(
         a.handle AS "shareActorHandle",
         a."displayName" AS "shareActorDisplayName",
         a."avatarUrl" AS "shareActorAvatarUrl",
-        ${shareRanks}
+        0::integer AS "window", 0::integer AS "bucket", s."createdAt" AS "sortAt"
       FROM "FeedShare" s
       JOIN "FeedPost" p ON p.id = s."sourcePostId"
       LEFT JOIN "SocialActor" a ON a.id = s."actorId"
       WHERE p.status = 'active'
         AND p."deletedAt" IS NULL
+        ${shareAudienceFilter}
         ${shareMuteFilter}
         AND NOT EXISTS (
           SELECT 1

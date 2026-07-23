@@ -71,12 +71,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      <Suspense fallback={<TodaysRacesFallback />}>
-        <TodaysRacesSection />
-      </Suspense>
-
       <Suspense fallback={<PricingCtaFallback />}>
         <PricingCtaSection />
+      </Suspense>
+
+      <Suspense fallback={<TodaysRacesFallback />}>
+        <TodaysRacesSection />
       </Suspense>
     </div>
   );
@@ -111,7 +111,8 @@ async function TodaysRacesSection() {
       {meetings.length === 0 ? (
         <div className="giq-empty-state p-16 text-center">
           <p className="text-[hsl(var(--muted-foreground))] text-[15px] tracking-[-0.013em]">
-            No meetings are available for this race day yet. Try the race explorer for recent archived cards.
+            No meetings are available for this race day yet. Try the race
+            explorer for recent archived cards.
           </p>
           <Link
             href="/races"
@@ -172,6 +173,8 @@ function TodaysRacesFallback() {
 
 async function PricingCtaSection() {
   const { plans } = await getPricingContent();
+  const homePlans = plans.filter(({ id }) => id !== "pro_plus");
+
   return (
     <section
       id="pricing"
@@ -179,23 +182,29 @@ async function PricingCtaSection() {
       data-onboarding-target="public-home-pricing"
     >
       <div className="mb-8 text-center">
-        <span className="giq-pill giq-pill-gold mb-3 inline-flex">AUD pricing · zero ads</span>
+        <span className="giq-pill giq-pill-gold mb-3 inline-flex">
+          Start free · upgrade when it earns its place
+        </span>
         <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
-          Simple, honest <span className="gradient-text">pricing.</span>
+          Clear value. <span className="gradient-text">Simple pricing.</span>
         </h2>
         <p className="mx-auto mt-2 max-w-xl text-[14px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]">
-          Start free in seconds. Upgrade to Pro for AI predictions, breeding tools, and marketplace access — priced in AUD with no conversion fees.
+          Follow every Australian race for free. Go Pro when you need advanced
+          racing intelligence, breeding tools, messaging, and Marketplace
+          selling — all priced in AUD.
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {plans.map((plan) => (
+      <div className="mx-auto grid max-w-4xl gap-4 sm:grid-cols-2">
+        {homePlans.map((plan) => (
           <div
             key={plan.name}
             className={`giq-pricing-card flex flex-col ${plan.highlighted ? "giq-pricing-card-featured lg:scale-[1.02]" : ""}`}
           >
             {plan.highlighted && (
-              <div className="giq-badge giq-badge-purple giq-plan-popular">MOST POPULAR</div>
+              <div className="giq-badge giq-badge-purple giq-plan-popular">
+                MOST POPULAR
+              </div>
             )}
             <div className="mb-4 flex items-center gap-2">
               <span className="text-[16px] font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))]">
@@ -212,7 +221,9 @@ async function PricingCtaSection() {
               {plan.description}
             </p>
             <Link
-              href={plan.id === "free" ? "/sign-in?plan=free" : "/pricing#plans"}
+              href={
+                plan.id === "free" ? "/sign-in?plan=free" : "/pricing#plans"
+              }
               className={`giq-button mb-5 w-full text-center text-[13px] font-semibold ${plan.highlighted ? "giq-button-primary" : "giq-button-carbon"}`}
             >
               {plan.id === "free" ? "Start Free" : plan.cta || "View plan"}
@@ -240,7 +251,8 @@ async function PricingCtaSection() {
           href="/pricing"
           className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[hsl(var(--primary-bright))] hover:underline"
         >
-          Compare all plans &amp; features <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          Compare all plans &amp; features{" "}
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       </div>
     </section>
@@ -257,8 +269,8 @@ function PricingCtaFallback() {
         <Skeleton className="mx-auto h-8 w-64" />
         <Skeleton className="mx-auto mt-3 h-4 w-96 max-w-full" />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {[0, 1, 2].map((i) => (
+      <div className="mx-auto grid max-w-4xl gap-4 sm:grid-cols-2">
+        {[0, 1].map((i) => (
           <SkeletonPanel key={i} className="h-80" />
         ))}
       </div>

@@ -76,6 +76,18 @@ export type CommunityFlowProbeResult = {
   timestamp: string;
 };
 
+export type MessagingRoundtripProbeResult = {
+  ok: true;
+  sentEachDirection: 1;
+  deliveredEachDirection: 1;
+  readableByBothAccounts: true;
+  mediaMessageReceived: true;
+  voiceCallTokensIssued: true;
+  videoCallTokensIssued: true;
+  cleanup: boolean;
+  timestamp: string;
+};
+
 export async function runCommunityFlowProbe({
   cleanupStale = true,
   liveKitMode = "configured",
@@ -538,17 +550,186 @@ export async function runCommunityFlowProbe({
   return result;
 }
 
+export async function runMessagingRoundtripProbe(): Promise<MessagingRoundtripProbeResult> {
+  const marker = `messaging_roundtrip_${randomUUID().replaceAll("-", "").slice(0, 12)}`;
+  const ids: ProbeIds = {
+    users: new Set<string>(),
+    profiles: new Set<string>(),
+    feedPosts: new Set<string>(),
+    conversations: new Set<string>(),
+    callRooms: new Set<string>(),
+    listings: new Set<string>(),
+    categories: new Set<string>(),
+    mediaAssets: new Set<string>(),
+  };
+  let primaryError: unknown;
+  let result: MessagingRoundtripProbeResult | null = null;
+
+  try {
+    await cleanupCommunityFlowProbeRows({
+      emailStartsWith: "messaging_roundtrip_",
+      categorySlugStartsWith: "messaging_roundtrip_",
+      ids,
+      includeTrackedIds: false,
+    });
+
+    const accountA = await createProbeCurrent(
+      marker,
+      ids,
+      "account-a",
+      "Messaging Test A",
+      "member",
+      "probe.greyhoundsiq.com.au",
+    );
+    const accountB = await createProbeCurrent(
+      marker,
+      ids,
+      "account-b",
+      "Messaging Test B",
+      "member",
+      "probe.greyhoundsiq.com.au",
+    );
+    const conversation = await startOrGetConversation(accountA, accountB.profileId);
+    ids.conversations.add(conversation.id);
+
+    const media = await withDbSystemContext((tx) =>
+      tx.mediaAsset.create({
+        data: {
+          uploaderId: accountA.dbUserId,
+          storageBucket: PRIVATE_USER_MEDIA_BUCKET,
+          storagePath: `users/${accountA.dbUserId}/messages/pending/${marker}.jpg`,
+          publicUrl: null,
+          mediaType: "image",
+          originalName: "messaging-roundtrip.jpg",
+          mimeType: "image/jpeg",
+          sizeBytes: 1024,
+          linkedEntityType: null,
+          linkedEntityId: null,
+          expiresAt: null,
+          scanStatus: "pending",
+        },
+      }),
+    );
+    ids.mediaAssets.add(media.id);
+
+    const messageA = await sendConversationMessage(accountA, conversation.id, {
+      body: `GreyhoundIQ roundtrip ${marker} A to B`,
+      mediaIds: [media.id],
+    });
+    assert.equal((await markConversationDelivered(accountB, conversation.id)).delivered, 1);
+    assert.equal(await markConversationRead(accountB, conversation.id), 1);
+
+    const messageB = await sendConversationMessage(accountB, conversation.id, {
+      body: `GreyhoundIQ roundtrip ${marker} B to A`,
+      mediaIds: [],
+    });
+    assert.equal((await markConversationDelivered(accountA, conversation.id)).delivered, 1);
+    assert.equal(await markConversationRead(accountA, conversation.id), 1);
+
+    const [viewA, viewB, deliveryReceipts] = await Promise.all([
+      getConversationForProfile(accountA, conversation.id),
+      getConversationForProfile(accountB, conversation.id),
+      withDbSystemContext((tx) =>
+        tx.messageDeliveryReceipt.count({
+          where: { messageId: { in: [messageA.id, messageB.id] } },
+        }),
+      ),
+    ]);
+    const expectedIds = new Set([messageA.id, messageB.id]);
+    assert.deepEqual(
+      new Set(viewA.messages.filter((message) => expectedIds.has(message.id)).map((message) => message.id)),
+      expectedIds,
+    );
+    assert.deepEqual(
+      new Set(viewB.messages.filter((message) => expectedIds.has(message.id)).map((message) => message.id)),
+      expectedIds,
+    );
+    assert.equal(deliveryReceipts, 2);
+    assert.equal(
+      viewB.messages.find((message) => message.id === messageA.id)?.media[0]?.media.id,
+      media.id,
+    );
+
+    const voiceRoom = await createCallRoomForConversation(
+      accountA,
+      conversation.id,
+      "voice",
+    );
+    ids.callRooms.add(voiceRoom.id);
+    assert.equal(
+      (await respondToCallInviteForCurrentUser(accountB, voiceRoom.id, "accept")).status,
+      "accepted",
+    );
+    const [voiceTokenA, voiceTokenB] = await Promise.all([
+      createCallTokenForCurrentUser(accountA, voiceRoom.id),
+      createCallTokenForCurrentUser(accountB, voiceRoom.id),
+    ]);
+    assert.equal(voiceTokenA.token.split(".").length, 3);
+    assert.equal(voiceTokenB.token.split(".").length, 3);
+    await endCallRoomForCurrentUser(accountA, voiceRoom.id);
+
+    const videoRoom = await createCallRoomForConversation(
+      accountB,
+      conversation.id,
+      "video",
+    );
+    ids.callRooms.add(videoRoom.id);
+    assert.equal(
+      (await respondToCallInviteForCurrentUser(accountA, videoRoom.id, "accept")).status,
+      "accepted",
+    );
+    const [videoTokenA, videoTokenB] = await Promise.all([
+      createCallTokenForCurrentUser(accountA, videoRoom.id),
+      createCallTokenForCurrentUser(accountB, videoRoom.id),
+    ]);
+    assert.equal(videoTokenA.token.split(".").length, 3);
+    assert.equal(videoTokenB.token.split(".").length, 3);
+    await endCallRoomForCurrentUser(accountB, videoRoom.id);
+
+    result = {
+      ok: true,
+      sentEachDirection: 1,
+      deliveredEachDirection: 1,
+      readableByBothAccounts: true,
+      mediaMessageReceived: true,
+      voiceCallTokensIssued: true,
+      videoCallTokensIssued: true,
+      cleanup: false,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (err) {
+    primaryError = err;
+    throw err;
+  } finally {
+    try {
+      await cleanupCommunityFlowProbeRows({
+        emailStartsWith: `${marker}-`,
+        categorySlugStartsWith: marker,
+        ids,
+        includeTrackedIds: true,
+      });
+      if (result) result.cleanup = true;
+    } catch (err) {
+      if (!primaryError) throw err;
+    }
+  }
+
+  if (!result) throw new Error("messaging_roundtrip_probe.failed");
+  return result;
+}
+
 async function createProbeCurrent(
   marker: string,
   ids: ProbeIds,
   label: string,
   displayName: string,
-  role: string
+  role: string,
+  emailDomain = "example.invalid",
 ): Promise<ProbeCurrentUser> {
   const [firstName, lastName] = displayName.split(" ");
   const auth = {
     id: `workos_${marker}_${label}`,
-    email: `${marker}-${label}@example.invalid`,
+    email: `${marker}-${label}@${emailDomain}`,
     firstName,
     lastName,
   };

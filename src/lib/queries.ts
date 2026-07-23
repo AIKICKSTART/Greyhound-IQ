@@ -3503,6 +3503,12 @@ export async function getMessagingProfiles(
     () =>
       withDbRequestContext(current, (tx) => tx.profile.findMany({
         where: {
+          socialActor: {
+            is: {
+              kind: "personal",
+              published: true,
+            },
+          },
           user: {
             AND: [
               ...(excludeEmail ? [{ email: { not: excludeEmail } }] : []),
@@ -3513,10 +3519,26 @@ export async function getMessagingProfiles(
           },
           ...(trimmedSearch
             ? {
-                displayName: {
-                  contains: trimmedSearch,
-                  mode: "insensitive" as const,
-                },
+                OR: [
+                  {
+                    displayName: {
+                      contains: trimmedSearch,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    kennelName: {
+                      contains: trimmedSearch,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    kennelPrefix: {
+                      contains: trimmedSearch,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                ],
               }
             : {}),
         },

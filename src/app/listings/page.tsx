@@ -150,9 +150,7 @@ function MarketplaceMemberHeader() {
       <div className="relative mx-auto flex max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:py-8">
         <div className="max-w-2xl">
           <p className="program-label">Member marketplace</p>
-          <PageTitle className="mt-2">
-            Marketplace
-          </PageTitle>
+          <PageTitle className="mt-2">Marketplace</PageTitle>
           <p className="mt-2 text-[14px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[15px]">
             Browse pups, dogs, stud services, and wanted ads with seller and
             racing context in one place.
@@ -233,7 +231,7 @@ async function ListingsResults({
   const savedListingIds = viewerProfileId
     ? await getSavedListingIdsForProfile(
         viewerProfileId,
-        listings.map((listing) => listing.id)
+        listings.map((listing) => listing.id),
       )
     : new Set<string>();
   const hasFilters = Boolean(q || category || sort);
@@ -289,8 +287,8 @@ async function ListingsResults({
             {isBeyondFirstPage
               ? "Use the previous-page control to return to available marketplace inventory."
               : hasFilters
-              ? "Clear the current filters to browse every active item, or create a new listing."
-              : "Be the first member to create a marketplace item for the community."}
+                ? "Clear the current filters to browse every active item, or create a new listing."
+                : "Be the first member to create a marketplace item for the community."}
           </p>
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             {hasFilters && (
@@ -320,119 +318,119 @@ async function ListingsResults({
                 dog={listing.dog}
                 initiallySaved={savedListingIds.has(listing.id)}
                 canSave={Boolean(
-                  viewerProfileId && viewerProfileId !== listing.profile.id
+                  viewerProfileId && viewerProfileId !== listing.profile.id,
                 )}
               />
             ) : (
-            <article
-              key={listing.id}
-              aria-label={`${listing.title} marketplace item`}
-              data-marketplace-inventory-item
-              data-marketplace-inventory-kind={listing.type}
-              className="giq-panel giq-panel-hover giq-listing-card group flex min-h-[430px] min-w-0 flex-col overflow-hidden"
-            >
-              {(() => {
-                const demoImage = getDemoListingImages(listing, 1)[0];
-                return (
-                  <div
-                    data-marketplace-item-media
-                    className="relative order-first w-full p-2 pb-0"
-                  >
-                    <ListingCardMediaCarousel
-                      listingHref={`/marketplace/${listing.id}`}
-                      listingTitle={listing.title}
-                      media={listing.media.map(({ media }) => ({
-                        id: media.id,
-                        src: mediaDeliveryUrl(media),
-                        alt: media.originalName ?? listing.title,
-                        originalName: media.originalName,
-                        mimeType: media.mimeType,
-                        widthPx: media.widthPx,
-                        heightPx: media.heightPx,
-                      }))}
-                      fallbackImage={demoImage}
-                    />
-                    {demoImage ? (
-                      <span className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/20 bg-black/75 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.13em] text-white/78 shadow-lg backdrop-blur">
-                        Illustrative demo media
-                      </span>
-                    ) : null}
-                  </div>
-                );
-              })()}
-              <div className="flex flex-1 flex-col p-5 pt-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <span className="giq-badge giq-badge-purple">
-                    {TYPE_LABEL[listing.type] ?? listing.type}
-                  </span>
-                  <span
-                    className={`giq-badge ${
-                      listing.status === "active"
-                        ? "giq-badge-purple"
-                        : "giq-badge-neutral"
-                    }`}
-                  >
-                    {listing.status}
-                  </span>
-                </div>
-
-                <p className="giq-listing-price text-[21px] font-semibold tracking-[-0.025em] text-[hsl(var(--secondary))]">
-                  {formatPrice(listing.price)}
-                </p>
-                <h3 className="mt-1 text-[18px] font-semibold leading-snug text-[hsl(var(--foreground))]">
-                  <Link
-                    href={`/marketplace/${listing.id}`}
-                    className="rounded-sm transition-colors hover:text-[hsl(var(--primary-bright))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--card))]"
-                  >
-                    {listing.title}
-                  </Link>
-                </h3>
-                <p className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-[hsl(var(--muted-foreground))]">
-                  <MapPin className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--primary-bright))]" />
-                  {listing.state ?? "Australia"}
-                </p>
-                <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-[hsl(215_14%_68%)]">
-                  {listing.description}
-                </p>
-
-                <p className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-[hsl(var(--subtle-foreground))]">
-                  <Clock3 className="h-3.5 w-3.5" />
-                  Expires {formatDate(listing.expiresAt)}
-                </p>
-
-                <div className="mt-auto border-t border-white/[0.05] pt-4">
-                  <div className="mb-3 flex items-center gap-2.5">
-                    <span className="giq-icon-plate flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
-                      <ShieldCheck
-                        className={`h-4 w-4 ${
-                          listing.profile.verified
-                            ? "text-[hsl(var(--secondary))]"
-                            : "text-[hsl(var(--primary-bright))]"
-                        }`}
+              <article
+                key={listing.id}
+                aria-label={`${listing.title} marketplace item`}
+                data-marketplace-inventory-item
+                data-marketplace-inventory-kind={listing.type}
+                className="giq-panel giq-panel-hover giq-listing-card group flex min-h-[430px] min-w-0 flex-col overflow-hidden"
+              >
+                {(() => {
+                  const demoImage = getDemoListingImages(listing, 1)[0];
+                  return (
+                    <div
+                      data-marketplace-item-media
+                      className="relative order-first w-full p-2 pb-0"
+                    >
+                      <ListingCardMediaCarousel
+                        listingHref={`/marketplace/${listing.id}`}
+                        listingTitle={listing.title}
+                        media={listing.media.map(({ media }) => ({
+                          id: media.id,
+                          src: mediaDeliveryUrl(media),
+                          alt: media.originalName ?? listing.title,
+                          originalName: media.originalName,
+                          mimeType: media.mimeType,
+                          widthPx: media.widthPx,
+                          heightPx: media.heightPx,
+                        }))}
+                        fallbackImage={demoImage}
                       />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-[12px] font-semibold text-[hsl(var(--foreground))]">
-                        {listing.profile.displayName}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-[hsl(var(--muted-foreground))]">
-                        {listing.profile.verified
-                          ? "Verified seller"
-                          : "Community seller"}
-                      </p>
+                      {demoImage ? (
+                        <span className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/20 bg-black/75 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.13em] text-white/78 shadow-lg backdrop-blur">
+                          Illustrative demo media
+                        </span>
+                      ) : null}
                     </div>
+                  );
+                })()}
+                <div className="flex flex-1 flex-col p-5 pt-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <span className="giq-badge giq-badge-purple">
+                      {TYPE_LABEL[listing.type] ?? listing.type}
+                    </span>
+                    <span
+                      className={`giq-badge ${
+                        listing.status === "active"
+                          ? "giq-badge-purple"
+                          : "giq-badge-neutral"
+                      }`}
+                    >
+                      {listing.status}
+                    </span>
                   </div>
-                  <Link
-                    href={`/marketplace/${listing.id}`}
-                    className="giq-outline-action min-h-11 w-full justify-center text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))]"
-                  >
-                    View marketplace item
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
+
+                  <p className="giq-listing-price text-[21px] font-semibold tracking-[-0.025em] text-[hsl(var(--secondary))]">
+                    {formatPrice(listing.price)}
+                  </p>
+                  <h3 className="mt-1 text-[18px] font-semibold leading-snug text-[hsl(var(--foreground))]">
+                    <Link
+                      href={`/marketplace/${listing.id}`}
+                      className="rounded-sm transition-colors hover:text-[hsl(var(--primary-bright))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--card))]"
+                    >
+                      {listing.title}
+                    </Link>
+                  </h3>
+                  <p className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-[hsl(var(--muted-foreground))]">
+                    <MapPin className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--primary-bright))]" />
+                    {listing.state ?? "Australia"}
+                  </p>
+                  <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-[hsl(215_14%_68%)]">
+                    {listing.description}
+                  </p>
+
+                  <p className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                    <Clock3 className="h-3.5 w-3.5" />
+                    Expires {formatDate(listing.expiresAt)}
+                  </p>
+
+                  <div className="mt-auto border-t border-white/[0.05] pt-4">
+                    <div className="mb-3 flex items-center gap-2.5">
+                      <span className="giq-icon-plate flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+                        <ShieldCheck
+                          className={`h-4 w-4 ${
+                            listing.profile.verified
+                              ? "text-[hsl(var(--secondary))]"
+                              : "text-[hsl(var(--primary-bright))]"
+                          }`}
+                        />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-[12px] font-semibold text-[hsl(var(--foreground))]">
+                          {listing.profile.displayName}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-[hsl(var(--muted-foreground))]">
+                          {listing.profile.verified
+                            ? "Verified seller"
+                            : "Community seller"}
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      href={`/marketplace/${listing.id}`}
+                      className="giq-outline-action min-h-11 w-full justify-center text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))]"
+                    >
+                      View marketplace item
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            </article>
-            )
+              </article>
+            ),
           )}
         </div>
       )}
@@ -517,8 +515,9 @@ function MarketplaceProfileShowcase() {
           </h2>
           <p className="mt-2 text-[13px] leading-6 text-[hsl(var(--muted-foreground))] sm:text-[14px]">
             Six interactive public-profile cards built from existing racing
-            records. These are demo discovery cards, not active sale
-            advertisements; browse all active marketplace items below.
+            records. Every card below is a demo preview, not an active sale
+            advertisement. Custom cards for every dog you own are coming soon as
+            a Pro membership benefit.
           </p>
         </div>
         <span className="giq-badge giq-badge-gold">
@@ -531,8 +530,17 @@ function MarketplaceProfileShowcase() {
           <article
             key={listing.listingId}
             data-template-player-card={listing.listingId}
-            className="giq-panel giq-panel-hover min-w-0 p-3"
+            className="giq-panel giq-panel-hover relative min-w-0 overflow-hidden p-3"
           >
+            <div className="pointer-events-none absolute left-5 right-5 top-5 z-20 flex max-w-sm flex-col items-start gap-1 rounded-xl border border-[hsl(var(--warning)/0.7)] bg-[hsl(var(--background)/0.94)] px-3 py-2 shadow-lg backdrop-blur-md">
+              <span className="text-[11px] font-black uppercase tracking-[0.14em] text-[hsl(var(--warning))]">
+                Demo card · Preview only
+              </span>
+              <span className="text-[10px] font-semibold leading-4 text-[hsl(var(--foreground))]">
+                Custom cards for every dog you own are coming soon for Pro
+                members.
+              </span>
+            </div>
             <MarketplaceDogPlayerCard
               dog={listing}
               artwork={{ kind: "image", src: listing.artworkSrc }}
@@ -568,12 +576,12 @@ function MarketplaceDogListingPlayerCard({
   canSave: boolean;
 }) {
   const primaryImage = listing.media.find(({ media }) =>
-    media.mimeType.startsWith("image/")
+    media.mimeType.startsWith("image/"),
   )?.media;
   const fallbackImage = getDemoListingImages(listing, 1)[0];
   const artworkSrc = primaryImage
     ? mediaDeliveryUrl(primaryImage)
-    : fallbackImage?.src ?? "/images/demo-listing-dog.webp";
+    : (fallbackImage?.src ?? "/images/demo-listing-dog.webp");
   const sex = normaliseDogSex(dog.sex);
   const colourSex = [dog.colour, sex].filter(Boolean).join(" ") || "Greyhound";
   const location =
@@ -630,7 +638,10 @@ function MarketplaceDogListingPlayerCard({
               {listing.title}
             </p>
             <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-[hsl(var(--muted-foreground))]">
-              <MapPin className="size-3.5 text-[hsl(var(--primary-bright))]" aria-hidden="true" />
+              <MapPin
+                className="size-3.5 text-[hsl(var(--primary-bright))]"
+                aria-hidden="true"
+              />
               {location}
             </p>
           </div>

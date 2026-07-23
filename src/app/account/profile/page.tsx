@@ -1,13 +1,23 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Camera, ImageIcon, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  Camera,
+  Columns3,
+  ImageIcon,
+  LayoutPanelLeft,
+  PanelsTopLeft,
+  ShieldCheck,
+} from "lucide-react";
 
 import { updatePersonalIdentityMedia } from "@/app/actions";
+import { updateMessengerLayoutPreference } from "@/app/account/profile/actions";
 import { MediaAlignmentUpload } from "@/components/media-alignment-upload";
 import { PageTitle } from "@/components/page-title";
 import { ProfileMediaStatus } from "@/components/profile-media-status";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser, requireCurrentUserProfile } from "@/lib/auth";
+import { MESSENGER_LAYOUT_OPTIONS } from "@/lib/messenger-layout";
 import { getPersonalActorMedia } from "@/lib/social-actor-service";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +52,71 @@ export default async function ProfileStudioPage() {
           <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Private safety pipeline
         </span>
       </div>
+
+      <section id="messenger-layout" className="giq-panel mb-5 scroll-mt-24 p-4 sm:p-5">
+        <div className="mb-4 flex items-start gap-3">
+          <PanelsTopLeft
+            className="mt-0.5 h-5 w-5 text-[hsl(var(--primary-bright))]"
+            aria-hidden="true"
+          />
+          <div>
+            <h2 className="text-[16px] font-semibold text-[hsl(var(--foreground))]">
+              Messenger layout
+            </h2>
+            <p className="mt-1 text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+              Choose how Pulse opens on desktop. Every option uses the same full-screen inbox and conversation flow on mobile.
+            </p>
+          </div>
+        </div>
+
+        <form action={updateMessengerLayoutPreference}>
+          <fieldset className="grid gap-3 lg:grid-cols-3">
+            <legend className="sr-only">Choose your Messenger layout</legend>
+            {MESSENGER_LAYOUT_OPTIONS.map((option, index) => {
+              const Icon = index === 0 ? PanelsTopLeft : index === 1 ? Columns3 : LayoutPanelLeft;
+              return (
+                <label key={option.value} className="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="messengerLayout"
+                    value={option.value}
+                    defaultChecked={current.messengerLayout === option.value}
+                    className="peer sr-only"
+                    required
+                  />
+                  <span className="giq-messenger-layout-choice flex min-h-[156px] flex-col rounded-xl border border-white/[0.1] bg-white/[0.025] p-4 transition peer-checked:border-[hsl(var(--primary-light)/0.72)] peer-checked:bg-[hsl(var(--primary)/0.1)] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[hsl(var(--primary-bright))]">
+                    <span className="mb-3 flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-[hsl(var(--primary-bright))]" aria-hidden="true" />
+                      <strong className="text-[13px] text-[hsl(var(--foreground))]">
+                        {option.label}
+                      </strong>
+                    </span>
+                    <span className="giq-messenger-layout-preview mb-3" data-layout={option.value} aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                    <span className="text-[11px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                      {option.description}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </fieldset>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] pt-4">
+            <p className="text-[11px] text-[hsl(var(--subtle-foreground))]">
+              Your choice follows your account on every signed-in desktop browser.
+            </p>
+            <SubmitButton
+              pendingLabel="Saving layout..."
+              className="giq-button giq-button-primary min-h-11 px-5 text-[13px] font-semibold disabled:cursor-not-allowed"
+            >
+              Save Messenger layout
+            </SubmitButton>
+          </div>
+        </form>
+      </section>
 
       <form action={updatePersonalIdentityMedia} className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <input type="hidden" name="avatarMediaId" value={media.avatarMediaId ?? ""} />

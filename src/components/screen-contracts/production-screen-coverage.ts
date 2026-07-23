@@ -496,8 +496,8 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
     actions: [
       communityAction(
         "FEED.ACTION.ORDER.SELECT",
-        "Switches the community stream between For You and Latest ordering.",
-        "The fixed /feed links emit only for-you or latest; the page normalises every other mode to for-you before querying.",
+        "Switches the community stream between the Public and Friends audiences.",
+        "The fixed /feed links emit only public or friends; the page defaults every other browser value to public before querying, while the API preserves legacy links by normalising for-you and latest to public.",
       ),
       communityAction(
         "FEED.ACTION.POST.CREATE",

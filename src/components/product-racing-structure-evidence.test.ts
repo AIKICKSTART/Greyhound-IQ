@@ -100,7 +100,10 @@ assert.deepEqual(
   Object.keys(PRODUCT_RACING_STRUCTURE_MASTER_EVIDENCE),
   EXPECTED_CLOSED_IDS,
 );
-assert.deepEqual(Object.keys(PRODUCT_RACING_STRUCTURE_OPEN_GAPS), EXPECTED_OPEN_IDS);
+assert.deepEqual(
+  Object.keys(PRODUCT_RACING_STRUCTURE_OPEN_GAPS),
+  EXPECTED_OPEN_IDS,
+);
 
 const allowedTestEvidence = new Set<string>([
   PRODUCT_RACING_STRUCTURE_TEST_FILE,
@@ -154,14 +157,12 @@ for (const serverOnlySignal of [
 }
 
 const SOURCE_ASSERTIONS = {
-  "src/components/page-hero.tsx": [
-    "children?: ReactNode;",
-    "{children}",
-  ],
+  "src/components/page-hero.tsx": ["children?: ReactNode;", "{children}"],
   "src/components/home-hero.tsx": [
     "<PageHero",
-    "View Today&apos;s Races",
-    'href="/pricing"',
+    "Start Free",
+    'primaryHref = "/sign-in?plan=free"',
+    'href="#pricing"',
   ],
   "src/app/page.tsx": [
     "const meetings = await getTodaysMeetings();",
@@ -176,7 +177,7 @@ const SOURCE_ASSERTIONS = {
   "src/app/races/page.tsx": [
     "type RaceExplorerData = Awaited<ReturnType<typeof getRaceExplorerData>>;",
     'type="search"',
-    '<FilterGroup label="State">',
+    '<FilterGroup label="State"',
     '<FilterGroup label="Status">',
     "<AutoSubmitSelect",
     'aria-label="Sort races"',
@@ -233,7 +234,7 @@ const SOURCE_ASSERTIONS = {
     "if (!race) notFound();",
     "Runners and results",
     "Race summary",
-    "<RaceReplayPlayer",
+    "<ReplayEmbed",
   ],
   "src/app/results/page.tsx": [
     "const results = await getRecentResults",
@@ -241,10 +242,10 @@ const SOURCE_ASSERTIONS = {
     "No settled race results are available yet.",
   ],
   "src/app/breeding/page.tsx": [
-    "const SIRE_LEADERS = (await getSireLeaderboard(8))",
-    "Top Active Sires",
+    "getSireLeaderboard(10)",
+    "Top active sires",
     'href="/dogs"',
-    'href="/races"',
+    'href="/breeding/cross"',
   ],
   "src/app/statistics/page.tsx": [
     "getBoxBias(),",
@@ -279,12 +280,13 @@ const SOURCE_ASSERTIONS = {
     "CREATE MATERIALIZED VIEW IF NOT EXISTS giq_track_records",
     'ORDER BY tr.name, ra.distance, res."runningTime" ASC',
   ],
-  "prisma/migrations/20260710132000_add_trainer_performance_matview/migration.sql": [
-    "CREATE MATERIALIZED VIEW IF NOT EXISTS giq_trainer_performance",
-    "100.0 * COUNT(*) FILTER",
-    "AS win_rate",
-    'COALESCE(SUM(res."prizeMoneyWon"), 0)::float AS prize_money',
-  ],
+  "prisma/migrations/20260710132000_add_trainer_performance_matview/migration.sql":
+    [
+      "CREATE MATERIALIZED VIEW IF NOT EXISTS giq_trainer_performance",
+      "100.0 * COUNT(*) FILTER",
+      "AS win_rate",
+      'COALESCE(SUM(res."prizeMoneyWon"), 0)::float AS prize_money',
+    ],
 } as const;
 
 for (const [sourcePath, assertions] of Object.entries(SOURCE_ASSERTIONS)) {

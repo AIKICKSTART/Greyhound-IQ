@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { cleanText } from "@/lib/content";
+import { canonicalFeedMode } from "@/lib/feed-pagination";
 
 const queryIdentifierSchema = z
   .string()
@@ -43,7 +44,10 @@ export const directorySearchQuerySchema = z
 
 export const feedPageQuerySchema = z
   .object({
-    mode: z.enum(["for-you", "latest"]).default("for-you"),
+    mode: z
+      .enum(["public", "friends", "for-you", "latest"])
+      .default("public")
+      .transform(canonicalFeedMode),
     actorId: queryIdentifierSchema.optional(),
     cursor: z.string().trim().min(1).max(512).regex(/^[A-Za-z0-9_-]+$/).optional(),
     limit: boundedIntegerSchema(50, 20),

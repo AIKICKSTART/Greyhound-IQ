@@ -1,4 +1,5 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { AdminSubmitButton } from "@/app/admin/admin-submit-button";
 import { StatusPill } from "@/components/admin/status-pill";
 import { resolveReport } from "@/app/actions";
 import { requireModeratorProfile } from "@/lib/auth";
@@ -205,9 +206,12 @@ function ReportResolutionForm({ reportId }: { reportId: string }) {
         aria-label="Resolution notes"
         className="giq-form-control min-h-11 w-44 px-3 py-2 text-[12px]"
       />
-      <button className="giq-button giq-button-glass min-h-11 px-3 text-[12px]">
-        Resolve
-      </button>
+      <AdminSubmitButton
+        label="Resolve"
+        pendingLabel="Resolving…"
+        confirmMessage="Resolve this report with the selected moderation action?"
+        className="giq-button giq-button-glass min-h-11 px-3 text-[12px]"
+      />
     </form>
   );
 }

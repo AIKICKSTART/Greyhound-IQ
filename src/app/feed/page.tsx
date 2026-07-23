@@ -63,6 +63,38 @@ const TIER_LABELS: Record<string, string> = {
   pro_plus: "Pro+",
 };
 
+function FeedModeNavigation({ mode }: { mode: FeedMode }) {
+  return (
+    <nav
+      aria-label="Feed type"
+      className="giq-social-feed-tabs giq-panel grid min-h-11 min-w-0 grid-cols-2 gap-1 overflow-hidden p-1"
+    >
+      <Link
+        href="/feed?mode=public"
+        aria-current={mode === "public" ? "page" : undefined}
+        className={`min-h-11 min-w-0 rounded-lg px-3 py-2 text-center text-[13px] font-semibold transition sm:px-4 ${
+          mode === "public"
+            ? "bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary-light))]"
+            : "text-[hsl(var(--muted-foreground))] hover:bg-white/[0.04]"
+        }`}
+      >
+        Public feed
+      </Link>
+      <Link
+        href="/feed?mode=friends"
+        aria-current={mode === "friends" ? "page" : undefined}
+        className={`min-h-11 min-w-0 rounded-lg px-3 py-2 text-center text-[13px] font-semibold transition sm:px-4 ${
+          mode === "friends"
+            ? "bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary-light))]"
+            : "text-[hsl(var(--muted-foreground))] hover:bg-white/[0.04]"
+        }`}
+      >
+        Friends feed
+      </Link>
+    </nav>
+  );
+}
+
 export default async function FeedPage({
   searchParams,
 }: {
@@ -72,11 +104,46 @@ export default async function FeedPage({
 }) {
   const resolvedSearchParams = await searchParams;
   const requestedMode = resolvedSearchParams.mode;
-  const mode: FeedMode = requestedMode === "latest" ? "latest" : "for-you";
+  const mode: FeedMode = requestedMode === "friends" ? "friends" : "public";
 
   const user = await getCurrentUser();
 
   if (!user?.dbUserId || !user.profileId) {
+    if (mode === "friends") {
+      return (
+        <div>
+          <PageHero
+            image="/images/wentworth-gate-hero.webp"
+            title={
+              <>
+                Friends feed.
+                <br />
+                <span className="gradient-text">Your trusted trackside circle.</span>
+              </>
+            }
+            subtitle="Friends feed includes your posts and accepted friends’ posts, subject to privacy settings and blocks."
+          />
+          <section className="mx-auto max-w-2xl space-y-4 px-4 py-12 sm:px-6">
+            <FeedModeNavigation mode={mode} />
+            <div className="giq-empty-state p-8 text-center">
+              <h2 className="text-[16px] font-semibold text-[hsl(var(--foreground))]">
+                Sign in to view your Friends feed
+              </h2>
+              <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">
+                Connect with friends to see posts shared within your trusted circle.
+              </p>
+              <a
+                href="/sign-in"
+                className="giq-button giq-button-primary mt-5 min-h-11 px-5 text-[13px] font-semibold"
+              >
+                Sign in
+              </a>
+            </div>
+          </section>
+        </div>
+      );
+    }
+
     const [topics, feedPage] = await Promise.all([
       getFeedTopics(),
       getFeedPageForViewer({ mode, limit: 20, current: null }),
@@ -89,12 +156,12 @@ export default async function FeedPage({
           image="/images/wentworth-gate-hero.webp"
           title={
             <>
-              Community feed.
+              Public feed.
               <br />
               <span className="gradient-text">Trackside signal.</span>
             </>
           }
-          subtitle="Race notes, kennel updates, and marketplace context from the GreyhoundIQ community. Sign in to post, connect, and chat."
+          subtitle="The platform-wide community forum for race notes, kennel updates, and marketplace context. Sign in to post, connect, and chat."
         >
           <div className="mt-8 flex flex-wrap gap-3">
             <a
@@ -112,6 +179,7 @@ export default async function FeedPage({
           </div>
         </PageHero>
         <section className="mx-auto max-w-2xl space-y-4 px-4 py-12 sm:px-6">
+          <FeedModeNavigation mode={mode} />
           <FeedInfiniteList
             key={feedListKey(mode, null)}
             initialPosts={posts}
@@ -347,33 +415,12 @@ export default async function FeedPage({
             personal={personal}
           />
 
-          <nav
-            aria-label="Feed order"
-            className="giq-social-feed-tabs giq-panel flex min-h-11 items-center gap-1 p-1"
-          >
-            <Link
-              href="/feed?mode=for-you"
-              aria-current={mode === "for-you" ? "page" : undefined}
-              className={`min-h-10 flex-1 rounded-lg px-4 py-2 text-center text-[13px] font-semibold transition ${
-                mode === "for-you"
-                  ? "bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary-light))]"
-                  : "text-[hsl(var(--muted-foreground))] hover:bg-white/[0.04]"
-              }`}
-            >
-              For You
-            </Link>
-            <Link
-              href="/feed?mode=latest"
-              aria-current={mode === "latest" ? "page" : undefined}
-              className={`min-h-10 flex-1 rounded-lg px-4 py-2 text-center text-[13px] font-semibold transition ${
-                mode === "latest"
-                  ? "bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary-light))]"
-                  : "text-[hsl(var(--muted-foreground))] hover:bg-white/[0.04]"
-              }`}
-            >
-              Latest
-            </Link>
-          </nav>
+          <FeedModeNavigation mode={mode} />
+          <p className="px-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+            {mode === "public"
+              ? "The platform-wide community forum for the GreyhoundIQ community."
+              : "Your posts and accepted friends’ posts, subject to privacy settings and blocks."}
+          </p>
 
           {canUseFeedAsActiveIdentity ? (
             <section

@@ -1295,6 +1295,7 @@ model Profile {
   isFounder    Boolean  @default(false)
   // JSON array of Track ids for the feed "My racing day" filter; null/empty = all meetings.
   racingDayTrackIds String?
+  messengerLayout  String   @default("dual") // dual | adaptive | compact
   website      String?
   phone        String?
   createdAt    DateTime @default(now())

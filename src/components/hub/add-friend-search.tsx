@@ -38,13 +38,10 @@ export function AddFriendSearch({
   const [pending, startTransition] = useTransition();
   const excluded = new Set(excludeProfileIds);
   // Derive emptiness from the query instead of clearing state in the effect.
-  const visibleOptions = query.trim()
-    ? options.filter((option) => !excluded.has(option.id))
-    : [];
+  const visibleOptions = options.filter((option) => !excluded.has(option.id));
 
   useEffect(() => {
     const q = query.trim();
-    if (!q) return;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       setSearching(true);
@@ -221,9 +218,9 @@ export function AddFriendSearch({
           No matching members.
         </p>
       ) : null}
-      {!query.trim() ? (
+      {!query.trim() && visibleOptions.length === 0 && !searching ? (
         <p className="text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Search by member name or kennel to send a connection request.
+          No other members are available to add yet.
         </p>
       ) : null}
     </div>

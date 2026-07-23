@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  canonicalFeedMode,
   compareFeedCandidates,
   cursorForCandidate,
   decodeFeedCursor,
@@ -28,24 +29,26 @@ const candidates: FeedRankCandidate[] = [
 ];
 
 assert.deepEqual(
-  candidates.toSorted((a, b) => compareFeedCandidates(a, b, "for-you", now)).map((row) => row.id),
-  ["post:pinned", "post:connected", "post:topic", "post:other"]
+  candidates.toSorted((a, b) => compareFeedCandidates(a, b, "public", now)).map((row) => row.id),
+  ["post:topic", "post:pinned", "post:other", "post:connected"]
 );
-assert.equal(feedRankBucket(candidates[0]), 3);
+assert.equal(feedRankBucket(candidates[0]), 0);
+assert.equal(canonicalFeedMode("for-you"), "public");
+assert.equal(canonicalFeedMode("latest"), "public");
 
-const cursor = cursorForCandidate(candidates[1], "for-you", now);
+const cursor = cursorForCandidate(candidates[1], "public", now);
 const encoded = encodeFeedCursor(cursor);
-assert.deepEqual(decodeFeedCursor(encoded, "for-you"), cursor);
+assert.deepEqual(decodeFeedCursor(encoded, "public"), cursor);
 assert.equal(
   decodeFeedCursor(
     encodeFeedCursor({ ...cursor, id: "legacy-post-id" }),
-    "for-you"
+    "public"
   )?.id,
   "post:legacy-post-id"
 );
 assert.equal(isAfterFeedCursor(candidates[0], cursor, now), true);
-assert.throws(() => decodeFeedCursor(encoded, "latest"), /feed\.invalid_cursor/);
-assert.throws(() => decodeFeedCursor("not-json", "for-you"), /feed\.invalid_cursor/);
+assert.throws(() => decodeFeedCursor(encoded, "friends"), /feed\.invalid_cursor/);
+assert.throws(() => decodeFeedCursor("not-json", "public"), /feed\.invalid_cursor/);
 
 const sourcePost: FeedRankCandidate = {
   ...base,
@@ -60,12 +63,12 @@ const reshare: FeedRankCandidate = {
 };
 assert.deepEqual(
   [sourcePost, reshare]
-    .toSorted((a, b) => compareFeedCandidates(a, b, "latest", now))
+    .toSorted((a, b) => compareFeedCandidates(a, b, "public", now))
     .map((row) => row.id),
   ["share:reshare", "post:source"]
 );
 assert.equal(
-  isAfterFeedCursor(sourcePost, cursorForCandidate(reshare, "for-you", now), now),
+  isAfterFeedCursor(sourcePost, cursorForCandidate(reshare, "public", now), now),
   true
 );
 

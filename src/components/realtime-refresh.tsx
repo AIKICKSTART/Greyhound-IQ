@@ -26,6 +26,7 @@ const TYPING_VISIBLE_MS = 4000;
 
 interface RealtimeRefreshProps {
   channels: RealtimeRefreshChannel[];
+  pollIntervalMs?: number;
 }
 
 let browserRealtimeClient: SupabaseClient | null = null;
@@ -34,7 +35,10 @@ let browserRealtimeAuthPromise: Promise<void> | null = null;
 let browserRealtimeGrantedTopics = new Set<string>();
 let browserRealtimeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
-export function RealtimeRefresh({ channels }: RealtimeRefreshProps) {
+export function RealtimeRefresh({
+  channels,
+  pollIntervalMs,
+}: RealtimeRefreshProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [onlineLabels, setOnlineLabels] = useState<string[]>([]);
@@ -47,8 +51,17 @@ export function RealtimeRefresh({ channels }: RealtimeRefreshProps) {
           ...channel,
           events: [...new Set(channel.events)].sort(),
         })),
-    [channels]
+    [channels],
   );
+
+  useEffect(() => {
+    if (!pollIntervalMs || pollIntervalMs < 1_000) return;
+    const pollTimer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      startTransition(() => router.refresh());
+    }, pollIntervalMs);
+    return () => window.clearInterval(pollTimer);
+  }, [pollIntervalMs, router, startTransition]);
 
   useEffect(() => {
     const client = getBrowserRealtimeClient();
@@ -65,7 +78,7 @@ export function RealtimeRefresh({ channels }: RealtimeRefreshProps) {
           client,
           stableChannels
             .filter((channel) => isPrivateChannel(channel.name))
-            .map((channel) => channel.name)
+            .map((channel) => channel.name),
         );
       }
       if (cancelled) return;
@@ -95,7 +108,7 @@ export function RealtimeRefresh({ channels }: RealtimeRefreshProps) {
             if (typingHideTimer) clearTimeout(typingHideTimer);
             typingHideTimer = setTimeout(
               () => setTypingLabel(null),
-              TYPING_VISIBLE_MS
+              TYPING_VISIBLE_MS,
             );
           });
 
@@ -112,7 +125,7 @@ export function RealtimeRefresh({ channels }: RealtimeRefreshProps) {
           };
           window.addEventListener("giq:typing", handleLocalTyping);
           windowCleanups.push(() =>
-            window.removeEventListener("giq:typing", handleLocalTyping)
+            window.removeEventListener("giq:typing", handleLocalTyping),
           );
         }
 
@@ -127,10 +140,10 @@ export function RealtimeRefresh({ channels }: RealtimeRefreshProps) {
                 .flat()
                 .filter(
                   (presence) =>
-                    presence.profileId === config.presence?.otherProfileId
+                    presence.profileId === config.presence?.otherProfileId,
                 )
                 .map(
-                  (presence) => presence.label ?? config.presence!.otherLabel
+                  (presence) => presence.label ?? config.presence!.otherLabel,
                 );
               setOnlineLabels([...new Set(labels)]);
             })
@@ -143,10 +156,10 @@ export function RealtimeRefresh({ channels }: RealtimeRefreshProps) {
                 .flat()
                 .filter(
                   (presence) =>
-                    presence.profileId === config.presence?.otherProfileId
+                    presence.profileId === config.presence?.otherProfileId,
                 )
                 .map(
-                  (presence) => presence.label ?? config.presence!.otherLabel
+                  (presence) => presence.label ?? config.presence!.otherLabel,
                 );
               setOnlineLabels([...new Set(labels)]);
             });
@@ -240,7 +253,7 @@ export function getBrowserRealtimeClient() {
 
 export async function ensureBrowserRealtimeAuthorization(
   client = getBrowserRealtimeClient(),
-  requiredTopics: string[] = []
+  requiredTopics: string[] = [],
 ) {
   if (!client) throw new Error("realtime.client_not_configured");
   const topics = [...new Set(requiredTopics.filter(Boolean))];
@@ -251,7 +264,7 @@ export async function ensureBrowserRealtimeAuthorization(
   while (browserRealtimeAuthPromise) await browserRealtimeAuthPromise;
   if (hasBrowserRealtimeAuthorization(topics)) return;
 
-  const authorization = (async () => {
+  const authorization = async () => {
     const response = await fetch("/api/realtime/token", {
       method: "POST",
       credentials: "same-origin",
@@ -274,11 +287,14 @@ export async function ensureBrowserRealtimeAuthorization(
     browserRealtimeAuthExpiresAt = expiresAt;
     browserRealtimeGrantedTopics = new Set(payload.topics ?? []);
     if (browserRealtimeRefreshTimer) clearTimeout(browserRealtimeRefreshTimer);
-    browserRealtimeRefreshTimer = setTimeout(() => {
-      browserRealtimeAuthExpiresAt = 0;
-      void ensureBrowserRealtimeAuthorization(client).catch(() => null);
-    }, Math.max(30_000, browserRealtimeAuthExpiresAt - Date.now() - 30_000));
-  });
+    browserRealtimeRefreshTimer = setTimeout(
+      () => {
+        browserRealtimeAuthExpiresAt = 0;
+        void ensureBrowserRealtimeAuthorization(client).catch(() => null);
+      },
+      Math.max(30_000, browserRealtimeAuthExpiresAt - Date.now() - 30_000),
+    );
+  };
   browserRealtimeAuthPromise = authorization();
   try {
     await browserRealtimeAuthPromise;
@@ -292,7 +308,7 @@ export async function ensureBrowserRealtimeAuthorization(
 
 export function hasBrowserRealtimeAuthorization(
   requiredTopics: readonly string[],
-  now = Date.now()
+  now = Date.now(),
 ) {
   return (
     browserRealtimeAuthExpiresAt > now + 30_000 &&

@@ -1,4 +1,5 @@
 import { AdminPageHeader } from "@/app/admin/admin-page-header";
+import { AdminSubmitButton } from "@/app/admin/admin-submit-button";
 import { StatusPill } from "@/components/admin/status-pill";
 import {
   createFeedTopic,
@@ -72,9 +73,11 @@ export default async function AdminFeedPage() {
                 defaultValue={0}
                 className="giq-form-control w-full px-3 py-2 text-[13px]"
               />
-              <button className="giq-button giq-button-primary px-4 text-[13px]">
-                Create topic
-              </button>
+              <AdminSubmitButton
+                label="Create topic"
+                pendingLabel="Creating…"
+                className="giq-button giq-button-primary min-h-11 px-4 text-[13px]"
+              />
             </form>
           </section>
 
@@ -112,9 +115,12 @@ export default async function AdminFeedPage() {
                       action={setFeedTopicActive.bind(null, topic.id, !topic.active)}
                       className="mt-3"
                     >
-                      <button className="giq-outline-action min-h-8 px-3 text-[12px]">
-                        {topic.active ? "Deactivate" : "Activate"}
-                      </button>
+                      <AdminSubmitButton
+                        label={topic.active ? "Deactivate" : "Activate"}
+                        pendingLabel="Updating…"
+                        confirmMessage={`${topic.active ? "Deactivate" : "Activate"} this topic?`}
+                        className="giq-outline-action min-h-11 px-3 text-[12px]"
+                      />
                     </form>
                   </div>
                 ))
@@ -220,9 +226,12 @@ function PostModerationForm({
         placeholder="Reason optional"
         className="giq-form-control w-full px-2 py-1 text-[12px]"
       />
-      <button className="giq-button giq-button-glass px-3 text-[12px]">
-        Apply
-      </button>
+      <AdminSubmitButton
+        label="Apply"
+        pendingLabel="Applying…"
+        confirmMessage="Apply this post moderation action?"
+        className="giq-button giq-button-glass min-h-11 px-3 text-[12px]"
+      />
     </form>
   );
 }

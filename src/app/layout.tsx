@@ -14,14 +14,24 @@ import {
 import {
   HubConversationDock,
   type HubDockConversation,
+  type HubDockFriend,
+  type HubDockFriendRequest,
 } from "@/components/hub/hub-conversation-dock";
 import { MobileBottomDock } from "@/components/mobile-bottom-dock";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { HomeRouteContent } from "@/components/home-route-content";
-import { JsonLd, organizationSchema, websiteSchema } from "@/components/json-ld";
+import {
+  JsonLd,
+  organizationSchema,
+  websiteSchema,
+} from "@/components/json-ld";
 import { siteAssetUrl } from "@/lib/storage-paths";
 import { conversationRealtimeChannel } from "@/lib/realtime-service";
+import {
+  listFriendRequestsForProfile,
+  listFriendsForProfile,
+} from "@/lib/friend-service";
 import { InteractiveHelp } from "@/components/interactive-help";
 import { DemoReadOnlyGuard } from "@/components/demo-read-only-guard";
 import { NetworkRecoveryBanner } from "@/components/network-recovery-banner";
@@ -107,6 +117,8 @@ export default async function RootLayout({
   // the preview surface rather than inferred from a real session.
   const user = fullAccessDemo ? null : await getCurrentUser();
   let conversations: HubDockConversation[] = [];
+  let friends: HubDockFriend[] = [];
+  let requests: HubDockFriendRequest[] = [];
   let unreadMessages = 0;
   if (user?.dbUserId && user.profileId) {
     const current = {
@@ -115,13 +127,20 @@ export default async function RootLayout({
       profileRole: user.role ?? "member",
       tier: user.tier,
     };
-    const [conversationRecords, unreadByConversation] = await Promise.all([
+    const [
+      conversationRecords,
+      unreadByConversation,
+      friendRecords,
+      requestRecords,
+    ] = await Promise.all([
       listConversationsForProfile(current),
       countUnreadMessagesByConversation(current),
+      listFriendsForProfile(current),
+      listFriendRequestsForProfile(current),
     ]);
     unreadMessages = Array.from(unreadByConversation.values()).reduce(
       (total, count) => total + count,
-      0
+      0,
     );
     conversations = conversationRecords.slice(0, 12).map((conversation) => {
       const other =
@@ -150,6 +169,22 @@ export default async function RootLayout({
         realtimeChannel: conversationRealtimeChannel(conversation.id),
       };
     });
+    friends = friendRecords.map((friend) => ({
+      friendshipId: friend.friendshipId,
+      profileId: friend.profileId,
+      displayName: friend.displayName,
+      avatarUrl: friend.avatarUrl,
+      conversationId: friend.conversationId,
+    }));
+    requests = requestRecords.map((request) => ({
+      friendshipId: request.friendshipId,
+      direction: request.direction,
+      profileId: request.profileId,
+      displayName: request.displayName,
+      avatarUrl: request.avatarUrl,
+      kennelName: request.kennelName,
+      state: request.state,
+    }));
   }
 
   return (
@@ -207,13 +242,18 @@ export default async function RootLayout({
               <HubConversationDock
                 mode="floating"
                 externalLauncher
+                layout={user.messengerLayout}
                 conversations={conversations}
+                friends={friends}
+                requests={requests}
                 selfProfileId={user.profileId!}
                 canStartCall={hasTier(user.tier, "pro")}
               />
             </>
           )}
-          {!suppressDemoOverlays && !fullAccessDemo ? <CookieConsentBanner /> : null}
+          {!suppressDemoOverlays && !fullAccessDemo ? (
+            <CookieConsentBanner />
+          ) : null}
         </AuthKitProvider>
       </body>
     </html>

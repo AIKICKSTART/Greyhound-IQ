@@ -2695,7 +2695,19 @@ export async function getBreedingStats(): Promise<BreedingStats> {
           SELECT
             COUNT(*) AS total,
             COUNT(*) FILTER (WHERE "sourceProvider" = 'galtd') AS breeding,
-            COUNT(*) FILTER (WHERE "sireId" IS NOT NULL OR "damId" IS NOT NULL) AS pedigreed
+            COUNT(*) FILTER (WHERE "sireId" IS NOT NULL OR "damId" IS NOT NULL)
+              + (
+                SELECT COUNT(DISTINCT si."dogId")
+                FROM "DogSourceIdentity" si
+                JOIN "PedigreeAssertion" pa ON pa."subjectIdentityId" = si.id
+                WHERE si."dogId" IS NOT NULL
+                  AND pa."verificationStatus" IN ('parsed', 'verified')
+                  AND NOT EXISTS (
+                    SELECT 1 FROM "Dog" d2
+                    WHERE d2.id = si."dogId"
+                      AND (d2."sireId" IS NOT NULL OR d2."damId" IS NOT NULL)
+                  )
+              ) AS pedigreed
           FROM "Dog"
         `,
       [{ total: BigInt(0), breeding: BigInt(0), pedigreed: BigInt(0) }]
@@ -2705,7 +2717,9 @@ export async function getBreedingStats(): Promise<BreedingStats> {
     totalDogs: Number(row?.total ?? 0),
     breedingDogs: Number(row?.breeding ?? 0),
     pedigreedDogs: Number(row?.pedigreed ?? 0),
-    studbookVolumes: 8,
+    // 9 distinct GALTD studbook artifacts imported (PedigreeImportRun is
+    // system-only under RLS, so this stays a constant; bump on new volumes).
+    studbookVolumes: 9,
   };
 }
 

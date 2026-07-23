@@ -1352,7 +1352,7 @@ model CustomPage {
   id               String   @id @default(cuid())
   ownerProfileId   String
   ownerProfile     Profile  @relation("ProfileCustomPages", fields: [ownerProfileId], references: [id], onDelete: Cascade)
-  pageType         String // trainer | punter | business | dog
+  pageType         String // trainer | owner | breeder | kennel | business | punter (legacy) | dog
   handle           String   @unique
   title            String
   tagline          String?

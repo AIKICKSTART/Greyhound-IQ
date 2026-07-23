@@ -16,6 +16,7 @@ import { PageTitle } from "@/components/page-title";
 import { requireCurrentUserProfile } from "@/lib/auth";
 import {
   getOwnedCustomPage,
+  parseCustomPageContent,
   resolveCustomPageMedia,
   CUSTOM_PAGE_TYPE_LABELS,
 } from "@/lib/custom-page-service";
@@ -30,6 +31,8 @@ import { getPlatformFlag, PLATFORM_FLAGS } from "@/lib/platform-settings";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
 import { MediaAlignmentUpload } from "@/components/media-alignment-upload";
 import { SubmitButton } from "@/components/submit-button";
+import { hasTier } from "@/lib/tier-access";
+import { ProGate } from "@/components/pro-gate";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit page - GreyhoundsIQ" };
@@ -46,17 +49,21 @@ const PANEL =
 export default async function EditCustomPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const current = await requireCurrentUserProfile();
+  if (!hasTier(current.tier, "pro")) {
+    return (
+      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
+        <ProGate minTier="pro" feature="Page management">
+          <div />
+        </ProGate>
+      </main>
+    );
+  }
   const page = await getOwnedCustomPage(current, id);
   if (!page) notFound();
 
   const media = await resolveCustomPageMedia(page.contentJson, page.socialActor?.id ?? "");
   const avatarUrl = media.avatarUrl ?? page.socialActor?.avatarUrl ?? null;
-  const content = JSON.parse(page.contentJson ?? "{}") as {
-    avatarMediaId?: string | null;
-    bannerMediaId?: string | null;
-    logoMediaId?: string | null;
-    galleryMediaIds?: string[];
-  };
+  const content = parseCustomPageContent(page.contentJson);
   const label = CUSTOM_PAGE_TYPE_LABELS[page.pageType as keyof typeof CUSTOM_PAGE_TYPE_LABELS];
   const updateAction = updateCustomPageAction.bind(null, page.id);
   const publishAction = publishCustomPageAction.bind(null, page.id);
@@ -224,6 +231,23 @@ export default async function EditCustomPage({ params }: { params: Promise<{ id:
               <label htmlFor="page-about" className={LABEL}>About</label>
               <textarea id="page-about" name="about" defaultValue={page.about ?? ""} maxLength={4000} rows={6} className={`${INPUT} resize-y`} />
             </div>
+            {page.pageType !== "dog" ? (
+              <div>
+                <label htmlFor="page-services" className={LABEL}>Services</label>
+                <textarea
+                  id="page-services"
+                  name="services"
+                  defaultValue={content.services.join("\n")}
+                  maxLength={1200}
+                  rows={5}
+                  placeholder="One service per line"
+                  className={`${INPUT} resize-y`}
+                />
+                <p className="mt-1.5 text-[11px] text-[hsl(var(--subtle-foreground))]">
+                  Add up to 12 services. Each line appears separately on your public page.
+                </p>
+              </div>
+            ) : null}
 
             {page.pageType === "business" ? (
               <div>

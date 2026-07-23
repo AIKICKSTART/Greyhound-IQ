@@ -1,5 +1,8 @@
 const TRACK_NAME_ALIASES = new Map([
   ["meadows", "The Meadows"],
+  ["meadows (mep)", "The Meadows"],
+  ["sandown (sap)", "Sandown"],
+  ["sandown park", "Sandown"],
 ]);
 
 export function canonicalTrackName(value: string) {

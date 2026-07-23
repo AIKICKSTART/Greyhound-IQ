@@ -1,7 +1,15 @@
 import { z } from "zod";
 import { cleanText } from "@/lib/content";
 
-export const CUSTOM_PAGE_TYPES = ["trainer", "punter", "business", "dog"] as const;
+export const CUSTOM_PAGE_TYPES = [
+  "trainer",
+  "owner",
+  "breeder",
+  "kennel",
+  "business",
+  "punter",
+  "dog",
+] as const;
 export type CustomPageType = (typeof CUSTOM_PAGE_TYPES)[number];
 
 export const BUSINESS_CATEGORIES = [
@@ -62,11 +70,27 @@ const baseFields = {
   coverFocalY: z.coerce.number().min(0).max(1).default(0.5),
   logoMediaId: z.string().trim().min(1).optional().nullable(),
   galleryMediaIds: z.array(z.string().trim().min(1)).max(12).default([]),
+  services: z
+    .array(z.string().trim().min(2).max(100).transform(cleanText))
+    .max(12)
+    .default([]),
 };
 
 export const customPageCreateSchema = z.discriminatedUnion("pageType", [
   z.object({
     pageType: z.literal("trainer"),
+    ...baseFields,
+  }),
+  z.object({
+    pageType: z.literal("owner"),
+    ...baseFields,
+  }),
+  z.object({
+    pageType: z.literal("breeder"),
+    ...baseFields,
+  }),
+  z.object({
+    pageType: z.literal("kennel"),
     ...baseFields,
   }),
   z.object({

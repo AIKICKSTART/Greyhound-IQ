@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { Filter, MapPin, Trophy } from "lucide-react";
+import { MapPin, Search, Trophy } from "lucide-react";
 import { RunnerRow } from "@/components/runner-row";
-import { AutoSubmitSelect } from "@/components/auto-submit-select";
-import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
 import {
   WebsitePageHeader,
   WebsiteSection,
@@ -12,8 +10,16 @@ import {
   getResultFilterOptions,
   type ResultsSort,
 } from "@/lib/queries";
-import { formatRaceDateTime, formatShortRaceDayLabel } from "@/lib/race-time";
+import {
+  formatRaceDateTime,
+  formatShortRaceDayLabel,
+  normaliseRaceDateInput,
+} from "@/lib/race-time";
 import { orderRunners } from "@/lib/runner-order";
+import {
+  resolveRunnerTrainerName,
+  resolveRunnerWeight,
+} from "@/lib/live/runner-display";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -75,13 +81,10 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   const params = await searchParams;
   const dateParam = firstParam(params.date);
   const trackParam = firstParam(params.trackId);
+  const selectedQuery = normaliseResultsQuery(firstParam(params.q));
   const selectedSort = resultsSort(firstParam(params.sort));
   const filterOptions = await getResultFilterOptions();
-  const selectedDate = filterOptions.dates.some(
-    (row) => row.date === dateParam
-  )
-    ? dateParam ?? ""
-    : "";
+  const selectedDate = normaliseRaceDateInput(dateParam) ?? "";
   const selectedTrackId = filterOptions.tracks.some(
     (track) => track.id === trackParam
   )
@@ -90,6 +93,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   const results = await getRecentResults({
     date: selectedDate,
     trackId: selectedTrackId,
+    query: selectedQuery,
     sort: selectedSort,
   });
   const displayResults = results.map(toDisplayRace);
@@ -112,19 +116,15 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
         </span>
       </WebsitePageHeader>
 
-      <div className="mx-auto mt-6 max-w-6xl px-6">
-        <RacingDataDisclosure />
-      </div>
-
       <WebsiteSection
         title="Results"
-        sub={`${displayResults.length} races - ${sortLabel(selectedSort)}${selectedDate ? ` / ${formatShortRaceDayLabel(selectedDate)}` : ""}`}
+        sub={`${displayResults.length} races - ${sortLabel(selectedSort)}${selectedDate ? ` / ${formatShortRaceDayLabel(selectedDate)}` : ""}${selectedQuery ? ` / "${selectedQuery}"` : ""}`}
         right={
           <ResultsFilters
-            dates={filterOptions.dates}
             tracks={filterOptions.tracks}
             selectedDate={selectedDate}
             selectedTrackId={selectedTrackId}
+            selectedQuery={selectedQuery}
             selectedSort={selectedSort}
           />
         }
@@ -149,46 +149,53 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
 }
 
 function ResultsFilters({
-  dates,
   tracks,
   selectedDate,
   selectedTrackId,
+  selectedQuery,
   selectedSort,
 }: {
-  dates: { date: string; races: number }[];
   tracks: { id: string; name: string; state: string }[];
   selectedDate: string;
   selectedTrackId: string;
+  selectedQuery: string;
   selectedSort: ResultsSort;
 }) {
   return (
-    <form action="/results" className="flex flex-wrap items-center gap-2.5">
-      <AutoSubmitSelect
-        aria-label="Results order"
-        className="giq-form-control min-h-11 min-w-[150px]"
-        name="sort"
-        defaultValue={selectedSort}
-      >
-        <option value="newest">Newest first</option>
-        <option value="oldest">Oldest first</option>
-        <option value="track">Track A-Z</option>
-      </AutoSubmitSelect>
-      <AutoSubmitSelect
+    <form
+      action="/results"
+      className="grid w-full gap-2.5 sm:grid-cols-2 xl:w-auto xl:grid-cols-[minmax(240px,320px)_150px_170px_150px_auto]"
+    >
+      <label className="sr-only" htmlFor="results-query">
+        Search results
+      </label>
+      <input
+        id="results-query"
+        className="giq-form-control min-h-11 px-3.5"
+        name="q"
+        type="search"
+        maxLength={80}
+        defaultValue={selectedQuery}
+        placeholder="Track, race, dog or grade"
+      />
+      <label className="sr-only" htmlFor="results-date">
+        Results date
+      </label>
+      <input
+        id="results-date"
         aria-label="Results date"
-        className="giq-form-control min-h-11 min-w-[178px]"
+        className="giq-form-control min-h-11 px-3.5"
         name="date"
+        type="date"
         defaultValue={selectedDate}
-      >
-        <option value="">Latest results</option>
-        {dates.map((row) => (
-          <option key={row.date} value={row.date}>
-            {formatShortRaceDayLabel(row.date)} / {row.races}
-          </option>
-        ))}
-      </AutoSubmitSelect>
-      <AutoSubmitSelect
+      />
+      <label className="sr-only" htmlFor="results-track">
+        Results track
+      </label>
+      <select
+        id="results-track"
         aria-label="Results track"
-        className="giq-form-control min-h-11 min-w-[168px]"
+        className="giq-form-control min-h-11 pl-3.5"
         name="trackId"
         defaultValue={selectedTrackId}
       >
@@ -198,18 +205,35 @@ function ResultsFilters({
             {track.name}, {track.state}
           </option>
         ))}
-      </AutoSubmitSelect>
+      </select>
+      <label className="sr-only" htmlFor="results-sort">
+        Results order
+      </label>
+      <select
+        id="results-sort"
+        aria-label="Results order"
+        className="giq-form-control min-h-11 pl-3.5"
+        name="sort"
+        defaultValue={selectedSort}
+      >
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+        <option value="track">Track A-Z</option>
+      </select>
       <button
         type="submit"
-        className="giq-button giq-button-carbon min-h-11 px-4 text-[13px] font-bold"
+        className="giq-button giq-button-carbon min-h-11 px-4 text-[13px] font-bold sm:w-fit"
       >
-        <Filter className="h-4 w-4" aria-hidden="true" />
-        Filter
+        <Search className="h-4 w-4" aria-hidden="true" />
+        Search
       </button>
-      {(selectedDate || selectedTrackId || selectedSort !== "newest") && (
+      {(selectedQuery ||
+        selectedDate ||
+        selectedTrackId ||
+        selectedSort !== "newest") && (
         <Link
           href="/results"
-          className="giq-button giq-button-glass min-h-11 px-4 text-[13px] font-semibold"
+          className="giq-button giq-button-glass min-h-11 px-4 text-[13px] font-semibold sm:w-fit xl:col-start-5"
         >
           Clear
         </Link>
@@ -288,6 +312,10 @@ function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function normaliseResultsQuery(value: string | undefined) {
+  return value?.trim().replace(/\s+/g, " ").slice(0, 80) ?? "";
+}
+
 function resultsSort(value: string | undefined): ResultsSort {
   return value === "oldest" || value === "track" ? value : "newest";
 }
@@ -314,28 +342,42 @@ function toDisplayRace(
         state: race.meeting.track.state,
       },
     },
-    runners: orderRunners(race.runners, "finish").map((runner) => ({
-      id: runner.id,
-      boxNumber: runner.boxNumber,
-      weight: runner.weight,
-      scratched: runner.scratched,
-      trainer: runner.trainer,
-      result: runner.result,
-      dog: {
-        id: runner.dog.id,
-        name: runner.dog.name,
-        colour: runner.dog.colour,
-        sex: runner.dog.sex,
-        trainer: runner.dog.trainer,
-        formEntries: runner.dog.formEntries
-          .filter((entry) => entry.raceId !== race.id)
-          .slice(0, 6)
-          .map((entry) => ({
-            finish: entry.finish,
-            date: entry.date,
-            trackId: entry.trackId,
-          })),
-      },
-    })),
+    runners: orderRunners(race.runners, "finish").map((runner) => {
+      const trainerName = resolveRunnerTrainerName({
+        runnerTrainerName: runner.trainer?.name,
+        dogTrainerName: runner.dog.trainer?.name,
+        sourceRawJson: runner.sourceRawJson,
+      });
+      const weight = resolveRunnerWeight({
+        runnerWeight: runner.weight,
+        formWeight: runner.dog.formEntries.find(
+          (entry) => entry.raceId === race.id,
+        )?.weight,
+        sourceRawJson: runner.sourceRawJson,
+      });
+      return {
+        id: runner.id,
+        boxNumber: runner.boxNumber,
+        weight,
+        scratched: runner.scratched,
+        trainer: trainerName ? { name: trainerName } : null,
+        result: runner.result,
+        dog: {
+          id: runner.dog.id,
+          name: runner.dog.name,
+          colour: runner.dog.colour,
+          sex: runner.dog.sex,
+          trainer: runner.dog.trainer,
+          formEntries: runner.dog.formEntries
+            .filter((entry) => entry.raceId !== race.id)
+            .slice(0, 6)
+            .map((entry) => ({
+              finish: entry.finish,
+              date: entry.date,
+              trackId: entry.trackId,
+            })),
+        },
+      };
+    }),
   };
 }

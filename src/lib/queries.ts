@@ -27,6 +27,10 @@ import {
 } from "@/lib/race-time";
 import { resolveRaceSearchDate } from "@/lib/race-search";
 import { canonicalTrackName, trackNameAliasKey } from "@/lib/live/track-name";
+import {
+  resolveRunnerTrainerName,
+  resolveRunnerWeight,
+} from "@/lib/live/runner-display";
 import { parseMarketplaceOffset } from "@/lib/marketplace-navigation";
 
 const MARKETPLACE_CARD_MEDIA_LIMIT = 6;
@@ -243,6 +247,7 @@ export const getRaceById = cache(async (id: string) => {
               boxNumber: true,
               weight: true,
               scratched: true,
+              sourceRawJson: true,
               dog: {
                 select: {
                   id: true,
@@ -250,6 +255,11 @@ export const getRaceById = cache(async (id: string) => {
                   colour: true,
                   sex: true,
                   trainer: { select: { name: true } },
+                  formEntries: {
+                    where: { raceId: id },
+                    take: 1,
+                    select: { weight: true },
+                  },
                 },
               },
               trainer: { select: { name: true } },
@@ -298,18 +308,34 @@ export const getRaceById = cache(async (id: string) => {
 
       return {
         ...race,
-        runners: race.runners.map((runner) => ({
-          ...runner,
-          dog: {
-            ...runner.dog,
-            formEntries: (formEntriesByDog.get(runner.dog.id) ?? []).map(
-              (entry) => omitGroupingKey(entry, "dogId"),
-            ),
-            profileForms: (profileFormsByDog.get(runner.dog.id) ?? []).map(
-              (entry) => omitGroupingKey(entry, "dogId"),
-            ),
-          },
-        })),
+        runners: race.runners.map((runner) => {
+          const trainerName = resolveRunnerTrainerName({
+            runnerTrainerName: runner.trainer?.name,
+            dogTrainerName: runner.dog.trainer?.name,
+            sourceRawJson: runner.sourceRawJson,
+          });
+          const weight = resolveRunnerWeight({
+            runnerWeight: runner.weight,
+            formWeight: runner.dog.formEntries[0]?.weight,
+            sourceRawJson: runner.sourceRawJson,
+          });
+          const { sourceRawJson, ...runnerWithoutRaw } = runner;
+          void sourceRawJson;
+          return {
+            ...runnerWithoutRaw,
+            weight,
+            trainer: trainerName ? { name: trainerName } : null,
+            dog: {
+              ...runner.dog,
+              formEntries: (formEntriesByDog.get(runner.dog.id) ?? []).map(
+                (entry) => omitGroupingKey(entry, "dogId"),
+              ),
+              profileForms: (profileFormsByDog.get(runner.dog.id) ?? []).map(
+                (entry) => omitGroupingKey(entry, "dogId"),
+              ),
+            },
+          };
+        }),
       };
       }, PUBLIC_RACING_QUERY_DEADLINE),
     null
@@ -1020,6 +1046,7 @@ export type ResultsSort = "newest" | "oldest" | "track";
 type RecentResultsFilters = {
   date?: string | null;
   trackId?: string | null;
+  query?: string | null;
   sort?: ResultsSort;
   limit?: number;
 };
@@ -1029,7 +1056,7 @@ export async function getRecentResults(filters: RecentResultsFilters = {}) {
     limit: Math.min(Math.max(Math.trunc(filters.limit ?? 50), 1), 100),
   };
   // The unfiltered default view is identical for every visitor — cache it.
-  if (!boundedFilters.date && !boundedFilters.trackId) {
+  if (!boundedFilters.date && !boundedFilters.trackId && !boundedFilters.query) {
     return cached(
       `results:recent:${boundedFilters.sort ?? "newest"}:${boundedFilters.limit}`,
       60_000,
@@ -1041,6 +1068,7 @@ export async function getRecentResults(filters: RecentResultsFilters = {}) {
 
 async function fetchRecentResults(filters: RecentResultsFilters = {}) {
   const selectedDate = normaliseRaceDateInput(filters.date);
+  const selectedQuery = filters.query?.trim().replace(/\s+/g, " ").slice(0, 80);
   const sort = filters.sort ?? "newest";
   const orderBy: Prisma.RaceOrderByWithRelationInput[] =
     sort === "oldest"
@@ -1061,6 +1089,62 @@ async function fetchRecentResults(filters: RecentResultsFilters = {}) {
   if (filters.trackId) {
     raceFilters.push({ meeting: { trackId: filters.trackId } });
   }
+  if (selectedQuery) {
+    const raceNumberMatch = selectedQuery.match(
+      /(?:^|\s)(?:race|r)\s*(\d{1,2})(?:\s|$)/i
+    );
+    const raceNumber = raceNumberMatch
+      ? Number.parseInt(raceNumberMatch[1], 10)
+      : /^\d{1,2}$/.test(selectedQuery)
+        ? Number.parseInt(selectedQuery, 10)
+        : null;
+    const textQuery = selectedQuery
+      .replace(/(?:^|\s)(?:race|r)\s*\d{1,2}(?:\s|$)/i, " ")
+      .trim();
+    if (raceNumber && raceNumber <= 20) {
+      raceFilters.push({ raceNumber });
+    }
+    if (textQuery) {
+      raceFilters.push({
+        OR: [
+          { name: { contains: textQuery, mode: "insensitive" } },
+          { grade: { contains: textQuery, mode: "insensitive" } },
+          {
+            meeting: {
+              track: {
+                name: { contains: textQuery, mode: "insensitive" },
+              },
+            },
+          },
+          {
+            meeting: {
+              track: {
+                state: { contains: textQuery, mode: "insensitive" },
+              },
+            },
+          },
+          {
+            runners: {
+              some: {
+                dog: {
+                  name: { contains: textQuery, mode: "insensitive" },
+                },
+              },
+            },
+          },
+          {
+            runners: {
+              some: {
+                trainer: {
+                  name: { contains: textQuery, mode: "insensitive" },
+                },
+              },
+            },
+          },
+        ],
+      });
+    }
+  }
 
   return safeQuery(
     () =>
@@ -1076,6 +1160,7 @@ async function fetchRecentResults(filters: RecentResultsFilters = {}) {
               boxNumber: true,
               weight: true,
               scratched: true,
+              sourceRawJson: true,
               dog: {
                 select: {
                   id: true,
@@ -1091,6 +1176,7 @@ async function fetchRecentResults(filters: RecentResultsFilters = {}) {
                       date: true,
                       trackId: true,
                       raceId: true,
+                      weight: true,
                     },
                   },
                 },
@@ -3588,15 +3674,19 @@ export async function getMessagingProfiles(
   search?: string
 ) {
   const trimmedSearch = search?.trim();
-  return safeQuery(
+  const profiles = await safeQuery(
     () =>
       withDbRequestContext(current, (tx) => tx.profile.findMany({
         where: {
+          id: { not: current.profileId },
           socialActor: {
             is: {
               kind: "personal",
               published: true,
             },
+          },
+          userBlocksInitiated: {
+            none: { blockedProfileId: current.profileId },
           },
           user: {
             AND: [
@@ -3608,7 +3698,8 @@ export async function getMessagingProfiles(
           },
           ...(trimmedSearch
             ? {
-                OR: [
+                AND: [{
+                  OR: [
                   {
                     displayName: {
                       contains: trimmedSearch,
@@ -3627,22 +3718,135 @@ export async function getMessagingProfiles(
                       mode: "insensitive" as const,
                     },
                   },
-                ],
+                  {
+                    user: {
+                      name: {
+                        contains: trimmedSearch,
+                        mode: "insensitive" as const,
+                      },
+                    },
+                  },
+                  {
+                    customPages: {
+                      some: {
+                        title: {
+                          contains: trimmedSearch,
+                          mode: "insensitive" as const,
+                        },
+                        published: true,
+                        moderationStatus: "approved",
+                      },
+                    },
+                  },
+                  ],
+                }],
               }
             : {}),
+          OR: [
+            {
+              socialActor: {
+                is: {
+                  profileVisibility: { in: ["public", "members"] },
+                },
+              },
+            },
+            {
+              AND: [
+                {
+                  socialActor: {
+                    is: { profileVisibility: "connections" },
+                  },
+                },
+                {
+                  OR: [
+                    {
+                      friendshipsA: {
+                        some: {
+                          profileBId: current.profileId,
+                          status: "accepted",
+                        },
+                      },
+                    },
+                    {
+                      friendshipsB: {
+                        some: {
+                          profileAId: current.profileId,
+                          status: "accepted",
+                        },
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
         },
         orderBy: [{ verified: "desc" }, { displayName: "asc" }],
         take: Math.min(Math.max(Math.trunc(limit), 1), 100),
-        include: {
+        select: {
+          id: true,
+          displayName: true,
+          avatarUrl: true,
+          role: true,
+          verified: true,
+          kennelName: true,
           user: {
             select: {
-              email: true,
               subscriptionTier: true,
             },
+          },
+          customPages: {
+            where: {
+              published: true,
+              moderationStatus: "approved",
+            },
+            orderBy: { updatedAt: "desc" },
+            take: 1,
+            select: { title: true },
+          },
+          friendshipsA: {
+            where: { profileBId: current.profileId },
+            take: 1,
+            select: { status: true },
+          },
+          friendshipsB: {
+            where: { profileAId: current.profileId },
+            take: 1,
+            select: { status: true },
+          },
+          userBlocksReceived: {
+            where: { blockerProfileId: current.profileId },
+            take: 1,
+            select: { id: true },
           },
         },
       })),
     []
+  );
+
+  return Array.from(new Map(profiles.map((profile) => [profile.id, profile])).values()).map(
+    (profile) => {
+      const friendship = profile.friendshipsA[0] ?? profile.friendshipsB[0];
+      const relationshipState = profile.userBlocksReceived.length
+        ? "blocked"
+        : friendship?.status === "accepted"
+          ? "friends"
+          : friendship?.status === "pending"
+            ? "pending"
+            : "add";
+
+      return {
+        id: profile.id,
+        displayName: profile.displayName,
+        avatarUrl: profile.avatarUrl,
+        role: profile.role,
+        verified: profile.verified,
+        kennelName: profile.kennelName,
+        businessName: profile.customPages[0]?.title ?? null,
+        subscriptionTier: profile.user.subscriptionTier,
+        relationshipState,
+      };
+    }
   );
 }
 

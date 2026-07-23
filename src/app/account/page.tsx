@@ -368,7 +368,7 @@ async function SignedInAccount({
                 Pro profile tools
               </div>
               <p className="mt-2 text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-                Custom trainer, punter, business, and dog marketing profile
+                Custom trainer, owner, breeder, kennel, business, and dog profile
                 tools are included with Pro.
               </p>
               <Link

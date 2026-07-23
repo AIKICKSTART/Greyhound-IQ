@@ -6,7 +6,11 @@ import {
   PHOTO_FINISH_IMAGE_ORIGIN,
   safePhotoFinishSrc,
 } from "../csp";
-import { embedUrlFromReplayPage, officialRaceReplayUrl } from "./race-replay";
+import {
+  embedUrlFromReplayPage,
+  officialRaceReplayUrl,
+  resolveRaceVideoReplay,
+} from "./race-replay";
 
 const allowed = [
   [
@@ -110,6 +114,28 @@ assert.equal(
 
 assert.ok(embedUrlFromReplayPage(allowed[0][2]), "official YouTube replays embed");
 assert.ok(embedUrlFromReplayPage(allowed[3][2]), "official Vimeo replays embed");
+async function assertMisfiledYoutubeStreamEmbeds() {
+  assert.deepEqual(
+    await resolveRaceVideoReplay({
+      sourceProvider: "watchdog",
+      pageUrl: "https://www.youtube.com/watch?v=abcDEF12345",
+      streamUrl: "https://www.youtube.com/watch?v=abcDEF12345",
+      embedSourceType: "youtube",
+    }),
+    {
+      pageUrl: "https://www.youtube.com/watch?v=abcDEF12345",
+      streamUrl: null,
+      streamContentType: null,
+      title: null,
+      description: null,
+      sourceStatus: null,
+      sourceCode: null,
+      embedUrl: "https://www.youtube-nocookie.com/embed/abcDEF12345",
+      embedType: "youtube",
+    },
+    "a YouTube watch URL misfiled as streamUrl must still become an embed",
+  );
+}
 
 assert.equal(
   safePhotoFinishSrc(`${PHOTO_FINISH_IMAGE_ORIGIN}/photos/Photo Finish 1.jpg`),
@@ -138,6 +164,10 @@ assert.deepEqual(photoFinishDirectives, [
 
 const pageSource = readFileSync("src/app/races/[id]/page.tsx", "utf8");
 assert.match(pageSource, /Watch on official source/);
+assert.doesNotMatch(
+  pageSource,
+  /This provider supplies its replay on the official website\./,
+);
 assert.match(pageSource, /target="_blank"/);
 assert.match(pageSource, /rel="noopener noreferrer"/);
 // The page may render an inline player, but only with same-origin proxied
@@ -152,6 +182,9 @@ assert.deepEqual(
   ["proxiedStream", "replayStreamUrl"],
   "RaceReplayPlayer must only receive proxied stream paths",
 );
+assert.match(pageSource, /const orderedVideos = \[\.\.\.race\.videos\]\.sort\(/);
+assert.match(pageSource, /for \(const video of orderedVideos\)/);
+assert.match(pageSource, /await resolveRaceVideoReplay\(video\)/);
 assert.doesNotMatch(pageSource, /\bdownload\b/i);
 assert.doesNotMatch(
   pageSource,
@@ -160,9 +193,14 @@ assert.doesNotMatch(
 );
 assert.match(
   pageSource,
-  /replayCandidate\?\.officialUrl \?\?\s+officialRaceReplayUrl\(/,
+  /replayCandidates\[0\]\?\.officialUrl \?\?\s+officialRaceReplayUrl\(/,
 );
 assert.match(pageSource, /safePhotoFinishSrc\(race\.photoFinishUrl\)/);
 assert.match(pageSource, /Official photo finish/);
 
-console.log("official race replay source checks passed");
+assertMisfiledYoutubeStreamEmbeds()
+  .then(() => console.log("official race replay source checks passed"))
+  .catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

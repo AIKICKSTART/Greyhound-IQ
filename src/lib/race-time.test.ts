@@ -12,6 +12,10 @@ import {
 const winterRace = new Date("2026-07-09T12:35:00.000Z");
 assert.equal(formatRaceTime(winterRace), "22:35");
 assert.equal(formatRaceDateInput(winterRace), "2026-07-09");
+assert.equal(
+  formatRaceDateInput(new Date("2026-07-23T14:05:00.000Z")),
+  "2026-07-24",
+);
 
 const winterWindow = raceDateWindow("2026-07-09");
 assert.equal(winterWindow.gte.toISOString(), "2026-07-08T14:00:00.000Z");

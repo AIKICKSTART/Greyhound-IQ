@@ -28,7 +28,7 @@ import { BILLING_RATE_LIMIT_RECOVERY_SECONDS } from "@/lib/rate-limit-recovery";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My pages - GreyhoundsIQ" };
 
-const MAIN_TYPES = ["trainer", "punter", "business"] as const;
+const MAIN_TYPES = ["trainer", "owner", "breeder", "kennel", "business"] as const;
 const FOCUS_RING =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary-bright))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]";
 
@@ -49,7 +49,7 @@ export default async function MyPagesPage({ searchParams }: MyPagesPageProps) {
             My pages
           </PageTitle>
           <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-            Build a polished public identity for your kennel, business, selections, or dogs.
+            Build a polished public identity for your training, ownership, breeding, kennel, business, or dogs.
           </p>
         </header>
         <section className="mt-6 overflow-hidden rounded-2xl border border-[hsl(var(--primary)/0.28)] bg-[hsl(var(--surface-1))] shadow-[0_24px_70px_rgba(0,0,0,0.22)]">
@@ -62,7 +62,7 @@ export default async function MyPagesPage({ searchParams }: MyPagesPageProps) {
               Custom pages are a Pro feature
             </h2>
             <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-              Create branded trainer, punter, business, and per-dog pages. Included with Pro.
+              Create branded trainer, owner, breeder, kennel, business, and per-dog pages. Included with Pro.
             </p>
             <Link
               href="/pricing"

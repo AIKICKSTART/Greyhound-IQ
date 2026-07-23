@@ -855,7 +855,9 @@ export const PRODUCT_ROUTE_CAPABILITY_SOURCE_EVIDENCE_RECORDS = [
       'formData.set("profileId", profileId);',
       "await sendFriendRequestAction(formData);",
       'setRequestError(',
-      'sent ? "Requested" : "Add"',
+      'relationshipState === "blocked"',
+      'relationshipState === "friends"',
+      'relationshipState === "pending"',
     ],
   },
   {

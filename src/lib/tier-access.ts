@@ -15,6 +15,10 @@ export function assertPaidFeatureAccess(current: { tier: Tier }) {
   if (!hasTier(current.tier, "pro")) throw new Error("payment.required");
 }
 
+export function assertProPlusFeatureAccess(current: { tier: Tier }) {
+  if (!hasTier(current.tier, "pro_plus")) throw new Error("payment.required");
+}
+
 // Starting an audio/video call is Pro+ only. Pro keeps text chat but loses the
 // ability to INITIATE calls; free/pro members may still join a call a Pro+
 // member started (see createCallTokenForCurrentUser).

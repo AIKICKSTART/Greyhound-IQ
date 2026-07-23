@@ -7,11 +7,13 @@ import {
   Activity,
   Bookmark,
   Bot,
+  Crown,
   Dna,
   Dog,
   Flag,
   Info,
   LayoutGrid,
+  Lightbulb,
   Mail,
   Map,
   Menu,
@@ -36,6 +38,11 @@ import {
 import { MobileMenuLink } from "@/components/mobile-menu-close-link";
 import { ADMIN_NAV } from "@/app/admin/admin-nav-data";
 import { TOGGLE_CHAT_DOCK_EVENT } from "@/components/hub/hub-conversation-dock";
+import {
+  isDockLinkActive,
+  subscriptionDockDestinationForTier,
+} from "@/lib/mobile-dock-policy";
+import type { Tier } from "@/lib/tier-access";
 
 type DockLink = {
   href: string;
@@ -49,6 +56,21 @@ const DOCK_LINKS: DockLink[] = [
   { href: "/feed#feed-composer", label: "Post", icon: Plus, tone: "create" },
   { href: "/pulse", label: "Chat", icon: MessageCircle },
 ];
+
+export function subscriptionDockLinkForTier(tier: string | null | undefined): DockLink {
+  const destination = subscriptionDockDestinationForTier(tier);
+  if (destination.href === "/agents") {
+    return { ...destination, icon: Lightbulb, tone: "pro" };
+  }
+  if (destination.href === "/account/pages") {
+    return {
+      ...destination,
+      icon: LayoutGrid,
+      tone: "pro",
+    };
+  }
+  return { ...destination, icon: Crown, tone: "pro" };
+}
 
 type MenuEntry = { href: string; label: string; icon: LucideIcon };
 
@@ -93,37 +115,19 @@ const MENU_SECTIONS: Array<{ title: string; entries: MenuEntry[] }> = [
 
 const MENU_ENTRIES = MENU_SECTIONS.flatMap((section) => section.entries);
 
-export function isDockLinkActive(
-  pathname: string,
-  hash: string,
-  item: Pick<DockLink, "href" | "tone">
-) {
-  if (item.tone === "create") {
-    return pathname === "/feed" && hash === "#feed-composer";
-  }
-  if (
-    item.href === "/feed" &&
-    pathname === "/feed" &&
-    hash === "#feed-composer"
-  ) {
-    return false;
-  }
-  return (
-    pathname === item.href ||
-    (item.href !== "/" && pathname.startsWith(`${item.href}/`))
-  );
-}
-
 export function MobileBottomDock({
   unreadMessages = 0,
   canAccessAdmin = false,
+  tier = "free",
 }: {
   unreadMessages?: number;
   canAccessAdmin?: boolean;
+  tier?: Tier;
 }) {
   const pathname = usePathname();
   const [hash, setHash] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const dockLinks = [...DOCK_LINKS, subscriptionDockLinkForTier(tier)];
 
   useEffect(() => {
     const updateHash = () => setHash(window.location.hash);
@@ -152,7 +156,7 @@ export function MobileBottomDock({
       data-onboarding-priority="high"
       data-onboarding-target="account-navigation agents-navigation community-navigation marketplace-navigation public-navigation racing-navigation"
     >
-      {DOCK_LINKS.map((item) => {
+      {dockLinks.map((item) => {
         const Icon = item.icon;
         const active = isDockLinkActive(pathname, hash, item);
 

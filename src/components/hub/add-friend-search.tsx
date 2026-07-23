@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   BadgeCheck,
+  Ban,
+  Clock3,
   Loader2,
   Search,
   UserPlus,
@@ -17,10 +19,13 @@ type MemberOption = {
   displayName: string;
   avatarUrl: string | null;
   verified?: boolean;
+  kennelName?: string | null;
+  businessName?: string | null;
+  relationshipState?: "add" | "pending" | "friends" | "blocked";
 };
 
 // Member search backed by the existing authed + rate-limited
-// /api/profiles/messaging endpoint (returns id/displayName/role/verified only).
+// /api/profiles/messaging endpoint.
 export function AddFriendSearch({
   excludeProfileIds,
 }: {
@@ -38,7 +43,9 @@ export function AddFriendSearch({
   const [pending, startTransition] = useTransition();
   const excluded = new Set(excludeProfileIds);
   // Derive emptiness from the query instead of clearing state in the effect.
-  const visibleOptions = options.filter((option) => !excluded.has(option.id));
+  const visibleOptions = Array.from(
+    new Map(options.map((option) => [option.id, option])).values(),
+  ).filter((option) => !excluded.has(option.id));
 
   useEffect(() => {
     const q = query.trim();
@@ -120,7 +127,7 @@ export function AddFriendSearch({
               setSearchError(null);
               setSearching(Boolean(nextQuery.trim()));
             }}
-            placeholder="Name or kennel"
+            placeholder="Name, kennel or business"
             aria-controls="member-search-results"
             aria-busy={searching}
             aria-invalid={Boolean(searchError)}
@@ -156,12 +163,18 @@ export function AddFriendSearch({
           {visibleOptions.map((option) => {
             const sent = sentIds.has(option.id);
             const requesting = requestingId === option.id;
+            const relationshipState = sent
+              ? "pending"
+              : (option.relationshipState ?? "add");
+            const canAdd = relationshipState === "add";
+            const secondaryName =
+              option.kennelName ?? option.businessName ?? "GreyhoundIQ member";
             return (
               <li
                 key={option.id}
                 className="flex min-h-14 items-center justify-between gap-2 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2 transition hover:border-white/[0.12] hover:bg-white/[0.05]"
               >
-                <span className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-[hsl(var(--foreground))]">
+                <span className="flex min-w-0 items-center gap-2">
                   <span className="relative grid size-10 shrink-0 place-items-center rounded-full border border-white/10 bg-[hsl(var(--primary)/0.14)] text-[12px] font-bold text-[hsl(var(--primary-light))]">
                     {option.avatarUrl ? (
                       <Image
@@ -176,7 +189,14 @@ export function AddFriendSearch({
                       option.displayName.trim().charAt(0).toUpperCase() || "G"
                     )}
                   </span>
-                  <span className="truncate">{option.displayName}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[13px] font-medium text-[hsl(var(--foreground))]">
+                      {option.displayName}
+                    </span>
+                    <span className="block truncate text-[11px] text-[hsl(var(--muted-foreground))]">
+                      {secondaryName}
+                    </span>
+                  </span>
                   {option.verified ? (
                     <BadgeCheck
                       className="h-4 w-4 shrink-0 text-[hsl(var(--primary-bright))]"
@@ -186,10 +206,14 @@ export function AddFriendSearch({
                 </span>
                 <button
                   type="button"
-                  disabled={sent || pending}
+                  disabled={!canAdd || pending}
                   onClick={() => addFriend(option.id)}
                   aria-label={
-                    sent
+                    relationshipState === "blocked"
+                      ? `${option.displayName} is blocked`
+                      : relationshipState === "friends"
+                        ? `${option.displayName} is already your friend`
+                        : relationshipState === "pending"
                       ? `Friend request sent to ${option.displayName}`
                       : `Add ${option.displayName} as a friend`
                   }
@@ -200,15 +224,27 @@ export function AddFriendSearch({
                       className="h-3.5 w-3.5 animate-spin"
                       aria-hidden="true"
                     />
-                  ) : sent ? (
+                  ) : relationshipState === "blocked" ? (
+                    <Ban className="h-3.5 w-3.5" aria-hidden="true" />
+                  ) : relationshipState === "friends" ? (
                     <UserRoundCheck
                       className="h-3.5 w-3.5"
                       aria-hidden="true"
                     />
+                  ) : relationshipState === "pending" ? (
+                    <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
                   ) : (
                     <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
                   )}
-                  {requesting ? "Sending" : sent ? "Requested" : "Add"}
+                  {requesting
+                    ? "Sending"
+                    : relationshipState === "blocked"
+                      ? "Blocked"
+                      : relationshipState === "friends"
+                        ? "Friends"
+                        : relationshipState === "pending"
+                          ? "Pending"
+                          : "Add"}
                 </button>
               </li>
             );
@@ -226,7 +262,7 @@ export function AddFriendSearch({
       ) : null}
       {!query.trim() && visibleOptions.length === 0 && !searching ? (
         <p className="text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Start typing a name or kennel to find members.
+          Start typing a name, kennel or business to find members.
         </p>
       ) : null}
     </div>

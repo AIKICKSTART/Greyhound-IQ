@@ -273,11 +273,7 @@ export default async function PulseFriendsPage() {
               Add any GreyhoundIQ member who allows account discovery.
             </p>
             <AddFriendSearch
-              excludeProfileIds={[
-                dbContext.profileId,
-                ...friends.map((friend) => friend.profileId),
-                ...requests.map((request) => request.profileId),
-              ]}
+              excludeProfileIds={[dbContext.profileId]}
             />
           </section>
         ) : null}

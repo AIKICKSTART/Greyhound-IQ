@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { isDockLinkActive } from "./mobile-bottom-dock";
+import {
+  isDockLinkActive,
+  subscriptionDockDestinationForTier,
+} from "../lib/mobile-dock-policy";
 
 const feed = { href: "/feed" };
 const post = { href: "/feed#feed-composer", tone: "create" as const };
@@ -14,9 +17,24 @@ assert.equal(isDockLinkActive("/feed", "#latest", feed), true);
 assert.equal(isDockLinkActive("/feed", "#latest", post), false);
 assert.equal(isDockLinkActive("/feed/following", "", feed), true);
 assert.equal(isDockLinkActive("/dogs", "", { href: "/" }), false);
+assert.equal(subscriptionDockDestinationForTier("free").href, "/pricing");
+assert.equal(subscriptionDockDestinationForTier("pro").href, "/account/pages");
+assert.equal(subscriptionDockDestinationForTier("pro_plus").href, "/agents");
+assert.equal(subscriptionDockDestinationForTier("pro_plus").label, "Tips");
 
 const source = readFileSync(join(__dirname, "mobile-bottom-dock.tsx"), "utf8");
 const globalStyles = readFileSync(join(__dirname, "../app/globals.css"), "utf8");
+
+assert.match(
+  source,
+  /const dockLinks = \[\.\.\.DOCK_LINKS, subscriptionDockLinkForTier\(tier\)\]/,
+  "the fifth dock destination must update from the current subscription tier"
+);
+assert.match(
+  globalStyles,
+  /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/,
+  "the subscription-aware dock must reserve five equal destinations"
+);
 
 assert.match(
   source,

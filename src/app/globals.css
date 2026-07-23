@@ -1931,7 +1931,7 @@ body.giq-public-shell:has([data-standalone-member-preview="true"])
   bottom: max(10px, env(safe-area-inset-bottom));
   z-index: 60;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 3px;
   width: min(calc(100vw - 44px), 352px);
   padding: 6px;
@@ -2793,7 +2793,7 @@ h2,
 }
 
 .giq-grid-4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .giq-hero-split {
@@ -8362,7 +8362,7 @@ select.giq-form-control option:checked {
 
   .giq-mobile-dock {
     display: grid !important;
-    grid-template-columns: repeat(4, 52px);
+    grid-template-columns: repeat(5, 52px);
     width: max-content;
     max-width: calc(100vw - 16px);
     gap: 4px;
@@ -8400,7 +8400,7 @@ select.giq-form-control option:checked {
 
   .giq-mobile-dock {
     display: grid !important;
-    grid-template-columns: repeat(4, 56px);
+    grid-template-columns: repeat(5, 56px);
     width: max-content;
     gap: 4px;
     padding: 6px;
@@ -8521,4 +8521,3 @@ body:has([data-viewport-obstruction="bottom"]) .giq-interactive-help-launcher {
   font-size: 16px;
   padding-right: 4px;
 }
-

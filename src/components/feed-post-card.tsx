@@ -31,6 +31,9 @@ import type { getFeedPostsForViewer } from "@/lib/feed-service";
 
 const CUSTOM_PAGE_TYPE_LABELS: Record<CustomPageType, string> = {
   trainer: "Trainer",
+  owner: "Owner",
+  breeder: "Breeder",
+  kennel: "Kennel",
   punter: "Punter",
   business: "Business",
   dog: "Dog",

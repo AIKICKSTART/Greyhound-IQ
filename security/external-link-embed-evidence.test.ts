@@ -144,7 +144,7 @@ for (const { path, tag } of blankTargetTags) {
 const replayPage = readSource("src/app/races/[id]/page.tsx").source;
 assert.match(replayPage, /const trustedEmbed = embedUrlFromReplayPage\(embedUrl\)/);
 assert.match(replayPage, /src=\{trustedEmbed\.embedUrl\}/);
-assert.match(replayPage, /referrerPolicy="no-referrer"/);
+assert.match(replayPage, /referrerPolicy="strict-origin-when-cross-origin"/);
 assert.match(
   replayPage,
   /sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"/,

@@ -191,13 +191,13 @@ async function writeWatchdogVideo(
       )
       VALUES (
         ${randomUUID()}, ${raceId}, ${SOURCE_PROVIDER}, ${videoId}, ${KIND}, ${pageUrl},
-        'youtube', 200, ${pageUrl},
+        'youtube', 200, NULL,
         ${JSON.stringify({ watchdogRaceId, videoId })}, ${now}, ${now}, NOW(), NOW()
       )
       ON CONFLICT ("raceId", "sourceProvider", "kind") DO UPDATE SET
         "sourceId" = EXCLUDED."sourceId",
         "pageUrl" = EXCLUDED."pageUrl",
-        "streamUrl" = EXCLUDED."streamUrl",
+        "streamUrl" = NULL,
         "sourceRawJson" = EXCLUDED."sourceRawJson",
         "fetchedAt" = EXCLUDED."fetchedAt",
         "lastSyncedAt" = EXCLUDED."lastSyncedAt",

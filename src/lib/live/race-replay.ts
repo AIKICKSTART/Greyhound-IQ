@@ -65,6 +65,10 @@ export async function resolveRaceVideoReplay(
   const pageUrl = normalisePublicUrl(video.pageUrl);
   const storedStreamUrl = normalisePublicUrl(video.streamUrl);
 
+  if (storedStreamUrl) {
+    return storedReplay(video);
+  }
+
   if (provider === "racing-queensland" || embedSourceType === "racing-queensland") {
     return resolveRacingQueenslandReplay(pageUrl, video);
   }
@@ -533,8 +537,10 @@ function normaliseLegacyTasracingReplay(
 
 function storedReplay(video: RaceVideoReplayRecord): ResolvedRaceReplay | null {
   const pageUrl = normalisePublicUrl(video.pageUrl);
-  const streamUrl = normalisePublicUrl(video.streamUrl);
-  const embed = embedUrlFromReplayPage(pageUrl);
+  const storedStreamUrl = normalisePublicUrl(video.streamUrl);
+  const streamEmbed = embedUrlFromReplayPage(storedStreamUrl);
+  const streamUrl = streamEmbed ? null : storedStreamUrl;
+  const embed = embedUrlFromReplayPage(pageUrl) ?? streamEmbed;
   if (!pageUrl && !streamUrl && !embed) return null;
   return {
     pageUrl: pageUrl ?? streamUrl ?? embed?.embedUrl ?? "",

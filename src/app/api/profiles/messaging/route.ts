@@ -50,6 +50,9 @@ export async function GET(request: Request) {
         ),
         role: profile.role,
         verified: profile.verified,
+        kennelName: profile.kennelName,
+        businessName: profile.businessName,
+        relationshipState: profile.relationshipState,
       })),
     });
   } catch (err) {

@@ -37,7 +37,8 @@ export function RunnerRow({
 }) {
   const dog = runner.dog;
   const boxStyle = getBoxColourStyle(runner.boxNumber);
-  const trainerName = runner.trainer?.name ?? dog.trainer?.name ?? "—";
+  const trainerName =
+    runner.trainer?.name ?? dog.trainer?.name ?? "Not supplied";
   const form = dog.formEntries
     .map((e) => (e.finish === null ? "-" : e.finish === 0 ? "✕" : e.finish))
     .join("");
@@ -77,7 +78,7 @@ export function RunnerRow({
       <td
         className="p-3 text-[13px] text-center text-[hsl(var(--muted-foreground))] tracking-[-0.013em]"
       >
-        {runner.weight ? `${runner.weight}kg` : "—"}
+        {runner.weight ? `${runner.weight}kg` : "Not supplied"}
       </td>
       <td className="p-3">
         <code

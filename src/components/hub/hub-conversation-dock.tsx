@@ -228,13 +228,9 @@ export function HubConversationDock({
   const outgoingRequests = requests.filter(
     (request) => request.direction === "outgoing",
   );
-  // Exclude self, existing friends, and anyone with a pending request from the
-  // inline member search so the find -> add loop never offers a duplicate.
-  const friendExcludeIds = [
-    selfProfileId,
-    ...friends.map((friend) => friend.profileId),
-    ...requests.map((request) => request.profileId),
-  ];
+  // Existing friends and pending requests stay searchable so the member row can
+  // show its current relationship state instead of offering another request.
+  const friendExcludeIds = [selfProfileId];
   const openIds = openWindowIds(windows);
   const visibleOpenIds = layout === "dual" ? openIds : openIds.slice(-1);
 

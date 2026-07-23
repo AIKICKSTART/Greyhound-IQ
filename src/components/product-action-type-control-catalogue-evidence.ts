@@ -437,7 +437,7 @@ export const PRODUCT_ACTION_TYPE_CONTROL_CATALOGUE: Readonly<
       "src/app/races/page.tsx::RacesPage::ACTION.TYPE.search::input::name=q|type=search|placeholder=Search track, runner, R4, 520m",
       "src/components/account-support-help-centre.tsx::AccountSupportHelpCentre::ACTION.TYPE.search::input::name=q|type=search|placeholder=Search races, billing, privacy, marketplace…",
       "src/components/dog-search.tsx::DogSearchInner::ACTION.TYPE.search::Input::id=dog-search-input|type=text|role=combobox|aria-label=Search for a greyhound by name|placeholder=Search for a greyhound...",
-      "src/components/hub/add-friend-search.tsx::AddFriendSearch::ACTION.TYPE.search::input::type=search|placeholder=Name or kennel",
+      "src/components/hub/add-friend-search.tsx::AddFriendSearch::ACTION.TYPE.search::input::type=search|placeholder=Name, kennel or business",
       "src/components/recipient-picker.tsx::RecipientPicker::ACTION.TYPE.search::input::id=inputId|type=text|role=combobox|placeholder=Search profiles by name",
       "src/components/site-header.tsx::MobileNavigationMenu::ACTION.TYPE.search::input::name=q|type=search|aria-label=Search races, tracks, runners|placeholder=Search races, tracks, runners",
       "src/components/site-header.tsx::SiteHeader::ACTION.TYPE.search::input::name=q|type=search|aria-label=Search races, tracks, runners|placeholder=Search races, tracks, runners",

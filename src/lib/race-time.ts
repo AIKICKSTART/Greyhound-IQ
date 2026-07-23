@@ -215,6 +215,9 @@ function partsMap(formatter: Intl.DateTimeFormat, date: Date) {
     formatter
       .formatToParts(date)
       .filter((part) => part.type !== "literal")
-      .map((part) => [part.type, part.value === "24" ? "00" : part.value])
+      .map((part) => [
+        part.type,
+        part.type === "hour" && part.value === "24" ? "00" : part.value,
+      ])
   ) as Record<string, string>;
 }

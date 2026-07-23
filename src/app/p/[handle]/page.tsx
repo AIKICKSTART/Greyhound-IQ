@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import {
   BadgeCheck,
+  BriefcaseBusiness,
   CalendarDays,
   DollarSign,
   Globe,
@@ -11,6 +12,7 @@ import {
   Mail,
   MessageCircle,
   Pencil,
+  PawPrint,
   Phone,
   Settings,
   Trophy,
@@ -21,6 +23,7 @@ import {
 import { PageTitle } from "@/components/page-title";
 import {
   getPublishedCustomPageByHandle,
+  parseCustomPageContent,
   resolveCustomPageMedia,
   CUSTOM_PAGE_TYPE_LABELS,
   type CustomPageMediaUrls,
@@ -822,6 +825,7 @@ function ManagedPageView({
 }) {
   const bannerUrl = media.bannerUrl ?? profile.actor.coverUrl;
   const avatarUrl = media.avatarUrl ?? profile.actor.avatarUrl;
+  const content = parseCustomPageContent(page.contentJson);
 
   return (
     <main
@@ -1002,6 +1006,65 @@ function ManagedPageView({
             </p>
           </section>
 
+          {content.services.length > 0 ? (
+            <section className="giq-panel p-4 sm:p-6" aria-labelledby="page-services-heading">
+              <h2
+                id="page-services-heading"
+                className="mb-4 flex items-center gap-2 text-[16px] font-semibold text-[hsl(var(--foreground))]"
+              >
+                <BriefcaseBusiness
+                  className="h-4 w-4 text-[hsl(var(--primary-bright))]"
+                  aria-hidden="true"
+                />
+                Services
+              </h2>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {content.services.map((service) => (
+                  <li
+                    key={service}
+                    className="rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 py-3 text-[13px] text-[hsl(var(--foreground))]"
+                  >
+                    {service}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {page.pageType !== "dog" && page.ownerProfile.dogsOwned.length > 0 ? (
+            <section className="giq-panel p-4 sm:p-6" aria-labelledby="page-greyhounds-heading">
+              <h2
+                id="page-greyhounds-heading"
+                className="mb-4 flex items-center gap-2 text-[16px] font-semibold text-[hsl(var(--foreground))]"
+              >
+                <PawPrint
+                  className="h-4 w-4 text-[hsl(var(--secondary))]"
+                  aria-hidden="true"
+                />
+                Associated greyhounds
+              </h2>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {page.ownerProfile.dogsOwned.map(({ dog, role }) => (
+                  <Link
+                    key={dog.id}
+                    href={`/dogs/${dog.id}`}
+                    className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 py-3 transition hover:border-[hsl(var(--primary)/0.3)] hover:bg-white/[0.04]"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-semibold text-[hsl(var(--foreground))]">
+                        {dog.name}
+                      </span>
+                      <span className="mt-0.5 block text-[11px] capitalize text-[hsl(var(--subtle-foreground))]">
+                        {[role, dog.colour, dog.sex].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                    <PawPrint className="h-4 w-4 shrink-0 text-[hsl(var(--primary-light))]" aria-hidden="true" />
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           {page.pageType === "dog" && media.cardUrl && (
             <div className="mb-6 flex justify-center">
               <Image
@@ -1020,7 +1083,7 @@ function ManagedPageView({
             <DogBody page={page} accent={accent} />
           )}
 
-          {page.pageType === "business" && (
+          {page.pageType !== "dog" && (
             <StorefrontBody profileId={page.ownerProfile.id} />
           )}
 

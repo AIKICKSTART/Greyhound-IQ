@@ -553,6 +553,10 @@ function parseRunner(row: string, index: number): LiveRunner | null {
     firstMatch(row, /<td class="race-runners__grade">([\s\S]*?)<\/td>/i)
   );
   const trainer = parseTrainer(row);
+  const trainerName =
+    trainer.name ||
+    cleanHtml(firstMatch(row, /T:\s*([^<]+)/i)) ||
+    undefined;
   const margin =
     finish === 1
       ? 0
@@ -575,6 +579,7 @@ function parseRunner(row: string, index: number): LiveRunner | null {
       raceTrait: raceTrait || undefined,
       grade: runnerGrade || undefined,
       trainerId: trainer.sourceId,
+      trainerName,
       trainerProfileUrl: trainer.url,
     }),
     boxNumber,
@@ -585,10 +590,7 @@ function parseRunner(row: string, index: number): LiveRunner | null {
       colour: parseColour(colourSex),
       sex: parseSex(colourSex),
     },
-    trainerName:
-      trainer.name ||
-      cleanHtml(firstMatch(row, /T:\s*([^<]+)/i)) ||
-      undefined,
+    trainerName,
     weight: parseNumber(firstMatch(row, /<td class="race-runners__weight">([\s\S]*?)<\/td>/i)),
     scratched: /\(SCR\)|scratched/i.test(row),
     finishingPosition: finish,

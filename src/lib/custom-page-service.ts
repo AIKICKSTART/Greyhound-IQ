@@ -127,10 +127,7 @@ export async function createCustomPage(
   current: CurrentUserProfile,
   input: CustomPageCreateInput
 ) {
-  // Gates are admin-relaxable via PlatformSetting flags (default strict).
-  if (await getPlatformFlag(PLATFORM_FLAGS.requirePro)) {
-    assertPaidFeatureAccess(current);
-  }
+  assertPaidFeatureAccess(current);
   await assertClean(`${input.title} ${input.tagline ?? ""} ${input.about ?? ""}`);
 
   // Non-dog types: one per user. Dog type: verify approved ownership, one per dog.
@@ -215,6 +212,7 @@ export async function createCustomPage(
         priceOrFee: input.pageType === "dog" ? input.priceOrFee ?? null : null,
         contentJson: JSON.stringify({
           galleryMediaIds: input.galleryMediaIds ?? [],
+          services: input.services ?? [],
           avatarMediaId: input.avatarMediaId ?? null,
           bannerMediaId: input.bannerMediaId ?? null,
           logoMediaId: input.logoMediaId ?? null,
@@ -303,6 +301,7 @@ export async function updateCustomPage(
         priceOrFee: page.pageType === "dog" ? input.priceOrFee ?? null : page.priceOrFee,
         contentJson: JSON.stringify({
           galleryMediaIds: input.galleryMediaIds ?? [],
+          services: input.services ?? [],
           avatarMediaId: input.avatarMediaId ?? null,
           bannerMediaId: input.bannerMediaId ?? null,
           logoMediaId: input.logoMediaId ?? null,
@@ -362,6 +361,7 @@ export async function setCustomPagePublished(
 }
 
 export async function deleteCustomPage(current: CurrentUserProfile, pageId: string) {
+  assertPaidFeatureAccess(current);
   const page = await requireOwnedPage(current, pageId);
   await withDbRequestContext(current, async (tx) => {
     const actor = await tx.socialActor.findFirst({
@@ -407,6 +407,7 @@ export function listApprovedOwnedDogs(current: CurrentUserProfile) {
 }
 
 export function getOwnedCustomPage(current: CurrentUserProfile, pageId: string) {
+  if (!hasTier(current.tier, "pro")) return Promise.resolve(null);
   return withDbRequestContext(current, (tx) =>
     tx.customPage.findFirst({
       where: { id: pageId, ownerProfileId: current.profileId },
@@ -429,6 +430,7 @@ export function getOwnedCustomPage(current: CurrentUserProfile, pageId: string) 
 }
 
 export function listCustomPagesForCurrentUser(current: DbContextUser) {
+  if (!hasTier(current.tier, "pro")) return Promise.resolve([]);
   return withDbRequestContext(current, (tx) =>
     tx.customPage.findMany({
       where: { ownerProfileId: current.profileId },
@@ -446,7 +448,29 @@ export const getPublishedCustomPageByHandle = cache((handle: string) =>
     tx.customPage.findFirst({
       where: { handle, published: true, moderationStatus: { not: "removed" } },
       include: {
-        ownerProfile: { select: { id: true, displayName: true, verified: true } },
+        ownerProfile: {
+          select: {
+            id: true,
+            displayName: true,
+            verified: true,
+            dogsOwned: {
+              where: { status: "approved" },
+              orderBy: { createdAt: "desc" },
+              take: 12,
+              select: {
+                role: true,
+                dog: {
+                  select: {
+                    id: true,
+                    name: true,
+                    colour: true,
+                    sex: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         dog: {
           include: {
             trainer: true,
@@ -477,6 +501,9 @@ export function getPublishedCustomPagesForSitemap() {
 
 export const CUSTOM_PAGE_TYPE_LABELS: Record<CustomPageType, string> = {
   trainer: "Trainer",
+  owner: "Owner",
+  breeder: "Breeder",
+  kennel: "Kennel",
   punter: "Punter",
   business: "Business",
   dog: "Dog",
@@ -484,6 +511,7 @@ export const CUSTOM_PAGE_TYPE_LABELS: Record<CustomPageType, string> = {
 
 export type CustomPageContent = {
   galleryMediaIds: string[];
+  services: string[];
   avatarMediaId: string | null;
   bannerMediaId: string | null;
   logoMediaId: string | null;
@@ -497,13 +525,25 @@ export function parseCustomPageContent(contentJson: string | null): CustomPageCo
       galleryMediaIds: Array.isArray(raw.galleryMediaIds)
         ? raw.galleryMediaIds.slice(0, 100)
         : [],
+      services: Array.isArray(raw.services)
+        ? raw.services
+            .filter((service): service is string => typeof service === "string")
+            .slice(0, 12)
+        : [],
       avatarMediaId: raw.avatarMediaId ?? null,
       bannerMediaId: raw.bannerMediaId ?? null,
       logoMediaId: raw.logoMediaId ?? null,
       cardMediaId: raw.cardMediaId ?? null,
     };
   } catch {
-    return { galleryMediaIds: [], avatarMediaId: null, bannerMediaId: null, logoMediaId: null, cardMediaId: null };
+    return {
+      galleryMediaIds: [],
+      services: [],
+      avatarMediaId: null,
+      bannerMediaId: null,
+      logoMediaId: null,
+      cardMediaId: null,
+    };
   }
 }
 

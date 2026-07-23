@@ -1357,6 +1357,14 @@ function customPageMediaFields(formData: FormData) {
   };
 }
 
+function customPageServices(formData: FormData) {
+  return field(formData, "services")
+    .split(/\r?\n/)
+    .map((service) => service.trim())
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
 export async function createCustomPageAction(formData: FormData) {
   const current = await requireCurrentUserProfile();
   const rl = await checkRateLimit(
@@ -1382,6 +1390,7 @@ export async function createCustomPageAction(formData: FormData) {
     avatarFocalY: field(formData, "avatarFocalY") || 0.5,
     coverFocalX: field(formData, "coverFocalX") || 0.5,
     coverFocalY: field(formData, "coverFocalY") || 0.5,
+    services: customPageServices(formData),
     ...customPageMediaFields(formData),
   };
   const raw =
@@ -1430,6 +1439,7 @@ export async function updateCustomPageAction(pageId: string, formData: FormData)
     businessCategory: optional(formData, "businessCategory"),
     saleStatus: optional(formData, "saleStatus"),
     priceOrFee: optional(formData, "priceOrFee"),
+    services: customPageServices(formData),
     ...customPageMediaFields(formData),
   });
   await updateCustomPage(current, pageId, parsed);

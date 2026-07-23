@@ -1992,8 +1992,8 @@ async function bulkUpsertRunners(db: LiveSyncDbClient, rows: RunnerUpsertRow[]) 
       )}
       ON CONFLICT ("raceId", "boxNumber") ${conflictAction(Prisma.sql`DO UPDATE SET
         "dogId" = EXCLUDED."dogId",
-        "weight" = EXCLUDED."weight",
-        "trainerId" = EXCLUDED."trainerId",
+        "weight" = COALESCE(EXCLUDED."weight", "Runner"."weight"),
+        "trainerId" = COALESCE(EXCLUDED."trainerId", "Runner"."trainerId"),
         "scratched" = EXCLUDED."scratched",
         "sourceProvider" = EXCLUDED."sourceProvider",
         "sourceId" = EXCLUDED."sourceId",
@@ -2146,7 +2146,7 @@ async function bulkUpsertFormEntries(db: LiveSyncDbClient, rows: FormEntryUpsert
         "time" = EXCLUDED."time",
         "distance" = EXCLUDED."distance",
         "grade" = EXCLUDED."grade",
-        "weight" = EXCLUDED."weight"`)}
+        "weight" = COALESCE(EXCLUDED."weight", "FormEntry"."weight")`)}
     `;
   }
 }

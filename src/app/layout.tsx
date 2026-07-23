@@ -238,6 +238,7 @@ export default async function RootLayout({
               <MobileBottomDock
                 unreadMessages={unreadMessages}
                 canAccessAdmin={isModeratorRole(user.role)}
+                tier={user.tier}
               />
               <HubConversationDock
                 mode="floating"

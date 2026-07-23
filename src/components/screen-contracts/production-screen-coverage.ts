@@ -1389,7 +1389,7 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
     actions: [
       accountAction(
         "ACCOUNT-PAGES.ACTION.MAIN.CREATE",
-        "Creates an available trainer, punter, or business managed page and opens its editor.",
+        "Creates an available trainer, owner, breeder, kennel, or business managed page and opens its editor.",
         "createCustomPageAction requires the current profile, applies a per-user rate limit, parses customPageCreateSchema, and the service enforces tier and ownership rules.",
       ),
       accountAction(
@@ -1427,7 +1427,7 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
       accountForm(
         "ACCOUNT-PAGES.FORM.MAIN-CREATE",
         "SERVER ACTION createCustomPageAction",
-        "pageType:trainer|punter|business,title:string",
+        "pageType:trainer|owner|breeder|kennel|business,title:string",
       ),
       accountForm(
         "ACCOUNT-PAGES.FORM.DOG-CREATE",

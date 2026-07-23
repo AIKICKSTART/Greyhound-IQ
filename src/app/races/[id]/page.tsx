@@ -136,27 +136,35 @@ export default async function RacePage({
         href: buildRaceDetailHref(meetingRaceNavigation.next.id, listContext),
       }
     : null;
-  const replayCandidate = race.videos
+  const replayCandidates = race.videos
     .map((video) => ({ video, officialUrl: officialRaceReplayUrl(video) }))
-    .find((candidate) => candidate.officialUrl);
-  const primaryVideo =
-    replayCandidate?.video ??
-    race.videos.find((video) => video.streamUrl) ??
-    race.videos[0] ??
-    null;
+    .filter((candidate) => candidate.officialUrl);
+  const orderedVideos = [...race.videos].sort(
+    (left, right) =>
+      Number(Boolean(right.streamUrl)) - Number(Boolean(left.streamUrl)) ||
+      Number(Boolean(embedUrlFromReplayPage(right.pageUrl)?.embedUrl)) -
+        Number(Boolean(embedUrlFromReplayPage(left.pageUrl)?.embedUrl))
+  );
+  let primaryVideo = orderedVideos[0] ?? null;
+  let storedReplay: ResolvedRaceReplay | null = null;
+  for (const video of orderedVideos) {
+    const resolved = await resolveRaceVideoReplay(video);
+    if (resolved?.streamUrl || resolved?.embedUrl) {
+      primaryVideo = video;
+      storedReplay = resolved;
+      break;
+    }
+  }
   const replayOfficialUrl =
-    replayCandidate?.officialUrl ??
+    (primaryVideo ? officialRaceReplayUrl(primaryVideo) : null) ??
+    replayCandidates[0]?.officialUrl ??
     officialRaceReplayUrl({
       sourceProvider: race.sourceProvider,
       pageUrl: race.replayUrl,
       sourceStatus: null,
     });
-  // Resolve a playable stream or embed from the stored record (may fetch the
-  // provider page), falling back to the race-level provider fields. The
-  // official URL above stays the authority for the outbound source link.
-  const storedReplay = primaryVideo
-    ? await resolveRaceVideoReplay(primaryVideo)
-    : null;
+  // Resolve each stored record in playable-first order, then fall back to the
+  // race-level provider fields. The official URL remains the outbound source.
   const providerReplay =
     storedReplay?.streamUrl || storedReplay?.embedUrl
       ? null
@@ -565,7 +573,9 @@ function collectPreviousRaceVideoCandidates(
       });
     if (!pageUrl) continue;
 
-    const streamVideo = pastRace.videos.find((entry) => entry.streamUrl);
+    const streamVideo = pastRace.videos.find((entry) =>
+      proxiedStreamPath(entry.streamUrl)
+    );
     upsertPreviousVideoCandidate(byPageUrl, {
       id: video?.id ?? pastRace.id,
       pageUrl,
@@ -645,21 +655,67 @@ function collectPreviousRaceVideoCandidates(
 async function resolvePreviousRaceVideos(
   candidates: PreviousRaceVideoCandidate[]
 ): Promise<ResolvedPreviousRaceVideo[]> {
-  return Promise.all(
+  const resolved: Array<ResolvedPreviousRaceVideo | null> = await Promise.all(
     candidates
       .slice(0, MAX_PREVIOUS_RACE_VIDEO_RESOLVES)
-      .map(async (candidate) => ({
-        ...candidate,
-        replay:
+      .map(async (candidate): Promise<ResolvedPreviousRaceVideo | null> => {
+        const replay =
           candidate.localReplay ??
           (await resolveRaceVideoReplay({
             sourceProvider: candidate.sourceProvider,
             sourceId: candidate.sourceId,
             pageUrl: candidate.pageUrl,
             embedSourceType: candidate.embedSourceType,
-          })),
-      }))
+          }));
+        const embedUrl = replayEmbedUrl(replay, candidate.pageUrl);
+        const proxiedStream = proxiedStreamPath(replay?.streamUrl);
+        if (!embedUrl && !proxiedStream) return null;
+
+        return {
+          ...candidate,
+          replay: replay
+            ? {
+                ...replay,
+                streamUrl: proxiedStream ? replay.streamUrl : null,
+                embedUrl,
+                embedType:
+                  embedUrlFromReplayPage(embedUrl)?.type ??
+                  replay.embedType ??
+                  null,
+              }
+            : {
+                pageUrl: candidate.pageUrl,
+                streamUrl: null,
+                streamContentType: null,
+                title: candidate.title,
+                description: null,
+                sourceStatus: 200,
+                sourceCode: "embedded-official-source",
+                embedUrl,
+                embedType: embedUrlFromReplayPage(embedUrl)?.type ?? null,
+              },
+        };
+      })
   );
+  return resolved.filter(
+    (video): video is ResolvedPreviousRaceVideo => video !== null
+  );
+}
+
+function replayEmbedUrl(
+  replay: ResolvedRaceReplay | null,
+  officialUrl: string
+) {
+  for (const candidate of [
+    replay?.embedUrl,
+    replay?.pageUrl,
+    replay?.streamUrl,
+    officialUrl,
+  ]) {
+    const embed = embedUrlFromReplayPage(candidate);
+    if (embed) return embed.embedUrl;
+  }
+  return null;
 }
 
 function upsertPreviousVideoCandidate(
@@ -741,13 +797,7 @@ function PreviousRaceVideoSection({
                 raceLabel={video.raceLabel}
                 raceTimeLabel={formatRaceDetailTime(video.date)}
               />
-            ) : (
-              <OfficialReplaySource
-                officialUrl={video.pageUrl}
-                title={video.title ?? video.raceName ?? "Race replay"}
-                raceTimeLabel={formatRaceDetailTime(video.date)}
-              />
-            )}
+            ) : null}
             </article>
           );
         })}
@@ -827,7 +877,7 @@ function ReplayEmbed({
           className="absolute inset-0 h-full w-full border-0"
           loading="lazy"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          referrerPolicy="no-referrer"
+          referrerPolicy="strict-origin-when-cross-origin"
           sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
           allowFullScreen
         />
@@ -859,7 +909,7 @@ function OfficialReplaySource({
 }) {
   return (
     <section className="race-panel p-5">
-      <p className="program-label">Official race replay</p>
+      <p className="program-label">Replay source</p>
       <h2 className="mt-1 text-[16px] font-semibold tracking-[-0.02em] text-[hsl(var(--foreground))]">
         {title}
       </h2>
@@ -867,7 +917,7 @@ function OfficialReplaySource({
         {raceTimeLabel}
       </p>
       <p className="mt-3 text-sm leading-6 text-[hsl(var(--muted-foreground))]">
-        This provider supplies its replay on the official website.
+        An in-site player is not available for this replay source.
       </p>
       <OfficialReplayLink officialUrl={officialUrl} />
     </section>

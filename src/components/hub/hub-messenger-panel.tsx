@@ -182,11 +182,7 @@ export function HubMessengerPanel({
           Find people
         </h2>
         <AddFriendSearch
-          excludeProfileIds={[
-            selfProfileId,
-            ...friends.map((friend) => friend.profileId),
-            ...requests.map((request) => request.profileId),
-          ]}
+          excludeProfileIds={[selfProfileId]}
         />
       </section>
     </div>

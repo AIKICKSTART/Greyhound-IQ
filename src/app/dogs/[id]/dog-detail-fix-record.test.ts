@@ -7,6 +7,10 @@ const pedigree = readFileSync(
   join(__dirname, "../../../components/pedigree-chart.tsx"),
   "utf8",
 );
+const tree = readFileSync(
+  join(__dirname, "../../../components/pedigree-tree.tsx"),
+  "utf8",
+);
 const queries = readFileSync(join(__dirname, "../../../lib/queries.ts"), "utf8");
 
 assert.ok(page.includes('label: "Prize Money"'));
@@ -59,20 +63,20 @@ for (const field of [
 }
 
 assert.ok(pedigree.includes('generations = 5'));
-assert.ok(pedigree.includes('lineage === "sire"'));
-assert.ok(pedigree.includes('before:bg-[hsl(var(--secondary))]'));
-assert.ok(pedigree.includes('before:bg-[hsl(var(--primary-bright))]'));
-assert.ok(pedigree.includes('min-w-[448px]'));
-assert.ok(pedigree.includes('lg:min-w-[1008px]'));
-assert.ok(pedigree.includes('w-[84px] lg:w-[180px]'));
-assert.ok(pedigree.includes('w-[96px] lg:w-[220px]'));
-assert.ok(pedigree.includes('generation === 0'));
-assert.ok(pedigree.includes('min-h-[64px]'));
-assert.ok(pedigree.includes('min-h-[56px]'));
-assert.ok(pedigree.includes('min-h-[52px]'));
-assert.ok(pedigree.includes('min-h-[48px]'));
+assert.ok(pedigree.includes('PedigreeTree'));
 assert.ok(pedigree.includes('giq-pedigree-heading'));
-assert.ok(pedigree.includes('var(--metal-silver)/0.35'));
 assert.ok(pedigree.includes('overflow-x-auto'));
+// Interactive tree: lineage-tinted branches, mobile focus window, drill chips.
+assert.ok(tree.includes('lineage === "sire"'));
+assert.ok(tree.includes('hsl(var(--secondary) / 0.8)'));
+assert.ok(tree.includes('hsl(var(--primary-bright) / 0.8)'));
+assert.ok(tree.includes('DESKTOP_DEPTH = 4'));
+assert.ok(tree.includes('MOBILE_DEPTH = 2'));
+assert.ok(tree.includes('min-h-[64px]'));
+assert.ok(tree.includes('w-[104px] lg:w-[220px]'));
+assert.ok(tree.includes('min-width: 1024px'));
+assert.ok(tree.includes('ResizeObserver'));
+assert.ok(tree.includes('prefers-reduced-motion'));
+assert.ok(tree.includes('Lineage trail'));
 
 console.log("dog detail fix-record contract passed");

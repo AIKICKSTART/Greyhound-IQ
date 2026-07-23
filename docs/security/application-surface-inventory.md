@@ -21,8 +21,8 @@ The tested inventories bind 103 page routes, 111 route-handler methods, 82 serve
 
 | Requirement ID | Decision | Members | Boundary, justification, or known gap |
 |---|---|---:|---|
-| `security.architecture-application-surface.public-route` | Verified | 70 | Every Next.js page and route-handler method that permits an anonymous request according to the tested page and OpenAPI authentication registries. |
-| `security.architecture-application-surface.authenticated-route` | Verified | 144 | Every Next.js page and route-handler method that requires a user, provider, internal, or signed-query identity according to the tested registries. |
+| `security.architecture-application-surface.public-route` | Verified | 71 | Every Next.js page and route-handler method that permits an anonymous request according to the tested page and OpenAPI authentication registries. |
+| `security.architecture-application-surface.authenticated-route` | Verified | 143 | Every Next.js page and route-handler method that requires a user, provider, internal, or signed-query identity according to the tested registries. |
 | `security.architecture-application-surface.dynamic-route` | Verified | 71 | Every registered page or route-handler path with a dynamic segment. |
 | `security.architecture-application-surface.administration-route` | Verified | 32 | Every registered administrator page route. Administrator server actions remain separately covered by server-action discovery. |
 | `security.architecture-application-surface.api-route` | Verified | 109 | Every exported HTTP method below /api/. |

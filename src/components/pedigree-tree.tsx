@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, ChevronLeft, GitBranch } from "lucide-react";
+import { ChevronLeft, GitBranch } from "lucide-react";
 import Link from "next/link";
 import {
   useCallback,
@@ -383,29 +383,17 @@ function TreeCard({
 
   const body = (
     <>
-      <span className="flex items-start justify-between gap-1">
-        <span
-          className={[
-            "min-w-0 truncate font-medium tracking-[-0.01em]",
-            isRoot ? "text-[14px] font-semibold" : "text-[12px] lg:text-[13px]",
-            isUnknown
-              ? "text-[hsl(var(--subtle-foreground))]"
-              : "text-[hsl(var(--foreground))]",
-          ].join(" ")}
-          title={node.name}
-        >
-          {node.name}
-        </span>
-        {node.id && !isUnknown && (
-          <Link
-            href={`/dogs/${node.id}`}
-            aria-label={`Open ${node.name}'s profile`}
-            onClick={(event) => event.stopPropagation()}
-            className="shrink-0 rounded p-0.5 text-[hsl(var(--subtle-foreground))] transition-colors hover:text-[hsl(var(--primary-bright))] focus-visible:outline-2 focus-visible:outline-[hsl(var(--primary-bright))]"
-          >
-            <ArrowUpRight className="h-3 w-3" />
-          </Link>
-        )}
+      <span
+        className={[
+          "block truncate font-medium tracking-[-0.01em]",
+          isRoot ? "text-[14px] font-semibold" : "text-[12px] lg:text-[13px]",
+          isUnknown
+            ? "text-[hsl(var(--subtle-foreground))]"
+            : "text-[hsl(var(--foreground))]",
+        ].join(" ")}
+        title={node.name}
+      >
+        {node.name}
       </span>
       {meta && (
         <span className="mt-0.5 block truncate text-[10px] tabular-nums text-[hsl(var(--subtle-foreground))] lg:text-[11px]">
@@ -425,7 +413,24 @@ function TreeCard({
           </span>
         )}
         {canDrill && (
-          <span className="inline-flex items-center gap-0.5 rounded-sm bg-[hsl(var(--primary)/0.16)] px-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-[hsl(var(--primary-bright))]">
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={`Explore ${node.name}'s lineage, ${hiddenDepth} more generation${hiddenDepth === 1 ? "" : "s"} recorded`}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onFocus(node, path);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                event.stopPropagation();
+                onFocus(node, path);
+              }
+            }}
+            className="inline-flex min-h-6 cursor-pointer items-center gap-0.5 rounded-sm bg-[hsl(var(--primary)/0.16)] px-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-[hsl(var(--primary-bright))] transition-colors hover:bg-[hsl(var(--primary)/0.3)] focus-visible:outline-2 focus-visible:outline-[hsl(var(--primary-bright))]"
+          >
             <GitBranch className="h-2.5 w-2.5" /> +{hiddenDepth} gen{hiddenDepth === 1 ? "" : "s"}
           </span>
         )}
@@ -434,7 +439,7 @@ function TreeCard({
   );
 
   const surface = [
-    "relative w-full min-h-[64px] rounded-[10px] border px-2.5 py-1.5 text-left lg:px-4 lg:py-2",
+    "relative flex w-full min-h-[64px] flex-col justify-center rounded-[10px] border px-2.5 py-1.5 text-left lg:px-4 lg:py-2",
     "motion-safe:animate-[giq-page-in_0.45s_cubic-bezier(0.16,1,0.3,1)_both]",
     "transition-[transform,border-color,background-color,box-shadow] duration-200",
     isUnknown
@@ -447,29 +452,24 @@ function TreeCard({
             accent,
           ].join(" "),
     isLineBred ? "ring-1 ring-[hsl(var(--secondary)/0.75)] shadow-[0_0_16px_-6px_hsl(var(--secondary)/0.7)]" : "",
-    canDrill
-      ? "cursor-pointer motion-safe:hover:-translate-y-0.5 hover:border-[hsl(var(--primary-bright)/0.5)] hover:bg-[hsl(var(--foreground)/0.06)]"
+    node.id && !isUnknown
+      ? "motion-safe:hover:-translate-y-0.5 hover:border-[hsl(var(--primary-bright)/0.5)] hover:bg-[hsl(var(--foreground)/0.06)]"
       : "",
   ].join(" ");
 
-  if (canDrill) {
+  // The whole card opens the dog's stats page; exploring deeper lineage is the
+  // +N gens chip so a raced ancestor is always one tap from its record.
+  if (node.id && !isUnknown) {
     return (
-      <div
-        ref={setRef}
-        role="button"
-        tabIndex={0}
-        aria-label={`Explore ${node.name}'s lineage, ${hiddenDepth} more generation${hiddenDepth === 1 ? "" : "s"} recorded`}
-        onClick={() => onFocus(node, path)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onFocus(node, path);
-          }
-        }}
-        style={{ animationDelay: `${Math.min(generation, 5) * 70}ms` }}
-        className={`${surface} flex flex-col justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-bright))]`}
-      >
-        {body}
+      <div ref={setRef} className="w-full">
+        <Link
+          href={`/dogs/${node.id}`}
+          aria-label={`Open ${node.name}'s stats page`}
+          style={{ animationDelay: `${Math.min(generation, 5) * 70}ms` }}
+          className={`${surface} block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-bright))]`}
+        >
+          {body}
+        </Link>
       </div>
     );
   }
@@ -478,7 +478,7 @@ function TreeCard({
     <div
       ref={setRef}
       style={{ animationDelay: `${Math.min(generation, 5) * 70}ms` }}
-      className={`${surface} flex flex-col justify-center`}
+      className={surface}
     >
       {body}
     </div>

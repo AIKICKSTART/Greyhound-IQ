@@ -13,6 +13,15 @@ interface PedigreeChartProps {
   generations?: number;
 }
 
+const GENERATION_LABELS = [
+  "Subject",
+  "Parents",
+  "Grandparents",
+  "3rd generation",
+  "4th generation",
+  "5th generation",
+];
+
 /**
  * Horizontal pedigree chart. The subject stays compact at the left while each
  * fixed-width ancestor generation branches rightward inside a contained scroller.
@@ -36,16 +45,19 @@ export function PedigreeChart({ root, generations = 5 }: PedigreeChartProps) {
         </h3>
         <div className="flex shrink-0 items-center gap-3 text-[11px] tracking-[-0.01em] text-[hsl(var(--subtle-foreground))]">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[hsl(var(--secondary))]" /> Sire line
+            <span className="h-2 w-2 rounded-full bg-[hsl(var(--secondary))] shadow-[0_0_6px_hsl(var(--secondary)/0.8)]" />{" "}
+            Sire line
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[hsl(var(--primary-bright))]" /> Dam line
+            <span className="h-2 w-2 rounded-full bg-[hsl(var(--primary-bright))] shadow-[0_0_6px_hsl(var(--primary-bright)/0.8)]" />{" "}
+            Dam line
           </span>
         </div>
       </div>
 
-      <div className="max-w-full touch-pan-x overflow-x-auto overscroll-x-contain pb-3">
+      <div className="max-w-full touch-pan-x overflow-x-auto overscroll-x-contain pb-3 [mask-image:linear-gradient(to_right,transparent,black_10px,black_calc(100%-10px),transparent)]">
         <div className="w-[448px] min-w-[448px] pr-1 lg:w-max lg:min-w-[1008px]">
+          <GenerationRail generations={generations} />
           <Branch
             node={root}
             depth={generations - 1}
@@ -60,6 +72,31 @@ export function PedigreeChart({ root, generations = 5 }: PedigreeChartProps) {
         <LineBreedingDetail ancestors={analysis.commonAncestors} />
       )}
     </section>
+  );
+}
+
+// Column captions above the tree (desktop only — mobile keeps every pixel for
+// the cards). Widths mirror the Branch layout: 180px subject column, then
+// 220px ancestor columns separated by the 56px connector gutter.
+function GenerationRail({ generations }: { generations: number }) {
+  const labels = GENERATION_LABELS.slice(
+    0,
+    Math.min(generations, GENERATION_LABELS.length - 1) + 1,
+  );
+  return (
+    <div aria-hidden className="mb-3 hidden lg:flex">
+      {labels.map((label, i) => (
+        <p
+          key={label}
+          className={[
+            "shrink-0 border-b border-[hsl(var(--border-subtle))] pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[hsl(var(--subtle-foreground))]",
+            i === 0 ? "w-[180px]" : "ml-[56px] w-[220px]",
+          ].join(" ")}
+        >
+          {label}
+        </p>
+      ))}
+    </div>
   );
 }
 
@@ -84,6 +121,15 @@ function PedigreeSummaryBar({ analysis }: { analysis: PedigreeAnalysis }) {
         <p className="text-[26px] font-semibold leading-none tabular-nums tracking-[-0.02em] text-[hsl(var(--foreground))]">
           {completeness.pct}%
         </p>
+        <div
+          className="mt-3 h-1.5 overflow-hidden rounded-full bg-[hsl(var(--foreground)/0.08)]"
+          role="presentation"
+        >
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-[hsl(var(--secondary))] via-[hsl(var(--secondary-light))] to-[hsl(var(--primary-bright))] shadow-[0_0_8px_hsl(var(--primary-bright)/0.5)]"
+            style={{ width: `${Math.max(completeness.pct, 2)}%` }}
+          />
+        </div>
         <p className="mt-2 text-[11px] tabular-nums text-[hsl(var(--muted-foreground))]">
           {completeness.filled} of {completeness.total} slots · {completeness.generations} gens
         </p>
@@ -94,7 +140,7 @@ function PedigreeSummaryBar({ analysis }: { analysis: PedigreeAnalysis }) {
         {strongest ? (
           <>
             <p className="flex items-center gap-2 text-[15px] font-semibold leading-tight tracking-[-0.015em] text-[hsl(var(--primary-bright))]">
-              <span className="inline-flex h-2 w-2 rounded-full bg-[hsl(var(--primary-bright))]" />
+              <span className="inline-flex h-2 w-2 rounded-full bg-[hsl(var(--primary-bright))] shadow-[0_0_8px_hsl(var(--primary-bright)/0.8)]" />
               {commonAncestors.length} shared{" "}
               {commonAncestors.length === 1 ? "ancestor" : "ancestors"}
             </p>
@@ -140,7 +186,7 @@ function PedigreeSummaryBar({ analysis }: { analysis: PedigreeAnalysis }) {
                 {topEarner.name}
               </p>
             )}
-            <p className="mt-2 text-[11px] tabular-nums text-[hsl(var(--secondary-light))]">
+            <p className="mt-2 text-[11px] font-semibold tabular-nums text-[hsl(var(--secondary-light))]">
               {compactMoneyFull(topEarner.prizeMoney)}
             </p>
           </>
@@ -192,6 +238,14 @@ function LineBredRow({ ancestor }: { ancestor: CommonAncestor }) {
 
 type Lineage = "root" | "sire" | "dam";
 
+// Connector tints: each branch stub fades from neutral silver at the parent
+// spine into its lineage colour at the card, so the eye can trace a line
+// without reading a single label.
+const STUB_TINT: Record<Exclude<Lineage, "root">, string> = {
+  sire: "before:bg-gradient-to-r before:from-[hsl(var(--metal-silver)/0.28)] before:to-[hsl(var(--secondary)/0.75)]",
+  dam: "before:bg-gradient-to-r before:from-[hsl(var(--metal-silver)/0.28)] before:to-[hsl(var(--primary-bright)/0.75)]",
+};
+
 function Branch({
   node,
   depth,
@@ -212,7 +266,7 @@ function Branch({
       className={`relative flex items-stretch ${
         lineage === "root"
           ? ""
-          : "before:absolute before:-left-2 before:top-1/2 before:h-[2px] before:w-2 before:bg-[hsl(var(--metal-silver)/0.42)] before:content-[''] lg:before:-left-7 lg:before:w-7"
+          : `before:absolute before:-left-2 before:top-1/2 before:h-[2px] before:w-2 before:rounded-full before:content-[''] lg:before:-left-7 lg:before:w-7 ${STUB_TINT[lineage]}`
       }`}
     >
       <div
@@ -234,11 +288,11 @@ function Branch({
         <div className="relative ml-2 flex flex-col justify-center gap-2 pl-2 lg:ml-7 lg:pl-7">
           <span
             aria-hidden
-            className="absolute -left-2 top-1/2 h-[2px] w-2 bg-[hsl(var(--metal-silver)/0.42)] lg:-left-7 lg:w-7"
+            className="absolute -left-2 top-1/2 h-[2px] w-2 rounded-full bg-[hsl(var(--metal-silver)/0.35)] lg:-left-7 lg:w-7"
           />
           <span
             aria-hidden
-            className="absolute left-0 top-1/4 bottom-1/4 w-[2px] bg-[hsl(var(--metal-silver)/0.42)]"
+            className="absolute left-0 top-1/4 bottom-1/4 w-[2px] rounded-full bg-gradient-to-b from-[hsl(var(--secondary)/0.55)] via-[hsl(var(--metal-silver)/0.3)] to-[hsl(var(--primary-bright)/0.55)]"
           />
           <Branch
             node={node.sire ?? UNKNOWN}
@@ -305,6 +359,7 @@ function NodeCard({
   const isUnknown = node.name === "Unknown" && !node.id;
   const key = isUnknown ? null : nodeKey(node);
   const isLineBred = key != null && highlightKeys.has(key);
+  const isRoot = lineage === "root";
   const mobileHeight =
     generation === 0
       ? "min-h-[64px]"
@@ -315,8 +370,8 @@ function NodeCard({
           : "min-h-[48px]";
   const accent =
     lineage === "sire"
-      ? "before:bg-[hsl(var(--secondary))]"
-      : "before:bg-[hsl(var(--primary-bright))]";
+      ? "before:bg-[hsl(var(--secondary))] before:shadow-[0_0_8px_hsl(var(--secondary)/0.55)] hover:border-[hsl(var(--secondary)/0.45)]"
+      : "before:bg-[hsl(var(--primary-bright))] before:shadow-[0_0_8px_hsl(var(--primary-bright)/0.55)] hover:border-[hsl(var(--primary-bright)/0.45)]";
 
   const meta = [node.colour, node.whelpYear ? String(node.whelpYear) : null]
     .filter(Boolean)
@@ -325,20 +380,29 @@ function NodeCard({
 
   const inner = (
     <div
+      style={{ animationDelay: `${Math.min(generation, 5) * 70}ms` }}
       className={[
-        `relative flex ${mobileHeight} w-full flex-col justify-center rounded-[8px] border px-2 py-1.5 pl-3 transition-colors lg:min-h-[64px] lg:px-4 lg:py-2 lg:pl-5`,
-        "before:absolute before:bottom-2 before:left-2 before:top-2 before:w-[3px] before:rounded-full before:content-['']",
+        `relative flex ${mobileHeight} w-full flex-col justify-center rounded-[10px] border px-2 py-1.5 pl-3 lg:min-h-[64px] lg:px-4 lg:py-2 lg:pl-5`,
+        "motion-safe:animate-[giq-page-in_0.45s_cubic-bezier(0.16,1,0.3,1)_both]",
+        "transition-[transform,border-color,background-color,box-shadow] duration-200 motion-safe:hover:-translate-y-0.5",
         isUnknown
-          ? "border-dashed border-[hsl(var(--border-subtle))] before:bg-[hsl(var(--border))]"
-          : `border-[hsl(var(--border))] bg-[hsl(var(--foreground)/0.025)] hover:bg-[hsl(var(--foreground)/0.05)] ${accent}`,
+          ? "border-dashed border-[hsl(var(--border-subtle))] bg-[repeating-linear-gradient(135deg,transparent,transparent_6px,hsl(var(--foreground)/0.02)_6px,hsl(var(--foreground)/0.02)_7px)]"
+          : isRoot
+            ? "border-[hsl(var(--secondary)/0.45)] bg-[linear-gradient(135deg,hsl(var(--secondary)/0.1),hsl(var(--primary)/0.12)_55%,hsl(var(--foreground)/0.03))] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08),0_10px_28px_-18px_hsl(var(--primary-bright)/0.6)]"
+            : [
+                "before:absolute before:bottom-2 before:left-2 before:top-2 before:w-[3px] before:rounded-full before:content-['']",
+                "border-[hsl(var(--border))] bg-[linear-gradient(135deg,hsl(var(--foreground)/0.05),hsl(var(--foreground)/0.015)_65%)] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.05)] hover:bg-[hsl(var(--foreground)/0.06)] hover:shadow-[0_8px_20px_-14px_hsl(0_0%_0%/0.8)]",
+                accent,
+              ].join(" "),
         isLineBred
-          ? "ring-1 ring-[hsl(var(--primary-bright)/0.65)] ring-offset-1 ring-offset-[hsl(var(--card))]"
+          ? "ring-1 ring-[hsl(var(--secondary)/0.75)] shadow-[0_0_16px_-6px_hsl(var(--secondary)/0.7)]"
           : "",
       ].join(" ")}
     >
       <p
         className={[
-          "truncate text-[13px] font-medium tracking-[-0.01em]",
+          "truncate font-medium tracking-[-0.01em]",
+          isRoot ? "text-[14px] font-semibold" : "text-[13px]",
           isUnknown
             ? "text-[hsl(var(--subtle-foreground))]"
             : "text-[hsl(var(--foreground))]",
@@ -353,13 +417,14 @@ function NodeCard({
         </p>
       )}
       {performance && (
-        <p className="mt-0.5 truncate text-[10px] font-medium tabular-nums text-[hsl(var(--primary-bright)/0.85)]">
+        <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] font-semibold tabular-nums text-[hsl(var(--secondary-light))]">
+          <span aria-hidden className="inline-block h-1 w-1 shrink-0 rounded-full bg-[hsl(var(--secondary))]" />
           {performance}
         </p>
       )}
       {isLineBred && (
         <div className="mt-0.5 flex flex-wrap gap-1">
-          <span className="rounded-sm bg-[hsl(var(--primary-bright)/0.14)] px-1 text-[9px] font-semibold uppercase tracking-[0.04em] text-[hsl(var(--primary-bright))]">
+          <span className="rounded-sm bg-[hsl(var(--secondary)/0.16)] px-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-[hsl(var(--secondary-light))]">
             Line-bred
           </span>
         </div>
@@ -371,7 +436,7 @@ function NodeCard({
     return (
       <Link
         href={`/dogs/${node.id}`}
-        className="block w-full rounded-[8px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-bright))]"
+        className="block w-full rounded-[10px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-bright))]"
       >
         {inner}
       </Link>

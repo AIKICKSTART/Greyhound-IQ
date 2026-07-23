@@ -58,7 +58,7 @@ for (const field of [
   assert.ok(queries.includes(field), `${field} must be selected for Recent Form`);
 }
 
-assert.ok(pedigree.includes('generations = 4'));
+assert.ok(pedigree.includes('generations = 5'));
 assert.ok(pedigree.includes('lineage === "sire"'));
 assert.ok(pedigree.includes('before:bg-[hsl(var(--secondary))]'));
 assert.ok(pedigree.includes('before:bg-[hsl(var(--primary-bright))]'));
@@ -72,7 +72,7 @@ assert.ok(pedigree.includes('min-h-[56px]'));
 assert.ok(pedigree.includes('min-h-[52px]'));
 assert.ok(pedigree.includes('min-h-[48px]'));
 assert.ok(pedigree.includes('giq-pedigree-heading'));
-assert.ok(pedigree.includes('var(--metal-silver)/0.42'));
+assert.ok(pedigree.includes('var(--metal-silver)/0.35'));
 assert.ok(pedigree.includes('overflow-x-auto'));
 
 console.log("dog detail fix-record contract passed");

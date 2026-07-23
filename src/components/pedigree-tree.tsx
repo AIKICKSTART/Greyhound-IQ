@@ -21,6 +21,11 @@ interface PedigreeTreeProps {
   generations?: number;
   /** nodeKey values for line-bred ancestors, computed server-side. */
   highlightKeys: string[];
+  /** Live ancestor search: cards whose name matches glow, the rest dim. */
+  highlightQuery?: string;
+  /** Concept subtitle for a synthetic root (e.g. "Sire × Dam"). When set, the
+   *  root renders as a dashed-gold concept card rather than a dog. */
+  rootSubtitle?: string;
 }
 
 interface Edge {
@@ -55,8 +60,14 @@ const GENERATION_LABELS = [
  * re-roots the view into that line, with a breadcrumb trail back. The same
  * focus drill works on desktop above the full five-column spread.
  */
-export function PedigreeTree({ root, highlightKeys }: PedigreeTreeProps) {
+export function PedigreeTree({
+  root,
+  highlightKeys,
+  highlightQuery,
+  rootSubtitle,
+}: PedigreeTreeProps) {
   const highlights = useMemo(() => new Set(highlightKeys), [highlightKeys]);
+  const query = (highlightQuery ?? "").trim().toLowerCase();
   const [trail, setTrail] = useState<Crumb[]>([{ node: root, path: "r" }]);
   const [isDesktop, setIsDesktop] = useState(false);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -230,6 +241,8 @@ export function PedigreeTree({ root, highlightKeys }: PedigreeTreeProps) {
           generation={0}
           lineage="root"
           highlights={highlights}
+          query={query}
+          rootSubtitle={trail.length === 1 ? rootSubtitle : undefined}
           cardRefs={cardRefs}
           onFocus={focusNode}
         />
@@ -252,6 +265,8 @@ function TreeBranch({
   generation,
   lineage,
   highlights,
+  query,
+  rootSubtitle,
   cardRefs,
   onFocus,
 }: {
@@ -261,6 +276,8 @@ function TreeBranch({
   generation: number;
   lineage: Lineage;
   highlights: ReadonlySet<string>;
+  query: string;
+  rootSubtitle?: string;
   cardRefs: MutableRefObject<Map<string, HTMLDivElement>>;
   onFocus: (node: PedigreeNode, path: string) => void;
 }) {
@@ -280,6 +297,8 @@ function TreeBranch({
           lineage={lineage}
           hiddenDepth={depth === 0 ? Math.max(subtreeDepth(node) - 1, 0) : 0}
           highlights={highlights}
+          query={query}
+          rootSubtitle={rootSubtitle}
           cardRefs={cardRefs}
           onFocus={onFocus}
         />
@@ -294,6 +313,7 @@ function TreeBranch({
             generation={generation + 1}
             lineage="sire"
             highlights={highlights}
+            query={query}
             cardRefs={cardRefs}
             onFocus={onFocus}
           />
@@ -304,6 +324,7 @@ function TreeBranch({
             generation={generation + 1}
             lineage="dam"
             highlights={highlights}
+            query={query}
             cardRefs={cardRefs}
             onFocus={onFocus}
           />
@@ -348,6 +369,8 @@ function TreeCard({
   lineage,
   hiddenDepth,
   highlights,
+  query,
+  rootSubtitle,
   cardRefs,
   onFocus,
 }: {
@@ -358,6 +381,8 @@ function TreeCard({
   /** Generations recorded beneath this node but outside the visible window. */
   hiddenDepth: number;
   highlights: ReadonlySet<string>;
+  query: string;
+  rootSubtitle?: string;
   cardRefs: MutableRefObject<Map<string, HTMLDivElement>>;
   onFocus: (node: PedigreeNode, path: string) => void;
 }) {
@@ -365,6 +390,13 @@ function TreeCard({
   const key = isUnknown ? null : nodeKey(node);
   const isLineBred = key != null && highlights.has(key);
   const isRoot = lineage === "root";
+  const isConceptRoot = isRoot && rootSubtitle != null;
+  const isSearchMatch =
+    query.length > 0 &&
+    !isUnknown &&
+    !isConceptRoot &&
+    node.name.toLowerCase().includes(query);
+  const isDimmed = query.length > 0 && !isSearchMatch && !isConceptRoot;
   const canDrill = hiddenDepth > 0 && !isUnknown;
 
   const accent =
@@ -389,12 +421,19 @@ function TreeCard({
           isRoot ? "text-[14px] font-semibold" : "text-[12px] lg:text-[13px]",
           isUnknown
             ? "text-[hsl(var(--subtle-foreground))]"
-            : "text-[hsl(var(--foreground))]",
+            : isConceptRoot
+              ? "text-[hsl(var(--secondary-light))]"
+              : "text-[hsl(var(--foreground))]",
         ].join(" ")}
         title={node.name}
       >
         {node.name}
       </span>
+      {isConceptRoot && (
+        <span className="mt-0.5 block truncate text-[11px] tracking-[-0.01em] text-[hsl(var(--muted-foreground))]">
+          {rootSubtitle}
+        </span>
+      )}
       {meta && (
         <span className="mt-0.5 block truncate text-[10px] tabular-nums text-[hsl(var(--subtle-foreground))] lg:text-[11px]">
           {meta}
@@ -413,26 +452,14 @@ function TreeCard({
           </span>
         )}
         {canDrill && (
-          <span
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
             aria-label={`Explore ${node.name}'s lineage, ${hiddenDepth} more generation${hiddenDepth === 1 ? "" : "s"} recorded`}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onFocus(node, path);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                event.stopPropagation();
-                onFocus(node, path);
-              }
-            }}
-            className="inline-flex min-h-6 cursor-pointer items-center gap-0.5 rounded-sm bg-[hsl(var(--primary)/0.16)] px-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-[hsl(var(--primary-bright))] transition-colors hover:bg-[hsl(var(--primary)/0.3)] focus-visible:outline-2 focus-visible:outline-[hsl(var(--primary-bright))]"
+            onClick={() => onFocus(node, path)}
+            className="relative z-[2] inline-flex min-h-6 cursor-pointer items-center gap-0.5 rounded-sm bg-[hsl(var(--primary)/0.16)] px-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-[hsl(var(--primary-bright))] transition-colors hover:bg-[hsl(var(--primary)/0.3)] focus-visible:outline-2 focus-visible:outline-[hsl(var(--primary-bright))]"
           >
             <GitBranch className="h-2.5 w-2.5" /> +{hiddenDepth} gen{hiddenDepth === 1 ? "" : "s"}
-          </span>
+          </button>
         )}
       </span>
     </>
@@ -441,35 +468,45 @@ function TreeCard({
   const surface = [
     "relative flex w-full min-h-[64px] flex-col justify-center rounded-[10px] border px-2.5 py-1.5 text-left lg:px-4 lg:py-2",
     "motion-safe:animate-[giq-page-in_0.45s_cubic-bezier(0.16,1,0.3,1)_both]",
-    "transition-[transform,border-color,background-color,box-shadow] duration-200",
+    "transition-[transform,border-color,background-color,box-shadow,opacity] duration-200",
     isUnknown
       ? "border-dashed border-[hsl(var(--border-subtle))] bg-[repeating-linear-gradient(135deg,transparent,transparent_6px,hsl(var(--foreground)/0.02)_6px,hsl(var(--foreground)/0.02)_7px)]"
-      : isRoot
-        ? "border-[hsl(var(--secondary)/0.45)] bg-[linear-gradient(135deg,hsl(var(--secondary)/0.1),hsl(var(--primary)/0.12)_55%,hsl(var(--foreground)/0.03))] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08),0_10px_28px_-18px_hsl(var(--primary-bright)/0.6)] pl-3 lg:pl-5"
-        : [
-            "before:absolute before:bottom-2 before:left-1.5 before:top-2 before:w-[3px] before:rounded-full before:content-[''] pl-3.5 lg:pl-5",
-            "border-[hsl(var(--border))] bg-[linear-gradient(135deg,hsl(var(--foreground)/0.05),hsl(var(--foreground)/0.015)_65%)] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.05)]",
-            accent,
-          ].join(" "),
-    isLineBred ? "ring-1 ring-[hsl(var(--secondary)/0.75)] shadow-[0_0_16px_-6px_hsl(var(--secondary)/0.7)]" : "",
+      : isConceptRoot
+        ? "border-dashed border-[hsl(var(--secondary)/0.6)] bg-[linear-gradient(135deg,hsl(var(--secondary)/0.12),hsl(var(--secondary)/0.03))] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.06),0_10px_28px_-18px_hsl(var(--secondary)/0.55)] pl-3 lg:pl-5"
+        : isRoot
+          ? "border-[hsl(var(--secondary)/0.45)] bg-[linear-gradient(135deg,hsl(var(--secondary)/0.1),hsl(var(--primary)/0.12)_55%,hsl(var(--foreground)/0.03))] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08),0_10px_28px_-18px_hsl(var(--primary-bright)/0.6)] pl-3 lg:pl-5"
+          : [
+              "before:absolute before:bottom-2 before:left-1.5 before:top-2 before:w-[3px] before:rounded-full before:content-[''] pl-3.5 lg:pl-5",
+              "border-[hsl(var(--border))] bg-[linear-gradient(135deg,hsl(var(--foreground)/0.05),hsl(var(--foreground)/0.015)_65%)] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.05)]",
+              accent,
+            ].join(" "),
+    isSearchMatch
+      ? "ring-2 ring-[hsl(var(--primary-bright))] shadow-[0_0_18px_-4px_hsl(var(--primary-bright)/0.85)]"
+      : isLineBred
+        ? "ring-1 ring-[hsl(var(--secondary)/0.75)] shadow-[0_0_16px_-6px_hsl(var(--secondary)/0.7)]"
+        : "",
+    isDimmed ? "opacity-40" : "",
     node.id && !isUnknown
       ? "motion-safe:hover:-translate-y-0.5 hover:border-[hsl(var(--primary-bright)/0.5)] hover:bg-[hsl(var(--foreground)/0.06)]"
       : "",
   ].join(" ");
 
-  // The whole card opens the dog's stats page; exploring deeper lineage is the
-  // +N gens chip so a raced ancestor is always one tap from its record.
+  // The whole card opens the dog's stats page via a stretched overlay link
+  // (keeps the drill chip a REAL button rather than nesting controls), so a
+  // raced ancestor is always one tap from its record.
   if (node.id && !isUnknown) {
     return (
-      <div ref={setRef} className="w-full">
+      <div
+        ref={setRef}
+        style={{ animationDelay: `${Math.min(generation, 5) * 70}ms` }}
+        className={surface}
+      >
+        {body}
         <Link
           href={`/dogs/${node.id}`}
           aria-label={`Open ${node.name}'s stats page`}
-          style={{ animationDelay: `${Math.min(generation, 5) * 70}ms` }}
-          className={`${surface} block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-bright))]`}
-        >
-          {body}
-        </Link>
+          className="absolute inset-0 z-[1] rounded-[10px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-bright))]"
+        />
       </div>
     );
   }

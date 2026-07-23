@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "auditKind": "account-deletion-finalize-disposable-proof",
-  "generatedAt": "2026-07-18T12:28:15.112Z",
+  "generatedAt": "2026-07-23T10:21:54.867Z",
   "safety": {
     "scope": "literal-loopback-disposable-replay-only",
     "host": "127.0.0.1",
@@ -22,7 +22,7 @@
   },
   "sourceBinding": {
     "files": {
-      "prisma/schema.prisma": "9395ca8a01f7e640e8c26f23f6d13e9d4ad0d3066cb92a143a06ca0176888873",
+      "prisma/schema.prisma": "c8847698e08907d29859a0e6be2142a7946b3d9cb998bfe4f5d343c383dfc3b8",
       "prisma/migrations/20260708190000_add_rls_remaining_tables/migration.sql": "fa5bfc9f92c3dcc0d7d04110b58e2686d616328f6e0b7123ad24a94311a5104d",
       "prisma/migrations/20260715053000_add_account_deletion_pending_index/migration.sql": "a6052fc820a613128afec7457724c4fb0f0311ea07b2d9cdd8fdf87b6eb4ad11",
       "scripts/check-account-deletion-finalize-postgres.ts": "2b1e3e2cbcc8835e4390644014bef3a0958325b67640993fdfd0eb43b3a09a59",
@@ -33,7 +33,7 @@
       "src/lib/db-context.ts": "8938fe39f6c721f570847854e053653b73027c81082853912bf81be6b892295d",
       "src/lib/db.ts": "b11f3357d3daea521e825d8483b4bb8050c8c7d059e2aa311f1788b1b09d9035"
     },
-    "combinedSha256": "8d68060482179cfb799065a573600f3ac0de23fab68e64dea0314d367d66b863"
+    "combinedSha256": "502eff9b26bec48da977b095af7d10a8fcf2ddb06cc3d6a9f19412fed29d7afc"
   },
   "proof": {
     "queryId": "DB.ACCOUNT.DELETION.FINALIZE.TRANSACTION",
@@ -349,8 +349,8 @@
         "variant": "finalize-07",
         "observedSql": {
           "statementType": "UPDATE",
-          "normalizedSql": "UPDATE \"public\".\"Profile\" SET \"displayName\" = $1, \"bio\" = $2, \"avatarUrl\" = $3, \"state\" = $4, \"kennelName\" = $5, \"kennelPrefix\" = $6, \"role\" = $7, \"verified\" = $8, \"website\" = $9, \"phone\" = $10, \"updatedAt\" = $11 WHERE (\"public\".\"Profile\".\"id\" = $12 AND 1=1) RETURNING \"public\".\"Profile\".\"id\", \"public\".\"Profile\".\"userId\", \"public\".\"Profile\".\"displayName\", \"public\".\"Profile\".\"bio\", \"public\".\"Profile\".\"avatarUrl\", \"public\".\"Profile\".\"state\", \"public\".\"Profile\".\"kennelName\", \"public\".\"Profile\".\"kennelPrefix\", \"public\".\"Profile\".\"role\", \"public\".\"Profile\".\"verified\", \"public\".\"Profile\".\"isFounder\", \"public\".\"Profile\".\"website\", \"public\".\"Profile\".\"phone\", \"public\".\"Profile\".\"createdAt\", \"public\".\"Profile\".\"updatedAt\"",
-          "sha256": "2c61a0081152bb43cee61c65142a4e41197c6d612130cf4a638a8ed3329bd560",
+          "normalizedSql": "UPDATE \"public\".\"Profile\" SET \"displayName\" = $1, \"bio\" = $2, \"avatarUrl\" = $3, \"state\" = $4, \"kennelName\" = $5, \"kennelPrefix\" = $6, \"role\" = $7, \"verified\" = $8, \"website\" = $9, \"phone\" = $10, \"updatedAt\" = $11 WHERE (\"public\".\"Profile\".\"id\" = $12 AND 1=1) RETURNING \"public\".\"Profile\".\"id\", \"public\".\"Profile\".\"userId\", \"public\".\"Profile\".\"displayName\", \"public\".\"Profile\".\"bio\", \"public\".\"Profile\".\"avatarUrl\", \"public\".\"Profile\".\"state\", \"public\".\"Profile\".\"kennelName\", \"public\".\"Profile\".\"kennelPrefix\", \"public\".\"Profile\".\"role\", \"public\".\"Profile\".\"verified\", \"public\".\"Profile\".\"isFounder\", \"public\".\"Profile\".\"racingDayTrackIds\", \"public\".\"Profile\".\"messengerLayout\", \"public\".\"Profile\".\"website\", \"public\".\"Profile\".\"phone\", \"public\".\"Profile\".\"createdAt\", \"public\".\"Profile\".\"updatedAt\"",
+          "sha256": "0a5761f7265f16377c290ab668ba5bd16a7e0e1bbd7fa16e5ab4a8420e8af0c3",
           "parameterCount": 12,
           "persistedParameterValues": false
         },
@@ -406,7 +406,7 @@
             "joinType": null,
             "scanDirection": null,
             "estimatedRows": 0,
-            "totalCost": 8.5,
+            "totalCost": 9.02,
             "children": [
               {
                 "nodeType": "Index Scan",
@@ -415,12 +415,12 @@
                 "joinType": null,
                 "scanDirection": "Forward",
                 "estimatedRows": 1,
-                "totalCost": 8.5,
+                "totalCost": 9.02,
                 "children": []
               }
             ]
           },
-          "planSha256": "e7aac3e0b03aacb936433ed8d9230c6b35e9361a6c2b8f21acf5fef596679fe1"
+          "planSha256": "950d04b2586f75a304ac16a08d2037192a2091f3c12a431a728804ef48262928"
         }
       },
       {

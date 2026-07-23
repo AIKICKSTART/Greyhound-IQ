@@ -63,7 +63,7 @@ const EXPECTED_PUBLIC_RACING_INTERACTIONS = {
       'name="evidence"',
       "<summary",
       "<PedigreeChart root={pedigree} />",
-      "<ReplayLink href={entry.replayHref}",
+      "replayHref={entry.replayHref}",
     ],
   },
   "/races/[id]": {
@@ -77,7 +77,8 @@ const EXPECTED_PUBLIC_RACING_INTERACTIONS = {
     ],
     forms: [],
     sourceAssertions: [
-      "<RaceReplayPlayer",
+      // Replay renders through canonical embeds/official-source links per the
+      // clarified replay delivery scope (contabo-master ledger, 2026-07-22).
       "<ReplayEmbed",
       "<RunnerRow",
       "href={`/dogs/${winner.dog.id}`}",
@@ -86,7 +87,9 @@ const EXPECTED_PUBLIC_RACING_INTERACTIONS = {
       "next={nextRaceTarget}",
       "meetingHref={buildRaceListReturnHref(listContext)}",
       "parseRaceListContext(detailSearchParams)",
-      'return parsed.protocol === "http:" || parsed.protocol === "https:"',
+      // URL scheme validation moved into the replay authority helpers
+      // (src/lib/live/race-replay.ts); the page must route through them.
+      "embedUrlFromReplayPage(",
     ],
   },
   "/meetings/[id]": {
@@ -288,7 +291,7 @@ for (const assertion of [
   'clientIp || "missing-forwarded-for"',
   "directorySearchQuerySchema.safeParse(",
   "queryParamsObject(searchParams)",
-  "const results = await searchDogs(query.data.q, 20);",
+  "const results = await searchDogs(query.data.q, query.data.limit, includeNonRacing);",
 ]) {
   assert.ok(
     dogSearchRouteSource.includes(assertion),

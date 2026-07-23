@@ -251,7 +251,7 @@ export const DEMO_SCREEN_FAMILIES: readonly DemoScreenFamily[] = [
           renderAssertions: [
             "Today&apos;s Races",
             "No meetings are available for this race day yet",
-            "Built for serious local racing users",
+            "Breeding Analytics",
           ],
         }),
       },

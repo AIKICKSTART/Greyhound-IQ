@@ -172,7 +172,7 @@ export async function createStripePortalSession({
   );
 }
 
-async function getOrCreateStripeCustomer(
+export async function getOrCreateStripeCustomer(
   current: StripeBillingUser,
   env: StripeCheckoutEnv
 ) {
@@ -209,6 +209,7 @@ async function getOrCreateStripeCustomer(
 type StripeMutationOperation =
   | "bespoke-checkout"
   | "billing-portal"
+  | "boost-checkout"
   | "subscription-checkout";
 
 export function stripeMutationOptions(

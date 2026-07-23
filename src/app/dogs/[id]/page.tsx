@@ -353,13 +353,17 @@ export default async function DogProfilePage({
         )
       )}
 
-      {/* Form table */}
-      <div className="giq-table-shell">
-        <div className="border-b border-white/[0.06] p-5">
+      {/* Form table — collapsible disclosure (DOG-DETAIL.ACTION.FORM.EXPAND) */}
+      <details open className="giq-table-shell group">
+        <summary className="flex cursor-pointer list-none items-center justify-between border-b border-white/[0.06] p-5 [&::-webkit-details-marker]:hidden">
           <h3 className="text-[15px] font-semibold text-[hsl(var(--foreground))] tracking-[-0.02em]">
             Recent Form
           </h3>
-        </div>
+          <ChevronRight
+            className="h-4 w-4 text-[hsl(var(--subtle-foreground))] transition-transform group-open:rotate-90"
+            aria-hidden="true"
+          />
+        </summary>
         <div className="divide-y divide-white/[0.06] lg:hidden">
           {recentForm.map((entry) => (
             <div
@@ -500,7 +504,7 @@ export default async function DogProfilePage({
             </tbody>
           </table>
         </div>
-      </div>
+      </details>
     </div>
   );
 }

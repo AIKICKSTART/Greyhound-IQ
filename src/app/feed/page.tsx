@@ -212,6 +212,7 @@ export default async function FeedPage({
     verified: false,
   };
   const isPro = hasTier(user.tier, "pro");
+  const isProPlus = hasTier(user.tier, "pro_plus");
   const ownedPages = await getOwnedPageIdentities(current);
   const identity = await getActiveIdentity(ownedPages);
   const activePage = identity.kind === "page" ? identity.page : null;
@@ -499,7 +500,7 @@ export default async function FeedPage({
               }))}
               conversations={conversationRows}
               canStartChat={!activePage || isPro}
-              canStartCall={isPro && !activePage}
+              canStartCall={isProPlus && !activePage}
               senderActorId={activeActor.id}
             />
           </div>

@@ -85,9 +85,9 @@ assert.doesNotMatch(
   /(?:from\s+["']node:|require\(["']node:)/,
 );
 
-assert.equal(DEMO_SCREEN_COUNT, 97);
-assert.equal(SCREEN_CONTRACTS.length, 97);
-assert.equal(new Set(SCREEN_CONTRACTS.map(({ route }) => route)).size, 97);
+assert.equal(DEMO_SCREEN_COUNT, 103);
+assert.equal(SCREEN_CONTRACTS.length, 103);
+assert.equal(new Set(SCREEN_CONTRACTS.map(({ route }) => route)).size, 103);
 
 const metadataFields = [
   "queryParameters",

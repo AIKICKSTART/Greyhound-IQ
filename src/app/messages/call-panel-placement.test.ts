@@ -3,33 +3,28 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const source = readFileSync(join(__dirname, "[id]", "page.tsx"), "utf8");
-const thread = source.indexOf(
-  '<section className="giq-social-thread-panel giq-panel">'
-);
-const priorityPanel = source.indexOf(
-  "{prioritizeCallPanel && callPanel}",
-  thread
-);
-const history = source.indexOf('<div className="space-y-4 p-5">', thread);
-const defaultPanel = source.indexOf(
-  "{!prioritizeCallPanel && callPanel}",
-  history
-);
 
-assert.ok(thread >= 0, "Pulse must render the conversation thread");
+// The conversation view consolidated onto the shared dock surface. The call
+// panel is reused as a banner, still gate-driven (Pro+ initiate) and only shown
+// when a call is active, ringing, or intended.
+assert.ok(
+  source.includes("<PulseThreadSurface"),
+  "Pulse thread must render the consolidated dock surface",
+);
+assert.ok(
+  source.includes("<ConversationCallPanel") &&
+    source.includes("canStartCall={canStartCall}"),
+  "The reused call panel must receive the server-derived entitlement",
+);
+assert.ok(
+  source.includes('hasTier(user.tier, "pro_plus")'),
+  "Starting a call must require Pro+",
+);
 assert.ok(
   source.includes(
-    "callableIntent !== null ||\n    activeCallRoom !== null ||\n    pendingCallInvite !== null"
+    "callableIntent !== null ||\n    activeCallRoom !== null ||\n    pendingCallInvite !== null",
   ),
-  "Direct call actions, active rooms, and pending invites must receive priority"
-);
-assert.ok(
-  priorityPanel > thread && priorityPanel < history,
-  "Priority call surfaces must render before message history"
-);
-assert.ok(
-  defaultPanel > history,
-  "Idle call controls must remain after message history"
+  "Direct call actions, active rooms, and pending invites must surface the call banner",
 );
 
 console.log("Pulse call panel placement tests passed");

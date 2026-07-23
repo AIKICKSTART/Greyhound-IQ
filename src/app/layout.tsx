@@ -247,7 +247,7 @@ export default async function RootLayout({
                 friends={friends}
                 requests={requests}
                 selfProfileId={user.profileId!}
-                canStartCall={hasTier(user.tier, "pro")}
+                canStartCall={hasTier(user.tier, "pro_plus")}
               />
             </>
           )}

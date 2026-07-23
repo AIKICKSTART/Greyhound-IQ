@@ -637,6 +637,16 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
         "friendshipId:loaded-incoming-request-id,response:decline",
       ),
       communityForm(
+        "FEED.FORM.DOCK-FRIEND-ACCEPT",
+        "SERVER ACTION respondToFriendRequestAction",
+        "friendshipId:loaded-incoming-request-id,response:accept",
+      ),
+      communityForm(
+        "FEED.FORM.DOCK-FRIEND-DECLINE",
+        "SERVER ACTION respondToFriendRequestAction",
+        "friendshipId:loaded-incoming-request-id,response:decline",
+      ),
+      communityForm(
         "FEED.FORM.QUICK-MESSAGE",
         "POST /api/conversations/[id]/messages",
         "conversationId:path-bound-participant-conversation-id,body:trimmed-string(1..5000),mediaIds<=4",
@@ -786,58 +796,8 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
     ],
   },
   "/pulse/[id]": {
-    queryParameters: ["before", "call", "q"],
+    queryParameters: ["call"],
     actions: [
-      communityAction(
-        "PULSE-THREAD.ACTION.MARK-READ",
-        "Marks the loaded conversation read for the current participant.",
-        "markConversationReadAction requires the current profile and markConversationRead resolves the server-bound conversation through participant-scoped access.",
-      ),
-      communityAction(
-        "PULSE-THREAD.ACTION.BLOCK",
-        "Blocks the loaded private conversation for the current participant.",
-        "blockConversation requires the current profile and setConversationBlock resolves the conversation through participant-scoped access.",
-      ),
-      communityAction(
-        "PULSE-THREAD.ACTION.UNBLOCK",
-        "Removes the current participant's block from the loaded conversation.",
-        "unblockConversation requires the current profile and setConversationBlock permits only the participant who owns the block to clear it.",
-      ),
-      communityAction(
-        "PULSE-THREAD.ACTION.SEARCH",
-        "Searches the current conversation for bounded normalised text.",
-        "The GET form targets the loaded /pulse/[id] route; q is trimmed, whitespace-normalised, bounded to 100 characters, and searched only within the participant-scoped conversation.",
-      ),
-      communityAction(
-        "PULSE-THREAD.ACTION.SEARCH.CLEAR",
-        "Clears the conversation search query.",
-        "The fixed same-origin Link returns to the loaded conversation without q.",
-      ),
-      communityAction(
-        "PULSE-THREAD.ACTION.PAGE.EARLIER",
-        "Loads the preceding bounded page of visible conversation messages.",
-        "The before cursor comes from the oldest loaded message and getConversationForProfile keeps the read participant-scoped and bounded.",
-      ),
-      communityAction(
-        "PULSE-THREAD.ACTION.PAGE.LATEST",
-        "Returns from an earlier message page to the latest conversation view.",
-        "The fixed same-origin Link removes the before cursor from the loaded conversation route.",
-      ),
-      communityAction(
-        "PULSE-THREAD.ACTION.REACTION.TOGGLE",
-        "Toggles the current participant's reaction on a loaded message.",
-        "toggleMessageReaction requires the current profile, rate-limits the message pair, and the service verifies both conversation participation and visible message membership.",
-      ),
-      communityAction(
-        "PULSE-THREAD.ACTION.MESSAGE.DELETE",
-        "Soft-deletes the current participant's loaded message.",
-        "deleteConversationMessage requires the current profile and the service verifies conversation participation and message ownership before soft deletion.",
-      ),
-      communityAction(
-        "PULSE-THREAD.ACTION.MESSAGE.REPORT",
-        "Reports another participant's loaded message with an allowlisted reason.",
-        "reportConversationMessage requires the current profile, rate-limits the message pair, verifies conversation membership, rejects self-reporting, and parses reportCreateSchema.",
-      ),
       communityAction(
         "PULSE-THREAD.ACTION.MESSAGE.SEND",
         "Sends a bounded reply with clean attachable media to the loaded conversation.",
@@ -846,16 +806,46 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
       communityAction(
         "PULSE-THREAD.ACTION.CALL.MANAGE",
         "Starts, joins, responds to, retries, configures, or leaves an eligible voice or video call.",
-        "Call APIs require the current profile and conversation participation; server services tier-gate call creation and the client controls only the connected LiveKit room's local media.",
+        "Call APIs require the current profile and conversation participation; call creation is tier-gated to pro_plus server-side and the client controls only the connected LiveKit room's local media.",
+      ),
+      communityAction(
+        "PULSE-THREAD.ACTION.REACTION.TOGGLE",
+        "Toggles the current participant's reaction on a loaded message from the per-message menu.",
+        "toggleMessageReaction requires the current profile, rate-limits the message pair, and the service verifies both conversation participation and visible message membership.",
+      ),
+      communityAction(
+        "PULSE-THREAD.ACTION.MESSAGE.DELETE",
+        "Soft-deletes the current participant's loaded message copy from the per-message menu.",
+        "deleteConversationMessage requires the current profile and the service verifies conversation participation and message membership before recording the participant-specific deletion.",
+      ),
+      communityAction(
+        "PULSE-THREAD.ACTION.MESSAGE.REPORT",
+        "Reports another participant's loaded message from the per-message menu.",
+        "reportConversationMessage requires the current profile, rate-limits the message pair, verifies conversation membership, rejects self-reporting, and parses reportCreateSchema.",
       ),
       communityAction(
         "PULSE-THREAD.ACTION.ATTACHMENT.OPEN",
         "Opens or plays a clean, ready message attachment.",
-        "The page emits blob or processed-media URLs only after the participant-scoped message read reports clean scan status and ready processing status.",
+        "The consolidated surface emits blob or processed-media URLs only after the participant-scoped message read reports clean scan status and ready processing status.",
       ),
       communityAction(
-        "PULSE-THREAD.ACTION.PULSE.OPEN",
-        "Returns to the Pulse inbox.",
+        "PULSE-THREAD.ACTION.CONVERSATION.OPEN",
+        "Opens another conversation from the Pulse panel inside the consolidated surface.",
+        "Conversation identifiers come from the participant-scoped inbox query for the current profile.",
+      ),
+      communityAction(
+        "PULSE-THREAD.ACTION.FRIEND.RESPOND",
+        "Accepts or declines an incoming friend request from the panel's Requests tab.",
+        "respondToFriendRequestAction requires the current profile and the friend service verifies the request is addressed to that profile.",
+      ),
+      communityAction(
+        "PULSE-THREAD.ACTION.FRIEND.FIND",
+        "Searches members and sends friend requests inline from the panel's Friends tab.",
+        "Add-friend search reads bounded member results for the current profile and sendFriendRequestAction enforces per-profile rate limits server-side.",
+      ),
+      communityAction(
+        "PULSE-THREAD.ACTION.INBOX.OPEN",
+        "Returns to the canonical Pulse inbox.",
         "The fixed same-origin Link targets /pulse.",
       ),
       communityAction(
@@ -866,44 +856,19 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
     ],
     forms: [
       communityForm(
-        "PULSE-THREAD.FORM.MARK-READ",
-        "SERVER ACTION markConversationReadAction",
-        "conversationId:server-bound-participant-conversation-id",
-      ),
-      communityForm(
-        "PULSE-THREAD.FORM.UNBLOCK",
-        "SERVER ACTION unblockConversation",
-        "conversationId:server-bound-participant-conversation-id,blockedBy:current-profile",
-      ),
-      communityForm(
-        "PULSE-THREAD.FORM.BLOCK",
-        "SERVER ACTION blockConversation",
-        "conversationId:server-bound-participant-conversation-id",
-      ),
-      communityForm(
-        "PULSE-THREAD.FORM.SEARCH",
-        "GET /pulse/[id]",
-        "conversationId:path-bound-participant-conversation-id,q?:trimmed-string(2..100)",
-      ),
-      communityForm(
-        "PULSE-THREAD.FORM.REACTION",
-        "SERVER ACTION toggleMessageReaction",
-        "conversationId:server-bound-participant-conversation-id,messageId:server-bound-visible-message-id",
-      ),
-      communityForm(
-        "PULSE-THREAD.FORM.DELETE",
-        "SERVER ACTION deleteConversationMessage",
-        "conversationId:server-bound-participant-conversation-id,messageId:server-bound-owned-message-id",
-      ),
-      communityForm(
-        "PULSE-THREAD.FORM.REPORT",
-        "SERVER ACTION reportConversationMessage",
-        "conversationId:server-bound-participant-conversation-id,messageId:server-bound-other-message-id,reason:spam|harassment|misinformation|illegal|other",
-      ),
-      communityForm(
         "PULSE-THREAD.FORM.MESSAGE",
         "POST /api/conversations/[id]/messages",
         "conversationId:path-bound-participant-conversation-id,body:trimmed-string(1..5000),mediaIds<=4",
+      ),
+      communityForm(
+        "PULSE-THREAD.FORM.FRIEND-ACCEPT",
+        "SERVER ACTION respondToFriendRequestAction",
+        "requestId:server-bound-incoming-request-id,response:accept",
+      ),
+      communityForm(
+        "PULSE-THREAD.FORM.FRIEND-DECLINE",
+        "SERVER ACTION respondToFriendRequestAction",
+        "requestId:server-bound-incoming-request-id,response:decline",
       ),
     ],
   },
@@ -926,7 +891,18 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
         "The signed-out branch renders a fixed same-origin anchor to /sign-in before any private friend read occurs.",
       ),
     ],
-    forms: [],
+    forms: [
+      communityForm(
+        "PULSE-FRIENDS.FORM.REQUEST-ACCEPT",
+        "SERVER ACTION respondToFriendRequestAction",
+        "friendshipId:incoming-request-friendship-id(max120),response:accept",
+      ),
+      communityForm(
+        "PULSE-FRIENDS.FORM.REQUEST-DECLINE",
+        "SERVER ACTION respondToFriendRequestAction",
+        "friendshipId:incoming-request-friendship-id(max120),response:decline",
+      ),
+    ],
   },
   "/marketplace": {
     queryParameters: ["q", "category", "sort", "page", "submitted"],
@@ -1294,7 +1270,13 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
         "The identifier comes from the owner-scoped inventory and the edit page independently rechecks Pro tier and ownership before rendering.",
       ),
     ],
-    forms: [],
+    forms: [
+      accountForm(
+        "ACCOUNT-LISTINGS.FORM.BOOST",
+        "POST /api/billing/boost/checkout",
+        "listingId:owned-listing,packageId:BOOST.STARTER|BOOST.MOMENTUM|BOOST.SHOWCASE; server re-verifies Pro+ tier, ownership, active+approved listing and prices server-side",
+      ),
+    ],
   },
   "/account/listings/archived": {
     queryParameters: [],
@@ -1320,7 +1302,13 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
         "getSellerListingsForCurrentUser filters profileId to the server-resolved current profile and restricts this view to archived status.",
       ),
     ],
-    forms: [],
+    forms: [
+      accountForm(
+        "ACCOUNT-LISTINGS-ARCHIVED.FORM.BOOST",
+        "POST /api/billing/boost/checkout",
+        "listingId:owned-listing,packageId:BOOST.STARTER|BOOST.MOMENTUM|BOOST.SHOWCASE; rendered only for active approved listings; server re-verifies Pro+ tier, ownership and prices server-side",
+      ),
+    ],
   },
   "/account/listings/drafts": {
     queryParameters: [],
@@ -1351,7 +1339,13 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
         "The identifier comes from the owner-scoped inventory and the edit page independently rechecks Pro tier and ownership before rendering.",
       ),
     ],
-    forms: [],
+    forms: [
+      accountForm(
+        "ACCOUNT-LISTINGS-DRAFTS.FORM.BOOST",
+        "POST /api/billing/boost/checkout",
+        "listingId:owned-listing,packageId:BOOST.STARTER|BOOST.MOMENTUM|BOOST.SHOWCASE; rendered only for active approved listings; server re-verifies Pro+ tier, ownership and prices server-side",
+      ),
+    ],
   },
   "/account/notifications": {
     queryParameters: [],
@@ -1540,6 +1534,11 @@ export const PRODUCTION_SCREEN_INTERACTION_CONTRACTS = {
         "SERVER ACTION updatePersonalIdentityMedia",
         "avatarMediaId?:owned-media-id,coverMediaId?:owned-media-id,removeAvatar?:boolean,removeCover?:boolean,avatarFocalX/Y:bounded,avatarZoom:bounded,avatarRotation:bounded,coverFocalX/Y:bounded,coverZoom:bounded,coverRotation:bounded",
       ),
+      accountForm(
+        "ACCOUNT-PROFILE.FORM.MESSENGER-LAYOUT",
+        "SERVER ACTION updateMessengerLayoutPreference",
+        "messengerLayout:dual|adaptive|compact; authenticated current-profile write only",
+      ),
     ],
   },
   "/account/saved-listings": {
@@ -1641,6 +1640,9 @@ export const PRODUCTION_SCREEN_FORM_EXCLUSION_ROUTES = [
   "/responsible-use",
   "/terms",
   "/breeding",
+  "/breeding/cross",
+  "/breeding/dams/[id]",
+  "/breeding/sires/[id]",
   "/dogs",
   "/races/[id]",
   "/meetings/[id]",
@@ -1648,14 +1650,11 @@ export const PRODUCTION_SCREEN_FORM_EXCLUSION_ROUTES = [
   "/tracks/[id]",
   "/forum",
   "/groups",
-  "/messages/friends",
-  "/pulse/friends",
   "/feed/device-preview",
   "/marketplace/design-lab",
+  "/advertise",
+  "/advertise/policy",
   "/account/privacy",
-  "/account/listings",
-  "/account/listings/archived",
-  "/account/listings/drafts",
   "/account/saved-listings",
   "/account/security",
   "/account/support/[id]",

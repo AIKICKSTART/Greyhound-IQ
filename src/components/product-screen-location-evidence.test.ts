@@ -41,13 +41,13 @@ for (const evidencePath of PRODUCT_SCREEN_LOCATION_MASTER_EVIDENCE[
 ].evidence) {
   assert.equal(existsSync(evidencePath), true, evidencePath);
 }
-assert.match(PRODUCT_SCREEN_LOCATION_SCOPE, /all 97 registered screen contracts/i);
+assert.match(PRODUCT_SCREEN_LOCATION_SCOPE, /all 103 registered screen contracts/i);
 assert.match(PRODUCT_SCREEN_LOCATION_SCOPE, /recursive local source closure/i);
 assert.match(PRODUCT_SCREEN_LOCATION_SCOPE, /does not prove conditional browser rendering/i);
 assert.match(PRODUCT_SCREEN_LOCATION_SCOPE, /measured user comprehension/i);
 assert.match(PRODUCT_SCREEN_LOCATION_SCOPE, /production readiness/i);
 
-assert.equal(SCREEN_CONTRACTS.length, 97);
+assert.equal(SCREEN_CONTRACTS.length, 103);
 const contracts = SCREEN_CONTRACTS.map((screen): ScreenLocationContract => {
   const sourcePaths = [...getLocalSourceClosure(screen.sourceFiles[0])];
   assert.ok(sourcePaths.length > 0, screen.route);

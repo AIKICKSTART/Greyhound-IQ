@@ -96,10 +96,10 @@ const expectedRecordIds = [
   ),
 ].toSorted((left, right) => left.localeCompare(right));
 
-assert.equal(SCREEN_CONTRACTS.length, 97);
-assert.equal(DEMO_SCREEN_FAMILIES.flatMap(({ screens }) => screens).length, 97);
-assert.equal(registry.records.length, 97);
-assert.equal(registry.auditedRoutes.length, 97);
+assert.equal(SCREEN_CONTRACTS.length, 103);
+assert.equal(DEMO_SCREEN_FAMILIES.flatMap(({ screens }) => screens).length, 103);
+assert.equal(registry.records.length, 103);
+assert.equal(registry.auditedRoutes.length, 103);
 assert.ok(registry.auditedSourceFiles.length >= 400);
 assert.deepEqual(registry.discoveredRecordIds, expectedRecordIds);
 assert.deepEqual(

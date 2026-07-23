@@ -56,61 +56,39 @@ const EXPECTED_PROFILE_MESSAGING_INTERACTIONS = {
     ],
   },
   "/messages/[id]": {
-    queryParameters: ["before", "call", "q"],
+    queryParameters: ["call"],
     actionIds: [
-      "MESSAGE-THREAD.ACTION.MARK-READ",
-      "MESSAGE-THREAD.ACTION.BLOCK",
-      "MESSAGE-THREAD.ACTION.UNBLOCK",
-      "MESSAGE-THREAD.ACTION.SEARCH",
-      "MESSAGE-THREAD.ACTION.SEARCH.CLEAR",
-      "MESSAGE-THREAD.ACTION.PAGE.EARLIER",
-      "MESSAGE-THREAD.ACTION.PAGE.LATEST",
+      "MESSAGE-THREAD.ACTION.MESSAGE.SEND",
+      "MESSAGE-THREAD.ACTION.CALL.MANAGE",
       "MESSAGE-THREAD.ACTION.REACTION.TOGGLE",
       "MESSAGE-THREAD.ACTION.MESSAGE.DELETE",
       "MESSAGE-THREAD.ACTION.MESSAGE.REPORT",
-      "MESSAGE-THREAD.ACTION.MESSAGE.SEND",
-      "MESSAGE-THREAD.ACTION.CALL.MANAGE",
       "MESSAGE-THREAD.ACTION.ATTACHMENT.OPEN",
+      "MESSAGE-THREAD.ACTION.CONVERSATION.OPEN",
+      "MESSAGE-THREAD.ACTION.FRIEND.RESPOND",
+      "MESSAGE-THREAD.ACTION.FRIEND.FIND",
       "MESSAGE-THREAD.ACTION.INBOX.OPEN",
       "MESSAGE-THREAD.ACTION.SIGN-IN.OPEN",
     ],
     forms: [
       [
-        "MESSAGE-THREAD.FORM.MARK-READ",
-        "SERVER ACTION markConversationReadAction",
-      ],
-      ["MESSAGE-THREAD.FORM.UNBLOCK", "SERVER ACTION unblockConversation"],
-      ["MESSAGE-THREAD.FORM.BLOCK", "SERVER ACTION blockConversation"],
-      ["MESSAGE-THREAD.FORM.SEARCH", "GET /pulse/[id]"],
-      [
-        "MESSAGE-THREAD.FORM.REACTION",
-        "SERVER ACTION toggleMessageReaction",
-      ],
-      [
-        "MESSAGE-THREAD.FORM.DELETE",
-        "SERVER ACTION deleteConversationMessage",
-      ],
-      [
-        "MESSAGE-THREAD.FORM.REPORT",
-        "SERVER ACTION reportConversationMessage",
-      ],
-      [
         "MESSAGE-THREAD.FORM.MESSAGE",
         "POST /api/conversations/[id]/messages",
+      ],
+      [
+        "MESSAGE-THREAD.FORM.FRIEND-ACCEPT",
+        "SERVER ACTION respondToFriendRequestAction",
+      ],
+      [
+        "MESSAGE-THREAD.FORM.FRIEND-DECLINE",
+        "SERVER ACTION respondToFriendRequestAction",
       ],
     ],
     onboarding: "excluded",
     sourceAssertions: [
-      "conversation = await getConversationForProfile(",
-      "const readAction = markConversationReadAction.bind(",
-      "const blockAction = blockConversation.bind(",
-      "const unblockAction = unblockConversation.bind(",
-      "action={`/pulse/${conversation.id}`}",
-      "const reactionAction = toggleMessageReaction.bind(",
-      "const deleteAction = deleteConversationMessage.bind(",
-      "const reportAction = reportConversationMessage.bind(",
-      "<InstantMessageComposer",
+      "<PulseThreadSurface",
       "<ConversationCallPanel",
+      'hasTier(user.tier, "pro_plus")',
     ],
   },
   "/messages/friends": {
@@ -120,7 +98,16 @@ const EXPECTED_PROFILE_MESSAGING_INTERACTIONS = {
       "MESSAGES-FRIENDS.ACTION.CONVERSATION.OPEN",
       "MESSAGES-FRIENDS.ACTION.SIGN-IN.OPEN",
     ],
-    forms: [],
+    forms: [
+      [
+        "MESSAGES-FRIENDS.FORM.REQUEST-ACCEPT",
+        "SERVER ACTION respondToFriendRequestAction",
+      ],
+      [
+        "MESSAGES-FRIENDS.FORM.REQUEST-DECLINE",
+        "SERVER ACTION respondToFriendRequestAction",
+      ],
+    ],
     onboarding: "excluded",
     sourceAssertions: [
       "const user = await getCurrentUser();",
@@ -204,7 +191,7 @@ for (const route of PRODUCTION_SCREEN_PROFILE_MESSAGING_INTERACTION_ROUTES) {
   );
   assert.equal(screen.coverage.onboarding.status, expected.onboarding);
   assert.equal(actionExclusions.has(route), false);
-  assert.equal(formExclusions.has(route), expected.forms.length === 0);
+  assert.equal(formExclusions.has(route), (expected.forms.length as number) === 0);
   assert.ok(interaction, `${route}: missing central interaction contract`);
   assert.equal(interaction, ownedInteraction);
 
@@ -243,7 +230,7 @@ for (const route of PRODUCTION_SCREEN_PROFILE_MESSAGING_INTERACTION_ROUTES) {
   assert.equal(screen.coverage.actions.status, "verified");
   assert.equal(
     screen.coverage.forms.status,
-    expected.forms.length === 0 ? "excluded" : "verified",
+    (expected.forms.length as number) === 0 ? "excluded" : "verified",
   );
   assert.ok(screen.coverage.actions.evidence.includes(TEST_PATH));
   assert.ok(screen.coverage.forms.evidence.includes(TEST_PATH));
@@ -270,8 +257,8 @@ for (const route of PRODUCTION_SCREEN_PROFILE_MESSAGING_INTERACTION_ROUTES) {
   structuredFormCount += interaction.forms.length;
 }
 
-assert.equal(actionInventoryCount, 31);
-assert.equal(structuredFormCount, 14);
+assert.equal(actionInventoryCount, 27);
+assert.equal(structuredFormCount, 11);
 
 const actionsSource = readFileSync("src/app/actions.ts", "utf8");
 for (const assertion of [
@@ -379,5 +366,5 @@ for (const assertion of [
 }
 
 console.log(
-  "Profile-messaging interaction coverage passed: 4 action routes, 3 verified form routes, 1 exact zero-form exclusion, 31 action entries, 14 structured forms, onboarding unchanged",
+  "Profile-messaging interaction coverage passed: 4 action routes, 4 verified form routes, 0 zero-form exclusions, 27 action entries, 11 structured forms, onboarding unchanged",
 );

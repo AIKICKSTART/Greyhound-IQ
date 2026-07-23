@@ -82,7 +82,7 @@ const evidenceSource = readFileSync(
 );
 assert.doesNotMatch(evidenceSource, /from ["']node:/);
 assert.doesNotMatch(evidenceSource, /\breadFileSync\b|\bprocess\.cwd\b/);
-assert.match(PRODUCT_SCREEN_CONTRACT_COMPLETENESS_SCOPE, /all 97 registered screens/i);
+assert.match(PRODUCT_SCREEN_CONTRACT_COMPLETENESS_SCOPE, /all 103 registered screens/i);
 assert.match(
   PRODUCT_SCREEN_CONTRACT_COMPLETENESS_SCOPE,
   /all 90 production-enabled screens/i,
@@ -102,8 +102,8 @@ assert.match(
 assert.match(PRODUCT_SCREEN_CONTRACT_COMPLETENESS_SCOPE, /browser rendering/i);
 assert.match(PRODUCT_SCREEN_CONTRACT_COMPLETENESS_SCOPE, /production readiness/i);
 
-assert.equal(SCREEN_CONTRACTS.length, 97);
-assert.equal(SCREEN_CONTRACT_BY_ROUTE.size, 97);
+assert.equal(SCREEN_CONTRACTS.length, 103);
+assert.equal(SCREEN_CONTRACT_BY_ROUTE.size, 103);
 assert.equal(DEMO_SCREEN_FAMILIES.length, 8);
 
 const declaredActorByRoute = new Map(
@@ -116,7 +116,7 @@ const declaredActorByRoute = new Map(
     ),
   ),
 );
-assert.equal(declaredActorByRoute.size, 97);
+assert.equal(declaredActorByRoute.size, 103);
 
 for (const screen of SCREEN_CONTRACTS) {
   const declaredActor = declaredActorByRoute.get(screen.route);
@@ -164,8 +164,8 @@ const permissionContracts = [
 const permissionContractByRoute = new Map(
   permissionContracts.map((contract) => [contract.route, contract] as const),
 );
-assert.equal(permissionContracts.length, 97);
-assert.equal(permissionContractByRoute.size, 97);
+assert.equal(permissionContracts.length, 103);
+assert.equal(permissionContractByRoute.size, 103);
 assert.deepEqual(
   [...permissionContractByRoute.keys()].toSorted(),
   SCREEN_CONTRACTS.map(({ route }) => route).toSorted(),
@@ -201,7 +201,7 @@ assert.equal(designLabRoutes.size, 6);
 const productionScreens = SCREEN_CONTRACTS.filter(
   ({ productionEnabled }) => productionEnabled,
 );
-assert.equal(productionScreens.length, 90);
+assert.equal(productionScreens.length, 96);
 
 const fixtureIds = new Set<string>();
 for (const screen of productionScreens) {
@@ -247,7 +247,7 @@ assert.match(
   permissionDocument,
   /Status: 97 screen-level route permission cells source\/policy tested; deployed enforcement incomplete/,
 );
-assert.match(permissionDocument, /all 97 registered screen cells/i);
+assert.match(permissionDocument, /all 103 registered screen cells/i);
 assert.match(permissionDocument, /Twenty account\/AI and seller-management routes/);
 assert.match(permissionDocument, /33 public or optionally authenticated routes/i);
 assert.match(permissionDocument, /All ten screen cells map the shared signed-out view decision/i);

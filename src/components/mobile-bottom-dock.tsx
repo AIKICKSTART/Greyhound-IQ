@@ -10,7 +10,6 @@ import {
   Dna,
   Dog,
   Flag,
-  Home,
   Info,
   LayoutGrid,
   Mail,
@@ -46,7 +45,6 @@ type DockLink = {
 };
 
 const DOCK_LINKS: DockLink[] = [
-  { href: "/", label: "Home", icon: Home },
   { href: "/feed", label: "Feed", icon: Activity },
   { href: "/feed#feed-composer", label: "Post", icon: Plus, tone: "create" },
   { href: "/pulse", label: "Chat", icon: MessageCircle },
@@ -138,6 +136,14 @@ export function MobileBottomDock({
     MENU_ENTRIES.some(
       (entry) => entry.href !== "/" && pathname.startsWith(entry.href)
     ) || (canAccessAdmin && pathname.startsWith("/admin"));
+
+  // Inside an open conversation the thread takes over the viewport as a
+  // full-height messenger surface; the floating quick-actions dock would sit on
+  // top of its composer, so drop it there. Friends/inbox indexes keep the dock.
+  const isConversationThread = /^\/(?:pulse|messages)\/(?!friends(?:\/|$))[^/]+$/.test(
+    pathname,
+  );
+  if (isConversationThread) return null;
 
   return (
     <nav

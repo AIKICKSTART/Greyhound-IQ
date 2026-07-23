@@ -103,13 +103,13 @@ const designLabScreens = DEMO_SCREEN_FAMILIES.find(
   (family) => family.key === "design-lab",
 )?.screens;
 
-assert.equal(screens.length, 97);
-assert.equal(SCREEN_CONTRACTS.length, 97);
-assert.equal(SCREEN_CONTRACT_BY_ROUTE.size, 97);
-assert.equal(new Set(screens.map(({ route }) => route)).size, 97);
-assert.equal(inlineScreens.length, 91);
+assert.equal(screens.length, 103);
+assert.equal(SCREEN_CONTRACTS.length, 103);
+assert.equal(SCREEN_CONTRACT_BY_ROUTE.size, 103);
+assert.equal(new Set(screens.map(({ route }) => route)).size, 103);
+assert.equal(inlineScreens.length, 97);
 assert.equal(designLabScreens?.length, 6);
-assert.equal(inlineScreens.filter(({ userStory }) => userStory).length, 91);
+assert.equal(inlineScreens.filter(({ userStory }) => userStory).length, 97);
 assert.equal(DESIGN_LAB_USER_STORY_MANIFESTS.length, 6);
 assert.deepEqual(
   DESIGN_LAB_USER_STORY_MANIFESTS.map(({ route }) => route).toSorted(),

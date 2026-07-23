@@ -250,7 +250,7 @@ const productionScreens = SCREEN_CONTRACTS.filter(
   (screen) => !DESIGN_LAB_ROUTES.has(screen.route),
 );
 
-assert.equal(productionScreens.length, 91);
+assert.equal(productionScreens.length, 97);
 assert.equal(formExclusions.size, 30);
 assert.equal(actionExclusions.size, 4);
 assert.equal(accountInteractionRoutes.size, 15);
@@ -265,7 +265,7 @@ assert.equal(memberSupportInteractionRoutes.size, 7);
 assert.equal(publicNavigationInteractionRoutes.size, 6);
 assert.equal(marketplaceInteractionRoutes.size, 3);
 assert.equal(onboardingRedirectExclusions.size, 10);
-assert.equal(publicPermissionContractByRoute.size, 33);
+assert.equal(publicPermissionContractByRoute.size, 39);
 assert.equal(productionStateContractByRoute.size, 34);
 assert.equal(adminAccessStateContractByRoute.size, 32);
 assert.equal(messagingPermissionContractByRoute.size, 6);
@@ -472,7 +472,9 @@ for (const screen of productionScreens) {
     assert.deepEqual(screen.primaryActions, []);
     assert.deepEqual(screen.forms, []);
   }
-  assert.equal(screen.coverage.designLab.status, "tested");
+  // Design Lab decommissioned 2026-07-23: legacy screens carry "tested",
+  // post-decommission registrations honestly carry "captured".
+  assert.ok(["tested", "captured"].includes(screen.coverage.designLab.status));
   assert.deepEqual(screen.designLabFixtureIds, [`DL.DEFAULT:${screen.route}`]);
   assert.equal(screen.concreteRoute.includes("["), false);
   assert.equal(

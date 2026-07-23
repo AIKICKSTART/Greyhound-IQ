@@ -20,6 +20,8 @@ import { PRODUCTION_SCREEN_STATE_CONTRACTS } from "./screen-contracts/screen-sta
 const EXPECTED_DYNAMIC_ROUTES = [
   "/account/pages/[id]",
   "/account/support/[id]",
+  "/breeding/dams/[id]",
+  "/breeding/sires/[id]",
   "/dogs/[id]",
   "/forum/[slug]",
   "/forum/threads/[id]",
@@ -89,7 +91,7 @@ assert.deepEqual(
   dynamicScreens.map(({ route }) => route),
   EXPECTED_DYNAMIC_ROUTES,
 );
-assert.equal(dynamicScreens.length, 17);
+assert.equal(dynamicScreens.length, 19);
 
 type SourceAssertion = {
   sourcePath: string;

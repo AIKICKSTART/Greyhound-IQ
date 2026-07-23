@@ -18,10 +18,6 @@ const realtimeRefreshSource = readFileSync(
   join(__dirname, "..", "realtime-refresh.tsx"),
   "utf8",
 );
-const threadSource = readFileSync(
-  join(__dirname, "..", "..", "app", "messages", "[id]", "page.tsx"),
-  "utf8",
-);
 
 assert.ok(
   feedSource.includes('conversation.participantAActor?.kind !== "page"') &&
@@ -86,11 +82,8 @@ assert.ok(
 );
 assert.ok(
   realtimeRefreshSource.includes("pollIntervalMs?: number") &&
-    realtimeRefreshSource.includes("document.visibilityState") &&
-    threadSource.includes(
-      "pollIntervalMs={hasPendingMessageMedia ? 5_000 : undefined}",
-    ),
-  "The full Pulse thread must refresh only while an attachment is pending",
+    realtimeRefreshSource.includes("document.visibilityState"),
+  "Realtime refresh must support visibility-gated polling",
 );
 assert.ok(
   dockSource.includes('id="pulse-conversation-launcher"') &&

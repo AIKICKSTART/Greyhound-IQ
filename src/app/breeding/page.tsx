@@ -8,12 +8,14 @@ import {
   GitCompareArrows,
   Layers,
   ArrowRight,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageHero } from "@/components/page-hero";
 import { PedigreeExplorer } from "@/components/pedigree-explorer";
+import { RacingDataDisclosure } from "@/components/racing-data-disclosure";
 import { RacingDataEmptyState } from "@/components/racing-data-empty-state";
 import { nickVerdict } from "@/lib/nicking";
 import {
@@ -73,11 +75,11 @@ export default async function BreedingPage() {
         }
         subtitle="Search any greyhound and trace its pedigree across generations — race dogs and the breeding sires and dams behind them, linked from the official studbook and the racing record."
       >
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="giq-stagger mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {statCards.map((s) => {
             const Icon = s.icon;
             return (
-              <div key={s.label} className="giq-metric-card p-4">
+              <div key={s.label} className="giq-metric-card relative overflow-hidden p-4">
                 <Icon className="mb-2 h-4 w-4 text-[hsl(var(--primary-bright))]" />
                 <p className="text-[20px] font-semibold tabular-nums tracking-[-0.02em] text-[hsl(var(--foreground))]">
                   {s.value}
@@ -85,28 +87,107 @@ export default async function BreedingPage() {
                 <p className="mt-0.5 text-[11px] tracking-[-0.01em] text-[hsl(var(--muted-foreground))]">
                   {s.label}
                 </p>
+                <span
+                  aria-hidden="true"
+                  className="mt-3 block h-[3px] w-full rounded-full bg-[linear-gradient(90deg,hsl(var(--primary-bright)/0.75),hsl(var(--secondary)/0.55)_68%,transparent)]"
+                />
               </div>
             );
           })}
         </div>
       </PageHero>
 
-      <section className="mx-auto max-w-6xl px-6 py-14">
-        <div className="mb-6 flex items-end justify-between gap-4">
-          <div>
-            <p className="giq-eyebrow mb-2 text-[hsl(var(--subtle-foreground))]">
-              Four ways in
-            </p>
-            <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
-              The breeding intelligence suite
-            </h2>
+      <div className="mx-auto max-w-6xl px-6 pt-8">
+        <RacingDataDisclosure />
+      </div>
+
+      {/* Flagship — Test mating is the paid, marquee tool; give it a band of its own. */}
+      <section aria-labelledby="flagship-heading" className="mx-auto max-w-6xl px-6 pt-10 sm:pt-12">
+        <div className="giq-panel giq-page-enter relative">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,hsl(var(--secondary)/0.16),transparent_70%)]"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -left-24 bottom-[-6rem] h-64 w-64 rounded-full bg-[radial-gradient(circle,hsl(var(--primary)/0.14),transparent_70%)]"
+          />
+          <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:p-10">
+            <div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="giq-icon-plate flex h-9 w-9 items-center justify-center rounded-lg">
+                  <GitCompareArrows className="h-4 w-4" />
+                </span>
+                <span className="giq-eyebrow text-[hsl(var(--secondary-light))]">
+                  Flagship · Sire × Dam
+                </span>
+                <span className="giq-badge giq-badge-gold px-2 py-0.5 text-[10px]">Pro</span>
+              </div>
+              <h2
+                id="flagship-heading"
+                className="mt-4 text-[26px] font-semibold leading-[1.06] tracking-[-0.03em] text-[hsl(var(--foreground))] sm:text-[32px]"
+              >
+                Test any mating before it happens
+              </h2>
+              <p className="mt-3.5 max-w-prose text-[14px] leading-relaxed tracking-[-0.01em] text-[hsl(var(--muted-foreground))]">
+                Pair any sire with any dam to reveal the shared ancestors the cross would carry,
+                the line-breeding overlap it creates, and each parent&rsquo;s real progeny record —
+                bridged straight from the studbook and the racing record.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-3">
+                <Link
+                  href="/breeding/cross"
+                  className="group giq-button giq-button-gold text-[13px] font-semibold"
+                >
+                  Open test mating
+                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                </Link>
+                <span className="inline-flex items-center gap-1.5 text-[12px] tracking-[-0.01em] text-[hsl(var(--subtle-foreground))]">
+                  <Sparkles className="h-3.5 w-3.5 text-[hsl(var(--secondary-light))]" />
+                  Included with Pro · $20/month
+                </span>
+              </div>
+            </div>
+
+            {/* Sire × Dam preview: gold sire node meets purple dam node. */}
+            <div className="giq-subpanel relative overflow-hidden p-6">
+              <div className="flex items-center justify-center gap-1">
+                <span className="flex h-16 w-16 items-center justify-center rounded-full border border-[hsl(var(--secondary-light)/0.35)] bg-[hsl(var(--secondary)/0.14)] shadow-[0_0_28px_-14px_hsl(var(--secondary-light))]">
+                  <TrendingUp className="h-6 w-6 text-[hsl(var(--secondary-light))]" />
+                </span>
+                <span className="z-10 -mx-3 flex h-8 w-8 items-center justify-center rounded-full border border-[hsl(var(--metal-silver)/0.25)] bg-[hsl(var(--surface-3))] text-[13px] font-semibold text-[hsl(var(--muted-foreground))]">
+                  ×
+                </span>
+                <span className="flex h-16 w-16 items-center justify-center rounded-full border border-[hsl(var(--primary-light)/0.35)] bg-[hsl(var(--primary)/0.16)] shadow-[0_0_28px_-14px_hsl(var(--primary-bright))]">
+                  <Dna className="h-6 w-6 text-[hsl(var(--primary-bright))]" />
+                </span>
+              </div>
+              <div className="mt-4 flex items-center justify-center gap-8 text-center">
+                <span className="giq-eyebrow text-[hsl(var(--secondary-light))]">Sire</span>
+                <span className="giq-eyebrow text-[hsl(var(--primary-light))]">Dam</span>
+              </div>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                <TileChip>Shared ancestors</TileChip>
+                <TileChip>Line-breeding overlap</TileChip>
+                <TileChip>Progeny record</TileChip>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
 
-        <section
-          aria-label="Breeding tools"
-          className="mb-12 grid gap-3 sm:grid-cols-2 lg:auto-rows-fr lg:grid-flow-row-dense lg:grid-cols-3"
-        >
+      {/* The rest of the suite — free tools, arranged with the pedigree explorer as anchor. */}
+      <section className="mx-auto max-w-6xl px-6 pt-14">
+        <div className="mb-6">
+          <p className="giq-eyebrow mb-2 text-[hsl(var(--subtle-foreground))]">
+            Also included · free
+          </p>
+          <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
+            The breeding intelligence suite
+          </h2>
+        </div>
+
+        <div className="giq-stagger grid gap-3 sm:grid-cols-2 lg:auto-rows-fr lg:grid-cols-3">
           <FeatureTile
             href="#pedigree"
             icon={Dna}
@@ -114,7 +195,7 @@ export default async function BreedingPage() {
             title="Pedigree explorer"
             desc="Search any greyhound and trace five generations of ancestry — every sire and dam links to its own profile, with inbreeding and line-breeding flagged automatically."
             cta="Explore pedigrees"
-            className="sm:col-span-2 lg:col-span-2"
+            className="sm:col-span-2 lg:col-span-2 lg:row-span-2"
           >
             <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
               <div>
@@ -130,33 +211,6 @@ export default async function BreedingPage() {
                 <TileChip>Inbreeding detection</TileChip>
                 <TileChip>Line-breeding</TileChip>
                 <TileChip>{formatCount(stats.totalDogs)} dogs mapped</TileChip>
-              </div>
-            </div>
-          </FeatureTile>
-
-          <FeatureTile
-            href="/breeding/cross"
-            icon={GitCompareArrows}
-            eyebrow="Sire × Dam"
-            title="Test mating"
-            desc="Pair any sire with any dam to reveal the shared ancestors a mating would carry, plus each parent's real progeny record."
-            cta="Open test mating"
-            className="lg:col-span-1 lg:row-span-2"
-          >
-            <div className="flex h-full flex-col justify-between gap-6">
-              <div className="flex items-center gap-1 text-[13px] font-medium text-[hsl(var(--muted-foreground))]">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[hsl(var(--secondary-light)/0.3)] bg-[hsl(var(--secondary)/0.12)]">
-                  <TrendingUp className="h-5 w-5 text-[hsl(var(--secondary-light))]" />
-                </span>
-                <span className="-ml-4 flex h-12 w-12 items-center justify-center rounded-full border border-[hsl(var(--primary-light)/0.3)] bg-[hsl(var(--primary)/0.16)] shadow-[0_0_22px_-12px_hsl(var(--primary-bright))]">
-                  <Dna className="h-5 w-5 text-[hsl(var(--primary-bright))]" />
-                </span>
-                <span className="ml-2">any sire × any dam</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <TileChip>Shared ancestors</TileChip>
-                <TileChip>Line-breeding overlap</TileChip>
-                <TileChip>Progeny record</TileChip>
               </div>
             </div>
           </FeatureTile>
@@ -214,8 +268,10 @@ export default async function BreedingPage() {
               </div>
             </div>
           </FeatureTile>
-        </section>
+        </div>
+      </section>
 
+      <section className="mx-auto max-w-6xl px-6 py-14">
         <div id="pedigree" className="mb-4 scroll-mt-24">
           <h2 className="mb-1 text-2xl font-semibold tracking-[-0.03em] text-[hsl(var(--foreground))]">
             Pedigree explorer
@@ -340,6 +396,10 @@ export default async function BreedingPage() {
           Pedigree drawn from the official studbook (8 volumes) and the racing record. Free to explore.{" "}
           <Link href="/dogs" className="text-[hsl(var(--primary-bright))] hover:underline">
             Browse all greyhounds
+          </Link>{" "}
+          or{" "}
+          <Link href="/races" className="text-[hsl(var(--primary-bright))] hover:underline">
+            follow today&rsquo;s races
           </Link>
           .
         </p>

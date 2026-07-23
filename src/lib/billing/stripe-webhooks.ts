@@ -4,6 +4,10 @@ import { createHash } from "crypto";
 import { Prisma } from "@prisma/client";
 import Stripe from "stripe";
 
+import {
+  findMarketplaceBoostPackage,
+  type MarketplaceBoostPackageId,
+} from "@/components/advertising-product-contract";
 import { getStripeClient } from "@/lib/billing/stripe-client";
 import {
   getStripeCheckoutEnv,
@@ -43,6 +47,7 @@ export class StripeWebhookError extends Error {
 const STRIPE_SIGNATURE_HEADER = "stripe-signature";
 const EXPECTED_BESPOKE_CURRENCY = "aud";
 const EXPECTED_BESPOKE_AMOUNT = 50_000;
+const EXPECTED_BOOST_CURRENCY = "aud";
 
 export async function ingestStripeWebhook({
   headers,
@@ -279,6 +284,11 @@ async function handleCheckoutSessionCompleted(
     return;
   }
 
+  if (settlement.kind === "marketplace_boost") {
+    await recordMarketplaceBoostPurchase(db, settlement);
+    return;
+  }
+
   // Subscription access is provisioned only from invoice.paid, where Stripe
   // supplies authoritative settlement and server-allowlisted price evidence.
   await db.user.update({
@@ -310,14 +320,28 @@ export type StripeCheckoutSettlement =
       customerId: string;
       subscriptionId: string;
       plan: StripeCheckoutPlan;
+    }
+  | {
+      kind: "marketplace_boost";
+      sessionId: string;
+      userId: string;
+      workosUserId: string;
+      profileId: string;
+      customerId: string;
+      paymentIntentId: string;
+      listingId: string;
+      packageId: MarketplaceBoostPackageId;
+      amount: number;
+      currency: string;
     };
 
 export function stripeCheckoutSettlementForSession(
   session: Stripe.Checkout.Session
 ): StripeCheckoutSettlement | null {
   const bespoke = session.metadata?.kind === "bespoke_design";
+  const boost = session.metadata?.kind === "marketplace_boost";
   const plan = parseBillingPlan(session.metadata?.plan);
-  if (!bespoke && !plan) return null;
+  if (!bespoke && !boost && !plan) return null;
 
   if (session.status !== "complete") {
     throw new Error("stripe.webhook_checkout_incomplete");
@@ -366,6 +390,41 @@ export function stripeCheckoutSettlementForSession(
     };
   }
 
+  if (boost) {
+    if (session.mode !== "payment") {
+      throw new Error("stripe.webhook_checkout_mode_mismatch");
+    }
+    const pkg = findMarketplaceBoostPackage(session.metadata?.packageId);
+    if (!pkg) throw new Error("stripe.webhook_checkout_package_mismatch");
+    const amount = session.amount_total;
+    if (
+      typeof amount !== "number" ||
+      amount !== pkg.priceCentsIncludingGst ||
+      session.currency?.toLowerCase() !== EXPECTED_BOOST_CURRENCY
+    ) {
+      throw new Error("stripe.webhook_checkout_amount_mismatch");
+    }
+    const profileId = firstString(session.metadata?.profileId);
+    if (!profileId) throw new Error("stripe.webhook_missing_profile");
+    const listingId = firstString(session.metadata?.listingId);
+    if (!listingId) throw new Error("stripe.webhook_missing_listing");
+    const paymentIntentId = stripeId(session.payment_intent);
+    if (!paymentIntentId) throw new Error("stripe.webhook_missing_payment_intent");
+    return {
+      kind: "marketplace_boost",
+      sessionId: session.id,
+      userId,
+      workosUserId,
+      profileId,
+      customerId,
+      paymentIntentId,
+      listingId,
+      packageId: pkg.id,
+      amount,
+      currency: EXPECTED_BOOST_CURRENCY,
+    };
+  }
+
   if (session.mode !== "subscription" || !plan) {
     throw new Error("stripe.webhook_checkout_mode_mismatch");
   }
@@ -410,11 +469,76 @@ async function assertCheckoutSessionUserBinding(
     throw new Error("stripe.webhook_workos_user_mismatch");
   }
   if (
-    settlement.kind === "bespoke_design" &&
+    (settlement.kind === "bespoke_design" ||
+      settlement.kind === "marketplace_boost") &&
     user.profile?.id !== settlement.profileId
   ) {
     throw new Error("stripe.webhook_profile_mismatch");
   }
+}
+
+// Marketplace boost purchase → finance PaymentRecord (idempotent on the payment
+// intent) plus boost activation. TEST MODE only.
+async function recordMarketplaceBoostPurchase(
+  db: DbContextClient,
+  settlement: Extract<StripeCheckoutSettlement, { kind: "marketplace_boost" }>
+) {
+  const existing = await db.paymentRecord.findUnique({
+    where: { pspPaymentId: settlement.paymentIntentId },
+    select: { id: true },
+  });
+  if (!existing) {
+    await db.paymentRecord.create({
+      data: {
+        userId: settlement.userId,
+        status: "succeeded",
+        currency: settlement.currency,
+        amountCents: settlement.amount,
+        pspPaymentId: settlement.paymentIntentId,
+        rawJson: JSON.stringify({
+          kind: "marketplace_boost",
+          listingId: settlement.listingId,
+          packageId: settlement.packageId,
+          profileId: settlement.profileId,
+          sessionId: settlement.sessionId,
+        }),
+      },
+    });
+  }
+
+  await activateListingBoost(db, settlement);
+}
+
+// Activate the boost idempotently on the Checkout session id (unique). A retry
+// or the delayed-payment event re-enters with the same session and no-ops.
+async function activateListingBoost(
+  db: DbContextClient,
+  settlement: Extract<StripeCheckoutSettlement, { kind: "marketplace_boost" }>
+) {
+  const pkg = findMarketplaceBoostPackage(settlement.packageId);
+  if (!pkg) throw new Error("stripe.webhook_checkout_package_mismatch");
+  const activatedAt = new Date();
+  const expiresAt = new Date(
+    activatedAt.getTime() + pkg.maximumDays * 24 * 60 * 60 * 1000
+  );
+  await db.listingBoost.upsert({
+    where: { stripeSessionId: settlement.sessionId },
+    create: {
+      listingId: settlement.listingId,
+      buyerProfileId: settlement.profileId,
+      buyerUserId: settlement.userId,
+      packageId: settlement.packageId,
+      status: "active",
+      viewableImpressionCap: pkg.viewableImpressions,
+      amountCents: settlement.amount,
+      currency: settlement.currency,
+      stripeSessionId: settlement.sessionId,
+      stripePaymentId: settlement.paymentIntentId,
+      activatedAt,
+      expiresAt,
+    },
+    update: {},
+  });
 }
 
 // One-off $500 concierge purchase → CustomDesignRequest(status=paid).

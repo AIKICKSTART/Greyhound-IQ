@@ -98,7 +98,7 @@ const stateContractByRoute = new Map<
 const auditRowsByRoute = new Map(
   DEMO_ROUTE_AUDIT_EXPECTED_ROWS.map((row) => [row.route, row] as const),
 );
-assert.equal(DEMO_SCREEN_COUNT, 97);
+assert.equal(DEMO_SCREEN_COUNT, 103);
 assert.equal(DEMO_SCREEN_COUNT, SCREEN_CONTRACTS.length);
 assert.equal(
   new Set(screens.map((screen) => screen.route)).size,
@@ -111,7 +111,7 @@ assert.equal(
 assert.equal(SCREEN_CONTRACT_BY_ROUTE.size, DEMO_SCREEN_COUNT);
 assert.equal(DEMO_SCREEN_FAMILIES.length, 8);
 assert.equal(DEMO_USER_JOURNEYS.length, 22);
-assert.equal(permissionContractByRoute.size, 97);
+assert.equal(permissionContractByRoute.size, 103);
 assert.equal(stateContractByRoute.size, 91);
 assert.equal(
   registrySource.match(/export const DEMO_SCREEN_FAMILIES/g)?.length,
@@ -334,14 +334,14 @@ assert.deepEqual(
   ),
   {
     route: passedRouteAudits.size,
-    userStories: 97,
+    userStories: 103,
     actions: 97,
     forms: 97,
-    permissions: 97,
+    permissions: 103,
     states: 97,
     designLab: new Set([...passedRouteAudits, ...designLabRoutes]).size,
     onboarding: 97,
-    tests: 97,
+    tests: 103,
   },
 );
 assert.match(

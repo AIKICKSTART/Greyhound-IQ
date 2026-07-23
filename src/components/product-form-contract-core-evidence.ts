@@ -6,7 +6,7 @@ export const PRODUCT_FORM_CONTRACT_CORE_TEST_FILE =
   "src/components/product-form-contract-core-evidence.test.ts" as const;
 
 export const PRODUCT_FORM_CONTRACT_CORE_SCOPE =
-  "Deterministic source-static verification that all 97 registered screens map their recursive form surface to 145 route-scoped form contracts or one explicit zero-form exclusion. Every mapped form records a stable route-scoped id, containing route, non-empty submission destination, validation schema, and focused test reference. This evidence proves core form inventory metadata and source mapping only; it does not prove complete field-level mapping, hydrated submission, authentication, ownership, role or tier policy, pending/success/failure behavior, duplicate prevention, analytics, audit emission, deployed parity, or production readiness.";
+  "Deterministic source-static verification that all 103 registered screens map their recursive form surface to 145 route-scoped form contracts or one explicit zero-form exclusion. Every mapped form records a stable route-scoped id, containing route, non-empty submission destination, validation schema, and focused test reference. This evidence proves core form inventory metadata and source mapping only; it does not prove complete field-level mapping, hydrated submission, authentication, ownership, role or tier policy, pending/success/failure behavior, duplicate prevention, analytics, audit emission, deployed parity, or production readiness.";
 
 export const PRODUCT_FORM_CONTRACT_CORE_REQUIREMENT_IDS = [
   "FORM.FIELD.id",

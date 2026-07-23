@@ -272,8 +272,8 @@ for (const sharedAction of EXPECTED_SHARED_ACTION_SEMANTICS) {
 const nonDesignLabScreens = DEMO_SCREEN_FAMILIES.filter(
   (family) => family.key !== "design-lab",
 ).flatMap((family) => family.screens);
-assert.equal(DEMO_SCREEN_COUNT, 97);
-assert.equal(nonDesignLabScreens.length, 91);
+assert.equal(DEMO_SCREEN_COUNT, 103);
+assert.equal(nonDesignLabScreens.length, 97);
 for (const screen of nonDesignLabScreens) {
   assert.ok(screen.userStory, `${screen.route} needs its inline viewing story`);
   assert.match(

@@ -111,6 +111,7 @@ const SYNTHETIC_ONLY_MODELS = [
   "ListingReport",
   "ListingModerationAction",
   "ListingView",
+  "ListingBoost",
   "TrustSafetyFlag",
   "BannedPhrase",
   "Message",

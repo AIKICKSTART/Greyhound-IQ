@@ -16,7 +16,7 @@ import {
   withDbSystemContext,
   type DbContextUser,
 } from "@/lib/db-context";
-import { assertPaidFeatureAccess } from "@/lib/tier-access";
+import { assertCallInitiationAccess } from "@/lib/tier-access";
 import { deleteLiveKitRoom, liveKitConfig } from "@/lib/livekit-admin";
 import { createInAppNotification } from "@/lib/notification-service";
 import {
@@ -129,7 +129,7 @@ export async function createCallRoomForConversation(
   conversationId: string,
   callType: "voice" | "video" = "video",
 ) {
-  assertPaidFeatureAccess(current);
+  assertCallInitiationAccess(current);
   const conversation = await getConversationForProfile(current, conversationId);
   if (conversation.blockedById) throw new Error("call.blocked");
   if (
@@ -224,10 +224,10 @@ export async function createCallTokenForCurrentUser(
   current: CurrentUserProfile,
   roomId: string,
 ) {
-  // Deliberately NOT tier-gated: free members may JOIN calls a paid member
+  // Deliberately NOT tier-gated: free/pro members may JOIN calls a Pro+ member
   // started. callRoomJoinWhere only matches rooms holding an explicit
-  // CallPermission.canJoin row for this profile, and only a paid initiator
-  // (createCallRoomForConversation, still assertPaidFeatureAccess-gated) can
+  // CallPermission.canJoin row for this profile, and only a Pro+ initiator
+  // (createCallRoomForConversation, still assertCallInitiationAccess-gated) can
   // create those rows. Block + room-TTL checks below still apply.
   const config = liveKitConfig();
   const room = await withDbRequestContext(current, (tx) =>

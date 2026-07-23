@@ -330,7 +330,7 @@ const COMMUNITY_CALL_START_SOURCE_CHAIN = {
   delegatePath: "src/lib/call-service.ts",
   delegateExport: "createCallRoomForConversation",
   requiredDelegateCalls: [
-    "assertPaidFeatureAccess",
+    "assertCallInitiationAccess",
     "getConversationForProfile",
     "assertProfilesCanInteract",
     "findActiveCallRoom",

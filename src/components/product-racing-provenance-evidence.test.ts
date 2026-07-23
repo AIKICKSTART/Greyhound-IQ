@@ -170,7 +170,7 @@ for (const selector of [
   ".giq-racing-data-disclosure",
   '[data-racing-data-state="stale"]',
   '[data-racing-data-state="unavailable"]',
-  "@media (max-width: 700px)",
+  "@media (max-width: 640px)",
 ]) {
   assert.ok(cssSource.includes(selector), `responsive disclosure CSS needs ${selector}`);
 }

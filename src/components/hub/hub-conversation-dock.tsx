@@ -2,22 +2,27 @@
 
 import NextImage from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   Check,
   ChevronLeft,
   ExternalLink,
+  Flag,
   Loader2,
   Maximize2,
   MessageSquare,
   Minus,
   Minimize2,
+  MoreHorizontal,
   Paperclip,
   Phone,
   RotateCcw,
   Search,
   Send,
   ShieldAlert,
+  ThumbsUp,
+  Trash2,
   Users,
   Video,
   X,
@@ -32,7 +37,13 @@ import {
   useState,
 } from "react";
 
-import { respondToFriendRequestAction } from "@/app/actions";
+import {
+  deleteConversationMessage,
+  reportConversationMessage,
+  respondToFriendRequestAction,
+  toggleMessageReaction,
+} from "@/app/actions";
+import { AddFriendSearch } from "@/components/hub/add-friend-search";
 import { MediaAttachmentFields } from "@/components/media-attachment-fields";
 import { ProcessedVideo } from "@/components/processed-video";
 import {
@@ -110,6 +121,12 @@ const CHAT_TIME_FORMATTER = new Intl.DateTimeFormat("en-AU", {
   timeZone: "Australia/Sydney",
   timeZoneName: "short",
 });
+
+function actionFormData(fields: Record<string, string>) {
+  const fd = new FormData();
+  for (const [name, value] of Object.entries(fields)) fd.set(name, value);
+  return fd;
+}
 
 export function HubConversationDock({
   conversations,
@@ -211,6 +228,13 @@ export function HubConversationDock({
   const outgoingRequests = requests.filter(
     (request) => request.direction === "outgoing",
   );
+  // Exclude self, existing friends, and anyone with a pending request from the
+  // inline member search so the find -> add loop never offers a duplicate.
+  const friendExcludeIds = [
+    selfProfileId,
+    ...friends.map((friend) => friend.profileId),
+    ...requests.map((request) => request.profileId),
+  ];
   const openIds = openWindowIds(windows);
   const visibleOpenIds = layout === "dual" ? openIds : openIds.slice(-1);
 
@@ -333,7 +357,7 @@ export function HubConversationDock({
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search conversations"
-                className="min-w-0 flex-1 bg-transparent text-[12px] text-[hsl(var(--foreground))] outline-none placeholder:text-[hsl(var(--subtle-foreground))]"
+                className="min-w-0 flex-1 rounded-md bg-transparent text-[12px] text-[hsl(var(--foreground))] outline-none placeholder:text-[hsl(var(--subtle-foreground))] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--primary-light)/0.55)]"
               />
             </label>
           </div>
@@ -383,7 +407,9 @@ export function HubConversationDock({
 
           <div className="giq-messenger-conversation-list min-h-0 flex-1 overflow-y-auto px-2 pb-2">
             {launcherTab === "friends" ? (
-              friends.length > 0 ? (
+              <div className="space-y-3 px-0.5 pb-1">
+                <AddFriendSearch excludeProfileIds={friendExcludeIds} />
+                {friends.length > 0 ? (
                 <ul className="space-y-1">
                   {friends.map((friend) => (
                     <li key={friend.friendshipId}>
@@ -417,13 +443,12 @@ export function HubConversationDock({
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <LauncherEmptyState
-                  message="No friends yet."
-                  href="/pulse/friends"
-                  action="Find people"
-                />
-              )
+                ) : (
+                  <p className="rounded-xl border border-dashed border-white/[0.1] px-3 py-4 text-center text-[12px] text-[hsl(var(--muted-foreground))]">
+                    No friends yet. Search above to add people.
+                  </p>
+                )}
+              </div>
             ) : launcherTab === "requests" ? (
               incomingRequests.length > 0 || outgoingRequests.length > 0 ? (
                 <div className="space-y-3">
@@ -545,19 +570,23 @@ export function HubConversationDock({
           </div>
 
           <footer className="giq-messenger-launcher-footer flex min-h-14 gap-2 border-t border-white/[0.08] p-2">
-            <Link
-              href="/pulse/friends"
+            <button
+              type="button"
+              onClick={() => setLauncherTab("friends")}
+              aria-pressed={launcherTab === "friends"}
               className="giq-button giq-button-primary min-h-11 flex-1 px-3 text-[11px] font-semibold"
             >
               <Users className="h-3.5 w-3.5" aria-hidden="true" />
               Find friends
-            </Link>
-            <Link
-              href="/pulse/friends#requests"
+            </button>
+            <button
+              type="button"
+              onClick={() => setLauncherTab("requests")}
+              aria-pressed={launcherTab === "requests"}
               className="giq-button giq-button-carbon min-h-11 flex-1 px-3 text-[11px] font-semibold"
             >
               Message requests
-            </Link>
+            </button>
           </footer>
         </section>
 
@@ -703,19 +732,24 @@ function ConversationSummary({
   );
 }
 
-function QuickChatWindow({
+export function QuickChatWindow({
   conversation,
   selfProfileId,
   canStartCall,
   onMinimize,
   onClose,
+  variant = "dock",
 }: {
   conversation: HubDockConversation;
   selfProfileId: string;
   canStartCall: boolean;
   onMinimize: () => void;
   onClose: () => void;
+  // "page": full-bleed conversation surface at /pulse/[id] (the consolidated
+  // messenger); "dock": floating window in the messenger dock.
+  variant?: "dock" | "page";
 }) {
+  const router = useRouter();
   const messagesViewportRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<QuickMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -943,16 +977,37 @@ function QuickChatWindow({
     if (!sending) event.currentTarget.form?.requestSubmit();
   }
 
+  // Per-message "…" actions reuse the existing server actions. They call
+  // revalidatePath + redirect() for the full-page thread; here we swallow that
+  // redirect so the in-place dock just re-loads, and surface only real errors.
+  async function runMessageAction(fn: () => Promise<unknown>) {
+    try {
+      await fn();
+    } catch (err) {
+      const digest = (err as { digest?: unknown } | null)?.digest;
+      if (typeof digest !== "string" || !digest.startsWith("NEXT_REDIRECT")) {
+        setSendError(err instanceof Error ? err.message : "Could not update message");
+      }
+    }
+    await loadMessages().catch(() => null);
+  }
+
   return (
     <section
-      className="giq-social-quick-chat flex h-[min(440px,calc(100dvh-176px))] w-[min(320px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] shadow-2xl backdrop-blur-xl"
+      className={
+        variant === "page"
+          ? "giq-social-quick-chat flex h-full w-full flex-col overflow-hidden bg-[hsl(var(--surface-1)/0.98)]"
+          : "giq-social-quick-chat flex h-[min(440px,calc(100dvh-176px))] w-[min(320px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-white/[0.12] bg-[hsl(var(--surface-1)/0.98)] shadow-2xl backdrop-blur-xl max-lg:fixed max-lg:inset-0 max-lg:z-[75] max-lg:h-[100dvh] max-lg:w-screen max-lg:rounded-none max-lg:border-0"
+      }
       data-expanded={expanded ? "true" : "false"}
     >
-      <header className="giq-social-quick-chat-header flex min-h-12 items-center gap-2 border-b border-white/[0.08] px-3">
+      <header className="giq-social-quick-chat-header flex min-h-12 items-center gap-2 border-b border-white/[0.08] px-3 max-lg:pt-[env(safe-area-inset-top)]">
         <button
           type="button"
-          onClick={onClose}
-          className="grid min-h-11 w-11 shrink-0 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05] lg:hidden"
+          onClick={variant === "page" ? () => router.push("/pulse") : onClose}
+          className={`grid min-h-11 w-11 shrink-0 place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05] ${
+            variant === "page" ? "" : "lg:hidden"
+          }`}
           aria-label="Back to Pulse conversations"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
@@ -998,6 +1053,8 @@ function QuickChatWindow({
             </span>
           )}
         </span>
+        {variant === "dock" && (
+          <>
         <button
           type="button"
           onClick={() => setExpanded((current) => !current)}
@@ -1027,6 +1084,8 @@ function QuickChatWindow({
         >
           <X className="h-4 w-4" />
         </button>
+          </>
+        )}
       </header>
 
       <div
@@ -1060,28 +1119,99 @@ function QuickChatWindow({
           messages.map((message) => {
             const mine = message.senderId === selfProfileId;
             return (
-              <article
+              <div
                 key={message.id}
-                className={`giq-social-chat-bubble max-w-[84%] rounded-xl px-3 py-2 text-[12px] ${
-                  mine
-                    ? "ml-auto bg-[hsl(var(--primary)/0.16)] text-[hsl(var(--foreground))]"
-                    : "mr-auto bg-white/[0.05] text-[hsl(var(--muted-foreground))]"
+                className={`group flex items-end gap-1 ${
+                  mine ? "flex-row-reverse" : ""
                 }`}
               >
-                <p className="whitespace-pre-wrap break-words">
-                  {message.body}
-                </p>
-                <MessageAttachments attachments={message.media ?? []} />
-                <span className="mt-1 block text-[10px] opacity-70">
-                  {message.pending ? (
-                    "Sending..."
-                  ) : (
-                    <time dateTime={message.createdAt}>
-                      {CHAT_TIME_FORMATTER.format(new Date(message.createdAt))}
-                    </time>
-                  )}
-                </span>
-              </article>
+                <article
+                  className={`giq-social-chat-bubble max-w-[84%] rounded-xl px-3 py-2 text-[12px] ${
+                    mine
+                      ? "bg-[hsl(var(--primary)/0.16)] text-[hsl(var(--foreground))]"
+                      : "bg-white/[0.05] text-[hsl(var(--muted-foreground))]"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap break-words">
+                    {message.body}
+                  </p>
+                  <MessageAttachments attachments={message.media ?? []} />
+                  <span className="mt-1 block text-[10px] opacity-70">
+                    {message.pending ? (
+                      "Sending..."
+                    ) : (
+                      <time dateTime={message.createdAt}>
+                        {CHAT_TIME_FORMATTER.format(new Date(message.createdAt))}
+                      </time>
+                    )}
+                  </span>
+                </article>
+                {!message.pending && (
+                  <details className="relative shrink-0 self-center opacity-70 transition-opacity lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
+                    <summary
+                      aria-label={`Message actions for ${mine ? "your message" : conversation.otherName}`}
+                      className="grid h-11 w-11 cursor-pointer list-none place-items-center rounded-lg text-[hsl(var(--muted-foreground))] hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))] [&::-webkit-details-marker]:hidden"
+                    >
+                      <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                    </summary>
+                    <div
+                      className={`absolute bottom-full z-20 mb-1 flex w-36 flex-col rounded-lg border border-white/[0.12] bg-[hsl(var(--surface-1))] p-1 shadow-xl ${
+                        mine ? "right-0" : "left-0"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void runMessageAction(() =>
+                            toggleMessageReaction(conversation.id, message.id),
+                          )
+                        }
+                        className="flex min-h-11 items-center gap-2 rounded px-2 text-left text-[12px] text-[hsl(var(--foreground))] hover:bg-white/[0.06]"
+                      >
+                        <ThumbsUp className="h-3.5 w-3.5" aria-hidden="true" />
+                        React
+                      </button>
+                      {mine ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void runMessageAction(() =>
+                              deleteConversationMessage(
+                                conversation.id,
+                                message.id,
+                                actionFormData({ confirmation: "delete" }),
+                              ),
+                            )
+                          }
+                          className="flex min-h-11 items-center gap-2 rounded px-2 text-left text-[12px] text-red-200 hover:bg-white/[0.06]"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          Delete
+                        </button>
+                      ) : (
+                        // ponytail: report reason defaults to "other"; add a
+                        // reason picker if moderation asks for one.
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void runMessageAction(() =>
+                              reportConversationMessage(
+                                conversation.id,
+                                message.id,
+                                actionFormData({ reason: "other" }),
+                              ),
+                            )
+                          }
+                          className="flex min-h-11 items-center gap-2 rounded px-2 text-left text-[12px] text-[hsl(var(--foreground))] hover:bg-white/[0.06]"
+                        >
+                          <Flag className="h-3.5 w-3.5" aria-hidden="true" />
+                          Report
+                        </button>
+                      )}
+                    </div>
+                  </details>
+                )}
+              </div>
             );
           })
         )}
@@ -1089,7 +1219,7 @@ function QuickChatWindow({
 
       <form
         onSubmit={sendMessage}
-        className="giq-social-quick-chat-composer border-t border-white/[0.08] p-2"
+        className="giq-social-quick-chat-composer border-t border-white/[0.08] p-2 max-lg:pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
       >
         <label className="sr-only" htmlFor={`quick-chat-${conversation.id}`}>
           Message {conversation.otherName}

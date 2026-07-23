@@ -44,7 +44,7 @@ for (const evidencePath of record.evidence) {
   assert.equal(existsSync(evidencePath), true, evidencePath);
 }
 
-assert.equal(SCREEN_CONTRACTS.length, 97);
+assert.equal(SCREEN_CONTRACTS.length, 103);
 assert.equal(
   SCREEN_CONTRACTS.reduce(
     (total, screen) => total + screen.stateRules.length,
@@ -170,7 +170,7 @@ for (const fixture of negativeFixtures) {
   );
 }
 
-assert.match(PRODUCT_STATE_REPRESENTATION_SCOPE, /97 canonical screen contracts/i);
+assert.match(PRODUCT_STATE_REPRESENTATION_SCOPE, /103 canonical screen contracts/i);
 assert.match(PRODUCT_STATE_REPRESENTATION_SCOPE, /429 route-scoped state records/i);
 assert.match(PRODUCT_STATE_REPRESENTATION_SCOPE, /closes representation only/i);
 assert.match(PRODUCT_STATE_REPRESENTATION_SCOPE, /state-fixture remains open/i);

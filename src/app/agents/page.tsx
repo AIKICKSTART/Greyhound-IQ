@@ -11,7 +11,10 @@ import { createAgentRun } from "@/app/actions";
 import { PageHero } from "@/components/page-hero";
 import { AgentDemoConsole } from "@/components/agent-demo-console";
 import { AgentRunCancelButton } from "@/components/agent-run-cancel-button";
-import { getAgentRunPresentation } from "@/components/agent-run-lifecycle";
+import {
+  getAgentRunPresentation,
+  type AgentRunPresentationState,
+} from "@/components/agent-run-lifecycle";
 import { ProGate } from "@/components/pro-gate";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser, hasTier } from "@/lib/auth";
@@ -23,6 +26,16 @@ import {
 import { getAgentRuns } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
+
+// Match the app-wide status-pill semantics (see OwnershipBadge / account
+// StatusBadge): purple = done, red = error, gold = awaiting attention.
+const AGENT_RUN_PILL_VARIANT: Record<AgentRunPresentationState, string> = {
+  completed: "giq-status-pill-purple",
+  failed: "giq-status-pill-red",
+  pending: "giq-status-pill-gold",
+  running: "giq-status-pill-gold",
+  interrupted: "",
+};
 
 export const metadata = {
   title: "AI Agents - GreyhoundIQ",
@@ -251,11 +264,7 @@ export default async function AgentsPage() {
                           <span
                             data-agent-run-state={presentation.state}
                             title={presentation.guidance}
-                            className={`giq-status-pill ${
-                              presentation.state === "completed"
-                                ? "giq-status-pill-purple"
-                                : ""
-                            }`}
+                            className={`giq-status-pill ${AGENT_RUN_PILL_VARIANT[presentation.state]}`}
                           >
                             <StatusIcon className="h-3 w-3" aria-hidden="true" />
                             {presentation.label}

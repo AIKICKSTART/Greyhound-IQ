@@ -72,6 +72,16 @@ export const PUBLIC_SCREEN_PERMISSION_CONTRACTS = [
     ],
   },
   {
+    route: "/advertise",
+    sourcePath: "src/app/advertise/page.tsx",
+    permissions: [PUBLIC_SIGNED_OUT_VIEW_PERMISSION],
+  },
+  {
+    route: "/advertise/policy",
+    sourcePath: "src/app/advertise/policy/page.tsx",
+    permissions: [PUBLIC_SIGNED_OUT_VIEW_PERMISSION],
+  },
+  {
     route: "/privacy",
     sourcePath: "src/app/privacy/page.tsx",
     permissions: [PUBLIC_SIGNED_OUT_VIEW_PERMISSION],
@@ -89,6 +99,26 @@ export const PUBLIC_SCREEN_PERMISSION_CONTRACTS = [
   {
     route: "/breeding",
     sourcePath: "src/app/breeding/page.tsx",
+    permissions: [PUBLIC_SIGNED_OUT_VIEW_PERMISSION],
+  },
+  {
+    route: "/breeding/cross",
+    sourcePath: "src/app/breeding/cross/page.tsx",
+    permissions: [PUBLIC_SIGNED_OUT_VIEW_PERMISSION],
+  },
+  {
+    route: "/breeding/dams/[id]",
+    sourcePath: "src/app/breeding/dams/[id]/page.tsx",
+    permissions: [PUBLIC_SIGNED_OUT_VIEW_PERMISSION],
+  },
+  {
+    route: "/breeding/sires/[id]",
+    sourcePath: "src/app/breeding/sires/[id]/page.tsx",
+    permissions: [PUBLIC_SIGNED_OUT_VIEW_PERMISSION],
+  },
+  {
+    route: "/vets",
+    sourcePath: "src/app/vets/page.tsx",
     permissions: [PUBLIC_SIGNED_OUT_VIEW_PERMISSION],
   },
   {

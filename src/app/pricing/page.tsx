@@ -121,7 +121,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
             <span className="gradient-text">pricing.</span>
           </>
         }
-        subtitle="AUD pricing — not GBP. Cheaper than greyhound-data.com's top tier with more features. No ads. No conversion fees."
+        subtitle="Straightforward AUD pricing for full racing form, marketplace tools, and breeding analytics. No ads. Cancel anytime."
       />
 
       <section id="plans" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-10">

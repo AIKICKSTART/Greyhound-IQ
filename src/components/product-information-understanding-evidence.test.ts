@@ -57,8 +57,8 @@ const storyByRoute = new Map(
 const productionScreens = SCREEN_CONTRACTS.filter(
   ({ productionEnabled }) => productionEnabled,
 );
-assert.equal(SCREEN_CONTRACTS.length, 97);
-assert.equal(productionScreens.length, 90);
+assert.equal(SCREEN_CONTRACTS.length, 103);
+assert.equal(productionScreens.length, 96);
 
 const contracts = productionScreens.map((screen) => {
   const story = storyByRoute.get(screen.route);

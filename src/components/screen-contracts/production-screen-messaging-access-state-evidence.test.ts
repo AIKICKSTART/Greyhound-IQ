@@ -140,7 +140,8 @@ assert.deepEqual(
   "the state wave must retain an exact, explicit residual partition",
 );
 assert.equal(PRODUCTION_SCREEN_REMAINING_OPEN_PERMISSION_ROUTES.length, 0);
-assert.equal(PRODUCTION_SCREEN_REMAINING_OPEN_STATE_ROUTES.length, 0);
+// Six post-decommission registrations await a dedicated state wave.
+assert.equal(PRODUCTION_SCREEN_REMAINING_OPEN_STATE_ROUTES.length, 6);
 
 const messagesPage = functionSource(
   "src/app/messages/page.tsx",
@@ -166,7 +167,7 @@ assertOrdered(
   [
     "const user = await getCurrentUser();",
     "const dbContext =",
-    "const friends = dbContext ? await listFriendsForProfile(dbContext) : [];",
+    "const [friends, requests] = dbContext",
   ],
   "the friends page must withhold its private read from signed-out callers",
 );

@@ -4,7 +4,9 @@ import { Info, Loader2, GitBranch, Dna, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 
+import { CrossScanner } from "@/components/cross-scanner";
 import { DogPicker, type PickedDog } from "@/components/dog-picker";
+import { FutureLitter } from "@/components/future-litter";
 import { PedigreeChart } from "@/components/pedigree-chart";
 import type { PedigreeNode } from "@/lib/pedigree";
 import type {
@@ -119,8 +121,8 @@ export function CrossAnalysis() {
       </div>
 
       <div className="mt-8">
-        {bothSelected ? (
-          <CrossResult state={state} />
+        {bothSelected && sire && dam ? (
+          <CrossResult state={state} sireName={sire.name} damName={dam.name} />
         ) : sire && !dam ? (
           <TopPicks parent={sire} role="sire" onPick={setDam} />
         ) : dam && !sire ? (
@@ -275,13 +277,17 @@ function CrossChip({ children }: { children: ReactNode }) {
   );
 }
 
-function CrossResult({ state }: { state: LoadState }) {
+function CrossResult({
+  state,
+  sireName,
+  damName,
+}: {
+  state: LoadState;
+  sireName: string;
+  damName: string;
+}) {
   if (state.status === "loading") {
-    return (
-      <div className="giq-panel flex items-center justify-center gap-3 p-12 text-[13px] text-[hsl(var(--muted-foreground))]">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading the cross record…
-      </div>
-    );
+    return <CrossScanner sireName={sireName} damName={damName} />;
   }
   if (state.status === "error") {
     return (
@@ -323,6 +329,15 @@ function CrossResult({ state }: { state: LoadState }) {
       </div>
 
       <SharedAncestors ancestors={sharedAncestors} status={pedigreeStatus} />
+
+      {sireTree && damTree && (
+        <FutureLitter
+          sireTree={sireTree}
+          damTree={damTree}
+          sireName={cross.sire.name}
+          damName={cross.dam.name}
+        />
+      )}
 
       {(sireTree || damTree) && (
         <section>

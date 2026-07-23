@@ -71,10 +71,10 @@ export default async function StatisticsPage() {
         )}
 
         <div
-          className="giq-panel p-8"
+          className="giq-panel p-4 sm:p-8"
           data-racing-data-state={hasMeasuredBoxBias ? "available" : "unavailable"}
         >
-          <div className="grid grid-cols-8 gap-3 items-end min-h-[240px]">
+          <div className="grid grid-cols-8 gap-1.5 sm:gap-3 items-end min-h-[240px]">
             {BOX_BIAS.map((b) => (
               <div
                 key={b.box}

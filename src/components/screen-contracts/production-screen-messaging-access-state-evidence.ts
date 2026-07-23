@@ -190,47 +190,52 @@ export const PRODUCTION_SCREEN_MESSAGING_STATE_CONTRACTS = [
         {
           sourcePath: THREAD_PAGE,
           orderedText: [
+            'Private GreyhoundIQ Pulse conversation.',
             "conversation = await getConversationForProfile(",
-            "Private Pulse conversation",
           ],
         },
       ]),
+
       state("PRODUCTION.STATE.MESSAGE-THREAD.BLOCKED-BY-ME", [
         {
-          sourcePath: THREAD_PAGE,
+          sourcePath: "src/components/pulse-thread-surface.tsx",
           orderedText: [
-            "const blockedByMe = conversation.blockedById === user.profileId;",
-            "You blocked this conversation. Unblock before sending new messages.",
+            "blockedByMe",
+            'You blocked this conversation. Unblock before sending new messages.',
           ],
         },
       ]),
+
       state("PRODUCTION.STATE.MESSAGE-THREAD.BLOCKED-BY-OTHER", [
         {
-          sourcePath: THREAD_PAGE,
+          sourcePath: "src/components/pulse-thread-surface.tsx",
           orderedText: [
-            "const blockedByMe = conversation.blockedById === user.profileId;",
-            "This conversation is blocked by the other participant.",
+            "blockedByMe",
+            'This conversation is blocked by the other participant.',
           ],
         },
       ]),
+
       state("PRODUCTION.STATE.MESSAGE-THREAD.EMPTY", [
         {
-          sourcePath: THREAD_PAGE,
+          sourcePath: "src/components/hub/hub-conversation-dock.tsx",
           orderedText: [
-            "{threadItems.length === 0 ? (",
-            "No visible messages in this conversation.",
+            "messages.length === 0 ? (",
+            'Start the conversation.',
           ],
         },
       ]),
+
       state("PRODUCTION.STATE.MESSAGE-THREAD.POPULATED", [
         {
-          sourcePath: THREAD_PAGE,
+          sourcePath: "src/components/hub/hub-conversation-dock.tsx",
           orderedText: [
-            "{threadItems.length === 0 ? (",
-            "threadItems.map((item) => {",
+            "messages.length === 0 ? (",
+            "messages.map((message) => {",
           ],
         },
       ]),
+
       state(
         "PRODUCTION.STATE.MESSAGE-THREAD.RECOVERABLE-ERROR",
         [
@@ -277,7 +282,7 @@ export const PRODUCTION_SCREEN_MESSAGING_STATE_CONTRACTS = [
         {
           sourcePath: FRIENDS_PAGE,
           orderedText: [
-            ") : friends.length === 0 ? (",
+            "{friends.length === 0 ? (",
             "No friends yet",
           ],
         },
@@ -286,7 +291,7 @@ export const PRODUCTION_SCREEN_MESSAGING_STATE_CONTRACTS = [
         {
           sourcePath: FRIENDS_PAGE,
           orderedText: [
-            ") : friends.length === 0 ? (",
+            "{friends.length === 0 ? (",
             "{friends.map((friend) => (",
           ],
         },
@@ -379,47 +384,52 @@ export const PRODUCTION_SCREEN_MESSAGING_STATE_CONTRACTS = [
         {
           sourcePath: THREAD_PAGE,
           orderedText: [
+            'Private GreyhoundIQ Pulse conversation.',
             "conversation = await getConversationForProfile(",
-            "Private Pulse conversation",
           ],
         },
       ]),
+
       state("PRODUCTION.STATE.PULSE-THREAD.BLOCKED-BY-ME", [
         {
-          sourcePath: THREAD_PAGE,
+          sourcePath: "src/components/pulse-thread-surface.tsx",
           orderedText: [
-            "const blockedByMe = conversation.blockedById === user.profileId;",
-            "You blocked this conversation. Unblock before sending new messages.",
+            "blockedByMe",
+            'You blocked this conversation. Unblock before sending new messages.',
           ],
         },
       ]),
+
       state("PRODUCTION.STATE.PULSE-THREAD.BLOCKED-BY-OTHER", [
         {
-          sourcePath: THREAD_PAGE,
+          sourcePath: "src/components/pulse-thread-surface.tsx",
           orderedText: [
-            "const blockedByMe = conversation.blockedById === user.profileId;",
-            "This conversation is blocked by the other participant.",
+            "blockedByMe",
+            'This conversation is blocked by the other participant.',
           ],
         },
       ]),
+
       state("PRODUCTION.STATE.PULSE-THREAD.EMPTY", [
         {
-          sourcePath: THREAD_PAGE,
+          sourcePath: "src/components/hub/hub-conversation-dock.tsx",
           orderedText: [
-            "{threadItems.length === 0 ? (",
-            "No visible messages in this conversation.",
+            "messages.length === 0 ? (",
+            'Start the conversation.',
           ],
         },
       ]),
+
       state("PRODUCTION.STATE.PULSE-THREAD.POPULATED", [
         {
-          sourcePath: THREAD_PAGE,
+          sourcePath: "src/components/hub/hub-conversation-dock.tsx",
           orderedText: [
-            "{threadItems.length === 0 ? (",
-            "threadItems.map((item) => {",
+            "messages.length === 0 ? (",
+            "messages.map((message) => {",
           ],
         },
       ]),
+
     ],
   },
   {
@@ -442,14 +452,14 @@ export const PRODUCTION_SCREEN_MESSAGING_STATE_CONTRACTS = [
       state("PRODUCTION.STATE.PULSE-FRIENDS.EMPTY", [
         {
           sourcePath: FRIENDS_PAGE,
-          orderedText: [") : friends.length === 0 ? (", "No friends yet"],
+          orderedText: ["{friends.length === 0 ? (", "No friends yet"],
         },
       ]),
       state("PRODUCTION.STATE.PULSE-FRIENDS.POPULATED", [
         {
           sourcePath: FRIENDS_PAGE,
           orderedText: [
-            ") : friends.length === 0 ? (",
+            "{friends.length === 0 ? (",
             "{friends.map((friend) => (",
           ],
         },
@@ -477,4 +487,13 @@ export const PRODUCTION_SCREEN_MESSAGING_STATE_ROUTES = [
 
 export const PRODUCTION_SCREEN_REMAINING_OPEN_PERMISSION_ROUTES = [] as const;
 
-export const PRODUCTION_SCREEN_REMAINING_OPEN_STATE_ROUTES = [] as const;
+// 2026-07-23: the six routes registered after the Design Lab decommission
+// carry captured (not state-waved) status until a dedicated state pass.
+export const PRODUCTION_SCREEN_REMAINING_OPEN_STATE_ROUTES = [
+  "/advertise",
+  "/advertise/policy",
+  "/breeding/cross",
+  "/breeding/dams/[id]",
+  "/breeding/sires/[id]",
+  "/vets",
+] as const;

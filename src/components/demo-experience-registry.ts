@@ -313,6 +313,44 @@ export const DEMO_SCREEN_FAMILIES: readonly DemoScreenFamily[] = [
         }),
       },
       {
+        route: "/advertise",
+        userStory: productionBaselineStory("/advertise", "/advertise", {
+          id: "PUBLIC.STORY.ADVERTISE",
+          actor: "Prospective advertiser",
+          outcome:
+            "Review GreyhoundIQ's viewable-impression Feed rate card and Marketplace boost packages, then reach the team to book a campaign.",
+          acceptance: {
+            given: "The visitor is evaluating paid placement without a purchase claim.",
+            when: "They open the Advertise route.",
+            then: "The page identifies the GST-inclusive AUD rate card, boost packages, and the contact-to-book campaign path.",
+          },
+          renderAssertions: [
+            "Viewable-impression rate card",
+            "Book a campaign",
+            "Marketplace boosts",
+          ],
+        }),
+      },
+      {
+        route: "/advertise/policy",
+        userStory: productionBaselineStory(
+          "/advertise/policy",
+          "/advertise/policy",
+          {
+            id: "PUBLIC.STORY.ADVERTISE-POLICY",
+            actor: "Advertiser reviewing policy",
+            outcome:
+              "Understand the advertising viewability, creative, frequency, privacy and refund rules before committing spend to a campaign or boost.",
+            acceptance: {
+              given: "The visitor wants the advertising policy before booking.",
+              when: "They open the Advertising Policy route.",
+              then: "The page restates the creative rules, viewability definition, organic-gap protections and refund and cancellation basics.",
+            },
+            renderAssertions: ["Advertising Policy", "Creative rules", "Refunds"],
+          }
+        ),
+      },
+      {
         route: "/pricing",
         userStory: productionBaselineStory("/pricing", "/pricing", {
           id: "PUBLIC.STORY.PRICING",
@@ -417,6 +455,92 @@ export const DEMO_SCREEN_FAMILIES: readonly DemoScreenFamily[] = [
             "Top Active Sires",
             "What ships in Phase 2",
             "Shipping in 6-8 weeks",
+          ],
+        }),
+      },
+      {
+        route: "/breeding/cross",
+        userStory: productionBaselineStory("/breeding/cross", "/breeding/cross", {
+          id: "RACING.STORY.BREEDING-CROSS",
+          actor: "Breeding researcher",
+          outcome:
+            "Compare the verified historical record of any selected sire and dam pairing without presenting the result as a prediction, behind the Pro gate.",
+          acceptance: {
+            given: "The visitor wants to inspect a possible sire and dam pairing.",
+            when: "They open Test Mating.",
+            then: "The page renders Test Mating and the CrossAnalysis surface for Pro members or the Pro upsell for others.",
+          },
+          renderAssertions: [
+            "Test mating",
+            "Any sire × any dam",
+            "<CrossAnalysis />",
+          ],
+        }),
+      },
+      {
+        route: "/breeding/dams/[id]",
+        href: "/breeding/dams/demo-provider-dog",
+        userStory: productionBaselineStory(
+          "/breeding/dams/[id]",
+          "/breeding/dams/demo-provider-dog",
+          {
+            id: "RACING.STORY.BREEDING-DAM",
+            actor: "Breeding researcher",
+            outcome:
+              "Review a selected dam's progeny record and top performers, or a not-found result for a missing record.",
+            acceptance: {
+              given: "A concrete dam identifier is present in the route.",
+              when: "The visitor opens the registered dam-detail sample path.",
+              then: "The page binds a missing dam to not-found and renders the dam statistics and progeny record for a found record.",
+            },
+            renderAssertions: [
+              "if (!stats) notFound();",
+              "Dam statistics",
+              "<BreedingProgenyRecord",
+            ],
+          }
+        ),
+      },
+      {
+        route: "/breeding/sires/[id]",
+        href: "/breeding/sires/demo-provider-dog",
+        userStory: productionBaselineStory(
+          "/breeding/sires/[id]",
+          "/breeding/sires/demo-provider-dog",
+          {
+            id: "RACING.STORY.BREEDING-SIRE",
+            actor: "Breeding researcher",
+            outcome:
+              "Review a selected sire's progeny record, best crosses and top performers, or a not-found result for a missing record.",
+            acceptance: {
+              given: "A concrete sire identifier is present in the route.",
+              when: "The visitor opens the registered sire-detail sample path.",
+              then: "The page binds a missing sire to not-found and renders the sire statistics, progeny record and top dam partners for a found record.",
+            },
+            renderAssertions: [
+              "if (!stats) notFound();",
+              "Sire statistics",
+              "Top dam partners (best crosses)",
+            ],
+          }
+        ),
+      },
+      {
+        route: "/vets",
+        userStory: productionBaselineStory("/vets", "/vets", {
+          id: "RACING.STORY.VET-FINDER",
+          actor: "Greyhound carer",
+          outcome:
+            "Find and filter greyhound-friendly veterinary clinics, then open contact or direction details.",
+          acceptance: {
+            given: "The visitor needs a greyhound-friendly veterinary clinic.",
+            when: "They open Vet Finder and use its search or filters.",
+            then: "The page renders the Australian clinic finder and a usable VetFinder control surface.",
+          },
+          renderAssertions: [
+            "VET FINDER",
+            "Greyhound-friendly vets across",
+            "<VetFinder />",
           ],
         }),
       },

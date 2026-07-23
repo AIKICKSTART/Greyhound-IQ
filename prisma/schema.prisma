@@ -1315,6 +1315,7 @@ model Profile {
   callPermissions          CallPermission[]
   listings                 Listing[]                 @relation("ProfileListings")
   reviewedListings         Listing[]                 @relation("ListingReviewedBy")
+  listingBoosts            ListingBoost[]            @relation("ListingBoostBuyer")
   listingStatusHistory     ListingStatusHistory[]
   savedListings            SavedListing[]
   listingEnquiriesSent     ListingEnquiry[]          @relation("ListingEnquiryFrom")
@@ -1678,6 +1679,7 @@ model Listing {
   moderationActions      ListingModerationAction[]
   viewEvents             ListingView[]
   searchIndex            ListingSearchIndex?
+  boosts                 ListingBoost[]            @relation("ListingBoosts")
 
   @@index([profileId])
   @@index([categoryId])
@@ -1692,6 +1694,31 @@ model Listing {
   @@index([expiresAt])
   @@index([soldAt])
   @@index([reviewedById, reviewedAt])
+}
+
+model ListingBoost {
+  id                      String   @id @default(cuid())
+  listingId               String
+  listing                 Listing  @relation("ListingBoosts", fields: [listingId], references: [id], onDelete: Cascade)
+  buyerProfileId          String
+  buyerProfile            Profile  @relation("ListingBoostBuyer", fields: [buyerProfileId], references: [id])
+  buyerUserId             String
+  packageId               String // BOOST.STARTER | BOOST.MOMENTUM | BOOST.SHOWCASE
+  status                  String   @default("active") // active | expired | refunded | cancelled
+  viewableImpressionCap   Int // booked viewable impressions (hard cap)
+  viewableImpressionsUsed Int      @default(0)
+  amountCents             Int // AUD cents charged (GST-inclusive)
+  currency                String   @default("aud")
+  stripeSessionId         String?  @unique
+  stripePaymentId         String?
+  activatedAt             DateTime @default(now())
+  expiresAt               DateTime // activatedAt + package.maximumDays
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([listingId, status])
+  @@index([buyerProfileId, status])
+  @@index([status, expiresAt])
 }
 
 model MarketplaceCategory {

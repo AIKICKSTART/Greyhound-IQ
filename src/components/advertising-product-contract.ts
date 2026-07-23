@@ -107,6 +107,17 @@ export const MARKETPLACE_BOOST_PACKAGES = [
   },
 ] as const;
 
+export type MarketplaceBoostPackage = (typeof MARKETPLACE_BOOST_PACKAGES)[number];
+export type MarketplaceBoostPackageId = MarketplaceBoostPackage["id"];
+
+// Server-side, authoritative price lookup. Checkout and the webhook reducer both
+// resolve the charged amount through this so a client can never supply a price.
+export function findMarketplaceBoostPackage(
+  id: string | null | undefined
+): MarketplaceBoostPackage | null {
+  return MARKETPLACE_BOOST_PACKAGES.find((pkg) => pkg.id === id) ?? null;
+}
+
 export const ADVERTISING_CREATIVE_RULES = [
   "Static WebP, JPEG or PNG only; exact dimensions, decoded MIME and file hash must match.",
   "Desktop and mobile variants are required, each no larger than 2 MB with meaningful alt text.",

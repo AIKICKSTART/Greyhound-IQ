@@ -5,12 +5,17 @@ import {
   ArrowLeft,
   Clock3,
   FilePenLine,
+  Megaphone,
   Plus,
   ShoppingBag,
 } from "lucide-react";
 
+import {
+  MARKETPLACE_BOOST_PACKAGES,
+  formatAud,
+} from "@/components/advertising-product-contract";
 import { PageTitle } from "@/components/page-title";
-import { requireCurrentUserProfile } from "@/lib/auth";
+import { hasTier, requireCurrentUserProfile } from "@/lib/auth";
 import {
   getSellerListingsForCurrentUser,
 } from "@/lib/listing-service";
@@ -166,6 +171,11 @@ export async function SellerListingsViewPage({
                         Edit listing
                       </Link>
                     ) : null}
+                    {hasTier(current.tier, "pro") &&
+                    listing.status === "active" &&
+                    listing.moderationStatus === "approved" ? (
+                      <BoostListingForm listingId={listing.id} />
+                    ) : null}
                   </div>
                 </div>
               </article>
@@ -190,6 +200,41 @@ export async function SellerListingsViewPage({
         )}
       </main>
     </div>
+  );
+}
+
+// Native POST to the server-side boost checkout — server verifies ownership,
+// tier and active/approved state, and resolves the price. No client JS needed.
+function BoostListingForm({ listingId }: { listingId: string }) {
+  return (
+    <form
+      action="/api/billing/boost/checkout"
+      method="post"
+      className="grid gap-2 rounded-lg border border-white/[0.1] bg-white/[0.02] p-2"
+    >
+      <input type="hidden" name="listingId" value={listingId} />
+      <label className="sr-only" htmlFor={`boost-${listingId}`}>
+        Boost package
+      </label>
+      <select
+        id={`boost-${listingId}`}
+        name="packageId"
+        className="min-h-11 rounded-lg border border-white/[0.12] bg-[hsl(var(--background))] px-3 text-[12px] text-[hsl(var(--foreground))]"
+      >
+        {MARKETPLACE_BOOST_PACKAGES.map((pkg) => (
+          <option key={pkg.id} value={pkg.id}>
+            {pkg.name} — {formatAud(pkg.priceCentsIncludingGst)}
+          </option>
+        ))}
+      </select>
+      <button
+        type="submit"
+        className="giq-button giq-button-gold min-h-11 w-full px-4 text-[12px] font-semibold"
+      >
+        <Megaphone className="size-4" aria-hidden="true" />
+        Boost listing
+      </button>
+    </form>
   );
 }
 

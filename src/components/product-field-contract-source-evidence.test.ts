@@ -129,8 +129,8 @@ EXPECTED_OPEN_IDS.forEach((requirementId) =>
 );
 
 const registry = buildProductFieldContractSourceRegistry();
-assert.equal(SCREEN_CONTRACTS.length, 97);
-assert.equal(registry.auditedRoutes.length, 97);
+assert.equal(SCREEN_CONTRACTS.length, 103);
+assert.equal(registry.auditedRoutes.length, 103);
 assert.deepEqual(
   registry.auditedRoutes,
   SCREEN_CONTRACTS.map(({ route }) => route).toSorted(),
@@ -324,7 +324,7 @@ assert.match(mediaSource, /ACCEPTED_MEDIA_TYPES/);
 assert.match(mediaSource, /accept=\{acceptedMediaTypes\.join\(","\)\}/);
 assert.match(entitlementSource, /upload_file_size_bytes/);
 
-assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /all 97 registered screen routes/i);
+assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /all 103 registered screen routes/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /exact one-to-one record/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /complete source-static form and field registry output/i);
 assert.match(PRODUCT_FIELD_CONTRACT_SOURCE_SCOPE, /Null and false values are explicit observations/i);

@@ -6,7 +6,7 @@ export const PRODUCT_SCREEN_LOCATION_TEST_FILE =
   "src/components/product-screen-location-evidence.test.ts" as const;
 
 export const PRODUCT_SCREEN_LOCATION_SCOPE =
-  "Deterministic source verification of all 97 registered screen contracts. Every screen has a unique canonical route, concrete route and non-empty screen title, and its exact recursive local source closure declares at least one non-empty page-level h1. This proves source-declared screen identity and heading orientation only; it does not prove conditional browser rendering, visual placement, assistive-technology output, measured user comprehension, deployed parity or production readiness.";
+  "Deterministic source verification of all 103 registered screen contracts. Every screen has a unique canonical route, concrete route and non-empty screen title, and its exact recursive local source closure declares at least one non-empty page-level h1. This proves source-declared screen identity and heading orientation only; it does not prove conditional browser rendering, visual placement, assistive-technology output, measured user comprehension, deployed parity or production readiness.";
 
 export const PRODUCT_SCREEN_LOCATION_REQUIREMENT_IDS = [
   "COMPLETE.UNDERSTAND.location",

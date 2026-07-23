@@ -120,7 +120,7 @@ const expectedRecordIds = SCREEN_CONTRACTS.flatMap((screen) =>
   }),
 ).toSorted((left, right) => left.localeCompare(right));
 
-assert.equal(SCREEN_CONTRACTS.length, 97);
+assert.equal(SCREEN_CONTRACTS.length, 103);
 assert.ok(registry.auditedRoutes.length >= 60);
 assert.ok(registry.auditedSourceFiles.length >= 250);
 assert.ok(registry.records.length >= 145);
@@ -208,7 +208,7 @@ for (const kind of PRODUCT_FORM_OPERATIONAL_SIGNAL_KINDS) {
   assert.ok(signalTotals[kind] > 0, `${kind}: source signal inventory`);
 }
 
-assert.match(PRODUCT_FORM_OPERATIONAL_CONTRACT_SCOPE, /all 97 screen contracts/i);
+assert.match(PRODUCT_FORM_OPERATIONAL_CONTRACT_SCOPE, /all 103 screen contracts/i);
 assert.match(PRODUCT_FORM_OPERATIONAL_CONTRACT_SCOPE, /empty signal list is an explicit recorded absence/i);
 assert.match(PRODUCT_FORM_OPERATIONAL_CONTRACT_SCOPE, /not proof of server-side function or object-level authorisation/i);
 assert.match(PRODUCT_FORM_OPERATIONAL_CONTRACT_SCOPE, /does not prove hydrated submission/i);

@@ -234,7 +234,7 @@ for (const tour of allTours) {
 assert.equal(totalStepCount, 435);
 assert.equal(scopedStepIds.size, 435);
 
-assert.equal(SCREEN_CONTRACTS.length, 97);
+assert.equal(SCREEN_CONTRACTS.length, 103);
 assert.equal(
   SCREEN_CONTRACTS.filter(
     ({ coverage }) => coverage.onboarding.status === "tested",

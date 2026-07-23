@@ -147,3 +147,31 @@ matches the GreyhoundRecorder outcome: **no scraping, no bulk acquisition.**
 Manager) and/or apply for GRV's official Topaz API access, scoped to breeding
 records (litters, services, registry identities). Recorded under P0-018-class
 authority tracking; owner action required to initiate contact.
+
+## 8. Ancestry depth fix — unmaterialized assertions + RLS widening (r8, 2026-07-23 night)
+
+Finding: 595k studbook parent assertions existed but 143,789 were never
+materialized into `Dog.sireId/damId`; additionally the RLS read policies on
+`PedigreeAssertion`/`DogSourceIdentity` only exposed fully-verified-and-linked
+rows to the runtime role, so the app could not see the rest at all.
+
+Fix (two parts):
+1. r8 app release: the pedigree walk layers materialized links, unmaterialized
+   assertions (parent-identity or whelp-hinted name resolution) and
+   assertion-only name nodes; tree cards now open the dog's stats page with
+   drilling on the +N gens chip. /dogs, breeding and test mating all share
+   this one walker.
+2. Migration `20260723210000_widen_pedigree_read_for_lineage` (applied to prod
+   as postgres, recorded in `_prisma_migrations`, checksum `feccad1f…26ed`):
+   SELECT policies widened to `parsed`+`verified` studbook rows (public
+   breeding facts, no PII); `rejected`/`conflict` stay hidden; INSERT policies
+   and FORCE RLS unchanged. Rollback = reapply the policy DDL from
+   `20260716154500_add_pedigree_provenance_foundation`. Recovery point:
+   today's pre-r4 dump (off-VPS, sha `83aa6724…9828`).
+
+Verified live: Kelsos Fusileer's dam Lassinagh Silky renders on test mating and
+on the public dog profile; Cumbria × Ritza shared ancestors 13 → 14 with the
+overlap verdict moving from "incomplete" to confirmed shared. Remaining empty
+slots (e.g. Gable Dodge's parents) have zero recorded assertions — genuine
+data-boundary, addressed by the GRV/Topaz request (5-generation scope) and,
+for overseas lines, a subscribed international API.

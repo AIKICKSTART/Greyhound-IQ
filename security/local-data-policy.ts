@@ -54,6 +54,9 @@ const LOCAL_DERIVED_MODELS = [
   "JobRun",
   "DataSourceHealth",
   "RateLimit",
+  // Live-ingest quarantine rows are operational artifacts written by the app;
+  // production quarantine payloads never leave the production database.
+  "LiveFeedQuarantine",
 ] as const;
 
 const SYNTHETIC_ONLY_MODELS = [

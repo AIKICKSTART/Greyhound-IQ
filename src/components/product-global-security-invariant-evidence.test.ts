@@ -143,7 +143,7 @@ const schemaModels = [...schemaSource.matchAll(/^model\s+(\w+)\s*\{/gm)].map(
   (match) => match[1],
 );
 const policyModels = Object.keys(DESIGN_LAB_LOCAL_DATA_POLICY);
-assert.equal(schemaModels.length, 113);
+assert.equal(schemaModels.length, 114);
 assert.deepEqual(policyModels.toSorted(), schemaModels.toSorted());
 for (const policy of Object.values(DESIGN_LAB_LOCAL_DATA_POLICY)) {
   assert.equal(policy.productionDatabaseCopy, "DENY", policy.model);

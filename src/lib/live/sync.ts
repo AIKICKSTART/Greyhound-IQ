@@ -26,6 +26,7 @@ import {
   type LiveFeedQuarantineClassification,
   type LiveFeedQuarantineInput,
 } from "./quarantine";
+import { reconcileRecentRaceReplays } from "./replay-reconciliation";
 import { canonicalTrackName } from "./track-name";
 import {
   whitelistProviderSnapshot,
@@ -38,6 +39,8 @@ export type SyncCounts = {
   runners: number;
   results: number;
 };
+
+type SyncWriteCounts = SyncCounts & { replays: number };
 
 export type SyncScope = "upcoming" | "results" | "all";
 
@@ -201,6 +204,10 @@ export interface SyncResult {
   races?: number;
   runners?: number;
   results?: number;
+  replays?: number;
+  replayCandidates?: number;
+  replayResolved?: number;
+  replayErrors?: number;
 }
 
 // Pulls scoped data from the configured live provider and upserts it into the
@@ -235,7 +242,16 @@ export async function syncLiveData(
     scope,
     days,
   });
-  const counts: SyncCounts = { meetings: 0, races: 0, runners: 0, results: 0 };
+  const counts: SyncWriteCounts = {
+    meetings: 0,
+    races: 0,
+    runners: 0,
+    results: 0,
+    replays: 0,
+  };
+  let replayCandidates = 0;
+  let replayResolved = 0;
+  let replayErrors = 0;
   if (scope === "upcoming" || scope === "all") {
     const meetings = stampMeetings(
       await fetchProviderMeetings(
@@ -259,6 +275,21 @@ export async function syncLiveData(
       provider.name,
     );
     addCounts(counts, await upsertSystemMeetings(meetings, logContext));
+    const reconciliation = await reconcileRecentRaceReplays({
+      includeTheDogs: provider.name.split("+").includes("thedogs"),
+    });
+    counts.replays += reconciliation.written;
+    replayCandidates = reconciliation.candidates;
+    replayResolved = reconciliation.resolved;
+    replayErrors = reconciliation.errors;
+    if (reconciliation.errors > 0) {
+      logCorrelatedWarn(logContext, "live_sync.replay_reconciliation_incomplete", {
+        replayCandidates,
+        replayResolved,
+        replayErrors,
+        failedSources: reconciliation.failedSources,
+      });
+    }
     await notifyDogWinnersFromRecentResults();
   }
 
@@ -266,8 +297,19 @@ export async function syncLiveData(
     provider: provider.name,
     scope,
     ...counts,
+    replayCandidates,
+    replayResolved,
+    replayErrors,
   });
-  return { synced: true, provider: provider.name, scope, ...counts };
+  return {
+    synced: true,
+    provider: provider.name,
+    scope,
+    ...counts,
+    replayCandidates,
+    replayResolved,
+    replayErrors,
+  };
 }
 
 async function fetchProviderMeetings(
@@ -454,11 +496,12 @@ async function executeAggregateMaterializedView(
   );
 }
 
-function addCounts(total: SyncCounts, next: SyncCounts) {
+function addCounts(total: SyncWriteCounts, next: SyncWriteCounts) {
   total.meetings += next.meetings;
   total.races += next.races;
   total.runners += next.runners;
   total.results += next.results;
+  total.replays += next.replays;
 }
 
 export async function syncLiveMeetings(
@@ -474,14 +517,14 @@ export async function syncLiveMeetings(
 async function upsertSystemMeetings(
   meetings: LiveMeeting[],
   logContext: LogCorrelationContext
-) {
+): Promise<SyncWriteCounts> {
   if (meetings.length === 0) {
-    return { meetings: 0, races: 0, runners: 0, results: 0 };
+    return { meetings: 0, races: 0, runners: 0, results: 0, replays: 0 };
   }
 
   const quarantineEvents: LiveFeedQuarantineInput[] = [];
   const orphanedFormEntries: OrphanedFormEntryRow[] = [];
-  let counts: SyncCounts;
+  let counts: SyncWriteCounts;
   try {
     counts = await prisma.$transaction(
       async (tx) => {
@@ -553,8 +596,14 @@ async function upsertMeetings(
   logContext: LogCorrelationContext,
   quarantineEvents: LiveFeedQuarantineInput[],
   orphanedFormEntries: OrphanedFormEntryRow[],
-): Promise<SyncCounts> {
-  const counts: SyncCounts = { meetings: 0, races: 0, runners: 0, results: 0 };
+): Promise<SyncWriteCounts> {
+  const counts: SyncWriteCounts = {
+    meetings: 0,
+    races: 0,
+    runners: 0,
+    results: 0,
+    replays: 0,
+  };
   if (meetings.length === 0) return counts;
 
   const now = new Date();
@@ -602,7 +651,7 @@ async function upsertMeetings(
     () => ensureRaces(db, raceItems, now, quarantineEvents),
     logContext
   );
-  await syncStage(
+  counts.replays = await syncStage(
     "ensureRaceVideos",
     { races: raceItems.length },
     () => ensureRaceVideos(db, raceItems, raceRows, now),

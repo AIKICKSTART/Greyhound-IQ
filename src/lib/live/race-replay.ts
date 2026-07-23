@@ -78,7 +78,7 @@ export async function resolveRaceVideoReplay(
       sourceId: video.sourceId,
       replayUrl: pageUrl,
     });
-    return replay ? { ...replay, embedUrl: null, embedType: null } : storedReplay(video);
+    return replay ?? storedReplay(video);
   }
 
   if (provider === "tasracing" || embedSourceType === "tasracing-hls") {
@@ -135,7 +135,7 @@ export async function resolveProviderRaceReplay({
   const pageUrl = normalisePublicUrl(replayUrl);
   if (provider === "thedogs") {
     const replay = await resolveTheDogsRaceReplay({ sourceId, replayUrl: pageUrl });
-    return replay ? { ...replay, embedUrl: null, embedType: null } : null;
+    return replay;
   }
   if (provider === "racing-queensland") {
     return resolveRacingQueenslandReplay(pageUrl, { sourceProvider, sourceId });

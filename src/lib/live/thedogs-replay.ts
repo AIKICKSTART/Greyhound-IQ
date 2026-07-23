@@ -35,6 +35,8 @@ export type ResolvedTheDogsReplay = {
   pageUrl: string;
   streamUrl: string | null;
   streamContentType: string | null;
+  embedUrl: string | null;
+  embedType: "youtube" | null;
   title: string | null;
   description: string | null;
   sourceStatus: number | null;
@@ -65,15 +67,22 @@ export async function resolveTheDogsRaceReplay({
   // host-pinned to thedogs; it is only returned for the browser to play under
   // CSP, never fetched server-side. Validate it is plain http(s).
   const streamUrl = publicHttpUrl(source.video?.src);
+  const embedUrl = streamUrl
+    ? null
+    : await fetchReplayPageEmbed(pageUrl, fetchImpl);
 
   return {
     pageUrl,
     streamUrl,
     streamContentType: streamContentType(streamUrl),
+    embedUrl,
+    embedType: embedUrl ? "youtube" : null,
     title: cleanHtml(source.video?.title),
     description: cleanHtml(source.video?.description),
-    sourceStatus: source.meta?.status ?? null,
-    sourceCode: source.meta?.code ?? null,
+    sourceStatus: embedUrl ? 200 : source.meta?.status ?? null,
+    sourceCode: embedUrl
+      ? "thedogs-page-youtube"
+      : source.meta?.code ?? null,
   };
 }
 
@@ -163,6 +172,56 @@ async function fetchVideoSource(
   } catch {
     return {};
   }
+}
+
+async function fetchReplayPageEmbed(
+  pageUrl: string,
+  fetchImpl: ReplayFetch,
+) {
+  try {
+    const response = await fetchImpl(pageUrl, {
+      cache: "no-store",
+      redirect: "manual",
+      signal: AbortSignal.timeout(THEDOGS_FETCH_TIMEOUT_MS),
+      headers: {
+        accept: "text/html,application/xhtml+xml",
+        "accept-language": "en-US,en;q=0.9",
+        "user-agent": THEDOGS_USER_AGENT,
+      },
+    });
+    if (!response.ok) {
+      await response.body?.cancel();
+      return null;
+    }
+    const html = await readBoundedTextResponse(response, THEDOGS_HTML_POLICY);
+    return parseYouTubeEmbed(html);
+  } catch {
+    return null;
+  }
+}
+
+export function parseYouTubeEmbed(html: string) {
+  for (const match of html.matchAll(
+    /<iframe\b[^>]*\bsrc=["']([^"']+)["']/gi,
+  )) {
+    try {
+      const url = new URL(decodeEntities(match[1] ?? ""));
+      const videoId = url.pathname.match(
+        /^\/embed\/([A-Za-z0-9_-]{11})$/,
+      )?.[1];
+      if (
+        url.protocol === "https:" &&
+        (url.hostname === "www.youtube.com" ||
+          url.hostname === "www.youtube-nocookie.com") &&
+        videoId
+      ) {
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }
 
 function parseReplayUrl(html: string) {

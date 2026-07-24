@@ -4,7 +4,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { NextFetchEvent } from "next/server";
 import "@/lib/workos-env";
-import { authkitProxy } from "@workos-inc/authkit-nextjs";
+import {
+  authkit,
+  authkitProxy,
+  handleAuthkitHeaders,
+} from "@workos-inc/authkit-nextjs";
 import {
   resolveWorkosBaseUrl,
   resolveWorkosRedirectUri,
@@ -32,6 +36,13 @@ import {
   isMaintenanceBypassPath,
   maintenanceModeResponse,
 } from "@/lib/maintenance-mode";
+import {
+  isLaunchGateBypassPath,
+  LAUNCH_PREVIEW_COOKIE,
+  launchGateResponse,
+  resolveLaunchGateState,
+  verifyLaunchPreviewToken,
+} from "@/lib/launch-gate";
 
 export async function proxy(request: NextRequest, event: NextFetchEvent) {
   // Cloud Run terminates TLS and forwards the client scheme + public host here.
@@ -131,6 +142,32 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
   // (partitionAuthkitHeaders), so the clone carries x-nonce/x-request-id into
   // render. Cookies and nextUrl survive because input is a Request instance.
   const authRequest = new NextRequest(request, { headers: requestHeaders });
+  const launchGate = resolveLaunchGateState();
+  let launchAuthkitHeaders: Headers | null = null;
+  if (launchGate.active && !isLaunchGateBypassPath(request.nextUrl.pathname)) {
+    const preview = verifyLaunchPreviewToken(
+      request.cookies.get(LAUNCH_PREVIEW_COOKIE)?.value,
+      process.env.LAUNCH_PREVIEW_SECRET,
+      launchGate.launchAt,
+    );
+    const gatedResponse = () => {
+      const response = launchGateResponse(request, launchGate, nonce);
+      response.headers.set("Content-Security-Policy", csp);
+      response.headers.set(REQUEST_ID_HEADER, requestId);
+      return response;
+    };
+    if (!preview) return gatedResponse();
+
+    const previewAuth = await authkit(authRequest, {
+      redirectUri: resolveWorkosRedirectUri(request.url),
+    });
+    if (
+      previewAuth.session.user?.email.trim().toLowerCase() !== preview.email
+    ) {
+      return gatedResponse();
+    }
+    launchAuthkitHeaders = previewAuth.headers;
+  }
 
   if (demo && !isDemoReadMethod(request.method)) {
     return securedErrorResponse(403, "demo.read_only", csp, requestId);
@@ -138,9 +175,11 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
 
   const response = demo
     ? NextResponse.next({ request: { headers: requestHeaders } })
-    : (await authkitProxy({
-        redirectUri: resolveWorkosRedirectUri(request.url),
-      })(authRequest, event)) ?? NextResponse.next();
+    : launchAuthkitHeaders
+      ? handleAuthkitHeaders(authRequest, launchAuthkitHeaders)
+      : ((await authkitProxy({
+          redirectUri: resolveWorkosRedirectUri(request.url),
+        })(authRequest, event)) ?? NextResponse.next());
 
   if (
     ["/callback", "/sign-in"].includes(request.nextUrl.pathname) &&

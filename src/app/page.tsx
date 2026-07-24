@@ -18,7 +18,7 @@ export const metadata = {
 
 const FEATURES = [
   {
-    image: "/images/feature-career-form-purple.webp",
+    image: "/images/feature-full-career-form-20260725.webp",
     title: "Full Career Form",
     description:
       "Every start, every time, every track. Complete career history with sectionals and split times.",
@@ -27,7 +27,7 @@ const FEATURES = [
     tone: "primary",
   },
   {
-    image: "/images/feature-ai-predictions-blue.webp",
+    image: "/images/feature-ai-predictions-20260725.webp",
     title: "AI Predictions",
     description:
       "Machine learning race predictions with probability modelling and confidence intervals.",
@@ -36,7 +36,7 @@ const FEATURES = [
     tone: "info",
   },
   {
-    image: "/images/feature-breeding-analytics-gold.webp",
+    image: "/images/feature-pedigree-tools-20260725.webp",
     title: "Breeding Analytics",
     description:
       "5-generation pedigrees, testmating tools, sire strike rates, and litter performance.",
@@ -45,7 +45,7 @@ const FEATURES = [
     tone: "secondary",
   },
   {
-    image: "/images/feature-advanced-stats-green.webp",
+    image: "/images/feature-advanced-stats-20260725.webp",
     title: "Advanced Stats",
     description:
       "Track bias, box statistics, trainer leaderboards, speed maps, and custom dashboards.",

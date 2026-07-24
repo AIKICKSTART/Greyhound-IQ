@@ -258,46 +258,76 @@ function launchGateHtml(
     <style>
       :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
       * { box-sizing: border-box; }
-      body { margin: 0; min-height: 100vh; overflow-x: hidden; background: #08050b; color: #fff; }
-      body::before { content: ""; position: fixed; inset: 0; background: linear-gradient(180deg, rgba(8,5,11,.38), rgba(8,5,11,.92)), url("/images/landing-hero-20260724.webp") center/cover; filter: saturate(.85); transform: scale(1.02); }
-      body::after { content: ""; position: fixed; inset: 0; background: radial-gradient(circle at 50% 18%, rgba(161,77,255,.28), transparent 44%), linear-gradient(120deg, rgba(255,194,62,.09), transparent 34%); }
-      main { position: relative; z-index: 1; width: min(100%, 880px); min-height: 100vh; margin: auto; display: grid; align-content: center; justify-items: center; padding: 32px 20px 46px; text-align: center; }
-      .logo { width: min(84vw, 420px); height: auto; filter: drop-shadow(0 12px 34px rgba(0,0,0,.62)); }
-      .eyebrow { margin-top: 30px; color: #e6c4ff; font-size: 12px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; }
-      h1 { max-width: 760px; margin: 14px 0 0; font-size: clamp(40px, 8vw, 78px); line-height: .97; letter-spacing: -.045em; text-wrap: balance; }
-      h1 span { color: #d785ff; text-shadow: 0 0 30px rgba(180,88,255,.38); }
-      .lead { max-width: 650px; margin: 22px auto 0; color: #d6cfdf; font-size: clamp(16px, 2.4vw, 20px); line-height: 1.55; }
-      .countdown { width: min(100%, 720px); display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 32px; }
-      .unit { padding: 20px 8px 16px; border: 1px solid rgba(216,174,255,.24); border-radius: 18px; background: linear-gradient(180deg, rgba(37,21,51,.82), rgba(16,11,23,.9)); box-shadow: inset 0 1px rgba(255,255,255,.12), 0 18px 48px rgba(0,0,0,.3); backdrop-filter: blur(14px); }
-      .value { display: block; font-variant-numeric: tabular-nums; font-size: clamp(32px, 7vw, 56px); font-weight: 800; line-height: 1; }
-      .label { display: block; margin-top: 9px; color: #a99fb3; font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
-      .launch-time { margin: 18px 0 0; color: #ffd36d; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-      .preview { margin-top: 30px; }
-      .preview a { display: inline-flex; min-height: 50px; align-items: center; justify-content: center; padding: 0 24px; border: 1px solid rgba(226,190,255,.72); border-radius: 13px; background: linear-gradient(180deg, #a84bde, #69228f); box-shadow: inset 0 1px rgba(255,255,255,.28), 0 15px 36px rgba(125,42,177,.38); color: white; font-weight: 800; text-decoration: none; }
-      .preview p { margin: 12px 0 0; color: #9e94a8; font-size: 13px; }
-      .denied { margin: 18px 0 0; padding: 11px 14px; border: 1px solid rgba(255,118,146,.4); border-radius: 10px; background: rgba(100,20,39,.55); color: #ffdce4; }
-      @media (max-width: 540px) { .countdown { gap: 7px; } .unit { padding: 16px 4px 13px; border-radius: 13px; } .label { font-size: 8px; letter-spacing: .1em; } }
+      body { margin: 0; min-height: 100vh; min-height: 100svh; overflow: hidden; background: #030303; color: #fff; }
+      .backdrop, .backdrop img, .atmosphere { position: fixed; inset: 0; width: 100%; height: 100%; }
+      .backdrop img { object-fit: cover; object-position: left center; filter: saturate(.92) contrast(1.04); }
+      .atmosphere { background: linear-gradient(180deg, rgba(0,0,0,.08) 38%, rgba(0,0,0,.48) 70%, rgba(0,0,0,.94) 100%), radial-gradient(circle at 50% 54%, transparent 34%, rgba(0,0,0,.34) 100%); }
+      main { position: relative; z-index: 1; width: 100%; min-height: 100vh; min-height: 100svh; display: flex; align-items: flex-end; justify-content: center; padding: 28px clamp(16px, 3vw, 44px) clamp(24px, 4vh, 44px); text-align: center; }
+      .mobile-logo { display: none; }
+      .launch-panel { position: relative; width: min(920px, 100%); padding: 22px clamp(18px, 3vw, 34px) 20px; overflow: hidden; border: 1px solid rgba(207,150,49,.55); border-radius: 20px; background-color: rgba(8,8,10,.91); background-image: linear-gradient(27deg, rgba(255,255,255,.035) 5px, transparent 5px), linear-gradient(207deg, rgba(255,255,255,.025) 5px, transparent 5px), linear-gradient(27deg, rgba(0,0,0,.28) 5px, transparent 5px), linear-gradient(207deg, rgba(0,0,0,.24) 5px, transparent 5px); background-position: 0 8px, 10px 3px, 0 3px, 10px 8px; background-size: 20px 20px; box-shadow: inset 0 1px rgba(255,255,255,.12), inset 0 -1px rgba(112,52,173,.4), 0 28px 80px rgba(0,0,0,.7), 0 0 42px rgba(112,35,179,.16); backdrop-filter: blur(18px); }
+      .launch-panel::before { content: ""; position: absolute; inset: 0 12%; height: 2px; background: linear-gradient(90deg, transparent, #f2aa29 32%, #fff0a8 50%, #9f43e8 72%, transparent); box-shadow: 0 0 18px rgba(239,163,35,.65); }
+      .eyebrow { display: flex; align-items: center; justify-content: center; gap: 10px; color: #cfa858; font-size: 10px; font-weight: 850; letter-spacing: .32em; text-transform: uppercase; }
+      .eyebrow::before, .eyebrow::after { content: ""; width: 42px; height: 1px; background: linear-gradient(90deg, transparent, #a76517); }
+      .eyebrow::after { background: linear-gradient(90deg, #8b36d5, transparent); }
+      h1 { margin: 7px 0 0; font-size: clamp(24px, 3.2vw, 38px); line-height: 1; letter-spacing: -.025em; text-transform: uppercase; }
+      .lead { margin: 7px auto 0; color: #a89fad; font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; }
+      .countdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; }
+      .unit { position: relative; padding: 15px 8px 12px; overflow: hidden; border: 1px solid rgba(139,61,204,.54); border-radius: 12px; background: linear-gradient(145deg, rgba(33,33,37,.96), rgba(7,7,9,.98)); box-shadow: inset 0 1px rgba(255,255,255,.1), inset 0 -12px 24px rgba(0,0,0,.36), 0 8px 22px rgba(0,0,0,.38); }
+      .unit::before { content: ""; position: absolute; top: 0; left: 22%; right: 22%; height: 2px; background: linear-gradient(90deg, transparent, #dda033, transparent); box-shadow: 0 0 10px rgba(238,164,42,.75); }
+      .value { display: block; color: #fff; font-variant-numeric: tabular-nums; font-size: clamp(34px, 5vw, 52px); font-weight: 900; line-height: .9; letter-spacing: -.04em; text-shadow: 0 2px 0 #4b3b1c, 0 0 22px rgba(173,76,241,.28); }
+      .label { display: block; margin-top: 9px; color: #c59b45; font-size: 8px; font-weight: 850; letter-spacing: .24em; text-transform: uppercase; }
+      .launch-time { margin: 14px 0 0; color: #f5c866; font-size: 11px; font-weight: 850; letter-spacing: .13em; text-transform: uppercase; }
+      .preview { position: fixed; z-index: 3; top: 16px; right: 18px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+      .preview a { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; padding: 0 12px; border: 1px solid rgba(199,171,107,.24); border-radius: 8px; background: rgba(4,4,5,.48); color: rgba(255,255,255,.58); font-size: 9px; font-weight: 750; letter-spacing: .11em; text-decoration: none; text-transform: uppercase; backdrop-filter: blur(9px); transition: color .15s ease, border-color .15s ease, background .15s ease; }
+      .preview a:hover, .preview a:focus-visible { border-color: rgba(221,171,65,.72); background: rgba(9,9,11,.86); color: #fff; outline: none; }
+      .denied { max-width: 280px; margin: 0; padding: 9px 11px; border: 1px solid rgba(255,118,146,.4); border-radius: 8px; background: rgba(55,7,18,.88); color: #ffdce4; font-size: 11px; }
+      @media (max-width: 640px) {
+        .backdrop img { object-position: center; }
+        .atmosphere { background: linear-gradient(180deg, rgba(0,0,0,.16), rgba(0,0,0,.06) 40%, rgba(0,0,0,.78) 68%, #020203 100%); }
+        main { padding: 116px 10px 14px; }
+        .mobile-logo { position: absolute; top: 54px; left: 50%; display: block; width: min(80vw, 310px); height: auto; transform: translateX(-50%); filter: drop-shadow(0 8px 18px rgba(0,0,0,.8)); }
+        .launch-panel { padding: 17px 9px 14px; border-radius: 15px; }
+        .eyebrow { font-size: 8px; letter-spacing: .22em; }
+        .eyebrow::before, .eyebrow::after { width: 24px; }
+        h1 { margin-top: 6px; font-size: clamp(21px, 7vw, 28px); }
+        .lead { font-size: 8px; letter-spacing: .15em; }
+        .countdown { gap: 5px; margin-top: 14px; }
+        .unit { padding: 13px 2px 10px; border-radius: 9px; }
+        .value { font-size: clamp(28px, 10vw, 39px); }
+        .label { margin-top: 7px; font-size: 6px; letter-spacing: .12em; }
+        .launch-time { margin-top: 11px; font-size: 8px; letter-spacing: .08em; }
+        .preview { top: 9px; right: 9px; }
+        .preview a { min-height: 30px; padding: 0 9px; font-size: 8px; opacity: .72; }
+      }
     </style>
   </head>
   <body>
-    <main>
-      <img class="logo" src="/images/logo-wordmark-purple-gold.webp" alt="GreyhoundIQ">
-      <div class="eyebrow">The wait is almost over</div>
-      <h1>Australian racing intelligence, <span>unleashed.</span></h1>
-      <p class="lead">GreyhoundIQ opens at 5:00 PM AEST with live race cards, deep form, breeding intelligence and AI-powered insights in one premium platform.</p>
-      <div class="countdown" aria-label="Time until GreyhoundIQ launches">
-        <div class="unit"><span class="value" data-days>${initial.days}</span><span class="label">Days</span></div>
-        <div class="unit"><span class="value" data-hours>${initial.hours.toString().padStart(2, "0")}</span><span class="label">Hours</span></div>
-        <div class="unit"><span class="value" data-minutes>${initial.minutes.toString().padStart(2, "0")}</span><span class="label">Minutes</span></div>
-        <div class="unit"><span class="value" data-seconds>${initial.seconds.toString().padStart(2, "0")}</span><span class="label">Seconds</span></div>
-      </div>
-      <p class="launch-time"><time datetime="2026-07-25T17:00:00+10:00">5:00 PM AEST · Saturday 25 July 2026</time></p>
+    <picture class="backdrop" aria-hidden="true">
+      <source media="(max-width: 640px)" type="image/avif" srcset="/images/launch-panther-mobile-20260724.avif">
+      <source media="(max-width: 640px)" type="image/webp" srcset="/images/launch-panther-mobile-20260724.webp">
+      <source type="image/avif" srcset="/images/launch-panther-20260724.avif">
+      <img src="/images/launch-panther-20260724.webp" alt="" width="1672" height="941" fetchpriority="high" decoding="async">
+    </picture>
+    <div class="atmosphere"></div>
+    <div class="preview">
+      <a href="/launch-preview">Private access</a>
       ${deniedMessage}
-      <div class="preview">
-        <a href="/launch-preview">Admin &amp; preview login</a>
-        <p>Approved accounts only until launch.</p>
-      </div>
-      <noscript><p class="lead">Refresh this page after 5:00 PM AEST to enter GreyhoundIQ.</p></noscript>
+    </div>
+    <main>
+      <img class="mobile-logo" src="/images/logo-wordmark-purple-gold.webp" alt="GreyhoundIQ" width="640" height="208">
+      <section class="launch-panel" aria-labelledby="launch-title">
+        <div class="eyebrow">Launch sequence</div>
+        <h1 id="launch-title">GreyhoundIQ goes live</h1>
+        <p class="lead">Data · Intelligence · Edge</p>
+        <div class="countdown" aria-label="Time until GreyhoundIQ launches">
+          <div class="unit"><span class="value" data-days>${initial.days}</span><span class="label">Days</span></div>
+          <div class="unit"><span class="value" data-hours>${initial.hours.toString().padStart(2, "0")}</span><span class="label">Hours</span></div>
+          <div class="unit"><span class="value" data-minutes>${initial.minutes.toString().padStart(2, "0")}</span><span class="label">Minutes</span></div>
+          <div class="unit"><span class="value" data-seconds>${initial.seconds.toString().padStart(2, "0")}</span><span class="label">Seconds</span></div>
+        </div>
+        <p class="launch-time"><time datetime="2026-07-25T17:00:00+10:00">5:00 PM AEST · Saturday 25 July 2026</time></p>
+        <noscript><p class="lead">Refresh this page after 5:00 PM AEST to enter GreyhoundIQ.</p></noscript>
+      </section>
     </main>
     <script nonce="${nonce}">
       (function () {

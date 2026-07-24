@@ -104,7 +104,9 @@ async function main() {
   assert.equal(htmlResponse.headers.get("x-robots-tag"), "noindex, nofollow");
   const html = await htmlResponse.text();
   assert.match(html, /5:00 PM AEST/);
-  assert.match(html, /Admin &amp; preview login/);
+  assert.match(html, /Private access/);
+  assert.match(html, /launch-panther-20260724\.avif/);
+  assert.match(html, /launch-panther-mobile-20260724\.webp/);
   assert.match(html, /not approved for pre-launch access/);
   assert.match(html, /nonce="test-nonce"/);
   assert.match(html, new RegExp(`var target = ${launchAt}`));

@@ -8,16 +8,33 @@ import {
   LAUNCH_PREVIEW_COOKIE,
   resolveLaunchGateState,
 } from "@/lib/launch-gate";
+import { resolveWorkosBaseUrl } from "@/lib/workos-redirect";
 
 export async function GET(request: NextRequest) {
+  const publicOrigin = resolveWorkosBaseUrl(request.url);
+  if (!publicOrigin) {
+    return Response.json(
+      {
+        error: {
+          code: "service.public_origin_unavailable",
+          message: "Private preview is temporarily unavailable",
+        },
+      },
+      {
+        status: 503,
+        headers: { "Cache-Control": "private, no-store" },
+      },
+    );
+  }
+
   const gate = resolveLaunchGateState();
   if (!gate.active) {
-    return NextResponse.redirect(new URL("/", request.url), 303);
+    return NextResponse.redirect(new URL("/", publicOrigin), 303);
   }
 
   const user = await getCurrentUser();
   if (!user) {
-    const signIn = new URL("/sign-in", request.url);
+    const signIn = new URL("/sign-in", publicOrigin);
     signIn.searchParams.set("returnTo", "/launch-preview");
     return NextResponse.redirect(signIn, 303);
   }
@@ -27,7 +44,7 @@ export async function GET(request: NextRequest) {
     !user.deletionRequestedAt &&
     (isAdminRole(user.role) || isLaunchPreviewEmail(user.email));
   if (!allowed) {
-    return NextResponse.redirect(new URL("/?preview=denied", request.url), 303);
+    return NextResponse.redirect(new URL("/?preview=denied", publicOrigin), 303);
   }
 
   const secret = process.env.LAUNCH_PREVIEW_SECRET;
@@ -46,7 +63,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const response = NextResponse.redirect(new URL("/", request.url), 303);
+  const response = NextResponse.redirect(new URL("/", publicOrigin), 303);
   response.cookies.set({
     name: LAUNCH_PREVIEW_COOKIE,
     value: createLaunchPreviewToken(user.email, secret, gate.launchAt),

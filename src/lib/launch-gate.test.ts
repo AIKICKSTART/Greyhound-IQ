@@ -104,7 +104,7 @@ async function main() {
   assert.equal(htmlResponse.headers.get("x-robots-tag"), "noindex, nofollow");
   const html = await htmlResponse.text();
   assert.match(html, /5:00 PM AEST/);
-  assert.match(html, /Private access/);
+  assert.match(html, /Admin preview/);
   assert.match(html, /launch-panther-20260724\.avif/);
   assert.match(html, /launch-panther-mobile-20260724\.webp/);
   assert.match(html, /not approved for pre-launch access/);
@@ -124,7 +124,7 @@ async function main() {
   assert.deepEqual(await apiResponse.json(), {
     error: {
       code: "service.launch_pending",
-      message: "GreyhoundIQ opens at 5:00 PM AEST on 25 July 2026",
+      message: "Greyhounds IQ opens at 5:00 PM AEST on 25 July 2026",
     },
   });
 

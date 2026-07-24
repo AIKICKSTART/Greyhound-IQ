@@ -5,6 +5,7 @@ import providerRightsRegistry from "../../../config/provider-rights-authorizatio
 import { isProviderRegistryUseAuthorized } from "@/lib/provider-rights";
 
 import { proxiedStreamPath } from "./replay-proxy";
+import { isTheDogsLicensedUseApproved } from "./thedogs-access";
 
 const AUSTRALIAN_JURISDICTIONS = new Set([
   "ACT",
@@ -37,6 +38,13 @@ export function isReplayProxyAuthorised(input: {
   const jurisdiction = input.jurisdiction?.trim().toUpperCase() || "AUS";
   if (!sourceProvider || !AUSTRALIAN_JURISDICTIONS.has(jurisdiction)) {
     return false;
+  }
+  if (
+    sourceProvider === "thedogs" &&
+    (jurisdiction === "NSW" || jurisdiction === "ACT") &&
+    isTheDogsLicensedUseApproved()
+  ) {
+    return true;
   }
   return isProviderRegistryUseAuthorized(
     providerRightsRegistry,

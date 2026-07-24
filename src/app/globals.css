@@ -6080,6 +6080,17 @@ h2,
     box-shadow var(--duration-base) var(--ease);
 }
 
+.giq-stagger.giq-grid-3 > .giq-meeting-card:nth-child(n + 7) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 520px;
+}
+
+@media (max-width: 640px) {
+  .giq-stagger.giq-grid-3 > .giq-meeting-card:nth-child(n + 7) {
+    contain-intrinsic-size: auto 604px;
+  }
+}
+
 .giq-meeting-card:hover,
 .giq-meeting-card:focus-within {
   transform: translateY(var(--lift-1));

@@ -12,7 +12,7 @@ export function HomeHero({
 }) {
   return (
     <PageHero
-      image="/images/wentworth-gate-hero.webp"
+      image="/images/landing-hero-20260724.webp"
       size={compact ? "default" : "tall"}
       title={
         <>

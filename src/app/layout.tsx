@@ -225,7 +225,7 @@ export default async function RootLayout({
           {!suppressDemoOverlays && !fullAccessDemo ? (
             <InteractiveHelp
               allowAutomaticOpen={Boolean(user)}
-              allowContextualAutomaticOpen
+              allowContextualAutomaticOpen={Boolean(user)}
               firstName={user?.firstName || user?.name || "Visitor"}
               profileScope={user?.profileId}
               role={user?.role ?? "visitor"}

@@ -341,6 +341,11 @@ function sortLabel(sort: ResultsSort) {
 function toDisplayRace(
   race: Awaited<ReturnType<typeof getRecentResults>>[number]
 ): DisplayRace {
+  const allStoredReplaysFailed =
+    race.videos.length > 0 &&
+    race.videos.every(
+      (video) => replayPlaybackState(video) === "failed",
+    );
   return {
     id: race.id,
     raceNumber: race.raceNumber,
@@ -352,7 +357,7 @@ function toDisplayRace(
       race.videos.some((video) =>
         ["embedded", "external"].includes(replayPlaybackState(video)),
       ) ||
-      (race.replayUrl
+      (!allStoredReplaysFailed && race.replayUrl
         ? ["embedded", "external"].includes(
             replayPlaybackState({
               sourceProvider: race.sourceProvider,

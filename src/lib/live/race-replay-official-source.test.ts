@@ -130,6 +130,15 @@ assert.equal(
   "external",
   "a provider replay page is not marked embedded until it resolves to a stream or trusted embed URL",
 );
+assert.equal(
+  replayPlaybackState({
+    sourceProvider: "watchdog",
+    pageUrl: "https://www.youtube.com/watch?v=abcDEF12345",
+    verificationStatus: "failed",
+  }),
+  "failed",
+  "a confirmed dead source must not remain embedded",
+);
 
 assert.ok(embedUrlFromReplayPage(allowed[0][2]), "official YouTube replays embed");
 assert.ok(embedUrlFromReplayPage(allowed[3][2]), "official Vimeo replays embed");
@@ -153,6 +162,15 @@ async function assertMisfiledYoutubeStreamEmbeds() {
       embedType: "youtube",
     },
     "a YouTube watch URL misfiled as streamUrl must still become an embed",
+  );
+  assert.equal(
+    await resolveRaceVideoReplay({
+      sourceProvider: "watchdog",
+      pageUrl: "https://www.youtube.com/watch?v=abcDEF12345",
+      verificationStatus: "failed",
+    }),
+    null,
+    "a confirmed dead source must not resolve to an iframe",
   );
 }
 

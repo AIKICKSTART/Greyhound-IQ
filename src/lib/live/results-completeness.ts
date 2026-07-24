@@ -33,6 +33,7 @@ type CompletenessRace = {
   videos: Array<{
     sourceProvider: string | null;
     pageUrl: string | null;
+    verificationStatus: string | null;
     embedSourceType: string | null;
     streamUrl: string | null;
     sourceStatus: number | null;
@@ -66,6 +67,7 @@ export async function auditRecentResultsCompleteness(now = new Date()) {
           select: {
             sourceProvider: true,
             pageUrl: true,
+            verificationStatus: true,
             embedSourceType: true,
             streamUrl: true,
             sourceStatus: true,
@@ -107,11 +109,16 @@ export function aggregateResultsCompleteness(
       weights: 0,
     };
     const runners = race.runners.filter((runner) => !runner.scratched);
+    const allStoredReplaysFailed =
+      race.videos.length > 0 &&
+      race.videos.every(
+        (video) => replayPlaybackState(video) === "failed",
+      );
     const playableReplay =
       race.videos.some((video) =>
         ["embedded", "external"].includes(replayPlaybackState(video)),
       ) ||
-      (race.replayUrl
+      (!allStoredReplaysFailed && race.replayUrl
         ? ["embedded", "external"].includes(
             replayPlaybackState({
               sourceProvider: race.sourceProvider,

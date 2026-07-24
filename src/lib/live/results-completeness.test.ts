@@ -35,4 +35,32 @@ assert.equal(metric.staleResultRaces, 1);
 assert.equal(metric.staleReplayRaces, 1);
 assert.equal(metric.runners, 1);
 
+const [failedReplayMetric] = aggregateResultsCompleteness(
+  [
+    {
+      raceTime: new Date("2026-07-23T22:00:00.000Z"),
+      replayUrl: "https://www.youtube.com/watch?v=deleted123",
+      sourceProvider: "watchdog",
+      meeting: { track: { name: "Failed Replay Track" } },
+      runners: [],
+      videos: [
+        {
+          sourceProvider: "watchdog",
+          pageUrl: "https://www.youtube.com/watch?v=deleted123",
+          verificationStatus: "failed",
+          embedSourceType: "youtube",
+          streamUrl: null,
+          sourceStatus: 200,
+        },
+      ],
+    },
+  ],
+  now,
+);
+assert.equal(
+  failedReplayMetric.staleReplayRaces,
+  1,
+  "a failed stored source must suppress the matching race-level replay fallback",
+);
+
 console.log("recent results completeness tests passed");

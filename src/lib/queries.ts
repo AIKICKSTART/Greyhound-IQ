@@ -279,6 +279,7 @@ export const getRaceById = cache(async (id: string) => {
               sourceId: true,
               kind: true,
               pageUrl: true,
+              verificationStatus: true,
               embedSourceType: true,
               sourceStatus: true,
               sourceCode: true,
@@ -459,6 +460,7 @@ type RaceDetailVideoRow = {
   sourceId: string;
   kind: string;
   pageUrl: string;
+  verificationStatus: string;
   embedSourceType: string | null;
   sourceStatus: number | null;
   sourceCode: string | null;
@@ -561,6 +563,7 @@ function getBoundedRaceDetailVideos(
       bounded."sourceId",
       bounded.kind,
       bounded."pageUrl",
+      bounded."verificationStatus",
       bounded."embedSourceType",
       bounded."sourceStatus",
       bounded."sourceCode",
@@ -579,6 +582,7 @@ function getBoundedRaceDetailVideos(
         v."sourceId",
         v.kind,
         v."pageUrl",
+        v."verificationStatus",
         v."embedSourceType",
         v."sourceStatus",
         v."sourceCode",
@@ -1168,6 +1172,7 @@ async function fetchRecentResults(filters: RecentResultsFilters = {}) {
             select: {
               sourceProvider: true,
               pageUrl: true,
+              verificationStatus: true,
               embedSourceType: true,
               streamUrl: true,
               sourceStatus: true,
@@ -1461,6 +1466,7 @@ type RaceExplorerRace = {
     id: string;
     streamUrl: string | null;
     sourceStatus: number | null;
+    verificationStatus: string;
   }[];
 };
 
@@ -1527,6 +1533,7 @@ async function getRaceExplorerMeetings(
           raceId: true,
           streamUrl: true,
           sourceStatus: true,
+          verificationStatus: true,
         },
       }),
     ]);
@@ -1542,6 +1549,7 @@ async function getRaceExplorerMeetings(
             id: video.id,
             streamUrl: video.streamUrl,
             sourceStatus: video.sourceStatus,
+            verificationStatus: video.verificationStatus,
           },
         ]);
       }
@@ -2752,6 +2760,7 @@ export const getTrainerById = cache(async (id: string) =>
                   select: {
                     sourceProvider: true,
                     pageUrl: true,
+                    verificationStatus: true,
                     embedSourceType: true,
                     streamUrl: true,
                     sourceStatus: true,

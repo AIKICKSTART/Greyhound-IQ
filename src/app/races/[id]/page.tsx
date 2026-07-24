@@ -146,7 +146,13 @@ export default async function RacePage({
       Number(Boolean(embedUrlFromReplayPage(right.pageUrl)?.embedUrl)) -
         Number(Boolean(embedUrlFromReplayPage(left.pageUrl)?.embedUrl))
   );
-  let primaryVideo = orderedVideos[0] ?? null;
+  const allStoredReplaysFailed =
+    orderedVideos.length > 0 &&
+    orderedVideos.every((video) => video.verificationStatus === "failed");
+  let primaryVideo =
+    orderedVideos.find((video) => video.verificationStatus !== "failed") ??
+    orderedVideos[0] ??
+    null;
   let storedReplay: ResolvedRaceReplay | null = null;
   for (const video of orderedVideos) {
     const resolved = await resolveRaceVideoReplay(video);
@@ -167,7 +173,7 @@ export default async function RacePage({
   // Resolve each stored record in playable-first order, then fall back to the
   // race-level provider fields. The official URL remains the outbound source.
   const providerReplay =
-    storedReplay?.streamUrl || storedReplay?.embedUrl
+    storedReplay?.streamUrl || storedReplay?.embedUrl || allStoredReplaysFailed
       ? null
       : await resolveProviderRaceReplay({
           sourceProvider: race.sourceProvider,
@@ -187,7 +193,9 @@ export default async function RacePage({
     ? null
     : storedReplay?.embedUrl ??
       providerReplay?.embedUrl ??
-      embedUrlFromReplayPage(replayOfficialUrl)?.embedUrl ??
+      (allStoredReplaysFailed
+        ? null
+        : embedUrlFromReplayPage(replayOfficialUrl)?.embedUrl) ??
       null;
   const replayTitle =
     storedReplay?.title ??
@@ -563,7 +571,14 @@ function collectPreviousRaceVideoCandidates(
 
   for (const pastRunner of previousVideoRunners) {
     const pastRace = pastRunner.race;
+    if (
+      pastRace.videos.length > 0 &&
+      pastRace.videos.every((video) => video.verificationStatus === "failed")
+    ) {
+      continue;
+    }
     const replayCandidate = pastRace.videos
+      .filter((video) => video.verificationStatus !== "failed")
       .map((video) => ({ video, officialUrl: officialRaceReplayUrl(video) }))
       .find((candidate) => candidate.officialUrl);
     const video = replayCandidate?.video ?? null;
@@ -576,7 +591,10 @@ function collectPreviousRaceVideoCandidates(
       });
     if (!pageUrl) continue;
 
-    const streamVideo = pastRace.videos.find((entry) => entry.streamUrl);
+    const streamVideo = pastRace.videos.find(
+      (entry) =>
+        entry.verificationStatus !== "failed" && Boolean(entry.streamUrl),
+    );
     upsertPreviousVideoCandidate(byPageUrl, {
       id: video?.id ?? pastRace.id,
       pageUrl,

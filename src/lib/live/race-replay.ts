@@ -43,6 +43,7 @@ export type RaceVideoReplayRecord = {
   sourceProvider?: string | null;
   sourceId?: string | null;
   pageUrl?: string | null;
+  verificationStatus?: string | null;
   embedSourceType?: string | null;
   streamUrl?: string | null;
   streamContentType?: string | null;
@@ -65,6 +66,8 @@ export type NormalisedLegacyReplaySource = {
 export async function resolveRaceVideoReplay(
   video: RaceVideoReplayRecord
 ): Promise<ResolvedRaceReplay | null> {
+  if (normaliseKey(video.verificationStatus) === "failed") return null;
+
   const provider = normaliseKey(video.sourceProvider);
   const embedSourceType = normaliseKey(video.embedSourceType);
   const pageUrl = normalisePublicUrl(video.pageUrl);
@@ -368,6 +371,8 @@ export function officialRaceReplayUrl({
 export function replayPlaybackState(
   video: RaceVideoReplayRecord,
 ): ReplayPlaybackState {
+  if (normaliseKey(video.verificationStatus) === "failed") return "failed";
+
   const pageUrl = officialRaceReplayUrl(video);
   if (
     normalisePublicUrl(video.streamUrl) ||

@@ -5,20 +5,23 @@ type RunnerData = {
   id: string;
   boxNumber: number;
   weight: number | null;
+  previousOfficialWeight: number | null;
+  previousWeightDate: Date | null;
+  weightStatus: "published" | "pending" | "not_published";
   scratched: boolean;
   dog: {
     id: string;
     name: string;
     colour: string | null;
     sex: string | null;
-    trainer: { name: string } | null;
+    trainer: { id?: string; name: string } | null;
     formEntries: {
       finish: number | null;
       date: Date;
       trackId: string | null;
     }[];
   };
-  trainer: { name: string } | null;
+  trainer: { id?: string; name: string } | null;
   result: {
     finishingPosition: number | null;
     runningTime: number | null;
@@ -37,8 +40,8 @@ export function RunnerRow({
 }) {
   const dog = runner.dog;
   const boxStyle = getBoxColourStyle(runner.boxNumber);
-  const trainerName =
-    runner.trainer?.name ?? dog.trainer?.name ?? "Not supplied";
+  const trainer = runner.trainer ?? dog.trainer;
+  const trainerName = trainer?.name ?? "Not supplied";
   const form = dog.formEntries
     .map((e) => (e.finish === null ? "-" : e.finish === 0 ? "✕" : e.finish))
     .join("");
@@ -73,12 +76,33 @@ export function RunnerRow({
       <td
         className="p-3 text-[13px] text-[hsl(var(--muted-foreground))] tracking-[-0.013em]"
       >
-        {trainerName}
+        {trainer?.id ? (
+          <a
+            href={`/trainers/${trainer.id}`}
+            className="hover:text-[hsl(var(--primary-bright))]"
+          >
+            {trainerName}
+          </a>
+        ) : (
+          trainerName
+        )}
       </td>
       <td
-        className="p-3 text-[13px] text-center text-[hsl(var(--muted-foreground))] tracking-[-0.013em]"
+        className="p-3 text-center tracking-[-0.013em]"
       >
-        {runner.weight ? `${runner.weight}kg` : "Not supplied"}
+        <span className="block text-[12px] font-medium text-[hsl(var(--foreground))]">
+          {runner.weight
+            ? `Official ${runner.weight}kg`
+            : runner.weightStatus === "pending"
+              ? "Pending official update"
+              : "Official weight not published"}
+        </span>
+        {runner.previousOfficialWeight && runner.previousWeightDate ? (
+          <span className="mt-0.5 block text-[10px] text-[hsl(var(--muted-foreground))]">
+            Previous {runner.previousOfficialWeight}kg ·{" "}
+            {formatWeightDate(runner.previousWeightDate)}
+          </span>
+        ) : null}
       </td>
       <td className="p-3">
         <code
@@ -110,6 +134,14 @@ export function RunnerRow({
       )}
     </tr>
   );
+}
+
+function formatWeightDate(value: Date) {
+  return new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+    timeZone: "Australia/Sydney",
+  }).format(value);
 }
 
 function formatPrizeMoney(value: number) {

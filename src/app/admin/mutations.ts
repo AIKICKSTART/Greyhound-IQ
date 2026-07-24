@@ -36,6 +36,7 @@ import {
 } from "@/lib/site-content";
 import {
   approveDogOwnership,
+  approveTrainerClaim,
   createAdminDeletionJob,
   createAdminExportArtifact,
   createAdminInvitation,
@@ -44,6 +45,7 @@ import {
   updateAdminBugReport,
   updateAdminResourceStatus,
   rejectDogOwnership,
+  rejectTrainerClaim,
   updateAdminSupportTicket,
   updateAdminUserAccess,
   upsertAdminEntitlement,
@@ -222,6 +224,12 @@ const bugReportSchema = z.object({
 
 const dogOwnershipReviewSchema = z.object({
   ownershipId: idSchema,
+  reason: reasonSchema,
+  path: z.string().trim().optional(),
+});
+
+const trainerClaimReviewSchema = z.object({
+  trainerClaimId: idSchema,
   reason: reasonSchema,
   path: z.string().trim().optional(),
 });
@@ -444,6 +452,28 @@ export async function rejectDogOwnershipAction(formData: FormData) {
     path: optionalField(formData, "path"),
   });
   await rejectDogOwnership(current, parsed);
+  revalidateAdmin(parsed.path);
+}
+
+export async function approveTrainerClaimAction(formData: FormData) {
+  const current = await requireModeratorProfile();
+  const parsed = trainerClaimReviewSchema.parse({
+    trainerClaimId: field(formData, "trainerClaimId"),
+    reason: field(formData, "reason"),
+    path: optionalField(formData, "path"),
+  });
+  await approveTrainerClaim(current, parsed);
+  revalidateAdmin(parsed.path);
+}
+
+export async function rejectTrainerClaimAction(formData: FormData) {
+  const current = await requireModeratorProfile();
+  const parsed = trainerClaimReviewSchema.parse({
+    trainerClaimId: field(formData, "trainerClaimId"),
+    reason: field(formData, "reason"),
+    path: optionalField(formData, "path"),
+  });
+  await rejectTrainerClaim(current, parsed);
   revalidateAdmin(parsed.path);
 }
 

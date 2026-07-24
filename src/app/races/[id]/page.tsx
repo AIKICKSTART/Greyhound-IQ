@@ -25,7 +25,7 @@ import {
   resolveProviderRaceReplay,
   resolveRaceVideoReplay,
 } from "@/lib/live/race-replay";
-import { proxiedStreamPath } from "@/lib/live/replay-proxy";
+import { authorisedReplayStreamPath } from "@/lib/live/replay-rights";
 import {
   buildRaceDetailHref,
   buildRaceListReturnHref,
@@ -59,6 +59,7 @@ type PreviousRaceVideoCandidate = {
   dogNames: string[];
   date: Date;
   trackName: string;
+  trackState?: string | null;
   raceLabel: string;
   raceName: string | null;
   finishText: string | null;
@@ -173,11 +174,13 @@ export default async function RacePage({
           sourceId: race.sourceId,
           replayUrl: race.replayUrl,
         });
-  // Proxy the provider stream through our own origin so the browser never sees
-  // the source host. Unknown hosts return null and fall through to embed/none.
-  const replayStreamUrl = proxiedStreamPath(
-    storedReplay?.streamUrl ?? providerReplay?.streamUrl ?? null
-  );
+  // Proxy only when a current provider-rights record explicitly permits replay
+  // redistribution. Otherwise the official embed/link fallback remains usable.
+  const replayStreamUrl = authorisedReplayStreamPath({
+    streamUrl: storedReplay?.streamUrl ?? providerReplay?.streamUrl ?? null,
+    sourceProvider: primaryVideo?.sourceProvider ?? race.sourceProvider,
+    jurisdiction: track.state,
+  });
   const replayStreamContentType =
     storedReplay?.streamContentType ?? providerReplay?.streamContentType ?? null;
   const replayEmbedUrl = replayStreamUrl
@@ -573,9 +576,7 @@ function collectPreviousRaceVideoCandidates(
       });
     if (!pageUrl) continue;
 
-    const streamVideo = pastRace.videos.find((entry) =>
-      proxiedStreamPath(entry.streamUrl)
-    );
+    const streamVideo = pastRace.videos.find((entry) => entry.streamUrl);
     upsertPreviousVideoCandidate(byPageUrl, {
       id: video?.id ?? pastRace.id,
       pageUrl,
@@ -586,6 +587,7 @@ function collectPreviousRaceVideoCandidates(
       dogNames: [pastRunner.dog.name],
       date: pastRace.raceTime,
       trackName: pastRace.meeting.track.name,
+      trackState: pastRace.meeting.track.state,
       raceLabel: `Race ${pastRace.raceNumber} / ${pastRace.distance}m`,
       raceName: pastRace.name,
       finishText: resultFinishText(pastRunner.result?.finishingPosition),
@@ -633,6 +635,7 @@ function collectPreviousRaceVideoCandidates(
         dogNames: [runner.dog.name],
         date: entry.date,
         trackName: entry.trackName ?? entry.trackCode ?? "Previous race",
+        trackState: null,
         raceLabel: previousRaceLabel(entry.distance, entry.grade),
         raceName: entry.raceName,
         finishText: entry.finishText,
@@ -668,7 +671,11 @@ async function resolvePreviousRaceVideos(
             embedSourceType: candidate.embedSourceType,
           }));
         const embedUrl = replayEmbedUrl(replay, candidate.pageUrl);
-        const proxiedStream = proxiedStreamPath(replay?.streamUrl);
+        const proxiedStream = authorisedReplayStreamPath({
+          streamUrl: replay?.streamUrl,
+          sourceProvider: candidate.sourceProvider,
+          jurisdiction: candidate.trackState,
+        });
         if (!embedUrl && !proxiedStream) return null;
 
         return {
@@ -676,7 +683,7 @@ async function resolvePreviousRaceVideos(
           replay: replay
             ? {
                 ...replay,
-                streamUrl: proxiedStream ? replay.streamUrl : null,
+                streamUrl: proxiedStream,
                 embedUrl,
                 embedType:
                   embedUrlFromReplayPage(embedUrl)?.type ??
@@ -756,7 +763,7 @@ function PreviousRaceVideoSection({
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
         {videos.map((video) => {
-          const proxiedStream = proxiedStreamPath(video.replay?.streamUrl);
+          const proxiedStream = video.replay?.streamUrl ?? null;
           return (
             <article key={video.pageUrl} className="min-w-0 space-y-3">
             <div className="flex flex-col gap-2 rounded-lg border border-white/[0.07] bg-white/[0.025] p-3 sm:flex-row sm:items-center sm:justify-between">

@@ -137,6 +137,11 @@ reconcile_log_metric \
   "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"$PROD_SERVICE\" AND (jsonPayload.event=\"scheduled_task.failed\" OR jsonPayload.event=\"scheduled_task.overlap\")"
 
 reconcile_log_metric \
+  "greyhoundiq_prod_results_completeness_attention" \
+  "Prod completed races missing results after 30 minutes or replay after 90 minutes" \
+  "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"$PROD_SERVICE\" AND jsonPayload.event=\"live_sync.completeness_alert\""
+
+reconcile_log_metric \
   "greyhoundiq_prod_scheduler_failures" \
   "Prod GreyhoundIQ Cloud Scheduler attempts that finished unsuccessfully" \
   "resource.type=\"cloud_scheduler_job\" AND resource.labels.job_id=~\"^greyhoundiq-prod-\" AND jsonPayload.@type=\"type.googleapis.com/google.cloud.scheduler.logging.AttemptFinished\" AND jsonPayload.status!=\"OK\""
@@ -266,6 +271,18 @@ cat > "$TMP/scheduled-task-attention.json" <<EOF
   "notificationChannels": [${ch_json}] }
 EOF
 
+cat > "$TMP/results-completeness-attention.json" <<EOF
+{ "displayName": "GreyhoundIQ prod race results need attention", "combiner": "OR",
+  "documentation": { "mimeType": "text/markdown", "content": "Owner: racing data on-call. First action: inspect the provider, track and age-bucket completeness fields, then trigger one authorised idempotent results sync." },
+  "userLabels": { "owner": "racing-data", "service": "live-sync" },
+  "conditions": [{ "displayName": "results or replay completeness threshold exceeded",
+    "conditionThreshold": {
+      "filter": "metric.type=\"logging.googleapis.com/user/greyhoundiq_prod_results_completeness_attention\" AND resource.type=\"cloud_run_revision\"",
+      "aggregations": [{"alignmentPeriod":"300s","perSeriesAligner":"ALIGN_SUM","crossSeriesReducer":"REDUCE_SUM"}],
+      "comparison": "COMPARISON_GT", "thresholdValue": 0, "duration": "0s", "trigger": {"count": 1} } }],
+  "notificationChannels": [${ch_json}] }
+EOF
+
 cat > "$TMP/scheduler-failure.json" <<EOF
 { "displayName": "GreyhoundIQ prod Scheduler attempt failed", "combiner": "OR",
   "documentation": { "mimeType": "text/markdown", "content": "Owner: SRE on-call. Runbook: docs/architecture/incident-response-controls.md#scheduled-task-failure-or-missed-run. First action: inspect AttemptFinished and the matching application event; never bypass the application lock for a retry." },
@@ -316,7 +333,7 @@ reconcile_policy() {
   fi
 }
 
-for f in 5xx latency instances dbfail ratelimit-prune aggregate-missing aggregate-scheduler-failure scheduled-task-attention scheduler-failure uptime; do
+for f in 5xx latency instances dbfail ratelimit-prune aggregate-missing aggregate-scheduler-failure scheduled-task-attention results-completeness-attention scheduler-failure uptime; do
   reconcile_policy "$TMP/$f.json"
 done
 reconcile_policy "$TMP/usage-delivery-attention.json"

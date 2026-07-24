@@ -169,6 +169,7 @@ function mapWatchdogMeeting(
 
   return {
     sourceId: String(meeting.id),
+    trackSourceId: stableSourceId(meeting.trackCode),
     sourceRawJson: JSON.stringify({
       id: meeting.id,
       trackCode: meeting.trackCode,
@@ -313,6 +314,7 @@ function mapWatchdogRunner(participant: WatchdogParticipant): LiveRunner | null 
       dam: parentEvidence(participant.damId, participant.damName),
     },
     trainerName: participant.trainer ?? undefined,
+    trainerSourceId: stableSourceId(participant.trainerId),
     weight: numberOrNull(participant.resultWeight) ?? undefined,
     scratched:
       participant.isLateScratching === true ||

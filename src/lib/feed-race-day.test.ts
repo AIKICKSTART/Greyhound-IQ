@@ -46,6 +46,9 @@ assert.deepEqual(buildFeedRaceDayData([], now), {
   meetingCount: 0,
   raceCount: 0,
   stateLabel: "No meetings available",
+  claimedDogCount: 0,
+  claimedTrainerCount: 0,
+  myRaces: [],
   nextRaces: [],
 });
 
@@ -68,11 +71,38 @@ assert.deepEqual(
   ["meeting-nsw", "meeting-vic"],
   "a stale selection matching no track today falls back to all meetings",
 );
+assert.deepEqual(
+  selectRacingDayMeetings(meetings, ["track-vic"], ["next"]).map((m) => m.id),
+  ["meeting-nsw", "meeting-vic"],
+  "an approved claimed dog's race remains in My Race Day outside selected tracks",
+);
 assert.equal(
   buildFeedRaceDayData(selectRacingDayMeetings(meetings, ["track-vic"]), now)
     .meetingCount,
   1,
 );
+
+const personalised = buildFeedRaceDayData(meetings, now, [
+  {
+    raceId: "later",
+    dogId: "dog-1",
+    dogName: "Paw Example",
+    trainerId: "trainer-1",
+    trainerName: "Jane Trainer",
+    claimSources: ["trainer"],
+  },
+]);
+assert.equal(personalised.claimedDogCount, 1);
+assert.deepEqual(
+  personalised.myRaces.map(({ id, claimedDogs }) => [
+    id,
+    claimedDogs[0]?.name,
+    claimedDogs[0]?.trainerName,
+  ]),
+  [["later", "Paw Example", "Jane Trainer"]],
+  "approved dog claims should surface their upcoming race with official trainer data",
+);
+assert.equal(personalised.claimedTrainerCount, 1);
 
 // Track options are de-duplicated and ordered by state then name.
 assert.deepEqual(

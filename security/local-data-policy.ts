@@ -18,12 +18,20 @@ const PROVIDER_PUBLIC_MODELS = [
   "Dog",
   "DogProfileForm",
   "DogProfileObservation",
+  "DogProviderIdentity",
   "DogSourceIdentity",
+  "DogOwnerRelationship",
+  "Owner",
+  "OwnerProviderIdentity",
   "PedigreeAssertion",
   "Trainer",
+  "TrainerProviderIdentity",
   "Track",
+  "TrackProviderIdentity",
   "Meeting",
+  "MeetingProviderIdentity",
   "Race",
+  "RaceProviderIdentity",
   "RaceVideo",
   "Runner",
   "Result",
@@ -57,6 +65,11 @@ const LOCAL_DERIVED_MODELS = [
   // Live-ingest quarantine rows are operational artifacts written by the app;
   // production quarantine payloads never leave the production database.
   "LiveFeedQuarantine",
+  "LiveFeedQuarantineResolution",
+  "LiveFeedQuarantineSummary",
+  "CanonicalEntityMerge",
+  "RaceVideoVerification",
+  "RacingDataBackfillRun",
 ] as const;
 
 const SYNTHETIC_ONLY_MODELS = [
@@ -100,6 +113,7 @@ const SYNTHETIC_ONLY_MODELS = [
   "FeedShare",
   "Friendship",
   "DogOwnership",
+  "TrainerClaim",
   "Thread",
   "Post",
   "Listing",

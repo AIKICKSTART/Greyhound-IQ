@@ -36,6 +36,7 @@ import {
   listRacingDayTrackOptions,
   selectRacingDayMeetings,
 } from "@/lib/feed-race-day";
+import { listApprovedClaimedRunners } from "@/lib/feed-race-day-service";
 import { parseRacingDayTrackIds } from "@/lib/feed-racing-day";
 import type { FeedMode } from "@/lib/feed-pagination";
 import {
@@ -230,6 +231,7 @@ export default async function FeedPage({
     pendingInvites,
     profile,
     todaysMeetings,
+    claimedRunners,
   ] = await runFeedReadTasks(
     [
       () => getFeedTopics(),
@@ -260,15 +262,22 @@ export default async function FeedPage({
           }),
         ),
       () => getTodaysMeetings(),
+      () => listApprovedClaimedRunners(current),
     ],
     isFullAccessDemo(),
   );
   const posts = feedPage.items;
   const racingDayTrackOptions = listRacingDayTrackOptions(todaysMeetings);
   const selectedTrackIds = parseRacingDayTrackIds(profile?.racingDayTrackIds);
+  const claimedRaceIds = claimedRunners.map(({ raceId }) => raceId);
   const raceDayData = buildFeedRaceDayData(
-    selectRacingDayMeetings(todaysMeetings, selectedTrackIds),
+    selectRacingDayMeetings(
+      todaysMeetings,
+      selectedTrackIds,
+      claimedRaceIds,
+    ),
     new Date(),
+    claimedRunners,
   );
   const canUseFeedAsActiveIdentity = !activePage || isPro;
 

@@ -27,10 +27,7 @@ import {
 } from "@/lib/race-time";
 import { resolveRaceSearchDate } from "@/lib/race-search";
 import { canonicalTrackName, trackNameAliasKey } from "@/lib/live/track-name";
-import {
-  resolveRunnerTrainerName,
-  resolveRunnerWeight,
-} from "@/lib/live/runner-display";
+import { replayPlaybackState } from "@/lib/live/race-replay";
 import { parseMarketplaceOffset } from "@/lib/marketplace-navigation";
 
 const MARKETPLACE_CARD_MEDIA_LIMIT = 6;
@@ -247,14 +244,13 @@ export const getRaceById = cache(async (id: string) => {
               boxNumber: true,
               weight: true,
               scratched: true,
-              sourceRawJson: true,
               dog: {
                 select: {
                   id: true,
                   name: true,
                   colour: true,
                   sex: true,
-                  trainer: { select: { name: true } },
+                  trainer: { select: { id: true, name: true } },
                   formEntries: {
                     where: { raceId: id },
                     take: 1,
@@ -262,7 +258,7 @@ export const getRaceById = cache(async (id: string) => {
                   },
                 },
               },
-              trainer: { select: { name: true } },
+              trainer: { select: { id: true, name: true } },
               result: {
                 select: {
                   finishingPosition: true,
@@ -308,26 +304,35 @@ export const getRaceById = cache(async (id: string) => {
 
       return {
         ...race,
+        videos: race.videos.map((video) => ({
+          ...video,
+          playbackState: replayPlaybackState(video),
+        })),
         runners: race.runners.map((runner) => {
-          const trainerName = resolveRunnerTrainerName({
-            runnerTrainerName: runner.trainer?.name,
-            dogTrainerName: runner.dog.trainer?.name,
-            sourceRawJson: runner.sourceRawJson,
-          });
-          const weight = resolveRunnerWeight({
-            runnerWeight: runner.weight,
-            formWeight: runner.dog.formEntries[0]?.weight,
-            sourceRawJson: runner.sourceRawJson,
-          });
-          const { sourceRawJson, ...runnerWithoutRaw } = runner;
-          void sourceRawJson;
+          const previousFormEntries =
+            formEntriesByDog.get(runner.dog.id) ?? [];
+          const trainer = runner.trainer ?? runner.dog.trainer ?? null;
+          const weight =
+            runner.weight ?? runner.dog.formEntries[0]?.weight ?? null;
+          const previousOfficialWeight = previousFormEntries.find(
+            (entry) => entry.weight != null,
+          );
+          const weightStatus: "published" | "pending" | "not_published" =
+            weight != null
+              ? "published"
+              : race.raceTime > new Date()
+                ? "pending"
+                : "not_published";
           return {
-            ...runnerWithoutRaw,
+            ...runner,
             weight,
-            trainer: trainerName ? { name: trainerName } : null,
+            previousOfficialWeight: previousOfficialWeight?.weight ?? null,
+            previousWeightDate: previousOfficialWeight?.date ?? null,
+            weightStatus,
+            trainer: trainer ? { id: trainer.id, name: trainer.name } : null,
             dog: {
               ...runner.dog,
-              formEntries: (formEntriesByDog.get(runner.dog.id) ?? []).map(
+              formEntries: previousFormEntries.map(
                 (entry) => omitGroupingKey(entry, "dogId"),
               ),
               profileForms: (profileFormsByDog.get(runner.dog.id) ?? []).map(
@@ -391,7 +396,7 @@ export async function getPreviousRaceVideoRunners(raceId: string) {
               sourceProvider: true,
               sourceId: true,
               meeting: {
-                select: { track: { select: { name: true } } },
+                select: { track: { select: { name: true, state: true } } },
               },
             },
           },
@@ -409,7 +414,10 @@ export async function getPreviousRaceVideoRunners(raceId: string) {
         race: {
           ...candidate.race,
           videos: (videosByRace.get(candidate.race.id) ?? []).map(
-            (video) => omitGroupingKey(video, "raceId"),
+            (video) => ({
+              ...omitGroupingKey(video, "raceId"),
+              playbackState: replayPlaybackState(video),
+            }),
           ),
         },
       }));
@@ -423,6 +431,7 @@ type RaceDetailFormEntryRow = {
   finish: number | null;
   date: Date;
   trackId: string | null;
+  weight: number | null;
 };
 
 type RaceDetailProfileFormRow = {
@@ -473,10 +482,11 @@ function getBoundedRaceDetailFormEntries(
       bounded."dogId",
       bounded.finish,
       bounded.date,
-      bounded."trackId"
+      bounded."trackId",
+      bounded.weight
     FROM (VALUES ${values}) AS selected("dogId")
     CROSS JOIN LATERAL (
-      SELECT f."dogId", f.finish, f.date, f."trackId"
+      SELECT f."dogId", f.finish, f.date, f."trackId", f.weight
       FROM "FormEntry" AS f
       WHERE f."dogId" = selected."dogId"
         AND (f."raceId" IS NULL OR f."raceId" <> ${raceId})
@@ -620,7 +630,7 @@ const dogSearchSelect = {
   careerStarts: true,
   careerWins: true,
   prizeMoney: true,
-  trainer: { select: { name: true } },
+  trainer: { select: { id: true, name: true } },
   sire: { select: { name: true } },
   dam: { select: { name: true } },
 } as const satisfies Prisma.DogSelect;
@@ -853,7 +863,7 @@ export const getDogById = cache(async (id: string) => {
           sex: true,
           whelpDate: true,
           prizeMoney: true,
-          trainer: { select: { name: true } },
+          trainer: { select: { id: true, name: true } },
           sire: { select: { name: true } },
           dam: { select: { name: true } },
           formEntries: {
@@ -1152,6 +1162,17 @@ async function fetchRecentResults(filters: RecentResultsFilters = {}) {
         where: { AND: raceFilters },
         include: {
           meeting: { include: { track: true } },
+          videos: {
+            orderBy: [{ lastSyncedAt: "desc" }, { updatedAt: "desc" }],
+            take: 4,
+            select: {
+              sourceProvider: true,
+              pageUrl: true,
+              embedSourceType: true,
+              streamUrl: true,
+              sourceStatus: true,
+            },
+          },
           runners: {
             orderBy: { boxNumber: "asc" },
             take: 16,
@@ -1160,14 +1181,13 @@ async function fetchRecentResults(filters: RecentResultsFilters = {}) {
               boxNumber: true,
               weight: true,
               scratched: true,
-              sourceRawJson: true,
               dog: {
                 select: {
                   id: true,
                   name: true,
                   colour: true,
                   sex: true,
-                  trainer: { select: { name: true } },
+                  trainer: { select: { id: true, name: true } },
                   formEntries: {
                     orderBy: { date: "desc" },
                     take: 7,
@@ -1181,7 +1201,7 @@ async function fetchRecentResults(filters: RecentResultsFilters = {}) {
                   },
                 },
               },
-              trainer: { select: { name: true } },
+              trainer: { select: { id: true, name: true } },
               result: true,
             },
           },
@@ -1538,7 +1558,10 @@ async function getRaceExplorerMeetings(
         grade: race.grade,
         resultStatus: race.resultStatus,
         _count: { runners: runnersByRace.get(race.id) ?? 0 },
-        videos: videosByRace.get(race.id) ?? [],
+        videos: (videosByRace.get(race.id) ?? []).map((video) => ({
+          ...video,
+          playbackState: replayPlaybackState(video),
+        })),
       });
       racesByMeeting.set(race.meetingId, meetingRaces);
     }
@@ -2674,6 +2697,88 @@ export interface TrainerLeaderRow {
   winRate: number;
   prizeMoney: number;
 }
+
+export const getTrainerById = cache(async (id: string) =>
+  safeQuery(async () => {
+    const now = new Date();
+    const from = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1_000);
+    const to = new Date(now.getTime() + 31 * 24 * 60 * 60 * 1_000);
+    const trainer = await prisma.trainer.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        state: true,
+        licenseNumber: true,
+        dogs: {
+          orderBy: { name: "asc" },
+          take: 100,
+          select: { id: true, name: true, sex: true, whelpDate: true },
+        },
+        runners: {
+          where: { race: { raceTime: { gte: from, lte: to } } },
+          orderBy: { race: { raceTime: "desc" } },
+          take: 160,
+          select: {
+            id: true,
+            boxNumber: true,
+            scratched: true,
+            dog: { select: { id: true, name: true } },
+            result: {
+              select: {
+                finishingPosition: true,
+                runningTime: true,
+                prizeMoneyWon: true,
+              },
+            },
+            race: {
+              select: {
+                id: true,
+                raceNumber: true,
+                name: true,
+                distance: true,
+                grade: true,
+                raceTime: true,
+                replayUrl: true,
+                sourceProvider: true,
+                meeting: {
+                  select: {
+                    track: { select: { name: true, state: true } },
+                  },
+                },
+                videos: {
+                  orderBy: [{ lastSyncedAt: "desc" }, { updatedAt: "desc" }],
+                  take: 4,
+                  select: {
+                    sourceProvider: true,
+                    pageUrl: true,
+                    embedSourceType: true,
+                    streamUrl: true,
+                    sourceStatus: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!trainer) return null;
+    return {
+      ...trainer,
+      runners: trainer.runners.map((runner) => ({
+        ...runner,
+        race: {
+          ...runner.race,
+          videos: runner.race.videos.map((video) => ({
+            ...video,
+            playbackState: replayPlaybackState(video),
+          })),
+        },
+      })),
+    };
+  }, null),
+);
 
 export async function getTrainerLeaderboard(limit = 10): Promise<TrainerLeaderRow[]> {
   // Served from the non-betting aggregate refreshed by the live results cron.

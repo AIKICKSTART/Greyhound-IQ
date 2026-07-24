@@ -279,9 +279,15 @@ function Ensure-SchedulerJobs {
     },
     @{
       Name = "greyhoundiq-$Environment-live-sync-results"
+      Schedule = "*/5 * * * *"
+      Uri = "$baseUrl/api/internal/live-sync?scope=results&days=1"
+      Description = "GreyhoundIQ $Environment recent live race result sync"
+    },
+    @{
+      Name = "greyhoundiq-$Environment-live-sync-results-catchup"
       Schedule = "7 * * * *"
-      Uri = "$baseUrl/api/internal/live-sync?scope=results"
-      Description = "GreyhoundIQ $Environment live race result sync"
+      Uri = "$baseUrl/api/internal/live-sync?scope=results&days=2"
+      Description = "GreyhoundIQ $Environment 48 hour race result catchup"
     },
     @{
       Name = "greyhoundiq-$Environment-aggregate-refresh"

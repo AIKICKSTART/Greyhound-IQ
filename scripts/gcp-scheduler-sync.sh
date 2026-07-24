@@ -84,7 +84,8 @@ upsert_oidc() {
 }
 
 echo "== Prod job set (prod domain, prod secret) =="
-upsert_http greyhoundiq-prod-live-sync-results     "$PROD_DOMAIN/api/internal/live-sync?scope=results"           "7 * * * *"   "$PROD_SECRET"
+upsert_http greyhoundiq-prod-live-sync-results     "$PROD_DOMAIN/api/internal/live-sync?scope=results&days=1"    "*/5 * * * *" "$PROD_SECRET"
+upsert_http greyhoundiq-prod-live-sync-results-catchup "$PROD_DOMAIN/api/internal/live-sync?scope=results&days=2" "7 * * * *" "$PROD_SECRET"
 upsert_http greyhoundiq-prod-aggregate-refresh     "$PROD_DOMAIN/api/internal/aggregate-refresh"                 "20 * * * *"  "$PROD_SECRET" "840s"
 upsert_http greyhoundiq-prod-listing-maintenance   "$PROD_DOMAIN/api/internal/listing-expiry"                    "17 * * * *"  "$PROD_SECRET"
 upsert_http greyhoundiq-prod-live-sync-upcoming    "$PROD_DOMAIN/api/internal/live-sync?scope=upcoming&days=31"  "*/5 * * * *" "$PROD_SECRET"
@@ -99,7 +100,8 @@ upsert_http greyhoundiq-prod-dog-profile-sync      "$PROD_DOMAIN/api/internal/do
 upsert_http greyhoundiq-prod-memory-decay          "$PROD_DOMAIN/api/internal/memory-decay"                      "11 3 * * *"   "$PROD_SECRET"
 
 echo "== Repoint staging jobs at staging URL (staging secret) =="
-upsert_http greyhoundiq-staging-live-sync-results     "$STAGING_URL/api/internal/live-sync?scope=results"           "7 * * * *"   "$STAGING_SECRET"
+upsert_http greyhoundiq-staging-live-sync-results     "$STAGING_URL/api/internal/live-sync?scope=results&days=1"    "*/5 * * * *" "$STAGING_SECRET"
+upsert_http greyhoundiq-staging-live-sync-results-catchup "$STAGING_URL/api/internal/live-sync?scope=results&days=2" "7 * * * *" "$STAGING_SECRET"
 upsert_http greyhoundiq-staging-aggregate-refresh     "$STAGING_URL/api/internal/aggregate-refresh"                 "20 * * * *"  "$STAGING_SECRET" "840s"
 upsert_http greyhoundiq-staging-listing-maintenance   "$STAGING_URL/api/internal/listing-expiry"                    "17 * * * *"  "$STAGING_SECRET"
 upsert_http greyhoundiq-staging-live-sync-upcoming    "$STAGING_URL/api/internal/live-sync?scope=upcoming&days=31"  "*/5 * * * *" "$STAGING_SECRET"

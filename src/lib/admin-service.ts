@@ -725,6 +725,69 @@ export async function rejectDogOwnership(
   });
 }
 
+export type AdminTrainerClaimReviewInput = {
+  trainerClaimId: string;
+  reason: string;
+};
+
+export async function approveTrainerClaim(
+  current: CurrentUserProfile,
+  input: AdminTrainerClaimReviewInput,
+) {
+  assertModerator(current);
+  const reason = cleanAdminReason(input.reason);
+  return withDbRequestContext(current, async (tx) => {
+    const updated = await tx.trainerClaim.updateMany({
+      where: { id: input.trainerClaimId, status: "pending" },
+      data: {
+        status: "approved",
+        verified: true,
+        reviewedByProfileId: current.profileId,
+        reviewedAt: new Date(),
+        rejectionReason: null,
+      },
+    });
+    if (updated.count === 0) throw new Error("trainer.claim.not_pending");
+
+    await logAdminMutation(tx, current, {
+      action: "trainer.claim.approve",
+      targetType: "trainerClaim",
+      targetId: input.trainerClaimId,
+      reason,
+    });
+    return { trainerClaimId: input.trainerClaimId };
+  });
+}
+
+export async function rejectTrainerClaim(
+  current: CurrentUserProfile,
+  input: AdminTrainerClaimReviewInput,
+) {
+  assertModerator(current);
+  const reason = cleanAdminReason(input.reason);
+  return withDbRequestContext(current, async (tx) => {
+    const updated = await tx.trainerClaim.updateMany({
+      where: { id: input.trainerClaimId, status: "pending" },
+      data: {
+        status: "rejected",
+        verified: false,
+        reviewedByProfileId: current.profileId,
+        reviewedAt: new Date(),
+        rejectionReason: reason,
+      },
+    });
+    if (updated.count === 0) throw new Error("trainer.claim.not_pending");
+
+    await logAdminMutation(tx, current, {
+      action: "trainer.claim.reject",
+      targetType: "trainerClaim",
+      targetId: input.trainerClaimId,
+      reason,
+    });
+    return { trainerClaimId: input.trainerClaimId };
+  });
+}
+
 async function updateAllowedResource(
   tx: DbContextClient,
   input: AdminStatusInput

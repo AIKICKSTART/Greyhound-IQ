@@ -105,6 +105,18 @@ export const dogOwnershipClaimSchema = z.object({
   evidence: optionalText(1000),
 });
 
+export const trainerClaimSchema = z.object({
+  sourceProvider: z.enum(["thedogs", "watchdog"]),
+  sourceId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(256)
+    .regex(/^[A-Za-z0-9._:-]+$/),
+  officialProfileUrl: optionalText(2048),
+  evidence: z.string().trim().min(10).max(1000),
+});
+
 export const accountDeletionRequestSchema = z.object({
   confirm: z.literal("DELETE"),
 });

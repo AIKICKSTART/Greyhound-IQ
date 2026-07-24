@@ -21,6 +21,11 @@ const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 
 export type ReplayEmbedType = "youtube" | "vimeo";
+export type ReplayPlaybackState =
+  | "embedded"
+  | "external"
+  | "pending"
+  | "failed";
 
 export type ResolvedRaceReplay = {
   pageUrl: string;
@@ -321,7 +326,7 @@ export function officialRaceReplayUrl({
 >) {
   if (
     sourceStatus != null &&
-    (!Number.isInteger(sourceStatus) || sourceStatus < 200 || sourceStatus > 299)
+    (!Number.isInteger(sourceStatus) || sourceStatus < 100 || sourceStatus > 599)
   ) {
     return null;
   }
@@ -358,6 +363,21 @@ export function officialRaceReplayUrl({
   } catch {
     return null;
   }
+}
+
+export function replayPlaybackState(
+  video: RaceVideoReplayRecord,
+): ReplayPlaybackState {
+  const pageUrl = officialRaceReplayUrl(video);
+  if (
+    normalisePublicUrl(video.streamUrl) ||
+    embedUrlFromReplayPage(video.pageUrl)
+  ) {
+    return "embedded";
+  }
+  if (pageUrl) return "external";
+  if (video.sourceStatus == null || video.sourceStatus < 400) return "pending";
+  return "failed";
 }
 
 export function youtubeEmbedUrlFromPage(value: string | null | undefined) {

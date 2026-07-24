@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   ArrowLeft,
+  BadgeCheck,
   Camera,
   Columns3,
   ImageIcon,
@@ -10,7 +11,10 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import { updatePersonalIdentityMedia } from "@/app/actions";
+import {
+  claimTrainerIdentity,
+  updatePersonalIdentityMedia,
+} from "@/app/actions";
 import { updateMessengerLayoutPreference } from "@/app/account/profile/actions";
 import { MediaAlignmentUpload } from "@/components/media-alignment-upload";
 import { PageTitle } from "@/components/page-title";
@@ -18,6 +22,7 @@ import { ProfileMediaStatus } from "@/components/profile-media-status";
 import { SubmitButton } from "@/components/submit-button";
 import { getCurrentUser, requireCurrentUserProfile } from "@/lib/auth";
 import { MESSENGER_LAYOUT_OPTIONS } from "@/lib/messenger-layout";
+import { withDbRequestContext } from "@/lib/db-context";
 import { getPersonalActorMedia } from "@/lib/social-actor-service";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +35,25 @@ export const metadata = {
 export default async function ProfileStudioPage() {
   if (!(await getCurrentUser())) redirect("/sign-in?returnTo=/account/profile");
   const current = await requireCurrentUserProfile();
-  const media = await getPersonalActorMedia(current);
+  const [media, trainerClaims] = await Promise.all([
+    getPersonalActorMedia(current),
+    withDbRequestContext(current, (tx) =>
+      tx.trainerClaim.findMany({
+        where: { profileId: current.profileId },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        select: {
+          id: true,
+          status: true,
+          sourceProvider: true,
+          sourceId: true,
+          createdAt: true,
+          rejectionReason: true,
+          trainer: { select: { name: true } },
+        },
+      }),
+    ),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-[1180px] px-3 py-5 sm:px-6 sm:py-8">
@@ -116,6 +139,109 @@ export default async function ProfileStudioPage() {
             </SubmitButton>
           </div>
         </form>
+      </section>
+
+      <section id="trainer-claim" className="giq-panel mb-5 scroll-mt-24 p-4 sm:p-5">
+        <div className="mb-4 flex items-start gap-3">
+          <BadgeCheck
+            className="mt-0.5 h-5 w-5 text-[hsl(var(--secondary-light))]"
+            aria-hidden="true"
+          />
+          <div>
+            <h2 className="text-[16px] font-semibold text-[hsl(var(--foreground))]">
+              Claim your trainer identity
+            </h2>
+            <p className="mt-1 text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+              Link your verified provider trainer record to My Race Day. Claims
+              are checked by a moderator and never matched from a name alone.
+            </p>
+          </div>
+        </div>
+
+        <form action={claimTrainerIdentity} className="grid gap-3 lg:grid-cols-2">
+          <label className="grid gap-1.5 text-[12px] text-[hsl(var(--muted-foreground))]">
+            Official provider
+            <select
+              name="sourceProvider"
+              className="giq-form-control min-h-11 px-3"
+              defaultValue="thedogs"
+              required
+            >
+              <option value="thedogs">The Dogs</option>
+              <option value="watchdog">Watchdog</option>
+            </select>
+          </label>
+          <label className="grid gap-1.5 text-[12px] text-[hsl(var(--muted-foreground))]">
+            Provider trainer ID
+            <input
+              name="sourceId"
+              className="giq-form-control min-h-11 px-3"
+              maxLength={256}
+              placeholder="For example 10792"
+              required
+            />
+          </label>
+          <label className="grid gap-1.5 text-[12px] text-[hsl(var(--muted-foreground))] lg:col-span-2">
+            Official trainer profile URL
+            <input
+              name="officialProfileUrl"
+              className="giq-form-control min-h-11 px-3"
+              type="url"
+              maxLength={2048}
+              placeholder="Required for The Dogs claims"
+            />
+          </label>
+          <label className="grid gap-1.5 text-[12px] text-[hsl(var(--muted-foreground))] lg:col-span-2">
+            Evidence for the moderator
+            <textarea
+              name="evidence"
+              className="giq-form-control min-h-24 px-3 py-2"
+              minLength={10}
+              maxLength={1000}
+              placeholder="Explain your connection to this trainer identity."
+              required
+            />
+          </label>
+          <div className="flex justify-end lg:col-span-2">
+            <SubmitButton
+              pendingLabel="Submitting claim..."
+              className="giq-button giq-button-gold min-h-11 px-5 text-[13px] font-semibold disabled:cursor-not-allowed"
+            >
+              Submit trainer claim
+            </SubmitButton>
+          </div>
+        </form>
+
+        {trainerClaims.length > 0 ? (
+          <div className="mt-5 border-t border-white/[0.08] pt-4">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--subtle-foreground))]">
+              Your trainer claims
+            </p>
+            <div className="grid gap-2">
+              {trainerClaims.map((claim) => (
+                <div
+                  key={claim.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-2"
+                >
+                  <span className="text-[13px] text-[hsl(var(--foreground))]">
+                    {claim.trainer.name}
+                    <small className="ml-2 text-[10px] text-[hsl(var(--muted-foreground))]">
+                      {claim.sourceProvider}:{claim.sourceId}
+                    </small>
+                  </span>
+                  <span className="giq-badge giq-badge-neutral">
+                    {claim.status}
+                  </span>
+                  {claim.rejectionReason ? (
+                    <p className="w-full text-[11px] text-rose-200">
+                      {claim.rejectionReason}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <form action={updatePersonalIdentityMedia} className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">

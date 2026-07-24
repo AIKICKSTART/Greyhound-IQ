@@ -28,22 +28,23 @@ export type MigrationSource = {
 };
 
 // Update only after reviewing the compatibility impact of the source change.
-// 2026-07-23: absorbed the reviewed 20260723 migration batch (r5–r9 sessions:
-// pedigree-read widening, ListingBoost + RLS, member-hub follow-ups) — all
-// applied to production the same day. +1 model (ListingBoost), +7 migrations.
+// 2026-07-24: absorbed the reviewed Pro policy, canonical racing identities,
+// claims, immutable quarantine/merge ledgers, replay verification, relational
+// foreign keys and concurrent lookup indexes. Additive except for the intended
+// entitlement-policy replacement and tightened giq_is_admin execution grant.
 export const DATABASE_COMPATIBILITY_BASELINE: DatabaseCompatibilityInventory = {
-  schemaSha256: "9ddc3308c0775ea118ebceda6ded038f5adc56eaa58160e77bbf97ceb33d35eb",
-  migrationsSha256: "7ab0703f5657f942adc6cd948252792d35a00a42aed0f07af615f956bd0ba2bd",
+  schemaSha256: "b573e8965396fdda1633e25b64564ff1897d513fc3630076d230f717152ec766",
+  migrationsSha256: "7e3dffc351453c5bf98345fecd4f2b0348df46007770851ced40571a39049e63",
   counts: {
-    models: 115,
-    migrations: 108,
+    models: 129,
+    migrations: 113,
     extensions: 1,
     functions: 59,
     triggers: 22,
-    policies: 268,
+    policies: 307,
     ordinaryViews: 1,
     materializedViews: 5,
-    indexes: 468,
+    indexes: 524,
     createdRoles: 1,
   },
 };

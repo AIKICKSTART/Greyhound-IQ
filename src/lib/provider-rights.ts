@@ -603,3 +603,19 @@ export function isProviderUseAuthorized(
     return false;
   }
 }
+
+export function isProviderRegistryUseAuthorized(
+  registryValue: unknown,
+  useValue: unknown,
+  at = new Date(),
+) {
+  try {
+    const registry = validateProviderRightsRegistry(registryValue);
+    const use = parseStrict(providerUseSchema, useValue, "provider use");
+    return registry.authorizations.some((authorization) =>
+      authorizationCoversUse(authorization, use, at),
+    );
+  } catch {
+    return false;
+  }
+}

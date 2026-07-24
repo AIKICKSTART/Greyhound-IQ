@@ -68,6 +68,7 @@ async function rejectsNameOnlyCollision() {
           },
         },
         dogSourceIdentity: { findMany: async () => [] },
+        dogProviderIdentity: { findMany: async () => [], upsert: async () => ({}) },
       } as never,
       [
         {
@@ -126,6 +127,7 @@ async function blocksSameWhelpAndSireWithDifferentSubjectName() {
           },
         },
         dogSourceIdentity: { findMany: async () => [] },
+        dogProviderIdentity: { findMany: async () => [], upsert: async () => ({}) },
       } as never,
       [{
         sourceProvider: "topaz",
@@ -194,6 +196,7 @@ async function blocksSameParentsWithoutWhelpDate() {
           },
         },
         dogSourceIdentity: { findMany: async () => [] },
+        dogProviderIdentity: { findMany: async () => [], upsert: async () => ({}) },
       } as never,
       [{
         sourceProvider: "topaz",
@@ -237,6 +240,10 @@ async function rejectsConflictingExactClaims() {
             },
           ],
         },
+        dogProviderIdentity: {
+          findMany: async () => [],
+          upsert: async () => ({}),
+        },
       } as never,
       [{ sourceProvider: "topaz", sourceId: "456", name: "Exact Dog" }],
     );
@@ -268,6 +275,13 @@ async function rejectsPlaceholderAndMissingIdentity() {
             dbTouched = true;
             return [];
           },
+        },
+        dogProviderIdentity: {
+          findMany: async () => {
+            dbTouched = true;
+            return [];
+          },
+          upsert: async () => ({}),
         },
       } as never,
       [
@@ -309,6 +323,7 @@ async function rejectsPrototypeCreation() {
           },
         },
         dogSourceIdentity: { findMany: async () => [] },
+        dogProviderIdentity: { findMany: async () => [], upsert: async () => ({}) },
       } as never,
       [
         {
@@ -342,6 +357,7 @@ async function rejectsWatchdogAndTheDogsCreation() {
             },
           },
           dogSourceIdentity: { findMany: async () => [] },
+          dogProviderIdentity: { findMany: async () => [], upsert: async () => ({}) },
         } as never,
         [{ sourceProvider, sourceId: "999", name: `Unseen ${sourceProvider} Dog` }],
         undefined,
@@ -379,6 +395,7 @@ async function resolvesLegacyExactKeyWithoutMutation() {
         },
       },
       dogSourceIdentity: { findMany: async () => [] },
+      dogProviderIdentity: { findMany: async () => [], upsert: async () => ({}) },
     } as never,
     [
       {
@@ -433,6 +450,7 @@ async function createsOnlyStableIdentityIdempotently() {
       },
     },
     dogSourceIdentity: { findMany: async () => [] },
+    dogProviderIdentity: { findMany: async () => [], upsert: async () => ({}) },
   };
   const observation = {
     sourceProvider: "topaz",
@@ -484,6 +502,7 @@ async function batchesCorrelatedNaturalLookups() {
           },
         },
         dogSourceIdentity: { findMany: async () => [] },
+        dogProviderIdentity: { findMany: async () => [], upsert: async () => ({}) },
       } as never,
       observations,
     );
@@ -512,6 +531,7 @@ async function scopesExactLookupsByProvider() {
           },
         },
         dogSourceIdentity: { findMany: async () => [] },
+        dogProviderIdentity: { findMany: async () => [], upsert: async () => ({}) },
       } as never,
       [
         { sourceProvider: "provider-a", sourceId: "shared", name: "Dog A" },

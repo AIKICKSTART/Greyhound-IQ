@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHash, randomUUID } from "node:crypto";
+import { Prisma } from "@prisma/client";
 
 import { withDbSystemContext } from "@/lib/db-context";
 
@@ -134,10 +135,87 @@ export async function writeLiveFeedQuarantines(
   const occurrences = inputs.map((input) =>
     createLiveFeedQuarantineOccurrence(input),
   );
-  await withDbSystemContext((tx) =>
-    tx.liveFeedQuarantine.createMany({ data: occurrences }),
-  );
+  const summaries = aggregateOccurrences(occurrences);
+  await withDbSystemContext(async (tx) => {
+    await tx.liveFeedQuarantine.createMany({ data: occurrences });
+    for (let index = 0; index < summaries.length; index += 100) {
+      const rows = summaries.slice(index, index + 100);
+      await tx.$executeRaw`
+        INSERT INTO "LiveFeedQuarantineSummary"
+          ("id", "provider", "entityKind", "sourceId", "sourceKey",
+           "naturalIdentity", "reasonCode", "classification", "evidenceSha256",
+           "firstSeenAt", "lastSeenAt", "occurrenceCount", "reviewStatus",
+           "createdAt", "updatedAt")
+        VALUES ${Prisma.join(
+          rows.map((row) => Prisma.sql`
+            (${randomUUID()}, ${row.provider}, ${row.entityKind}, ${row.sourceId},
+             ${row.sourceId ?? ""}, ${row.naturalIdentity}, ${row.reasonCode},
+             ${row.classification}, ${row.evidenceSha256}, ${row.firstSeenAt},
+             ${row.lastSeenAt}, ${row.occurrenceCount}, 'pending', NOW(), NOW())
+          `),
+        )}
+        ON CONFLICT
+          ("provider", "entityKind", "sourceKey", "reasonCode", "evidenceSha256")
+        DO UPDATE SET
+          "sourceId" = COALESCE(
+            "LiveFeedQuarantineSummary"."sourceId",
+            EXCLUDED."sourceId"
+          ),
+          "naturalIdentity" = COALESCE(
+            EXCLUDED."naturalIdentity",
+            "LiveFeedQuarantineSummary"."naturalIdentity"
+          ),
+          "classification" = EXCLUDED."classification",
+          "firstSeenAt" = LEAST(
+            "LiveFeedQuarantineSummary"."firstSeenAt",
+            EXCLUDED."firstSeenAt"
+          ),
+          "lastSeenAt" = GREATEST(
+            "LiveFeedQuarantineSummary"."lastSeenAt",
+            EXCLUDED."lastSeenAt"
+          ),
+          "occurrenceCount" =
+            "LiveFeedQuarantineSummary"."occurrenceCount"
+            + EXCLUDED."occurrenceCount",
+          "updatedAt" = NOW()
+      `;
+    }
+  });
   return occurrences;
+}
+
+function aggregateOccurrences(occurrences: LiveFeedQuarantineOccurrence[]) {
+  const summaries = new Map<
+    string,
+    LiveFeedQuarantineOccurrence & { occurrenceCount: bigint; firstSeenAt: Date; lastSeenAt: Date }
+  >();
+  for (const occurrence of occurrences) {
+    const key = [
+      occurrence.provider,
+      occurrence.entityKind,
+      occurrence.sourceId ?? "",
+      occurrence.reasonCode,
+      occurrence.evidenceSha256,
+    ].join("\u0000");
+    const existing = summaries.get(key);
+    if (!existing) {
+      summaries.set(key, {
+        ...occurrence,
+        occurrenceCount: BigInt(1),
+        firstSeenAt: occurrence.observedAt,
+        lastSeenAt: occurrence.observedAt,
+      });
+      continue;
+    }
+    existing.occurrenceCount += BigInt(1);
+    if (occurrence.observedAt < existing.firstSeenAt) {
+      existing.firstSeenAt = occurrence.observedAt;
+    }
+    if (occurrence.observedAt > existing.lastSeenAt) {
+      existing.lastSeenAt = occurrence.observedAt;
+    }
+  }
+  return [...summaries.values()];
 }
 
 function sanitizeEvidenceObject(value: Record<string, unknown>) {

@@ -581,16 +581,22 @@ function parseRunner(row: string, index: number): LiveRunner | null {
       trainerId: trainer.sourceId,
       trainerName,
       trainerProfileUrl: trainer.url,
+      weight: parseNumber(
+        firstMatch(row, /<td class="race-runners__weight">([\s\S]*?)<\/td>/i)
+      ),
     }),
     boxNumber,
     dog: {
       sourceProvider: "thedogs",
       sourceId: dog.sourceId,
+      profileUrl: dog.url,
       name: dogName,
       colour: parseColour(colourSex),
       sex: parseSex(colourSex),
     },
     trainerName,
+    trainerSourceId: trainer.sourceId,
+    trainerProfileUrl: trainer.url,
     weight: parseNumber(firstMatch(row, /<td class="race-runners__weight">([\s\S]*?)<\/td>/i)),
     scratched: /\(SCR\)|scratched/i.test(row),
     finishingPosition: finish,

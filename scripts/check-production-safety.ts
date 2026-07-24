@@ -270,7 +270,10 @@ for (const publicSupabaseSecret of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUP
     findings.push(`cloud-run-deploy.yml: missing ${publicSupabaseSecret} runtime secret mapping`);
   }
 }
-if (!cloudRunDeploy.includes("REPLAY_PROXY_SECRET=greyhoundiq-$env_name-REPLAY_PROXY_SECRET:latest")) {
+if (
+  !cloudRunDeploy.includes('replay_proxy_secret="greyhoundiq-$env_name-REPLAY_PROXY_SECRET"') ||
+  !cloudRunDeploy.includes("REPLAY_PROXY_SECRET=$replay_proxy_secret:latest")
+) {
   findings.push("cloud-run-deploy.yml: missing REPLAY_PROXY_SECRET runtime secret mapping");
 }
 
@@ -339,7 +342,7 @@ for (const monitoringNeedle of [
   "GreyhoundIQ prod aggregate Scheduler attempt failed",
   '"owner": "sre"',
   "incident-response-controls.md#rate-limit-cleanup-backlog",
-  "for f in 5xx latency instances dbfail ratelimit-prune aggregate-missing aggregate-scheduler-failure scheduled-task-attention scheduler-failure uptime",
+  "for f in 5xx latency instances dbfail ratelimit-prune aggregate-missing aggregate-scheduler-failure scheduled-task-attention results-completeness-attention scheduler-failure uptime",
 ]) {
   if (!monitoringSetup.includes(monitoringNeedle)) {
     findings.push(

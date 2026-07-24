@@ -9,6 +9,7 @@ import {
 import {
   embedUrlFromReplayPage,
   officialRaceReplayUrl,
+  replayPlaybackState,
   resolveRaceVideoReplay,
 } from "./race-replay";
 
@@ -69,7 +70,6 @@ for (const [sourceProvider, pageUrl, sourceStatus] of [
   ["watchdog", "https://www.youtube.com/watch?v=abcDEF12345&next=evil", 200],
   ["watchdog", "https://youtube.example/watch?v=abcDEF12345", 200],
   ["youtube", "https://www.youtube.com/watch?v=abcDEF12345", 200],
-  ["sa-race-replay", "https://www.youtube.com/watch?v=abcDEF12345", 404],
   ["greyhoundswa", "https://player.vimeo.com/video/1206963174?h=abc&x=1", 200],
   ["thedogs", "https://www.thedogs.com.au/racing/meeting/1", 200],
   [
@@ -109,7 +109,26 @@ assert.equal(
     sourceStatus: null,
   }),
   "https://www.thedogs.com.au/videos/watch/races/1263755/replay",
-  "unknown status remains linkable; only known non-2xx rows fail closed",
+  "unknown status remains linkable",
+);
+assert.equal(
+  officialRaceReplayUrl({
+    sourceProvider: "sa-race-replay",
+    pageUrl: "https://www.youtube.com/watch?v=abcDEF12345",
+    sourceStatus: 500,
+  }),
+  "https://www.youtube.com/watch?v=abcDEF12345",
+  "provider HTTP status remains diagnostic when a trusted playback URL exists",
+);
+assert.equal(
+  replayPlaybackState({
+    sourceProvider: "thedogs",
+    pageUrl: "https://www.thedogs.com.au/videos/watch/races/1263755/replay",
+    embedSourceType: "race-replay",
+    sourceStatus: 500,
+  }),
+  "external",
+  "a provider replay page is not marked embedded until it resolves to a stream or trusted embed URL",
 );
 
 assert.ok(embedUrlFromReplayPage(allowed[0][2]), "official YouTube replays embed");
@@ -170,10 +189,10 @@ assert.doesNotMatch(
 );
 assert.match(pageSource, /target="_blank"/);
 assert.match(pageSource, /rel="noopener noreferrer"/);
-// The page may render an inline player, but only with same-origin proxied
-// stream capabilities — raw provider stream URLs must never reach the client.
-assert.match(pageSource, /const replayStreamUrl = proxiedStreamPath\(/);
-assert.match(pageSource, /const proxiedStream = proxiedStreamPath\(/);
+// The page may render an inline player only after provider-rights authorization
+// creates a same-origin capability; raw stream URLs must never reach the client.
+assert.match(pageSource, /const replayStreamUrl = authorisedReplayStreamPath\(/);
+assert.match(pageSource, /const proxiedStream = authorisedReplayStreamPath\(/);
 const streamUrlProps = [...pageSource.matchAll(/streamUrl=\{([^}]+)\}/g)].map(
   (match) => match[1],
 );

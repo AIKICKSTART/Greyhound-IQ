@@ -27,7 +27,9 @@ export function FeedRaceDayCommand({
   trackOptions: RacingDayTrackOption[];
   selectedTrackIds: string[];
 }) {
-  const nextRace = data.nextRaces[0] ?? null;
+  const hasClaimedRaces = data.myRaces.length > 0;
+  const displayedRaces = hasClaimedRaces ? data.myRaces : data.nextRaces;
+  const nextRace = displayedRaces[0] ?? null;
   const isFiltered = selectedTrackIds.length > 0;
 
   return (
@@ -83,7 +85,7 @@ export function FeedRaceDayCommand({
 
       <div className="relative z-20 grid border-t border-white/10 bg-black/45 backdrop-blur-xl sm:grid-cols-2 xl:grid-cols-4">
         <Metric
-          label="Next race"
+          label={hasClaimedRaces ? "Next dog race" : "Next race"}
           value={
             nextRace
               ? `${nextRace.track} · R${nextRace.raceNumber}`
@@ -103,9 +105,13 @@ export function FeedRaceDayCommand({
           }
         />
         <Metric
-          label="Saved watchlist"
-          value="Not available"
-          detail="No persisted runner watchlist"
+          label="My racing links"
+          value={`${data.claimedDogCount} dog${data.claimedDogCount === 1 ? "" : "s"}`}
+          detail={
+            hasClaimedRaces
+              ? `${data.claimedTrainerCount} trainer${data.claimedTrainerCount === 1 ? "" : "s"} · ${data.myRaces.length} race${data.myRaces.length === 1 ? "" : "s"}`
+              : "Approved dog and trainer claims appear here"
+          }
         />
         <Metric
           label="Races today"
@@ -119,10 +125,10 @@ export function FeedRaceDayCommand({
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--secondary-light))]">
-                Today&apos;s card
+                {hasClaimedRaces ? "My Race Day" : "Today&apos;s card"}
               </p>
               <h2 className="mt-1 text-[16px] font-semibold text-white">
-                Next on track
+                {hasClaimedRaces ? "Your dogs next on track" : "Next on track"}
               </h2>
             </div>
             <Link
@@ -132,9 +138,9 @@ export function FeedRaceDayCommand({
               Full race card
             </Link>
           </div>
-          {data.nextRaces.length > 0 ? (
+          {displayedRaces.length > 0 ? (
             <div className="grid gap-2 md:grid-cols-3">
-              {data.nextRaces.map((race) => (
+              {displayedRaces.map((race) => (
                 <NextRace key={race.id} race={race} />
               ))}
             </div>
@@ -196,10 +202,19 @@ function Metric({
 }
 
 function NextRace({ race }: { race: FeedRaceDayRace }) {
+  const dogLabel = race.claimedDogs.map(({ name }) => name).join(", ");
+  const trainerLabel = [
+    ...new Set(
+      race.claimedDogs
+        .map(({ trainerName }) => trainerName)
+        .filter((name): name is string => Boolean(name)),
+    ),
+  ].join(", ");
+
   return (
     <Link
       href={`/races/${race.id}`}
-      aria-label={`Open ${race.track} race ${race.raceNumber}`}
+      aria-label={`Open ${dogLabel ? `${dogLabel} in ` : ""}${race.track} race ${race.raceNumber}`}
       className="flex min-h-16 items-center gap-3 rounded-xl border border-white/8 bg-white/[0.025] p-3 transition hover:border-white/16 hover:bg-white/[0.045] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary-light))]"
     >
       <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-[hsl(var(--primary)/0.20)] text-[12px] font-bold text-[hsl(var(--primary-light))]">
@@ -207,8 +222,14 @@ function NextRace({ race }: { race: FeedRaceDayRace }) {
       </span>
       <span className="min-w-0 flex-1">
         <strong className="block truncate text-[13px] text-white">
-          {race.track}
+          {dogLabel || race.track}
         </strong>
+        {dogLabel ? (
+          <small className="block truncate text-[10px] text-[hsl(var(--secondary-light))]">
+            {race.track}
+            {trainerLabel ? ` · Trainer ${trainerLabel}` : ""}
+          </small>
+        ) : null}
         <small className="mt-0.5 flex items-center gap-1 text-[10px] text-white/42">
           <Clock3 className="size-3" aria-hidden="true" />
           {formatRaceTime(race.raceTime)} · {race.distance}m ·{" "}

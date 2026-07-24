@@ -9,6 +9,7 @@ import {
   hasProfileMarketingFields,
   personalActorMediaUpdateSchema,
   profileUpdateSchema,
+  trainerClaimSchema,
 } from "@/lib/account-validation";
 import {
   createAuditLog,
@@ -35,7 +36,7 @@ import {
   toggleConversationMessageReaction as toggleConversationMessageReactionForCurrentUser,
 } from "@/lib/conversation-service";
 import { prisma } from "@/lib/db";
-import { withDbRequestContext } from "@/lib/db-context";
+import { withDbRequestContext, withDbSystemContext } from "@/lib/db-context";
 import {
   blockFeedPostAuthorForCurrentUser,
   createFeedTopicForModerator,
@@ -68,6 +69,7 @@ import {
   withdrawListingForCurrentUser,
 } from "@/lib/listing-service";
 import { listingEnquirySchema } from "@/lib/listing-validation";
+import { officialProviderProfileUrl } from "@/lib/live/provider-identity";
 import {
   createCustomPage,
   updateCustomPage,
@@ -264,6 +266,8 @@ const FEED_POST_RATE_LIMIT = 5;
 const FEED_POST_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const DOG_CLAIM_RATE_LIMIT = 5;
 const DOG_CLAIM_RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const TRAINER_CLAIM_RATE_LIMIT = 3;
+const TRAINER_CLAIM_RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const FEED_COMMENT_RATE_LIMIT = 20;
 const FEED_COMMENT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const FEED_REACTION_RATE_LIMIT = 60;
@@ -1299,6 +1303,98 @@ export async function claimDogOwnership(dogId: string, formData: FormData) {
   revalidatePath("/account");
   revalidatePath(`/dogs/${dogId}`);
   redirect(`/dogs/${dogId}`);
+}
+
+export async function claimTrainerIdentity(formData: FormData) {
+  const current = await requireCurrentUserProfile();
+  const parsed = trainerClaimSchema.parse({
+    sourceProvider: field(formData, "sourceProvider"),
+    sourceId: field(formData, "sourceId"),
+    officialProfileUrl: field(formData, "officialProfileUrl"),
+    evidence: field(formData, "evidence"),
+  });
+  const officialProfileUrl = parsed.officialProfileUrl
+    ? officialProviderProfileUrl({
+        provider: parsed.sourceProvider,
+        entityKind: "trainer",
+        sourceId: parsed.sourceId,
+        value: parsed.officialProfileUrl,
+      })
+    : null;
+  if (parsed.sourceProvider === "thedogs" && !officialProfileUrl) {
+    throw new Error("trainer.claim.invalid_official_profile");
+  }
+
+  const rateLimit = await checkRateLimit(
+    `trainer:claim:${current.dbUserId}`,
+    TRAINER_CLAIM_RATE_LIMIT,
+    TRAINER_CLAIM_RATE_LIMIT_WINDOW_MS,
+    FAIL_CLOSED_RATE_LIMIT,
+  );
+  if (!rateLimit.allowed) throw new Error("rate_limit.exceeded");
+
+  const identity = await withDbSystemContext((tx) =>
+    tx.trainerProviderIdentity.findUnique({
+      where: {
+        sourceProvider_sourceId: {
+          sourceProvider: parsed.sourceProvider,
+          sourceId: parsed.sourceId,
+        },
+      },
+      select: {
+        trainerId: true,
+        profileUrl: true,
+        verificationStatus: true,
+      },
+    }),
+  );
+  if (!identity || identity.verificationStatus !== "verified") {
+    throw new Error("trainer.claim.identity_not_verified");
+  }
+
+  await withDbRequestContext(current, async (tx) => {
+    const existing = await tx.trainerClaim.findUnique({
+      where: {
+        trainerId_profileId: {
+          trainerId: identity.trainerId,
+          profileId: current.profileId,
+        },
+      },
+      select: { id: true },
+    });
+    if (existing) throw new Error("trainer.claim.already_claimed");
+
+    const claim = await tx.trainerClaim.create({
+      data: {
+        trainerId: identity.trainerId,
+        profileId: current.profileId,
+        sourceProvider: parsed.sourceProvider,
+        sourceId: parsed.sourceId,
+        officialProfileUrl: officialProfileUrl ?? identity.profileUrl,
+        evidence: parsed.evidence,
+        status: "pending",
+        verified: false,
+      },
+      select: { id: true },
+    });
+    await createAuditLog({
+      actorId: current.dbUserId,
+      actorType: "user",
+      action: "trainer.claim.submit",
+      targetType: "trainerClaim",
+      targetId: claim.id,
+      metadata: {
+        trainerId: identity.trainerId,
+        sourceProvider: parsed.sourceProvider,
+        sourceId: parsed.sourceId,
+      },
+    });
+  });
+
+  revalidatePath("/account");
+  revalidatePath("/account/profile");
+  revalidatePath("/feed");
+  redirect("/account/profile");
 }
 
 export async function requestAccountDeletion(formData: FormData) {

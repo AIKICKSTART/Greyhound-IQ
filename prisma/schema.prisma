@@ -12,20 +12,20 @@ datasource db {
 // ponytail: Supabase Postgres for dev + prod. Same Prisma client everywhere.
 
 model Dog {
-  id                       String                @id @default(cuid())
+  id                       String                  @id @default(cuid())
   name                     String
-  earBrand                 String?               @unique
+  earBrand                 String?                 @unique
   colour                   String?
   sex                      String?
   whelpDate                DateTime?
   sireId                   String?
   damId                    String?
-  sire                     Dog?                  @relation("SireRelation", fields: [sireId], references: [id])
-  dam                      Dog?                  @relation("DamRelation", fields: [damId], references: [id])
-  progenySire              Dog[]                 @relation("SireRelation")
-  progenyDam               Dog[]                 @relation("DamRelation")
+  sire                     Dog?                    @relation("SireRelation", fields: [sireId], references: [id])
+  dam                      Dog?                    @relation("DamRelation", fields: [damId], references: [id])
+  progenySire              Dog[]                   @relation("SireRelation")
+  progenyDam               Dog[]                   @relation("DamRelation")
   trainerId                String?
-  trainer                  Trainer?              @relation(fields: [trainerId], references: [id])
+  trainer                  Trainer?                @relation(fields: [trainerId], references: [id])
   sourceProvider           String?
   sourceId                 String?
   profileUrl               String?
@@ -44,19 +44,21 @@ model Dog {
   profileSourceRawJson     String?
   lastProfileSyncedAt      DateTime?
   retiredAt                DateTime?
-  createdAt                DateTime              @default(now())
-  updatedAt                DateTime              @updatedAt
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
   runners                  Runner[]
   formEntries              FormEntry[]
   profileForms             DogProfileForm[]
   profileArchives          DogProfileArchive[]
   ownership                DogOwnership[]
+  ownerRelationships       DogOwnerRelationship[]
   listings                 Listing[]
-  customPages              CustomPage[]          @relation("DogCustomPages")
-  pedigreeSourceIdentities DogSourceIdentity[]   @relation("PedigreeCanonicalDog")
-  pedigreeMergeSubjects    PedigreeMergeLedger[] @relation("PedigreeMergeSubjectDog")
-  pedigreeMergeExisting    PedigreeMergeLedger[] @relation("PedigreeMergeExistingParent")
-  pedigreeMergeProposed    PedigreeMergeLedger[] @relation("PedigreeMergeProposedParent")
+  customPages              CustomPage[]            @relation("DogCustomPages")
+  providerIdentities       DogProviderIdentity[]
+  pedigreeSourceIdentities DogSourceIdentity[]     @relation("PedigreeCanonicalDog")
+  pedigreeMergeSubjects    PedigreeMergeLedger[]   @relation("PedigreeMergeSubjectDog")
+  pedigreeMergeExisting    PedigreeMergeLedger[]   @relation("PedigreeMergeExistingParent")
+  pedigreeMergeProposed    PedigreeMergeLedger[]   @relation("PedigreeMergeProposedParent")
   profileObservations      DogProfileObservation[] @relation("LiveProfileObservationDog")
   profileMergeDecisions    DogProfileMergeLedger[] @relation("LiveProfileMergeDog")
 
@@ -130,6 +132,59 @@ model LiveFeedQuarantine {
   @@index([evidenceSha256])
 }
 
+model LiveFeedQuarantineSummary {
+  id                  String                         @id @default(cuid())
+  provider            String
+  entityKind          String
+  sourceId            String?
+  sourceKey           String
+  naturalIdentity     String?
+  reasonCode          String
+  classification      String
+  evidenceSha256      String
+  firstSeenAt         DateTime
+  lastSeenAt          DateTime
+  occurrenceCount     BigInt                         @default(1)
+  reviewStatus        String                         @default("pending")
+  resolvedEntityId    String?
+  resolutionReason    String?
+  reviewedByProfileId String?
+  reviewedBy          Profile?                       @relation("LiveFeedQuarantineReviewer", fields: [reviewedByProfileId], references: [id], onDelete: SetNull)
+  reviewedAt          DateTime?
+  createdAt           DateTime                       @default(now())
+  updatedAt           DateTime                       @updatedAt
+  resolutions         LiveFeedQuarantineResolution[]
+
+  @@unique([provider, entityKind, sourceKey, reasonCode, evidenceSha256])
+  @@index([reviewStatus, classification, lastSeenAt])
+  @@index([provider, entityKind, lastSeenAt])
+  @@index([reviewedByProfileId])
+}
+
+model LiveFeedQuarantineResolution {
+  id                  String                    @id @default(cuid())
+  summaryId           String
+  summary             LiveFeedQuarantineSummary @relation(fields: [summaryId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  outcome             String
+  resolutionReason    String
+  resolvedEntityKind  String?
+  resolvedEntityId    String?
+  beforeSha256        String
+  afterSha256         String
+  evidenceSha256      String
+  actorOrJob          String
+  affectedIdsJson     String
+  reviewedByProfileId String?
+  reviewedBy          Profile?                  @relation("LiveFeedQuarantineResolutionReviewer", fields: [reviewedByProfileId], references: [id], onDelete: SetNull, onUpdate: Restrict)
+  createdAt           DateTime                  @default(now())
+
+  @@index([summaryId, createdAt])
+  @@index([outcome, createdAt])
+  @@index([resolvedEntityKind, resolvedEntityId])
+  @@index([reviewedByProfileId])
+  @@index([evidenceSha256])
+}
+
 model PedigreeImportRun {
   id                 String                @id @default(cuid())
   sourceProvider     String
@@ -152,8 +207,8 @@ model PedigreeImportRun {
   assertions         PedigreeAssertion[]
   mergeEntries       PedigreeMergeLedger[]
 
-  @@index([sourceProvider, artifactSha256])
   @@unique([id, sourceProvider, artifactSha256])
+  @@index([sourceProvider, artifactSha256])
   @@index([sourceProvider, sourceAuthority])
   @@index([status, createdAt])
   @@index([verificationStatus, completedAt])
@@ -186,8 +241,8 @@ model DogSourceIdentity {
   subjectAssertions  PedigreeAssertion[] @relation("PedigreeAssertionSubject")
   parentAssertions   PedigreeAssertion[] @relation("PedigreeAssertionParent")
 
-  @@index([sourceProvider, sourceId, artifactSha256])
   @@unique([id, importRunId, sourceProvider, artifactSha256])
+  @@index([sourceProvider, sourceId, artifactSha256])
   @@index([importRunId, artifactOffsetLine])
   @@index([sourceProvider, sourceId])
   @@index([dogId, verificationStatus])
@@ -220,8 +275,8 @@ model PedigreeAssertion {
   candidateMergeEntries        PedigreeMergeLedger[] @relation("PedigreeMergeCandidateAssertion")
   winningMergeEntries          PedigreeMergeLedger[] @relation("PedigreeMergeWinningAssertion")
 
-  @@index([subjectIdentityId, relationship])
   @@unique([id, importRunId, sourceProvider, artifactSha256])
+  @@index([subjectIdentityId, relationship])
   @@index([importRunId, artifactOffsetLine, relationship])
   @@index([parentIdentityId, verificationStatus])
   @@index([assertedParentNormalizedName])
@@ -340,46 +395,110 @@ model RaceDayArchive {
 }
 
 model Trainer {
-  id            String   @id @default(cuid())
-  name          String
-  state         String?
-  licenseNumber String?
-  dogs          Dog[]
-  runners       Runner[]
-  createdAt     DateTime @default(now())
+  id                 String                    @id @default(cuid())
+  name               String
+  state              String?
+  licenseNumber      String?
+  dogs               Dog[]
+  runners            Runner[]
+  providerIdentities TrainerProviderIdentity[]
+  claims             TrainerClaim[]
+  createdAt          DateTime                  @default(now())
 
   @@index([name])
 }
 
+model DogProviderIdentity {
+  id                 String   @id @default(cuid())
+  dogId              String
+  dog                Dog      @relation(fields: [dogId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceProvider     String
+  sourceId           String
+  profileUrl         String?
+  verificationStatus String   @default("observed")
+  evidenceSha256     String
+  firstSeenAt        DateTime @default(now())
+  lastSeenAt         DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([sourceProvider, sourceId])
+  @@index([dogId, sourceProvider])
+  @@index([verificationStatus, lastSeenAt])
+  @@index([evidenceSha256])
+}
+
+model TrainerProviderIdentity {
+  id                 String   @id @default(cuid())
+  trainerId          String
+  trainer            Trainer  @relation(fields: [trainerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceProvider     String
+  sourceId           String
+  profileUrl         String?
+  verificationStatus String   @default("observed")
+  evidenceSha256     String
+  firstSeenAt        DateTime @default(now())
+  lastSeenAt         DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([sourceProvider, sourceId])
+  @@index([trainerId, sourceProvider])
+  @@index([verificationStatus, lastSeenAt])
+  @@index([evidenceSha256])
+}
+
+model RacingDataBackfillRun {
+  id                      String    @id @default(cuid())
+  jobKey                  String    @unique
+  status                  String
+  cursor                  String?
+  scannedCount            BigInt    @default(0)
+  linkedDogCount          BigInt    @default(0)
+  linkedTrainerCount      BigInt    @default(0)
+  repairedWeightCount     BigInt    @default(0)
+  unresolvedCount         BigInt    @default(0)
+  ambiguousCount          BigInt    @default(0)
+  lackingEvidenceCount    BigInt    @default(0)
+  lastBatchEvidenceSha256 String?
+  startedAt               DateTime  @default(now())
+  completedAt             DateTime?
+  updatedAt               DateTime  @updatedAt
+
+  @@index([status, updatedAt])
+}
+
 model Track {
-  id             String      @id @default(cuid())
-  name           String
-  state          String
-  surface        String?
-  circumference  Int?
-  straightLength Int?
-  boxCount       Int         @default(8)
-  hasIsolynx     Boolean     @default(false)
-  meetings       Meeting[]
-  formEntries    FormEntry[]
-  createdAt      DateTime    @default(now())
+  id                 String                  @id @default(cuid())
+  name               String
+  state              String
+  surface            String?
+  circumference      Int?
+  straightLength     Int?
+  boxCount           Int                     @default(8)
+  hasIsolynx         Boolean                 @default(false)
+  meetings           Meeting[]
+  formEntries        FormEntry[]
+  providerIdentities TrackProviderIdentity[]
+  createdAt          DateTime                @default(now())
 
   @@index([name])
   @@index([state])
 }
 
 model Meeting {
-  id             String    @id @default(cuid())
-  trackId        String
-  track          Track     @relation(fields: [trackId], references: [id])
-  meetingDate    DateTime
-  meetingType    String?
-  sourceProvider String?
-  sourceId       String?
-  sourceRawJson  String?
-  lastSyncedAt   DateTime?
-  races          Race[]
-  createdAt      DateTime  @default(now())
+  id                 String                    @id @default(cuid())
+  trackId            String
+  track              Track                     @relation(fields: [trackId], references: [id])
+  meetingDate        DateTime
+  meetingType        String?
+  sourceProvider     String?
+  sourceId           String?
+  sourceRawJson      String?
+  lastSyncedAt       DateTime?
+  races              Race[]
+  providerIdentities MeetingProviderIdentity[]
+  createdAt          DateTime                  @default(now())
 
   @@unique([trackId, meetingDate])
   @@index([trackId])
@@ -389,25 +508,28 @@ model Meeting {
 }
 
 model Race {
-  id             String      @id @default(cuid())
-  meetingId      String
-  meeting        Meeting     @relation(fields: [meetingId], references: [id])
-  raceNumber     Int
-  name           String?
-  raceTime       DateTime
-  distance       Int
-  grade          String?
-  prizeMoney     Float?
-  resultStatus   String?
-  replayUrl      String?
-  photoFinishUrl String?
-  sourceProvider String?
-  sourceId       String?
-  sourceRawJson  String?
-  lastSyncedAt   DateTime?
-  runners        Runner[]
-  videos         RaceVideo[]
-  createdAt      DateTime    @default(now())
+  id                 String                 @id @default(cuid())
+  meetingId          String
+  meeting            Meeting                @relation(fields: [meetingId], references: [id])
+  raceNumber         Int
+  name               String?
+  raceTime           DateTime
+  distance           Int
+  grade              String?
+  prizeMoney         Float?
+  resultStatus       String?
+  replayUrl          String?
+  photoFinishUrl     String?
+  sourceProvider     String?
+  sourceId           String?
+  sourceRawJson      String?
+  lastSyncedAt       DateTime?
+  runners            Runner[]
+  results            Result[]
+  formEntries        FormEntry[]
+  videos             RaceVideo[]
+  providerIdentities RaceProviderIdentity[]
+  createdAt          DateTime               @default(now())
 
   @@unique([meetingId, raceNumber])
   @@index([meetingId])
@@ -417,25 +539,30 @@ model Race {
 }
 
 model RaceVideo {
-  id                String    @id @default(cuid())
-  raceId            String
-  race              Race      @relation(fields: [raceId], references: [id], onDelete: Cascade)
-  sourceProvider    String
-  sourceId          String
-  kind              String    @default("replay")
-  pageUrl           String
-  embedSourceType   String?
-  sourceStatus      Int?
-  sourceCode        String?
-  streamUrl         String?
-  streamContentType String?
-  title             String?
-  description       String?
-  sourceRawJson     String?
-  fetchedAt         DateTime?
-  lastSyncedAt      DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                         String                  @id @default(cuid())
+  raceId                     String
+  race                       Race                    @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  sourceProvider             String
+  sourceId                   String
+  kind                       String                  @default("replay")
+  pageUrl                    String
+  embedSourceType            String?
+  sourceStatus               Int?
+  sourceCode                 String?
+  streamUrl                  String?
+  streamContentType          String?
+  title                      String?
+  description                String?
+  sourceRawJson              String?
+  fetchedAt                  DateTime?
+  lastSyncedAt               DateTime?
+  verificationStatus         String                  @default("pending")
+  lastVerifiedAt             DateTime?
+  verificationEvidenceSha256 String?
+  verificationScreenshotRef  String?
+  verificationEvents         RaceVideoVerification[]
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
 
   @@unique([raceId, sourceProvider, kind])
   @@index([raceId])
@@ -443,6 +570,26 @@ model RaceVideo {
   @@index([sourceProvider])
   @@index([sourceProvider, sourceId])
   @@index([fetchedAt])
+  @@index([verificationStatus, lastVerifiedAt])
+}
+
+model RaceVideoVerification {
+  id               String    @id @default(cuid())
+  raceVideoId      String
+  raceVideo        RaceVideo @relation(fields: [raceVideoId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  playbackState    String
+  outcome          String
+  httpStatus       Int?
+  mediaContentType String?
+  firstFrameSha256 String?
+  evidenceSha256   String
+  screenshotRef    String?
+  checkedAt        DateTime  @default(now())
+
+  @@unique([raceVideoId, evidenceSha256])
+  @@index([raceVideoId, checkedAt])
+  @@index([outcome, checkedAt])
+  @@index([evidenceSha256])
 }
 
 model Runner {
@@ -475,6 +622,7 @@ model Result {
   runnerId          String    @unique
   runner            Runner    @relation(fields: [runnerId], references: [id])
   raceId            String
+  race              Race      @relation(fields: [raceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   finishingPosition Int?
   runningTime       Float?
   margin            Float?
@@ -498,6 +646,7 @@ model FormEntry {
   dogId     String
   dog       Dog      @relation(fields: [dogId], references: [id])
   raceId    String?
+  race      Race?    @relation(fields: [raceId], references: [id], onDelete: SetNull, onUpdate: Restrict)
   trackId   String?
   track     Track?   @relation(fields: [trackId], references: [id])
   date      DateTime
@@ -513,6 +662,134 @@ model FormEntry {
   @@index([dogId])
   @@index([trackId, date])
   @@index([date])
+}
+
+model TrackProviderIdentity {
+  id                 String   @id @default(cuid())
+  trackId            String
+  track              Track    @relation(fields: [trackId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceProvider     String
+  sourceId           String
+  verificationStatus String   @default("observed")
+  evidenceSha256     String
+  firstSeenAt        DateTime @default(now())
+  lastSeenAt         DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([sourceProvider, sourceId])
+  @@index([trackId, sourceProvider])
+  @@index([verificationStatus, lastSeenAt])
+  @@index([evidenceSha256])
+}
+
+model MeetingProviderIdentity {
+  id                 String   @id @default(cuid())
+  meetingId          String
+  meeting            Meeting  @relation(fields: [meetingId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceProvider     String
+  sourceId           String
+  verificationStatus String   @default("observed")
+  evidenceSha256     String
+  firstSeenAt        DateTime @default(now())
+  lastSeenAt         DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([sourceProvider, sourceId])
+  @@index([meetingId, sourceProvider])
+  @@index([verificationStatus, lastSeenAt])
+  @@index([evidenceSha256])
+}
+
+model RaceProviderIdentity {
+  id                 String   @id @default(cuid())
+  raceId             String
+  race               Race     @relation(fields: [raceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceProvider     String
+  sourceId           String
+  verificationStatus String   @default("observed")
+  evidenceSha256     String
+  firstSeenAt        DateTime @default(now())
+  lastSeenAt         DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([sourceProvider, sourceId])
+  @@index([raceId, sourceProvider])
+  @@index([verificationStatus, lastSeenAt])
+  @@index([evidenceSha256])
+}
+
+model Owner {
+  id                 String                  @id @default(cuid())
+  displayName        String
+  providerIdentities OwnerProviderIdentity[]
+  dogRelationships   DogOwnerRelationship[]
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  @@index([displayName])
+}
+
+model OwnerProviderIdentity {
+  id                 String   @id @default(cuid())
+  ownerId            String
+  owner              Owner    @relation(fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceProvider     String
+  sourceId           String
+  profileUrl         String?
+  verificationStatus String   @default("observed")
+  evidenceSha256     String
+  firstSeenAt        DateTime @default(now())
+  lastSeenAt         DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([sourceProvider, sourceId])
+  @@index([ownerId, sourceProvider])
+  @@index([verificationStatus, lastSeenAt])
+  @@index([evidenceSha256])
+}
+
+model DogOwnerRelationship {
+  id             String    @id @default(cuid())
+  dogId          String
+  dog            Dog       @relation(fields: [dogId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  ownerId        String
+  owner          Owner     @relation(fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceProvider String
+  sourceId       String
+  evidenceSha256 String
+  effectiveFrom  DateTime?
+  effectiveTo    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@unique([dogId, ownerId, sourceProvider, sourceId])
+  @@index([dogId, effectiveTo])
+  @@index([ownerId, effectiveTo])
+  @@index([evidenceSha256])
+}
+
+model CanonicalEntityMerge {
+  id                  String   @id @default(cuid())
+  entityKind          String
+  survivingEntityId   String
+  retiredEntityId     String
+  sourceProvider      String?
+  sourceId            String?
+  reasonCode          String
+  evidenceSha256      String
+  beforeSha256        String
+  afterSha256         String
+  approvedByProfileId String?
+  approvedBy          Profile? @relation("CanonicalEntityMergeApprover", fields: [approvedByProfileId], references: [id], onDelete: SetNull, onUpdate: Restrict)
+  createdAt           DateTime @default(now())
+
+  @@unique([entityKind, retiredEntityId])
+  @@index([entityKind, survivingEntityId])
+  @@index([approvedByProfileId])
+  @@index([evidenceSha256])
 }
 
 model User {
@@ -1281,71 +1558,76 @@ model UsageAggregate {
 // === COMMUNITY ===
 
 model Profile {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id])
-  displayName  String
-  bio          String?
-  avatarUrl    String?
-  state        String?
-  kennelName   String?
-  kennelPrefix String?
-  role         String   @default("member") // member | breeder | trainer | admin
-  verified     Boolean  @default(false)
-  isFounder    Boolean  @default(false)
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  displayName       String
+  bio               String?
+  avatarUrl         String?
+  state             String?
+  kennelName        String?
+  kennelPrefix      String?
+  role              String   @default("member") // member | breeder | trainer | admin
+  verified          Boolean  @default(false)
+  isFounder         Boolean  @default(false)
   // JSON array of Track ids for the feed "My racing day" filter; null/empty = all meetings.
   racingDayTrackIds String?
-  messengerLayout  String   @default("dual") // dual | adaptive | compact
-  website      String?
-  phone        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  messengerLayout   String   @default("dual") // dual | adaptive | compact
+  website           String?
+  phone             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  posts                    Post[]
-  threads                  Thread[]
-  feedPosts                FeedPost[]
-  feedComments             FeedComment[]
-  feedReactions            FeedReaction[]
-  callRoomsCreated         CallRoom[]                @relation("CallRoomCreator")
-  callParticipants         CallParticipant[]
-  callInvitesSent          CallInvite[]              @relation("CallInviteFrom")
-  callInvitesReceived      CallInvite[]              @relation("CallInviteTo")
-  callEvents               CallEvent[]
-  callReports              CallReport[]
-  callPermissions          CallPermission[]
-  listings                 Listing[]                 @relation("ProfileListings")
-  reviewedListings         Listing[]                 @relation("ListingReviewedBy")
-  listingBoosts            ListingBoost[]            @relation("ListingBoostBuyer")
-  listingStatusHistory     ListingStatusHistory[]
-  savedListings            SavedListing[]
-  listingEnquiriesSent     ListingEnquiry[]          @relation("ListingEnquiryFrom")
-  listingEnquiriesReceived ListingEnquiry[]          @relation("ListingEnquiryTo")
-  listingReports           ListingReport[]           @relation("ListingReportReporter")
-  listingReportsResolved   ListingReport[]           @relation("ListingReportResolver")
-  listingModerationActions ListingModerationAction[]
-  listingViews             ListingView[]
-  messagesSent             Message[]                 @relation("SenderMessages")
-  messagesReceived         Message[]                 @relation("RecipientMessages")
-  conversationParticipants ConversationParticipant[]
-  messageDeliveryReceipts  MessageDeliveryReceipt[]
-  messageReadReceipts      MessageReadReceipt[]
-  messageReactions         MessageReaction[]
-  userPresence             UserPresence?
-  userBlocksInitiated      UserBlock[]               @relation("UserBlockBlocker")
-  userBlocksReceived       UserBlock[]               @relation("UserBlockBlocked")
-  messageModerationActions MessageModerationAction[]
-  conversationsA           Conversation[]            @relation("ConversationA")
-  conversationsB           Conversation[]            @relation("ConversationB")
-  dogsOwned                DogOwnership[]            @relation("DogOwnershipProfile")
-  dogOwnershipsReviewed    DogOwnership[]            @relation("DogOwnershipReviewer")
-  friendshipsA             Friendship[]              @relation("FriendshipA")
-  friendshipsB             Friendship[]              @relation("FriendshipB")
-  customPages              CustomPage[]              @relation("ProfileCustomPages")
-  socialActor              SocialActor?              @relation("ProfileSocialActor")
-  ownedSocialActors        SocialActor[]             @relation("SocialActorOwner")
-  feedShares               FeedShare[]
-  feedMentions             FeedMention[]
-  realtimeTopicGrants      RealtimeTopicGrant[]
+  posts                     Post[]
+  threads                   Thread[]
+  feedPosts                 FeedPost[]
+  feedComments              FeedComment[]
+  feedReactions             FeedReaction[]
+  callRoomsCreated          CallRoom[]                     @relation("CallRoomCreator")
+  callParticipants          CallParticipant[]
+  callInvitesSent           CallInvite[]                   @relation("CallInviteFrom")
+  callInvitesReceived       CallInvite[]                   @relation("CallInviteTo")
+  callEvents                CallEvent[]
+  callReports               CallReport[]
+  callPermissions           CallPermission[]
+  listings                  Listing[]                      @relation("ProfileListings")
+  reviewedListings          Listing[]                      @relation("ListingReviewedBy")
+  listingBoosts             ListingBoost[]                 @relation("ListingBoostBuyer")
+  listingStatusHistory      ListingStatusHistory[]
+  savedListings             SavedListing[]
+  listingEnquiriesSent      ListingEnquiry[]               @relation("ListingEnquiryFrom")
+  listingEnquiriesReceived  ListingEnquiry[]               @relation("ListingEnquiryTo")
+  listingReports            ListingReport[]                @relation("ListingReportReporter")
+  listingReportsResolved    ListingReport[]                @relation("ListingReportResolver")
+  listingModerationActions  ListingModerationAction[]
+  listingViews              ListingView[]
+  messagesSent              Message[]                      @relation("SenderMessages")
+  messagesReceived          Message[]                      @relation("RecipientMessages")
+  conversationParticipants  ConversationParticipant[]
+  messageDeliveryReceipts   MessageDeliveryReceipt[]
+  messageReadReceipts       MessageReadReceipt[]
+  messageReactions          MessageReaction[]
+  userPresence              UserPresence?
+  userBlocksInitiated       UserBlock[]                    @relation("UserBlockBlocker")
+  userBlocksReceived        UserBlock[]                    @relation("UserBlockBlocked")
+  messageModerationActions  MessageModerationAction[]
+  conversationsA            Conversation[]                 @relation("ConversationA")
+  conversationsB            Conversation[]                 @relation("ConversationB")
+  dogsOwned                 DogOwnership[]                 @relation("DogOwnershipProfile")
+  dogOwnershipsReviewed     DogOwnership[]                 @relation("DogOwnershipReviewer")
+  trainerClaims             TrainerClaim[]                 @relation("TrainerClaimProfile")
+  trainerClaimsReviewed     TrainerClaim[]                 @relation("TrainerClaimReviewer")
+  liveFeedReviews           LiveFeedQuarantineSummary[]    @relation("LiveFeedQuarantineReviewer")
+  liveFeedResolutionReviews LiveFeedQuarantineResolution[] @relation("LiveFeedQuarantineResolutionReviewer")
+  canonicalMergeApprovals   CanonicalEntityMerge[]         @relation("CanonicalEntityMergeApprover")
+  friendshipsA              Friendship[]                   @relation("FriendshipA")
+  friendshipsB              Friendship[]                   @relation("FriendshipB")
+  customPages               CustomPage[]                   @relation("ProfileCustomPages")
+  socialActor               SocialActor?                   @relation("ProfileSocialActor")
+  ownedSocialActors         SocialActor[]                  @relation("SocialActorOwner")
+  feedShares                FeedShare[]
+  feedMentions              FeedMention[]
+  realtimeTopicGrants       RealtimeTopicGrant[]
 }
 
 model CustomPage {
@@ -1580,6 +1862,31 @@ model DogOwnership {
   @@index([profileId, status, createdAt])
   @@index([reviewedByProfileId])
   @@index([status])
+}
+
+model TrainerClaim {
+  id                  String    @id @default(cuid())
+  trainerId           String
+  trainer             Trainer   @relation(fields: [trainerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  profileId           String
+  profile             Profile   @relation("TrainerClaimProfile", fields: [profileId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceProvider      String
+  sourceId            String
+  officialProfileUrl  String?
+  evidence            String
+  verified            Boolean   @default(false)
+  status              String    @default("pending")
+  reviewedByProfileId String?
+  reviewedBy          Profile?  @relation("TrainerClaimReviewer", fields: [reviewedByProfileId], references: [id], onDelete: SetNull)
+  reviewedAt          DateTime?
+  rejectionReason     String?
+  createdAt           DateTime  @default(now())
+
+  @@unique([trainerId, profileId])
+  @@index([profileId, status, createdAt])
+  @@index([reviewedByProfileId])
+  @@index([status, createdAt])
+  @@index([sourceProvider, sourceId])
 }
 
 model ForumCategory {

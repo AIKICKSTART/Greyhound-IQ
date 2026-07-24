@@ -17,6 +17,7 @@ export interface LiveDogParentEvidence {
 export interface LiveDog {
   sourceProvider?: string;
   sourceId?: string;
+  profileUrl?: string;
   name: string;
   // Actual registry ear brand only. Provider IDs belong in sourceId.
   earBrand?: string;
@@ -34,6 +35,8 @@ export interface LiveRunner {
   boxNumber: number;
   dog: LiveDog;
   trainerName?: string;
+  trainerSourceId?: string;
+  trainerProfileUrl?: string;
   weight?: number;
   scratched?: boolean;
   // Present only for completed races:
@@ -68,6 +71,7 @@ export interface LiveMeeting {
   sourceProvider?: string;
   sourceId?: string;
   sourceRawJson?: string;
+  trackSourceId?: string;
   trackName: string;
   state?: string;
   meetingDate: string; // ISO (date)

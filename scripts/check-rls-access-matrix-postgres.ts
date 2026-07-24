@@ -46,6 +46,7 @@ const SENSITIVE_ADMIN_POLICY_NAMES = [
 ] as const;
 
 const REDUCED_RUNTIME_DML_GRANTS = new Map<string, readonly string[]>([
+  ["DogProviderIdentity", ["INSERT", "SELECT", "UPDATE"]],
   ["DogProfileMergeLedger", ["INSERT", "SELECT"]],
   ["DogProfileObservation", ["INSERT", "SELECT"]],
   ["DogSourceIdentity", ["INSERT", "SELECT"]],
@@ -53,9 +54,12 @@ const REDUCED_RUNTIME_DML_GRANTS = new Map<string, readonly string[]>([
   // settled by the webhook, expired by date — never deleted at runtime.
   ["ListingBoost", ["INSERT", "SELECT", "UPDATE"]],
   ["LiveFeedQuarantine", ["INSERT", "SELECT"]],
+  ["LiveFeedQuarantineSummary", ["INSERT", "SELECT", "UPDATE"]],
   ["PedigreeAssertion", ["INSERT", "SELECT"]],
   ["PedigreeImportRun", ["INSERT", "SELECT", "UPDATE"]],
   ["PedigreeMergeLedger", ["INSERT", "SELECT"]],
+  ["RacingDataBackfillRun", ["INSERT", "SELECT", "UPDATE"]],
+  ["TrainerProviderIdentity", ["INSERT", "SELECT", "UPDATE"]],
 ]);
 
 type ContextCounts = {

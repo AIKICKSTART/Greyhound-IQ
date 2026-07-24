@@ -7,7 +7,9 @@ import {
   updateAdminBugReportAction,
   updateAdminStatus,
   approveDogOwnershipAction,
+  approveTrainerClaimAction,
   rejectDogOwnershipAction,
+  rejectTrainerClaimAction,
   updateAdminSupportTicketAction,
   updateAdminUserAccessAction,
   upsertAdminEntitlementAction,
@@ -501,6 +503,38 @@ export function AdminDogOwnershipForm({
           label="Reject"
           pendingLabel="Rejecting…"
           confirmMessage="Reject this ownership claim?"
+          className={SMALL_BUTTON}
+        />
+      </div>
+    </form>
+  );
+}
+
+export function AdminTrainerClaimForm({
+  trainerClaimId,
+  path,
+}: {
+  trainerClaimId: string;
+  path: string;
+}) {
+  return (
+    <form className="w-full min-w-0 space-y-2 sm:w-[240px] sm:min-w-[240px]">
+      <input type="hidden" name="trainerClaimId" value={trainerClaimId} />
+      <input type="hidden" name="path" value={path} />
+      <ReasonField placeholder="Reason (shown to claimant if rejected)" />
+      <div className="flex gap-2">
+        <AdminSubmitButton
+          formAction={approveTrainerClaimAction}
+          label="Approve"
+          pendingLabel="Approving…"
+          confirmMessage="Approve this trainer identity claim?"
+          className={SMALL_BUTTON}
+        />
+        <AdminSubmitButton
+          formAction={rejectTrainerClaimAction}
+          label="Reject"
+          pendingLabel="Rejecting…"
+          confirmMessage="Reject this trainer identity claim?"
           className={SMALL_BUTTON}
         />
       </div>

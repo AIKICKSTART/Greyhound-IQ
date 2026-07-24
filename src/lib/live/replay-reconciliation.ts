@@ -39,16 +39,19 @@ const tasAngleSchema = z.object({
   angle: z.string().trim().min(1).max(80).optional(),
   login: z.boolean().optional(),
 });
+const tasAnglesSchema = z.preprocess((value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const entries = Object.entries(value);
+  if (entries.length > 16 || entries.some(([key]) => key.length > 80)) {
+    return value;
+  }
+  return entries.map(([, angle]) => angle);
+}, z.array(tasAngleSchema).max(16));
 const tasRaceSchema = z.object({
   race_name: shortText.optional(),
   race_number: z.coerce.number().int().min(1).max(64).optional(),
   race_code: z.string().trim().min(1).max(80).optional(),
-  angles: z
-    .union([
-      z.array(tasAngleSchema).max(16),
-      z.record(z.string().max(80), tasAngleSchema),
-    ])
-    .optional(),
+  angles: tasAnglesSchema.optional(),
 });
 const tasEventSchema = z.object({
   title: shortText.optional(),
@@ -473,10 +476,7 @@ async function collectGreyhoundsWaRows(
 }
 
 function publicTasracingAngle(race: TasRace) {
-  const angles = Array.isArray(race.angles)
-    ? race.angles
-    : Object.values(race.angles ?? {});
-  return angles.find((angle) => angle.login === false && angle.stream);
+  return race.angles?.find((angle) => angle.login === false && angle.stream);
 }
 
 async function fetchReplayText(

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Search, Trophy } from "lucide-react";
+import { MapPin, PlayCircle, Search, Trophy } from "lucide-react";
 import { RunnerRow } from "@/components/runner-row";
 import {
   WebsitePageHeader,
@@ -16,10 +16,7 @@ import {
   normaliseRaceDateInput,
 } from "@/lib/race-time";
 import { orderRunners } from "@/lib/runner-order";
-import {
-  resolveRunnerTrainerName,
-  resolveRunnerWeight,
-} from "@/lib/live/runner-display";
+import { replayPlaybackState } from "@/lib/live/race-replay";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -40,15 +37,18 @@ type DisplayRunner = {
   id: string;
   boxNumber: number;
   weight: number | null;
+  previousOfficialWeight: number | null;
+  previousWeightDate: Date | null;
+  weightStatus: "published" | "pending" | "not_published";
   scratched: boolean;
-  trainer: { name: string } | null;
+  trainer: { id: string; name: string } | null;
   result: ResultEntry | null;
   dog: {
     id: string;
     name: string;
     colour: string | null;
     sex: string | null;
-    trainer: { name: string } | null;
+    trainer: { id: string; name: string } | null;
     formEntries: {
       finish: number | null;
       date: Date;
@@ -64,6 +64,7 @@ type DisplayRace = {
   grade: string | null;
   distance: number;
   raceTime: Date;
+  hasReplay: boolean;
   meeting: {
     track: {
       name: string;
@@ -278,10 +279,21 @@ function ResultRaceCard({ race }: { race: DisplayRace }) {
         </div>
 
         {winner ? (
-          <span className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--secondary-light)/0.30)] bg-[hsl(var(--secondary)/0.14)] px-3 py-1.5 text-[12px] font-bold text-[hsl(var(--secondary-light))]">
-            <Trophy className="h-3.5 w-3.5" aria-hidden="true" />
-            {winner.dog.name}
-          </span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {race.hasReplay ? (
+              <Link
+                href={raceHref}
+                className="giq-button giq-button-glass min-h-9 px-3 text-[12px] font-semibold"
+              >
+                <PlayCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                Watch replay
+              </Link>
+            ) : null}
+            <span className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--secondary-light)/0.30)] bg-[hsl(var(--secondary)/0.14)] px-3 py-1.5 text-[12px] font-bold text-[hsl(var(--secondary-light))]">
+              <Trophy className="h-3.5 w-3.5" aria-hidden="true" />
+              {winner.dog.name}
+            </span>
+          </div>
         ) : null}
       </div>
 
@@ -336,6 +348,18 @@ function toDisplayRace(
     grade: race.grade,
     distance: race.distance,
     raceTime: race.raceTime,
+    hasReplay:
+      race.videos.some((video) =>
+        ["embedded", "external"].includes(replayPlaybackState(video)),
+      ) ||
+      (race.replayUrl
+        ? ["embedded", "external"].includes(
+            replayPlaybackState({
+              sourceProvider: race.sourceProvider,
+              pageUrl: race.replayUrl,
+            }),
+          )
+        : false),
     meeting: {
       track: {
         name: race.meeting.track.name,
@@ -343,24 +367,24 @@ function toDisplayRace(
       },
     },
     runners: orderRunners(race.runners, "finish").map((runner) => {
-      const trainerName = resolveRunnerTrainerName({
-        runnerTrainerName: runner.trainer?.name,
-        dogTrainerName: runner.dog.trainer?.name,
-        sourceRawJson: runner.sourceRawJson,
-      });
-      const weight = resolveRunnerWeight({
-        runnerWeight: runner.weight,
-        formWeight: runner.dog.formEntries.find(
-          (entry) => entry.raceId === race.id,
-        )?.weight,
-        sourceRawJson: runner.sourceRawJson,
-      });
+      const trainer = runner.trainer ?? runner.dog.trainer ?? null;
+      const weight =
+        runner.weight ??
+        runner.dog.formEntries.find((entry) => entry.raceId === race.id)
+          ?.weight ??
+        null;
+      const previousOfficialWeight = runner.dog.formEntries.find(
+        (entry) => entry.raceId !== race.id && entry.weight != null,
+      );
       return {
         id: runner.id,
         boxNumber: runner.boxNumber,
         weight,
+        previousOfficialWeight: previousOfficialWeight?.weight ?? null,
+        previousWeightDate: previousOfficialWeight?.date ?? null,
+        weightStatus: weight != null ? "published" : "not_published",
         scratched: runner.scratched,
-        trainer: trainerName ? { name: trainerName } : null,
+        trainer: trainer ? { id: trainer.id, name: trainer.name } : null,
         result: runner.result,
         dog: {
           id: runner.dog.id,

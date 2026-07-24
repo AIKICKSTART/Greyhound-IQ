@@ -21,12 +21,20 @@ import {
   type LiveRunner,
 } from "./provider";
 import {
+  officialProviderProfileUrl,
+  providerIdentityEvidenceSha256,
+} from "./provider-identity";
+import {
   writeLiveFeedQuarantine,
   writeLiveFeedQuarantines,
   type LiveFeedQuarantineClassification,
   type LiveFeedQuarantineInput,
 } from "./quarantine";
 import { reconcileRecentRaceReplays } from "./replay-reconciliation";
+import {
+  auditRecentResultsCompleteness,
+  type ResultsCompletenessMetric,
+} from "./results-completeness";
 import { canonicalTrackName } from "./track-name";
 import {
   whitelistProviderSnapshot,
@@ -208,6 +216,7 @@ export interface SyncResult {
   replayCandidates?: number;
   replayResolved?: number;
   replayErrors?: number;
+  completeness?: ResultsCompletenessMetric[];
 }
 
 // Pulls scoped data from the configured live provider and upserts it into the
@@ -252,6 +261,7 @@ export async function syncLiveData(
   let replayCandidates = 0;
   let replayResolved = 0;
   let replayErrors = 0;
+  let completeness: ResultsCompletenessMetric[] = [];
   if (scope === "upcoming" || scope === "all") {
     const meetings = stampMeetings(
       await fetchProviderMeetings(
@@ -291,6 +301,22 @@ export async function syncLiveData(
       });
     }
     await notifyDogWinnersFromRecentResults();
+    completeness = await auditRecentResultsCompleteness();
+    const staleResultRaces = completeness.reduce(
+      (count, metric) => count + metric.staleResultRaces,
+      0,
+    );
+    const staleReplayRaces = completeness.reduce(
+      (count, metric) => count + metric.staleReplayRaces,
+      0,
+    );
+    if (staleResultRaces > 0 || staleReplayRaces > 0) {
+      logCorrelatedWarn(logContext, "live_sync.completeness_alert", {
+        staleResultRaces,
+        staleReplayRaces,
+        completeness,
+      });
+    }
   }
 
   logCorrelatedInfo(logContext, "live_sync.completed", {
@@ -300,6 +326,7 @@ export async function syncLiveData(
     replayCandidates,
     replayResolved,
     replayErrors,
+    completeness,
   });
   return {
     synced: true,
@@ -309,6 +336,7 @@ export async function syncLiveData(
     replayCandidates,
     replayResolved,
     replayErrors,
+    completeness,
   };
 }
 
@@ -651,6 +679,20 @@ async function upsertMeetings(
     () => ensureRaces(db, raceItems, now, quarantineEvents),
     logContext
   );
+  await syncStage(
+    "ensureProviderIdentities",
+    { meetings: acceptedMeetingInputs.length, races: raceItems.length },
+    () =>
+      ensureProviderIdentities(
+        db,
+        acceptedMeetingInputs,
+        raceItems,
+        raceRows,
+        now,
+        quarantineEvents,
+      ),
+    logContext,
+  );
   counts.replays = await syncStage(
     "ensureRaceVideos",
     { races: raceItems.length },
@@ -709,8 +751,10 @@ async function upsertMeetings(
     "ensureTrainers",
     { runners: runnerItems.length },
     () => ensureTrainers(
-      runnerItems.map((item) => item.runner.trainerName),
+      db,
+      runnerItems,
       logContext,
+      quarantineEvents,
     ),
     logContext
   );
@@ -747,6 +791,284 @@ async function upsertMeetings(
   syncDebug("upsertMeetings ok", counts, logContext);
 
   return counts;
+}
+
+type CanonicalProviderIdentityCandidate = {
+  canonicalId: string;
+  evidenceSha256: string;
+  sourceId: string;
+  sourceProvider: string;
+};
+
+async function ensureProviderIdentities(
+  db: LiveSyncDbClient,
+  meetingInputs: Array<{
+    meeting: LiveMeeting;
+    meetingRow: { id: string; trackId: string };
+  }>,
+  raceItems: RaceWithMeeting[],
+  raceRows: Map<string, RaceRow>,
+  now: Date,
+  quarantineEvents: LiveFeedQuarantineInput[],
+) {
+  const trackCandidates = meetingInputs.flatMap(({ meeting, meetingRow }) =>
+    providerIdentityCandidate(
+      meeting.sourceProvider,
+      meeting.trackSourceId,
+      meetingRow.trackId,
+      "track",
+    ),
+  );
+  const meetingCandidates = meetingInputs.flatMap(({ meeting, meetingRow }) =>
+    providerIdentityCandidate(
+      meeting.sourceProvider,
+      meeting.sourceId,
+      meetingRow.id,
+      "meeting",
+    ),
+  );
+  const raceCandidates = raceItems.flatMap((item) => {
+    const raceId = raceRows.get(raceKey(item.meetingId, item.race))?.id;
+    return raceId
+      ? providerIdentityCandidate(
+          item.race.sourceProvider ?? item.meeting.sourceProvider,
+          item.race.sourceId,
+          raceId,
+          "race",
+        )
+      : [];
+  });
+
+  await persistTrackProviderIdentities(
+    db,
+    exactOneToOneCandidates("track", trackCandidates, quarantineEvents),
+    now,
+    quarantineEvents,
+  );
+  await persistMeetingProviderIdentities(
+    db,
+    exactOneToOneCandidates("meeting", meetingCandidates, quarantineEvents),
+    now,
+    quarantineEvents,
+  );
+  await persistRaceProviderIdentities(
+    db,
+    exactOneToOneCandidates("race", raceCandidates, quarantineEvents),
+    now,
+    quarantineEvents,
+  );
+}
+
+function providerIdentityCandidate(
+  providerValue: string | null | undefined,
+  sourceIdValue: string | null | undefined,
+  canonicalId: string,
+  entityKind: "track" | "meeting" | "race",
+) {
+  const sourceProvider = normalizeProvider(providerValue);
+  const sourceId = normalizeSourceId(sourceIdValue);
+  if (!sourceProvider || !sourceId) return [];
+  return [
+    {
+      canonicalId,
+      evidenceSha256: providerIdentityEvidenceSha256(
+        sourceProvider,
+        entityKind,
+        sourceId,
+        canonicalId,
+      ),
+      sourceId,
+      sourceProvider,
+    },
+  ];
+}
+
+function exactOneToOneCandidates(
+  entityKind: "track" | "meeting" | "race",
+  candidates: CanonicalProviderIdentityCandidate[],
+  quarantineEvents: LiveFeedQuarantineInput[],
+) {
+  const unique = new Map<string, CanonicalProviderIdentityCandidate>();
+  const conflicts = new Set<string>();
+  for (const candidate of candidates) {
+    const key = `${candidate.sourceProvider}\u0000${candidate.sourceId}`;
+    const existing = unique.get(key);
+    if (existing && existing.canonicalId !== candidate.canonicalId) {
+      conflicts.add(key);
+    } else if (!existing) {
+      unique.set(key, candidate);
+    }
+  }
+  for (const key of conflicts) {
+    unique.delete(key);
+    const [provider, sourceId] = key.split("\u0000", 2);
+    quarantineEvents.push({
+      provider,
+      entityKind,
+      sourceId,
+      reasonCode: "conflicting_provider_identity",
+      classification: "conflict",
+      evidence: { provider, entityKind, sourceId },
+    });
+  }
+  return [...unique.values()];
+}
+
+async function persistTrackProviderIdentities(
+  db: LiveSyncDbClient,
+  rows: CanonicalProviderIdentityCandidate[],
+  now: Date,
+  quarantineEvents: LiveFeedQuarantineInput[],
+) {
+  if (!rows.length) return;
+  const results = await db.$queryRaw<
+    Array<{
+      canonicalId: string;
+      sourceId: string;
+      sourceProvider: string;
+      verificationStatus: string;
+    }>
+  >`
+    INSERT INTO "TrackProviderIdentity"
+      ("id", "trackId", "sourceProvider", "sourceId", "verificationStatus",
+       "evidenceSha256", "firstSeenAt", "lastSeenAt", "createdAt", "updatedAt")
+    VALUES ${Prisma.join(
+      rows.map((row) => Prisma.sql`
+        (${randomUUID()}, ${row.canonicalId}, ${row.sourceProvider},
+         ${row.sourceId}, 'observed', ${row.evidenceSha256},
+         ${now}, ${now}, ${now}, ${now})
+      `),
+    )}
+    ON CONFLICT ("sourceProvider", "sourceId") DO UPDATE SET
+      "lastSeenAt" = EXCLUDED."lastSeenAt",
+      "updatedAt" = EXCLUDED."updatedAt",
+      "verificationStatus" = CASE
+        WHEN "TrackProviderIdentity"."trackId" = EXCLUDED."trackId"
+          THEN "TrackProviderIdentity"."verificationStatus"
+        ELSE 'conflict'
+      END
+    RETURNING "trackId" AS "canonicalId", "sourceProvider", "sourceId",
+      "verificationStatus"
+  `;
+  appendStoredIdentityConflicts("track", rows, results, quarantineEvents);
+}
+
+async function persistMeetingProviderIdentities(
+  db: LiveSyncDbClient,
+  rows: CanonicalProviderIdentityCandidate[],
+  now: Date,
+  quarantineEvents: LiveFeedQuarantineInput[],
+) {
+  if (!rows.length) return;
+  const results = await db.$queryRaw<
+    Array<{
+      canonicalId: string;
+      sourceId: string;
+      sourceProvider: string;
+      verificationStatus: string;
+    }>
+  >`
+    INSERT INTO "MeetingProviderIdentity"
+      ("id", "meetingId", "sourceProvider", "sourceId", "verificationStatus",
+       "evidenceSha256", "firstSeenAt", "lastSeenAt", "createdAt", "updatedAt")
+    VALUES ${Prisma.join(
+      rows.map((row) => Prisma.sql`
+        (${randomUUID()}, ${row.canonicalId}, ${row.sourceProvider},
+         ${row.sourceId}, 'observed', ${row.evidenceSha256},
+         ${now}, ${now}, ${now}, ${now})
+      `),
+    )}
+    ON CONFLICT ("sourceProvider", "sourceId") DO UPDATE SET
+      "lastSeenAt" = EXCLUDED."lastSeenAt",
+      "updatedAt" = EXCLUDED."updatedAt",
+      "verificationStatus" = CASE
+        WHEN "MeetingProviderIdentity"."meetingId" = EXCLUDED."meetingId"
+          THEN "MeetingProviderIdentity"."verificationStatus"
+        ELSE 'conflict'
+      END
+    RETURNING "meetingId" AS "canonicalId", "sourceProvider", "sourceId",
+      "verificationStatus"
+  `;
+  appendStoredIdentityConflicts("meeting", rows, results, quarantineEvents);
+}
+
+async function persistRaceProviderIdentities(
+  db: LiveSyncDbClient,
+  rows: CanonicalProviderIdentityCandidate[],
+  now: Date,
+  quarantineEvents: LiveFeedQuarantineInput[],
+) {
+  if (!rows.length) return;
+  const results = await db.$queryRaw<
+    Array<{
+      canonicalId: string;
+      sourceId: string;
+      sourceProvider: string;
+      verificationStatus: string;
+    }>
+  >`
+    INSERT INTO "RaceProviderIdentity"
+      ("id", "raceId", "sourceProvider", "sourceId", "verificationStatus",
+       "evidenceSha256", "firstSeenAt", "lastSeenAt", "createdAt", "updatedAt")
+    VALUES ${Prisma.join(
+      rows.map((row) => Prisma.sql`
+        (${randomUUID()}, ${row.canonicalId}, ${row.sourceProvider},
+         ${row.sourceId}, 'observed', ${row.evidenceSha256},
+         ${now}, ${now}, ${now}, ${now})
+      `),
+    )}
+    ON CONFLICT ("sourceProvider", "sourceId") DO UPDATE SET
+      "lastSeenAt" = EXCLUDED."lastSeenAt",
+      "updatedAt" = EXCLUDED."updatedAt",
+      "verificationStatus" = CASE
+        WHEN "RaceProviderIdentity"."raceId" = EXCLUDED."raceId"
+          THEN "RaceProviderIdentity"."verificationStatus"
+        ELSE 'conflict'
+      END
+    RETURNING "raceId" AS "canonicalId", "sourceProvider", "sourceId",
+      "verificationStatus"
+  `;
+  appendStoredIdentityConflicts("race", rows, results, quarantineEvents);
+}
+
+function appendStoredIdentityConflicts(
+  entityKind: "track" | "meeting" | "race",
+  expected: CanonicalProviderIdentityCandidate[],
+  stored: Array<{
+    canonicalId: string;
+    sourceId: string;
+    sourceProvider: string;
+    verificationStatus: string;
+  }>,
+  quarantineEvents: LiveFeedQuarantineInput[],
+) {
+  const expectedByKey = new Map(
+    expected.map((row) => [
+      `${row.sourceProvider}\u0000${row.sourceId}`,
+      row.canonicalId,
+    ]),
+  );
+  for (const row of stored) {
+    const key = `${row.sourceProvider}\u0000${row.sourceId}`;
+    if (
+      row.verificationStatus !== "conflict" &&
+      expectedByKey.get(key) === row.canonicalId
+    ) {
+      continue;
+    }
+    quarantineEvents.push({
+      provider: row.sourceProvider,
+      entityKind,
+      sourceId: row.sourceId,
+      reasonCode: "conflicting_provider_identity",
+      classification: "conflict",
+      evidence: {
+        provider: row.sourceProvider,
+        entityKind,
+        sourceId: row.sourceId,
+      },
+    });
+  }
 }
 
 async function syncStage<T>(
@@ -1223,7 +1545,7 @@ async function bulkUpsertRaceChunkSet(
 
 type DogIdentityDbClient = Pick<
   LiveSyncDbClient,
-  "dog" | "dogSourceIdentity"
+  "dog" | "dogProviderIdentity" | "dogSourceIdentity"
 >;
 
 type DogIdentityClaim = {
@@ -1386,7 +1708,10 @@ export async function ensureDogs(
     }
   }
 
-  if (eligibleForCreation.length === 0) return ids;
+  if (eligibleForCreation.length === 0) {
+    await recordDogProviderIdentities(db, claims, ids);
+    return ids;
+  }
 
   await db.dog.createMany({
     data: eligibleForCreation.map((claim) => ({
@@ -1424,7 +1749,56 @@ export async function ensureDogs(
     ids.set(claim.key, dogId);
   }
 
+  await recordDogProviderIdentities(db, claims, ids);
   return ids;
+}
+
+async function recordDogProviderIdentities(
+  db: DogIdentityDbClient,
+  claims: DogIdentityClaim[],
+  ids: Map<string, string>,
+) {
+  const now = new Date();
+  for (const claim of claims) {
+    const dogId = ids.get(claim.key);
+    if (!dogId) continue;
+    const profileUrl = officialProviderProfileUrl({
+      provider: claim.sourceProvider,
+      entityKind: "dog",
+      sourceId: claim.sourceId,
+      value: claim.dog.profileUrl,
+    });
+    const evidenceSha256 = providerIdentityEvidenceSha256(
+      claim.sourceProvider,
+      "dog",
+      claim.sourceId,
+      dogId,
+    );
+    await db.dogProviderIdentity.upsert({
+      where: {
+        sourceProvider_sourceId: {
+          sourceProvider: claim.sourceProvider,
+          sourceId: claim.sourceId,
+        },
+      },
+      create: {
+        dogId,
+        sourceProvider: claim.sourceProvider,
+        sourceId: claim.sourceId,
+        profileUrl,
+        verificationStatus: "verified",
+        evidenceSha256,
+        firstSeenAt: now,
+        lastSeenAt: now,
+      },
+      update: {
+        profileUrl: profileUrl ?? undefined,
+        verificationStatus: "verified",
+        evidenceSha256,
+        lastSeenAt: now,
+      },
+    });
+  }
 }
 
 async function loadExactDogIdentityClaims(
@@ -1466,6 +1840,29 @@ async function loadExactDogIdentityClaims(
       }
       const legacyKey = row.earBrand ? keyByLegacy.get(row.earBrand) : undefined;
       if (legacyKey) addDogIdentityClaim(idsByClaim, legacyKey, row.id);
+    }
+
+    const providerIdentities = await db.dogProviderIdentity.findMany({
+      where: {
+        verificationStatus: "verified",
+        OR: providerConditions,
+      },
+      select: {
+        dogId: true,
+        sourceProvider: true,
+        sourceId: true,
+      },
+      take: LOOKUP_QUERY_LIMIT,
+    });
+    if (providerIdentities.length >= LOOKUP_QUERY_LIMIT) {
+      for (const claim of claimChunk) saturatedClaims.add(claim.key);
+      continue;
+    }
+    for (const identity of providerIdentities) {
+      const key = exactDogKey(identity.sourceProvider, identity.sourceId);
+      if (key && claimKeys.has(key)) {
+        addDogIdentityClaim(idsByClaim, key, identity.dogId);
+      }
     }
 
     const sourceIdentities = await db.dogSourceIdentity.findMany({
@@ -1693,7 +2090,9 @@ function addAll(target: Set<string>, values: Iterable<string>) {
   for (const value of values) target.add(value);
 }
 
-function providerIdentityConditions(claims: DogIdentityClaim[]) {
+function providerIdentityConditions(
+  claims: Array<{ sourceProvider: string; sourceId: string }>,
+) {
   const sourceIdsByProvider = new Map<string, Set<string>>();
   for (const claim of claims) {
     const sourceIds = sourceIdsByProvider.get(claim.sourceProvider) ?? new Set<string>();
@@ -1902,20 +2301,257 @@ function parseOptionalDate(value?: string) {
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
-async function ensureTrainers(
-  names: Array<string | undefined>,
+type TrainerIdentityDbClient = Pick<
+  LiveSyncDbClient,
+  "trainer" | "trainerProviderIdentity"
+>;
+
+type TrainerIdentityClaim = {
+  key: string;
+  sourceProvider: string;
+  sourceId: string;
+  name: string | null;
+  profileUrl: string | null;
+};
+
+const AUTHORITATIVE_TRAINER_CREATION_PROVIDERS = new Set([
+  "thedogs",
+  "topaz",
+  "watchdog",
+]);
+
+export async function ensureTrainers(
+  db: TrainerIdentityDbClient,
+  items: RunnerWithRace[],
   logContext: LogCorrelationContext,
+  quarantineEvents: LiveFeedQuarantineInput[],
 ) {
-  const observedNames = new Set(
-    names.map((name) => name?.trim()).filter((name): name is string => Boolean(name)),
-  );
-  if (observedNames.size > 0) {
-    logCorrelatedWarn(logContext, "live.trainer_identity.skipped", {
-      reason: "stable_provider_identity_not_modelled",
-      observations: observedNames.size,
+  const grouped = new Map<string, TrainerIdentityClaim[]>();
+  for (const item of items) {
+    const sourceProvider = normalizeProvider(
+      item.runner.sourceProvider ?? item.sourceProvider,
+    );
+    const sourceId = normalizeSourceId(item.runner.trainerSourceId);
+    const name = cleanTrainerName(item.runner.trainerName);
+    if (!sourceProvider || !sourceId) {
+      if (name) {
+        logTrainerIdentitySkip(
+          logContext,
+          "missing_stable_provider_identity",
+          { sourceProvider, sourceId, name },
+          quarantineEvents,
+        );
+      }
+      continue;
+    }
+    const key = exactTrainerKey(sourceProvider, sourceId);
+    const claim: TrainerIdentityClaim = {
+      key,
+      sourceProvider,
+      sourceId,
+      name,
+      profileUrl: officialProviderProfileUrl({
+        provider: sourceProvider,
+        entityKind: "trainer",
+        sourceId,
+        value: item.runner.trainerProfileUrl,
+      }),
+    };
+    const claims = grouped.get(key) ?? [];
+    claims.push(claim);
+    grouped.set(key, claims);
+  }
+
+  const claims: TrainerIdentityClaim[] = [];
+  for (const observations of grouped.values()) {
+    const names = new Set(
+      observations
+        .map((observation) => observation.name)
+        .filter((name): name is string => Boolean(name)),
+    );
+    const first = observations[0];
+    if (!first) continue;
+    if (names.size > 1) {
+      logTrainerIdentitySkip(
+        logContext,
+        "conflicting_provider_observations",
+        {
+          ...first,
+          observations: observations.length,
+        },
+        quarantineEvents,
+      );
+      continue;
+    }
+    claims.push({
+      ...first,
+      name: names.values().next().value ?? null,
+      profileUrl:
+        observations.find((observation) => observation.profileUrl)?.profileUrl ??
+        null,
     });
   }
-  return new Map<string, string>();
+  if (claims.length === 0) return new Map<string, string>();
+
+  const ids = new Map<string, string>();
+  for (const claimChunk of chunks(claims, LOOKUP_QUERY_CHUNK_SIZE)) {
+    const rows = await db.trainerProviderIdentity.findMany({
+      where: {
+        verificationStatus: "verified",
+        OR: providerIdentityConditions(claimChunk),
+      },
+      select: {
+        trainerId: true,
+        sourceProvider: true,
+        sourceId: true,
+      },
+      take: LOOKUP_QUERY_LIMIT,
+    });
+    if (rows.length >= LOOKUP_QUERY_LIMIT) {
+      for (const claim of claimChunk) {
+        logTrainerIdentitySkip(
+          logContext,
+          "exact_identity_lookup_saturated",
+          claim,
+          quarantineEvents,
+        );
+      }
+      continue;
+    }
+    for (const row of rows) {
+      ids.set(
+        exactTrainerKey(row.sourceProvider, row.sourceId),
+        row.trainerId,
+      );
+    }
+  }
+
+  for (const claim of claims) {
+    const existingTrainerId = ids.get(claim.key);
+    if (existingTrainerId) {
+      await db.trainerProviderIdentity.update({
+        where: {
+          sourceProvider_sourceId: {
+            sourceProvider: claim.sourceProvider,
+            sourceId: claim.sourceId,
+          },
+        },
+        data: {
+          profileUrl: claim.profileUrl ?? undefined,
+          lastSeenAt: new Date(),
+          evidenceSha256: providerIdentityEvidenceSha256(
+            claim.sourceProvider,
+            "trainer",
+            claim.sourceId,
+            existingTrainerId,
+          ),
+        },
+      });
+      continue;
+    }
+    if (!claim.name) {
+      logTrainerIdentitySkip(
+        logContext,
+        "missing_official_trainer_name",
+        claim,
+        quarantineEvents,
+      );
+      continue;
+    }
+    const candidates = await db.trainer.findMany({
+      where: { name: { equals: claim.name, mode: "insensitive" } },
+      select: { id: true },
+      take: 3,
+    });
+    if (candidates.length > 0) {
+      logTrainerIdentitySkip(
+        logContext,
+        "possible_existing_candidate",
+        {
+          ...claim,
+          matchingCanonicalRecords: candidates.length,
+        },
+        quarantineEvents,
+      );
+      continue;
+    }
+    if (!AUTHORITATIVE_TRAINER_CREATION_PROVIDERS.has(claim.sourceProvider)) {
+      logTrainerIdentitySkip(
+        logContext,
+        "provider_not_approved_for_creation",
+        claim,
+        quarantineEvents,
+      );
+      continue;
+    }
+
+    const trainer = await db.trainer.create({
+      data: { name: claim.name },
+      select: { id: true },
+    });
+    await db.trainerProviderIdentity.create({
+      data: {
+        trainerId: trainer.id,
+        sourceProvider: claim.sourceProvider,
+        sourceId: claim.sourceId,
+        profileUrl: claim.profileUrl,
+        verificationStatus: "verified",
+        evidenceSha256: providerIdentityEvidenceSha256(
+          claim.sourceProvider,
+          "trainer",
+          claim.sourceId,
+          trainer.id,
+        ),
+      },
+    });
+    ids.set(claim.key, trainer.id);
+  }
+
+  return ids;
+}
+
+function logTrainerIdentitySkip(
+  logContext: LogCorrelationContext,
+  reason: string,
+  value: Partial<TrainerIdentityClaim> & {
+    observations?: number;
+    matchingCanonicalRecords?: number;
+  },
+  quarantineEvents: LiveFeedQuarantineInput[],
+) {
+  logCorrelatedWarn(logContext, "live.trainer_identity.skipped", {
+    reason,
+    provider: value.sourceProvider,
+    sourceId: value.sourceId,
+    trainerName: value.name,
+    observations: value.observations,
+    matchingCanonicalRecords: value.matchingCanonicalRecords,
+  });
+  quarantineEvents.push({
+    provider: quarantineProvider(value.sourceProvider),
+    entityKind: "trainer",
+    sourceId: normalizeSourceId(value.sourceId) ?? null,
+    naturalIdentity: value.name ?? null,
+    reasonCode: reason,
+    classification:
+      reason === "conflicting_provider_observations" ||
+      reason === "possible_existing_candidate"
+        ? "conflict"
+        : "incomplete",
+    evidence: {
+      trainerName: value.name,
+      observations: value.observations,
+      matchingCanonicalRecords: value.matchingCanonicalRecords,
+    },
+  });
+}
+
+function cleanTrainerName(value?: string | null) {
+  const name = value?.normalize("NFKC").replace(/\s+/g, " ").trim();
+  if (!name || name.length > 200) return null;
+  return /^(?:unknown|unnamed|tba|tbd|n\/?a|trainer|-)+$/i.test(name)
+    ? null
+    : name;
 }
 
 async function ensureRunners(
@@ -1957,9 +2593,13 @@ async function ensureRunners(
       boxNumber: item.runner.boxNumber,
       dogId,
       weight: item.runner.weight ?? null,
-      trainerId: item.runner.trainerName
-        ? trainerIds.get(item.runner.trainerName) ?? null
-        : null,
+      trainerId:
+        trainerIds.get(
+          exactTrainerKey(
+            item.runner.sourceProvider ?? item.sourceProvider,
+            item.runner.trainerSourceId,
+          ),
+        ) ?? null,
       scratched: item.runner.scratched ?? false,
       sourceProvider: item.runner.sourceProvider ?? item.sourceProvider ?? null,
       sourceId:
@@ -2382,6 +3022,15 @@ function dogKey(dog: LiveDog) {
 }
 
 function exactDogKey(
+  sourceProvider: string | null | undefined,
+  sourceId: string | null | undefined,
+) {
+  const provider = normalizeProvider(sourceProvider);
+  const id = normalizeSourceId(sourceId);
+  return provider && id ? `${provider}:${id}` : "";
+}
+
+function exactTrainerKey(
   sourceProvider: string | null | undefined,
   sourceId: string | null | undefined,
 ) {

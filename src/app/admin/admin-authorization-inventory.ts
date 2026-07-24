@@ -105,6 +105,8 @@ export const ADMIN_AUTHORIZATION_INVENTORY = {
     ...[
       "approveDogOwnershipAction",
       "rejectDogOwnershipAction",
+      "approveTrainerClaimAction",
+      "rejectTrainerClaimAction",
       "updateBespokeRequestAction",
     ].map((id) => action(id, "src/app/admin/mutations.ts", "moderator")),
     ...[

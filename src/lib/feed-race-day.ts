@@ -17,6 +17,23 @@ export type FeedRaceDaySourceMeeting = {
   }[];
 };
 
+export type FeedRaceDayClaimedRunner = {
+  raceId: string;
+  dogId: string;
+  dogName: string;
+  trainerId: string | null;
+  trainerName: string | null;
+  claimSources: Array<"dog" | "trainer">;
+};
+
+export type FeedRaceDayClaimedDog = {
+  id: string;
+  name: string;
+  trainerId: string | null;
+  trainerName: string | null;
+  claimSources: Array<"dog" | "trainer">;
+};
+
 export type FeedRaceDayRace = {
   id: string;
   track: string;
@@ -25,12 +42,16 @@ export type FeedRaceDayRace = {
   raceTime: Date;
   distance: number;
   statusLabel: string;
+  claimedDogs: FeedRaceDayClaimedDog[];
 };
 
 export type FeedRaceDayData = {
   meetingCount: number;
   raceCount: number;
   stateLabel: string;
+  claimedDogCount: number;
+  claimedTrainerCount: number;
+  myRaces: FeedRaceDayRace[];
   nextRaces: FeedRaceDayRace[];
 };
 
@@ -60,10 +81,15 @@ export function listRacingDayTrackOptions(
 export function selectRacingDayMeetings(
   meetings: readonly FeedRaceDaySourceMeeting[],
   selectedTrackIds?: readonly string[] | null,
+  claimedRaceIds: readonly string[] = [],
 ): readonly FeedRaceDaySourceMeeting[] {
   if (!selectedTrackIds || selectedTrackIds.length === 0) return meetings;
   const selected = new Set(selectedTrackIds);
-  const filtered = meetings.filter(({ track }) => selected.has(track.id));
+  const claimed = new Set(claimedRaceIds);
+  const filtered = meetings.filter(
+    ({ track, races }) =>
+      selected.has(track.id) || races.some(({ id }) => claimed.has(id)),
+  );
   // A stale selection (all chosen tracks idle today) falls back to all meetings.
   return filtered.length > 0 ? filtered : meetings;
 }
@@ -71,16 +97,47 @@ export function selectRacingDayMeetings(
 export function buildFeedRaceDayData(
   meetings: readonly FeedRaceDaySourceMeeting[],
   now: Date,
+  claimedRunners: readonly FeedRaceDayClaimedRunner[] = [],
 ): FeedRaceDayData {
+  const claimedByRace = new Map<string, FeedRaceDayClaimedDog[]>();
+  const claimedDogIds = new Set<string>();
+  const claimedTrainerIds = new Set<string>();
+  for (const runner of claimedRunners) {
+    claimedDogIds.add(runner.dogId);
+    if (
+      runner.trainerId &&
+      runner.claimSources.includes("trainer")
+    ) {
+      claimedTrainerIds.add(runner.trainerId);
+    }
+    const dogs = claimedByRace.get(runner.raceId) ?? [];
+    const existingDog = dogs.find(({ id }) => id === runner.dogId);
+    if (existingDog) {
+      existingDog.claimSources = [
+        ...new Set([...existingDog.claimSources, ...runner.claimSources]),
+      ];
+    } else {
+      dogs.push({
+        id: runner.dogId,
+        name: runner.dogName,
+        trainerId: runner.trainerId,
+        trainerName: runner.trainerName,
+        claimSources: runner.claimSources,
+      });
+      claimedByRace.set(runner.raceId, dogs);
+    }
+  }
+
   const states = [...new Set(meetings.map(({ track }) => track.state).filter(Boolean))];
   const races = meetings.flatMap((meeting) =>
     meeting.races.map((race) => ({
       ...race,
       track: meeting.track.name,
       state: meeting.track.state,
+      claimedDogs: claimedByRace.get(race.id) ?? [],
     })),
   );
-  const nextRaces = races
+  const availableRaces = races
     .map((race) => ({
       ...race,
       status: getRacePresentationStatus({
@@ -92,23 +149,50 @@ export function buildFeedRaceDayData(
       }),
     }))
     .filter(({ status }) => status.key === "live" || status.key === "upcoming")
-    .sort((a, b) => a.raceTime.getTime() - b.raceTime.getTime())
-    .slice(0, 3)
-    .map(({ id, track, state, raceNumber, raceTime, distance, status }) => ({
-      id,
-      track,
-      state,
-      raceNumber,
-      raceTime,
-      distance,
-      statusLabel:
-        status.key === "live" ? status.label : formatRaceCountdown(raceTime, now),
-    }));
+    .sort((a, b) => a.raceTime.getTime() - b.raceTime.getTime());
+  const present = (
+    candidates: typeof availableRaces,
+    limit: number,
+  ): FeedRaceDayRace[] =>
+    candidates
+      .slice(0, limit)
+      .map(
+        ({
+          id,
+          track,
+          state,
+          raceNumber,
+          raceTime,
+          distance,
+          status,
+          claimedDogs,
+        }) => ({
+          id,
+          track,
+          state,
+          raceNumber,
+          raceTime,
+          distance,
+          statusLabel:
+            status.key === "live"
+              ? status.label
+              : formatRaceCountdown(raceTime, now),
+          claimedDogs,
+        }),
+      );
+  const myRaces = present(
+    availableRaces.filter(({ claimedDogs }) => claimedDogs.length > 0),
+    6,
+  );
+  const nextRaces = present(availableRaces, 3);
 
   return {
     meetingCount: meetings.length,
     raceCount: races.length,
     stateLabel: states.length > 0 ? states.join(", ") : "No meetings available",
+    claimedDogCount: claimedDogIds.size,
+    claimedTrainerCount: claimedTrainerIds.size,
+    myRaces,
     nextRaces,
   };
 }

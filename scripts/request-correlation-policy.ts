@@ -191,7 +191,7 @@ export const LOG_CALLSITE_REGISTRY: readonly LogCallsiteRegistryEntry[] = [
   ),
   entry(
     "src/lib/live/sync.ts",
-    "ensureTrainers",
+    "logTrainerIdentitySkip",
     "live.trainer_identity.skipped",
     "logCorrelatedWarn",
     "mixed",
@@ -208,6 +208,20 @@ export const LOG_CALLSITE_REGISTRY: readonly LogCallsiteRegistryEntry[] = [
     "syncLiveData",
     "live_sync.started",
     "logCorrelatedInfo",
+    "mixed",
+  ),
+  entry(
+    "src/lib/live/sync.ts",
+    "syncLiveData",
+    "live_sync.replay_reconciliation_incomplete",
+    "logCorrelatedWarn",
+    "mixed",
+  ),
+  entry(
+    "src/lib/live/sync.ts",
+    "syncLiveData",
+    "live_sync.completeness_alert",
+    "logCorrelatedWarn",
     "mixed",
   ),
   entry(
